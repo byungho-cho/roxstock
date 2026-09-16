@@ -1,1 +1,20 @@
-# roxstock
+# RoxStock
+
+개인용 주식 매매일지 웹 서비스입니다.
+
+## 기술 구성
+
+- Frontend: React + Vite + TypeScript
+- Backend: Node.js + Fastify + TypeScript
+- Database: MariaDB
+- Deployment: Docker Compose + GitHub Actions + Cafe24 가상서버
+
+## 디렉터리
+
+- `frontend/`: React 웹 애플리케이션
+- `backend/`: Fastify API 및 데이터 수집 서버
+- `database/`: DB 스키마와 마이그레이션 자료
+- `infra/`: Docker, Nginx 및 배포 설정
+- `docs/`: 설계 및 운영 문서
+- `scripts/`: 개발·배포 보조 스크립트
+- `.github/workflows/`: CI/CD 워크플로
