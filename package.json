@@ -10,6 +10,7 @@
     "build:backend": "npm --workspace backend run build",
     "typecheck:backend": "npm --workspace backend run typecheck",
     "prisma:generate": "npm --workspace backend run prisma:generate",
-    "prisma:validate": "npm --workspace backend run prisma:validate"
+    "prisma:validate": "npm --workspace backend run prisma:validate",
+    "prisma:migrate:deploy": "npm --workspace backend run prisma:migrate:deploy"
   }
 }
