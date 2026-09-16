@@ -17,7 +17,7 @@ npm run prisma:generate
 npm run dev:backend
 ```
 
-기본 서버 주소는 `http://localhost:3000`입니다.
+기본 서버 주소는 `http://localhost:3300`입니다.
 
 ## 상태 확인
 

@@ -4,7 +4,7 @@ import { buildApp } from './app.js';
 import { prisma } from './lib/prisma.js';
 
 const host = process.env.HOST ?? '0.0.0.0';
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 3300);
 
 if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error('PORT must be an integer between 1 and 65535.');
