@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum MarketType {
+  KOSPI
+  KOSDAQ
+  KONEX
+  OTHER
+}
+
+enum SecurityType {
+  STOCK
+  ETF
+  ETN
+  REIT
+  OTHER
+}
+
+enum WatchlistType {
+  WATCHLIST
+  HOLDING
+  RECOMMENDED
+}
+
+enum CashTransactionType {
+  BUY
+  SELL
+  DEPOSIT
+  WITHDRAWAL
+  DIVIDEND
+}
+
+enum FinancialPeriodType {
+  ANNUAL
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+model Account {
+  id                     BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                   String                  @db.VarChar(100)
+  brokerName             String                  @map("broker_name") @db.VarChar(100)
+  accountNumber          String?                 @map("account_number") @db.VarChar(50)
+  cashBalance            Decimal                 @default(0) @map("cash_balance") @db.Decimal(19, 4)
+  isActive               Boolean                 @default(true) @map("is_active")
+  displayOrder           Int                     @default(0) @map("display_order") @db.UnsignedSmallInt
+  createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  buyTrades              BuyTrade[]
+  cashTransactions       CashTransaction[]
+  dividends              Dividend[]
+  dailyAccountSnapshots  DailyAccountSnapshot[]
+  dailyPositionSnapshots DailyPositionSnapshot[]
+  compoundGrowthGoals    CompoundGrowthGoal[]
+
+  @@map("accounts")
+}
+
+model Security {
+  id                     BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  symbol                 String                  @db.VarChar(20)
+  name                   String                  @db.VarChar(100)
+  marketType             MarketType              @map("market_type")
+  securityType           SecurityType            @default(STOCK) @map("security_type")
+  isActive               Boolean                 @default(true) @map("is_active")
+  createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  watchlistItem          WatchlistItem?
+  buyTrades              BuyTrade[]
+  dividends              Dividend[]
+  marketPrice            MarketPrice?
+  dailyPositionSnapshots DailyPositionSnapshot[]
+  financialStatements    FinancialStatement[]
+  valuationMetrics       ValuationMetric[]
+
+  @@unique([marketType, symbol])
+  @@map("securities")
+}
+
+model WatchlistItem {
+  id             BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId     BigInt        @unique @map("security_id") @db.UnsignedBigInt
+  listType       WatchlistType @default(WATCHLIST) @map("list_type")
+  targetBuyPrice Decimal?      @map("target_buy_price") @db.Decimal(19, 4)
+  priority       Int           @default(0) @db.UnsignedSmallInt
+  memo           String?       @db.VarChar(500)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
+  security       Security      @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([listType, priority])
+  @@map("watchlist_items")
+}
+
+model BuyTrade {
+  id         BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId  BigInt      @map("account_id") @db.UnsignedBigInt
+  securityId BigInt      @map("security_id") @db.UnsignedBigInt
+  boughtAt   DateTime    @map("bought_at") @db.DateTime(3)
+  quantity   Decimal     @db.Decimal(18, 6)
+  unitPrice  Decimal     @map("unit_price") @db.Decimal(19, 4)
+  memo       String?     @db.VarChar(500)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  security   Security    @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sellTrades SellTrade[]
+
+  @@index([accountId, boughtAt])
+  @@index([accountId, securityId, boughtAt])
+  @@map("buy_trades")
+}
+
+model SellTrade {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  buyTradeId BigInt   @map("buy_trade_id") @db.UnsignedBigInt
+  soldAt     DateTime @map("sold_at") @db.DateTime(3)
+  quantity   Decimal  @db.Decimal(18, 6)
+  unitPrice  Decimal  @map("unit_price") @db.Decimal(19, 4)
+  memo       String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  buyTrade   BuyTrade @relation(fields: [buyTradeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([buyTradeId, soldAt])
+  @@index([soldAt])
+  @@map("sell_trades")
+}
+
+model CashTransaction {
+  id              BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId       BigInt              @map("account_id") @db.UnsignedBigInt
+  transactionType CashTransactionType @map("transaction_type")
+  transactionDate DateTime            @map("transaction_date") @db.DateTime(3)
+  amount          Decimal             @db.Decimal(19, 4)
+  feeTaxAmount    Decimal             @default(0) @map("fee_tax_amount") @db.Decimal(19, 4)
+  balanceAfter    Decimal             @map("balance_after") @db.Decimal(19, 4)
+  memo            String?             @db.VarChar(500)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+  account         Account             @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([accountId, transactionDate])
+  @@index([accountId, transactionType, transactionDate])
+  @@map("cash_transactions")
+}
+
+model Dividend {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId    BigInt   @map("account_id") @db.UnsignedBigInt
+  securityId   BigInt   @map("security_id") @db.UnsignedBigInt
+  receivedDate DateTime @map("received_date") @db.Date
+  grossAmount  Decimal  @map("gross_amount") @db.Decimal(19, 4)
+  netAmount    Decimal  @map("net_amount") @db.Decimal(19, 4)
+  memo         String?  @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  security     Security @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([accountId, receivedDate])
+  @@index([securityId, receivedDate])
+  @@map("dividends")
+}
+
+model MarketPrice {
+  securityId         BigInt   @id @map("security_id") @db.UnsignedBigInt
+  currentPrice       Decimal  @map("current_price") @db.Decimal(19, 4)
+  previousClosePrice Decimal? @map("previous_close_price") @db.Decimal(19, 4)
+  priceUpdatedAt     DateTime @map("price_updated_at") @db.DateTime(3)
+  createdAt          DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  security           Security @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("market_prices")
+}
+
+model DailyAccountSnapshot {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId       BigInt   @map("account_id") @db.UnsignedBigInt
+  snapshotDate    DateTime @map("snapshot_date") @db.Date
+  cashBalance     Decimal  @map("cash_balance") @db.Decimal(19, 4)
+  stockValue      Decimal  @map("stock_value") @db.Decimal(19, 4)
+  totalAssetValue Decimal  @map("total_asset_value") @db.Decimal(19, 4)
+  createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([accountId, snapshotDate])
+  @@map("daily_account_snapshots")
+}
+
+model DailyPositionSnapshot {
+  id                   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId            BigInt   @map("account_id") @db.UnsignedBigInt
+  securityId           BigInt   @map("security_id") @db.UnsignedBigInt
+  snapshotDate         DateTime @map("snapshot_date") @db.Date
+  quantity             Decimal  @db.Decimal(18, 6)
+  purchaseAmount       Decimal  @map("purchase_amount") @db.Decimal(19, 4)
+  marketPrice          Decimal  @map("market_price") @db.Decimal(19, 4)
+  marketValue          Decimal  @map("market_value") @db.Decimal(19, 4)
+  unrealizedProfitLoss Decimal  @map("unrealized_profit_loss") @db.Decimal(19, 4)
+  createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  account              Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  security             Security @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([accountId, securityId, snapshotDate])
+  @@map("daily_position_snapshots")
+}
+
+model FinancialStatement {
+  id                 BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId         BigInt              @map("security_id") @db.UnsignedBigInt
+  fiscalYear         Int                 @map("fiscal_year") @db.UnsignedSmallInt
+  periodType         FinancialPeriodType @map("period_type")
+  periodEndDate      DateTime            @map("period_end_date") @db.Date
+  revenue            Decimal?            @db.Decimal(24, 0)
+  operatingProfit    Decimal?            @map("operating_profit") @db.Decimal(24, 0)
+  netIncome          Decimal?            @map("net_income") @db.Decimal(24, 0)
+  totalAssets        Decimal?            @map("total_assets") @db.Decimal(24, 0)
+  totalLiabilities   Decimal?            @map("total_liabilities") @db.Decimal(24, 0)
+  totalEquity        Decimal?            @map("total_equity") @db.Decimal(24, 0)
+  operatingCashFlow  Decimal?            @map("operating_cash_flow") @db.Decimal(24, 0)
+  capitalExpenditure Decimal?            @map("capital_expenditure") @db.Decimal(24, 0)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+  security           Security            @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([securityId, fiscalYear, periodType])
+  @@map("financial_statements")
+}
+
+model ValuationMetric {
+  id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId       BigInt   @map("security_id") @db.UnsignedBigInt
+  metricDate       DateTime @map("metric_date") @db.Date
+  eps              Decimal? @db.Decimal(19, 4)
+  bps              Decimal? @db.Decimal(19, 4)
+  per              Decimal? @db.Decimal(19, 4)
+  pbr              Decimal? @db.Decimal(19, 4)
+  roe              Decimal? @db.Decimal(9, 4)
+  dividendPerShare Decimal? @map("dividend_per_share") @db.Decimal(19, 4)
+  dividendYield    Decimal? @map("dividend_yield") @db.Decimal(9, 4)
+  marketCap        Decimal? @map("market_cap") @db.Decimal(24, 0)
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  security         Security @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([securityId, metricDate])
+  @@map("valuation_metrics")
+}
+
+model CompoundGrowthGoal {
+  id                       BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId                BigInt   @map("account_id") @db.UnsignedBigInt
+  periodName               String   @map("period_name") @db.VarChar(50)
+  goalName                 String   @map("goal_name") @db.VarChar(100)
+  startDate                DateTime @map("start_date") @db.Date
+  endDate                  DateTime @map("end_date") @db.Date
+  initialAssetValue        Decimal  @map("initial_asset_value") @db.Decimal(19, 4)
+  annualTargetRate         Decimal  @map("annual_target_rate") @db.Decimal(9, 4)
+  annualContributionAmount Decimal  @default(0) @map("annual_contribution_amount") @db.Decimal(19, 4)
+  isVisible                Boolean  @default(true) @map("is_visible")
+  displayOrder             Int      @default(0) @map("display_order") @db.UnsignedSmallInt
+  memo                     String?  @db.VarChar(500)
+  createdAt                DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  account                  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([accountId, startDate, endDate])
+  @@index([accountId, isVisible, displayOrder])
+  @@map("compound_growth_goals")
+}
