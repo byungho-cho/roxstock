@@ -1,0 +1,15 @@
+{
+  "name": "roxstock",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace backend run dev",
+    "build:backend": "npm --workspace backend run build",
+    "typecheck:backend": "npm --workspace backend run typecheck",
+    "prisma:generate": "npm --workspace backend run prisma:generate",
+    "prisma:validate": "npm --workspace backend run prisma:validate"
+  }
+}
