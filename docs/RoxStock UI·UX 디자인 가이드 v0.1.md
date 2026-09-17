@@ -9,8 +9,8 @@
 | 대상 시스템 | React·Vite·TypeScript, MUI |
 | 작성 기준일 | 2026년 9월 16일 |
 | 연계 문서 | 매매일지 기획 v0.3, 매매일지 설계 v0.3, 매매일지 스키마 v0.2 |
-| Figma | [RoxStock 디자인 파일](https://www.figma.com/design/fQcXkdZurwnnpdXNjitahH?node-id=0-1) |
-| 문서 상태 | 정보 구조와 1차 디자인 원칙 확정 |
+| Figma | [RoxStock 디자인 파일](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=0-1) |
+| 문서 상태 | 새 Figma 파일에 정보 구조와 다크 디자인 토큰 복구 완료 |
 
 # 1. 디자인 목표
 
@@ -238,7 +238,6 @@ Figma 파일은 다음 순서로 관리한다.
 
 # 11. 이후 작업
 
-- 다크 의미 색상 토큰 완성
 - 타이포그래피와 그림자 스타일 완성
 - 공통 컴포넌트 제작
 - 홈 대시보드 모바일 와이어프레임
