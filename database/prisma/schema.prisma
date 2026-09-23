@@ -51,6 +51,7 @@ model Account {
   brokerName             String                  @map("broker_name") @db.VarChar(100)
   accountNumber          String?                 @map("account_number") @db.VarChar(50)
   cashBalance            Decimal                 @default(0) @map("cash_balance") @db.Decimal(19, 4)
+  cashBalanceAdjustedAt  DateTime?               @map("cash_balance_adjusted_at") @db.DateTime(3)
   isActive               Boolean                 @default(true) @map("is_active")
   displayOrder           Int                     @default(0) @map("display_order") @db.UnsignedSmallInt
   createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
@@ -185,15 +186,17 @@ model MarketPrice {
 }
 
 model DailyAccountSnapshot {
-  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  accountId       BigInt   @map("account_id") @db.UnsignedBigInt
-  snapshotDate    DateTime @map("snapshot_date") @db.Date
-  cashBalance     Decimal  @map("cash_balance") @db.Decimal(19, 4)
-  stockValue      Decimal  @map("stock_value") @db.Decimal(19, 4)
-  totalAssetValue Decimal  @map("total_asset_value") @db.Decimal(19, 4)
-  createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.DateTime(3)
-  account         Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                      BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId               BigInt    @map("account_id") @db.UnsignedBigInt
+  snapshotDate            DateTime  @map("snapshot_date") @db.Date
+  cashBalance             Decimal   @map("cash_balance") @db.Decimal(19, 4)
+  stockValue              Decimal   @map("stock_value") @db.Decimal(19, 4)
+  totalAssetValue         Decimal   @map("total_asset_value") @db.Decimal(19, 4)
+  priceBasisAt            DateTime? @map("price_basis_at") @db.DateTime(3)
+  hasManualCashAdjustment Boolean   @default(false) @map("has_manual_cash_adjustment")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  account                 Account   @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([accountId, snapshotDate])
   @@map("daily_account_snapshots")
@@ -209,6 +212,7 @@ model DailyPositionSnapshot {
   marketPrice          Decimal  @map("market_price") @db.Decimal(19, 4)
   marketValue          Decimal  @map("market_value") @db.Decimal(19, 4)
   unrealizedProfitLoss Decimal  @map("unrealized_profit_loss") @db.Decimal(19, 4)
+  priceBasisAt         DateTime @map("price_basis_at") @db.DateTime(3)
   createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(3)
   account              Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
