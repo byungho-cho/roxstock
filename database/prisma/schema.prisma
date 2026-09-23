@@ -60,7 +60,7 @@ model Account {
   dividends              Dividend[]
   dailyAccountSnapshots  DailyAccountSnapshot[]
   dailyPositionSnapshots DailyPositionSnapshot[]
-  compoundGrowthGoals    CompoundGrowthGoal[]
+  compoundGrowthPlans    CompoundGrowthPlan[]
 
   @@map("accounts")
 }
@@ -105,7 +105,7 @@ model BuyTrade {
   id         BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
   accountId  BigInt      @map("account_id") @db.UnsignedBigInt
   securityId BigInt      @map("security_id") @db.UnsignedBigInt
-  boughtAt   DateTime    @map("bought_at") @db.DateTime(3)
+  tradeDate  DateTime    @map("trade_date") @db.Date
   quantity   Decimal     @db.Decimal(18, 6)
   unitPrice  Decimal     @map("unit_price") @db.Decimal(19, 4)
   memo       String?     @db.VarChar(500)
@@ -115,15 +115,15 @@ model BuyTrade {
   security   Security    @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   sellTrades SellTrade[]
 
-  @@index([accountId, boughtAt])
-  @@index([accountId, securityId, boughtAt])
+  @@index([accountId, tradeDate])
+  @@index([accountId, securityId, tradeDate])
   @@map("buy_trades")
 }
 
 model SellTrade {
   id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
   buyTradeId BigInt   @map("buy_trade_id") @db.UnsignedBigInt
-  soldAt     DateTime @map("sold_at") @db.DateTime(3)
+  tradeDate  DateTime @map("trade_date") @db.Date
   quantity   Decimal  @db.Decimal(18, 6)
   unitPrice  Decimal  @map("unit_price") @db.Decimal(19, 4)
   memo       String?  @db.VarChar(500)
@@ -131,8 +131,8 @@ model SellTrade {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
   buyTrade   BuyTrade @relation(fields: [buyTradeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  @@index([buyTradeId, soldAt])
-  @@index([soldAt])
+  @@index([buyTradeId, tradeDate])
+  @@index([tradeDate])
   @@map("sell_trades")
 }
 
@@ -140,7 +140,7 @@ model CashTransaction {
   id              BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
   accountId       BigInt              @map("account_id") @db.UnsignedBigInt
   transactionType CashTransactionType @map("transaction_type")
-  transactionDate DateTime            @map("transaction_date") @db.DateTime(3)
+  transactionDate DateTime            @map("transaction_date") @db.Date
   amount          Decimal             @db.Decimal(19, 4)
   feeTaxAmount    Decimal             @default(0) @map("fee_tax_amount") @db.Decimal(19, 4)
   balanceAfter    Decimal             @map("balance_after") @db.Decimal(19, 4)
@@ -260,24 +260,44 @@ model ValuationMetric {
   @@map("valuation_metrics")
 }
 
-model CompoundGrowthGoal {
-  id                       BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  accountId                BigInt   @map("account_id") @db.UnsignedBigInt
-  periodName               String   @map("period_name") @db.VarChar(50)
-  goalName                 String   @map("goal_name") @db.VarChar(100)
-  startDate                DateTime @map("start_date") @db.Date
-  endDate                  DateTime @map("end_date") @db.Date
-  initialAssetValue        Decimal  @map("initial_asset_value") @db.Decimal(19, 4)
-  annualTargetRate         Decimal  @map("annual_target_rate") @db.Decimal(9, 4)
-  annualContributionAmount Decimal  @default(0) @map("annual_contribution_amount") @db.Decimal(19, 4)
-  isVisible                Boolean  @default(true) @map("is_visible")
-  displayOrder             Int      @default(0) @map("display_order") @db.UnsignedSmallInt
-  memo                     String?  @db.VarChar(500)
-  createdAt                DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt                DateTime @updatedAt @map("updated_at") @db.DateTime(3)
-  account                  Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+model CompoundGrowthPlan {
+  id                       BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId                BigInt               @map("account_id") @db.UnsignedBigInt
+  planName                 String               @map("plan_name") @db.VarChar(100)
+  startDate                DateTime             @map("start_date") @db.Date
+  endDate                  DateTime             @map("end_date") @db.Date
+  initialAssetValue        Decimal              @map("initial_asset_value") @db.Decimal(19, 4)
+  annualContributionAmount Decimal              @default(0) @map("annual_contribution_amount") @db.Decimal(19, 4)
+  isActive                 Boolean              @default(true) @map("is_active")
+  displayOrder             Int                  @default(0) @map("display_order") @db.UnsignedSmallInt
+  memo                     String?              @db.VarChar(500)
+  createdAt                DateTime             @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
+  account                  Account              @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  goals                    CompoundGrowthGoal[]
 
+  @@unique([accountId, planName])
   @@index([accountId, startDate, endDate])
-  @@index([accountId, isVisible, displayOrder])
+  @@index([accountId, isActive, displayOrder])
+  @@map("compound_growth_plans")
+}
+
+model CompoundGrowthGoal {
+  id               BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  planId           BigInt             @map("plan_id") @db.UnsignedBigInt
+  goalName         String             @map("goal_name") @db.VarChar(100)
+  annualTargetRate Decimal            @map("annual_target_rate") @db.Decimal(9, 4)
+  colorKey         String?            @map("color_key") @db.VarChar(30)
+  isDefault        Boolean            @default(false) @map("is_default")
+  isVisible        Boolean            @default(true) @map("is_visible")
+  displayOrder     Int                @default(0) @map("display_order") @db.UnsignedSmallInt
+  memo             String?            @db.VarChar(500)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
+  plan             CompoundGrowthPlan @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([planId, goalName])
+  @@index([planId, isVisible, displayOrder])
+  @@index([planId, isDefault])
   @@map("compound_growth_goals")
 }
