@@ -45,13 +45,16 @@ export function AppLayout() {
   ), [location.pathname]);
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', pb: isTradePage ? 0 : '104px' }}>
-      <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: 'rgba(8, 13, 24, 0.92)', backdropFilter: 'blur(16px)', borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Toolbar sx={{ width: '100%', maxWidth: 920, mx: 'auto', minHeight: { xs: 56, sm: 64 }, px: { xs: 2, sm: 3 } }}>
-          <Typography variant="h6" component="h1" sx={{ flex: 1 }}>{getHeaderTitle(location.pathname)}</Typography>
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'transparent', pb: isTradePage ? 0 : '104px' }}>
+      <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: 'rgba(8, 13, 24, 0.88)', backdropFilter: 'blur(20px)', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Toolbar sx={{ width: '100%', maxWidth: 960, mx: 'auto', minHeight: { xs: 60, sm: 68 }, px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 800, color: 'primary.main', letterSpacing: '0.12em', lineHeight: 1 }}>ROXSTOCK</Typography>
+            <Typography variant="h6" component="h1" sx={{ mt: 0.45 }}>{getHeaderTitle(location.pathname)}</Typography>
+          </Box>
           {!isTradePage && (
             <Tooltip title="거래등록">
-              <IconButton aria-label="거래등록" onClick={() => navigate('/trade')} sx={{ width: 44, height: 44, bgcolor: '#1F2937', color: 'text.primary', '&:hover': { bgcolor: '#293548' } }}>
+              <IconButton aria-label="거래등록" onClick={() => navigate('/trade')} sx={{ width: 44, height: 44, bgcolor: 'primary.main', color: 'background.default', boxShadow: '0 8px 24px rgba(96, 165, 250, 0.26)', '&:hover': { bgcolor: '#93C5FD' } }}>
                 <AddRounded />
               </IconButton>
             </Tooltip>
@@ -59,7 +62,7 @@ export function AppLayout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="main" sx={{ width: '100%', maxWidth: 920, mx: 'auto', px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
+      <Box component="main" sx={{ width: '100%', maxWidth: 960, mx: 'auto', px: { xs: 1.5, sm: 3 }, py: { xs: 2, sm: 3 } }}>
         <Outlet />
       </Box>
 
@@ -79,7 +82,7 @@ export function AppLayout() {
             showLabels
             value={navigationValue}
             onChange={(_, path: string) => navigate(path)}
-            sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, height: 72, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(17, 24, 39, 0.96)', backdropFilter: 'blur(18px)', '& .MuiBottomNavigationAction-root': { minWidth: 0, px: 0.5, color: 'text.secondary' }, '& .Mui-selected': { color: 'secondary.main' }, '& .MuiBottomNavigationAction-label': { fontSize: 11, mt: 0.25, '&.Mui-selected': { fontSize: 11, fontWeight: 750 } } }}
+            sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, height: 76, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'rgba(17, 24, 39, 0.94)', backdropFilter: 'blur(22px)', '& .MuiBottomNavigationAction-root': { minWidth: 0, px: 0.5, color: '#94A3B8' }, '& .MuiBottomNavigationAction-root::before': { content: '""', position: 'absolute', top: 0, width: 28, height: 3, borderRadius: '0 0 3px 3px', bgcolor: 'transparent' }, '& .Mui-selected': { color: 'secondary.main' }, '& .Mui-selected::before': { bgcolor: 'secondary.main' }, '& .MuiSvgIcon-root': { fontSize: 23 }, '& .MuiBottomNavigationAction-label': { fontSize: 10, mt: 0.4, '&.Mui-selected': { fontSize: 10, fontWeight: 800 } } }}
           >
             {navItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}
           </BottomNavigation>
