@@ -1,10 +1,12 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import type { BuyLot, DashboardData, StockItem } from '../types/models';
 
 export const currentCashBalance = 122_200_000;
 
 export const stockItems: StockItem[] = [
   {
-    id: 'hyundai', symbol: '005380', name: '현대차', listType: 'holding',
+    id: 'hyundai', symbol: '005380', name: '현대자동차', listType: 'holding',
     currentPrice: 519_000, priceChangeRate: 18.4, quantity: 700, averagePrice: 230_000,
     marketValue: 363_300_000, profitAmount: 202_300_000, profitRate: 125.7,
     per: 7.8, pbr: 0.92, roe: 13.4, collectionStatus: 'success',
