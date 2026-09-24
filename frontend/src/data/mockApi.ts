@@ -1,0 +1,26 @@
+import { buyLots, dashboardData, stockItems } from './mockData';
+import type { BuyLot, DashboardData, StockItem, StockListType, TradeDraft } from '../types/models';
+
+const delay = (milliseconds = 420) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+export async function fetchDashboard(): Promise<DashboardData> {
+  await delay();
+  return structuredClone(dashboardData);
+}
+
+export async function fetchStocks(listType?: StockListType): Promise<StockItem[]> {
+  await delay();
+  const stocks = listType ? stockItems.filter((stock) => stock.listType === listType) : stockItems;
+  return structuredClone(stocks);
+}
+
+export async function fetchBuyLots(stockId?: string): Promise<BuyLot[]> {
+  await delay(280);
+  const lots = stockId ? buyLots.filter((lot) => lot.stockId === stockId) : buyLots;
+  return structuredClone(lots);
+}
+
+export async function createTrade(draft: TradeDraft): Promise<{ id: string; draft: TradeDraft }> {
+  await delay(650);
+  return { id: `mock-trade-${Date.now()}`, draft: structuredClone(draft) };
+}
