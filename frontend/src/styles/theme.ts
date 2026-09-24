@@ -34,6 +34,7 @@ export const theme = createTheme({
     MuiTabs: { styleOverrides: { indicator: { height: 3, borderRadius: '3px 3px 0 0' } } },
     MuiTab: { styleOverrides: { root: { fontWeight: 700, minHeight: 48 } } },
     MuiOutlinedInput: { styleOverrides: { root: { borderRadius: 8, backgroundColor: 'rgba(8, 13, 24, 0.42)', '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#475569' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderWidth: 1 } } } },
+    MuiInputBase: { styleOverrides: { input: { '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 }, '&[type=number]': { MozAppearance: 'textfield' } } } },
     MuiTextField: { defaultProps: { size: 'small' } },
   },
 });
