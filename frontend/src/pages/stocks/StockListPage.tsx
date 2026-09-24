@@ -42,7 +42,7 @@ export function StockListPage() {
       </Stack>
 
       <Card sx={{ p: 0.5, bgcolor: 'rgba(17,24,39,0.72)' }}>
-        <Tabs value={activeTab} onChange={(_, value: StockListType) => setActiveTab(value)} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: 3, color: '#94A3B8' }, '& .Mui-selected': { color: 'secondary.main', bgcolor: 'rgba(251,191,36,0.10)' } }}>
+        <Tabs value={activeTab} onChange={(_, value: StockListType) => setActiveTab(value)} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: '6px', color: '#94A3B8' }, '& .Mui-selected': { color: 'secondary.main', bgcolor: 'rgba(251,191,36,0.10)' } }}>
           {tabs.map((tab) => <Tab key={tab.value} value={tab.value} label={tab.label} sx={{ minHeight: 48 }} />)}
         </Tabs>
       </Card>
