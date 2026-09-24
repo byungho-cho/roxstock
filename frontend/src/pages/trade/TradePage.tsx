@@ -97,7 +97,7 @@ export function TradePage() {
     <Stack spacing={{ xs: 1.5, sm: 2 }} sx={{ pb: 11 }}>
       <Button startIcon={<ArrowBackRounded />} color="inherit" onClick={() => navigate(-1)} sx={{ alignSelf: 'flex-start', color: '#94A3B8', px: 0.5 }}>이전 화면</Button>
 
-      <Card sx={{ p: 0.5, bgcolor: 'rgba(17,24,39,0.72)' }}><Tabs value={type} onChange={(_, value: TradeType) => setType(value)} variant="fullWidth" textColor="inherit" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: 3, color: '#94A3B8' }, '& .Mui-selected': { color: type === 'buy' ? 'market.down' : 'market.up', bgcolor: type === 'buy' ? 'rgba(96,165,250,0.11)' : 'rgba(248,113,113,0.10)' } }}><Tab value="buy" label="매수" /><Tab value="sell" label="매도" /></Tabs></Card>
+      <Card sx={{ p: 0.5, bgcolor: 'rgba(17,24,39,0.72)' }}><Tabs value={type} onChange={(_, value: TradeType) => setType(value)} variant="fullWidth" textColor="inherit" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: '6px', color: '#94A3B8' }, '& .Mui-selected': { color: type === 'buy' ? 'market.down' : 'market.up', bgcolor: type === 'buy' ? 'rgba(96,165,250,0.11)' : 'rgba(248,113,113,0.10)' } }}><Tab value="buy" label="매수" /><Tab value="sell" label="매도" /></Tabs></Card>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 7 }}>
@@ -137,7 +137,7 @@ export function TradePage() {
 
         <Grid size={{ xs: 12, sm: 5 }}>
           <Card sx={{ position: { sm: 'sticky' }, top: { sm: 92 }, overflow: 'hidden', background: type === 'buy' ? 'linear-gradient(145deg, rgba(96,165,250,0.12), #111827 45%)' : 'linear-gradient(145deg, rgba(248,113,113,0.10), #111827 45%)', borderColor: type === 'buy' ? 'rgba(96,165,250,0.26)' : 'rgba(248,113,113,0.24)' }}><CardContent sx={{ p: { xs: 1.75, sm: 2.25 } }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: 2.5, bgcolor: 'rgba(148,163,184,0.08)', color: type === 'buy' ? 'market.down' : 'market.up' }}><ReceiptLongRounded fontSize="small" /></Box><Box><Typography variant="subtitle1">예상 결과</Typography><Typography sx={{ fontSize: 11, color: '#94A3B8' }}>입력값 기준 실시간 계산</Typography></Box></Stack>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: '8px', bgcolor: 'rgba(148,163,184,0.08)', color: type === 'buy' ? 'market.down' : 'market.up' }}><ReceiptLongRounded fontSize="small" /></Box><Box><Typography variant="subtitle1">예상 결과</Typography><Typography sx={{ fontSize: 11, color: '#94A3B8' }}>입력값 기준 실시간 계산</Typography></Box></Stack>
             <Stack spacing={1.25} sx={{ mt: 1.5 }}>
               <EstimateLine label="거래금액" value={formatAmount(estimate.tradeAmount)} />
               {type === 'sell' && <EstimateLine label="예상 실현손익" value={formatSignedAmount(estimate.realizedProfit ?? 0)} color={getMarketColor(estimate.realizedProfit ?? 0)} />}
@@ -167,5 +167,5 @@ function EstimateLine({ label, value, color = 'text.primary', emphasis = false }
 }
 
 function SectionHeading({ number, title }: { number: string; title: string }) {
-  return <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ minWidth: 28, height: 24, px: 0.75, display: 'grid', placeItems: 'center', borderRadius: 1.5, bgcolor: 'rgba(96,165,250,0.12)', color: 'primary.main', fontSize: 11, fontWeight: 850 }}>{number}</Box><Typography variant="subtitle1">{title}</Typography></Stack>;
+  return <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ minWidth: 28, height: 24, px: 0.75, display: 'grid', placeItems: 'center', borderRadius: '6px', bgcolor: 'rgba(96,165,250,0.12)', color: 'primary.main', fontSize: 11, fontWeight: 850 }}>{number}</Box><Typography variant="subtitle1">{title}</Typography></Stack>;
 }
