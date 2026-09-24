@@ -1,87 +1,59 @@
-import { AccountBalanceWalletRounded, ArrowForwardIosRounded, BarChartRounded, PaidRounded, QueryStatsRounded, TrendingUpRounded } from '@mui/icons-material';
-import { Box, Card, CardActionArea, CardContent, Chip, CircularProgress, Grid, Skeleton, Stack, Typography } from '@mui/material';
-import { type ReactNode } from 'react';
+import { Box, Card, CardActionArea, CircularProgress, Skeleton, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem } from '../../types/models';
 import { formatAmount, formatRate, formatSignedAmount, getMarketColor } from '../../utils/format';
 
-const collectionStatusLabel: Record<CollectionStatus, string> = {
-  success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패',
-};
+const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
+const cardSx = { bgcolor: '#111827', backgroundImage: 'none', border: '1px solid #1E293B', boxShadow: 'none' };
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { data, isPending, isError, refetch } = useDashboard();
-
   if (isPending) return <DashboardLoading />;
-  if (isError || !data) {
-    return <Card><CardContent><Typography sx={{ fontWeight: 750 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></CardContent></Card>;
-  }
+  if (isError || !data) return <Card sx={cardSx}><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></Card>;
 
   const { summary, holdings, trend } = data;
-  return (
-    <Stack spacing={{ xs: 1.5, sm: 2 }}>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Card sx={{ height: '100%', overflow: 'hidden', background: 'linear-gradient(145deg, rgba(96,165,250,0.16), rgba(17,24,39,0.98) 48%)', borderColor: 'rgba(96,165,250,0.30)' }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}><CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: '8px', bgcolor: 'rgba(96,165,250,0.15)', color: 'primary.main' }}><TrendingUpRounded fontSize="small" /></Box><Box><Typography sx={{ fontWeight: 750 }}>평가자산</Typography><Typography sx={{ fontSize: 11, color: '#94A3B8' }}>주식평가액 + 예수금</Typography></Box></Stack><ArrowForwardIosRounded sx={{ fontSize: 15, color: '#94A3B8' }} /></Stack>
-            <Typography variant="h4" sx={{ mt: 2.25, textAlign: 'right', color: 'market.up' }}>{formatAmount(summary.totalAssets)}</Typography>
-            <Typography sx={{ mt: 0.35, textAlign: 'right', fontSize: 12, color: 'market.up', fontWeight: 750 }}>{formatSignedAmount(summary.totalProfit)} · {formatRate(summary.totalProfitRate)}</Typography>
-            <Stack spacing={0.75} sx={{ mt: 2 }}>
-              <SummaryLine label="매입금액" value={formatAmount(summary.stockValue - summary.totalProfit)} />
-              <SummaryLine label="평가손익" value={formatSignedAmount(summary.totalProfit)} color={getMarketColor(summary.totalProfit)} suffix={formatRate(summary.totalProfitRate)} />
-              <SummaryLine label="주식평가액" value={formatAmount(summary.stockValue)} />
-            </Stack>
-            <Typography variant="caption" sx={{ display: 'block', mt: 1.5, textAlign: 'right', color: '#64748B' }}>시세 수집 {summary.collectedAt}</Typography>
-          </CardContent></CardActionArea></Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Grid container spacing={2} sx={{ height: '100%' }}>
-            <Grid size={{ xs: 6, sm: 12 }}><MetricCard icon={<PaidRounded />} title="일별 손익" value={formatSignedAmount(summary.dailyProfit)} rate={formatRate(summary.dailyProfitRate)} color={getMarketColor(summary.dailyProfit)} onClick={() => navigate('/detail/daily-profit')} /></Grid>
-            <Grid size={{ xs: 6, sm: 12 }}><MetricCard icon={<AccountBalanceWalletRounded />} title="예수금" value={formatAmount(summary.cashBalance)} color="secondary.main" onClick={() => navigate('/detail/cash')} /></Grid>
-          </Grid>
-        </Grid>
-      </Grid>
-
-      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', pt: 0.5 }}><Typography variant="subtitle1">투자 현황</Typography><Chip size="small" label="최근 6개월" /></Stack>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 7 }}>
-          <Card sx={{ height: '100%' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%' }}><CardContent sx={{ p: 2.25 }}>
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><QueryStatsRounded color="primary" /><Typography variant="subtitle1">자산 추이</Typography></Stack><ArrowForwardIosRounded sx={{ fontSize: 15, color: '#94A3B8' }} /></Stack>
-            <TrendChart values={trend.map((item) => item.value)} />
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>{trend.map((item) => <Typography key={item.label} variant="caption" color="text.secondary">{item.label}</Typography>)}</Stack>
-          </CardContent></CardActionArea></Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 5 }}>
-          <Card sx={{ height: '100%' }}><CardContent sx={{ p: 0 }}>
-            <CardActionArea onClick={() => navigate('/stocks')} sx={{ px: 2.25, py: 2 }}><Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><BarChartRounded color="primary" /><Typography variant="subtitle1">보유종목</Typography></Stack><Chip size="small" label={`${holdings.length}개`} /></Stack></CardActionArea>
-            <Box sx={{ px: 2.25, pb: 1.25 }}><Stack spacing={0.25}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack></Box>
-          </CardContent></Card>
-        </Grid>
-      </Grid>
-    </Stack>
-  );
+  const stockRate = (summary.stockValue / summary.totalAssets) * 100;
+  const cashRate = (summary.cashBalance / summary.totalAssets) * 100;
+  const previewHoldings = ['hyundai', 'kia', 'samsung'].map((id) => holdings.find((stock) => stock.id === id)).filter((stock): stock is StockItem => Boolean(stock));
+  return <Stack spacing="12px">
+    <Card sx={{ ...cardSx, height: 102, borderRadius: '16px', position: 'relative' }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
+      <Typography sx={{ position: 'absolute', top: 15, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>평가자산</Typography>
+      <Typography sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', fontSize: 24, lineHeight: '36px', fontWeight: 700, letterSpacing: '-0.24px', color: getMarketColor(summary.dailyProfit) }}>{formatAmount(summary.totalAssets)}</Typography>
+      <Typography sx={{ position: 'absolute', top: 60, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>일별손익</Typography>
+      <Typography sx={{ position: 'absolute', top: 60, left: 76, fontSize: 12, lineHeight: '18px', color: getMarketColor(summary.dailyProfit) }}>{formatRate(summary.dailyProfitRate)}</Typography>
+      <Typography sx={{ position: 'absolute', top: 59, right: 17, width: 161, textAlign: 'right', fontSize: 15, lineHeight: '20px', fontWeight: 600, color: getMarketColor(summary.dailyProfit) }}>{formatSignedAmount(summary.dailyProfit)}</Typography>
+    </CardActionArea></Card>
+    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', height: 82 }}>
+      <QuickCard title="주식평가액" value={formatAmount(summary.stockValue)} rate={formatRate(stockRate)} monthly={formatSignedAmount(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} />
+      <QuickCard title="예수금" value={formatAmount(summary.cashBalance)} rate={formatRate(cashRate)} monthly={formatSignedAmount(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} />
+    </Box>
+    <Card sx={{ ...cardSx, height: 104, borderRadius: '16px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', p: '14px' }}>
+      <Stack direction="row" sx={{ height: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>자산 추이</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>1개월</Typography></Stack>
+      <TrendChart values={trend.map((item) => item.value)} />
+    </CardActionArea></Card>
+    <Card sx={{ ...cardSx, height: 164, borderRadius: '16px' }}><Box sx={{ px: '14px', py: '12px' }}>
+      <CardActionArea onClick={() => navigate('/stocks')} sx={{ height: 24, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#34D399' }} /></Stack><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
+      <Stack spacing="10px" sx={{ mt: '10px' }}>{previewHoldings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+    </Box></Card>
+  </Stack>;
 }
 
-function SummaryLine({ label, value, suffix, color = 'text.primary' }: { label: string; value: string; suffix?: string; color?: string }) {
-  return <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline' }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography variant="body2" sx={{ color, fontWeight: 700 }}>{value}{suffix && <Box component="span" sx={{ ml: 0.75, fontSize: 11 }}>{suffix}</Box>}</Typography></Stack>;
-}
-
-function MetricCard({ icon, title, value, rate, color, onClick }: { icon: ReactNode; title: string; value: string; rate?: string; color: string; onClick: () => void }) {
-  return <Card sx={{ height: '100%' }}><CardActionArea onClick={onClick} sx={{ height: '100%' }}><CardContent sx={{ p: 2 }}><Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: '8px', bgcolor: 'rgba(148,163,184,0.08)', color, '& .MuiSvgIcon-root': { fontSize: 20 } }}>{icon}</Box><ArrowForwardIosRounded sx={{ fontSize: 14, color: '#64748B' }} /></Stack><Typography variant="caption" sx={{ display: 'block', mt: 1.25, color: '#94A3B8' }}>{title}</Typography><Typography sx={{ mt: 0.2, textAlign: 'right', fontWeight: 800, fontSize: { xs: 15, sm: 17 }, color, whiteSpace: 'nowrap' }}>{value}</Typography>{rate && <Typography variant="caption" sx={{ display: 'block', textAlign: 'right', color, fontWeight: 700 }}>{rate}</Typography>}</CardContent></CardActionArea></Card>;
+function QuickCard({ title, value, rate, monthly, color, monthlyColor, onClick }: { title: string; value: string; rate: string; monthly: string; color: string; monthlyColor: string; onClick: () => void }) {
+  return <Card sx={{ ...cardSx, height: 82, borderRadius: '14px', position: 'relative' }}><CardActionArea onClick={onClick} sx={{ height: '100%' }}><Typography sx={{ position: 'absolute', top: 7, left: 11, fontSize: 11, lineHeight: '18px', color: '#CBD5E1' }}>{title}</Typography><Typography sx={{ position: 'absolute', top: 7, right: 13, fontSize: 10, lineHeight: '18px', color, textAlign: 'right' }}>{rate}</Typography><Typography sx={{ position: 'absolute', top: 27, right: 13, width: 153, fontSize: 15, lineHeight: '22px', fontWeight: 600, letterSpacing: '-0.03px', color, textAlign: 'right', whiteSpace: 'nowrap' }}>{value}</Typography><Typography sx={{ position: 'absolute', top: 54, right: 13, width: 154, fontSize: 9, lineHeight: '18px', fontWeight: 600, letterSpacing: '-0.018px', color: monthlyColor, textAlign: 'right', whiteSpace: 'nowrap' }}>이번달 {monthly}</Typography></CardActionArea></Card>;
 }
 
 function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
-  return <CardActionArea onClick={onClick} sx={{ borderRadius: '6px', px: 0.5, py: 1.1 }}><Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 72px 96px', gap: 1, alignItems: 'center' }}><Box sx={{ minWidth: 0 }}><Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}><Typography noWrap sx={{ fontWeight: 750 }}>{stock.name}</Typography><Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ flex: '0 0 auto', width: 7, height: 7, borderRadius: '50%', bgcolor: `collection.${stock.collectionStatus}` }} /></Stack><Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{stock.symbol}</Typography></Box><Typography variant="body2" sx={{ textAlign: 'right', color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography><Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 700, color: getMarketColor(stock.priceChangeRate) }}>{formatAmount(stock.marketValue ?? 0)}</Typography></Box></CardActionArea>;
+  return <CardActionArea onClick={onClick} sx={{ height: 28, borderRadius: '4px' }}><Box sx={{ display: 'grid', gridTemplateColumns: '148px 62px 128px', alignItems: 'center' }}><Typography noWrap sx={{ height: 21, fontSize: 14, lineHeight: '21px' }}>{stock.name}</Typography><Typography sx={{ height: 16, fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography><Typography sx={{ height: 16, fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatAmount(stock.marketValue ?? 0)}</Typography><Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} /></Box></CardActionArea>;
 }
 
 function TrendChart({ values }: { values: number[] }) {
   const min = Math.min(...values); const max = Math.max(...values); const range = Math.max(max - min, 1);
-  const points = values.map((value, index) => `${(index / (values.length - 1)) * 100},${58 - ((value - min) / range) * 48}`).join(' ');
-  return <Box sx={{ mt: 2, mb: 0.75, height: 84, borderBottom: '1px solid', borderColor: 'divider' }}><svg viewBox="0 0 100 64" preserveAspectRatio="none" width="100%" height="100%" role="img" aria-label="최근 6개월 자산 추이"><defs><linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#60A5FA" stopOpacity="0.34" /><stop offset="100%" stopColor="#60A5FA" stopOpacity="0" /></linearGradient></defs><polygon points={`0,64 ${points} 100,64`} fill="url(#trendFill)" /><polyline points={points} fill="none" stroke="#60A5FA" strokeWidth="2.25" vectorEffect="non-scaling-stroke" /></svg></Box>;
+  const points = values.map((value, index) => `${(index / (values.length - 1)) * 340},${36 - ((value - min) / range) * 28}`).join(' ');
+  return <Box sx={{ mt: '10px', width: '100%', height: 40, overflow: 'hidden' }}><svg viewBox="0 0 340 40" preserveAspectRatio="none" width="100%" height="40" role="img" aria-label="최근 1개월 자산 추이"><defs><linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#60A5FA" stopOpacity="0.28" /><stop offset="100%" stopColor="#60A5FA" stopOpacity="0" /></linearGradient></defs><line x1="0" y1="37.5" x2="340" y2="37.5" stroke="#1E293B" /><polygon points={`0,40 ${points} 340,40`} fill="url(#trendFill)" /><polyline points={points} fill="none" stroke="#60A5FA" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg></Box>;
 }
 
 function DashboardLoading() {
-  return <Stack spacing={2}><Grid container spacing={2}>{[1, 2, 3].map((item) => <Grid key={item} size={{ xs: 12, sm: item === 1 ? 6 : 3 }}><Skeleton variant="rounded" height={item === 1 ? 220 : 106} /></Grid>)}</Grid><Skeleton variant="rounded" height={220} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">목 데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
+  return <Stack spacing="12px"><Skeleton variant="rounded" height={102} sx={{ borderRadius: '16px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={82} sx={{ flex: 1, borderRadius: '14px' }} /><Skeleton variant="rounded" height={82} sx={{ flex: 1, borderRadius: '14px' }} /></Stack><Skeleton variant="rounded" height={104} sx={{ borderRadius: '16px' }} /><Skeleton variant="rounded" height={164} sx={{ borderRadius: '16px' }} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">목 데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
 }
