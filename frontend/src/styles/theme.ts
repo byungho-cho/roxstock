@@ -16,7 +16,7 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 8 },
   typography: {
-    fontFamily: 'Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: 'Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     h4: { fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1.15 },
     h5: { fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.2 },
     h6: { fontWeight: 750, letterSpacing: '-0.02em' },
@@ -26,7 +26,7 @@ export const theme = createTheme({
     button: { fontWeight: 700, textTransform: 'none' },
   },
   components: {
-    MuiCssBaseline: { styleOverrides: { html: { backgroundColor: '#080D18' }, body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'radial-gradient(circle at 50% -10%, rgba(96, 165, 250, 0.09), transparent 34%)' }, '*': { boxSizing: 'border-box' }, '::selection': { background: 'rgba(96, 165, 250, 0.28)' } } },
+    MuiCssBaseline: { styleOverrides: { html: { backgroundColor: '#080D18' }, body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'none' }, '*': { boxSizing: 'border-box' }, '::selection': { background: 'rgba(96, 165, 250, 0.28)' } } },
     MuiCard: { styleOverrides: { root: { backgroundColor: '#111827', backgroundImage: 'linear-gradient(145deg, rgba(255,255,255,0.018), transparent 42%)', border: '1px solid #1E293B', boxShadow: '0 12px 32px rgba(0, 0, 0, 0.16)' } } },
     MuiCardActionArea: { styleOverrides: { root: { transition: 'background-color 160ms ease, transform 160ms ease', '@media (hover: hover)': { '&:hover': { backgroundColor: 'rgba(148, 163, 184, 0.045)' } } } } },
     MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: 8, minHeight: 42 }, contained: { color: '#080D18' } } },
