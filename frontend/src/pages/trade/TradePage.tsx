@@ -1,4 +1,4 @@
-import { ArrowBackRounded, CheckCircleRounded } from '@mui/icons-material';
+import { ArrowBackRounded, CheckCircleRounded, ReceiptLongRounded } from '@mui/icons-material';
 import {
   Alert, Box, Button, Card, CardActionArea, CardContent, CircularProgress,
   FormControl, FormControlLabel, FormHelperText, Grid, InputLabel, MenuItem,
@@ -94,15 +94,16 @@ export function TradePage() {
   if (stocksLoading) return <Stack sx={{ minHeight: 360, alignItems: 'center', justifyContent: 'center' }}><CircularProgress /><Typography color="text.secondary" sx={{ mt: 1.5 }}>거래 입력 데이터를 준비하고 있어요.</Typography></Stack>;
 
   return (
-    <Stack spacing={2} sx={{ pb: 11 }}>
-      <Button startIcon={<ArrowBackRounded />} color="inherit" onClick={() => navigate(-1)} sx={{ alignSelf: 'flex-start' }}>이전 화면</Button>
+    <Stack spacing={{ xs: 1.5, sm: 2 }} sx={{ pb: 11 }}>
+      <Button startIcon={<ArrowBackRounded />} color="inherit" onClick={() => navigate(-1)} sx={{ alignSelf: 'flex-start', color: '#94A3B8', px: 0.5 }}>이전 화면</Button>
 
-      <Card><Tabs value={type} onChange={(_, value: TradeType) => setType(value)} variant="fullWidth" textColor="secondary" indicatorColor="secondary"><Tab value="buy" label="매수" /><Tab value="sell" label="매도" /></Tabs></Card>
+      <Card sx={{ p: 0.5, bgcolor: 'rgba(17,24,39,0.72)' }}><Tabs value={type} onChange={(_, value: TradeType) => setType(value)} variant="fullWidth" textColor="inherit" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: 3, color: '#94A3B8' }, '& .Mui-selected': { color: type === 'buy' ? 'market.down' : 'market.up', bgcolor: type === 'buy' ? 'rgba(96,165,250,0.11)' : 'rgba(248,113,113,0.10)' } }}><Tab value="buy" label="매수" /><Tab value="sell" label="매도" /></Tabs></Card>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={2}>
-            <Card><CardContent sx={{ p: 2 }}><Stack spacing={2}>
+            <Card><CardContent sx={{ p: { xs: 1.75, sm: 2.25 } }}><Stack spacing={2}>
+              <SectionHeading number="01" title="거래 기본정보" />
               <FormControl size="small" error={Boolean(errors.stockId)}>
                 <InputLabel id="trade-stock-label">종목</InputLabel>
                 <Select labelId="trade-stock-label" label="종목" value={stockId} onChange={(event) => setStockId(event.target.value)}>
@@ -115,7 +116,7 @@ export function TradePage() {
             </Stack></CardContent></Card>
 
             {type === 'sell' && (
-              <Card><CardContent sx={{ p: 2 }}><Typography variant="subtitle1">매수 Lot 선택</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, mb: 1.5 }}>한 번에 하나의 Lot만 선택할 수 있어요.</Typography>
+              <Card><CardContent sx={{ p: { xs: 1.75, sm: 2.25 } }}><SectionHeading number="02" title="매수 Lot 선택" /><Typography variant="body2" sx={{ mt: 0.75, mb: 1.5, color: '#94A3B8' }}>한 번에 하나의 Lot만 선택할 수 있어요.</Typography>
                 {lotsLoading ? <CircularProgress size={22} /> : lots.length === 0 ? <Alert severity="info">선택한 종목에 매도 가능한 Lot이 없습니다.</Alert> : (
                   <FormControl error={Boolean(errors.lotId)} fullWidth><RadioGroup value={lotId} onChange={(event) => setLotId(event.target.value)} sx={{ gap: 1 }}>
                     {lots.map((lot) => <LotOption key={lot.id} lot={lot} selected={lot.id === lotId} />)}
@@ -124,7 +125,8 @@ export function TradePage() {
               </CardContent></Card>
             )}
 
-            <Card><CardContent sx={{ p: 2 }}><Stack spacing={2}>
+            <Card><CardContent sx={{ p: { xs: 1.75, sm: 2.25 } }}><Stack spacing={2}>
+              <SectionHeading number={type === 'sell' ? '03' : '02'} title={`${type === 'buy' ? '매수' : '매도'} 정보`} />
               <TextField label="수량 (주)" type="number" value={quantity} onChange={(event) => { setQuantity(event.target.value); setErrors((current) => ({ ...current, quantity: undefined })); }} error={Boolean(errors.quantity)} helperText={errors.quantity ?? (selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : '1주 이상 입력')} slotProps={{ htmlInput: { min: 1, max: selectedLot?.remainingQuantity } }} />
               <TextField label="단가 (원)" type="number" value={price} onChange={(event) => { setPrice(event.target.value); setErrors((current) => ({ ...current, price: undefined })); }} error={Boolean(errors.price)} helperText={errors.price} slotProps={{ htmlInput: { min: 1 } }} />
               <TextField label="수수료·세금 (원)" type="number" value={feeTaxAmount} onChange={(event) => setFeeTaxAmount(event.target.value)} slotProps={{ htmlInput: { min: 0 } }} />
@@ -134,21 +136,21 @@ export function TradePage() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 5 }}>
-          <Card sx={{ position: { sm: 'sticky' }, top: { sm: 88 } }}><CardContent sx={{ p: 2 }}>
-            <Typography variant="subtitle1">예상 결과</Typography>
+          <Card sx={{ position: { sm: 'sticky' }, top: { sm: 92 }, overflow: 'hidden', background: type === 'buy' ? 'linear-gradient(145deg, rgba(96,165,250,0.12), #111827 45%)' : 'linear-gradient(145deg, rgba(248,113,113,0.10), #111827 45%)', borderColor: type === 'buy' ? 'rgba(96,165,250,0.26)' : 'rgba(248,113,113,0.24)' }}><CardContent sx={{ p: { xs: 1.75, sm: 2.25 } }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: 2.5, bgcolor: 'rgba(148,163,184,0.08)', color: type === 'buy' ? 'market.down' : 'market.up' }}><ReceiptLongRounded fontSize="small" /></Box><Box><Typography variant="subtitle1">예상 결과</Typography><Typography sx={{ fontSize: 11, color: '#94A3B8' }}>입력값 기준 실시간 계산</Typography></Box></Stack>
             <Stack spacing={1.25} sx={{ mt: 1.5 }}>
               <EstimateLine label="거래금액" value={formatAmount(estimate.tradeAmount)} />
               {type === 'sell' && <EstimateLine label="예상 실현손익" value={formatSignedAmount(estimate.realizedProfit ?? 0)} color={getMarketColor(estimate.realizedProfit ?? 0)} />}
               <EstimateLine label="예수금 반영" value={formatSignedAmount(estimate.cashChange)} color={getMarketColor(estimate.cashChange)} />
-              <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1.25 }}><EstimateLine label="예상 거래 후 예수금" value={formatAmount(estimate.expectedCashBalance)} emphasis /></Box>
+              <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1.5, mt: 0.5 }}><EstimateLine label="예상 거래 후 예수금" value={formatAmount(estimate.expectedCashBalance)} emphasis /></Box>
             </Stack>
             <Alert severity="info" sx={{ mt: 2, '& .MuiAlert-message': { fontSize: 12 } }}>예상 예수금은 이 거래를 최초 등록할 때만 반영되는 값입니다. 이후 수정·삭제로 자동 재계산되지 않습니다.</Alert>
           </CardContent></Card>
         </Grid>
       </Grid>
 
-      <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(17, 24, 39, 0.97)', borderTop: '1px solid', borderColor: 'divider', px: 2, py: 1.5 }}>
-        <Stack direction="row" spacing={1.5} sx={{ maxWidth: 888, mx: 'auto' }}><Button variant="outlined" color="inherit" sx={{ width: 112, height: 48 }} onClick={() => navigate(-1)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 48 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : `${type === 'buy' ? '매수' : '매도'} 등록`}</Button></Stack>
+      <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(17, 24, 39, 0.94)', backdropFilter: 'blur(22px)', borderTop: '1px solid', borderColor: 'divider', px: 2, py: 1.5 }}>
+        <Stack direction="row" spacing={1.5} sx={{ maxWidth: 912, mx: 'auto' }}><Button variant="outlined" color="inherit" sx={{ width: 104, height: 50, color: '#CBD5E1' }} onClick={() => navigate(-1)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 50, bgcolor: type === 'buy' ? 'market.down' : 'market.up', '&:hover': { bgcolor: type === 'buy' ? '#93C5FD' : '#FCA5A5' } }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : `${type === 'buy' ? '매수' : '매도'} 등록`}</Button></Stack>
       </Box>
 
       <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.</Alert></Snackbar>
@@ -161,5 +163,9 @@ function LotOption({ lot, selected }: { lot: BuyLot; selected: boolean }) {
 }
 
 function EstimateLine({ label, value, color = 'text.primary', emphasis = false }: { label: string; value: string; color?: string; emphasis?: boolean }) {
-  return <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline' }}><Typography variant="body2" color="text.secondary">{label}</Typography><Typography sx={{ color, fontWeight: emphasis ? 850 : 700, fontSize: emphasis ? 17 : 14 }}>{value}</Typography></Stack>;
+  return <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}><Typography variant="body2" sx={{ color: emphasis ? 'text.primary' : '#94A3B8', fontWeight: emphasis ? 700 : 400 }}>{label}</Typography><Typography sx={{ color, fontWeight: emphasis ? 850 : 700, fontSize: emphasis ? 19 : 14, letterSpacing: emphasis ? '-0.025em' : 0 }}>{value}</Typography></Stack>;
+}
+
+function SectionHeading({ number, title }: { number: string; title: string }) {
+  return <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Box sx={{ minWidth: 28, height: 24, px: 0.75, display: 'grid', placeItems: 'center', borderRadius: 1.5, bgcolor: 'rgba(96,165,250,0.12)', color: 'primary.main', fontSize: 11, fontWeight: 850 }}>{number}</Box><Typography variant="subtitle1">{title}</Typography></Stack>;
 }

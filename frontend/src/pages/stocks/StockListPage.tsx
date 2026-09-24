@@ -1,4 +1,4 @@
-import { AddRounded, ArrowForwardIosRounded, InboxRounded } from '@mui/icons-material';
+import { AddRounded, ArrowForwardIosRounded, InboxRounded, SwipeRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardActionArea, CardContent, Chip, Grid, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -35,21 +35,21 @@ export function StockListPage() {
 
   const items = showEmpty ? [] : data;
   return (
-    <Stack spacing={2}>
+    <Stack spacing={{ xs: 1.5, sm: 2 }}>
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography color="text.secondary" variant="body2">탭을 누르거나 좌우로 밀어 전환해 보세요.</Typography>
-        <Button size="small" startIcon={<AddRounded />} onClick={() => navigate('/detail/stock-add')}>종목 추가</Button>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', color: '#94A3B8' }}><SwipeRounded sx={{ fontSize: 17 }} /><Typography sx={{ fontSize: 12 }}>좌우로 밀어 탭 전환</Typography></Stack>
+        <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => navigate('/detail/stock-add')}>종목 추가</Button>
       </Stack>
 
-      <Card>
-        <Tabs value={activeTab} onChange={(_, value: StockListType) => setActiveTab(value)} variant="fullWidth" textColor="secondary" indicatorColor="secondary" aria-label="종목 목록 구분">
+      <Card sx={{ p: 0.5, bgcolor: 'rgba(17,24,39,0.72)' }}>
+        <Tabs value={activeTab} onChange={(_, value: StockListType) => setActiveTab(value)} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 44, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 44, borderRadius: 3, color: '#94A3B8' }, '& .Mui-selected': { color: 'secondary.main', bgcolor: 'rgba(251,191,36,0.10)' } }}>
           {tabs.map((tab) => <Tab key={tab.value} value={tab.value} label={tab.label} sx={{ minHeight: 48 }} />)}
         </Tabs>
       </Card>
 
       <Box onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)} sx={{ touchAction: 'pan-y' }}>
         {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => setShowEmpty(false)} /> : (
-          <Grid container spacing={1.5}>
+          <Grid container spacing={{ xs: 1.25, sm: 1.75 }}>
             {items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onTrade={() => navigate(`/trade?type=buy&stock=${stock.id}`)} /></Grid>)}
           </Grid>
         )}
@@ -65,23 +65,23 @@ export function StockListPage() {
 function StockCard({ stock, onClick, onTrade }: { stock: StockItem; onClick: () => void; onTrade: () => void }) {
   const isHolding = stock.listType === 'holding';
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: '100%', overflow: 'hidden' }}>
       <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
-        <CardContent sx={{ p: 2 }}>
+        <CardContent sx={{ p: { xs: 1.75, sm: 2 } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography variant="subtitle1" noWrap>{stock.name}</Typography>
+                <Typography variant="subtitle1" noWrap sx={{ fontSize: 17 }}>{stock.name}</Typography>
                 <Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: `collection.${stock.collectionStatus}` }} />
               </Stack>
               <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{stock.symbol}</Typography>
             </Box>
-            <ArrowForwardIosRounded sx={{ fontSize: 15, color: 'text.secondary', mt: 0.5 }} />
+            <ArrowForwardIosRounded sx={{ fontSize: 15, color: '#64748B', mt: 0.5 }} />
           </Stack>
 
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline', mt: 1.5 }}>
             <Typography color="text.secondary" variant="body2">현재가</Typography>
-            <Box sx={{ textAlign: 'right' }}><Typography sx={{ fontWeight: 800, color: getMarketColor(stock.priceChangeRate) }}>{formatAmount(stock.currentPrice)}</Typography><Typography variant="caption" sx={{ color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography></Box>
+            <Box sx={{ textAlign: 'right' }}><Typography sx={{ fontWeight: 850, fontSize: 18, color: getMarketColor(stock.priceChangeRate), letterSpacing: '-0.025em' }}>{formatAmount(stock.currentPrice)}</Typography><Typography variant="caption" sx={{ color: getMarketColor(stock.priceChangeRate), fontWeight: 700 }}>{formatRate(stock.priceChangeRate)}</Typography></Box>
           </Stack>
 
           {isHolding ? (
@@ -98,7 +98,7 @@ function StockCard({ stock, onClick, onTrade }: { stock: StockItem; onClick: () 
           {stock.note && <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>{stock.note}</Typography>}
         </CardContent>
       </CardActionArea>
-      <Box sx={{ px: 2, pb: 1.5 }}><Button fullWidth size="small" variant="outlined" onClick={(event) => { event.stopPropagation(); onTrade(); }}>매수 등록</Button></Box>
+      <Box sx={{ px: { xs: 1.75, sm: 2 }, pb: 1.5 }}><Button fullWidth size="small" variant="outlined" onClick={(event) => { event.stopPropagation(); onTrade(); }}>매수 등록</Button></Box>
     </Card>
   );
 }
