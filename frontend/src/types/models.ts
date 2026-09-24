@@ -38,6 +38,8 @@ export interface DashboardSummary {
   cashBalance: number;
   dailyProfit: number;
   dailyProfitRate: number;
+  stockMonthlyProfit: number;
+  cashMonthlyProfit: number;
   totalProfit: number;
   totalProfitRate: number;
   collectedAt: string;
