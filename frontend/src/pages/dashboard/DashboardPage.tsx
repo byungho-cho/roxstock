@@ -1,47 +1,49 @@
-import { Box, Card, CardActionArea, CircularProgress, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, CardActionArea, CircularProgress, Skeleton, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem } from '../../types/models';
 import { formatAmount, formatRate, formatSignedAmount, getMarketColor } from '../../utils/format';
+import { AmountText, AppCard, SectionHeader } from '../../components/common/Common';
+import { colors } from '../../styles/tokens';
 
 const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
-const cardSx = { bgcolor: '#111827', backgroundImage: 'none', border: '1px solid #1E293B', boxShadow: 'none' };
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { data, isPending, isError, refetch } = useDashboard();
   if (isPending) return <DashboardLoading />;
-  if (isError || !data) return <Card sx={cardSx}><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></Card>;
+  if (isError || !data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
   const stockRate = (summary.stockValue / summary.totalAssets) * 100;
   const cashRate = (summary.cashBalance / summary.totalAssets) * 100;
   const previewHoldings = ['hyundai', 'kia', 'samsung'].map((id) => holdings.find((stock) => stock.id === id)).filter((stock): stock is StockItem => Boolean(stock));
-  return <Stack spacing="12px">
-    <Card sx={{ ...cardSx, height: 102, borderRadius: '16px', position: 'relative' }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
+  return <Stack spacing={{ xs: '12px', sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: '12px' } }}>
+    <AppCard sx={{ height: { xs: 102, sm: 116 }, position: 'relative', gridColumn: { sm: 1 }, gridRow: { sm: 1 } }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
       <Typography sx={{ position: 'absolute', top: 15, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>평가자산</Typography>
-      <Typography sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', fontSize: 24, lineHeight: '36px', fontWeight: 700, letterSpacing: '-0.24px', color: getMarketColor(summary.dailyProfit) }}>{formatAmount(summary.totalAssets)}</Typography>
+      <Box sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', lineHeight: '36px' }}><AmountText value={summary.totalAssets} size={24} weight={700} color={summary.dailyProfit >= 0 ? colors.marketRise : colors.marketFall} /></Box>
       <Typography sx={{ position: 'absolute', top: 60, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>일별손익</Typography>
       <Typography sx={{ position: 'absolute', top: 60, left: 76, fontSize: 12, lineHeight: '18px', color: getMarketColor(summary.dailyProfit) }}>{formatRate(summary.dailyProfitRate)}</Typography>
       <Typography sx={{ position: 'absolute', top: 59, right: 17, width: 161, textAlign: 'right', fontSize: 15, lineHeight: '20px', fontWeight: 600, color: getMarketColor(summary.dailyProfit) }}>{formatSignedAmount(summary.dailyProfit)}</Typography>
-    </CardActionArea></Card>
-    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', height: 82 }}>
+    </CardActionArea></AppCard>
+    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: { xs: '10px', sm: '16px' }, height: { xs: 82, sm: 88 }, gridColumn: { sm: 1 }, gridRow: { sm: 2 } }}>
       <QuickCard title="주식평가액" value={formatAmount(summary.stockValue)} rate={formatRate(stockRate)} monthly={formatSignedAmount(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} />
       <QuickCard title="예수금" value={formatAmount(summary.cashBalance)} rate={formatRate(cashRate)} monthly={formatSignedAmount(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} />
     </Box>
-    <Card sx={{ ...cardSx, height: 104, borderRadius: '16px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', p: '14px' }}>
-      <Stack direction="row" sx={{ height: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>자산 추이</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>1개월</Typography></Stack>
+    <AppCard sx={{ height: { xs: 104, sm: 224 }, gridColumn: { sm: 1 }, gridRow: { sm: 3 } }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', p: '14px' }}>
+      <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: colors.focus, letterSpacing: '0.02px' }}>1개월</Typography>} />
       <TrendChart values={trend.map((item) => item.value)} />
-    </CardActionArea></Card>
-    <Card sx={{ ...cardSx, height: 164, borderRadius: '16px' }}><Box sx={{ px: '14px', py: '12px' }}>
+    </CardActionArea></AppCard>
+    <AppCard sx={{ height: { xs: 164, sm: 452 }, gridColumn: { sm: 2 }, gridRow: { sm: '1 / 4' } }}><Box sx={{ px: '14px', py: '12px' }}>
       <CardActionArea onClick={() => navigate('/stocks')} sx={{ height: 24, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#34D399' }} /></Stack><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
-      <Stack spacing="10px" sx={{ mt: '10px' }}>{previewHoldings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-    </Box></Card>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { sm: 'none' } }}>{previewHoldings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'none', sm: 'flex' } }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+    </Box></AppCard>
   </Stack>;
 }
 
 function QuickCard({ title, value, rate, monthly, color, monthlyColor, onClick }: { title: string; value: string; rate: string; monthly: string; color: string; monthlyColor: string; onClick: () => void }) {
-  return <Card sx={{ ...cardSx, height: 82, borderRadius: '14px', position: 'relative' }}><CardActionArea onClick={onClick} sx={{ height: '100%' }}><Typography sx={{ position: 'absolute', top: 7, left: 11, fontSize: 11, lineHeight: '18px', color: '#CBD5E1' }}>{title}</Typography><Typography sx={{ position: 'absolute', top: 7, right: 13, fontSize: 10, lineHeight: '18px', color, textAlign: 'right' }}>{rate}</Typography><Typography sx={{ position: 'absolute', top: 27, right: 13, width: 153, fontSize: 15, lineHeight: '22px', fontWeight: 600, letterSpacing: '-0.03px', color, textAlign: 'right', whiteSpace: 'nowrap' }}>{value}</Typography><Typography sx={{ position: 'absolute', top: 54, right: 13, width: 154, fontSize: 9, lineHeight: '18px', fontWeight: 600, letterSpacing: '-0.018px', color: monthlyColor, textAlign: 'right', whiteSpace: 'nowrap' }}>이번달 {monthly}</Typography></CardActionArea></Card>;
+  return <AppCard sx={{ height: 82, borderRadius: '14px', position: 'relative' }}><CardActionArea onClick={onClick} sx={{ height: '100%' }}><Typography sx={{ position: 'absolute', top: 7, left: 11, fontSize: 11, lineHeight: '18px', color: colors.textSecondary }}>{title}</Typography><Typography sx={{ position: 'absolute', top: 7, right: 13, fontSize: 10, lineHeight: '18px', color, textAlign: 'right' }}>{rate}</Typography><Typography sx={{ position: 'absolute', top: 27, right: 13, width: 153, fontSize: 15, lineHeight: '22px', fontWeight: 600, letterSpacing: '-0.03px', color, textAlign: 'right', whiteSpace: 'nowrap' }}>{value}</Typography><Typography sx={{ position: 'absolute', top: 54, right: 13, width: 154, fontSize: 9, lineHeight: '18px', fontWeight: 600, letterSpacing: '-0.018px', color: monthlyColor, textAlign: 'right', whiteSpace: 'nowrap' }}>이번달 {monthly}</Typography></CardActionArea></AppCard>;
 }
 
 function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
