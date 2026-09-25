@@ -1,3 +1,5 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { CheckCircleRounded, KeyboardArrowDownRounded } from '@mui/icons-material';
 import {
   Alert, Box, Card, CardActionArea, CardContent, CircularProgress, FormControl,
@@ -10,7 +12,7 @@ import { currentCashBalance } from '../../data/mockData';
 import { useBuyLots, useStocks } from '../../hooks/useMockData';
 import type { BuyLot, StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
 import { formatAmount, formatDate, formatRate, formatSignedAmount, getMarketColor } from '../../utils/format';
-import { ActionButton, AmountText, AppCard, SegmentedTabs, StockIdentity, SummaryRows } from '../../components/common/Common';
+import { ActionButton, AmountText, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
 import { DateField, NumberField, FormTextarea } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
@@ -94,8 +96,6 @@ export function TradePage() {
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
       <PageHeader compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} />
-      <Box sx={{ px: { xs: 2, sm: 2.5 } }}><SegmentedTabs value={type} onChange={setType} items={[{ value: 'buy', label: '매수' }, { value: 'sell', label: '매도' }]} /></Box>
-
       <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: 2, sm: 2.5 } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={1.25}>
@@ -106,7 +106,7 @@ export function TradePage() {
               <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required />
               <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required />
               <NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} />
-              <FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={2} />
+              <FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} />
             </Stack>
 
             {type === 'sell' && (
