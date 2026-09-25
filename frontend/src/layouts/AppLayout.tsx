@@ -15,9 +15,9 @@ export function AppLayout() {
   const location = useLocation(); const [showScrollTop, setShowScrollTop] = useState(false);
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/';
   useEffect(() => { const handle = () => setShowScrollTop(window.scrollY > window.innerHeight * 0.4); handle(); window.addEventListener('scroll', handle, { passive: true }); return () => window.removeEventListener('scroll', handle); }, []);
-  return <Box sx={{ minHeight: '100dvh', pb: isTradePage ? 0 : { xs: '78px', sm: '70px' } }}>
+  return <Box sx={{ minHeight: '100dvh', pb: isTradePage ? 0 : '56px' }}>
     {!isTradePage && <PageHeader title={getHeaderTitle(location.pathname)} subtitle={isHomePage ? undefined : undefined} />}
     <Box component="main" sx={{ width: '100%', maxWidth: isTradePage ? 880 : { xs: 'none', sm: 816 }, mx: 'auto', px: isTradePage ? 0 : { xs: 1.5, sm: 2.5 }, py: isTradePage || isHomePage ? 0 : 2 }}><Outlet /></Box>
-    {!isTradePage && <><Zoom in={showScrollTop}><IconButton aria-label="맨 위로" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: { xs: 88, sm: 78 }, zIndex: 12, width: 44, height: 44, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
+    {!isTradePage && <><Zoom in={showScrollTop}><IconButton aria-label="맨 위로" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: 60, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
   </Box>;
 }
