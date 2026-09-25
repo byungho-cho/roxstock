@@ -1,5 +1,3 @@
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import { CheckCircleRounded, KeyboardArrowDownRounded } from '@mui/icons-material';
 import {
   Alert, Box, Card, CardActionArea, CardContent, CircularProgress, FormControl,
