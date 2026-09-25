@@ -20,7 +20,25 @@ export const theme = createTheme({
     button: { fontWeight: 700, textTransform: 'none' },
   },
   components: {
-    MuiCssBaseline: { styleOverrides: { html: { backgroundColor: '#080D18' }, body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'none' }, '*': { boxSizing: 'border-box' }, '::selection': { background: 'rgba(96, 165, 250, 0.28)' } } },
+    MuiCssBaseline: { styleOverrides: {
+      html: { backgroundColor: '#080D18' },
+      body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'none' },
+      '*': {
+        boxSizing: 'border-box',
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${colors.borderStrong} transparent`,
+      },
+      '*::-webkit-scrollbar': { width: 6, height: 6 },
+      '*::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+      '*::-webkit-scrollbar-thumb': {
+        backgroundColor: colors.borderStrong,
+        borderRadius: radius.full,
+        border: '1px solid transparent',
+        backgroundClip: 'content-box',
+      },
+      '*::-webkit-scrollbar-thumb:hover': { backgroundColor: colors.textMuted },
+      '::selection': { background: 'rgba(96, 165, 250, 0.28)' },
+    } },
     MuiCard: { styleOverrides: { root: { backgroundColor: colors.surface, backgroundImage: 'none', border: `1px solid ${colors.border}`, boxShadow: 'none' } } },
     MuiCardActionArea: { styleOverrides: { root: { transition: 'background-color 160ms ease, transform 160ms ease', '@media (hover: hover)': { '&:hover': { backgroundColor: 'rgba(148, 163, 184, 0.045)' } } } } },
     MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: radius.md, minHeight: 42 }, contained: { color: colors.canvas } } },
