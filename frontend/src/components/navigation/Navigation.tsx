@@ -1,5 +1,5 @@
 import { AccountBalanceWalletRounded, AddRounded, AnalyticsRounded, AssessmentRounded, CalendarMonthRounded, HomeRounded, MenuRounded, PriceCheckRounded, StarRounded } from '@mui/icons-material';
-import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Box, Button, IconButton, Stack, Toolbar, Tooltip, Typography } from '@mui/material';
+import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colors } from '../../styles/tokens';
 
@@ -9,9 +9,9 @@ const coverItems = [
 ];
 const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <AssessmentRounded /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletRounded /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/financials', icon: <PriceCheckRounded /> }, { label: '시세수집', path: '/collection', icon: <PriceCheckRounded /> }, coverItems[4]];
 
-export function PageHeader({ title, subtitle, showAdd = true, compact = false, titleAction }: { title: string; subtitle?: string; showAdd?: boolean; compact?: boolean; titleAction?: { label: string; path: string } }) {
+export function PageHeader({ title, subtitle, showAdd = true, compact = false }: { title: string; subtitle?: string; showAdd?: boolean; compact?: boolean }) {
   const navigate = useNavigate();
-  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0 }}><Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: 1.5, sm: 2.5 }, py: 0, alignItems: 'center' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}><Typography component="h1" sx={{ fontSize: { xs: 20, sm: 21 }, lineHeight: '28px', fontWeight: 700, letterSpacing: '-0.11px', textAlign: compact ? 'center' : 'left' }}>{title}</Typography>{titleAction && <Button size="small" variant="outlined" startIcon={<AddRounded sx={{ fontSize: '15px !important' }} />} onClick={() => navigate(titleAction.path)} sx={{ minHeight: 28, height: 28, px: 1, borderRadius: '6px', fontSize: 11, lineHeight: 1 }}>{titleAction.label}</Button>}</Stack>{subtitle && <Typography sx={{ mt: 0.25, fontSize: 11, color: colors.textMuted }}>{subtitle}</Typography>}</Box>{showAdd && <Tooltip title="거래등록"><IconButton aria-label="거래등록" onClick={() => navigate('/trade')} sx={{ width: 36, height: 36, bgcolor: colors.raised, color: colors.textPrimary, '&:hover': { bgcolor: colors.borderStrong } }}><AddRounded sx={{ fontSize: 22 }} /></IconButton></Tooltip>}{compact && <Box sx={{ width: 36 }} />}</Toolbar></AppBar>;
+  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0 }}><Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: 1.5, sm: 2.5 }, py: 0, alignItems: 'center' }}><Box sx={{ flex: 1 }}><Typography component="h1" sx={{ fontSize: { xs: 20, sm: 21 }, lineHeight: '28px', fontWeight: 700, letterSpacing: '-0.11px', textAlign: compact ? 'center' : 'left' }}>{title}</Typography>{subtitle && <Typography sx={{ mt: 0.25, fontSize: 11, color: colors.textMuted }}>{subtitle}</Typography>}</Box>{showAdd && <Tooltip title="거래등록"><IconButton aria-label="거래등록" onClick={() => navigate('/trade')} sx={{ width: 36, height: 36, bgcolor: colors.raised, color: colors.textPrimary, '&:hover': { bgcolor: colors.borderStrong } }}><AddRounded sx={{ fontSize: 22 }} /></IconButton></Tooltip>}{compact && <Box sx={{ width: 36 }} />}</Toolbar></AppBar>;
 }
 
 export function BottomNav() {
