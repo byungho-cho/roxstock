@@ -2,6 +2,7 @@ import { AddRounded, CloseRounded, EditRounded, FavoriteBorderRounded, FavoriteR
 import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
@@ -15,6 +16,7 @@ const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR'
 
 export function StockListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<StockListType>('holding');
   const [query, setQuery] = useState('');
   const [descending, setDescending] = useState(true);
@@ -75,7 +77,18 @@ export function StockListPage() {
       {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => setPriceStock(stock)} /></Grid>)}</Grid>}
     </Box>
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
-    <CurrentPriceDialog stock={priceStock} onClose={() => setPriceStock(null)} />
+    <CurrentPriceDialog stock={priceStock} onClose={() => setPriceStock(null)} onSave={(value) => {
+      if (!priceStock) return;
+      const previousClose = priceStock.currentPrice / (1 + priceStock.priceChangeRate / 100);
+      priceStock.currentPrice = value;
+      priceStock.priceChangeRate = previousClose ? ((value - previousClose) / previousClose) * 100 : 0;
+      if (priceStock.quantity !== undefined) {
+        priceStock.marketValue = priceStock.quantity * value;
+        priceStock.profitAmount = priceStock.marketValue - priceStock.quantity * (priceStock.averagePrice ?? 0);
+      }
+      void queryClient.invalidateQueries({ queryKey: ['stocks'] });
+      setPriceStock(null);
+    }} />
   </Stack>;
 }
 
@@ -117,7 +130,7 @@ function StockCard({ stock, onClick, onEditPrice }: { stock: StockItem; onClick:
   </Card>;
 }
 
-function CurrentPriceDialog({ stock, onClose }: { stock: StockItem | null; onClose: () => void }) {
+function CurrentPriceDialog({ stock, onClose, onSave }: { stock: StockItem | null; onClose: () => void; onSave: (value: number) => void }) {
   const [value, setValue] = useState<string | null>(null);
   const currentValue = value ?? String(stock?.currentPrice ?? '');
   const parsedValue = Number(currentValue.replace(/,/g, '')) || 0;
@@ -134,7 +147,7 @@ function CurrentPriceDialog({ stock, onClose }: { stock: StockItem | null; onClo
       <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>자동 수집 현재가</Typography><Typography sx={{ fontSize: 13, color: getMarketColor(stock?.priceChangeRate ?? 0) }}>{formatWon(stock?.currentPrice ?? 0)}</Typography></Stack>
       <Stack spacing="6px"><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>변경할 현재가</Typography><Box sx={{ height: 36, display: 'flex', alignItems: 'center', px: '12px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '10px' }}><Typography sx={{ width: 60, fontSize: 12, color: colors.textMuted }}>금액</Typography><InputBase autoFocus value={parsedValue ? parsedValue.toLocaleString('ko-KR') : ''} onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ''))} inputProps={{ inputMode: 'numeric', 'aria-label': '변경할 현재가' }} sx={{ flex: 1, '& input': { p: 0, textAlign: 'right', fontSize: 14, fontWeight: 600 } }} /><Typography sx={{ ml: 0.5, fontSize: 14, fontWeight: 600 }}>원</Typography><IconButton aria-label="금액 지우기" onClick={() => setValue('')} sx={{ ml: 0.5, width: 20, height: 20, color: '#B8C7DB' }}><CloseRounded sx={{ fontSize: 14 }} /></IconButton></Box></Stack>
       <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>전일 대비</Typography><Typography sx={{ fontSize: 13, color: marketColor }}>{formatWon(change)}　{formatRate(changeRate)}</Typography></Stack>
-      <Stack direction="row" spacing="10px"><Button fullWidth onClick={close} sx={{ height: 40, border: `1px solid ${colors.border}`, borderRadius: '9px', bgcolor: colors.surface, color: colors.textSecondary, fontSize: 13 }}>취소</Button><Button fullWidth variant="contained" disabled={!parsedValue} onClick={close} sx={{ height: 40, borderRadius: '9px', fontSize: 13, boxShadow: 'none' }}>변경</Button></Stack>
+      <Stack direction="row" spacing="10px"><Button fullWidth onClick={close} sx={{ height: 40, border: `1px solid ${colors.border}`, borderRadius: '9px', bgcolor: colors.surface, color: colors.textSecondary, fontSize: 13 }}>취소</Button><Button fullWidth variant="contained" disabled={!parsedValue} onClick={() => { onSave(parsedValue); setValue(null); }} sx={{ height: 40, borderRadius: '9px', fontSize: 13, boxShadow: 'none' }}>변경</Button></Stack>
     </Stack>
   </Dialog>;
 }
