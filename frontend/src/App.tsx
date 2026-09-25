@@ -6,6 +6,7 @@ import { StockListPage } from './pages/stocks/StockListPage';
 import { StockDetailPage } from './pages/stocks/StockDetailPage';
 import { StockInsightPage } from './pages/stocks/StockInsightPage';
 import { StockAddPage } from './pages/stocks/StockAddPage';
+import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="stocks" element={<StockListPage />} />
         <Route path="stocks/add" element={<StockAddPage />} />
+        <Route path="stocks/:stockId/edit" element={<StockEditPage />} />
         <Route path="stocks/:stockId/value" element={<StockInsightPage mode="value" />} />
         <Route path="stocks/:stockId/financials" element={<StockInsightPage mode="financials" />} />
         <Route path="stocks/:stockId" element={<StockDetailPage />} />
