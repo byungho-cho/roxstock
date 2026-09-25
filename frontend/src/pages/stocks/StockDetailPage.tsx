@@ -1,4 +1,4 @@
-import { ArrowBackIosNewRounded, FavoriteRounded, MoreHorizRounded } from '@mui/icons-material';
+import { ArrowBackIosNewRounded, DeleteOutlineRounded, EditRounded, FavoriteRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -31,15 +31,75 @@ export function StockDetailPage() {
 
 function StockHeader({ name, symbol, previousName, nextName, onBack }: { name: string; symbol: string; previousName: string; nextName: string; onBack: () => void }) { return <Stack direction="row" sx={{ height: 48, alignItems: 'center', justifyContent: 'space-between' }}><IconButton onClick={onBack} sx={{ width: 40, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ position: 'relative', width: 248, height: 40, textAlign: 'center' }}><Typography sx={{ fontSize: 18, lineHeight: '22px', fontWeight: 600 }}>{name}</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', color: colors.textMuted }}>{symbol}</Typography><Typography sx={{ position: 'absolute', left: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left', fontSize: 10, color: colors.textMuted }}>{previousName}</Typography><Typography sx={{ position: 'absolute', right: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', fontSize: 10, color: colors.textMuted }}>{nextName}</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 20 }} /></Stack>; }
 
-function HoldingDetail({ tab, invested, market, profit, stock, onDelete, navigate }: any) {
-  if (tab === 'trades') return <Stack spacing={1.5}>{['2026.09.10 매수 70주','2026.07.22 매수 20주','2026.03.14 매도 10주'].map((text, i) => <Card key={text} sx={{ borderRadius: '16px' }}><CardContent><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography>{text}</Typography><IconButton size="small" onClick={onDelete}><MoreHorizRounded /></IconButton></Stack><Typography sx={{ mt: 1, color: i === 2 ? colors.marketRise : colors.marketFall }}>{won((i + 1) * 4_370_000)}</Typography></CardContent></Card>)}</Stack>;
-  if (tab === 'summary') return <Stack spacing={1.5}><InfoCard title="투자 요약" rows={[['매입금액',won(invested)],['평가금액',won(market)],['평가손익',won(profit)],['수익률',formatRate(stock.profitRate ?? 0)]]} /><Stack direction="row" spacing={1}><Button fullWidth variant="outlined" onClick={() => navigate(`/stocks/${stock.id}/value`)}>가치분석</Button><Button fullWidth variant="outlined" onClick={() => navigate(`/stocks/${stock.id}/financials`)}>재무지표</Button></Stack></Stack>;
+function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
+  if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => navigate(`/trade?type=sell&stock=${stock.id}`)} />;
+  if (tab === 'summary') return <HoldingSummary />;
   const lots: HoldingLot[] = [
     { date: '2026.09.10', heldDays: 8, quantity: 70, buyPrice: 230_000, expectedPrice: 236_900, profitRate: 3, profitAmount: 483_000, targets: [5, 10, 15] },
     { date: '2026.07.22', heldDays: 58, quantity: 20, buyPrice: 218_500, expectedPrice: 236_854, profitRate: 8.4, profitAmount: 367_080, targets: [10, 15, 20] },
   ];
   return <Stack spacing="12px" sx={{ maxHeight: 'calc(100dvh - 266px)', minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} />)}</Stack>;
 }
+
+function HoldingSummary() {
+  return <Stack spacing="12px">
+    <SummaryCard title="보유 요약" height={163} rows={[
+      { label: '평균단가', rate: '700주', value: '230,000원' },
+      { label: '매입금액', value: '161,000,000원' },
+      { label: '평가금액', value: '241,500,000원', accent: true },
+      { label: '평가손익', rate: '50.0%', value: '80,500,000원', accent: true, strong: true },
+    ]} />
+    <SummaryCard title="거래 요약" height={188} rows={[
+      { label: '매수', value: '244,982,000원' },
+      { label: '매도', value: '284,510,000원', accent: true },
+      { label: '손익', rate: '16.1%', value: '39,528,000원', accent: true },
+      { label: '배당', rate: '1.8%', value: '4,414,860원', accent: true },
+      { label: '총계', rate: '17.9%', value: '43,942,860원', accent: true },
+    ]} />
+  </Stack>;
+}
+
+type SummaryRow = { label: string; rate?: string; value: string; accent?: boolean; strong?: boolean };
+
+function SummaryCard({ title, height, rows }: { title: string; height: number; rows: SummaryRow[] }) {
+  return <Card sx={{ height, minHeight: height, borderRadius: '16px', borderColor: '#23324A' }}><CardContent sx={{ p: '13px 15px', '&:last-child': { pb: '13px' } }}>
+    <Typography sx={{ mb: '7px', fontSize: 15, lineHeight: '22px', fontWeight: 600 }}>{title}</Typography>
+    {rows.map((row) => <Stack key={row.label} direction="row" sx={{ height: 26, alignItems: 'center' }}>
+      <Typography sx={{ width: 112, fontSize: 12, lineHeight: '22px', color: colors.textMuted }}>{row.label}</Typography>
+      <Typography sx={{ width: 56, textAlign: 'right', fontSize: 13, lineHeight: '22px', fontWeight: row.accent ? 600 : 500, color: row.accent ? '#FF6B6B' : colors.textSecondary }}>{row.rate ?? ''}</Typography>
+      <Typography sx={{ flex: 1, textAlign: 'right', fontSize: 13, lineHeight: '22px', fontWeight: row.strong ? 600 : 500, color: row.accent ? '#FF6B6B' : colors.textSecondary }}>{row.value}</Typography>
+    </Stack>)}
+  </CardContent></Card>;
+}
+
+type TradeHistoryItem = { profit: number; rate: number; sellDate: string; quantity: number; buyPrice: number; buyDate: string; sellPrice: number; annualRate: number; heldDays: number };
+
+function TradeHistory({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  const trades: TradeHistoryItem[] = [
+    { profit: 275_000, rate: 14.4, sellDate: '2026.08.14', quantity: 5, buyPrice: 381_000, buyDate: '2026.07.28', sellPrice: 436_000, annualRate: 308.8, heldDays: 17 },
+    { profit: 185_000, rate: 10, sellDate: '2026.08.05', quantity: 5, buyPrice: 369_000, buyDate: '2026.07.28', sellPrice: 406_000, annualRate: 456.3, heldDays: 8 },
+  ];
+  return <Stack sx={{ maxHeight: 'calc(100dvh - 266px)', minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
+    <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>12건</Typography><Typography sx={{ width: 144, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#FF6B6B' }}>11,930,000원</Typography></Stack>
+    <Stack spacing="8px">{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} onEdit={onEdit} onDelete={onDelete} />)}</Stack>
+    <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.disabled }}>이전 연도 거래를 불러오는 중…</Typography></Box>
+  </Stack>;
+}
+
+function TradeHistoryCard({ trade, onEdit, onDelete }: { trade: TradeHistoryItem; onEdit: () => void; onDelete: () => void }) {
+  return <Card sx={{ height: 176, minHeight: 176, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden' }}><CardContent sx={{ p: '11px 15px 8px', '&:last-child': { pb: '8px' } }}>
+    <Stack direction="row" sx={{ height: 28, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 600, color: '#FF6B6B' }}>{won(trade.profit)}　{trade.rate.toFixed(1)}%</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>{trade.sellDate}</Typography></Stack>
+    <Box sx={{ height: '1px', bgcolor: colors.raised }} />
+    <TradeLine label="매수" expression={`${trade.quantity} × ${won(trade.buyPrice)}`} date={trade.buyDate} total={won(trade.quantity * trade.buyPrice)} />
+    <TradeLine label="매도" expression={`${trade.quantity} × ${won(trade.sellPrice)}`} date={trade.sellDate} total={won(trade.quantity * trade.sellPrice)} accent />
+    <Box sx={{ height: '1px', bgcolor: colors.raised, mt: '4px' }} />
+    <Stack direction="row" sx={{ height: 35, alignItems: 'center' }}><Typography sx={{ width: 42, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>연수익</Typography><Typography sx={{ width: 136, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>{trade.annualRate.toFixed(1)}%</Typography><Typography sx={{ flex: 1, fontSize: 9, color: colors.textMuted }}>[1년기준]</Typography><Typography sx={{ width: 76, textAlign: 'right', fontSize: 11, color: colors.textMuted }}>보유일 {trade.heldDays}일</Typography></Stack>
+    <Box sx={{ height: '1px', bgcolor: colors.raised }} />
+    <Stack direction="row" spacing="8px" sx={{ height: 32, alignItems: 'center', justifyContent: 'flex-end' }}><IconButton aria-label="거래 수정" size="small" onClick={onEdit} sx={{ width: 26, height: 26, color: colors.textMuted }}><EditRounded sx={{ fontSize: 17 }} /></IconButton><IconButton aria-label="거래 삭제" size="small" onClick={onDelete} sx={{ width: 26, height: 26, color: colors.textMuted }}><DeleteOutlineRounded sx={{ fontSize: 18 }} /></IconButton></Stack>
+  </CardContent></Card>;
+}
+
+function TradeLine({ label, expression, date, total, accent = false }: { label: string; expression: string; date: string; total: string; accent?: boolean }) { const color = accent ? '#FF6B6B' : colors.textSecondary; return <Stack direction="row" sx={{ height: 23, alignItems: 'center' }}><Typography sx={{ width: 42, fontSize: 12, lineHeight: '19px', fontWeight: 600, color }}>{label}</Typography><Typography sx={{ width: 136, fontSize: 12, lineHeight: '19px', fontWeight: 500, color }}>{expression}</Typography><Typography sx={{ flex: 1, fontSize: 10, lineHeight: '19px', color: accent ? '#FF9A9A' : colors.disabled }}>[{date}]</Typography><Typography sx={{ width: 76, textAlign: 'right', fontSize: 11, lineHeight: '19px', fontWeight: accent ? 600 : 500, color }}>{total}</Typography></Stack>; }
 
 type HoldingLot = { date: string; heldDays: number; quantity: number; buyPrice: number; expectedPrice: number; profitRate: number; profitAmount: number; targets: number[] };
 
