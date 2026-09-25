@@ -1,6 +1,6 @@
 import { ArrowBackIosNewRounded, DeleteOutlineRounded, EditRounded, FavoriteRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type TouchEventHandler } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
@@ -16,12 +16,29 @@ export function StockDetailPage() {
   const [tab, setTab] = useState<DetailTab>(holding ? 'holding' : 'summary');
   const [dialog, setDialog] = useState<'price' | 'category' | 'delete' | null>(null);
   const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0); const market = stock.marketValue ?? 0; const profit = stock.profitAmount ?? market - invested;
-  const holdingStocks = stockItems.filter((item) => item.listType === 'holding');
-  const stockIndex = holdingStocks.findIndex((item) => item.id === stock.id);
-  const previousName = stockIndex > 0 ? holdingStocks[stockIndex - 1].name : '기아';
-  const nextName = stockIndex >= 0 && stockIndex < holdingStocks.length - 1 ? holdingStocks[stockIndex + 1].name : 'SK하이닉스';
+  const detailStocks = stockItems.filter((item) => item.listType === stock.listType);
+  const stockIndex = detailStocks.findIndex((item) => item.id === stock.id);
+  const previousStock = detailStocks[(stockIndex - 1 + detailStocks.length) % detailStocks.length];
+  const nextStock = detailStocks[(stockIndex + 1) % detailStocks.length];
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const handleSwipeStart: TouchEventHandler<HTMLDivElement> = (event) => {
+    const touch = event.touches[0];
+    swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+  const handleSwipeEnd: TouchEventHandler<HTMLDivElement> = (event) => {
+    const start = swipeStart.current;
+    const touch = event.changedTouches[0];
+    swipeStart.current = null;
+    if (!start || !touch || detailStocks.length < 2) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 52 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+
+    navigate(`/stocks/${deltaX < 0 ? nextStock.id : previousStock.id}`);
+  };
   return <Stack spacing="12px" sx={{ pb: 2 }}>
-    {holding ? <StockHeader name={stock.name} symbol={stock.symbol} previousName={previousName} nextName={nextName} onBack={() => navigate('/stocks')} /> : <InterestHeader name={stock.name} symbol={stock.symbol} onBack={() => navigate('/stocks')} />}
+    {holding ? <StockHeader name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} onBack={() => navigate('/stocks')} onSwipeStart={handleSwipeStart} onSwipeEnd={handleSwipeEnd} /> : <InterestHeader name={stock.name} symbol={stock.symbol} onBack={() => navigate('/stocks')} onSwipeStart={handleSwipeStart} onSwipeEnd={handleSwipeEnd} />}
     {holding && <><Card sx={{ height: 64, borderRadius: '16px' }}><CardContent sx={{ height: '100%', px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:last-child': { pb: 1 } }}><Box><Typography sx={{ fontSize: 22, fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 12, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice * stock.priceChangeRate / 100)} ({formatRate(stock.priceChangeRate)})</Typography></Box><Button onClick={() => navigate(`/trade?type=buy&stock=${stock.id}`)} sx={{ minHeight: 32, bgcolor: colors.raised }}>매수 +</Button></CardContent></Card>
     <Tabs value={tab} onChange={(_, value: DetailTab) => setTab(value)} variant="fullWidth" sx={{ minHeight: 40, p: '3px', bgcolor: colors.surface, borderRadius: '14px', '& .MuiTab-root': { minHeight: 34, py: 0, fontSize: 12, borderRadius: '9px' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: '#fff !important' } }}><Tab value="summary" label="요약" /><Tab value="holding" label="보유 현황" /><Tab value="trades" label="거래내역" /></Tabs></>}
     {holding ? <HoldingDetail tab={tab} invested={invested} market={market} profit={profit} stock={stock} onDelete={() => setDialog('delete')} navigate={navigate} /> : <InterestDetail stock={stock} onCategory={() => setDialog('category')} onDelete={() => setDialog('delete')} onEdit={() => navigate(`/stocks/${stock.id}/edit`)} />}
@@ -29,9 +46,14 @@ export function StockDetailPage() {
   </Stack>;
 }
 
-function StockHeader({ name, symbol, previousName, nextName, onBack }: { name: string; symbol: string; previousName: string; nextName: string; onBack: () => void }) { return <Stack direction="row" sx={{ height: 48, alignItems: 'center', justifyContent: 'space-between' }}><IconButton onClick={onBack} sx={{ width: 40, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ position: 'relative', width: 248, height: 40, textAlign: 'center' }}><Typography sx={{ fontSize: 18, lineHeight: '22px', fontWeight: 600 }}>{name}</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', color: colors.textMuted }}>{symbol}</Typography><Typography sx={{ position: 'absolute', left: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left', fontSize: 10, color: colors.textMuted }}>{previousName}</Typography><Typography sx={{ position: 'absolute', right: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', fontSize: 10, color: colors.textMuted }}>{nextName}</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 20 }} /></Stack>; }
+type SwipeHeaderProps = {
+  onSwipeStart: TouchEventHandler<HTMLDivElement>;
+  onSwipeEnd: TouchEventHandler<HTMLDivElement>;
+};
 
-function InterestHeader({ name, symbol, onBack }: { name: string; symbol: string; onBack: () => void }) { return <Stack direction="row" sx={{ height: 58, alignItems: 'flex-start', justifyContent: 'space-between', pt: '4px' }}><IconButton onClick={onBack} sx={{ width: 40, height: 36, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 19, lineHeight: '24px', fontWeight: 700 }}>{name}</Typography><Typography sx={{ mt: '3px', fontSize: 10, color: colors.textMuted }}>A{symbol} · 코스피</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 22 }} /></Stack>; }
+function StockHeader({ name, symbol, previousName, nextName, onBack, onSwipeStart, onSwipeEnd }: { name: string; symbol: string; previousName: string; nextName: string; onBack: () => void } & SwipeHeaderProps) { return <Stack direction="row" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} sx={{ height: 48, alignItems: 'center', justifyContent: 'space-between', touchAction: 'pan-y', userSelect: 'none' }}><IconButton onClick={onBack} sx={{ width: 40, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ position: 'relative', width: 248, height: 40, textAlign: 'center' }}><Typography sx={{ fontSize: 18, lineHeight: '22px', fontWeight: 600 }}>{name}</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', color: colors.textMuted }}>{symbol}</Typography><Typography sx={{ position: 'absolute', left: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left', fontSize: 10, color: colors.textMuted }}>{previousName}</Typography><Typography sx={{ position: 'absolute', right: 0, bottom: 0, width: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', fontSize: 10, color: colors.textMuted }}>{nextName}</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 20 }} /></Stack>; }
+
+function InterestHeader({ name, symbol, onBack, onSwipeStart, onSwipeEnd }: { name: string; symbol: string; onBack: () => void } & SwipeHeaderProps) { return <Stack direction="row" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd} sx={{ height: 58, alignItems: 'flex-start', justifyContent: 'space-between', pt: '4px', touchAction: 'pan-y', userSelect: 'none' }}><IconButton onClick={onBack} sx={{ width: 40, height: 36, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 19, lineHeight: '24px', fontWeight: 700 }}>{name}</Typography><Typography sx={{ mt: '3px', fontSize: 10, color: colors.textMuted }}>A{symbol} · 코스피</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 22 }} /></Stack>; }
 
 function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
   if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => navigate(`/trade?type=sell&stock=${stock.id}`)} />;
