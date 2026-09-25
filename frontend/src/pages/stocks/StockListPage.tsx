@@ -1,5 +1,5 @@
 import { AddRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardActionArea, CardContent, Chip, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Button, Card, CardActionArea, CardContent, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStocks } from '../../hooks/useMockData';
@@ -47,7 +47,7 @@ export function StockListPage() {
       <Typography component="h1" sx={{ fontSize: 22, lineHeight: '27px', fontWeight: 700 }}>종목목록</Typography>
       <Stack direction="row" spacing={1}>
         <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
-        <IconButton aria-label="종목 추가" onClick={() => navigate('/detail/stock-add')} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
+        <IconButton aria-label="종목 추가" onClick={() => navigate(`/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
       </Stack>
     </Stack>
 
@@ -62,12 +62,12 @@ export function StockListPage() {
         <SearchRounded sx={{ fontSize: 16, color: colors.textMuted }} />
         <InputBase inputRef={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="종목명·코드 검색" sx={{ flex: 1, fontSize: 13 }} />
       </Box>
-      <Button variant="outlined" color="inherit" startIcon={<SwapVertRounded />} onClick={() => setDescending((value) => !value)} sx={{ width: 86, minWidth: 86, minHeight: 40, height: 40, px: 0, gap: '6px', borderRadius: '12px', borderColor: colors.border, bgcolor: colors.surface, color: colors.textSecondary, fontSize: 12, lineHeight: '15px', whiteSpace: 'nowrap', '& .MuiButton-startIcon': { m: 0 }, '& .MuiSvgIcon-root': { fontSize: 14 }, '&:hover': { borderColor: colors.borderStrong, bgcolor: colors.surface } }}>평가금액</Button>
+      <Button variant="outlined" color="inherit" startIcon={<SwapVertRounded />} onClick={() => setDescending((value) => !value)} sx={{ width: 86, minWidth: 86, minHeight: 40, height: 40, px: 0, gap: '6px', borderRadius: '12px', borderColor: colors.border, bgcolor: colors.surface, color: colors.textSecondary, fontSize: 12, lineHeight: '15px', whiteSpace: 'nowrap', '& .MuiButton-startIcon': { m: 0 }, '& .MuiSvgIcon-root': { fontSize: 14 }, '&:hover': { borderColor: colors.borderStrong, bgcolor: colors.surface } }}>{activeTab === 'holding' ? '평가금액' : activeTab === 'watchlist' ? '등락률' : '추천순'}</Button>
     </Stack>
 
     <Stack direction="row" sx={{ height: 26, alignItems: 'center', justifyContent: 'space-between' }}>
       <Typography sx={{ fontSize: 14, fontWeight: 600 }}>총 {items.length}개</Typography>
-      {activeTab === 'holding' && <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{formatWon(totalValue)}</Typography>}
+      {activeTab === 'holding' ? <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{formatWon(totalValue)}</Typography> : <Typography sx={{ fontSize: 10, fontWeight: 500, color: colors.textMuted }}>{activeTab === 'watchlist' ? '시세 1분 전' : '오늘 업데이트'}</Typography>}
     </Stack>
 
     <Box onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)} sx={{ touchAction: 'pan-y' }}>
@@ -87,12 +87,12 @@ function StockCard({ stock, onClick }: { stock: StockItem; onClick: () => void }
   const profitRate = stock.profitRate ?? (investedAmount ? (profitAmount / investedAmount) * 100 : 0);
   const dailyChange = Math.round(stock.currentPrice * stock.priceChangeRate / 100);
 
-  return <Card sx={{ height: isHolding ? 148 : 116, border: 0, borderRadius: '16px', overflow: 'hidden' }}>
+  return <Card sx={{ height: 148, border: 0, borderRadius: '16px', overflow: 'hidden' }}>
     <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
       <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '4px', px: '14px', pt: '12px', pb: '10px !important' }}>
         <Stack direction="row" sx={{ height: 22, alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography noWrap sx={{ fontSize: 15, fontWeight: 700 }}>{stock.name}<Box component="span" sx={{ ml: 1, fontSize: 11, fontWeight: 400, color: colors.textMuted }}>{stock.symbol}</Box></Typography>
-          <IconButton aria-label="관심종목" onClick={(event) => event.stopPropagation()} sx={{ width: 30, height: 22, p: 0, color: isHolding && ['hyundai', 'samsung'].includes(stock.id) ? colors.warning : colors.textMuted }}>{isHolding && ['hyundai', 'samsung'].includes(stock.id) ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton>
+          {isHolding ? <IconButton aria-label="관심종목" onClick={(event) => event.stopPropagation()} sx={{ width: 30, height: 22, p: 0, color: ['hyundai', 'samsung'].includes(stock.id) ? colors.warning : colors.textMuted }}>{['hyundai', 'samsung'].includes(stock.id) ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton> : <Box sx={{ minWidth: 48, height: 20, px: 0.75, display: 'grid', placeItems: 'center', border: `1px solid ${colors.warning}88`, borderRadius: '6px', color: colors.warning, fontSize: 10, fontWeight: 600 }}>W {(stock.pbr ?? 1).toFixed(2)}</Box>}
         </Stack>
         <Box sx={{ height: '1px', bgcolor: colors.border }} />
         {isHolding ? <>
@@ -104,8 +104,10 @@ function StockCard({ stock, onClick }: { stock: StockItem; onClick: () => void }
             <Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography>
           </Stack>
         </> : <>
-          <MetricRow label="현재가" value={formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
-          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}><Chip size="small" label={`PER ${stock.per ?? '-'}`} /><Chip size="small" label={`PBR ${stock.pbr ?? '-'}`} /><Chip size="small" label={`ROE ${stock.roe ?? '-'}%`} /></Stack>
+          <MetricRow label={<Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}><span>현재가</span><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>} value={formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label="전일대비" value={`${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label={`PER ${stock.per ?? '-'} · PBR ${stock.pbr ?? '-'}`} value={`ROE ${stock.roe ?? '-'}%`} color={getMarketColor(stock.roe ?? 0)} />
+          <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}><Typography noWrap sx={{ maxWidth: 230, fontSize: 10, color: colors.textMuted }}>{stock.note ?? (stock.listType === 'recommended' ? '이익 성장 · 현금흐름 우수' : '재평가 구간 관찰')}</Typography><Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography></Stack>
         </>}
         <Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} />
       </CardContent>
