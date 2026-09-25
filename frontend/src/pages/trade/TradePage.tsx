@@ -9,14 +9,16 @@ import { createTrade } from '../../data/mockApi';
 import { currentCashBalance } from '../../data/mockData';
 import { useBuyLots, useStocks } from '../../hooks/useMockData';
 import type { BuyLot, StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
-import { formatAmount, formatDate, formatRate, formatSignedAmount, getMarketColor } from '../../utils/format';
-import { ActionButton, AmountText, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
-import { DateField, NumberField, FormTextarea } from '../../components/forms/Fields';
+import { formatDate, formatRate, getMarketColor } from '../../utils/format';
+import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
+import { DateField, FormTextField, NumberField, FormTextarea } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 
 type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
 const today = '2026-09-24';
+const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
 
 export function TradePage() {
   const navigate = useNavigate();
@@ -61,6 +63,16 @@ export function TradePage() {
     };
   }, [feeTaxAmount, price, quantity, selectedLot, type]);
 
+  const averagePriceAfterBuy = useMemo(() => {
+    if (type !== 'buy' || !selectedStock) return undefined;
+    const currentQuantity = selectedStock.quantity ?? 0;
+    const currentAveragePrice = selectedStock.averagePrice ?? 0;
+    const buyQuantity = Number(quantity) || 0;
+    const buyPrice = Number(price) || 0;
+    if (buyQuantity <= 0 || buyPrice <= 0) return currentAveragePrice;
+    return Math.round(((currentQuantity * currentAveragePrice) + (buyQuantity * buyPrice)) / (currentQuantity + buyQuantity));
+  }, [price, quantity, selectedStock, type]);
+
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
     const numericQuantity = Number(quantity);
@@ -94,17 +106,17 @@ export function TradePage() {
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
       <PageHeader compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} />
-      <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: 2, sm: 2.5 } }}>
+      <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: 1.5, sm: 2.5 } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={1.25}>
             <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
-            <Typography sx={{ pt: 0.5, fontSize: 14, fontWeight: 750 }}>거래 정보</Typography>
             <Stack spacing={1}>
               <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required />
               <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required />
               <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required />
-              <NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} />
-              <FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} />
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} /></Box>
+              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" /></Box>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} /></Box>
             </Stack>
 
             {type === 'sell' && (
@@ -126,9 +138,9 @@ export function TradePage() {
 
         <Grid size={{ xs: 12, sm: 5 }}>
           <Box sx={{ position: { sm: 'sticky' }, top: { sm: 92 } }}>
-            <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 750 }}>예상 결과</Typography>
-            <AppCard><CardContent sx={{ px: 1.75, py: 1.25, '&:last-child': { pb: 1.25 } }}><SummaryRows rows={[{ label: `${type === 'buy' ? '매수' : '매도'}금액`, value: formatAmount(estimate.tradeAmount), color: type === 'buy' ? colors.marketFall : colors.marketRise }, ...(type === 'sell' ? [{ label: '예상 실현손익', value: formatSignedAmount(estimate.realizedProfit ?? 0), color: estimate.realizedProfit && estimate.realizedProfit < 0 ? colors.marketFall : colors.marketRise }] : []), { label: '예수금 반영', value: formatSignedAmount(estimate.cashChange), color: estimate.cashChange < 0 ? colors.marketFall : colors.marketRise }, { label: '거래 후 예수금', value: formatAmount(estimate.expectedCashBalance), emphasis: true }]} /></CardContent></AppCard>
-            <Alert severity="info" sx={{ mt: 1.25, '& .MuiAlert-message': { fontSize: 11, lineHeight: 1.55 } }}>예상 예수금은 최초 등록할 때만 반영됩니다. 수정·삭제 시 자동 재계산되지 않습니다.</Alert>
+            <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 750 }}>거래 정보</Typography>
+            <AppCard><CardContent sx={{ px: 1.75, py: 1.25, '&:last-child': { pb: 1.25 } }}><SummaryRows rows={[{ label: `${type === 'buy' ? '매수' : '매도'}금액`, value: formatWon(estimate.tradeAmount), color: type === 'buy' ? colors.marketFall : colors.marketRise }, ...(type === 'sell' ? [{ label: '예상 실현손익', value: formatSignedWon(estimate.realizedProfit ?? 0), color: estimate.realizedProfit && estimate.realizedProfit < 0 ? colors.marketFall : colors.marketRise }] : []), { label: '거래 후 예수금', value: formatWon(estimate.expectedCashBalance), emphasis: true }, ...(type === 'buy' && averagePriceAfterBuy !== undefined ? [{ label: '매수 후 평균단가', value: formatWon(averagePriceAfterBuy), emphasis: true }] : [])]} /></CardContent></AppCard>
+            <Alert severity="info" sx={{ mt: 1.25, display: { xs: 'none', sm: 'flex' }, '& .MuiAlert-message': { fontSize: 11, lineHeight: 1.55 } }}>예상 예수금은 최초 등록할 때만 반영됩니다. 수정·삭제 시 자동 재계산되지 않습니다.</Alert>
           </Box>
         </Grid>
       </Grid>
@@ -145,13 +157,14 @@ export function TradePage() {
 }
 
 function StockSelector({ stocks, stockId, selectedStock, error, onChange }: { stocks: StockItem[]; stockId: string; selectedStock?: StockItem; error?: string; onChange: (value: string) => void }) {
+  const dailyChange = selectedStock ? Math.round(selectedStock.currentPrice * selectedStock.priceChangeRate / 100) : 0;
   return <FormControl fullWidth error={Boolean(error)}>
-    <AppCard sx={{ height: 68 }}>
-      <Stack direction="row" sx={{ height: '100%', alignItems: 'center', justifyContent: 'space-between', px: 1.75, gap: 1 }}>
-        <Select value={stockId} onChange={(event) => onChange(event.target.value)} variant="standard" disableUnderline IconComponent={KeyboardArrowDownRounded} renderValue={() => selectedStock ? <StockIdentity name={selectedStock.name} symbol={selectedStock.symbol} /> : '종목 선택'} sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0 }, '& .MuiSelect-icon': { color: colors.disabled, right: -2 } }}>
+    <AppCard sx={{ height: { xs: 74, sm: 68 } }}>
+      <Stack direction="row" sx={{ height: '100%', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 1.75 }, gap: 1 }}>
+        <Select value={stockId} onChange={(event) => onChange(event.target.value)} variant="standard" disableUnderline IconComponent={KeyboardArrowDownRounded} renderValue={() => selectedStock ? <StockIdentity name={selectedStock.name} symbol={selectedStock.symbol} /> : '종목 선택'} sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0 }, '& .MuiSelect-icon': { display: { xs: 'none', sm: 'block' }, color: colors.disabled, right: -2 } }}>
           {stocks.map((stock) => <MenuItem key={stock.id} value={stock.id}>{stock.name} · {stock.symbol}</MenuItem>)}
         </Select>
-        {selectedStock && <Box sx={{ textAlign: 'right' }}><AmountText value={selectedStock.currentPrice} colorByValue={false} color={selectedStock.priceChangeRate < 0 ? colors.marketFall : selectedStock.priceChangeRate > 0 ? colors.marketRise : colors.marketFlat} /><Typography sx={{ mt: 0.25, color: getMarketColor(selectedStock.priceChangeRate), fontSize: 11 }}>{formatRate(selectedStock.priceChangeRate)}</Typography></Box>}
+        {selectedStock && <Box sx={{ textAlign: 'right' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 700, color: getMarketColor(selectedStock.priceChangeRate) }}>{selectedStock.currentPrice.toLocaleString('ko-KR')}원</Typography><Typography sx={{ mt: 0.25, color: getMarketColor(selectedStock.priceChangeRate), fontSize: 11 }}>{dailyChange > 0 ? '+' : ''}{dailyChange.toLocaleString('ko-KR')}원&nbsp; ({formatRate(selectedStock.priceChangeRate)})</Typography></Box>}
       </Stack>
     </AppCard>
     {error && <FormHelperText>{error}</FormHelperText>}
@@ -159,5 +172,5 @@ function StockSelector({ stocks, stockId, selectedStock, error, onChange }: { st
 }
 
 function LotOption({ lot, selected }: { lot: BuyLot; selected: boolean }) {
-  return <Card variant="outlined" sx={{ borderColor: selected ? 'secondary.main' : 'divider', bgcolor: selected ? 'rgba(251,191,36,0.06)' : 'transparent' }}><CardActionArea component="label"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}><FormControlLabel value={lot.id} control={<Radio color="secondary" size="small" />} label={<Box><Typography sx={{ fontSize: 13, fontWeight: 750 }}>{formatDate(lot.tradeDate)} · {formatAmount(lot.buyPrice)}</Typography><Typography sx={{ mt: 0.25, fontSize: 11, color: '#94A3B8' }}>매수 {lot.quantity}주 · 매도 {lot.soldQuantity}주 · 잔여 {lot.remainingQuantity}주</Typography></Box>} sx={{ m: 0, width: '100%' }} /></CardContent></CardActionArea></Card>;
+  return <Card variant="outlined" sx={{ borderColor: selected ? 'secondary.main' : 'divider', bgcolor: selected ? 'rgba(251,191,36,0.06)' : 'transparent' }}><CardActionArea component="label"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}><FormControlLabel value={lot.id} control={<Radio color="secondary" size="small" />} label={<Box><Typography sx={{ fontSize: 13, fontWeight: 750 }}>{formatDate(lot.tradeDate)} · {formatWon(lot.buyPrice)}</Typography><Typography sx={{ mt: 0.25, fontSize: 11, color: '#94A3B8' }}>매수 {lot.quantity}주 · 매도 {lot.soldQuantity}주 · 잔여 {lot.remainingQuantity}주</Typography></Box>} sx={{ m: 0, width: '100%' }} /></CardContent></CardActionArea></Card>;
 }
