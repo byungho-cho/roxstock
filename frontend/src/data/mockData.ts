@@ -1,5 +1,3 @@
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 import type { BuyLot, DashboardData, StockItem } from '../types/models';
 
 export const currentCashBalance = 122_200_000;
