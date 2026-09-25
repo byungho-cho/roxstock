@@ -36,7 +36,7 @@ export function DashboardPage() {
     <AppCard sx={{ height: { xs: 'auto', sm: 452 }, gridColumn: { sm: 2 }, gridRow: { sm: '1 / 4' } }}><Box sx={{ px: '14px', py: '12px', height: '100%' }}>
       <CardActionArea onClick={() => navigate('/stocks')} sx={{ height: 24, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#34D399' }} /></Stack><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
       <Stack spacing="10px" sx={{ mt: '10px', display: { sm: 'none' } }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'none', sm: 'flex' }, maxHeight: 392, overflowY: 'auto', pr: 0.5 }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'none', sm: 'flex' }, maxHeight: 392, overflowY: 'auto', scrollbarGutter: 'stable', pr: 0.5 }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
     </Box></AppCard>
   </Stack>;
 }
