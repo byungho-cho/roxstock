@@ -62,7 +62,7 @@ export function StockListPage() {
         <SearchRounded sx={{ fontSize: 16, color: colors.textMuted }} />
         <InputBase inputRef={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="종목명·코드 검색" sx={{ flex: 1, fontSize: 13 }} />
       </Box>
-      <Button variant="outlined" color="inherit" startIcon={<SwapVertRounded />} onClick={() => setDescending((value) => !value)} sx={{ width: 86, minWidth: 86, minHeight: 40, height: 40, px: 1, borderRadius: '12px', color: colors.textSecondary, fontSize: 12 }}>평가금액</Button>
+      <Button variant="outlined" color="inherit" startIcon={<SwapVertRounded />} onClick={() => setDescending((value) => !value)} sx={{ width: 86, minWidth: 86, minHeight: 40, height: 40, px: 0, gap: '6px', borderRadius: '12px', borderColor: colors.border, bgcolor: colors.surface, color: colors.textSecondary, fontSize: 12, lineHeight: '15px', whiteSpace: 'nowrap', '& .MuiButton-startIcon': { m: 0 }, '& .MuiSvgIcon-root': { fontSize: 14 }, '&:hover': { borderColor: colors.borderStrong, bgcolor: colors.surface } }}>평가금액</Button>
     </Stack>
 
     <Stack direction="row" sx={{ height: 26, alignItems: 'center', justifyContent: 'space-between' }}>
