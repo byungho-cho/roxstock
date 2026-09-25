@@ -38,6 +38,6 @@ export function StockEditPage() {
       <FormTextarea label="메모" value={memo} onChange={setMemo} rows={2} />
       <Box sx={{ p: '14px 16px', bgcolor: '#0E1624', border: '1px solid #243857', borderRadius: '10px' }}><Typography sx={{ fontSize: 10, fontWeight: 700, color: '#C7D6EB' }}>자동 계산 지표</Typography><Typography sx={{ mt: 1.5, fontSize: 10, color: '#C7D6EB' }}>EPS 34,697원　　BPS 382,063원</Typography><Typography sx={{ mt: 0.5, fontSize: 10, color: '#C7D6EB' }}>PER 11.63　　PBR 1.06　　ROE 9.45%</Typography></Box>
     </Stack>
-    <Stack direction="row" spacing="16px" sx={{ pt: '14px', flexShrink: 0 }}><Button fullWidth onClick={() => navigate(-1)} sx={{ height: 40, border: '1px solid #404F66', borderRadius: '10px', bgcolor: '#1F2938', color: '#E0E8F5', fontSize: 13, fontWeight: 700 }}>취소</Button><Button fullWidth variant="contained" onClick={() => navigate(`/stocks/${stock.id}`)} sx={{ height: 40, borderRadius: '10px', fontSize: 13, fontWeight: 700 }}>저장</Button></Stack>
+    <Stack direction="row" spacing="16px" sx={{ pt: '14px', flexShrink: 0 }}><Button fullWidth onClick={() => navigate(-1)} sx={{ height: 40, border: '1px solid #404F66', borderRadius: '10px', bgcolor: '#1F2938', color: '#E0E8F5', fontSize: 13, fontWeight: 700 }}>취소</Button><Button fullWidth variant="contained" onClick={() => { stock.note = memo; navigate(`/stocks/${stock.id}`); }} sx={{ height: 40, borderRadius: '10px', fontSize: 13, fontWeight: 700 }}>저장</Button></Stack>
   </Stack>;
 }
