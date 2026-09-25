@@ -17,7 +17,6 @@ export function DashboardPage() {
   const { summary, holdings, trend } = data;
   const stockRate = (summary.stockValue / summary.totalAssets) * 100;
   const cashRate = (summary.cashBalance / summary.totalAssets) * 100;
-  const previewHoldings = ['hyundai', 'kia', 'samsung'].map((id) => holdings.find((stock) => stock.id === id)).filter((stock): stock is StockItem => Boolean(stock));
   return <Stack spacing={{ xs: '12px', sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: '12px' } }}>
     <AppCard sx={{ height: { xs: 102, sm: 116 }, position: 'relative', gridColumn: { sm: 1 }, gridRow: { sm: 1 } }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
       <Typography sx={{ position: 'absolute', top: 15, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>평가자산</Typography>
@@ -34,10 +33,10 @@ export function DashboardPage() {
       <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: colors.focus, letterSpacing: '0.02px' }}>1개월</Typography>} />
       <TrendChart values={trend.map((item) => item.value)} />
     </CardActionArea></AppCard>
-    <AppCard sx={{ height: { xs: 164, sm: 452 }, gridColumn: { sm: 2 }, gridRow: { sm: '1 / 4' } }}><Box sx={{ px: '14px', py: '12px' }}>
+    <AppCard sx={{ height: { xs: 'auto', sm: 452 }, gridColumn: { sm: 2 }, gridRow: { sm: '1 / 4' } }}><Box sx={{ px: '14px', py: '12px', height: '100%' }}>
       <CardActionArea onClick={() => navigate('/stocks')} sx={{ height: 24, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#34D399' }} /></Stack><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
-      <Stack spacing="10px" sx={{ mt: '10px', display: { sm: 'none' } }}>{previewHoldings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'none', sm: 'flex' } }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { sm: 'none' } }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'none', sm: 'flex' }, maxHeight: 392, overflowY: 'auto', pr: 0.5 }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
     </Box></AppCard>
   </Stack>;
 }
