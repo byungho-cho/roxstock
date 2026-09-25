@@ -1,5 +1,5 @@
-import { AddRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardActionArea, CardContent, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { AddRounded, CloseRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
+import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStocks } from '../../hooks/useMockData';
@@ -19,6 +19,7 @@ export function StockListPage() {
   const [query, setQuery] = useState('');
   const [descending, setDescending] = useState(true);
   const [showEmpty, setShowEmpty] = useState(false);
+  const [priceStock, setPriceStock] = useState<StockItem | null>(null);
   const touchStartX = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const { data = [], isPending } = useStocks(activeTab);
@@ -71,13 +72,14 @@ export function StockListPage() {
     </Stack>
 
     <Box onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)} sx={{ touchAction: 'pan-y' }}>
-      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => setPriceStock(stock)} /></Grid>)}</Grid>}
     </Box>
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
+    <CurrentPriceDialog stock={priceStock} onClose={() => setPriceStock(null)} />
   </Stack>;
 }
 
-function StockCard({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
+function StockCard({ stock, onClick, onEditPrice }: { stock: StockItem; onClick: () => void; onEditPrice: () => void }) {
   const isHolding = stock.listType === 'holding';
   const quantity = stock.quantity ?? 0;
   const averagePrice = stock.averagePrice ?? 0;
@@ -100,7 +102,7 @@ function StockCard({ stock, onClick }: { stock: StockItem; onClick: () => void }
           <MetricRow label={<><Box component="span" sx={{ fontSize: 14 }}>평가</Box><Box component="span" sx={{ ml: 2, fontSize: 12 }}>{quantity.toLocaleString('ko-KR')} × {formatWon(stock.currentPrice)}</Box></>} value={formatWon(marketValue)} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label={<><Box component="span">평가손익</Box><Box component="span" sx={{ ml: 2, color: getMarketColor(profitAmount) }}>{formatRate(profitRate)}</Box></>} value={formatWon(profitAmount)} color={getMarketColor(profitAmount)} />
           <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}>
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate) }}><Typography sx={{ fontSize: 10 }}>{formatWon(dailyChange)}({formatRate(stock.priceChangeRate)})</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>
+            <Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate), cursor: 'pointer' }}><Typography sx={{ fontSize: 10 }}>{formatWon(dailyChange)}({formatRate(stock.priceChangeRate)})</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>
             <Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography>
           </Stack>
         </> : <>
@@ -113,6 +115,28 @@ function StockCard({ stock, onClick }: { stock: StockItem; onClick: () => void }
       </CardContent>
     </CardActionArea>
   </Card>;
+}
+
+function CurrentPriceDialog({ stock, onClose }: { stock: StockItem | null; onClose: () => void }) {
+  const [value, setValue] = useState<string | null>(null);
+  const currentValue = value ?? String(stock?.currentPrice ?? '');
+  const parsedValue = Number(currentValue.replace(/,/g, '')) || 0;
+  const previousClose = stock ? stock.currentPrice / (1 + stock.priceChangeRate / 100) : 0;
+  const change = parsedValue - previousClose;
+  const changeRate = previousClose ? change / previousClose * 100 : 0;
+  const marketColor = getMarketColor(change);
+  const close = () => { setValue(null); onClose(); };
+
+  return <Dialog open={Boolean(stock)} onClose={close} fullWidth maxWidth={false} slotProps={{ backdrop: { sx: { bgcolor: 'rgba(0,0,0,.58)' } }, paper: { sx: { m: '24px', width: 'calc(100% - 48px)', maxWidth: 352, height: 316, p: '18px', bgcolor: '#0B1322', border: '1px solid #2E4263', borderRadius: '16px', backgroundImage: 'none' } } }}>
+    <Stack spacing="14px">
+      <Stack direction="row" sx={{ height: 28, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 17, color: '#F0F5FF' }}>{stock?.name}</Typography><IconButton aria-label="닫기" onClick={close} sx={{ width: 28, height: 28, color: '#7A8AA6' }}><CloseRounded sx={{ fontSize: 24 }} /></IconButton></Stack>
+      <Typography sx={{ fontSize: 10, fontWeight: 600, color: '#7A8AA6' }}>A{stock?.symbol}</Typography>
+      <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>자동 수집 현재가</Typography><Typography sx={{ fontSize: 13, color: getMarketColor(stock?.priceChangeRate ?? 0) }}>{formatWon(stock?.currentPrice ?? 0)}</Typography></Stack>
+      <Stack spacing="6px"><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>변경할 현재가</Typography><Box sx={{ height: 36, display: 'flex', alignItems: 'center', px: '12px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '10px' }}><Typography sx={{ width: 60, fontSize: 12, color: colors.textMuted }}>금액</Typography><InputBase autoFocus value={parsedValue ? parsedValue.toLocaleString('ko-KR') : ''} onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ''))} inputProps={{ inputMode: 'numeric', 'aria-label': '변경할 현재가' }} sx={{ flex: 1, '& input': { p: 0, textAlign: 'right', fontSize: 14, fontWeight: 600 } }} /><Typography sx={{ ml: 0.5, fontSize: 14, fontWeight: 600 }}>원</Typography><IconButton aria-label="금액 지우기" onClick={() => setValue('')} sx={{ ml: 0.5, width: 20, height: 20, color: '#B8C7DB' }}><CloseRounded sx={{ fontSize: 14 }} /></IconButton></Box></Stack>
+      <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>전일 대비</Typography><Typography sx={{ fontSize: 13, color: marketColor }}>{formatWon(change)}　{formatRate(changeRate)}</Typography></Stack>
+      <Stack direction="row" spacing="10px"><Button fullWidth onClick={close} sx={{ height: 40, border: `1px solid ${colors.border}`, borderRadius: '9px', bgcolor: colors.surface, color: colors.textSecondary, fontSize: 13 }}>취소</Button><Button fullWidth variant="contained" disabled={!parsedValue} onClick={close} sx={{ height: 40, borderRadius: '9px', fontSize: 13, boxShadow: 'none' }}>변경</Button></Stack>
+    </Stack>
+  </Dialog>;
 }
 
 function MetricRow({ label, value, color = colors.textPrimary }: { label: ReactNode; value: string; color?: string }) {
