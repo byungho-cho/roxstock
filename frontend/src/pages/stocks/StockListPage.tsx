@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
+import { stockItems } from '../../data/mockData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 import { colors } from '../../styles/tokens';
@@ -79,12 +80,14 @@ export function StockListPage() {
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     <CurrentPriceDialog stock={priceStock} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;
-      const previousClose = priceStock.currentPrice / (1 + priceStock.priceChangeRate / 100);
-      priceStock.currentPrice = value;
-      priceStock.priceChangeRate = previousClose ? ((value - previousClose) / previousClose) * 100 : 0;
-      if (priceStock.quantity !== undefined) {
-        priceStock.marketValue = priceStock.quantity * value;
-        priceStock.profitAmount = priceStock.marketValue - priceStock.quantity * (priceStock.averagePrice ?? 0);
+      const sourceStock = stockItems.find((item) => item.id === priceStock.id);
+      if (!sourceStock) return;
+      const previousClose = sourceStock.currentPrice / (1 + sourceStock.priceChangeRate / 100);
+      sourceStock.currentPrice = value;
+      sourceStock.priceChangeRate = previousClose ? ((value - previousClose) / previousClose) * 100 : 0;
+      if (sourceStock.quantity !== undefined) {
+        sourceStock.marketValue = sourceStock.quantity * value;
+        sourceStock.profitAmount = sourceStock.marketValue - sourceStock.quantity * (sourceStock.averagePrice ?? 0);
       }
       void queryClient.invalidateQueries({ queryKey: ['stocks'] });
       setPriceStock(null);
