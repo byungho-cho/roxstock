@@ -1,7 +1,7 @@
 import { AddRounded, CloseRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
 import { stockItems } from '../../data/mockData';
@@ -17,8 +17,11 @@ const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR'
 
 export function StockListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<StockListType>('holding');
+  const requestedTab = searchParams.get('tab');
+  const initialTab: StockListType = requestedTab === 'watchlist' || requestedTab === 'recommended' || requestedTab === 'holding' ? requestedTab : 'holding';
+  const [activeTab, setActiveTab] = useState<StockListType>(initialTab);
   const [query, setQuery] = useState('');
   const [descending, setDescending] = useState(true);
   const [showEmpty, setShowEmpty] = useState(false);
@@ -29,7 +32,9 @@ export function StockListPage() {
 
   const moveTab = (direction: -1 | 1) => {
     const index = tabs.findIndex((tab) => tab.value === activeTab);
-    setActiveTab(tabs[(index + direction + tabs.length) % tabs.length].value);
+    const value = tabs[(index + direction + tabs.length) % tabs.length].value;
+    setActiveTab(value);
+    setSearchParams({ tab: value }, { replace: true });
   };
   const handleTouchEnd = (endX: number) => {
     if (touchStartX.current === null) return;
@@ -56,7 +61,7 @@ export function StockListPage() {
     </Stack>
 
     <Card sx={{ p: '4px', border: 0, borderRadius: '12px', bgcolor: colors.surface }}>
-      <Tabs value={activeTab} onChange={(_, value: StockListType) => setActiveTab(value)} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 34, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 34, py: 0, borderRadius: '9px', color: colors.textMuted, fontSize: 13, fontWeight: 400 }, '& .Mui-selected': { color: `${colors.textPrimary} !important`, bgcolor: colors.buttonPrimary, fontWeight: 600 } }}>
+      <Tabs value={activeTab} onChange={(_, value: StockListType) => { setActiveTab(value); setSearchParams({ tab: value }, { replace: true }); }} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 34, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 34, py: 0, borderRadius: '9px', color: colors.textMuted, fontSize: 13, fontWeight: 400 }, '& .Mui-selected': { color: `${colors.textPrimary} !important`, bgcolor: colors.buttonPrimary, fontWeight: 600 } }}>
         {tabs.map((tab) => <Tab key={tab.value} value={tab.value} label={tab.label} />)}
       </Tabs>
     </Card>
