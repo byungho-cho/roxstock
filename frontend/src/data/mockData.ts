@@ -48,6 +48,11 @@ export const stockItems: StockItem[] = [
     currentPrice: 248_000, priceChangeRate: -1.2, per: 8.9, pbr: 1.82, roe: 22.1,
     note: '실적 발표 후 분할 접근', collectionStatus: 'failed',
   },
+  { id: 'mobis-watch', symbol: '012330', name: '현대모비스', listType: 'watchlist', currentPrice: 403_500, priceChangeRate: 1.6, per: 8.4, pbr: 0.7, roe: 9.2, note: '재평가 구간 관찰', collectionStatus: 'success' },
+  { id: 'naver-watch', symbol: '035420', name: 'NAVER', listType: 'watchlist', currentPrice: 222_500, priceChangeRate: -1.5, per: 18.2, pbr: 1.2, roe: 8.1, note: '실적 회복 확인', collectionStatus: 'success' },
+  { id: 'kia-watch', symbol: '000270', name: '기아', listType: 'watchlist', currentPrice: 130_000, priceChangeRate: 0.9, per: 6.1, pbr: 0.9, roe: 15.7, note: '배당과 수출 추이 관찰', collectionStatus: 'success' },
+  { id: 'kb-watch', symbol: '105560', name: 'KB금융', listType: 'watchlist', currentPrice: 91_500, priceChangeRate: -0.3, per: 5.8, pbr: 0.6, roe: 11.4, note: '주주환원 정책 확인', collectionStatus: 'partial' },
+  { id: 'celltrion-watch', symbol: '068270', name: '셀트리온', listType: 'watchlist', currentPrice: 188_900, priceChangeRate: 0.7, per: 31.2, pbr: 2.6, roe: 8.5, note: '신제품 매출 추이 관찰', collectionStatus: 'success' },
   {
     id: 'mobis', symbol: '012330', name: '현대모비스', listType: 'recommended',
     currentPrice: 403_500, priceChangeRate: 0.6, per: 8.4, pbr: 0.74, roe: 9.2,
@@ -58,6 +63,10 @@ export const stockItems: StockItem[] = [
     currentPrice: 24_500, priceChangeRate: -0.4, per: 11.9, pbr: 0.91, roe: 7.7,
     note: '유가와 여객 수요 점검', collectionStatus: 'success',
   },
+  { id: 'samsung-rec', symbol: '005930', name: '삼성전자', listType: 'recommended', currentPrice: 80_000, priceChangeRate: 1.4, per: 11.2, pbr: 1.1, roe: 10.4, note: '이익 성장 · 현금흐름 우수', collectionStatus: 'success' },
+  { id: 'hynix-rec', symbol: '000660', name: 'SK하이닉스', listType: 'recommended', currentPrice: 260_000, priceChangeRate: 1.8, per: 9.8, pbr: 1.6, roe: 17.2, note: 'HBM 성장 · 실적 개선', collectionStatus: 'success' },
+  { id: 'kb-rec', symbol: '105560', name: 'KB금융', listType: 'recommended', currentPrice: 91_500, priceChangeRate: 0.8, per: 5.8, pbr: 0.6, roe: 11.4, note: '저PBR · 주주환원 확대', collectionStatus: 'success' },
+  { id: 'hanwha-rec', symbol: '012450', name: '한화에어로스페이스', listType: 'recommended', currentPrice: 412_000, priceChangeRate: 3.6, per: 14.7, pbr: 2.1, roe: 18.8, note: '수주 성장 · 방산 수출 확대', collectionStatus: 'success' },
 ];
 
 export const buyLots: BuyLot[] = [
