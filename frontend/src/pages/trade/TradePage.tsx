@@ -6,7 +6,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createTrade } from '../../data/mockApi';
-import { currentCashBalance } from '../../data/mockData';
+import { currentCashBalance, stockItems } from '../../data/mockData';
 import { useBuyLots, useStocks } from '../../hooks/useMockData';
 import type { BuyLot, StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
 import { formatDate, formatRate, getMarketColor } from '../../utils/format';
@@ -34,14 +34,15 @@ export function TradePage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { data: stocks = [], isPending: stocksLoading } = useStocks();
+  const { data: fetchedStocks } = useStocks();
+  const stocks = fetchedStocks ?? stockItems;
   const { data: lots = [], isPending: lotsLoading } = useBuyLots(type === 'sell' ? stockId : undefined);
   const selectedLot = lots.find((lot) => lot.id === lotId);
   const selectedStock = stocks.find((stock) => stock.id === stockId);
 
   useEffect(() => {
     if (selectedStock) setPrice(String(selectedStock.currentPrice));
-  }, [selectedStock]);
+  }, [stockId]);
 
   useEffect(() => {
     setLotId('');
@@ -101,8 +102,6 @@ export function TradePage() {
     }
   };
 
-  if (stocksLoading) return <Stack sx={{ minHeight: 360, alignItems: 'center', justifyContent: 'center' }}><CircularProgress /><Typography sx={{ mt: 1.5, color: '#94A3B8' }}>거래 입력 데이터를 준비하고 있어요.</Typography></Stack>;
-
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
       <PageHeader compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} />
@@ -112,7 +111,7 @@ export function TradePage() {
             <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
             <Stack spacing={1}>
               <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required />
-              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required />
+              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus />
               <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required />
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} /></Box>
               <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" /></Box>
