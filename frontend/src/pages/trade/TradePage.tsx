@@ -13,7 +13,7 @@ import { formatDate, formatRate, getMarketColor } from '../../utils/format';
 import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField, FormTextarea } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { colors } from '../../styles/tokens';
+import { colors, pageGutter } from '../../styles/tokens';
 
 type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
 const today = '2026-09-24';
@@ -105,7 +105,7 @@ export function TradePage() {
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
       <PageHeader compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} />
-      <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: 1.5, sm: 2.5 } }}>
+      <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={1.25}>
             <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
@@ -144,8 +144,8 @@ export function TradePage() {
         </Grid>
       </Grid>
 
-      <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(8,13,24,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid', borderColor: 'divider', px: 2, py: 1.5 }}>
-        <Stack direction="row" spacing={1.5} sx={{ maxWidth: 848, mx: 'auto' }}>
+      <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(8,13,24,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid', borderColor: 'divider', px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 1.5 }}>
+        <Stack direction="row" spacing={1.5} sx={{ maxWidth: 880 - pageGutter.sm * 2, mx: 'auto' }}>
           <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => navigate(-1)}>취소</ActionButton>
           <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : type === 'buy' ? '매수' : '매도'}</ActionButton>
         </Stack>
