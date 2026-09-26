@@ -1,9 +1,10 @@
-import { ArrowBackIosNewRounded, SearchRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardContent, Chip, IconButton, InputBase, Stack, Typography } from '@mui/material';
+import { SearchRounded } from '@mui/icons-material';
+import { Box, Button, Card, CardContent, Chip, InputBase, Stack, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormTextField } from '../../components/forms/Fields';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
 import type { StockItem, StockListType } from '../../types/models';
@@ -58,7 +59,7 @@ export function StockAddPage() {
   };
 
   return <Stack spacing="12px">
-    <Stack direction="row" sx={{ height: 40, alignItems: 'center', justifyContent: 'space-between' }}><IconButton onClick={() => navigate(-1)} sx={{ width: 36 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Typography sx={{ fontSize: 20, fontWeight: 700 }}>종목 추가</Typography><Box sx={{ width: 36 }} /></Stack>
+    <PageHeader title="종목 추가" onBack={() => navigate(-1)} showAdd={false} embedded />
     <Stack direction="row" spacing={1}>{categories.map((item) => <Chip key={item.value} label={item.label} onClick={() => { setCategory(item.value); setMessage(''); }} sx={{ flex: 1, height: 32, bgcolor: category === item.value ? colors.buttonPrimary : colors.surface, color: category === item.value ? '#fff' : colors.textMuted }} />)}</Stack>
     {!direct ? <>
       <Box sx={{ height: 48, display: 'flex', alignItems: 'center', gap: 1, px: 1.75, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, borderRadius: '12px' }}><SearchRounded sx={{ fontSize: 17, color: colors.textMuted }} /><InputBase value={query} onChange={(event) => { setQuery(event.target.value); setMessage(''); }} placeholder="종목명·종목코드 검색" sx={{ flex: 1, fontSize: 13 }} /></Box>
