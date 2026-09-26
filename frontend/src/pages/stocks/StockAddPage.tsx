@@ -1,7 +1,7 @@
 import { SearchRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Chip, InputBase, Stack, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormTextField } from '../../components/forms/Fields';
@@ -26,6 +26,7 @@ export function StockAddPage() {
   const [direct, setDirect] = useState(false);
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
+  const symbolRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
 
   const results = useMemo(() => {
@@ -67,7 +68,7 @@ export function StockAddPage() {
       <Stack direction="row" spacing={1}>{['전체', '코스피', '코스닥'].map((value) => <Chip key={value} label={value} onClick={() => setMarket(value)} sx={{ height: 30, minWidth: value === '전체' ? 68 : 78, bgcolor: market === value ? colors.buttonPrimary : '#0F172A', color: market === value ? '#fff' : colors.textMuted }} />)}</Stack>
       {results.length === 0 ? <Card sx={{ height: 180, borderRadius: '14px' }}><CardContent sx={{ height: '100%', display: 'grid', placeItems: 'center', textAlign: 'center' }}><Box><SearchRounded sx={{ fontSize: 30, color: colors.textMuted }} /><Typography sx={{ mt: 1, fontSize: 15, fontWeight: 600 }}>코스피·코스닥 전체 종목 검색</Typography><Typography sx={{ mt: 1, fontSize: 12, color: colors.textMuted }}>종목명 또는 종목코드를 입력해 주세요.</Typography></Box></CardContent></Card> : <Stack spacing={1}>{results.map((stock) => <Card key={stock.symbol}><CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, '&:last-child': { pb: 1.25 } }}><Box><Typography sx={{ fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>A{stock.symbol} · 코스피</Typography></Box><Button variant="outlined" onClick={() => void addExisting(stock)}>+ 추가</Button></CardContent></Card>)}</Stack>}
       <Card sx={{ height: 46, borderRadius: '12px' }}><CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0, px: 1.5, '&:last-child': { pb: 0 } }}><Typography sx={{ fontSize: 12, color: colors.textMuted }}>검색되지 않는 종목인가요?</Typography><Button onClick={() => { flushSync(() => { setDirect(true); setMessage(''); }); document.querySelector<HTMLInputElement>('[data-initial-focus="true"]')?.focus({ preventScroll: true }); }} sx={{ fontSize: 12 }}>직접 추가 ›</Button></CardContent></Card>
-    </> : <Card sx={{ borderRadius: '12px' }}><CardContent><Stack spacing={1.5}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>종목 직접 추가</Typography><FormTextField label="종목명" value={name} onChange={setName} autoFocus enterKeyHint="next" /><FormTextField label="종목코드" value={symbol} onChange={(value) => setSymbol(value.replace(/[^0-9]/g, '').slice(0, 6))} enterKeyHint="done" onEnter={() => void addDirect()} /><Stack direction="row" spacing={1}><Button fullWidth onClick={() => setDirect(false)}>취소</Button><Button fullWidth variant="contained" onClick={() => void addDirect()}>추가</Button></Stack></Stack></CardContent></Card>}
+    </> : <Card sx={{ borderRadius: '12px' }}><CardContent><Stack spacing={1.5}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>종목 직접 추가</Typography><FormTextField label="종목명" value={name} onChange={setName} autoFocus enterKeyHint="next" onEnter={() => symbolRef.current?.focus()} /><FormTextField label="종목코드" value={symbol} onChange={(value) => setSymbol(value.replace(/[^0-9]/g, '').slice(0, 6))} inputRef={symbolRef} enterKeyHint="done" onEnter={() => void addDirect()} /><Stack direction="row" spacing={1}><Button fullWidth onClick={() => setDirect(false)}>취소</Button><Button fullWidth variant="contained" onClick={() => void addDirect()}>추가</Button></Stack></Stack></CardContent></Card>}
     {message && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message}</Typography>}
   </Stack>;
 }
