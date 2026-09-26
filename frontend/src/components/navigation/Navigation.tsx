@@ -35,12 +35,12 @@ export function PageHeader({ title, subtitle, showAdd = true, compact = false, a
   return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${embeddedGutter * 2}px)`, sm: 'calc(100% + 40px)' }, mx: { xs: `-${embeddedGutter}px`, sm: '-20px' } }) }}>
     <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: 1.5, sm: 2.5 }, py: 0, alignItems: 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: 36, height: 36, mr: 1, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>}
-      <Box sx={{ flex: 1, minWidth: 0, textAlign: hasBack || compact ? { xs: 'center', sm: 'left' } : 'left' }}>
+      <Box sx={{ flex: 1, minWidth: 0, textAlign: compact ? 'center' : hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
         <Typography component="h1" noWrap sx={{ fontSize: { xs: 20, sm: 21 }, lineHeight: '28px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
         {subtitle && <Typography noWrap sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, lineHeight: '14px', color: colors.textMuted }}>{subtitle}</Typography>}
       </Box>
       {action ?? (showAdd && <Tooltip title={addLabel}><IconButton aria-label={addLabel} onClick={onAdd ?? (() => navigateToForm(navigate, addPath))} sx={{ display: { xs: showAddMobile ? 'flex' : 'none', sm: 'flex' }, width: 36, height: 36, bgcolor: colors.raised, color: colors.textPrimary, '&:hover': { bgcolor: colors.borderStrong } }}><AddRounded sx={{ fontSize: 22 }} /></IconButton></Tooltip>)}
-      {(compact || (hasBack && !showAddMobile && !action)) && <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 36, flexShrink: 0 }} />}
+      {!compact && hasBack && !showAddMobile && !action && <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 36, flexShrink: 0 }} />}
     </Toolbar>
   </AppBar>;
 }
