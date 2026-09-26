@@ -1,8 +1,8 @@
-import { ArrowBackIosNewRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardContent, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { stockItems } from '../../data/mockData';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { formatRate, getMarketColor } from '../../utils/format';
 
@@ -12,8 +12,8 @@ export function StockInsightPage({ mode }: { mode: 'value' | 'financials' }) {
   const navigate = useNavigate(); const { stockId = 'samsung' } = useParams();
   const stock = stockItems.find((item) => item.id === stockId) ?? stockItems.find((item) => item.id === 'samsung')!;
   const [annual, setAnnual] = useState(true);
-  return <Stack spacing={mode === 'value' ? '12px' : '8px'} sx={{ height: 'calc(100dvh - 66px)', minHeight: 0, pb: 1, overflowY: 'auto', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
-    <Stack direction="row" sx={{ position: 'sticky', top: 0, zIndex: 4, minHeight: mode === 'value' ? 40 : 32, alignItems: 'center', justifyContent: 'space-between', bgcolor: colors.canvas }}><IconButton onClick={() => navigate(-1)} sx={{ width: 36, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: mode === 'value' ? 17 : 16, lineHeight: '20px', fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: mode === 'value' ? 10 : 9, color: colors.textMuted }}>{stock.symbol}</Typography></Box><Box sx={{ width: 36 }} /></Stack>
+  return <Stack spacing={mode === 'value' ? '12px' : '8px'} sx={{ height: 'calc(100dvh - 56px)', minHeight: 0, pb: 1, overflowY: 'auto', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
+    <PageHeader title={stock.name} subtitle={stock.symbol} onBack={() => navigate(-1)} showAdd={false} embedded />
     {mode === 'value' ? <ValueContent stock={stock} /> : <FinancialContent annual={annual} onToggle={() => setAnnual((value) => !value)} />}
   </Stack>;
 }
@@ -45,7 +45,7 @@ const annualGroups: Array<{ title: string; metrics: Metric[] }> = [
 function FinancialContent({ annual, onToggle }: { annual: boolean; onToggle: () => void }) {
   const groups: Array<{ title: string; metrics: Metric[] }> = annual ? annualGroups : [{ title:'수익성', metrics:[{ name:'매출액',unit:'조원',change:'+4.8%',values:['72.1','75.6','79.2'] },{ name:'영업이익',unit:'조원',change:'+12.4%',values:['7.2','8.1','9.1'] },{ name:'순이익',unit:'조원',change:'+9.7%',values:['5.8','6.3','6.9'] },{ name:'ROE',unit:'%',change:'+0.6%p',values:['2.3','2.6','3.2'] }]}];
   const labels = annual ? ['2024','2025','2026E'] : ['2026 1Q','2026 2Q','2026 3QE'];
-  return <Stack spacing="8px"><Stack direction="row" sx={{ height: 34, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 13, fontWeight: 600 }}>전체 재무지표</Typography><Button onClick={onToggle} variant="outlined" sx={{ minHeight: 34, height: 34, width: 80, borderRadius: '10px', borderColor: '#1F304A', bgcolor: '#0E1729', color: colors.textPrimary, fontSize: 11 }}>{annual ? '연간 ↕' : '분기 ↕'}</Button></Stack>{groups.map((group) => <Box key={group.title}><Typography sx={{ position: 'sticky', top: 32, zIndex: 3, height: 24, display: 'flex', alignItems: 'center', mb: '8px', bgcolor: colors.canvas, color: colors.warning, fontSize: 13, fontWeight: 600 }}>{group.title}</Typography><Stack spacing="8px">{group.metrics.map((metric) => <MetricCard key={metric.name} metric={metric} labels={labels} />)}</Stack></Box>)}</Stack>;
+  return <Stack spacing="8px"><Stack direction="row" sx={{ height: 34, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 13, fontWeight: 600 }}>전체 재무지표</Typography><Button onClick={onToggle} variant="outlined" sx={{ minHeight: 34, height: 34, width: 80, borderRadius: '10px', borderColor: '#1F304A', bgcolor: '#0E1729', color: colors.textPrimary, fontSize: 11 }}>{annual ? '연간 ↕' : '분기 ↕'}</Button></Stack>{groups.map((group) => <Box key={group.title}><Typography sx={{ position: 'sticky', top: 48, zIndex: 3, height: 24, display: 'flex', alignItems: 'center', mb: '8px', bgcolor: colors.canvas, color: colors.warning, fontSize: 13, fontWeight: 600 }}>{group.title}</Typography><Stack spacing="8px">{group.metrics.map((metric) => <MetricCard key={metric.name} metric={metric} labels={labels} />)}</Stack></Box>)}</Stack>;
 }
 
 function MetricCard({ metric, labels }: { metric: Metric; labels: string[] }) { return <Card sx={{ height: 90, borderRadius: '16px', border: 0 }}><CardContent sx={{ p: '11px 16px !important' }}><Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{metric.name} <Box component="span" sx={{ ml: '3px', fontSize: 9, fontWeight: 400, color: colors.textMuted }}>{metric.unit}</Box></Typography><Typography sx={{ fontSize: 11, fontWeight: 600, color: metric.tone === 'fall' ? colors.marketFall : colors.marketRise }}>{metric.change}</Typography></Stack><Stack direction="row" sx={{ mt: '7px', height: 42, alignItems: 'center' }}>{metric.values.map((value,index) => <Box key={labels[index]} sx={{ flex: 1, textAlign: 'center' }}><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{labels[index]}</Typography><Typography sx={{ mt: '4px', fontSize: 12, fontWeight: index === 2 ? 700 : 600, color: index === 2 ? colors.textPrimary : colors.textMuted }}>{value}</Typography></Box>)}</Stack></CardContent></Card>; }
