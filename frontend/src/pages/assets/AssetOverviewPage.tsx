@@ -46,8 +46,8 @@ export function AssetOverviewPage() {
       <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 44 }} />
     </Box>
 
-    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' }, alignItems: 'start' }}>
-      <Stack spacing="12px">
+    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' }, alignItems: { xs: 'stretch', sm: 'start' } }}>
+      <Stack spacing="12px" sx={{ width: '100%', minWidth: 0 }}>
         <AppCard sx={{ height: { xs: 102, sm: 112 }, borderRadius: '16px' }}><CardActionArea onClick={() => navigate('/stocks?tab=holding')} sx={{ height: '100%', px: '16px', py: '11px', position: 'relative' }}>
           <Typography sx={{ position: 'absolute', top: 18, left: 16, color: colors.textSecondary, fontSize: 12 }}>평가자산</Typography>
           <Typography sx={{ position: 'absolute', top: 10, right: 16, color: marketColor(summary.dailyProfit), fontSize: { xs: 24, sm: 25 }, fontWeight: 700, lineHeight: '36px' }}>{won(summary.totalAssets)}</Typography>
@@ -73,7 +73,7 @@ export function AssetOverviewPage() {
         </AppCard>
       </Stack>
 
-      <AppCard sx={{ p: { xs: '14px 16px', sm: '14px 16px' }, minHeight: { xs: 494, sm: 452 }, borderRadius: '16px' }}>
+      <AppCard sx={{ width: '100%', minWidth: 0, p: { xs: '14px 16px', sm: '14px 16px' }, minHeight: { xs: 494, sm: 452 }, borderRadius: '16px' }}>
         <Typography sx={{ fontSize: 16, fontWeight: 600, mb: '12px' }}>자산구성</Typography>
         <Stack direction="row" sx={{ justifyContent: "space-between", px: '2px', mb: '3px' }}><Typography sx={{ color: colors.positive, fontSize: 11, fontWeight: 600 }}>{won(summary.stockValue)}</Typography><Typography sx={{ color: colors.warning, fontSize: 11, fontWeight: 600 }}>{won(summary.cashBalance)}</Typography></Stack>
         <Stack direction="row" role="img" aria-label={`주식 ${ratio(stockPercent)}, 예수금 ${ratio(cashPercent)}`} sx={{ height: 12, overflow: 'hidden', borderRadius: 6, bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: colors.warning }} /></Stack>
