@@ -2,15 +2,14 @@ import { Box, CardActionArea, CircularProgress, Stack, Typography } from '@mui/m
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
+import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { useDashboard } from '../../hooks/useMockData';
-import { formatPercent, formatRate, formatSignedWon, formatWon } from '../../utils/format';
+import { formatAmount, formatPercent, formatRate, formatSignedWon, formatWon } from '../../utils/format';
 import { colors, pageMetrics } from '../../styles/tokens';
 
 const marketColor = (value: number) => value > 0 ? colors.marketRise : value < 0 ? colors.marketFall : colors.marketFlat;
 const chartColors = ['#FB637A', '#60A5FA', '#34D399', '#A78BFA', '#FBBF24', '#94A3B8'];
-
-// The proportions are a single mock chart fixture; labels come from the shared stock list.
 
 export function AssetOverviewPage() {
   const navigate = useNavigate();
@@ -34,9 +33,12 @@ export function AssetOverviewPage() {
   }), { stops: [] as string[], offset: 0 }).stops.join(', ');
 
   return <Box>
-    <PageHeader title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" showAddMobile={false} embedded />
+    <PageHeader variant="detail" title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" embedded />
 
-    <Stack spacing={`${pageMetrics.gap}px`} sx={{ mt: `${pageMetrics.gap}px` }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, mt: { xs: `${pageMetrics.gap}px`, sm: '22px' }, alignItems: 'start' }}>
+      <Stack spacing={`${pageMetrics.gap}px`} sx={{ minWidth: 0 }}>
+        <TotalAssetCard summary={summary} />
+        <AssetQuickCards summary={summary} />
         <AppCard sx={{ minHeight: 174, p: `12px ${pageMetrics.cardInset}px`, borderRadius: '16px' }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", mb: { xs: '9px', sm: '14px' } }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>평가손익</Typography><Typography sx={{ color: marketColor(valuationProfit), fontSize: 16, fontWeight: 700 }}>{formatRate(valuationRate)}</Typography></Stack>
           <Stack spacing={{ xs: '6px', sm: '8px' }}>
@@ -46,7 +48,8 @@ export function AssetOverviewPage() {
             <MetricRow label="전일 대비" value={formatSignedWon(summary.dailyProfit)} color={marketColor(summary.dailyProfit)} secondary={formatRate(summary.dailyProfit / (summary.stockValue - summary.dailyProfit) * 100)} />
           </Stack>
         </AppCard>
-      <AppCard sx={{ width: '100%', minWidth: 0, p: `14px ${pageMetrics.cardInset}px`, minHeight: 494, borderRadius: '16px' }}>
+      </Stack>
+      <AppCard sx={{ width: '100%', minWidth: 0, p: `14px ${pageMetrics.cardInset}px`, minHeight: { xs: 494, sm: 452 }, borderRadius: '16px' }}>
         <Typography sx={{ fontSize: 16, fontWeight: 600, mb: '12px' }}>자산구성</Typography>
         <Stack direction="row" sx={{ justifyContent: "space-between", px: '2px', mb: '3px' }}><Typography component="button" onClick={() => navigate('/detail/stock-value')} sx={{ border: 0, p: 0, bgcolor: 'transparent', cursor: 'pointer', color: colors.textPrimary, fontSize: 11, fontWeight: 600 }}>{formatWon(summary.stockValue)}</Typography><Typography component="button" onClick={() => navigate('/detail/cash')} sx={{ border: 0, p: 0, bgcolor: 'transparent', cursor: 'pointer', color: colors.textPrimary, fontSize: 11, fontWeight: 600 }}>{formatWon(summary.cashBalance)}</Typography></Stack>
         <Stack direction="row" role="img" aria-label={`주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} sx={{ height: 12, overflow: 'hidden', borderRadius: 6, bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: colors.warning }} /></Stack>
@@ -54,7 +57,7 @@ export function AssetOverviewPage() {
 
         <Box sx={{ borderTop: `1px solid ${colors.borderStrong}`, mt: '13px', pt: '15px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', alignItems: 'center', gap: 1 }}>
           <Box sx={{ width: { xs: 148, sm: 132 }, height: { xs: 148, sm: 132 }, mx: 'auto', borderRadius: '50%', background: `conic-gradient(${donutGradient})`, display: 'grid', placeItems: 'center' }}>
-            <Stack sx={{ width: '53%', height: '53%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 9 }}>주식평가액</Typography><Typography noWrap sx={{ fontSize: 12, fontWeight: 700 }}>{summary.stockValue >= 100_000_000 ? `${(summary.stockValue / 100_000_000).toFixed(1)}억원` : `${Math.round(summary.stockValue / 10_000).toLocaleString('ko-KR')}만원`}</Typography></Stack>
+            <Stack sx={{ width: '53%', height: '53%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 9 }}>주식평가액</Typography><Typography noWrap sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.4px' }}>{formatAmount(summary.stockValue)}</Typography></Stack>
           </Box>
           <Stack spacing="8px">{chartItems.map((item) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="6px"><Box sx={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', bgcolor: item.color }} /><Typography noWrap sx={{ flex: 1, fontSize: 11 }}>{item.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
         </Box>
@@ -65,7 +68,7 @@ export function AssetOverviewPage() {
           <Stack spacing="7px">{chartItems.slice(0, 5).map((item, index) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="8px"><Typography noWrap sx={{ width: { xs: 98, sm: 100 }, fontSize: 10 }}>{item.name}</Typography><Box sx={{ flex: 1, height: 7, bgcolor: colors.raised, borderRadius: 4, overflow: 'hidden' }}><Box sx={{ ml: barMode === 'cumulative' ? `${chartItems.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0)}%` : 0, width: `${item.percent}%`, height: '100%', borderRadius: 4, bgcolor: item.color }} /></Box><Typography sx={{ width: 43, textAlign: 'right', color: item.color, fontSize: 10 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
         </Box>
       </AppCard>
-    </Stack>
+    </Box>
   </Box>;
 }
 
