@@ -117,8 +117,8 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
   const averagePrice = stock.averagePrice ?? 0;
   const investedAmount = quantity * averagePrice;
   const marketValue = stock.marketValue ?? quantity * stock.currentPrice;
-  const profitAmount = stock.profitAmount ?? marketValue - investedAmount;
-  const profitRate = stock.profitRate ?? (investedAmount ? (profitAmount / investedAmount) * 100 : 0);
+  const profitAmount = marketValue - investedAmount;
+  const profitRate = investedAmount ? (profitAmount / investedAmount) * 100 : 0;
   const dailyChange = Math.round(stock.currentPrice * stock.priceChangeRate / 100);
 
   return <Card sx={{ minHeight: 176, border: 0, borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', '&:hover': { bgcolor: colors.raised }, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }} role="link" tabIndex={0} aria-label={`${stock.name} 상세보기`} onClick={onClick} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onClick(); } }}>
