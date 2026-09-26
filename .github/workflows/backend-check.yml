@@ -1,0 +1,51 @@
+name: Backend Check
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "database/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/backend-check.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "database/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/backend-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: mysql://roxstock:roxstock@localhost:3306/roxstock
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      - name: Type-check backend
+        run: npm run typecheck:backend
