@@ -3,6 +3,7 @@ import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { colors } from '../../styles/tokens';
+import { navigateToForm } from '../../utils/focusForm';
 
 const coverItems = [
   { label: '종목목록', path: '/stocks', icon: <StarRounded /> }, { label: '매매일지', path: '/journal', icon: <CalendarMonthRounded /> },
@@ -38,7 +39,7 @@ export function PageHeader({ title, subtitle, showAdd = true, compact = false, a
         <Typography component="h1" noWrap sx={{ fontSize: { xs: 20, sm: 21 }, lineHeight: '28px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
         {subtitle && <Typography noWrap sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, lineHeight: '14px', color: colors.textMuted }}>{subtitle}</Typography>}
       </Box>
-      {action ?? (showAdd && <Tooltip title={addLabel}><IconButton aria-label={addLabel} onClick={onAdd ?? (() => navigate(addPath))} sx={{ display: { xs: showAddMobile ? 'flex' : 'none', sm: 'flex' }, width: 36, height: 36, bgcolor: colors.raised, color: colors.textPrimary, '&:hover': { bgcolor: colors.borderStrong } }}><AddRounded sx={{ fontSize: 22 }} /></IconButton></Tooltip>)}
+      {action ?? (showAdd && <Tooltip title={addLabel}><IconButton aria-label={addLabel} onClick={onAdd ?? (() => navigateToForm(navigate, addPath))} sx={{ display: { xs: showAddMobile ? 'flex' : 'none', sm: 'flex' }, width: 36, height: 36, bgcolor: colors.raised, color: colors.textPrimary, '&:hover': { bgcolor: colors.borderStrong } }}><AddRounded sx={{ fontSize: 22 }} /></IconButton></Tooltip>)}
       {(compact || (hasBack && !showAddMobile && !action)) && <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 36, flexShrink: 0 }} />}
     </Toolbar>
   </AppBar>;
