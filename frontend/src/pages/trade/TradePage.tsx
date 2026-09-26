@@ -3,7 +3,7 @@ import {
   Alert, Box, Card, CardActionArea, CardContent, CircularProgress, FormControl,
   FormControlLabel, FormHelperText, Grid, MenuItem, Radio, RadioGroup, Select, Snackbar, Stack, Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createTrade } from '../../data/mockApi';
 import { currentCashBalance, stockItems } from '../../data/mockData';
@@ -33,6 +33,7 @@ export function TradePage() {
   const [memo, setMemo] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const { data: fetchedStocks } = useStocks();
   const stocks = fetchedStocks ?? stockItems;
@@ -86,6 +87,7 @@ export function TradePage() {
   };
 
   const handleSubmit = async () => {
+    if (savingRef.current) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -93,11 +95,13 @@ export function TradePage() {
       type, stockId, lotId: type === 'sell' ? lotId : undefined, tradeDate,
       quantity: Number(quantity), price: Number(price), feeTaxAmount: Number(feeTaxAmount) || 0, memo,
     };
+    savingRef.current = true;
     setIsSaving(true);
     try {
       await createTrade(draft);
       setSaved(true);
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
   };
@@ -111,11 +115,11 @@ export function TradePage() {
             <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
             <Stack spacing={1}>
               <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required />
-              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus />
-              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required />
+              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus enterKeyHint="next" />
+              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required enterKeyHint="next" />
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} /></Box>
-              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" /></Box>
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} /></Box>
+              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" enterKeyHint="done" onEnter={() => void handleSubmit()} /></Box>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} onEnter={() => void handleSubmit()} /></Box>
             </Stack>
 
             {type === 'sell' && (
