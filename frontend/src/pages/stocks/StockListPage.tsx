@@ -1,6 +1,7 @@
 import { AddRounded, CloseRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
@@ -29,6 +30,7 @@ export function StockListPage() {
   const [priceStock, setPriceStock] = useState<StockItem | null>(null);
   const touchStartX = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const priceInputRef = useRef<HTMLInputElement | null>(null);
   const { data = [], isPending } = useStocks(activeTab);
 
   const moveTab = (direction: -1 | 1) => {
@@ -78,10 +80,10 @@ export function StockListPage() {
     </Stack>
 
     <Box onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)} sx={{ touchAction: 'pan-y' }}>
-      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => setPriceStock(stock)} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
-    <CurrentPriceDialog stock={priceStock} onClose={() => setPriceStock(null)} onSave={(value) => {
+    {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;
       const sourceStock = stockItems.find((item) => item.id === priceStock.id);
       if (!sourceStock) return;
@@ -94,7 +96,7 @@ export function StockListPage() {
       }
       void queryClient.invalidateQueries({ queryKey: ['stocks'] });
       setPriceStock(null);
-    }} />
+    }} />}
   </Stack>;
 }
 
@@ -136,7 +138,7 @@ function StockCard({ stock, onClick, onEditPrice }: { stock: StockItem; onClick:
   </Card>;
 }
 
-function CurrentPriceDialog({ stock, onClose, onSave }: { stock: StockItem | null; onClose: () => void; onSave: (value: number) => void }) {
+function CurrentPriceDialog({ stock, inputRef, onClose, onSave }: { stock: StockItem | null; inputRef: Ref<HTMLInputElement>; onClose: () => void; onSave: (value: number) => void }) {
   const [value, setValue] = useState<string | null>(null);
   const currentValue = value ?? String(stock?.currentPrice ?? '');
   const parsedValue = Number(currentValue.replace(/,/g, '')) || 0;
@@ -151,7 +153,7 @@ function CurrentPriceDialog({ stock, onClose, onSave }: { stock: StockItem | nul
       <Stack direction="row" sx={{ height: 28, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 17, color: '#F0F5FF' }}>{stock?.name}</Typography><IconButton aria-label="닫기" onClick={close} sx={{ width: 28, height: 28, color: '#7A8AA6' }}><CloseRounded sx={{ fontSize: 24 }} /></IconButton></Stack>
       <Typography sx={{ fontSize: 10, fontWeight: 600, color: '#7A8AA6' }}>A{stock?.symbol}</Typography>
       <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>자동 수집 현재가</Typography><Typography sx={{ fontSize: 13, color: getMarketColor(stock?.priceChangeRate ?? 0) }}>{formatWon(stock?.currentPrice ?? 0)}</Typography></Stack>
-      <Stack spacing="6px"><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>변경할 현재가</Typography><Box sx={{ height: 36, display: 'flex', alignItems: 'center', px: '12px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '10px' }}><Typography sx={{ width: 60, fontSize: 12, color: colors.textMuted }}>금액</Typography><InputBase autoFocus value={parsedValue ? parsedValue.toLocaleString('ko-KR') : ''} onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ''))} inputProps={{ inputMode: 'numeric', 'aria-label': '변경할 현재가' }} sx={{ flex: 1, '& input': { p: 0, textAlign: 'right', fontSize: 14, fontWeight: 600 } }} /><Typography sx={{ ml: 0.5, fontSize: 14, fontWeight: 600 }}>원</Typography><IconButton aria-label="금액 지우기" onClick={() => setValue('')} sx={{ ml: 0.5, width: 20, height: 20, color: '#B8C7DB' }}><CloseRounded sx={{ fontSize: 14 }} /></IconButton></Box></Stack>
+      <Stack spacing="6px"><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>변경할 현재가</Typography><Box sx={{ height: 36, display: 'flex', alignItems: 'center', px: '12px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '10px' }}><Typography sx={{ width: 60, fontSize: 12, color: colors.textMuted }}>금액</Typography><InputBase autoFocus inputRef={inputRef} value={parsedValue ? parsedValue.toLocaleString('ko-KR') : ''} onChange={(event) => setValue(event.target.value.replace(/[^0-9]/g, ''))} inputProps={{ inputMode: 'numeric', 'aria-label': '변경할 현재가' }} sx={{ flex: 1, '& input': { p: 0, textAlign: 'right', fontSize: 14, fontWeight: 600 } }} /><Typography sx={{ ml: 0.5, fontSize: 14, fontWeight: 600 }}>원</Typography><IconButton aria-label="금액 지우기" onClick={() => setValue('')} sx={{ ml: 0.5, width: 20, height: 20, color: '#B8C7DB' }}><CloseRounded sx={{ fontSize: 14 }} /></IconButton></Box></Stack>
       <Stack direction="row" sx={{ height: 22, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11, fontWeight: 600, color: '#7A8AA6' }}>전일 대비</Typography><Typography sx={{ fontSize: 13, color: marketColor }}>{formatWon(change)}　{formatRate(changeRate)}</Typography></Stack>
       <Stack direction="row" spacing="10px"><Button fullWidth onClick={close} sx={{ height: 40, border: `1px solid ${colors.border}`, borderRadius: '9px', bgcolor: colors.surface, color: colors.textSecondary, fontSize: 13 }}>취소</Button><Button fullWidth variant="contained" disabled={!parsedValue} onClick={() => { onSave(parsedValue); setValue(null); }} sx={{ height: 40, borderRadius: '9px', fontSize: 13, boxShadow: 'none' }}>변경</Button></Stack>
     </Stack>
