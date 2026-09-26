@@ -2,11 +2,13 @@ import { Box, CardActionArea, CircularProgress, Skeleton, Stack, Typography } fr
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem } from '../../types/models';
-import { formatAmount, formatRate, formatSignedAmount, getMarketColor } from '../../utils/format';
-import { AmountText, AppCard, SectionHeader } from '../../components/common/Common';
+import { formatAmount, formatRate, getMarketColor } from '../../utils/format';
+import { AppCard, SectionHeader } from '../../components/common/Common';
 import { colors } from '../../styles/tokens';
 
 const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
+const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${formatWon(value)}`;
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -20,14 +22,14 @@ export function DashboardPage() {
   return <Stack spacing={{ xs: '12px', sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: '12px' }, pb: '52px' }}>
     <AppCard sx={{ height: { xs: 102, sm: 116 }, position: 'relative', gridColumn: { sm: 1 }, gridRow: { sm: 1 } }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
       <Typography sx={{ position: 'absolute', top: 15, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>평가자산</Typography>
-      <Box sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', lineHeight: '36px' }}><AmountText value={summary.totalAssets} size={24} weight={700} color={summary.dailyProfit >= 0 ? colors.marketRise : colors.marketFall} /></Box>
+      <Box sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', lineHeight: '36px' }}><Typography component="span" sx={{ color: summary.dailyProfit >= 0 ? colors.marketRise : colors.marketFall, fontSize: 24, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatWon(summary.totalAssets)}</Typography></Box>
       <Typography sx={{ position: 'absolute', top: 60, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>일별손익</Typography>
       <Typography sx={{ position: 'absolute', top: 60, left: 76, fontSize: 12, lineHeight: '18px', color: getMarketColor(summary.dailyProfit) }}>{formatRate(summary.dailyProfitRate)}</Typography>
-      <Typography sx={{ position: 'absolute', top: 59, right: 17, width: 161, textAlign: 'right', fontSize: 15, lineHeight: '20px', fontWeight: 600, color: getMarketColor(summary.dailyProfit) }}>{formatSignedAmount(summary.dailyProfit)}</Typography>
+      <Typography sx={{ position: 'absolute', top: 59, right: 17, width: 161, textAlign: 'right', fontSize: 15, lineHeight: '20px', fontWeight: 600, color: getMarketColor(summary.dailyProfit) }}>{formatSignedWon(summary.dailyProfit)}</Typography>
     </CardActionArea></AppCard>
     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: { xs: '10px', sm: '16px' }, height: { xs: 82, sm: 88 }, gridColumn: { sm: 1 }, gridRow: { sm: 2 } }}>
-      <QuickCard title="주식평가액" value={formatAmount(summary.stockValue)} rate={formatRate(stockRate)} monthly={formatSignedAmount(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} />
-      <QuickCard title="예수금" value={formatAmount(summary.cashBalance)} rate={formatRate(cashRate)} monthly={formatSignedAmount(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} />
+      <QuickCard title="주식평가액" value={formatWon(summary.stockValue)} rate={formatRate(stockRate)} monthly={formatSignedWon(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} />
+      <QuickCard title="예수금" value={formatWon(summary.cashBalance)} rate={formatRate(cashRate)} monthly={formatSignedWon(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} />
     </Box>
     <AppCard sx={{ height: { xs: 104, sm: 224 }, gridColumn: { sm: 1 }, gridRow: { sm: 3 } }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', p: '14px' }}>
       <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: colors.focus, letterSpacing: '0.02px' }}>1개월</Typography>} />
