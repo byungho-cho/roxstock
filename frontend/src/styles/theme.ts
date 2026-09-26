@@ -21,7 +21,7 @@ export const theme = createTheme({
   },
   components: {
     MuiCssBaseline: { styleOverrides: {
-      html: { backgroundColor: '#080D18', colorScheme: 'dark' },
+      html: { backgroundColor: '#080D18', colorScheme: 'dark', '@media (min-width: 600px)': { scrollbarGutter: 'stable' } },
       body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'none' },
       '*': {
         boxSizing: 'border-box',
