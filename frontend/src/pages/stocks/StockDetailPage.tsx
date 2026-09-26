@@ -60,7 +60,7 @@ type StockHeaderProps = {
 
 function StockHeader({ name, symbol, previousName, nextName, onBack, onPrevious, onNext }: StockHeaderProps) {
   return <Box>
-    <PageHeader title={name} subtitle={symbol} onBack={onBack} showAdd={false} embedded action={<FavoriteRounded sx={{ width: 36, color: colors.warning, fontSize: 20 }} />} />
+    <PageHeader title={name} subtitle={symbol} onBack={onBack} showBackTablet showAdd={false} embedded action={<FavoriteRounded sx={{ width: 36, color: colors.warning, fontSize: 20 }} />} />
     <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between' }}>
       <Typography component="button" onClick={onPrevious} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{previousName}</Typography>
       <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{symbol}</Typography>
