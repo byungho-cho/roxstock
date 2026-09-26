@@ -17,7 +17,7 @@ export function DashboardPage() {
   const { summary, holdings, trend } = data;
   const stockRate = (summary.stockValue / summary.totalAssets) * 100;
   const cashRate = (summary.cashBalance / summary.totalAssets) * 100;
-  return <Stack spacing={{ xs: `${pageMetrics.gap}px`, sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: `${pageMetrics.gap}px` } }}>
+  return <Stack spacing={{ xs: `${pageMetrics.gap}px`, sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: `${pageMetrics.gap}px` } }}>
     <AppCard sx={{ height: { xs: 102, sm: 116 }, position: 'relative', gridColumn: { sm: 1 }, gridRow: { sm: 1 } }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
       <Typography sx={{ position: 'absolute', top: 17, left: pageMetrics.cardInset, fontSize: 12, lineHeight: '18px', color: colors.textSecondary }}>평가자산</Typography>
       <Box sx={{ position: 'absolute', top: 9, right: pageMetrics.cardInset, maxWidth: 'calc(100% - 32px)', textAlign: 'right', lineHeight: '36px' }}><Typography component="span" sx={{ color: getMarketColor(summary.dailyProfit), fontSize: 24, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatWon(summary.totalAssets)}</Typography></Box>
