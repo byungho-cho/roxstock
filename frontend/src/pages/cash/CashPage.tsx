@@ -102,7 +102,7 @@ export function CashPage() {
   return <Box>
     <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded />
 
-    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' } }}>
+    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '12px', sm: '16px' } }}>
       <Stack spacing="12px">
         <AppCard sx={{ height: { xs: 112, sm: 126 }, p: { xs: '11px 16px', sm: '15px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>
