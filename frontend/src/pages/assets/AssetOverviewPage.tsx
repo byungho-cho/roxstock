@@ -39,7 +39,7 @@ export function AssetOverviewPage() {
       <Stack spacing={`${pageMetrics.gap}px`} sx={{ minWidth: 0 }}>
         <TotalAssetCard summary={summary} />
         <AssetQuickCards summary={summary} />
-        <AppCard sx={{ minHeight: 174, p: `12px ${pageMetrics.cardInset}px`, borderRadius: '16px' }}>
+        <AppCard sx={{ minHeight: { xs: 174, sm: 224 }, p: `12px ${pageMetrics.cardInset}px`, borderRadius: '16px' }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", mb: { xs: '9px', sm: '14px' } }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>평가손익</Typography><Typography sx={{ color: marketColor(valuationProfit), fontSize: 16, fontWeight: 700 }}>{formatRate(valuationRate)}</Typography></Stack>
           <Stack spacing={{ xs: '6px', sm: '8px' }}>
             <MetricRow label="매입금액" value={formatWon(summary.stockPurchaseAmount)} />
@@ -62,10 +62,10 @@ export function AssetOverviewPage() {
           <Stack spacing="8px">{chartItems.map((item) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="6px"><Box sx={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', bgcolor: item.color }} /><Typography noWrap sx={{ flex: 1, fontSize: 11 }}>{item.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
         </Box>
 
-        <Box sx={{ borderTop: `1px solid ${colors.borderStrong}`, mt: '16px', pt: '10px' }}>
+        <Box sx={{ borderTop: `1px solid ${colors.borderStrong}`, mt: '11px', pt: '10px' }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: '11px' }}><Typography sx={{ fontSize: 15, fontWeight: 600 }}>종목별 비중</Typography><Box component="button" onClick={() => setBarMode((mode) => mode === 'cumulative' ? 'ranked' : 'cumulative')} aria-label="종목별 비중 차트 방식 변경" sx={{ border: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, px: 1.5, py: 0.5, fontSize: 10, cursor: 'pointer' }}>{barMode === 'cumulative' ? '누적형' : '순위형'}</Box></Stack>
-          <Stack direction="row" role="img" aria-label="종목별 비중 누적 막대" sx={{ height: 12, borderRadius: 6, overflow: 'hidden', mb: '11px' }}>{chartItems.map((item) => <Box key={item.id} sx={{ width: `${item.percent}%`, bgcolor: item.color }} />)}</Stack>
-          <Stack spacing="7px">{chartItems.slice(0, 5).map((item, index) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="8px"><Typography noWrap sx={{ width: { xs: 98, sm: 100 }, fontSize: 10 }}>{item.name}</Typography><Box sx={{ flex: 1, height: 7, bgcolor: colors.raised, borderRadius: 4, overflow: 'hidden' }}><Box sx={{ ml: barMode === 'cumulative' ? `${chartItems.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0)}%` : 0, width: `${item.percent}%`, height: '100%', borderRadius: 4, bgcolor: item.color }} /></Box><Typography sx={{ width: 43, textAlign: 'right', color: item.color, fontSize: 10 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
+          <Stack direction="row" role="img" aria-label="종목별 비중 누적 막대" sx={{ height: 12, borderRadius: 6, overflow: 'hidden', mb: '8px' }}>{chartItems.map((item) => <Box key={item.id} sx={{ width: `${item.percent}%`, bgcolor: item.color }} />)}</Stack>
+          <Stack spacing="4px">{chartItems.slice(0, 5).map((item, index) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="8px"><Typography noWrap sx={{ width: { xs: 98, sm: 100 }, fontSize: 10 }}>{item.name}</Typography><Box sx={{ flex: 1, height: 7, bgcolor: colors.raised, borderRadius: 4, overflow: 'hidden' }}><Box sx={{ ml: barMode === 'cumulative' ? `${chartItems.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0)}%` : 0, width: `${item.percent}%`, height: '100%', borderRadius: 4, bgcolor: item.color }} /></Box><Typography sx={{ width: 43, textAlign: 'right', color: item.color, fontSize: 10 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
         </Box>
       </AppCard>
     </Box>
