@@ -34,6 +34,11 @@ export function TradePage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const savingRef = useRef(false);
+  const quantityRef = useRef<HTMLInputElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
+  const feeRef = useRef<HTMLInputElement>(null);
+  const memoRef = useRef<HTMLInputElement>(null);
+  const desktopMemoRef = useRef<HTMLTextAreaElement>(null);
   const [saved, setSaved] = useState(false);
   const { data: fetchedStocks } = useStocks();
   const stocks = fetchedStocks ?? stockItems;
@@ -114,12 +119,12 @@ export function TradePage() {
           <Stack spacing={1.25}>
             <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
             <Stack spacing={1}>
-              <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required />
-              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus enterKeyHint="next" />
-              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required enterKeyHint="next" />
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} /></Box>
-              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" enterKeyHint="done" onEnter={() => void handleSubmit()} /></Box>
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} onEnter={() => void handleSubmit()} /></Box>
+              <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required enterKeyHint="next" onEnter={() => quantityRef.current?.focus()} />
+              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus enterKeyHint="next" onEnter={() => priceRef.current?.focus()} inputRef={quantityRef} />
+              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required enterKeyHint="next" inputRef={priceRef} onEnter={() => (feeRef.current?.getClientRects().length ? feeRef.current : memoRef.current)?.focus()} />
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} enterKeyHint="next" inputRef={feeRef} onEnter={() => desktopMemoRef.current?.focus()} /></Box>
+              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" enterKeyHint="done" inputRef={memoRef} onEnter={() => void handleSubmit()} /></Box>
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} textareaRef={desktopMemoRef} onEnter={() => void handleSubmit()} /></Box>
             </Stack>
 
             {type === 'sell' && (
