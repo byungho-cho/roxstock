@@ -10,6 +10,7 @@ import { stockItems } from '../../data/mockData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 import { colors } from '../../styles/tokens';
+import { navigateToForm } from '../../utils/focusForm';
 
 const tabs: Array<{ value: StockListType; label: string }> = [
   { value: 'watchlist', label: '관심종목' }, { value: 'holding', label: '보유종목' }, { value: 'recommended', label: '추천종목' },
@@ -57,7 +58,7 @@ export function StockListPage() {
   return <Stack spacing="12px">
     <PageHeader title="종목목록" showAdd={false} embedded action={<Stack direction="row" spacing={1}>
       <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
-      <IconButton aria-label="종목 추가" onClick={() => navigate(`/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
+      <IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
     </Stack>} />
 
     <Card sx={{ p: '4px', border: 0, borderRadius: '12px', bgcolor: colors.surface }}>
