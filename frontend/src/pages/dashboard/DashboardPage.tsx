@@ -17,7 +17,7 @@ export function DashboardPage() {
   const { summary, holdings, trend } = data;
   const stockRate = (summary.stockValue / summary.totalAssets) * 100;
   const cashRate = (summary.cashBalance / summary.totalAssets) * 100;
-  return <Stack spacing={{ xs: '12px', sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: '12px' } }}>
+  return <Stack spacing={{ xs: '12px', sm: 0 }} sx={{ display: { xs: 'flex', sm: 'grid' }, gridTemplateColumns: { sm: '380px 380px' }, gridTemplateRows: { sm: '116px 88px 224px' }, columnGap: { sm: '16px' }, rowGap: { sm: '12px' }, pb: '52px' }}>
     <AppCard sx={{ height: { xs: 102, sm: 116 }, position: 'relative', gridColumn: { sm: 1 }, gridRow: { sm: 1 } }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
       <Typography sx={{ position: 'absolute', top: 15, left: 15, fontSize: 12, lineHeight: '18px', color: '#CBD5E1' }}>평가자산</Typography>
       <Box sx={{ position: 'absolute', top: 9, right: 17, width: 256, textAlign: 'right', lineHeight: '36px' }}><AmountText value={summary.totalAssets} size={24} weight={700} color={summary.dailyProfit >= 0 ? colors.marketRise : colors.marketFall} /></Box>
