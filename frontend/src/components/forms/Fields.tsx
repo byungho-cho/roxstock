@@ -74,7 +74,7 @@ export function DateField(props: BaseFieldProps) {
 }
 
 export function FormTextarea({ label, value, onChange, error, description, required, disabled, placeholder, rows = 3, onEnter }: BaseFieldProps & { rows?: number }) {
-  return <FormField label={label} required={required} error={error} description={description}><InputBase multiline minRows={rows} value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(event) => { if (event.ctrlKey || event.metaKey) handleEnter(event, onEnter); }} disabled={disabled} placeholder={placeholder} sx={{ p: '12px 14px', bgcolor: colors.raised, border: '1px solid', borderColor: error ? colors.error : colors.borderStrong, borderRadius: `${radius.md}px`, '&.Mui-focused': { borderColor: error ? colors.error : colors.focus } }} /></FormField>;
+  return <FormField label={label} required={required} error={error} description={description}><InputBase multiline minRows={rows} value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(event) => { if (!event.shiftKey) handleEnter(event, onEnter); }} inputProps={{ enterKeyHint: onEnter ? 'done' : undefined }} disabled={disabled} placeholder={placeholder} sx={{ p: '12px 14px', bgcolor: colors.raised, border: '1px solid', borderColor: error ? colors.error : colors.borderStrong, borderRadius: `${radius.md}px`, '&.Mui-focused': { borderColor: error ? colors.error : colors.focus } }} /></FormField>;
 }
 
 export function FormSelect({ label, value, onChange, options, error, description, required, disabled }: Omit<BaseFieldProps, 'onChange'> & { onChange: (value: string) => void; options: Array<{ value: string; label: string }> }) {
