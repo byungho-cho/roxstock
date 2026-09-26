@@ -20,6 +20,10 @@ export function formatSignedAmount(value: number): string {
   return `${value > 0 ? '+' : ''}${formatAmount(value)}`;
 }
 
+export const formatWon = (value: number): string => `${Math.round(value).toLocaleString('ko-KR')}원`;
+export const formatSignedWon = (value: number): string => `${value > 0 ? '+' : ''}${formatWon(value)}`;
+export const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
+
 export function formatRate(value: number, fractionDigits = 1): string {
   if (value === 0) return `${(0).toFixed(fractionDigits)}%`;
   return `${value > 0 ? '+' : ''}${value.toFixed(fractionDigits)}%`;
