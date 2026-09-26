@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { useDashboard } from '../../hooks/useMockData';
-import { formatAmount, formatPercent, formatRate, formatSignedWon, formatWon } from '../../utils/format';
+import { formatPercent, formatRate, formatSignedWon, formatWon } from '../../utils/format';
 import { colors, pageMetrics } from '../../styles/tokens';
 
 const marketColor = (value: number) => value > 0 ? colors.marketRise : value < 0 ? colors.marketFall : colors.marketFlat;
@@ -54,7 +54,7 @@ export function AssetOverviewPage() {
 
         <Box sx={{ borderTop: `1px solid ${colors.borderStrong}`, mt: '13px', pt: '15px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', alignItems: 'center', gap: 1 }}>
           <Box sx={{ width: { xs: 148, sm: 132 }, height: { xs: 148, sm: 132 }, mx: 'auto', borderRadius: '50%', background: `conic-gradient(${donutGradient})`, display: 'grid', placeItems: 'center' }}>
-            <Stack sx={{ width: '53%', height: '53%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 9 }}>주식평가액</Typography><Typography sx={{ fontSize: 13, fontWeight: 700 }}>{formatAmount(summary.stockValue)}</Typography></Stack>
+            <Stack sx={{ width: '53%', height: '53%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 9 }}>주식평가액</Typography><Typography noWrap sx={{ fontSize: 12, fontWeight: 700 }}>{summary.stockValue >= 100_000_000 ? `${(summary.stockValue / 100_000_000).toFixed(1)}억원` : `${Math.round(summary.stockValue / 10_000).toLocaleString('ko-KR')}만원`}</Typography></Stack>
           </Box>
           <Stack spacing="8px">{chartItems.map((item) => <Stack key={item.id} direction="row" sx={{ alignItems: "center" }} spacing="6px"><Box sx={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', bgcolor: item.color }} /><Typography noWrap sx={{ flex: 1, fontSize: 11 }}>{item.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{formatPercent(item.percent)}</Typography></Stack>)}</Stack>
         </Box>
