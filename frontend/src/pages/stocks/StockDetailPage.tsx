@@ -22,7 +22,7 @@ export function StockDetailPage() {
   const [tab, setTab] = useState<DetailTab>(holding ? 'holding' : 'summary');
   const [dialog, setDialog] = useState<'price' | 'category' | 'delete' | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<StockListType>(stock.listType);
-  const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0); const market = stock.marketValue ?? 0; const profit = stock.profitAmount ?? market - invested;
+  const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0); const market = stock.marketValue ?? 0; const profit = market - invested;
   const detailStocks = stockItems.filter((item) => item.listType === stock.listType);
   const stockIndex = detailStocks.findIndex((item) => item.id === stock.id);
   const previousStock = detailStocks[(stockIndex - 1 + detailStocks.length) % detailStocks.length];
