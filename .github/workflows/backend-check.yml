@@ -26,7 +26,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DATABASE_URL: mysql://roxstock:roxstock@localhost:3306/roxstock
+      DATABASE_URL: mysql://roxstock:roxstock@127.0.0.1:3306/roxstock
+
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: roxstock
+          MARIADB_USER: roxstock
+          MARIADB_PASSWORD: roxstock
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout
@@ -46,6 +62,12 @@ jobs:
 
       - name: Generate Prisma Client
         run: npm run prisma:generate
+
+      - name: Apply migrations to MariaDB
+        run: npm run prisma:migrate:deploy
+
+      - name: Verify migration status
+        run: npx prisma migrate status --schema database/prisma/schema.prisma
 
       - name: Type-check backend
         run: npm run typecheck:backend
