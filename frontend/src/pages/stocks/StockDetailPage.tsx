@@ -1,9 +1,10 @@
-import { ArrowBackIosNewRounded, DeleteOutlineRounded, EditRounded, FavoriteRounded } from '@mui/icons-material';
+import { DeleteOutlineRounded, EditRounded, FavoriteRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useRef, useState, type PointerEventHandler, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
+import { PageHeader } from '../../components/navigation/Navigation';
 import type { StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 
@@ -57,9 +58,18 @@ type StockHeaderProps = {
   onNext: () => void;
 };
 
-function StockHeader({ name, symbol, previousName, nextName, onBack, onPrevious, onNext }: StockHeaderProps) { return <Stack direction="row" sx={{ height: 48, alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}><IconButton onClick={onBack} sx={{ width: 40, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ position: 'relative', width: 248, height: 40, textAlign: 'center' }}><Typography sx={{ fontSize: 18, lineHeight: '22px', fontWeight: 600 }}>{name}</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', color: colors.textMuted }}>{symbol}</Typography><Typography component="button" onClick={onPrevious} sx={{ position: 'absolute', left: 0, bottom: 0, width: 70, p: 0, border: 0, bgcolor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left', fontSize: 10, color: colors.textMuted, cursor: 'pointer' }}>{previousName}</Typography><Typography component="button" onClick={onNext} sx={{ position: 'absolute', right: 0, bottom: 0, width: 70, p: 0, border: 0, bgcolor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', fontSize: 10, color: colors.textMuted, cursor: 'pointer' }}>{nextName}</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 20 }} /></Stack>; }
+function StockHeader({ name, symbol, previousName, nextName, onBack, onPrevious, onNext }: StockHeaderProps) {
+  return <Box>
+    <PageHeader title={name} subtitle={symbol} onBack={onBack} showAdd={false} embedded action={<FavoriteRounded sx={{ width: 36, color: colors.warning, fontSize: 20 }} />} />
+    <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between' }}>
+      <Typography component="button" onClick={onPrevious} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{previousName}</Typography>
+      <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{symbol}</Typography>
+      <Typography component="button" onClick={onNext} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{nextName}</Typography>
+    </Stack>
+  </Box>;
+}
 
-function InterestHeader({ name, symbol, previousName, nextName, onBack, onPrevious, onNext }: StockHeaderProps) { return <Stack direction="row" sx={{ height: 58, alignItems: 'flex-start', justifyContent: 'space-between', pt: '4px', userSelect: 'none' }}><IconButton onClick={onBack} sx={{ width: 40, height: 36, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ position: 'relative', width: 248, height: 50, textAlign: 'center' }}><Typography sx={{ fontSize: 19, lineHeight: '24px', fontWeight: 700 }}>{name}</Typography><Typography sx={{ mt: '3px', fontSize: 10, color: colors.textMuted }}>A{symbol} · 코스피</Typography><Typography component="button" onClick={onPrevious} sx={{ position: 'absolute', left: 0, bottom: 0, width: 78, p: 0, border: 0, bgcolor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left', fontSize: 10, color: colors.textMuted, cursor: 'pointer' }}>{previousName}</Typography><Typography component="button" onClick={onNext} sx={{ position: 'absolute', right: 0, bottom: 0, width: 78, p: 0, border: 0, bgcolor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right', fontSize: 10, color: colors.textMuted, cursor: 'pointer' }}>{nextName}</Typography></Box><FavoriteRounded sx={{ width: 40, color: colors.warning, fontSize: 22 }} /></Stack>; }
+const InterestHeader = StockHeader;
 
 function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
   if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => navigate(`/trade?type=sell&stock=${stock.id}`)} />;
