@@ -33,7 +33,7 @@ export function PageHeader({ title, variant = 'standard', subtitle, showAdd = tr
   const navigate = useNavigate();
   const hasBack = Boolean(backPath || onBack);
   const mobileAddVisible = showAddMobile ?? variant !== 'detail';
-  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, pt: embedded ? 0 : `${pageMetrics.top}px`, ...(embedded && { width: { xs: `calc(100% + ${pageGutter.xs * 2}px)`, sm: `calc(100% + ${pageGutter.sm * 2}px)` }, '&&': { mx: { xs: `-${pageGutter.xs}px`, sm: `-${pageGutter.sm}px` } } }) }}>
+  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ top: 0, flexShrink: 0, bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${pageGutter.xs * 2}px)`, sm: `calc(100% + ${pageGutter.sm * 2}px)` }, '&&': { mx: { xs: `-${pageGutter.xs}px`, sm: `-${pageGutter.sm}px` } } }) }}>
     <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 0, alignItems: 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: pageMetrics.headerHeight, height: pageMetrics.headerHeight, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>}
       <Box sx={{ flex: 1, minWidth: 0, textAlign: variant === 'detail' || compact ? { xs: 'center', sm: 'left' } : hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
