@@ -71,3 +71,6 @@ jobs:
 
       - name: Type-check backend
         run: npm run typecheck:backend
+
+      - name: Test backend
+        run: npm --workspace backend run test
