@@ -12,7 +12,7 @@ export function StockInsightPage({ mode }: { mode: 'value' | 'financials' }) {
   const navigate = useNavigate(); const { stockId = 'samsung' } = useParams();
   const stock = stockItems.find((item) => item.id === stockId) ?? stockItems.find((item) => item.id === 'samsung')!;
   const [annual, setAnnual] = useState(true);
-  return <Stack spacing={mode === 'value' ? '12px' : '8px'} sx={{ height: `calc(100dvh - ${pageMetrics.top + pageMetrics.navHeight + pageMetrics.bottomClearance}px)`, minHeight: 0, pb: 1, overflowY: 'auto', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
+  return <Stack spacing={mode === 'value' ? '12px' : '8px'} sx={{ height: `calc(100dvh - ${pageMetrics.top + pageMetrics.headerHeight + pageMetrics.bottomClearance}px)`, minHeight: 0, pb: 1, overflowY: 'auto', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
     <PageHeader title={stock.name} subtitle={stock.symbol} onBack={() => navigate(-1)} showBackTablet showAdd={false} embedded />
     {mode === 'value' ? <ValueContent stock={stock} /> : <FinancialContent annual={annual} onToggle={() => setAnnual((value) => !value)} />}
   </Stack>;
