@@ -11,7 +11,7 @@ import type { StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 
 const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
-const detailScrollOffset = pageMetrics.top + 64 + pageMetrics.gap * 3 + 64 + 40 + pageMetrics.navHeight + pageMetrics.bottomClearance;
+const detailScrollOffset = pageMetrics.top + 64 + pageMetrics.gap * 3 + 64 + 40 + pageMetrics.headerHeight + pageMetrics.bottomClearance;
 type DetailTab = 'summary' | 'holding' | 'trades';
 
 export function StockDetailPage() {
