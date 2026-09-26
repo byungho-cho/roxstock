@@ -58,7 +58,7 @@ export function OverlayPageScrollbar({ hasBottomNav }: { hasBottomNav: boolean }
 
   return <Box role="scrollbar" aria-label="페이지 스크롤" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={Math.round(maxScroll)} aria-valuenow={Math.round(size.top)} tabIndex={0}
     onPointerDown={handlePointerDown} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) scrollToPointer(event.clientY); }} onKeyDown={handleKeyDown}
-    sx={{ position: 'fixed', top: inset, bottom, right: 2, width: 10, zIndex: 11, cursor: 'pointer', touchAction: 'none', '&:focus-visible': { outline: `2px solid ${colors.focus}`, outlineOffset: 2 } }}>
+    sx={{ position: 'fixed', top: inset, bottom, right: 2, width: 10, zIndex: 11, cursor: 'pointer', touchAction: 'none', '&:focus-visible': { outline: 'none' }, '&:focus-visible > div': { bgcolor: colors.focus, opacity: 1 } }}>
     <Box sx={{ position: 'absolute', right: 3, top: thumbTop, width: 4, height: thumbHeight, borderRadius: 2, bgcolor: colors.textMuted, opacity: 0.65, pointerEvents: 'none' }} />
   </Box>;
 }
