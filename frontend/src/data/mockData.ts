@@ -38,13 +38,6 @@ export const cashEntries: CashEntry[] = [
   { id: 'cash-33', date: '2026-06-02', type: 'deposit', amount: 5_000_000 },
 ];
 
-// Shares used by the asset composition mock; names are read from stockItems.
-export const assetComposition = [
-  { id: 'hyundai', percent: 26 }, { id: 'samsung', percent: 22 },
-  { id: 'kia', percent: 16 }, { id: 'hynix-holding', percent: 14 },
-  { id: 'naver', percent: 12 }, { id: 'other', percent: 10 },
-];
-
 export const stockItems: StockItem[] = [
   {
     id: 'hyundai', symbol: '005380', name: '현대자동차', listType: 'holding',
@@ -119,24 +112,28 @@ export const buyLots: BuyLot[] = [
   { id: 'lot-naver-1', stockId: 'naver', stockName: 'NAVER', tradeDate: '2026-03-10', buyPrice: 227_300, quantity: 42, soldQuantity: 0, remainingQuantity: 42 },
 ];
 
+const initialHoldings = stockItems.filter((stock) => stock.listType === 'holding');
+const initialStockValue = initialHoldings.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
+const initialPurchaseAmount = initialHoldings.reduce((sum, stock) => sum + (stock.quantity ?? 0) * (stock.averagePrice ?? 0), 0);
+
 export const dashboardData: DashboardData = {
   summary: {
-    totalAssets: 854_200_000,
-    stockValue: 651_000_000,
-    stockPurchaseAmount: 548_000_000,
+    totalAssets: initialStockValue + 203_200_000,
+    stockValue: initialStockValue,
+    stockPurchaseAmount: initialPurchaseAmount,
     cashBalance: 203_200_000,
     dailyProfit: 12_840_000,
     dailyProfitRate: 1.5,
     stockMonthlyProfit: 20_000_000,
     cashMonthlyProfit: 20_000_000,
-    totalProfit: 184_200_000,
-    totalProfitRate: 27.49,
+    totalProfit: initialStockValue - initialPurchaseAmount,
+    totalProfitRate: initialPurchaseAmount ? (initialStockValue - initialPurchaseAmount) / initialPurchaseAmount * 100 : 0,
     collectedAt: '09.24 07:55',
   },
-  holdings: stockItems.filter((stock) => stock.listType === 'holding'),
+  holdings: initialHoldings,
   trend: [
     { label: '4월', value: 692_000_000 }, { label: '5월', value: 724_000_000 },
     { label: '6월', value: 718_000_000 }, { label: '7월', value: 776_000_000 },
-    { label: '8월', value: 816_000_000 }, { label: '9월', value: 854_200_000 },
+    { label: '8월', value: 816_000_000 }, { label: '9월', value: initialStockValue + 203_200_000 },
   ],
 };
