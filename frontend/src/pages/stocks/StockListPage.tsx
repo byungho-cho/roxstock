@@ -5,6 +5,7 @@ import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
+import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
@@ -33,6 +34,7 @@ export function StockListPage() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
   const { data = [], isPending } = useStocks(activeTab);
+  const { favoriteIds, toggleFavorite } = useFavoriteStocks();
 
   const moveTab = (direction: -1 | 1) => {
     const index = tabs.findIndex((tab) => tab.value === activeTab);
@@ -51,8 +53,16 @@ export function StockListPage() {
     const keyword = query.trim().toLowerCase();
     return data
       .filter((stock) => !keyword || stock.name.toLowerCase().includes(keyword) || stock.symbol.includes(keyword))
-      .sort((a, b) => ((b.marketValue ?? 0) - (a.marketValue ?? 0)) * (descending ? 1 : -1));
-  }, [data, descending, query, showEmpty]);
+      .sort((a, b) => {
+        if (activeTab === 'holding') {
+          const favoriteOrder = Number(favoriteIds.has(b.id)) - Number(favoriteIds.has(a.id));
+          if (favoriteOrder !== 0) return favoriteOrder;
+        }
+        const aValue = a.marketValue ?? (a.quantity ?? 0) * a.currentPrice;
+        const bValue = b.marketValue ?? (b.quantity ?? 0) * b.currentPrice;
+        return (bValue - aValue) * (descending ? 1 : -1);
+      });
+  }, [activeTab, data, descending, favoriteIds, query, showEmpty]);
   const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
@@ -81,7 +91,7 @@ export function StockListPage() {
     </Stack>
 
     <Box onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)} sx={{ touchAction: 'pan-y' }}>
-      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
@@ -101,7 +111,7 @@ export function StockListPage() {
   </Stack>;
 }
 
-function StockCard({ stock, onClick, onEditPrice }: { stock: StockItem; onClick: () => void; onEditPrice: () => void }) {
+function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }: { stock: StockItem; isFavorite: boolean; onToggleFavorite: () => void; onClick: () => void; onEditPrice: () => void }) {
   const isHolding = stock.listType === 'holding';
   const quantity = stock.quantity ?? 0;
   const averagePrice = stock.averagePrice ?? 0;
@@ -116,7 +126,7 @@ function StockCard({ stock, onClick, onEditPrice }: { stock: StockItem; onClick:
       <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '4px', px: '14px', pt: '12px', pb: '10px !important' }}>
         <Stack direction="row" sx={{ height: 22, alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography noWrap sx={{ fontSize: 15, fontWeight: 700 }}>{stock.name}<Box component="span" sx={{ ml: 1, fontSize: 11, fontWeight: 400, color: colors.textMuted }}>{stock.symbol}</Box></Typography>
-          {isHolding ? <IconButton aria-label="관심종목" onClick={(event) => event.stopPropagation()} sx={{ width: 30, height: 22, p: 0, color: ['hyundai', 'samsung'].includes(stock.id) ? colors.warning : colors.textMuted }}>{['hyundai', 'samsung'].includes(stock.id) ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton> : <Box sx={{ minWidth: 48, height: 20, px: 0.75, display: 'grid', placeItems: 'center', border: `1px solid ${colors.warning}88`, borderRadius: '6px', color: colors.warning, fontSize: 10, fontWeight: 600 }}>W {(stock.pbr ?? 1).toFixed(2)}</Box>}
+          {isHolding ? <IconButton aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFavorite} onClick={(event) => { event.stopPropagation(); onToggleFavorite(); }} sx={{ width: 30, height: 22, p: 0, color: isFavorite ? colors.warning : colors.textMuted }}>{isFavorite ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton> : <Box sx={{ minWidth: 48, height: 20, px: 0.75, display: 'grid', placeItems: 'center', border: `1px solid ${colors.warning}88`, borderRadius: '6px', color: colors.warning, fontSize: 10, fontWeight: 600 }}>W {(stock.pbr ?? 1).toFixed(2)}</Box>}
         </Stack>
         <Box sx={{ height: '1px', bgcolor: colors.border }} />
         {isHolding ? <>
