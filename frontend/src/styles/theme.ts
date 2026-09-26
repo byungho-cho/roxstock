@@ -21,8 +21,9 @@ export const theme = createTheme({
   },
   components: {
     MuiCssBaseline: { styleOverrides: {
-      html: { backgroundColor: '#080D18', colorScheme: 'dark', '@media (min-width: 600px)': { scrollbarGutter: 'stable' } },
+      html: { backgroundColor: '#080D18', colorScheme: 'dark', scrollbarWidth: 'none' },
       body: { minWidth: 320, overscrollBehavior: 'none', backgroundImage: 'none' },
+      'html::-webkit-scrollbar': { display: 'none', width: 0 },
       '*': {
         boxSizing: 'border-box',
         scrollbarWidth: 'thin',
