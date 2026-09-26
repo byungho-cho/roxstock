@@ -2,7 +2,7 @@ import { AccountBalanceWalletRounded, AddRounded, ArrowBackRounded, AnalyticsRou
 import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { colors } from '../../styles/tokens';
+import { colors, pageGutter } from '../../styles/tokens';
 import { navigateToForm } from '../../utils/focusForm';
 
 const coverItems = [
@@ -25,15 +25,14 @@ type PageHeaderProps = {
   showAddMobile?: boolean;
   action?: ReactNode;
   embedded?: boolean;
-  embeddedGutter?: number;
 };
 
 // Every screen uses the same 48px title bar; actions and back navigation vary by route.
-export function PageHeader({ title, subtitle, showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile = true, action, embedded = false, embeddedGutter = 12 }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile = true, action, embedded = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const hasBack = Boolean(backPath || onBack);
-  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${embeddedGutter * 2}px)`, sm: 'calc(100% + 40px)' }, '&&': { mx: { xs: `-${embeddedGutter}px`, sm: '-20px' } } }) }}>
-    <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: 1.5, sm: 2.5 }, py: 0, alignItems: 'center' }}>
+  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${pageGutter.xs * 2}px)`, sm: `calc(100% + ${pageGutter.sm * 2}px)` }, '&&': { mx: { xs: `-${pageGutter.xs}px`, sm: `-${pageGutter.sm}px` } } }) }}>
+    <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 0, alignItems: 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: 36, height: 36, mr: 1, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>}
       <Box sx={{ flex: 1, minWidth: 0, textAlign: compact ? 'center' : hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
         <Typography component="h1" noWrap sx={{ fontSize: { xs: 20, sm: 21 }, lineHeight: '28px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
