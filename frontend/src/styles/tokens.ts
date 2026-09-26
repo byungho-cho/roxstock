@@ -9,5 +9,5 @@ export const colors = {
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
 export const pageGutter = { xs: 16, sm: 20 } as const;
-export const pageMetrics = { top: 18, gap: 12, cardInset: 16, compactCardInset: 12, headerHeight: 44, navHeight: 72, bottomClearance: 32 } as const;
+export const pageMetrics = { top: 18, gap: 12, cardInset: 16, compactCardInset: 12, headerHeight: 44, navHeight: 72, tabletNavHeight: 64, bottomClearance: 32 } as const;
 export const radius = { none: 0, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, full: 999 } as const;
