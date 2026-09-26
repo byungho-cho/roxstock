@@ -37,7 +37,7 @@ export function AssetOverviewPage() {
   return <Box>
     <PageHeader title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" showAddMobile={false} embedded />
 
-    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, mt: `${pageMetrics.gap}px`, alignItems: { xs: 'stretch', sm: 'start' } }}>
+    <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, mt: `${pageMetrics.gap}px`, alignItems: { xs: 'stretch', sm: 'start' } }}>
       <Stack spacing="12px" sx={{ width: '100%', minWidth: 0 }}>
         <AppCard sx={{ height: { xs: 174, sm: 232 }, p: `12px ${pageMetrics.cardInset}px`, borderRadius: '16px' }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", mb: { xs: '9px', sm: '14px' } }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>평가손익</Typography><Typography sx={{ color: marketColor(valuationProfit), fontSize: 16, fontWeight: 700 }}>{formatRate(valuationRate)}</Typography></Stack>
