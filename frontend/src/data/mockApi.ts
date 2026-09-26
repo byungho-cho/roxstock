@@ -7,7 +7,7 @@ const delay = (milliseconds = 420) => new Promise((resolve) => window.setTimeout
 export async function fetchDashboard(): Promise<DashboardData> {
   await delay();
   const data = structuredClone(dashboardData);
-  data.summary.stockValue = data.holdings.reduce((sum, stock) => sum + (stock.marketValue ?? stock.quantity! * stock.currentPrice), 0);
+  data.summary.stockValue = data.holdings.reduce((sum, stock) => sum + (stock.marketValue ?? (stock.quantity ?? 0) * stock.currentPrice), 0);
   data.summary.stockPurchaseAmount = data.holdings.reduce((sum, stock) => sum + (stock.quantity ?? 0) * (stock.averagePrice ?? 0), 0);
   data.summary.cashBalance = loadCash().balance;
   data.summary.totalAssets = data.summary.stockValue + data.summary.cashBalance;
