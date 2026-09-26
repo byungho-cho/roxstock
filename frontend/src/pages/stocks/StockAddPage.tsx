@@ -59,7 +59,7 @@ export function StockAddPage() {
   };
 
   return <Stack spacing="12px">
-    <PageHeader title="종목 추가" onBack={() => navigate(-1)} showAdd={false} embedded />
+    <PageHeader title="종목 추가" onBack={() => navigate(-1)} showBackTablet showAdd={false} embedded />
     <Stack direction="row" spacing={1}>{categories.map((item) => <Chip key={item.value} label={item.label} onClick={() => { setCategory(item.value); setMessage(''); }} sx={{ flex: 1, height: 32, bgcolor: category === item.value ? colors.buttonPrimary : colors.surface, color: category === item.value ? '#fff' : colors.textMuted }} />)}</Stack>
     {!direct ? <>
       <Box sx={{ height: 48, display: 'flex', alignItems: 'center', gap: 1, px: 1.75, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, borderRadius: '12px' }}><SearchRounded sx={{ fontSize: 17, color: colors.textMuted }} /><InputBase value={query} onChange={(event) => { setQuery(event.target.value); setMessage(''); }} placeholder="종목명·종목코드 검색" sx={{ flex: 1, fontSize: 13 }} /></Box>
