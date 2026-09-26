@@ -59,6 +59,9 @@ export function CashPage() {
   const total = (target: CashEntryType) => periodEntries.filter((entry) => entry.type === target).reduce((sum, entry) => sum + Math.abs(entry.amount), 0);
   const deposits = total('deposit'); const withdrawals = total('withdrawal'); const dividends = total('dividend');
   const net = deposits - withdrawals + dividends;
+  const monthChange = entries
+    .filter((entry) => entry.date.startsWith(initialDate.slice(0, 7)) && ['deposit', 'withdrawal', 'dividend'].includes(entry.type))
+    .reduce((sum, entry) => sum + entry.amount, 0);
   const displayPeriod = mode === 'month' ? `${month.slice(0, 4)}.${month.slice(5)}` : `${year}년`;
   const earliestYear = Math.min(...entries.map((entry) => Number(entry.date.slice(0, 4))));
   const earliestMonth = sorted.at(-1)?.date.slice(0, 7) ?? '2026-09';
@@ -110,7 +113,7 @@ export function CashPage() {
         <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, p: { xs: `11px ${pageMetrics.cardInset}px`, sm: '16px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ display: { sm: 'none' }, minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>
           <Typography onClick={() => openEditor('balance')} title="예수금 수정" sx={{ color: colors.warning, fontSize: { xs: 28, sm: 30 }, fontWeight: 700, textAlign: { xs: 'right', sm: 'left' }, lineHeight: { xs: '36px', sm: '42px' }, mt: { sm: '8px' }, whiteSpace: 'nowrap', cursor: 'pointer' }}>{amountText(balance)}</Typography>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end', gap: 1 }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: tone(net), fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>이번 달 {amountText(Math.abs(net))} {net >= 0 ? '증가' : '감소'}</Typography><Typography sx={{ flex: 1, textAlign: 'right', color: colors.textMuted, fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap' }}>{'09.20 05:30'}</Typography></Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end', gap: 1 }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: tone(monthChange), fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>이번 달 {amountText(Math.abs(monthChange))} {monthChange >= 0 ? '증가' : '감소'}</Typography><Typography sx={{ flex: 1, textAlign: 'right', color: colors.textMuted, fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap' }}>09.20 05:30</Typography></Stack>
         </AppCard>
 
         <AppCard sx={{ minHeight: { xs: 116, sm: 314 }, p: { xs: `12px ${pageMetrics.cardInset}px`, sm: '12px 17px 16px' }, borderRadius: '16px', touchAction: 'pan-y', display: 'flex', flexDirection: 'column' }} onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={(event) => handleSwipe(event.changedTouches[0].clientX)}>
