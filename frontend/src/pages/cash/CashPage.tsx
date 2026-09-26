@@ -1,9 +1,10 @@
-import { AddRounded, ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
+import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppCard } from '../../components/common/Common';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { DateField, FormSelect, FormTextField, NumberField } from '../../components/forms/Fields';
 import { stockItems } from '../../data/mockData';
 import { loadCash, saveCash } from '../../data/mockCash';
@@ -48,7 +49,7 @@ export function CashPage() {
 
   useEffect(() => { saveCash(balance, entries); void queryClient.invalidateQueries({ queryKey: ['dashboard'] }); }, [balance, entries, queryClient]);
   useEffect(() => {
-    const update = () => setShowStickyPeriod((periodRef.current?.getBoundingClientRect().bottom ?? 1) <= 0);
+    const update = () => setShowStickyPeriod((periodRef.current?.getBoundingClientRect().bottom ?? 49) <= 48);
     update(); window.addEventListener('scroll', update, { passive: true });
     return () => window.removeEventListener('scroll', update);
   }, []);
@@ -98,12 +99,8 @@ export function CashPage() {
   };
   const handleSwipe = (endX: number) => { if (touchStart.current !== null && Math.abs(endX - touchStart.current) > 55) changePeriod(endX < touchStart.current ? -1 : 1); touchStart.current = null; };
 
-  return <Box sx={{ pt: '18px', pb: '72px' }}>
-    <Stack direction="row" sx={{ height: { xs: 44, sm: 54 }, mb: '12px', alignItems: 'center' }}>
-      <IconButton aria-label="홈으로 돌아가기" onClick={() => navigate('/')} sx={{ display: { xs: 'flex', sm: 'none' }, width: 44, height: 44, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>
-      <Box sx={{ flex: 1, textAlign: { xs: 'center', sm: 'left' } }}><Typography component="h1" sx={{ fontSize: 21, lineHeight: '29px', fontWeight: 700 }}>예수금</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: colors.textMuted, fontSize: 11 }}>실제 증권계좌에서 사용할 수 있는 현금 잔액입니다</Typography></Box>
-      <IconButton aria-label="예수금 등록" onClick={() => openEditor('new')} sx={{ width: { xs: 44, sm: 38 }, height: { xs: 44, sm: 38 }, bgcolor: colors.raised, color: colors.textPrimary }}><AddRounded /></IconButton>
-    </Stack>
+  return <Box sx={{ pb: '72px' }}>
+    <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded embeddedGutter={16} />
 
     <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' } }}>
       <Stack spacing="12px">
@@ -128,7 +125,7 @@ export function CashPage() {
       </Stack>
 
       <AppCard sx={{ minHeight: { xs: 434, sm: 452 }, p: '12px 14px', borderRadius: '16px', overflow: 'visible' }}>
-        <Stack direction="row" sx={{ position: 'sticky', top: 0, zIndex: 11, height: 40, mb: '-40px', px: 1, alignItems: 'center', bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: 1, opacity: showStickyPeriod ? 1 : 0, pointerEvents: showStickyPeriod ? 'auto' : 'none', transition: 'opacity 150ms ease' }}>
+        <Stack direction="row" sx={{ position: 'sticky', top: 48, zIndex: 11, height: 40, mb: '-40px', px: 1, alignItems: 'center', bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: 1, opacity: showStickyPeriod ? 1 : 0, pointerEvents: showStickyPeriod ? 'auto' : 'none', transition: 'opacity 150ms ease' }}>
           <IconButton aria-label="이전 기간" size="small" onClick={() => changePeriod(-1)}><ChevronLeftRounded sx={{ fontSize: 18 }} /></IconButton><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 700 }}>{displayPeriod}</Typography><IconButton aria-label="다음 기간" size="small" onClick={() => changePeriod(1)}><ChevronRightRounded sx={{ fontSize: 18 }} /></IconButton><Button aria-label="월간 연간 전환" onClick={() => { setMode((previous) => previous === 'month' ? 'year' : 'month'); setYear(Number(month.slice(0, 4))); }} sx={{ minWidth: 50, minHeight: 24, height: 24, p: 0, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>{mode === 'month' ? '월간' : '연간'}</Button>
         </Stack>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>최근 {visible.length}개</Typography></Stack>
