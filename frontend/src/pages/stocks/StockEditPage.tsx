@@ -33,7 +33,7 @@ export function StockEditPage() {
     ['treasuryShares','자기주식수','주'], ['assets','자산','원'], ['liabilities','부채','원'],
     ['equity','지배주주자본','원'], ['previousEquity','전기 지배주주자본','원'], ['dividend','주당배당금','원'],
   ];
-  return <Stack sx={{ height: `calc(100dvh - ${pageMetrics.top + pageMetrics.navHeight + pageMetrics.bottomClearance}px)`, minHeight: 0 }}>
+  return <Stack sx={{ height: `calc(100dvh - ${pageMetrics.top + pageMetrics.headerHeight + pageMetrics.bottomClearance}px)`, minHeight: 0 }}>
     <Stack direction="row" sx={{ height: 58, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'space-between', pt: '4px' }}><IconButton onClick={() => navigate(-1)} sx={{ width: 40, height: 36, justifyContent: 'flex-start', p: 0 }}><ArrowBackIosNewRounded sx={{ fontSize: 18 }} /></IconButton><Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 19, lineHeight: '24px', fontWeight: 700 }}>종목 정보 수정</Typography><Typography sx={{ mt: '3px', fontSize: 10, color: colors.textMuted }}>{stock.name} · A{stock.symbol}</Typography></Box><Box sx={{ width: 40 }} /></Stack>
     <Stack spacing="9px" sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 1, scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
       <Button onClick={() => navigate(-1)} sx={{ height: 48, flexShrink: 0, px: '14px', justifyContent: 'space-between', border: `1px solid ${colors.borderStrong}`, borderRadius: '10px', bgcolor: colors.raised, color: colors.textSecondary, fontSize: 12 }}><span>분류</span><Box component="span" sx={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary }}>{stock.listType === 'recommended' ? '추천종목' : '관심종목'}　›</Box></Button>
