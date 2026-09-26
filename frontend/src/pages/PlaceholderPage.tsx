@@ -6,7 +6,7 @@ export function PlaceholderPage({ title, description }: { title: string; descrip
   const navigate = useNavigate();
 
   return (
-    <Card sx={{ maxWidth: 620, mx: 'auto' }}>
+    <Card>
       <CardContent sx={{ p: 3 }}>
         <Stack spacing={2.25} sx={{ alignItems: 'flex-start' }}>
           <ConstructionRounded color="warning" sx={{ fontSize: 40 }} />
