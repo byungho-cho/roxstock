@@ -35,6 +35,7 @@ export interface BuyLot {
 export interface DashboardSummary {
   totalAssets: number;
   stockValue: number;
+  stockPurchaseAmount: number;
   cashBalance: number;
   dailyProfit: number;
   dailyProfitRate: number;
