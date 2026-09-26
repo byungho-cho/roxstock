@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStocks } from '../../hooks/useMockData';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
@@ -52,13 +53,10 @@ export function StockListPage() {
   const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
-    <Stack direction="row" sx={{ height: 40, alignItems: 'center', justifyContent: 'space-between' }}>
-      <Typography component="h1" sx={{ fontSize: 22, lineHeight: '27px', fontWeight: 700 }}>종목목록</Typography>
-      <Stack direction="row" spacing={1}>
-        <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
-        <IconButton aria-label="종목 추가" onClick={() => navigate(`/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
-      </Stack>
-    </Stack>
+    <PageHeader title="종목목록" showAdd={false} embedded action={<Stack direction="row" spacing={1}>
+      <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
+      <IconButton aria-label="종목 추가" onClick={() => navigate(`/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
+    </Stack>} />
 
     <Card sx={{ p: '4px', border: 0, borderRadius: '12px', bgcolor: colors.surface }}>
       <Tabs value={activeTab} onChange={(_, value: StockListType) => { setActiveTab(value); setSearchParams({ tab: value }, { replace: true }); }} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: 34, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 34, py: 0, borderRadius: '9px', color: colors.textMuted, fontSize: 13, fontWeight: 400 }, '& .Mui-selected': { color: `${colors.textPrimary} !important`, bgcolor: colors.buttonPrimary, fontWeight: 600 } }}>
