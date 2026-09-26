@@ -1,4 +1,4 @@
-import { DeleteOutlineRounded, EditRounded, FavoriteRounded } from '@mui/icons-material';
+import { DeleteOutlineRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useRef, useState, type PointerEventHandler, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { navigateToForm } from '../../utils/focusForm';
+import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
 import type { StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 
@@ -16,6 +17,7 @@ export function StockDetailPage() {
   const { stockId = 'hyundai' } = useParams(); const navigate = useNavigate();
   const stock = stockItems.find((item) => item.id === stockId) ?? stockItems[0];
   const holding = stock.listType === 'holding';
+  const { favoriteIds, toggleFavorite } = useFavoriteStocks();
   const [tab, setTab] = useState<DetailTab>(holding ? 'holding' : 'summary');
   const [dialog, setDialog] = useState<'price' | 'category' | 'delete' | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<StockListType>(stock.listType);
@@ -41,7 +43,7 @@ export function StockDetailPage() {
     navigate(`/stocks/${deltaX < 0 ? nextStock.id : previousStock.id}`);
   };
   return <Stack spacing="12px" onPointerDown={handleSwipeStart} onPointerUp={handleSwipeEnd} onPointerCancel={() => { swipeStart.current = null; }} sx={{ pb: 2, touchAction: 'pan-y' }}>
-    {holding ? <StockHeader name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} /> : <InterestHeader name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} />}
+    <StockHeader name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} />
     {holding && <><Card sx={{ height: 64, borderRadius: '16px' }}><CardContent sx={{ height: '100%', px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:last-child': { pb: 1 } }}><Box><Typography sx={{ fontSize: 22, fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 12, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice * stock.priceChangeRate / 100)} ({formatRate(stock.priceChangeRate)})</Typography></Box><Button onClick={() => navigateToForm(navigate, `/trade?type=buy&stock=${stock.id}`)} sx={{ minHeight: 32, bgcolor: colors.raised }}>매수 +</Button></CardContent></Card>
     <Tabs value={tab} onChange={(_, value: DetailTab) => setTab(value)} variant="fullWidth" sx={{ minHeight: 40, p: '3px', bgcolor: colors.surface, borderRadius: '14px', '& .MuiTab-root': { minHeight: 34, py: 0, fontSize: 12, borderRadius: '9px' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: '#fff !important' } }}><Tab value="summary" label="요약" /><Tab value="holding" label="보유 현황" /><Tab value="trades" label="거래내역" /></Tabs></>}
     {holding ? <HoldingDetail tab={tab} invested={invested} market={market} profit={profit} stock={stock} onDelete={() => setDialog('delete')} navigate={navigate} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
@@ -54,14 +56,16 @@ type StockHeaderProps = {
   symbol: string;
   previousName: string;
   nextName: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onBack: () => void;
   onPrevious: () => void;
   onNext: () => void;
 };
 
-function StockHeader({ name, symbol, previousName, nextName, onBack, onPrevious, onNext }: StockHeaderProps) {
+function StockHeader({ name, symbol, previousName, nextName, isFavorite, onToggleFavorite, onBack, onPrevious, onNext }: StockHeaderProps) {
   return <Box>
-    <PageHeader title={name} subtitle={symbol} onBack={onBack} showBackTablet showAdd={false} embedded action={<FavoriteRounded sx={{ width: 36, color: colors.warning, fontSize: 20 }} />} />
+    <PageHeader title={name} subtitle={symbol} onBack={onBack} showBackTablet showAdd={false} embedded action={<IconButton aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFavorite} onClick={onToggleFavorite} sx={{ width: 36, height: 36, color: isFavorite ? colors.warning : colors.textMuted }}>{isFavorite ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton>} />
     <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between' }}>
       <Typography component="button" onClick={onPrevious} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{previousName}</Typography>
       <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{symbol}</Typography>
@@ -69,8 +73,6 @@ function StockHeader({ name, symbol, previousName, nextName, onBack, onPrevious,
     </Stack>
   </Box>;
 }
-
-const InterestHeader = StockHeader;
 
 function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
   if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}`)} />;
