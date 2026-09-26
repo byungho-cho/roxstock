@@ -10,6 +10,7 @@ import { DateField, FormSelect, FormTextField, NumberField } from '../../compone
 import { stockItems } from '../../data/mockData';
 import { loadCash, saveCash } from '../../data/mockCash';
 import { colors } from '../../styles/tokens';
+import { navigateToForm } from '../../utils/focusForm';
 import type { CashEntry, CashEntryType } from '../../types/models';
 
 const amountText = (value: number) => `${Math.abs(value).toLocaleString('ko-KR')}원`;
@@ -80,7 +81,7 @@ export function CashPage() {
     if (!Number.isFinite(amount) || amount < 0 || (!amount && editing !== 'balance') || (editing !== 'balance' && !date)) { setError('날짜와 올바른 금액을 입력해 주세요.'); return; }
     if (editing === 'balance') { setBalance(amount); setEditing(null); return; }
     if (type === 'dividend' && gross && Number(gross) < amount) { setError('세전 배당금은 세후 배당금보다 작을 수 없습니다.'); return; }
-    if (type === 'buy' || type === 'sell') { navigate('/trade'); setEditing(null); return; }
+    if (type === 'buy' || type === 'sell') { setEditing(null); navigateToForm(navigate, '/trade'); return; }
     const signed = type === 'withdrawal' ? -amount : amount;
     if (editing === 'new') {
       setEntries((previous) => [{ id: `cash-${Date.now()}`, date, type, amount: signed, grossAmount: type === 'dividend' ? Number(gross) || amount + Number(tax) : undefined, stockId: type === 'dividend' ? stockId : undefined, memo }, ...previous]);
@@ -134,7 +135,7 @@ export function CashPage() {
     {editing !== null && <Dialog open onClose={() => setEditing(null)} fullWidth maxWidth="xs" slotProps={{ paper: { sx: { bgcolor: colors.canvas, border: `1px solid ${colors.borderStrong}`, borderRadius: 2, m: 2, maxWidth: { xs: 368, sm: 320 } } } }}>
       <DialogTitle sx={{ textAlign: 'center', fontWeight: 700, fontSize: 20 }}>{editing === 'balance' ? '예수금 수정' : editing === 'new' ? '예수금 등록' : '예수금 내역 수정'}</DialogTitle>
       <DialogContent sx={{ display: 'grid', gap: 1, pt: '8px !important' }}>
-        {editing !== 'balance' && <><Stack direction="row" spacing="6px">{(['buy', 'sell', 'deposit', 'withdrawal', 'dividend'] as CashEntryType[]).map((item) => <Button key={item} onClick={() => { if (item === 'buy' || item === 'sell') { setEditing(null); navigate('/trade'); } else setType(item); }} sx={{ flex: 1, minWidth: 0, height: 32, p: 0, fontSize: 12, borderRadius: 2, bgcolor: item === type ? colors.buttonPrimary : colors.surface, color: item === type ? '#fff' : colors.textMuted }}>{labels[item]}</Button>)}</Stack><DateField label="거래일자" value={date} onChange={setDate} /></>}
+        {editing !== 'balance' && <><Stack direction="row" spacing="6px">{(['buy', 'sell', 'deposit', 'withdrawal', 'dividend'] as CashEntryType[]).map((item) => <Button key={item} onClick={() => { if (item === 'buy' || item === 'sell') { setEditing(null); navigateToForm(navigate, '/trade'); } else setType(item); }} sx={{ flex: 1, minWidth: 0, height: 32, p: 0, fontSize: 12, borderRadius: 2, bgcolor: item === type ? colors.buttonPrimary : colors.surface, color: item === type ? '#fff' : colors.textMuted }}>{labels[item]}</Button>)}</Stack><DateField label="거래일자" value={date} onChange={setDate} /></>}
         {type === 'dividend' && editing !== 'balance' && <><FormSelect label="종목" value={stockId} onChange={setStockId} options={stockItems.filter((item) => item.listType === 'holding').map((item) => ({ label: item.name, value: item.id }))} /><NumberField label="세전 배당" value={gross} onChange={setGross} suffix="원" autoFocus inputRef={firstAmountRef} /><NumberField label="세금" value={tax} onChange={setTax} suffix="원" /></>}
         <NumberField label={editing === 'balance' ? '현재 예수금' : type === 'dividend' ? '세후 배당' : '금액'} value={value} onChange={setValue} suffix="원" autoFocus={editing === 'balance' || type !== 'dividend'} inputRef={editing === 'balance' || type !== 'dividend' ? firstAmountRef : undefined} />
         {editing !== 'balance' && <FormTextField label="메모" value={memo} onChange={setMemo} />}
