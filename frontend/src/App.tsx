@@ -9,6 +9,7 @@ import { StockAddPage } from './pages/stocks/StockAddPage';
 import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
 import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
+import { CashPage } from './pages/cash/CashPage';
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
         <Route path="journal" element={<PlaceholderPage title="매매일지" description="월간 달력과 날짜별 거래 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="assets" element={<PlaceholderPage title="자산분석" description="자산 추이와 기간 성과 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
+        <Route path="detail/cash" element={<CashPage />} />
         <Route path="more" element={<PlaceholderPage title="더보기" description="계좌·예수금·시세수집·설정 메뉴는 다음 구현 단계에서 연결합니다." />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="trade" element={<TradePage />} />

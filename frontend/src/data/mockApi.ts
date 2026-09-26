@@ -1,11 +1,15 @@
 import { buyLots, dashboardData, stockItems } from './mockData';
+import { loadCash } from './mockCash';
 import type { BuyLot, DashboardData, StockItem, StockListType, TradeDraft } from '../types/models';
 
 const delay = (milliseconds = 420) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 export async function fetchDashboard(): Promise<DashboardData> {
   await delay();
-  return structuredClone(dashboardData);
+  const data = structuredClone(dashboardData);
+  data.summary.cashBalance = loadCash().balance;
+  data.summary.totalAssets = data.summary.stockValue + data.summary.cashBalance;
+  return data;
 }
 
 export async function fetchStocks(listType?: StockListType): Promise<StockItem[]> {

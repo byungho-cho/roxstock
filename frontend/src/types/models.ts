@@ -1,6 +1,17 @@
 export type StockListType = 'watchlist' | 'holding' | 'recommended';
 export type CollectionStatus = 'success' | 'partial' | 'failed';
 export type TradeType = 'buy' | 'sell';
+export type CashEntryType = 'deposit' | 'withdrawal' | 'dividend' | 'buy' | 'sell';
+
+export interface CashEntry {
+  id: string;
+  date: string;
+  type: CashEntryType;
+  amount: number;
+  memo?: string;
+  stockId?: string;
+  grossAmount?: number;
+}
 
 export interface StockItem {
   id: string;
