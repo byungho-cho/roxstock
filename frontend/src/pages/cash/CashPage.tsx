@@ -100,7 +100,7 @@ export function CashPage() {
   const handleSwipe = (endX: number) => { if (touchStart.current !== null && Math.abs(endX - touchStart.current) > 55) changePeriod(endX < touchStart.current ? -1 : 1); touchStart.current = null; };
 
   return <Box sx={{ pb: '72px' }}>
-    <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded embeddedGutter={16} />
+    <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded />
 
     <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' } }}>
       <Stack spacing="12px">
