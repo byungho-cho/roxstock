@@ -11,6 +11,7 @@ export async function fetchDashboard(): Promise<DashboardData> {
   data.summary.stockPurchaseAmount = data.holdings.reduce((sum, stock) => sum + (stock.quantity ?? 0) * (stock.averagePrice ?? 0), 0);
   data.summary.cashBalance = loadCash().balance;
   data.summary.totalAssets = data.summary.stockValue + data.summary.cashBalance;
+  if (data.trend.length) data.trend[data.trend.length - 1].value = data.summary.totalAssets;
   data.summary.totalProfit = data.summary.stockValue - data.summary.stockPurchaseAmount;
   data.summary.totalProfitRate = data.summary.stockPurchaseAmount ? data.summary.totalProfit / data.summary.stockPurchaseAmount * 100 : 0;
   return data;
