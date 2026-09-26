@@ -1,8 +1,8 @@
-import { AddRounded, ArrowBackRounded } from '@mui/icons-material';
-import { Box, CardActionArea, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
+import { Box, CardActionArea, CircularProgress, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { useDashboard } from '../../hooks/useMockData';
 import { assetComposition } from '../../data/mockData';
 import { formatAmount } from '../../utils/format';
@@ -38,13 +38,8 @@ export function AssetOverviewPage() {
     stops: [...stops, `${item.color} ${offset}% ${offset + item.percent}%`], offset: offset + item.percent,
   }), { stops: [] as string[], offset: 0 }).stops.join(', ');
 
-  return <Box sx={{ pt: { xs: '18px', sm: '18px' }, pb: '72px' }}>
-    <Box sx={{ height: { xs: 44, sm: 54 }, mb: { xs: '12px', sm: '12px' }, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <IconButton aria-label="홈으로 돌아가기" onClick={() => navigate('/')} sx={{ display: { xs: 'flex', sm: 'none' }, width: 44, height: 44, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>
-      <Box sx={{ flex: 1, textAlign: { xs: 'center', sm: 'left' } }}><Typography component="h1" sx={{ fontSize: { xs: 21, sm: 21 }, fontWeight: 700, lineHeight: '30px' }}>평가자산</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: colors.textMuted, fontSize: 11 }}>보유 주식의 현재 평가금액과 자산 구성을 확인합니다</Typography></Box>
-      <IconButton aria-label="거래등록" onClick={() => navigate('/trade')} sx={{ display: { xs: 'none', sm: 'flex' }, width: 38, height: 38, bgcolor: colors.raised, color: colors.textPrimary }}><AddRounded /></IconButton>
-      <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 44 }} />
-    </Box>
+  return <Box sx={{ pb: '72px' }}>
+    <PageHeader title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" showAddMobile={false} embedded embeddedGutter={16} />
 
     <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: '380px minmax(0, 380px)' }, gap: { xs: '12px', sm: '16px' }, alignItems: { xs: 'stretch', sm: 'start' } }}>
       <Stack spacing="12px" sx={{ width: '100%', minWidth: 0 }}>
