@@ -9,3 +9,4 @@ coverage/
 .idea/
 .vscode/
 backend/src/generated/prisma/
+.deploy.lock

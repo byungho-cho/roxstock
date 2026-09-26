@@ -18,3 +18,5 @@
 - `docs/`: 설계 및 운영 문서
 - `scripts/`: 개발·배포 보조 스크립트
 - `.github/workflows/`: CI/CD 워크플로
+
+운영 프론트엔드 배포와 복구 절차는 [배포 안내](scripts/README.md)를 참고하세요.
