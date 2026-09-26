@@ -3,7 +3,7 @@ import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, D
 import { useRef, useState, type PointerEventHandler, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { stockItems } from '../../data/mockData';
-import { colors } from '../../styles/tokens';
+import { colors, pageMetrics } from '../../styles/tokens';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { navigateToForm } from '../../utils/focusForm';
 import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
@@ -11,6 +11,7 @@ import type { StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 
 const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const detailScrollOffset = pageMetrics.top + 64 + pageMetrics.gap * 3 + 64 + 40 + pageMetrics.navHeight + pageMetrics.bottomClearance;
 type DetailTab = 'summary' | 'holding' | 'trades';
 
 export function StockDetailPage() {
@@ -81,7 +82,7 @@ function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
     { date: '2026.09.10', heldDays: 8, quantity: 70, buyPrice: 230_000, expectedPrice: 236_900, profitRate: 3, profitAmount: 483_000, targets: [5, 10, 15] },
     { date: '2026.07.22', heldDays: 58, quantity: 20, buyPrice: 218_500, expectedPrice: 236_854, profitRate: 8.4, profitAmount: 367_080, targets: [10, 15, 20] },
   ];
-  return <Stack spacing="12px" sx={{ maxHeight: 'calc(100dvh - 266px)', minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} />)}</Stack>;
+  return <Stack spacing="12px" sx={{ maxHeight: `calc(100dvh - ${detailScrollOffset}px)`, minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} />)}</Stack>;
 }
 
 function HoldingSummary() {
@@ -122,7 +123,7 @@ function TradeHistory({ onEdit, onDelete }: { onEdit: () => void; onDelete: () =
     { profit: 275_000, rate: 14.4, sellDate: '2026.08.14', quantity: 5, buyPrice: 381_000, buyDate: '2026.07.28', sellPrice: 436_000, annualRate: 308.8, heldDays: 17 },
     { profit: 185_000, rate: 10, sellDate: '2026.08.05', quantity: 5, buyPrice: 369_000, buyDate: '2026.07.28', sellPrice: 406_000, annualRate: 456.3, heldDays: 8 },
   ];
-  return <Stack sx={{ maxHeight: 'calc(100dvh - 266px)', minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
+  return <Stack sx={{ maxHeight: `calc(100dvh - ${detailScrollOffset}px)`, minHeight: 0, overflowY: 'auto', pr: '1px', scrollbarColor: `${colors.borderStrong} transparent`, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.borderStrong, borderRadius: 4 } }}>
     <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>12건</Typography><Typography sx={{ width: 144, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#FF6B6B' }}>11,930,000원</Typography></Stack>
     <Stack spacing="8px">{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} onEdit={onEdit} onDelete={onDelete} />)}</Stack>
     <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.disabled }}>이전 연도 거래를 불러오는 중…</Typography></Box>
