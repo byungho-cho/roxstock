@@ -1,6 +1,22 @@
-import type { BuyLot, DashboardData, StockItem } from '../types/models';
+import type { BuyLot, CashEntry, DashboardData, StockItem } from '../types/models';
 
 export const currentCashBalance = 122_200_000;
+
+export const cashEntries: CashEntry[] = [
+  { id: 'cash-1', date: '2026-09-19', type: 'deposit', amount: 20_000_000, memo: '생활비 계좌 입금' },
+  { id: 'cash-2', date: '2026-09-18', type: 'buy', amount: -8_400_000, stockId: 'hyundai' },
+  { id: 'cash-3', date: '2026-09-16', type: 'dividend', amount: 1_250_000, grossAmount: 1_477_000, stockId: 'hyundai' },
+  { id: 'cash-4', date: '2026-09-12', type: 'sell', amount: 12_800_000, stockId: 'samsung' },
+  { id: 'cash-5', date: '2026-09-10', type: 'buy', amount: -4_200_000, stockId: 'kia' },
+  { id: 'cash-6', date: '2026-09-05', type: 'withdrawal', amount: -4_000_000 },
+  { id: 'cash-7', date: '2026-09-03', type: 'sell', amount: 9_600_000, stockId: 'kia' },
+  { id: 'cash-8', date: '2026-09-01', type: 'deposit', amount: 5_000_000 },
+  { id: 'cash-9', date: '2026-08-28', type: 'dividend', amount: 720_000, stockId: 'samsung' },
+  { id: 'cash-10', date: '2026-08-25', type: 'buy', amount: -3_100_000, stockId: 'naver' },
+  { id: 'cash-11', date: '2026-08-20', type: 'sell', amount: 2_600_000, stockId: 'hyundai' },
+  { id: 'cash-12', date: '2026-08-05', type: 'deposit', amount: 5_000_000 },
+  { id: 'cash-13', date: '2026-08-01', type: 'withdrawal', amount: -3_000_000 },
+];
 
 // Shares used by the asset composition mock; names are read from stockItems.
 export const assetComposition = [

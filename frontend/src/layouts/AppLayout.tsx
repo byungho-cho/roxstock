@@ -14,7 +14,7 @@ function getHeaderTitle(pathname: string): string {
 export function AppLayout() {
   const location = useLocation(); const [showScrollTop, setShowScrollTop] = useState(false);
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
-  const isAssetOverview = location.pathname === '/detail/assets';
+  const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
   useEffect(() => { const handle = () => setShowScrollTop(window.scrollY > window.innerHeight * 0.4); handle(); window.addEventListener('scroll', handle, { passive: true }); return () => window.removeEventListener('scroll', handle); }, []);
   return <Box sx={{ minHeight: '100dvh', pb: isTradePage ? 0 : '56px' }}>
     {!isTradePage && !isStockFlowPage && !isAssetOverview && <PageHeader title={getHeaderTitle(location.pathname)} subtitle={isHomePage ? undefined : undefined} addPath={isHomePage ? '/stocks/add?type=watchlist' : '/trade'} addLabel={isHomePage ? '종목 추가' : '거래등록'} />}
