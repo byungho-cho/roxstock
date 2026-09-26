@@ -32,7 +32,7 @@ type PageHeaderProps = {
 export function PageHeader({ title, subtitle, showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile = true, action, embedded = false, embeddedGutter = 12 }: PageHeaderProps) {
   const navigate = useNavigate();
   const hasBack = Boolean(backPath || onBack);
-  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${embeddedGutter * 2}px)`, sm: 'calc(100% + 40px)' }, mx: { xs: `-${embeddedGutter}px`, sm: '-20px' } }) }}>
+  return <AppBar position="sticky" elevation={0} color="transparent" sx={{ bgcolor: colors.canvas, border: 0, ...(embedded && { width: { xs: `calc(100% + ${embeddedGutter * 2}px)`, sm: 'calc(100% + 40px)' }, '&&': { mx: { xs: `-${embeddedGutter}px`, sm: '-20px' } } }) }}>
     <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: '48px !important', height: 48, px: { xs: 1.5, sm: 2.5 }, py: 0, alignItems: 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: 36, height: 36, mr: 1, color: colors.textPrimary }}><ArrowBackRounded /></IconButton>}
       <Box sx={{ flex: 1, minWidth: 0, textAlign: compact ? 'center' : hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
