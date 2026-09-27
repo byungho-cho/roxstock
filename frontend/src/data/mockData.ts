@@ -38,6 +38,13 @@ export const cashEntries: CashEntry[] = [
   { id: 'cash-33', date: '2026-06-02', type: 'deposit', amount: 5_000_000 },
 ];
 
+// Shares used by the asset composition mock; names are read from stockItems.
+export const assetComposition = [
+  { id: 'hyundai', percent: 26 }, { id: 'samsung', percent: 22 },
+  { id: 'kia', percent: 16 }, { id: 'hynix-holding', percent: 14 },
+  { id: 'naver', percent: 12 }, { id: 'other', percent: 10 },
+];
+
 export const stockItems: StockItem[] = [
   {
     id: 'hyundai', symbol: '005380', name: '현대자동차', listType: 'holding',
