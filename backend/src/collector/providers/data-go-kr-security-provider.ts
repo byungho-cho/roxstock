@@ -58,7 +58,7 @@ export interface DataGoKrSecurityProviderOptions {
 }
 
 export class DataGoKrSecurityProvider {
-  readonly name = 'data-go-kr-stock-price';
+  readonly name = 'data-go-kr-krx-listed-info-v2';
 
   constructor(private readonly options: DataGoKrSecurityProviderOptions) {}
 
