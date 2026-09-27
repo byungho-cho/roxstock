@@ -113,6 +113,8 @@ export const stockItems: StockItem[] = [
 ];
 
 export const buyLots: BuyLot[] = [
+  { id: 'lot-hyundai-20260910', stockId: 'hyundai', stockName: '현대차', tradeDate: '2026-09-10', buyPrice: 230_000, quantity: 70, soldQuantity: 0, remainingQuantity: 70 },
+  { id: 'lot-hyundai-20260722', stockId: 'hyundai', stockName: '현대차', tradeDate: '2026-07-22', buyPrice: 218_500, quantity: 20, soldQuantity: 0, remainingQuantity: 20 },
   { id: 'lot-hyundai-1', stockId: 'hyundai', stockName: '현대차', tradeDate: '2025-11-12', buyPrice: 215_000, quantity: 40, soldQuantity: 10, remainingQuantity: 30 },
   { id: 'lot-hyundai-2', stockId: 'hyundai', stockName: '현대차', tradeDate: '2026-02-03', buyPrice: 245_000, quantity: 40, soldQuantity: 0, remainingQuantity: 40 },
   { id: 'lot-kia-1', stockId: 'kia', stockName: '기아', tradeDate: '2026-01-15', buyPrice: 118_000, quantity: 78, soldQuantity: 0, remainingQuantity: 78 },
