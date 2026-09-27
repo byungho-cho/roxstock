@@ -1,0 +1,17 @@
+{
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+    servers {
+        protocols h1 h2
+    }
+}
+
+newrox.cafe24.com {
+    @api path /api /api/*
+    handle @api {
+        reverse_proxy roxstock-backend:3300
+    }
+
+    handle {
+        reverse_proxy frontend:80
+    }
+}
