@@ -13,3 +13,4 @@ backend/src/generated/prisma/
 
 .backend-deploy.lock
 .ops-backups/
+.backend-last-good-image
