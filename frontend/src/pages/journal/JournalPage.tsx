@@ -62,7 +62,7 @@ export function JournalPage() {
     const deltaY = touch.clientY - start.y;
     if (Math.abs(deltaX) <= 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
     suppressClickUntil.current = Date.now() + 350;
-    changeMonth(deltaX > 0 ? 1 : -1);
+    changeMonth(deltaX < 0 ? 1 : -1);
   };
   const [year, value] = month.split('-').map(Number);
   const holidays = useMemo(() => new Map([...getKoreanHolidays(year - 1), ...getKoreanHolidays(year), ...getKoreanHolidays(year + 1)]), [year]);
