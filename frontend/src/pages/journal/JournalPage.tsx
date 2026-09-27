@@ -1,16 +1,17 @@
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, ButtonBase, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useMemo, useRef, useState, type TouchEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBuyTrades } from '../../data/mockBuyTrades';
 import { buyLots, stockItems } from '../../data/mockData';
 import { getAvailableLots, getSellTrades } from '../../data/mockSellTrades';
+import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
 
 type Entry = { id: string; type: 'buy' | 'sell'; date: string; stockId: string; stockName: string; quantity: number; price: number; profit?: number; lotId?: string; sample?: boolean };
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+const getTodayDate = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 const won = (amount: number) => `${Math.round(amount).toLocaleString('ko-KR')}원`;
 const signedWon = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '-' : ''}${won(Math.abs(amount))}`;
 const dateOf = (year: number, month: number, day: number) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -27,9 +28,11 @@ export function JournalPage() {
   const tablet = useMediaQuery('(min-width:600px)');
   const [searchParams] = useSearchParams();
   const requested = searchParams.get('date');
-  const initialDate = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today;
+  const initialDate = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : getTodayDate();
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [month, setMonth] = useState(monthOf(initialDate));
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
 
@@ -43,12 +46,12 @@ export function JournalPage() {
     });
     return [...buys, ...samples, ...sells].sort((a, b) => b.date.localeCompare(a.date));
   }, []);
-  const changeMonth = (offset: number) => {
-    const next = shiftMonth(month, offset);
+  const goToMonth = (next: string) => {
     const day = Math.min(Number(selectedDate.slice(8, 10)), new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate());
     setMonth(next);
     setSelectedDate(`${next}-${String(day).padStart(2, '0')}`);
   };
+  const changeMonth = (offset: number) => goToMonth(shiftMonth(month, offset));
   const onTouchStart = (event: TouchEvent) => {
     const touch = event.touches[0];
     touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
@@ -95,7 +98,9 @@ export function JournalPage() {
     navigate(`/trade?${params}`);
   };
 
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
+  return <>
+    <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, height: 30, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
     <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
         event.preventDefault();
@@ -105,7 +110,7 @@ export function JournalPage() {
     }} sx={{ minWidth: 0, touchAction: 'pan-y' }}>
       <Stack direction="row" sx={{ ...panel, height: 44, alignItems: 'center', justifyContent: 'space-between', px: '6px', flexShrink: 0 }}>
         <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronLeftRounded sx={{ fontSize: 20 }} /></IconButton>
-        <Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 13, lineHeight: '18px', fontWeight: 700 }}>{year}년 {value}월</Typography><Typography sx={{ fontSize: 9, lineHeight: '12px', color: monthProfit >= 0 ? colors.marketRise : colors.marketFall }}>월 손익 {signedWon(monthProfit)} {monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Box>
+        <Box sx={{ textAlign: 'center' }}><ButtonBase aria-label={`${year}년 ${value}월, 월 선택`} onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} sx={{ display: 'block', mx: 'auto', borderRadius: '4px', '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}><Typography sx={{ fontSize: 13, lineHeight: '18px', fontWeight: 700 }}>{year}년 {value}월</Typography></ButtonBase><Typography sx={{ fontSize: 9, lineHeight: '12px', color: monthProfit >= 0 ? colors.marketRise : colors.marketFall }}>월 손익 {signedWon(monthProfit)} {monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Box>
         <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronRightRounded sx={{ fontSize: 20 }} /></IconButton>
       </Stack>
       <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: '8px', userSelect: 'none' }}>
@@ -124,7 +129,7 @@ export function JournalPage() {
     </Stack>
     <Box sx={{ ...panel, mt: { xs: 0, sm: 0 }, px: { xs: '12px', sm: '16px' }, py: { xs: '12px', sm: '14px' }, minWidth: 0, minHeight: { sm: 454 }, alignSelf: 'start' }}>
       {tablet ? <>
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>{selectedDate !== today && <ButtonBase onClick={() => selectDate(today)} sx={{ border: `1px solid ${colors.borderStrong}`, borderRadius: '6px', px: 1, py: 0.4, color: colors.textSecondary, fontSize: 10 }}>오늘</ButtonBase>}</Stack>
+        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography></Stack>
         <Stack direction="row" sx={{ mt: '20px', justifyContent: 'space-between' }}><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>전체손익</Typography><Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textMuted, fontSize: 11 }}>{dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
         <Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textPrimary, fontSize: 24, fontWeight: 700, lineHeight: '31px' }}>{signedWon(dayProfit)}</Typography>
         <Typography sx={{ color: colors.textMuted, fontSize: 10, mt: '2px' }}>매수 {won(dayBuy)} · 매도 {won(daySell)}</Typography>
@@ -140,5 +145,24 @@ export function JournalPage() {
       </Box>
       {!tablet && <ButtonBase onClick={() => navigate(`/detail/daily-profit?date=${selectedDate}`)} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
     </Box>
-  </Box>;
+    </Box>
+    <Dialog open={monthPickerOpen} onClose={() => setMonthPickerOpen(false)} aria-labelledby="journal-month-picker-title" fullWidth maxWidth="xs" slotProps={{ paper: { sx: { m: 2, maxWidth: 320, bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', backgroundImage: 'none' } } }}>
+      <DialogTitle id="journal-month-picker-title" sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>월 선택</DialogTitle>
+      <DialogContent sx={{ pt: '4px !important' }}>
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <IconButton aria-label="이전 연도" onClick={() => setPickerYear((current) => current - 1)} sx={{ color: colors.textSecondary }}><ChevronLeftRounded /></IconButton>
+          <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{pickerYear}년</Typography>
+          <IconButton aria-label="다음 연도" onClick={() => setPickerYear((current) => current + 1)} sx={{ color: colors.textSecondary }}><ChevronRightRounded /></IconButton>
+        </Stack>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+          {Array.from({ length: 12 }, (_, index) => {
+            const target = dateOf(pickerYear, index + 1, 1).slice(0, 7);
+            const active = target === month;
+            return <ButtonBase key={target} aria-label={`${pickerYear}년 ${index + 1}월 선택`} aria-pressed={active} onClick={() => { goToMonth(target); setMonthPickerOpen(false); }} sx={{ height: 40, borderRadius: '8px', bgcolor: active ? colors.focus : colors.raised, color: active ? '#fff' : colors.textPrimary, fontSize: 13, fontWeight: active ? 700 : 500, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>{index + 1}월</ButtonBase>;
+          })}
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ px: 2, pb: 1.5 }}><Button onClick={() => setMonthPickerOpen(false)} sx={{ color: colors.textSecondary }}>취소</Button></DialogActions>
+    </Dialog>
+  </>;
 }
