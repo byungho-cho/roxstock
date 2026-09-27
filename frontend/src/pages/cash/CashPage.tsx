@@ -18,6 +18,8 @@ const signedText = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : '
 const tone = (value: number) => value > 0 ? colors.marketRise : value < 0 ? colors.marketFall : colors.marketFlat;
 const labels: Record<CashEntryType, string> = { buy: '매수', sell: '매도', deposit: '입금', withdrawal: '출금', dividend: '배당' };
 const initialDate = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+const currentMonth = initialDate.slice(0, 7);
+const currentYear = Number(initialDate.slice(0, 4));
 
 function moveMonth(month: string, delta: number) {
   const [year, value] = month.split('-').map(Number);
@@ -32,9 +34,9 @@ export function CashPage() {
   const [balance, setBalance] = useState(initialCash.balance);
   const [entries, setEntries] = useState<CashEntry[]>(initialCash.entries);
   const [mode, setMode] = useState<'month' | 'year'>('month');
-  const [month, setMonth] = useState('2026-09');
-  const [year, setYear] = useState(2026);
-  const [oldestVisibleMonth, setOldestVisibleMonth] = useState('2026-09');
+  const [month, setMonth] = useState(currentMonth);
+  const [year, setYear] = useState(currentYear);
+  const [oldestVisibleMonth, setOldestVisibleMonth] = useState(currentMonth);
   const [editing, setEditing] = useState<CashEntry | 'new' | 'balance' | null>(null);
   const [deleting, setDeleting] = useState<CashEntry | null>(null);
   const [type, setType] = useState<CashEntryType>('deposit');
@@ -63,7 +65,7 @@ export function CashPage() {
     }
     return result;
   }, [balance, sorted]);
-  const visible = oldestVisibleMonth === '2026-09' ? sorted.slice(0, 10) : sorted.filter((entry) => entry.date.slice(0, 7) >= oldestVisibleMonth);
+  const visible = oldestVisibleMonth === currentMonth ? sorted.slice(0, 10) : sorted.filter((entry) => entry.date.slice(0, 7) >= oldestVisibleMonth);
   const periodEntries = entries.filter((entry) => mode === 'month' ? entry.date.startsWith(month) : entry.date.startsWith(String(year)));
   const total = (target: CashEntryType) => periodEntries.filter((entry) => entry.type === target).reduce((sum, entry) => sum + Math.abs(entry.amount), 0);
   const deposits = total('deposit'); const withdrawals = total('withdrawal'); const dividends = total('dividend');
@@ -72,12 +74,15 @@ export function CashPage() {
     .filter((entry) => entry.date.startsWith(initialDate.slice(0, 7)) && ['deposit', 'withdrawal', 'dividend'].includes(entry.type))
     .reduce((sum, entry) => sum + entry.amount, 0);
   const displayPeriod = mode === 'month' ? `${month.slice(0, 4)}.${month.slice(5)}` : `${year}년`;
-  const earliestYear = Math.min(...entries.map((entry) => Number(entry.date.slice(0, 4))));
-  const earliestMonth = sorted.at(-1)?.date.slice(0, 7) ?? '2026-09';
+  const earliestMonth = sorted.at(-1)?.date.slice(0, 7) ?? currentMonth;
+  const earliestYear = Number(earliestMonth.slice(0, 4));
+  const latestMonth = sorted[0]?.date.slice(0, 7) ?? currentMonth;
+  const lastMonth = latestMonth > currentMonth ? latestMonth : currentMonth;
+  const lastYear = Number(lastMonth.slice(0, 4));
 
   const changePeriod = (delta: number) => {
-    if (mode === 'month') setMonth((previous) => { const next = moveMonth(previous, delta); return next > '2026-09' || next < `${earliestYear}-01` ? previous : next; });
-    else setYear((previous) => Math.max(earliestYear, Math.min(2026, previous + delta)));
+    if (mode === 'month') setMonth((previous) => { const next = moveMonth(previous, delta); return next > lastMonth || next < earliestMonth ? previous : next; });
+    else setYear((previous) => Math.max(earliestYear, Math.min(lastYear, previous + delta)));
   };
   const openEditor = (item: CashEntry | 'new' | 'balance') => {
     flushSync(() => {
