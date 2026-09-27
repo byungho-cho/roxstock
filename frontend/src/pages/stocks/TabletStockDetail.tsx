@@ -11,6 +11,12 @@ import { navigateToForm } from '../../utils/focusForm';
 
 type DetailTab = 'holding' | 'summary' | 'trades';
 const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const industry = (stock: StockItem) => {
+  if (stock.id === 'samsung' || stock.id === 'hynix-holding' || stock.id === 'samsung-sdi') return '반도체';
+  if (stock.id === 'naver' || stock.id === 'naver-financial') return '인터넷';
+  if (stock.id === 'hyundai' || stock.id === 'kia') return '자동차';
+  return '코스피';
+};
 
 const recentTrades = [
   { stockId: 'hyundai', date: '09.18', type: '매수', quantity: 10, price: 230_000 },
@@ -37,13 +43,13 @@ export function TabletStockDetail({ stock }: { stock: StockItem }) {
   return <Box sx={{ pb: 2 }}>
     <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" embedded showAdd={false} action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, '/stocks/add?type=holding')} sx={{ width: 38, height: 38, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, color: colors.textPrimary }}><AddRounded /></IconButton>} />
     <Tabs value="holding" onChange={(_, category: StockListType) => selectCategory(category)} variant="fullWidth" sx={{ mt: `${pageMetrics.gap}px`, height: 46, minHeight: 46, p: '5px', border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', bgcolor: colors.surface, '& .MuiTab-root': { minHeight: 34, height: 34, p: 0, borderRadius: '10px', color: colors.textMuted, fontSize: 12 }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: `${colors.textPrimary} !important`, fontWeight: 600 }, '& .MuiTabs-indicator': { display: 'none' } }}><Tab value="watchlist" label="관심종목" /><Tab value="holding" label="보유종목" /><Tab value="recommended" label="추천종목" /></Tabs>
-    <Stack direction="row" sx={{ mt: '10px', mb: '8px', justifyContent: 'space-between', color: colors.textMuted }}><Typography sx={{ fontSize: 11 }}>보유중 {holdings.length}</Typography><Typography sx={{ fontSize: 11 }}>목록에서 선택하면 우측 상세가 갱신됩니다</Typography></Stack>
+    <Stack direction="row" sx={{ mt: '10px', mb: '8px', justifyContent: 'space-between', color: colors.textMuted }}><Stack direction="row" spacing="5px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 11 }}>보유중 {holdings.length}</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors.positive }} /></Stack><Typography sx={{ fontSize: 11 }}>목록에서 선택하면 우측 상세가 갱신됩니다</Typography></Stack>
     <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 304px) minmax(0, 1fr)', gap: '12px', alignItems: 'start' }}>
       <Box sx={{ minHeight: 366, p: '12px 11px', border: `1px solid ${colors.borderStrong}`, borderRadius: '12px', bgcolor: colors.surface }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700, mb: '10px' }}>보유종목</Typography>
         <Stack spacing="8px">{visible.map((item) => <Box key={item.id} component="button" aria-current={item.id === stock.id ? 'true' : undefined} onClick={() => { setTab('holding'); navigate(`/stocks/${item.id}`); }} sx={{ width: '100%', minHeight: 64, px: '11px', py: '8px', border: '1px solid', borderColor: item.id === stock.id ? colors.buttonPrimary : colors.borderStrong, borderRadius: '10px', bgcolor: item.id === stock.id ? '#182235' : colors.surface, color: colors.textPrimary, cursor: 'pointer', textAlign: 'left' }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1 }}><Typography noWrap sx={{ fontSize: 14, fontWeight: 600 }}>{item.name}</Typography><Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: getMarketColor(item.priceChangeRate) }}>{won(item.currentPrice)}</Typography></Stack>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '2px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{item.symbol} · {item.symbol === '005930' ? '반도체' : '자동차'}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(item.priceChangeRate) }}>{formatRate(item.priceChangeRate)}</Typography></Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '2px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{item.symbol} · {industry(item)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(item.priceChangeRate) }}>{formatRate(item.priceChangeRate)}</Typography></Stack>
         </Box>)}</Stack>
         {holdings.length > 3 && <Button onClick={() => setExpanded((value) => !value)} sx={{ display: 'block', mx: 'auto', mt: 1, color: colors.textMuted, fontSize: 11 }}>{expanded ? '접기' : `전체 보기 (${holdings.length})`}</Button>}
       </Box>
