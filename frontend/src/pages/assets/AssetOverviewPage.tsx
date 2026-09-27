@@ -18,7 +18,6 @@ export function AssetOverviewPage() {
   const navigate = useNavigate();
   const { data, isPending, isError, refetch } = useDashboard();
   const [barMode, setBarMode] = useState<'cumulative' | 'ranked'>('cumulative');
-  const [compositionExpanded, setCompositionExpanded] = useState(false);
 
   if (isPending) return <Stack sx={{ alignItems: 'center', pt: 10 }}><CircularProgress aria-label="평가자산을 불러오는 중" /></Stack>;
   if (isError || !data) return <AppCard sx={{ p: 2, mt: 2 }}><Typography>평가자산을 불러오지 못했어요.</Typography><CardActionArea onClick={() => refetch()} sx={{ mt: 1, color: colors.focus }}>다시 시도</CardActionArea></AppCard>;
@@ -54,8 +53,7 @@ export function AssetOverviewPage() {
         </AppCard>
       </Stack>
 
-      <AppCard sx={{ display: { xs: 'block', sm: 'none' }, height: 36, borderRadius: '16px' }}><CardActionArea onClick={() => setCompositionExpanded((value) => !value)} aria-expanded={compositionExpanded} sx={{ height: '100%', px: '17px' }}><Typography sx={{ fontSize: 15, fontWeight: 600 }}>자산구성</Typography></CardActionArea></AppCard>
-      <AppCard sx={{ display: { xs: compositionExpanded ? 'block' : 'none', sm: 'block' }, width: '100%', minWidth: 0, p: `14px ${pageMetrics.cardInset}px`, minHeight: { xs: 494, sm: 452 }, borderRadius: '16px' }}>
+      <AppCard sx={{ width: '100%', minWidth: 0, p: `14px ${pageMetrics.cardInset}px`, minHeight: { xs: 494, sm: 452 }, borderRadius: '16px' }}>
         <Typography sx={{ fontSize: 16, fontWeight: 600, mb: '12px' }}>자산구성</Typography>
         <Stack direction="row" sx={{ justifyContent: "space-between", px: '2px', mb: '3px' }}><Typography component="button" onClick={() => navigate('/detail/stock-value')} sx={{ border: 0, p: 0, bgcolor: 'transparent', cursor: 'pointer', color: colors.textPrimary, fontSize: 11, fontWeight: 600 }}>{formatWon(summary.stockValue)}</Typography><Typography component="button" onClick={() => navigate('/detail/cash')} sx={{ border: 0, p: 0, bgcolor: 'transparent', cursor: 'pointer', color: colors.textPrimary, fontSize: 11, fontWeight: 600 }}>{formatWon(summary.cashBalance)}</Typography></Stack>
         <Stack direction="row" role="img" aria-label={`주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} sx={{ height: 12, overflow: 'hidden', borderRadius: 6, bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: colors.warning }} /></Stack>
