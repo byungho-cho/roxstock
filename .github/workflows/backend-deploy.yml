@@ -112,7 +112,7 @@ jobs:
         shell: bash
         run: |
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST"             "cd /opt/roxstock && git fetch origin main && git merge --ff-only origin/main && ./scripts/deploy-backend.sh '${{ needs.docker.outputs.image_tag }}'"
+          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST"             "cd /opt/roxstock && git fetch origin main && git merge --ff-only origin/main && bash ./scripts/deploy-backend.sh '${{ needs.docker.outputs.image_tag }}'"
       - name: Verify external API
         shell: bash
         run: |
