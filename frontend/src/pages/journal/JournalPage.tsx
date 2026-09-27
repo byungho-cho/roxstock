@@ -90,7 +90,7 @@ export function JournalPage() {
     navigate(`/trade?${params}`);
   };
 
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: '4px', sm: '-2px' } }}>
+  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
     <Stack spacing="12px" sx={{ minWidth: 0 }}>
       <Stack direction="row" sx={{ ...panel, height: 44, alignItems: 'center', justifyContent: 'space-between', px: '6px', flexShrink: 0 }}>
         <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronLeftRounded sx={{ fontSize: 20 }} /></IconButton>
