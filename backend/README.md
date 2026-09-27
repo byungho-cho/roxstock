@@ -15,7 +15,7 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 
 ## KOSPI·KOSDAQ 종목 마스터
 
-금융위원회 공공데이터포털의 주식시세정보서비스 \`getStockPriceInfo\` 응답에서 가장 최근 거래일의 종목코드(\`srtnCd\`), 종목명(\`itmsNm\`), 시장구분(\`mrktCtg\`)을 읽어 \`securities\`에 UPSERT합니다.
+금융위원회 공공데이터포털의 KRX상장종목정보 \`getItemInfo_V2\` 응답에서 가장 최근 기준일의 종목코드(\`srtnCd\`), 종목명(\`itmsNm\`), 시장구분(\`mrktCtg\`)을 읽어 \`securities\`에 UPSERT합니다.
 
 - 인증: 일반 인증키(Decoding)를 \`DATA_GO_KR_SERVICE_KEY\`로만 전달합니다.
 - 휴장일: 서울 기준 오늘부터 최대 14일 전까지 조회해 데이터가 있는 가장 최근 거래일을 선택합니다.
