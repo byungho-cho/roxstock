@@ -29,7 +29,8 @@ export function JournalPage() {
   const initialDate = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today;
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [month, setMonth] = useState(monthOf(initialDate));
-  const startX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickUntil = useRef(0);
 
   const entries = useMemo(() => {
     const lots = getAvailableLots();
@@ -47,12 +48,20 @@ export function JournalPage() {
     setMonth(next);
     setSelectedDate(`${next}-${String(day).padStart(2, '0')}`);
   };
-  const onTouchStart = (event: TouchEvent) => { startX.current = event.touches[0]?.clientX ?? null; };
+  const onTouchStart = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
   const onTouchEnd = (event: TouchEvent) => {
-    if (startX.current === null) return;
-    const delta = event.changedTouches[0].clientX - startX.current;
-    startX.current = null;
-    if (Math.abs(delta) > 50) changeMonth(delta > 0 ? 1 : -1);
+    const start = touchStart.current;
+    touchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) <= 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    suppressClickUntil.current = Date.now() + 350;
+    changeMonth(deltaX > 0 ? 1 : -1);
   };
   const [year, value] = month.split('-').map(Number);
   const firstWeekday = new Date(year, value - 1, 1).getDay();
@@ -85,18 +94,24 @@ export function JournalPage() {
   };
 
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
-    <Stack spacing="12px" sx={{ minWidth: 0 }}>
+    <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
+      if (Date.now() < suppressClickUntil.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        suppressClickUntil.current = 0;
+      }
+    }} sx={{ minWidth: 0, touchAction: 'pan-y' }}>
       <Stack direction="row" sx={{ ...panel, height: 44, alignItems: 'center', justifyContent: 'space-between', px: '6px', flexShrink: 0 }}>
         <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronLeftRounded sx={{ fontSize: 20 }} /></IconButton>
         <Box sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 13, lineHeight: '18px', fontWeight: 700 }}>{year}년 {value}월</Typography><Typography sx={{ fontSize: 9, lineHeight: '12px', color: monthProfit >= 0 ? colors.marketRise : colors.marketFall }}>월 손익 {signedWon(monthProfit)} {monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Box>
         <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronRightRounded sx={{ fontSize: 20 }} /></IconButton>
       </Stack>
-      <Box aria-label={`${year}년 ${value}월 거래 달력`} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} sx={{ ...panel, p: '8px', touchAction: 'pan-y', userSelect: 'none' }}>
+      <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: '8px', userSelect: 'none' }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 25, alignItems: 'center' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 9, fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderTop: `1px solid ${colors.borderStrong}` }}>{calendar.map(({ date, day, adjacent }, index) => {
           const count = counts.get(date);
           const selected = selectedDate === date;
-          return <ButtonBase key={date} component="button" aria-label={`${date} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 62.4, sm: 70 }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: '3px', border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: adjacent ? colors.disabled : index % 7 === 0 ? colors.marketRise : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
+          return <ButtonBase key={date} component="button" aria-label={`${date} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 50, sm: 70 }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: '3px', border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: adjacent ? colors.disabled : index % 7 === 0 ? colors.marketRise : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
             <Typography component="span" sx={{ display: 'block', fontSize: 9, lineHeight: '13px', fontWeight: selected ? 700 : 400 }}>{day}</Typography>
             {count?.buy ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketFall}`, borderRadius: '3px', color: colors.marketFall, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매수 {count.buy}</Typography> : null}
             {count?.sell ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketRise}`, borderRadius: '3px', color: colors.marketRise, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매도 {count.sell}</Typography> : null}
