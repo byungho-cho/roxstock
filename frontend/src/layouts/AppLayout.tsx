@@ -37,7 +37,7 @@ export function AppLayout() {
     <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
       {!hasPageHeader && <PageHeader variant={isJournal ? 'more' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isJournal || location.pathname === '/more' ? '/' : undefined} showAdd={isJournal || isHomePage} showAddMobile={!isJournal} addPath={isJournal ? '/trade?type=buy' : '/stocks/add?type=watchlist'} addLabel={isJournal ? '거래등록' : '종목 추가'} />}
     </Box>
-    <PageLayout scrollRef={scrollRef} trade={isTradePage} coverTop={isHomePage || location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
+    <PageLayout scrollRef={scrollRef} trade={isTradePage} coverTop={isJournal ? 4 : isHomePage || location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
     <OverlayPageScrollbar scrollRef={scrollRef} hasHeader={!isTradePage} hasBottomNav={!isTradePage} />
     {!isTradePage && <><Zoom in={showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
   </Box></HeaderSlotContext.Provider>;
