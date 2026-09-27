@@ -39,7 +39,7 @@ echo "[1/5] Pulling backend image"
 echo "[2/5] Checking Prisma migration status with target image"
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate status --schema database/prisma/schema.prisma'
 
-echo "[3/5] Applying pending Prisma migrations if required"
+echo "[3/5] Applying Prisma migrations safely (deploy is idempotent)"
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate deploy --schema database/prisma/schema.prisma'
 
 previous_image=""
@@ -65,7 +65,8 @@ while (( SECONDS < deadline )); do
   sleep 2
 done
 
-echo "Backend deployment health check failed."
+echo "Backend deployment health check failed. Stopping failed backend container."
+"${COMPOSE[@]}" stop backend >/dev/null 2>&1 || true
 "${COMPOSE[@]}" ps
 "${COMPOSE[@]}" logs --tail=100 backend
 if [[ -n "${previous_image}" ]]; then
