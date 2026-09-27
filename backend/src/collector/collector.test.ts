@@ -3,9 +3,11 @@ import test from 'node:test';
 import { collectPrices } from './price-collector.js';
 import { collectDailyAccountSnapshots } from './snapshot-collector.js';
 import { parseNaverPrice } from './providers/naver-price-provider.js';
+import { parseSecurityMasterResponse } from './providers/data-go-kr-security-provider.js';
+import { collectSecurityMaster } from './security-master-collector.js';
 import type {
   CollectorRepository, CollectorRunStatus, PriceObservation, PriceProvider, RunCounters, RunItemInput,
-  SecurityTarget, SnapshotAccount, SnapshotValue,
+  SecurityMasterItem, SecurityTarget, SnapshotAccount, SnapshotValue,
 } from './types.js';
 
 class MemoryRepository implements CollectorRepository {
@@ -23,6 +25,9 @@ class MemoryRepository implements CollectorRepository {
   async finishRun(_id: bigint, status: CollectorRunStatus, counters: RunCounters) { this.finishes.push({ status, counters: { ...counters } }); }
   async addRunItem(_id: bigint, item: RunItemInput) { this.items.push(item); }
   async listActiveSecurities() { return this.securities; }
+  securityMaster = new Map<string, SecurityMasterItem>();
+  async upsertSecurityMaster(items: SecurityMasterItem[]) { for (const item of items) this.securityMaster.set(`${item.marketType}:${item.symbol}`, item); }
+  async deactivateMissingSecurities() { return 0; }
   async upsertMarketPrice(id: bigint, observation: PriceObservation) { this.prices.set(id, observation); }
   async listActiveAccountsForSnapshot() { return this.accounts; }
   async upsertDailyAccountSnapshot(id: bigint, date: Date, value: SnapshotValue) { this.snapshots.set(`${id}:${date.toISOString()}`, value); }
@@ -114,4 +119,30 @@ test('Naver response maps current and previous close and marks old trading dates
     compareToPreviousPrice: { name: 'UNCHANGED' }, localTradedAt: '2026-09-26T15:30:00+09:00',
   }] }, new Date('2026-09-27T12:00:00+09:00'));
   assert.equal(stale.freshness, 'STALE');
+});
+
+test('data.go.kr response keeps valid KOSPI and KOSDAQ common stock rows', () => {
+  const result = parseSecurityMasterResponse({ response: {
+    header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+    body: { totalCount: 3, items: { item: [
+      { basDt: '20260925', srtnCd: '005930', itmsNm: '삼성전자', mrktCtg: 'KOSPI' },
+      { basDt: '20260925', srtnCd: '247540', itmsNm: '에코프로비엠', mrktCtg: 'KOSDAQ' },
+      { basDt: '20260925', srtnCd: '900001', itmsNm: '제외', mrktCtg: 'KONEX' },
+    ] } },
+  } });
+  assert.equal(result.totalCount, 3);
+  assert.deepEqual(result.items.map((item) => item.marketType), ['KOSPI', 'KOSDAQ']);
+});
+
+test('security master collection upserts and rejects suspiciously incomplete source data', async () => {
+  const repository = new MemoryRepository();
+  const provider = { name: 'test-master', fetchLatest: async () => ({
+    baseDate: '20260925', items: [{ symbol: '005930', name: '삼성전자', marketType: 'KOSPI' as const }],
+  }) };
+  await collectSecurityMaster(repository, provider, { lockTtlSeconds: 30, deactivateMissing: false, minimumExpectedCount: 1 });
+  assert.equal(repository.securityMaster.get('KOSPI:005930')?.name, '삼성전자');
+  await assert.rejects(
+    collectSecurityMaster(repository, provider, { lockTtlSeconds: 30, deactivateMissing: true, minimumExpectedCount: 2 }),
+    /safety check failed/,
+  );
 });

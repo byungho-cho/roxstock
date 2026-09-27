@@ -11,6 +11,13 @@ const hour = (value: string | undefined, fallback: number, name: string): number
   return parsed;
 };
 
+const boolean = (value: string | undefined, fallback: boolean, name: string): boolean => {
+  if (value === undefined || value === '') return fallback;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${name} must be true or false`);
+};
+
 export interface CollectorConfig {
   provider: 'naver' | 'mock';
   priceIntervalMinutes: number;
@@ -21,6 +28,12 @@ export interface CollectorConfig {
   snapshotHours: number[];
   lockTtlSeconds: number;
   schedulerTickSeconds: number;
+  securityMasterHour: number;
+  securityMasterEndpoint: string;
+  securityMasterPageSize: number;
+  securityMasterLookbackDays: number;
+  securityMasterMinimumCount: number;
+  securityMasterDeactivateMissing: boolean;
 }
 
 export const loadCollectorConfig = (): CollectorConfig => {
@@ -44,5 +57,12 @@ export const loadCollectorConfig = (): CollectorConfig => {
     snapshotHours: [...new Set(snapshotHours)],
     lockTtlSeconds: positiveInteger(process.env.COLLECTOR_LOCK_TTL_SECONDS, 1800, 'COLLECTOR_LOCK_TTL_SECONDS'),
     schedulerTickSeconds: positiveInteger(process.env.COLLECTOR_SCHEDULER_TICK_SECONDS, 30, 'COLLECTOR_SCHEDULER_TICK_SECONDS'),
+    securityMasterHour: hour(process.env.COLLECTOR_SECURITY_MASTER_HOUR, 7, 'COLLECTOR_SECURITY_MASTER_HOUR'),
+    securityMasterEndpoint: process.env.DATA_GO_KR_STOCK_PRICE_ENDPOINT
+      ?? 'https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo',
+    securityMasterPageSize: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_PAGE_SIZE, 1000, 'COLLECTOR_SECURITY_MASTER_PAGE_SIZE'),
+    securityMasterLookbackDays: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS, 14, 'COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS'),
+    securityMasterMinimumCount: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT, 2000, 'COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT'),
+    securityMasterDeactivateMissing: boolean(process.env.COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING, false, 'COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING'),
   };
 };
