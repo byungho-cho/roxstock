@@ -67,10 +67,7 @@ export function StockListPage() {
   const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
-    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded action={<Stack direction="row" spacing={1}>
-      <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ display: { xs: 'flex', sm: 'none' }, width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
-      <IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
-    </Stack>} />
+    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>} />
 
     <Card sx={{ p: { xs: '4px', sm: '5px' }, border: { xs: 0, sm: `1px solid ${colors.borderStrong}` }, borderRadius: { xs: '12px', sm: '14px' }, bgcolor: colors.surface }}>
       <Tabs value={activeTab} onChange={(_, value: StockListType) => { setActiveTab(value); setSearchParams({ tab: value }, { replace: true }); }} variant="fullWidth" textColor="inherit" aria-label="종목 목록 구분" sx={{ minHeight: { xs: 34, sm: 34 }, '& .MuiTabs-indicator': { display: 'none' }, '& .MuiTab-root': { minHeight: 34, py: 0, borderRadius: '9px', color: colors.textMuted, fontSize: { xs: 13, sm: 12 }, fontWeight: 400 }, '& .Mui-selected': { color: `${colors.textPrimary} !important`, bgcolor: colors.buttonPrimary, fontWeight: 600 } }}>
