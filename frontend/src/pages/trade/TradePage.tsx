@@ -3,7 +3,7 @@ import {
   Alert, Box, CardContent, CircularProgress, FormControl,
   FormHelperText, Grid, MenuItem, Select, Snackbar, Stack, Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createTrade } from '../../data/mockApi';
@@ -40,6 +40,8 @@ export function TradePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const submitting = useRef(false);
+  const prefilledLotId = useRef<string | null>(null);
+  const selectPrefilledQuantity = useRef(false);
   const quantityRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
   const feeRef = useRef<HTMLInputElement>(null);
@@ -59,6 +61,20 @@ export function TradePage() {
     if (!editId) setQuantity('');
     setErrors({});
   }, [stockId, type]);
+
+  useEffect(() => {
+    if (type !== 'sell' || editId || !selectedLot || prefilledLotId.current === selectedLot.id) return;
+    prefilledLotId.current = selectedLot.id;
+    selectPrefilledQuantity.current = true;
+    setQuantity(String(selectedLot.remainingQuantity));
+  }, [type, editId, selectedLot]);
+
+  useLayoutEffect(() => {
+    if (!selectPrefilledQuantity.current || !selectedLot || quantity !== String(selectedLot.remainingQuantity)) return;
+    quantityRef.current?.focus({ preventScroll: true });
+    quantityRef.current?.select();
+    selectPrefilledQuantity.current = false;
+  }, [quantity, selectedLot]);
 
   useEffect(() => {
     if ((editId && (!editing || type !== 'sell' || editing.stockId !== stockId || editing.lotId !== lotId)) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) {
