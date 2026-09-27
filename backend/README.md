@@ -45,6 +45,12 @@ npm --workspace backend run collector:once:snapshots
 npm --workspace backend run collector:once
 \`\`\`
 
+실제 가격 원천을 소수 종목으로 먼저 확인할 때는 종목코드를 쉼표로 구분해 전달합니다. 종목코드를 생략하면 활성 종목 전체를 수집합니다.
+
+\`\`\`bash
+npm --workspace backend exec -- tsx src/collector/worker.ts prices 005930,005380
+\`\`\`
+
 스케줄은 \`Asia/Seoul\` 기준입니다. 가격은 기본 20:00~06:00 사이에 60분 간격, 계좌 스냅샷은 20·21·22·23시에 실행합니다. 23시는 당일 마지막 예정 실행입니다. \`COLLECTOR_*\` 환경변수로 시간·주기를 변경할 수 있습니다.
 
 운영 서버에서 종목 마스터를 즉시 동기화하려면 다음을 실행합니다.
@@ -73,6 +79,15 @@ cd /opt/roxstock
 BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
   run --rm --no-deps collector node backend/dist/collector/worker.js prices
+\`\`\`
+
+운영 서버에서 삼성전자와 현대차만 먼저 검증하려면 다음처럼 마지막 인수에 종목코드를 지정합니다.
+
+\`\`\`bash
+cd /opt/roxstock
+BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+  docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
+  run --rm --no-deps collector node backend/dist/collector/worker.js prices 005930,005380
 \`\`\`
 
 실패·0원·빈 응답은 \`market_prices\`에 쓰지 않으므로 마지막 정상 가격이 유지됩니다. 수동 수정 가격도 다음 정상 수집 성공 시에만 갱신됩니다.

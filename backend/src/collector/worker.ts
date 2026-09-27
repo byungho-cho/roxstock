@@ -17,9 +17,10 @@ const provider = config.provider === 'mock'
   ? new MockPriceProvider()
   : new NaverPriceProvider(config.requestTimeoutMs);
 
-const runPrices = () => collectPrices(repository, provider, {
+const runPrices = (symbols?: string[]) => collectPrices(repository, provider, {
   delayMs: config.providerDelayMs,
   lockTtlSeconds: config.lockTtlSeconds,
+  symbols,
 });
 const runSnapshots = (now = new Date()) => collectDailyAccountSnapshots(repository, {
   lockTtlSeconds: config.lockTtlSeconds,
@@ -42,12 +43,12 @@ const runSecurities = () => {
   });
 };
 
-const once = async (target: string): Promise<void> => {
-  if (target === 'prices') await runPrices();
+const once = async (target: string, symbolArgument?: string): Promise<void> => {
+  if (target === 'prices') await runPrices(symbolArgument?.split(',').map((symbol) => symbol.trim()).filter(Boolean));
   else if (target === 'snapshots') await runSnapshots();
   else if (target === 'securities') await runSecurities();
   else if (target === 'all') { await runSecurities(); await runPrices(); await runSnapshots(); }
-  else throw new Error('usage: worker.ts [daemon|securities|prices|snapshots|all]');
+  else throw new Error('usage: worker.ts [daemon|securities|prices [005930,005380]|snapshots|all]');
 };
 
 const daemon = async (): Promise<void> => {
@@ -92,7 +93,7 @@ const daemon = async (): Promise<void> => {
 const target = process.argv[2] ?? 'daemon';
 try {
   if (target === 'daemon') await daemon();
-  else { await once(target); await prisma.$disconnect(); }
+  else { await once(target, process.argv[3]); await prisma.$disconnect(); }
 } catch (error) {
   log('error', 'collector process failed', { reason: error instanceof Error ? error.message : String(error) });
   await prisma.$disconnect();
