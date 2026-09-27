@@ -29,9 +29,8 @@ const recentTrades = [
 export function TabletStockDetail({ stock }: { stock: StockItem }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<DetailTab>('holding');
-  const [expanded, setExpanded] = useState(false);
   const holdings = stockItems.filter((item) => item.listType === 'holding');
-  const visible = expanded ? holdings : [stock, ...holdings.filter((item) => item.id !== stock.id)].slice(0, 3);
+  const visible = [stock, ...holdings.filter((item) => item.id !== stock.id)].slice(0, 3);
   const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0);
   const market = stock.marketValue ?? (stock.quantity ?? 0) * stock.currentPrice;
   const profit = stock.profitAmount ?? market - invested;
@@ -51,13 +50,12 @@ export function TabletStockDetail({ stock }: { stock: StockItem }) {
           <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1 }}><Typography noWrap sx={{ fontSize: 14, fontWeight: 600 }}>{item.name}</Typography><Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: getMarketColor(item.priceChangeRate) }}>{won(item.currentPrice)}</Typography></Stack>
           <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '2px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{item.symbol} · {industry(item)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(item.priceChangeRate) }}>{formatRate(item.priceChangeRate)}</Typography></Stack>
         </Box>)}</Stack>
-        {holdings.length > 3 && <Button onClick={() => setExpanded((value) => !value)} sx={{ display: 'block', mx: 'auto', mt: 1, color: colors.textMuted, fontSize: 11 }}>{expanded ? '접기' : `전체 보기 (${holdings.length})`}</Button>}
       </Box>
       <Box sx={{ position: 'sticky', top: 82, minHeight: 366, p: '10px 19px 15px', border: `1px solid ${colors.borderStrong}`, borderRadius: '12px', bgcolor: colors.surface }}>
         <Typography sx={{ fontSize: 11, fontWeight: 600, color: colors.buttonPrimary }}>보유종목 상세</Typography>
         <Stack direction="row" sx={{ alignItems: 'start', justifyContent: 'space-between', mt: '2px' }}><Box><Typography noWrap sx={{ fontSize: 22, fontWeight: 700, lineHeight: '29px' }}>{stock.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{stock.symbol} · KOSPI</Typography></Box><Box sx={{ textAlign: 'right' }}><Typography noWrap sx={{ fontSize: 20, fontWeight: 700, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography></Box></Stack>
         <Stack direction="row" spacing="8px" sx={{ mt: '9px' }}>
-          {([['holding', '보유현황'], ['summary', '요약'], ['trades', '거래내역']] as const).map(([value, label]) => <Button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} sx={{ minWidth: 0, height: 28, px: '11px', border: `1px solid ${tab === value ? colors.buttonPrimary : colors.borderStrong}`, borderRadius: '8px', bgcolor: tab === value ? colors.buttonPrimary : '#172033', color: tab === value ? colors.textPrimary : colors.textMuted, fontSize: 11, whiteSpace: 'nowrap' }}>{label}</Button>)}
+          {([['holding', '보유현황'], ['summary', '요약'], ['trades', '거래내역']] as const).map(([value, label]) => <Button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} sx={{ minWidth: 0, minHeight: 28, height: 28, px: '11px', border: `1px solid ${tab === value ? colors.buttonPrimary : colors.borderStrong}`, borderRadius: '8px', bgcolor: tab === value ? colors.buttonPrimary : '#172033', color: tab === value ? colors.textPrimary : colors.textMuted, fontSize: 11, whiteSpace: 'nowrap' }}>{label}</Button>)}
           <Button onClick={() => navigate(`/stocks/${stock.id}/value`)} sx={linkStyle}>가치분석</Button><Button onClick={() => navigate(`/stocks/${stock.id}/financials`)} sx={linkStyle}>재무지표</Button>
         </Stack>
         {tab === 'holding' ? <>
@@ -70,7 +68,7 @@ export function TabletStockDetail({ stock }: { stock: StockItem }) {
   </Box>;
 }
 
-const linkStyle = { minWidth: 0, height: 28, px: '10px', border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', bgcolor: '#172033', color: colors.textMuted, fontSize: 11, whiteSpace: 'nowrap' } as const;
+const linkStyle = { minWidth: 0, minHeight: 28, height: 28, px: '10px', border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', bgcolor: '#172033', color: colors.textMuted, fontSize: 11, whiteSpace: 'nowrap' } as const;
 
 function SummaryMetric({ label, value, color = colors.textPrimary, detail }: { label: string; value: string; color?: string; detail?: string }) {
   return <Box sx={{ flex: 1, minWidth: 0, minHeight: 58, p: '8px 11px', bgcolor: '#172033', borderRadius: '10px' }}><Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1 }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{label}</Typography>{detail && <Typography noWrap sx={{ fontSize: 10, color }}>{detail}</Typography>}</Stack><Typography noWrap sx={{ mt: '4px', textAlign: 'right', fontSize: 14, fontWeight: 600, color }}>{value}</Typography></Box>;
