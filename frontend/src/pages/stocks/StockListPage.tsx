@@ -81,7 +81,7 @@ export function StockListPage() {
     <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', sm: 'none' } }}>
       <Box sx={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', gap: 1, px: '14px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '12px' }}>
         <SearchRounded sx={{ fontSize: 16, color: colors.textMuted }} />
-        <InputBase inputRef={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="종목명·코드 검색" sx={{ flex: 1, fontSize: 13 }} />
+        <InputBase inputRef={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); searchInputRef.current?.blur(); } }} inputProps={{ enterKeyHint: 'done' }} placeholder="종목명·코드 검색" sx={{ flex: 1, fontSize: 13 }} />
       </Box>
       <Button variant="outlined" color="inherit" startIcon={<SwapVertRounded />} onClick={() => setDescending((value) => !value)} sx={{ width: 86, minWidth: 86, minHeight: 40, height: 40, px: 0, gap: '6px', borderRadius: '12px', borderColor: colors.border, bgcolor: colors.surface, color: colors.textSecondary, fontSize: 12, lineHeight: '15px', whiteSpace: 'nowrap', '& .MuiButton-startIcon': { m: 0 }, '& .MuiSvgIcon-root': { fontSize: 14 }, '&:hover': { borderColor: colors.borderStrong, bgcolor: colors.surface } }}>{activeTab === 'holding' ? '평가금액' : activeTab === 'watchlist' ? '등락률' : '추천순'}</Button>
     </Stack>
