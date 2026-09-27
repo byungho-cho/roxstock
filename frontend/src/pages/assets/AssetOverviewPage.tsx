@@ -37,7 +37,7 @@ export function AssetOverviewPage() {
   }), { stops: [] as string[], offset: 0 }).stops.join(', ');
 
   return <Box>
-    <PageHeader title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" showAddMobile={false} embedded />
+    <PageHeader title="평가자산" subtitle="보유 주식의 현재 평가금액과 자산 구성을 확인합니다" backPath="/" showAddMobile={false} addPath="/stocks/add?type=watchlist" addLabel="종목 추가" embedded />
 
     <Box sx={{ display: { xs: 'flex', sm: 'grid' }, flexDirection: 'column', gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, alignItems: { xs: 'stretch', sm: 'start' } }}>
       <Stack spacing="12px" sx={{ width: '100%', minWidth: 0 }}>
