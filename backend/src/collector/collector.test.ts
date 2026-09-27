@@ -81,6 +81,35 @@ test('held lock prevents duplicate execution', async () => {
   assert.equal(repository.items[0]?.status, 'SKIPPED');
 });
 
+test('manual price run can target a small active-symbol subset', async () => {
+  const repository = new MemoryRepository();
+  repository.securities = [security(1n, '005930'), security(2n, '005380'), security(3n, '000660')];
+  const fetched: string[] = [];
+  const provider: PriceProvider = {
+    name: 'test',
+    fetchPrice: async (target) => { fetched.push(target.symbol); return observation(target.symbol, '1000'); },
+  };
+  const result = await collectPrices(repository, provider, {
+    delayMs: 0, lockTtlSeconds: 30, symbols: ['A005930', '005380'],
+  });
+  assert.equal(result.status, 'SUCCESS');
+  assert.deepEqual(fetched, ['005930', '005380']);
+  assert.equal(repository.prices.size, 2);
+});
+
+test('manual price run records an unknown or inactive requested symbol as skipped', async () => {
+  const repository = new MemoryRepository();
+  repository.securities = [security(1n, '005930')];
+  const provider: PriceProvider = { name: 'test', fetchPrice: async (target) => observation(target.symbol, '1000') };
+  const result = await collectPrices(repository, provider, {
+    delayMs: 0, lockTtlSeconds: 30, symbols: ['005930', '999999'],
+  });
+  assert.equal(result.status, 'PARTIAL');
+  assert.equal(result.success, 1);
+  assert.equal(result.skipped, 1);
+  assert.equal(repository.items.find((item) => item.symbol === '999999')?.status, 'SKIPPED');
+});
+
 test('snapshot is not written when any held position lacks a price', async () => {
   const repository = new MemoryRepository();
   repository.accounts = [{
