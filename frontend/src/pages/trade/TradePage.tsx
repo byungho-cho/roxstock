@@ -25,7 +25,7 @@ export function TradePage() {
   const [searchParams] = useSearchParams();
   const [type, setType] = useState<TradeType>(searchParams.get('type') === 'sell' ? 'sell' : 'buy');
   const [stockId, setStockId] = useState(searchParams.get('stock') ?? 'hyundai');
-  const [lotId, setLotId] = useState('');
+  const [lotId, setLotId] = useState(searchParams.get('lot') ?? '');
   const [tradeDate, setTradeDate] = useState(today);
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
@@ -51,7 +51,7 @@ export function TradePage() {
   }, [stockId]);
 
   useEffect(() => {
-    setLotId('');
+    setLotId(type === 'sell' && stockId === searchParams.get('stock') ? searchParams.get('lot') ?? '' : '');
     setQuantity('');
     setErrors({});
   }, [stockId, type]);
@@ -105,6 +105,7 @@ export function TradePage() {
     try {
       await createTrade(draft);
       setSaved(true);
+      navigate(`/stocks/${stockId}`, { replace: true, state: { savedTrade: type } });
     } finally {
       submitting.current = false;
       setIsSaving(false);

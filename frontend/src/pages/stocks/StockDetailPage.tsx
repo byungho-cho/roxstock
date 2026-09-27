@@ -1,13 +1,13 @@
 import { DeleteOutlineRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useRef, useState, type PointerEventHandler, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { navigateToForm } from '../../utils/focusForm';
 import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
-import type { StockListType } from '../../types/models';
+import type { StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 import { TabletStockDetail } from './TabletStockDetail';
 
@@ -15,14 +15,14 @@ const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`
 type DetailTab = 'summary' | 'holding' | 'trades';
 
 export function StockDetailPage() {
-  const { stockId = 'hyundai' } = useParams(); const navigate = useNavigate();
+  const { stockId = 'hyundai' } = useParams(); const navigate = useNavigate(); const location = useLocation();
+  const savedTrade = (location.state as { savedTrade?: string } | null)?.savedTrade;
   const stock = stockItems.find((item) => item.id === stockId) ?? stockItems[0];
   const holding = stock.listType === 'holding';
   const { favoriteIds, toggleFavorite } = useFavoriteStocks();
   const [tab, setTab] = useState<DetailTab>(holding ? 'holding' : 'summary');
   const [dialog, setDialog] = useState<'price' | 'category' | 'delete' | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<StockListType>(stock.listType);
-  const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0); const market = stock.marketValue ?? 0; const profit = market - invested;
   const detailStocks = stockItems.filter((item) => item.listType === stock.listType);
   const stockIndex = detailStocks.findIndex((item) => item.id === stock.id);
   const previousStock = detailStocks[(stockIndex - 1 + detailStocks.length) % detailStocks.length];
@@ -47,9 +47,11 @@ export function StockDetailPage() {
     <StockHeader scope={holding ? "cover" : undefined} name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} />
     {holding && <><Card sx={{ height: 64, borderRadius: '16px' }}><CardContent sx={{ height: '100%', px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:last-child': { pb: 1 } }}><Box><Typography sx={{ fontSize: 22, fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 12, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice * stock.priceChangeRate / 100)} ({formatRate(stock.priceChangeRate)})</Typography></Box><Button onClick={() => navigateToForm(navigate, `/trade?type=buy&stock=${stock.id}`)} sx={{ minHeight: 32, bgcolor: colors.raised }}>매수 +</Button></CardContent></Card>
     <Tabs value={tab} onChange={(_, value: DetailTab) => setTab(value)} variant="fullWidth" sx={{ minHeight: 40, p: '3px', bgcolor: colors.surface, borderRadius: '14px', '& .MuiTab-root': { minHeight: 34, py: 0, fontSize: 12, borderRadius: '9px' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: '#fff !important' } }}><Tab value="summary" label="요약" /><Tab value="holding" label="보유 현황" /><Tab value="trades" label="거래내역" /></Tabs></>}
-    {holding ? <HoldingDetail tab={tab} invested={invested} market={market} profit={profit} stock={stock} onDelete={() => setDialog('delete')} navigate={navigate} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
+    {holding ? <HoldingDetail tab={tab} stock={stock} onDelete={() => setDialog('delete')} onSellLot={(lotId?: string) => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}${lotId ? `&lot=${lotId}` : ''}`)} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
     <SimpleDialog type={dialog} stock={stock} categoryDraft={categoryDraft} onCategoryDraft={setCategoryDraft} onClose={() => setDialog(null)} onCategoryChange={() => { stock.listType = categoryDraft; setDialog(null); }} onDelete={() => { if (!holding) stockItems.splice(stockItems.findIndex((item) => item.id === stock.id), 1); setDialog(null); navigate('/stocks'); }} />
-  </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} /></Box>}</>;
+  </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} /></Box>}
+    <Snackbar open={savedTrade === 'buy' || savedTrade === 'sell'} autoHideDuration={3000} onClose={() => navigate(location.pathname, { replace: true, state: null })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert severity="success" variant="filled" onClose={() => navigate(location.pathname, { replace: true, state: null })}>모의 {savedTrade === 'sell' ? '매도' : '매수'}가 등록됐어요. 실제 데이터는 변경되지 않았습니다.</Alert></Snackbar>
+  </>;
 }
 
 type StockHeaderProps = {
@@ -76,14 +78,14 @@ function StockHeader({ scope, name, symbol, previousName, nextName, isFavorite, 
   </>;
 }
 
-function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
-  if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}`)} />;
+function HoldingDetail({ tab, stock, onDelete, onSellLot }: { tab: DetailTab; stock: StockItem; onDelete: () => void; onSellLot: (lotId?: string) => void }) {
+  if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => onSellLot()} />;
   if (tab === 'summary') return <HoldingSummary />;
   const lots: HoldingLot[] = [
-    { date: '2026.09.10', heldDays: 8, quantity: 70, buyPrice: 230_000, expectedPrice: 236_900, profitRate: 3, profitAmount: 483_000, targets: [5, 10, 15] },
-    { date: '2026.07.22', heldDays: 58, quantity: 20, buyPrice: 218_500, expectedPrice: 236_854, profitRate: 8.4, profitAmount: 367_080, targets: [10, 15, 20] },
+    { lotId: 'lot-hyundai-20260910', date: '2026.09.10', heldDays: 8, quantity: 70, buyPrice: 230_000, expectedPrice: 236_900, profitRate: 3, profitAmount: 483_000, targets: [5, 10, 15] },
+    { lotId: 'lot-hyundai-20260722', date: '2026.07.22', heldDays: 58, quantity: 20, buyPrice: 218_500, expectedPrice: 236_854, profitRate: 8.4, profitAmount: 367_080, targets: [10, 15, 20] },
   ];
-  return <Stack spacing="12px">{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} />)}</Stack>;
+  return <Stack spacing="12px">{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} onSell={() => onSellLot(stock.id === 'hyundai' ? lot.lotId : undefined)} />)}</Stack>;
 }
 
 function HoldingSummary() {
@@ -146,15 +148,15 @@ function TradeHistoryCard({ trade, onEdit, onDelete }: { trade: TradeHistoryItem
 
 function TradeLine({ label, expression, date, total, accent = false }: { label: string; expression: string; date: string; total: string; accent?: boolean }) { const color = accent ? '#FF6B6B' : colors.textSecondary; return <Stack direction="row" sx={{ height: 23, alignItems: 'center' }}><Typography sx={{ width: 42, fontSize: 12, lineHeight: '19px', fontWeight: 600, color }}>{label}</Typography><Typography sx={{ width: 136, fontSize: 12, lineHeight: '19px', fontWeight: 500, color }}>{expression}</Typography><Typography sx={{ flex: 1, fontSize: 10, lineHeight: '19px', color: accent ? '#FF9A9A' : colors.disabled }}>[{date}]</Typography><Typography sx={{ width: 76, textAlign: 'right', fontSize: 11, lineHeight: '19px', fontWeight: accent ? 600 : 500, color }}>{total}</Typography></Stack>; }
 
-type HoldingLot = { date: string; heldDays: number; quantity: number; buyPrice: number; expectedPrice: number; profitRate: number; profitAmount: number; targets: number[] };
+type HoldingLot = { lotId: string; date: string; heldDays: number; quantity: number; buyPrice: number; expectedPrice: number; profitRate: number; profitAmount: number; targets: number[] };
 
-function HoldingLotCard({ lot }: { lot: HoldingLot }) {
+function HoldingLotCard({ lot, onSell }: { lot: HoldingLot; onSell: () => void }) {
   const targetColors = [
     { border: 'rgba(255,107,107,.30)', rate: '#FF9A9A', total: '#E8A3A3' },
     { border: 'rgba(255,107,107,.46)', rate: '#FF7F7F', total: '#F0A0A0' },
     { border: 'rgba(255,107,107,.68)', rate: '#FF5F5F', total: '#FF9A9A' },
   ];
-  return <Card sx={{ height: 198, minHeight: 198, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden' }}><CardContent sx={{ p: '11px 15px 12px', '&:last-child': { pb: '12px' } }}>
+  return <Card component="button" type="button" aria-label={`${lot.date} 매수 Lot 매도`} onClick={onSell} sx={{ width: '100%', height: 198, minHeight: 198, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden', textAlign: 'left', color: colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}><CardContent sx={{ p: '11px 15px 12px', '&:last-child': { pb: '12px' } }}>
     <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>{lot.date}</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>보유 {lot.heldDays}일</Typography></Stack>
     <LotValueRow label="매수" expression={`${lot.quantity} × ${won(lot.buyPrice)}`} total={won(lot.quantity * lot.buyPrice)} />
     <LotValueRow label="예상" expression={`${lot.quantity} × ${won(lot.expectedPrice)}`} total={won(lot.quantity * lot.expectedPrice)} accent />
