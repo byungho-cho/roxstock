@@ -10,6 +10,19 @@ import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
 
 type Entry = { id: string; type: 'buy' | 'sell'; date: string; stockId: string; stockName: string; quantity: number; price: number; profit?: number; lotId?: string; sample?: boolean };
+// Journal-only examples: these illustrate multiple trades on a day without changing holdings or cash.
+const exampleTrades: Entry[] = [
+  { id: 'example-0903-buy', type: 'buy', date: '2026-09-03', stockId: 'hyundai', stockName: '현대자동차', quantity: 5, price: 230000, sample: true },
+  { id: 'example-0903-sell', type: 'sell', date: '2026-09-03', stockId: 'kia', stockName: '기아', quantity: 4, price: 130000, profit: 40000, sample: true },
+  { id: 'example-0914-buy-1', type: 'buy', date: '2026-09-14', stockId: 'samsung', stockName: '삼성전자', quantity: 10, price: 84600, sample: true },
+  { id: 'example-0914-buy-2', type: 'buy', date: '2026-09-14', stockId: 'naver', stockName: 'NAVER', quantity: 2, price: 222500, sample: true },
+  { id: 'example-0914-sell-1', type: 'sell', date: '2026-09-14', stockId: 'hyundai', stockName: '현대자동차', quantity: 2, price: 519000, profit: 18000, sample: true },
+  { id: 'example-0914-sell-2', type: 'sell', date: '2026-09-14', stockId: 'kia', stockName: '기아', quantity: 3, price: 130000, profit: 30000, sample: true },
+  { id: 'example-0914-sell-3', type: 'sell', date: '2026-09-14', stockId: 'samsung', stockName: '삼성전자', quantity: 2, price: 84600, profit: 9200, sample: true },
+  { id: 'example-0921-buy', type: 'buy', date: '2026-09-21', stockId: 'kia', stockName: '기아', quantity: 5, price: 130000, sample: true },
+  { id: 'example-0921-sell-1', type: 'sell', date: '2026-09-21', stockId: 'hyundai', stockName: '현대자동차', quantity: 1, price: 519000, profit: 9000, sample: true },
+  { id: 'example-0921-sell-2', type: 'sell', date: '2026-09-21', stockId: 'naver', stockName: 'NAVER', quantity: 2, price: 222500, profit: 15000, sample: true },
+];
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 const getTodayDate = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 const won = (amount: number) => `${Math.round(amount).toLocaleString('ko-KR')}원`;
@@ -44,7 +57,7 @@ export function JournalPage() {
       const lot = lots.find((candidate) => candidate.id === trade.lotId);
       return { id: trade.id, type: 'sell', date: trade.tradeDate, stockId: trade.stockId, stockName: stockItems.find((stock) => stock.id === trade.stockId)?.name ?? trade.stockId, quantity: trade.quantity, price: trade.price, lotId: trade.lotId, profit: lot ? trade.quantity * (trade.price - lot.buyPrice) : undefined };
     });
-    return [...buys, ...samples, ...sells].sort((a, b) => b.date.localeCompare(a.date));
+    return [...buys, ...samples, ...sells, ...exampleTrades].sort((a, b) => b.date.localeCompare(a.date));
   }, []);
   const goToMonth = (next: string) => {
     const day = Math.min(Number(selectedDate.slice(8, 10)), new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate());
@@ -99,7 +112,7 @@ export function JournalPage() {
   };
 
   return <>
-    <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 30, height: 30, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
+    <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
     <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
@@ -138,9 +151,9 @@ export function JournalPage() {
       <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, maxHeight: { sm: 260 }, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
         {dayEntries.length ? dayEntries.map((entry) => <ButtonBase key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 41 }, display: 'grid', gridTemplateColumns: { xs: '32px minmax(56px, 1fr) minmax(76px, auto) minmax(77px, auto)', sm: '36px minmax(74px, 1fr) minmax(85px, auto) minmax(87px, auto)' }, alignItems: 'center', columnGap: { xs: '6px', sm: '7px' }, textAlign: 'left', borderTop: { xs: 'none', sm: 'none' }, color: colors.textPrimary, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
           <Typography component="span" sx={{ width: 'fit-content', border: `1px solid ${entry.type === 'buy' ? colors.marketFall : colors.marketRise}`, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, borderRadius: '3px', px: '3px', fontSize: 9, lineHeight: '15px' }}>{entry.type === 'buy' ? '매수' : '매도'}</Typography>
-          <Typography noWrap sx={{ fontSize: { xs: 9, sm: 10 }, fontWeight: 600 }}>{entry.stockName}</Typography>
-          <Typography noWrap sx={{ color: colors.textMuted, fontSize: { xs: 8, sm: 9 } }}>{entry.quantity.toLocaleString('ko-KR')} × {won(entry.price)}</Typography>
-          <Typography sx={{ color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: { xs: 9, sm: 10 }, fontWeight: 700, whiteSpace: 'nowrap', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
+          <Typography noWrap sx={{ fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 600 }}>{entry.stockName}</Typography>
+          <Typography noWrap sx={{ color: colors.textMuted, fontSize: { xs: 9.25, sm: 10.25 } }}>{entry.quantity.toLocaleString('ko-KR')} × {won(entry.price)}</Typography>
+          <Typography sx={{ color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 700, whiteSpace: 'nowrap', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
         </ButtonBase>) : <Typography sx={{ color: colors.textMuted, fontSize: 11, py: 2, borderTop: `1px solid ${colors.border}` }}>선택한 날짜의 거래가 없습니다.</Typography>}
       </Box>
       {!tablet && <ButtonBase onClick={() => navigate(`/detail/daily-profit?date=${selectedDate}`)} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
