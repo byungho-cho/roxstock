@@ -134,7 +134,7 @@ jobs:
               mkdir -p "$(dirname "$DEPLOY_TREE")"
               git -C "$SOURCE_TREE" worktree add --detach "$DEPLOY_TREE" origin/main
             fi
-            ln -sfn "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
+            install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
             bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "sha-'"${GITHUB_SHA::7}"'"
           '
       - name: Verify external API
