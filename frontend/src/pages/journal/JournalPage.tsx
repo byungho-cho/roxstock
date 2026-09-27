@@ -99,7 +99,7 @@ export function JournalPage() {
   };
 
   return <>
-    <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, height: 30, p: 0, boxSizing: 'border-box', border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
+    <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 30, height: 30, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
     <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
