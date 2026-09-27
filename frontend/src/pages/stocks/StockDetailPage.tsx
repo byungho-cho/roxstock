@@ -137,21 +137,28 @@ type TradeHistoryItem = { profit: number; rate: number; sellDate: string; quanti
 
 function TradeHistory({ stockId, onEdit, onDelete }: { stockId: string; onEdit: (trade: MockSellTrade) => void; onDelete: (trade: MockSellTrade) => void }) {
   const savedTrades = getSellTrades(stockId).slice().reverse();
+  const lots = getAvailableLots(stockId);
+  const recordedTrades = savedTrades.map((trade) => {
+    const lot = lots.find((item) => item.id === trade.lotId);
+    const buyPrice = lot?.buyPrice ?? 0;
+    const profit = trade.quantity * (trade.price - buyPrice) - trade.feeTaxAmount;
+    const invested = trade.quantity * buyPrice;
+    const rate = invested ? profit / invested * 100 : 0;
+    const heldDays = lot ? Math.max(0, Math.floor((new Date(trade.tradeDate).getTime() - new Date(lot.tradeDate).getTime()) / 86_400_000)) : 0;
+    return { trade, item: { profit, rate, sellDate: trade.tradeDate.replaceAll('-', '.'), quantity: trade.quantity, buyPrice, buyDate: lot?.tradeDate.replaceAll('-', '.') ?? '', sellPrice: trade.price, annualRate: heldDays ? rate * 365 / heldDays : 0, heldDays } };
+  });
   const trades: TradeHistoryItem[] = [
     { profit: 275_000, rate: 14.4, sellDate: '2026.08.14', quantity: 5, buyPrice: 381_000, buyDate: '2026.07.28', sellPrice: 436_000, annualRate: 308.8, heldDays: 17 },
     { profit: 185_000, rate: 10, sellDate: '2026.08.05', quantity: 5, buyPrice: 369_000, buyDate: '2026.07.28', sellPrice: 406_000, annualRate: 456.3, heldDays: 8 },
   ];
   return <Stack>
-    <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>등록 {savedTrades.length}건</Typography></Stack>
-    <Stack spacing="8px">{savedTrades.map((trade) => {
-      const lot = getAvailableLots(stockId).find((item) => item.id === trade.lotId);
-      return <Card key={trade.id} sx={{ p: '12px', borderRadius: '12px' }}><Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>매도 {trade.tradeDate.replaceAll('-', '.')} · {won(trade.quantity * trade.price)}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>매수 {lot?.tradeDate.replaceAll('-', '.')} · {trade.quantity}주 × {won(trade.price)}</Typography></Box><Stack direction="row"><IconButton aria-label="매도 수정" onClick={() => onEdit(trade)}><EditRounded fontSize="small" /></IconButton><IconButton aria-label="매도 삭제" onClick={() => onDelete(trade)}><DeleteOutlineRounded fontSize="small" /></IconButton></Stack></Stack></Card>;
-    })}<Typography sx={{ fontSize: 11, color: colors.textMuted }}>아래 거래는 화면 예시입니다.</Typography>{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} />)}</Stack>
+    <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>{12 + recordedTrades.length}건</Typography><Typography sx={{ width: 144, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#FF6B6B' }}>{won(11_930_000 + recordedTrades.reduce((sum, { item }) => sum + item.profit, 0))}</Typography></Stack>
+    <Stack spacing="8px">{recordedTrades.map(({ trade, item }) => <TradeHistoryCard key={trade.id} trade={item} onEdit={() => onEdit(trade)} onDelete={() => onDelete(trade)} />)}{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} />)}</Stack>
     <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.disabled }}>이전 연도 거래를 불러오는 중…</Typography></Box>
   </Stack>;
 }
 
-function TradeHistoryCard({ trade }: { trade: TradeHistoryItem }) {
+function TradeHistoryCard({ trade, onEdit, onDelete }: { trade: TradeHistoryItem; onEdit?: () => void; onDelete?: () => void }) {
   return <Card sx={{ height: 176, minHeight: 176, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden' }}><CardContent sx={{ p: '11px 15px 8px', '&:last-child': { pb: '8px' } }}>
     <Stack direction="row" sx={{ height: 28, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 600, color: '#FF6B6B' }}>{won(trade.profit)}　{trade.rate.toFixed(1)}%</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>{trade.sellDate}</Typography></Stack>
     <Box sx={{ height: '1px', bgcolor: colors.raised }} />
@@ -160,6 +167,7 @@ function TradeHistoryCard({ trade }: { trade: TradeHistoryItem }) {
     <Box sx={{ height: '1px', bgcolor: colors.raised, mt: '4px' }} />
     <Stack direction="row" sx={{ height: 35, alignItems: 'center' }}><Typography sx={{ width: 42, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>연수익</Typography><Typography sx={{ width: 136, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>{trade.annualRate.toFixed(1)}%</Typography><Typography sx={{ flex: 1, fontSize: 9, color: colors.textMuted }}>[1년기준]</Typography><Typography sx={{ width: 76, textAlign: 'right', fontSize: 11, color: colors.textMuted }}>보유일 {trade.heldDays}일</Typography></Stack>
     <Box sx={{ height: '1px', bgcolor: colors.raised }} />
+    {(onEdit || onDelete) && <Stack direction="row" spacing="8px" sx={{ height: 32, alignItems: 'center', justifyContent: 'flex-end' }}>{onEdit && <IconButton aria-label="매도 수정" size="small" onClick={onEdit} sx={{ width: 26, height: 26, color: colors.textMuted }}><EditRounded sx={{ fontSize: 17 }} /></IconButton>}{onDelete && <IconButton aria-label="매도 삭제" size="small" onClick={onDelete} sx={{ width: 26, height: 26, color: colors.textMuted }}><DeleteOutlineRounded sx={{ fontSize: 18 }} /></IconButton>}</Stack>}
   </CardContent></Card>;
 }
 
