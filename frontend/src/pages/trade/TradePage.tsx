@@ -133,7 +133,7 @@ export function TradePage() {
       else await createTrade(draft);
       if (type === 'sell') await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
       setSaved(true);
-      navigate(`/stocks/${stockId}`, { replace: true, state: { savedTrade: type } });
+      navigate(`/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
     } catch (error) {
       setErrors((current) => ({ ...current, quantity: error instanceof Error ? error.message : '거래를 저장하지 못했습니다.' }));
     } finally {
@@ -181,7 +181,7 @@ export function TradePage() {
 
       <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(8,13,24,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid', borderColor: 'divider', px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 1.5 }}>
         <Stack direction="row" spacing={1.5} sx={{ maxWidth: 880 - pageGutter.sm * 2, mx: 'auto' }}>
-          <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => navigate(-1)}>취소</ActionButton>
+          <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => editing ? navigate(`/stocks/${stockId}?tab=trades`, { replace: true }) : navigate(-1)}>취소</ActionButton>
           <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : editing ? '수정' : type === 'buy' ? '매수' : '매도'}</ActionButton>
         </Stack>
       </Box>

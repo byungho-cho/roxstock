@@ -23,7 +23,9 @@ export function StockDetailPage() {
   const stock = stockItems.find((item) => item.id === stockId) ?? stockItems[0];
   const holding = stock.listType === 'holding';
   const { favoriteIds, toggleFavorite } = useFavoriteStocks();
-  const [tab, setTab] = useState<DetailTab>(holding ? 'holding' : 'summary');
+  const requestedTab = new URLSearchParams(location.search).get('tab');
+  const initialTab: DetailTab = holding && (requestedTab === 'summary' || requestedTab === 'trades') ? requestedTab : holding ? 'holding' : 'summary';
+  const [tab, setTab] = useState<DetailTab>(initialTab);
   const [dialog, setDialog] = useState<'price' | 'category' | 'delete' | null>(null);
   const [deletingTrade, setDeletingTrade] = useState<MockSellTrade | null>(null);
   const [tradeRevision, setTradeRevision] = useState(0);
@@ -55,8 +57,8 @@ export function StockDetailPage() {
     {holding ? <HoldingDetail tab={tab} stock={stock} revision={tradeRevision} onEditTrade={(trade) => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}&lot=${trade.lotId}&edit=${trade.id}`)} onDeleteTrade={setDeletingTrade} onSellLot={(lotId: string) => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}&lot=${lotId}`)} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
     <SimpleDialog type={dialog} stock={stock} categoryDraft={categoryDraft} onCategoryDraft={setCategoryDraft} onClose={() => setDialog(null)} onCategoryChange={() => { stock.listType = categoryDraft; setDialog(null); }} onDelete={() => { if (!holding) stockItems.splice(stockItems.findIndex((item) => item.id === stock.id), 1); setDialog(null); navigate('/stocks'); }} />
     <Dialog open={Boolean(deletingTrade)} onClose={() => setDeletingTrade(null)} fullWidth maxWidth="xs"><DialogTitle>매도 거래를 삭제할까요?</DialogTitle><DialogContent>삭제하면 연결된 매수 항목의 매도 가능 수량이 {deletingTrade?.quantity}주 복구됩니다.</DialogContent><DialogActions><Button onClick={() => setDeletingTrade(null)}>취소</Button><Button color="error" onClick={() => { if (deletingTrade) { deleteSellTrade(deletingTrade.id); void queryClient.invalidateQueries({ queryKey: ['buyLots', stock.id] }); } setDeletingTrade(null); setTradeRevision((value) => value + 1); }}>삭제</Button></DialogActions></Dialog>
-  </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} /></Box>}
-    <Snackbar open={savedTrade === 'buy' || savedTrade === 'sell'} autoHideDuration={3000} onClose={() => navigate(location.pathname, { replace: true, state: null })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert severity="success" variant="filled" onClose={() => navigate(location.pathname, { replace: true, state: null })}>모의 {savedTrade === 'sell' ? '매도' : '매수'}가 등록됐어요. 실제 데이터는 변경되지 않았습니다.</Alert></Snackbar>
+  </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} initialTab={initialTab} /></Box>}
+    <Snackbar open={savedTrade === 'buy' || savedTrade === 'sell'} autoHideDuration={3000} onClose={() => navigate(`${location.pathname}${location.search}`, { replace: true, state: null })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert severity="success" variant="filled" onClose={() => navigate(`${location.pathname}${location.search}`, { replace: true, state: null })}>모의 {savedTrade === 'sell' ? '매도' : '매수'}가 등록됐어요. 실제 데이터는 변경되지 않았습니다.</Alert></Snackbar>
   </>;
 }
 
