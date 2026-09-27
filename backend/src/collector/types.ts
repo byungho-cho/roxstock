@@ -35,6 +35,11 @@ export interface PriceObservation {
   freshnessReason?: string;
 }
 
+export interface RealtimePriceValue extends PriceObservation {
+  securityId: bigint;
+  name: string;
+}
+
 export interface PriceProvider {
   readonly name: string;
   fetchPrice(security: SecurityTarget): Promise<PriceObservation>;
@@ -83,9 +88,11 @@ export interface CollectorRepository {
   addRunItem(runId: bigint, item: RunItemInput): Promise<void>;
   hasCompletedScheduledPriceRun(scheduleDate: string): Promise<boolean>;
   listActiveSecurities(): Promise<SecurityTarget[]>;
+  listRealtimeSecurities(limit: number): Promise<SecurityTarget[]>;
   upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void>;
   deactivateMissingSecurities(items: SecurityMasterItem[]): Promise<number>;
   upsertMarketPrice(securityId: bigint, observation: PriceObservation): Promise<void>;
+  upsertRealtimeMarketPrices(values: RealtimePriceValue[]): Promise<number>;
   listActiveAccountsForSnapshot(): Promise<SnapshotAccount[]>;
   upsertDailyAccountSnapshot(accountId: bigint, snapshotDate: Date, value: SnapshotValue): Promise<void>;
 }

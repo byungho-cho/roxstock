@@ -5,6 +5,12 @@ const positiveInteger = (value: string | undefined, fallback: number, name: stri
   return parsed;
 };
 
+const integerAtLeast = (value: string | undefined, fallback: number, minimum: number, name: string): number => {
+  const parsed = positiveInteger(value, fallback, name);
+  if (parsed < minimum) throw new Error(`${name} must be at least ${minimum}`);
+  return parsed;
+};
+
 const hour = (value: string | undefined, fallback: number, name: string): number => {
   const parsed = value === undefined || value === '' ? fallback : Number(value);
   if (!Number.isInteger(parsed) || parsed < 0 || parsed > 23) throw new Error(`${name} must be between 0 and 23`);
@@ -16,6 +22,12 @@ const boolean = (value: string | undefined, fallback: boolean, name: string): bo
   if (value === 'true') return true;
   if (value === 'false') return false;
   throw new Error(`${name} must be true or false`);
+};
+
+const clockTime = (value: string | undefined, fallback: string, name: string): string => {
+  const selected = value === undefined || value === '' ? fallback : value;
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(selected)) throw new Error(`${name} must use HH:mm`);
+  return selected;
 };
 
 export interface CollectorConfig {
@@ -33,6 +45,17 @@ export interface CollectorConfig {
   securityMasterLookbackDays: number;
   securityMasterMinimumCount: number;
   securityMasterDeactivateMissing: boolean;
+  realtimeEnabled: boolean;
+  realtimeIntervalSeconds: number;
+  realtimeDbFlushSeconds: number;
+  realtimeTargetRefreshSeconds: number;
+  realtimeStaleBackoffSeconds: number;
+  realtimeMaxSecurities: number;
+  realtimeConcurrency: number;
+  realtimeMarketOpen: string;
+  realtimeMarketClose: string;
+  realtimeApiUrl: string;
+  realtimeInternalToken: string;
 }
 
 export const loadCollectorConfig = (): CollectorConfig => {
@@ -63,5 +86,16 @@ export const loadCollectorConfig = (): CollectorConfig => {
     securityMasterLookbackDays: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS, 14, 'COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS'),
     securityMasterMinimumCount: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT, 2000, 'COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT'),
     securityMasterDeactivateMissing: boolean(process.env.COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING, false, 'COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING'),
+    realtimeEnabled: boolean(process.env.COLLECTOR_REALTIME_ENABLED, true, 'COLLECTOR_REALTIME_ENABLED'),
+    realtimeIntervalSeconds: integerAtLeast(process.env.COLLECTOR_REALTIME_INTERVAL_SECONDS, 10, 5, 'COLLECTOR_REALTIME_INTERVAL_SECONDS'),
+    realtimeDbFlushSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_DB_FLUSH_SECONDS, 60, 'COLLECTOR_REALTIME_DB_FLUSH_SECONDS'),
+    realtimeTargetRefreshSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS, 30, 'COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS'),
+    realtimeStaleBackoffSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS, 300, 'COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS'),
+    realtimeMaxSecurities: positiveInteger(process.env.COLLECTOR_REALTIME_MAX_SECURITIES, 100, 'COLLECTOR_REALTIME_MAX_SECURITIES'),
+    realtimeConcurrency: positiveInteger(process.env.COLLECTOR_REALTIME_CONCURRENCY, 5, 'COLLECTOR_REALTIME_CONCURRENCY'),
+    realtimeMarketOpen: clockTime(process.env.COLLECTOR_REALTIME_MARKET_OPEN, '09:00', 'COLLECTOR_REALTIME_MARKET_OPEN'),
+    realtimeMarketClose: clockTime(process.env.COLLECTOR_REALTIME_MARKET_CLOSE, '15:30', 'COLLECTOR_REALTIME_MARKET_CLOSE'),
+    realtimeApiUrl: (process.env.COLLECTOR_REALTIME_API_URL ?? 'http://backend:3300/internal/realtime-prices').trim(),
+    realtimeInternalToken: (process.env.COLLECTOR_INTERNAL_TOKEN ?? '').trim(),
   };
 };

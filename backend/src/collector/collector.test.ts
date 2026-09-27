@@ -6,7 +6,7 @@ import { parseNaverPrice } from './providers/naver-price-provider.js';
 import { parseSecurityMasterResponse } from './providers/data-go-kr-security-provider.js';
 import { collectSecurityMaster } from './security-master-collector.js';
 import type {
-  CollectorRepository, CollectorRunStatus, PriceObservation, PriceProvider, RunCounters, RunItemInput,
+  CollectorRepository, CollectorRunStatus, PriceObservation, PriceProvider, RealtimePriceValue, RunCounters, RunItemInput,
   SecurityMasterItem, SecurityTarget, SnapshotAccount, SnapshotValue,
 } from './types.js';
 
@@ -26,10 +26,18 @@ class MemoryRepository implements CollectorRepository {
   async addRunItem(_id: bigint, item: RunItemInput) { this.items.push(item); }
   async hasCompletedScheduledPriceRun() { return false; }
   async listActiveSecurities() { return this.securities; }
+  async listRealtimeSecurities(limit: number) { return this.securities.slice(0, limit); }
   securityMaster = new Map<string, SecurityMasterItem>();
   async upsertSecurityMaster(items: SecurityMasterItem[]) { for (const item of items) this.securityMaster.set(`${item.marketType}:${item.symbol}`, item); }
   async deactivateMissingSecurities() { return 0; }
   async upsertMarketPrice(id: bigint, observation: PriceObservation) { this.prices.set(id, observation); }
+  async upsertRealtimeMarketPrices(values: RealtimePriceValue[]) {
+    for (const value of values) {
+      const prior = this.prices.get(value.securityId);
+      if (!prior || value.observedAt >= prior.observedAt) this.prices.set(value.securityId, value);
+    }
+    return values.length;
+  }
   async listActiveAccountsForSnapshot() { return this.accounts; }
   async upsertDailyAccountSnapshot(id: bigint, date: Date, value: SnapshotValue) { this.snapshots.set(`${id}:${date.toISOString()}`, value); }
 }
