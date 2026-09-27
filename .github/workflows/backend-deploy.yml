@@ -123,7 +123,20 @@ jobs:
         shell: bash
         run: |
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST"             "cd /opt/roxstock && git fetch origin main && git merge --ff-only origin/main && bash ./scripts/deploy-backend.sh '${{ needs.docker.outputs.image_tag }}'"
+          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" '
+            set -Eeuo pipefail
+            SOURCE_TREE=/opt/roxstock
+            DEPLOY_TREE=/opt/roxstock/.deploy/worktree
+            git -C "$SOURCE_TREE" fetch origin main
+            if git -C "$DEPLOY_TREE" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              git -C "$DEPLOY_TREE" checkout --detach origin/main
+            else
+              mkdir -p "$(dirname "$DEPLOY_TREE")"
+              git -C "$SOURCE_TREE" worktree add --detach "$DEPLOY_TREE" origin/main
+            fi
+            ln -sfn "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
+            bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "sha-'"${GITHUB_SHA::7}"'"
+          '
       - name: Verify external API
         shell: bash
         run: |
