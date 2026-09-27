@@ -28,6 +28,8 @@ export interface StockItem {
   per?: number;
   pbr?: number;
   roe?: number;
+  /** 영업이익, 억원 단위. 값이 없으면 —로 표시한다. */
+  operatingProfit?: number;
   note?: string;
   collectionStatus: CollectionStatus;
 }

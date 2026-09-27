@@ -67,7 +67,7 @@ export function StockListPage() {
   const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
-    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded action={<Stack direction="row" spacing={1}>
+    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded stockTablet action={<Stack direction="row" spacing={1}>
       <IconButton aria-label="종목 검색" onClick={() => searchInputRef.current?.focus()} sx={{ display: { xs: 'flex', sm: 'none' }, width: 36, height: 36, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}><SearchRounded sx={{ fontSize: 19 }} /></IconButton>
       <IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>
     </Stack>} />
