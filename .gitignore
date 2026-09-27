@@ -10,3 +10,6 @@ coverage/
 .vscode/
 backend/src/generated/prisma/
 .deploy.lock
+
+.backend-deploy.lock
+.ops-backups/
