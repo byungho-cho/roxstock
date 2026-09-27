@@ -113,26 +113,26 @@ export function JournalPage() {
 
   return <>
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: '368px minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '22px' }, px: { xs: 0, sm: '6px' }, mr: { sm: '-10px' }, mt: { xs: 0, sm: '-2px' } }}>
     <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
         event.preventDefault();
         event.stopPropagation();
         suppressClickUntil.current = 0;
       }
-    }} sx={{ minWidth: 0, touchAction: 'pan-y' }}>
+    }} sx={{ minWidth: 0, minHeight: 0, touchAction: 'pan-y' }}>
       <Stack direction="row" sx={{ ...panel, height: 44, alignItems: 'center', justifyContent: 'space-between', px: '6px', flexShrink: 0 }}>
         <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronLeftRounded sx={{ fontSize: 20 }} /></IconButton>
         <Box sx={{ textAlign: 'center' }}><ButtonBase aria-label={`${year}년 ${value}월, 월 선택`} onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} sx={{ display: 'block', mx: 'auto', borderRadius: '4px', '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}><Typography sx={{ fontSize: 13, lineHeight: '18px', fontWeight: 700 }}>{year}년 {value}월</Typography></ButtonBase><Typography sx={{ fontSize: 9, lineHeight: '12px', color: monthProfit >= 0 ? colors.marketRise : colors.marketFall }}>월 손익 {signedWon(monthProfit)} {monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Box>
         <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 44, height: 44, color: colors.textSecondary }}><ChevronRightRounded sx={{ fontSize: 20 }} /></IconButton>
       </Stack>
-      <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: '8px', userSelect: 'none' }}>
+      <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: '8px', userSelect: 'none', display: 'flex', flexDirection: 'column', flex: { sm: 1 }, minHeight: 0 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 25, alignItems: 'center' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 9, fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderTop: `1px solid ${colors.borderStrong}` }}>{calendar.map(({ date, day, adjacent }, index) => {
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: { sm: `repeat(${rows}, minmax(0, 1fr))` }, flex: { sm: 1 }, minHeight: 0, borderTop: `1px solid ${colors.borderStrong}` }}>{calendar.map(({ date, day, adjacent }, index) => {
           const count = counts.get(date);
           const selected = selectedDate === date;
           const holiday = holidays.get(date);
-          return <ButtonBase key={date} component="button" aria-label={`${date}${holiday ? ` ${holiday}` : ''} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 50, sm: 70 }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: '3px', border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
+          return <ButtonBase key={date} component="button" aria-label={`${date}${holiday ? ` ${holiday}` : ''} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 50, sm: '100%' }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: '3px', border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
             <Typography component="span" sx={{ display: 'block', fontSize: 9, lineHeight: '13px', fontWeight: selected ? 700 : 400, color: holiday ? colors.marketRise : 'inherit' }}>{day}</Typography>
             {count?.buy ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketFall}`, borderRadius: '3px', color: colors.marketFall, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매수 {count.buy}</Typography> : null}
             {count?.sell ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketRise}`, borderRadius: '3px', color: colors.marketRise, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매도 {count.sell}</Typography> : null}
@@ -140,7 +140,7 @@ export function JournalPage() {
         })}</Box>
       </Box>
     </Stack>
-    <Box sx={{ ...panel, mt: { xs: 0, sm: 0 }, px: { xs: '12px', sm: '16px' }, py: { xs: '12px', sm: '14px' }, minWidth: 0, minHeight: { sm: 454 }, alignSelf: 'start' }}>
+    <Box sx={{ ...panel, mt: { xs: 0, sm: 0 }, px: { xs: '12px', sm: '16px' }, py: { xs: '12px', sm: '14px' }, minWidth: 0, minHeight: 0, display: { sm: 'flex' }, flexDirection: { sm: 'column' }, alignSelf: { xs: 'start', sm: 'stretch' } }}>
       {tablet ? <>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography></Stack>
         <Stack direction="row" sx={{ mt: '20px', justifyContent: 'space-between' }}><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>전체손익</Typography><Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textMuted, fontSize: 11 }}>{dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
@@ -148,7 +148,7 @@ export function JournalPage() {
         <Typography sx={{ color: colors.textMuted, fontSize: 10, mt: '2px' }}>매수 {won(dayBuy)} · 매도 {won(daySell)}</Typography>
         <Stack direction="row" sx={{ mt: '25px', mb: '7px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래현황</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>총 {dayEntries.length}건</Typography></Stack>
       </> : <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>{selectedDate.slice(5).replace('-', '.')} 거래 {dayEntries.length}건</Typography><Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.marketRise }}>{won(dayAmount)}</Typography></Stack>}
-      <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, maxHeight: { sm: 260 }, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
+      <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
         {dayEntries.length ? dayEntries.map((entry) => <ButtonBase key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 41 }, display: 'grid', gridTemplateColumns: { xs: '32px minmax(56px, 1fr) minmax(76px, auto) minmax(77px, auto)', sm: '36px minmax(74px, 1fr) minmax(85px, auto) minmax(87px, auto)' }, alignItems: 'center', columnGap: { xs: '6px', sm: '7px' }, textAlign: 'left', borderTop: { xs: 'none', sm: 'none' }, color: colors.textPrimary, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
           <Typography component="span" sx={{ width: 'fit-content', border: `1px solid ${entry.type === 'buy' ? colors.marketFall : colors.marketRise}`, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, borderRadius: '3px', px: '3px', fontSize: 9, lineHeight: '15px' }}>{entry.type === 'buy' ? '매수' : '매도'}</Typography>
           <Typography noWrap sx={{ fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 600 }}>{entry.stockName}</Typography>
