@@ -26,9 +26,9 @@ const recentTrades = [
   { stockId: 'hyundai', date: '08.14', type: '매도', quantity: 10, price: 198_000 },
 ];
 
-export function TabletStockDetail({ stock }: { stock: StockItem }) {
+export function TabletStockDetail({ stock, initialTab = 'holding' }: { stock: StockItem; initialTab?: DetailTab }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<DetailTab>('holding');
+  const [tab, setTab] = useState<DetailTab>(initialTab);
   const holdings = stockItems.filter((item) => item.listType === 'holding');
   const visible = [stock, ...holdings.filter((item) => item.id !== stock.id)].slice(0, 3);
   const invested = (stock.quantity ?? 0) * (stock.averagePrice ?? 0);
