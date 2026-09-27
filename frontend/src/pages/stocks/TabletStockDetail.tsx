@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import type { StockItem, StockListType } from '../../types/models';
-import { colors, pageMetrics } from '../../styles/tokens';
+import { colors } from '../../styles/tokens';
 import { formatRate, getMarketColor } from '../../utils/format';
 import { navigateToForm } from '../../utils/focusForm';
 
@@ -40,8 +40,8 @@ export function TabletStockDetail({ stock }: { stock: StockItem }) {
   const selectCategory = (category: StockListType) => navigate(`/stocks?tab=${category}`);
 
   return <Box sx={{ pb: 2 }}>
-    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" embedded stockTablet showAdd={false} action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, '/stocks/add?type=holding')} sx={{ width: 38, height: 38, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, color: colors.textPrimary }}><AddRounded /></IconButton>} />
-    <Tabs value="holding" onChange={(_, category: StockListType) => selectCategory(category)} variant="fullWidth" sx={{ mt: `${pageMetrics.gap}px`, height: 46, minHeight: 46, p: '5px', border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', bgcolor: colors.surface, '& .MuiTab-root': { minHeight: 34, height: 34, p: 0, borderRadius: '10px', color: colors.textMuted, fontSize: 12 }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: `${colors.textPrimary} !important`, fontWeight: 600 }, '& .MuiTabs-indicator': { display: 'none' } }}><Tab value="watchlist" label="관심종목" /><Tab value="holding" label="보유종목" /><Tab value="recommended" label="추천종목" /></Tabs>
+    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" embedded scope="tablet" showAdd={false} action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, '/stocks/add?type=holding')} sx={{ width: 38, height: 38, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, color: colors.textPrimary }}><AddRounded /></IconButton>} />
+    <Tabs value="holding" onChange={(_, category: StockListType) => selectCategory(category)} variant="fullWidth" sx={{ height: 46, minHeight: 46, p: '5px', border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', bgcolor: colors.surface, '& .MuiTab-root': { minHeight: 34, height: 34, p: 0, borderRadius: '10px', color: colors.textMuted, fontSize: 12 }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: `${colors.textPrimary} !important`, fontWeight: 600 }, '& .MuiTabs-indicator': { display: 'none' } }}><Tab value="watchlist" label="관심종목" /><Tab value="holding" label="보유종목" /><Tab value="recommended" label="추천종목" /></Tabs>
     <Stack direction="row" sx={{ mt: '14px', mb: '8px', justifyContent: 'space-between', color: colors.textMuted }}><Stack direction="row" spacing="5px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 11 }}>보유중 {holdings.length}</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors.positive }} /></Stack><Typography sx={{ fontSize: 11 }}>목록에서 선택하면 우측 상세가 갱신됩니다</Typography></Stack>
     <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 304px) minmax(0, 1fr)', gap: '12px', alignItems: 'start' }}>
       <Box sx={{ height: 366, p: '12px 11px', display: 'flex', flexDirection: 'column', border: `1px solid ${colors.borderStrong}`, borderRadius: '12px', bgcolor: colors.surface }}>
@@ -51,7 +51,7 @@ export function TabletStockDetail({ stock }: { stock: StockItem }) {
           <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '2px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{item.symbol} · {industry(item)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(item.priceChangeRate) }}>{formatRate(item.priceChangeRate)}</Typography></Stack>
         </Box>)}</Stack>
       </Box>
-      <Box sx={{ position: 'sticky', top: 82, minHeight: 366, p: '10px 19px 15px', border: `1px solid ${colors.borderStrong}`, borderRadius: '12px', bgcolor: colors.surface }}>
+      <Box sx={{ position: 'sticky', top: 0, minHeight: 366, p: '10px 19px 15px', border: `1px solid ${colors.borderStrong}`, borderRadius: '12px', bgcolor: colors.surface }}>
         <Typography sx={{ fontSize: 11, fontWeight: 600, color: colors.buttonPrimary }}>보유종목 상세</Typography>
         <Stack direction="row" sx={{ alignItems: 'start', justifyContent: 'space-between', mt: '2px' }}><Box><Typography noWrap sx={{ fontSize: 22, fontWeight: 700, lineHeight: '29px' }}>{stock.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{stock.symbol} · KOSPI</Typography></Box><Box sx={{ textAlign: 'right' }}><Typography noWrap sx={{ fontSize: 20, fontWeight: 700, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography></Box></Stack>
         <Stack direction="row" spacing="8px" sx={{ mt: '9px' }}>
