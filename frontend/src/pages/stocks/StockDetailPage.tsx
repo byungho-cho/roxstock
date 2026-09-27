@@ -9,6 +9,7 @@ import { navigateToForm } from '../../utils/focusForm';
 import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
 import type { StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
+import { TabletStockDetail } from './TabletStockDetail';
 
 const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
 type DetailTab = 'summary' | 'holding' | 'trades';
@@ -42,13 +43,13 @@ export function StockDetailPage() {
 
     navigate(`/stocks/${deltaX < 0 ? nextStock.id : previousStock.id}`);
   };
-  return <Stack spacing="12px" onPointerDown={handleSwipeStart} onPointerUp={handleSwipeEnd} onPointerCancel={() => { swipeStart.current = null; }} sx={{ pb: 2, touchAction: 'pan-y' }}>
+  return <><Stack spacing="12px" onPointerDown={handleSwipeStart} onPointerUp={handleSwipeEnd} onPointerCancel={() => { swipeStart.current = null; }} sx={{ display: holding ? { xs: 'flex', sm: 'none' } : 'flex', pb: 2, touchAction: 'pan-y' }}>
     <StockHeader name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} />
     {holding && <><Card sx={{ height: 64, borderRadius: '16px' }}><CardContent sx={{ height: '100%', px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:last-child': { pb: 1 } }}><Box><Typography sx={{ fontSize: 22, fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 12, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice * stock.priceChangeRate / 100)} ({formatRate(stock.priceChangeRate)})</Typography></Box><Button onClick={() => navigateToForm(navigate, `/trade?type=buy&stock=${stock.id}`)} sx={{ minHeight: 32, bgcolor: colors.raised }}>매수 +</Button></CardContent></Card>
     <Tabs value={tab} onChange={(_, value: DetailTab) => setTab(value)} variant="fullWidth" sx={{ minHeight: 40, p: '3px', bgcolor: colors.surface, borderRadius: '14px', '& .MuiTab-root': { minHeight: 34, py: 0, fontSize: 12, borderRadius: '9px' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: '#fff !important' } }}><Tab value="summary" label="요약" /><Tab value="holding" label="보유 현황" /><Tab value="trades" label="거래내역" /></Tabs></>}
     {holding ? <HoldingDetail tab={tab} invested={invested} market={market} profit={profit} stock={stock} onDelete={() => setDialog('delete')} navigate={navigate} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
     <SimpleDialog type={dialog} stock={stock} categoryDraft={categoryDraft} onCategoryDraft={setCategoryDraft} onClose={() => setDialog(null)} onCategoryChange={() => { stock.listType = categoryDraft; setDialog(null); }} onDelete={() => { if (!holding) stockItems.splice(stockItems.findIndex((item) => item.id === stock.id), 1); setDialog(null); navigate('/stocks'); }} />
-  </Stack>;
+  </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} /></Box>}</>;
 }
 
 type StockHeaderProps = {
