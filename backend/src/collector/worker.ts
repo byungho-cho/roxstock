@@ -9,7 +9,7 @@ import { DataGoKrSecurityProvider } from './providers/data-go-kr-security-provid
 import { PrismaCollectorRepository } from './repository.js';
 import { collectSecurityMaster } from './security-master-collector.js';
 import { collectDailyAccountSnapshots } from './snapshot-collector.js';
-import { getSeoulClock, isHourInOvernightWindow, priceScheduleKey, snapshotScheduleKey } from './time.js';
+import { getSeoulClock, snapshotScheduleKey } from './time.js';
 
 const config = loadCollectorConfig();
 const repository = new PrismaCollectorRepository(prisma);
@@ -19,9 +19,16 @@ const provider = config.provider === 'mock'
 
 const runPrices = (symbols?: string[]) => collectPrices(repository, provider, {
   delayMs: config.providerDelayMs,
-  lockTtlSeconds: config.lockTtlSeconds,
+  lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
   symbols,
 });
+const runScheduledPrices = (scheduleDate: string, attempt: 'primary' | 'partial-retry' | 'outage-retry', symbols?: string[]) =>
+  collectPrices(repository, provider, {
+    delayMs: config.providerDelayMs,
+    lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
+    symbols,
+    metadata: { scheduleDate, attempt },
+  });
 const runSnapshots = (now = new Date()) => collectDailyAccountSnapshots(repository, {
   lockTtlSeconds: config.lockTtlSeconds,
   now,
@@ -52,7 +59,9 @@ const once = async (target: string, symbolArgument?: string): Promise<void> => {
 };
 
 const daemon = async (): Promise<void> => {
-  let lastPriceKey = '';
+  let completedPriceDate = '';
+  let outageRetryDate = '';
+  let outageRetryAt = 0;
   let lastSnapshotKey = '';
   let lastSecurityMasterKey = '';
   let ticking = false;
@@ -62,10 +71,31 @@ const daemon = async (): Promise<void> => {
     const now = new Date();
     const clock = getSeoulClock(now);
     try {
-      const priceKey = priceScheduleKey(now, config.priceIntervalMinutes);
-      if (isHourInOvernightWindow(clock.hour, config.priceWindowStartHour, config.priceWindowEndHour) && priceKey !== lastPriceKey) {
-        lastPriceKey = priceKey;
-        await runPrices();
+      if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate) {
+        const alreadyCompleted = await repository.hasCompletedScheduledPriceRun(clock.dateKey);
+        if (alreadyCompleted) {
+          completedPriceDate = clock.dateKey;
+        } else if (outageRetryDate === clock.dateKey && outageRetryAt > 0 && now.getTime() >= outageRetryAt) {
+          await runScheduledPrices(clock.dateKey, 'outage-retry');
+          completedPriceDate = clock.dateKey;
+          outageRetryDate = '';
+          outageRetryAt = 0;
+        } else if (outageRetryDate !== clock.dateKey) {
+          const result = await runScheduledPrices(clock.dateKey, 'primary');
+          if (result.status === 'PARTIAL' && result.failedSymbols.length > 0) {
+            await runScheduledPrices(clock.dateKey, 'partial-retry', result.failedSymbols);
+            completedPriceDate = clock.dateKey;
+          } else if (result.status === 'FAILED' && result.failed > 0 && result.success === 0 && result.stale === 0) {
+            outageRetryDate = clock.dateKey;
+            outageRetryAt = now.getTime() + config.priceRetryDelayMinutes * 60 * 1000;
+            log('warn', 'full price source outage scheduled for one retry', {
+              scheduleDate: clock.dateKey,
+              retryAt: new Date(outageRetryAt).toISOString(),
+            });
+          } else {
+            completedPriceDate = clock.dateKey;
+          }
+        }
       }
       const snapshotKey = snapshotScheduleKey(now);
       if (config.snapshotHours.includes(clock.hour) && snapshotKey !== lastSnapshotKey) {

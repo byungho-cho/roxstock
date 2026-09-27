@@ -24,6 +24,7 @@ class MemoryRepository implements CollectorRepository {
   async createRun() { return this.nextRun++; }
   async finishRun(_id: bigint, status: CollectorRunStatus, counters: RunCounters) { this.finishes.push({ status, counters: { ...counters } }); }
   async addRunItem(_id: bigint, item: RunItemInput) { this.items.push(item); }
+  async hasCompletedScheduledPriceRun() { return false; }
   async listActiveSecurities() { return this.securities; }
   securityMaster = new Map<string, SecurityMasterItem>();
   async upsertSecurityMaster(items: SecurityMasterItem[]) { for (const item of items) this.securityMaster.set(`${item.marketType}:${item.symbol}`, item); }
@@ -69,8 +70,24 @@ test('complete provider outage is FAILED and preserves all previous prices', asy
   repository.securities = [security(1n, '005930')];
   repository.prices.set(1n, observation('005930', '777'));
   const provider: PriceProvider = { name: 'test', fetchPrice: async () => { throw new Error('outage'); } };
-  assert.equal((await collectPrices(repository, provider, { delayMs: 0, lockTtlSeconds: 30 })).status, 'FAILED');
+  const result = await collectPrices(repository, provider, { delayMs: 0, lockTtlSeconds: 30 });
+  assert.equal(result.status, 'FAILED');
+  assert.deepEqual(result.failedSymbols, ['005930']);
   assert.equal(repository.prices.get(1n)?.currentPrice, '777');
+});
+
+test('all stale prices are a non-retryable SKIPPED market day', async () => {
+  const repository = new MemoryRepository();
+  repository.securities = [security(1n, '005930')];
+  const provider: PriceProvider = {
+    name: 'test',
+    fetchPrice: async (target) => ({ ...observation(target.symbol, '1000'), freshness: 'STALE', freshnessReason: 'market holiday' }),
+  };
+  const result = await collectPrices(repository, provider, { delayMs: 0, lockTtlSeconds: 30 });
+  assert.equal(result.status, 'SKIPPED');
+  assert.equal(result.stale, 1);
+  assert.deepEqual(result.failedSymbols, []);
+  assert.equal(repository.prices.size, 0);
 });
 
 test('held lock prevents duplicate execution', async () => {

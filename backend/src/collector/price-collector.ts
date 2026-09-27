@@ -6,24 +6,29 @@ import { emptyCounters } from './types.js';
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const messageOf = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export interface PriceCollectorResult extends RunCounters { runId: bigint; status: CollectorRunStatus }
+export interface PriceCollectorResult extends RunCounters {
+  runId: bigint;
+  status: CollectorRunStatus;
+  failedSymbols: string[];
+}
 
 export const collectPrices = async (
   repository: CollectorRepository,
   provider: PriceProvider,
-  options: { delayMs: number; lockTtlSeconds: number; symbols?: string[] },
+  options: { delayMs: number; lockTtlSeconds: number; symbols?: string[]; metadata?: Record<string, unknown> },
 ): Promise<PriceCollectorResult> => {
   const jobName = 'market-prices';
   const owner = randomUUID();
   const counters = emptyCounters();
+  const failedSymbols: string[] = [];
   const locked = await repository.acquireLock(jobName, owner, options.lockTtlSeconds);
-  const runId = await repository.createRun(jobName, provider.name, { owner });
+  const runId = await repository.createRun(jobName, provider.name, { owner, ...options.metadata });
   if (!locked) {
     counters.skipped = 1;
     await repository.addRunItem(runId, { symbol: '*', status: 'SKIPPED', message: 'another execution holds the collector lock' });
     await repository.finishRun(runId, 'SKIPPED', counters);
     log('warn', 'price collection skipped: duplicate execution', { runId });
-    return { runId, status: 'SKIPPED', ...counters };
+    return { runId, status: 'SKIPPED', failedSymbols, ...counters };
   }
 
   log('info', 'price collection started', { runId, provider: provider.name });
@@ -60,19 +65,20 @@ export const collectPrices = async (
         }
       } catch (error) {
         counters.failed += 1;
+        failedSymbols.push(security.symbol);
         const reason = messageOf(error);
         await repository.addRunItem(runId, { securityId: security.id, symbol: security.symbol, status: 'FAILED', message: reason.slice(0, 1000) });
         log('error', 'price collection failed for security', { runId, symbol: security.symbol, reason });
       }
       if (index < securities.length - 1 && options.delayMs > 0) await sleep(options.delayMs);
     }
-    status = securities.length === 0 ? 'SKIPPED'
+    status = securities.length === 0 || (counters.stale > 0 && counters.success === 0 && counters.failed === 0) ? 'SKIPPED'
       : counters.success === securities.length && counters.skipped === 0 ? 'SUCCESS'
       : counters.success > 0 ? 'PARTIAL'
       : 'FAILED';
     await repository.finishRun(runId, status, counters, status === 'FAILED' ? 'no current price was stored' : undefined);
     log('info', 'price collection finished', { runId, status, ...counters });
-    return { runId, status, ...counters };
+    return { runId, status, failedSymbols, ...counters };
   } catch (error) {
     const reason = messageOf(error);
     await repository.finishRun(runId, 'FAILED', counters, reason.slice(0, 1000));
