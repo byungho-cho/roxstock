@@ -60,7 +60,7 @@ export const loadCollectorConfig = (): CollectorConfig => {
     securityMasterHour: hour(process.env.COLLECTOR_SECURITY_MASTER_HOUR, 7, 'COLLECTOR_SECURITY_MASTER_HOUR'),
     securityMasterEndpoint: process.env.DATA_GO_KR_KRX_LISTED_ENDPOINT
       ?? process.env.DATA_GO_KR_STOCK_PRICE_ENDPOINT
-      ?? 'https://apis.data.go.kr/1160100/service/GetKrxListedInfoService_V2/getItemInfo_V2',
+      ?? 'https://apis.data.go.kr/1160100/GetKrxListedInfoService_V2/getItemInfo_V2',
     securityMasterPageSize: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_PAGE_SIZE, 1000, 'COLLECTOR_SECURITY_MASTER_PAGE_SIZE'),
     securityMasterLookbackDays: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS, 14, 'COLLECTOR_SECURITY_MASTER_LOOKBACK_DAYS'),
     securityMasterMinimumCount: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT, 2000, 'COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT'),
