@@ -7,7 +7,6 @@
 **/.env.*
 !**/.env.example
 docs
-database
 infra
 scripts
 *.log
