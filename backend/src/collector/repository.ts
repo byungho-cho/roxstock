@@ -5,6 +5,7 @@ import type {
   PriceObservation,
   RunCounters,
   RunItemInput,
+  SecurityMasterItem,
   SecurityTarget,
   SnapshotAccount,
   SnapshotValue,
@@ -69,6 +70,32 @@ export class PrismaCollectorRepository implements CollectorRepository {
       select: { id: true, symbol: true, name: true },
       orderBy: { id: 'asc' },
     });
+  }
+
+  async upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void> {
+    for (const item of items) {
+      await this.prisma.security.upsert({
+        where: { marketType_symbol: { marketType: item.marketType, symbol: item.symbol } },
+        create: { ...item, securityType: 'STOCK', isActive: true },
+        update: { name: item.name, securityType: 'STOCK', isActive: true },
+      });
+    }
+  }
+
+  async deactivateMissingSecurities(items: SecurityMasterItem[]): Promise<number> {
+    const byMarket = new Map<string, string[]>();
+    for (const item of items) byMarket.set(item.marketType, [...(byMarket.get(item.marketType) ?? []), item.symbol]);
+    let count = 0;
+    for (const marketType of ['KOSPI', 'KOSDAQ'] as const) {
+      const symbols = byMarket.get(marketType) ?? [];
+      if (symbols.length === 0) continue;
+      const result = await this.prisma.security.updateMany({
+        where: { marketType, securityType: 'STOCK', isActive: true, symbol: { notIn: symbols } },
+        data: { isActive: false },
+      });
+      count += result.count;
+    }
+    return count;
   }
 
   async upsertMarketPrice(securityId: bigint, observation: PriceObservation): Promise<void> {

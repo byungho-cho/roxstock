@@ -13,6 +13,17 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 - 휴장/미갱신: \`localTradedAt\`의 한국 날짜가 실행일과 다르면 \`STALE\`로 기록하고 가격을 갱신하지 않습니다.
 - 대체 검증: \`COLLECTOR_PRICE_PROVIDER=mock\`은 외부 통신 없이 결정적인 가격을 생성합니다. 운영에서는 \`naver\`를 사용합니다.
 
+## KOSPI·KOSDAQ 종목 마스터
+
+금융위원회 공공데이터포털의 주식시세정보서비스 \`getStockPriceInfo\` 응답에서 가장 최근 거래일의 종목코드(\`srtnCd\`), 종목명(\`itmsNm\`), 시장구분(\`mrktCtg\`)을 읽어 \`securities\`에 UPSERT합니다.
+
+- 인증: 일반 인증키(Decoding)를 \`DATA_GO_KR_SERVICE_KEY\`로만 전달합니다.
+- 휴장일: 서울 기준 오늘부터 최대 14일 전까지 조회해 데이터가 있는 가장 최근 거래일을 선택합니다.
+- 페이징: \`totalCount\`를 기준으로 전체 페이지를 수집합니다.
+- 안전장치: 기본 2,000개 미만이면 불완전 응답으로 판단하여 DB에 쓰지 않습니다.
+- 상장폐지 처리: 기본값은 기존 종목을 자동 비활성화하지 않습니다. 전체 응답 확인 후 \`COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING=true\`로 활성화할 수 있습니다.
+- 자동 실행: Asia/Seoul 기준 매일 07시 1회이며 \`COLLECTOR_SECURITY_MASTER_HOUR\`로 조정합니다.
+
 ## 실행
 
 \`\`\`bash
@@ -28,12 +39,24 @@ npm --workspace backend run dev
 npm --workspace backend run collector
 
 # 수동 1회 실행
+npm --workspace backend run collector:once:securities
 npm --workspace backend run collector:once:prices
 npm --workspace backend run collector:once:snapshots
 npm --workspace backend run collector:once
 \`\`\`
 
 스케줄은 \`Asia/Seoul\` 기준입니다. 가격은 기본 20:00~06:00 사이에 60분 간격, 계좌 스냅샷은 20·21·22·23시에 실행합니다. 23시는 당일 마지막 예정 실행입니다. \`COLLECTOR_*\` 환경변수로 시간·주기를 변경할 수 있습니다.
+
+운영 서버에서 종목 마스터를 즉시 동기화하려면 다음을 실행합니다.
+
+\`\`\`bash
+cd /opt/roxstock
+BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+  docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
+  run --rm --no-deps collector node backend/dist/collector/worker.js securities
+\`\`\`
+
+키 자체는 로그·명령행·Git에 출력하지 않습니다. 결과는 \`collector_runs\`의 \`job_type=security-master\`와 대응 \`collector_run_items\`에서 확인합니다.
 
 \`daily_account_snapshots\`는 같은 계좌·날짜를 UPSERT합니다. 현금과 보유 수량의 현재 평가액을 합산하며, 평가에 필요한 가격이 하나라도 없으면 해당 계좌 스냅샷 전체를 만들지 않습니다. 과거 날짜는 자동 재계산하지 않습니다. \`daily_position_snapshots\`는 1차 범위에서 제외했으며 계좌 스냅샷의 가격 완전성 검사 뒤에 확장하도록 코드 위치를 남겼습니다.
 

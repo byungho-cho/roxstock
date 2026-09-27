@@ -12,6 +12,7 @@
     "test": "node --import tsx --test src/domain/*.test.ts src/collector/*.test.ts",
     "collector": "tsx src/collector/worker.ts daemon",
     "collector:once:prices": "tsx src/collector/worker.ts prices",
+    "collector:once:securities": "tsx src/collector/worker.ts securities",
     "collector:once:snapshots": "tsx src/collector/worker.ts snapshots",
     "collector:once": "tsx src/collector/worker.ts all",
     "prisma:format": "prisma format --schema ../database/prisma/schema.prisma",

@@ -7,6 +7,24 @@ export interface SecurityTarget {
   name: string;
 }
 
+export type SupportedMarketType = 'KOSPI' | 'KOSDAQ';
+
+export interface SecurityMasterItem {
+  symbol: string;
+  name: string;
+  marketType: SupportedMarketType;
+}
+
+export interface SecurityMasterBatch {
+  baseDate: string;
+  items: SecurityMasterItem[];
+}
+
+export interface SecurityMasterProvider {
+  readonly name: string;
+  fetchLatest(): Promise<SecurityMasterBatch>;
+}
+
 export interface PriceObservation {
   symbol: string;
   currentPrice: string;
@@ -64,6 +82,8 @@ export interface CollectorRepository {
   finishRun(runId: bigint, status: CollectorRunStatus, counters: RunCounters, failureReason?: string): Promise<void>;
   addRunItem(runId: bigint, item: RunItemInput): Promise<void>;
   listActiveSecurities(): Promise<SecurityTarget[]>;
+  upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void>;
+  deactivateMissingSecurities(items: SecurityMasterItem[]): Promise<number>;
   upsertMarketPrice(securityId: bigint, observation: PriceObservation): Promise<void>;
   listActiveAccountsForSnapshot(): Promise<SnapshotAccount[]>;
   upsertDailyAccountSnapshot(accountId: bigint, snapshotDate: Date, value: SnapshotValue): Promise<void>;
