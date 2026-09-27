@@ -123,8 +123,11 @@ jobs:
         shell: bash
         run: |
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" '
+          IMAGE_TAG="sha-${GITHUB_SHA::7}"
+          ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- '$IMAGE_TAG'" <<'REMOTE'
             set -Eeuo pipefail
+            IMAGE_TAG="$1"
             SOURCE_TREE=/opt/roxstock
             DEPLOY_TREE=/opt/roxstock/.deploy/worktree
             git -C "$SOURCE_TREE" fetch origin main
@@ -135,8 +138,8 @@ jobs:
               git -C "$SOURCE_TREE" worktree add --detach "$DEPLOY_TREE" origin/main
             fi
             install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
-            bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "sha-'"${GITHUB_SHA::7}"'"
-          '
+            bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "$IMAGE_TAG"
+          REMOTE
       - name: Verify external API
         shell: bash
         run: |
