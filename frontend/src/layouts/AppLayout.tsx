@@ -19,6 +19,7 @@ export function AppLayout() {
   const scrollRef = useRef<HTMLElement>(null);
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
   const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
+  const isJournal = location.pathname === '/journal';
   useEffect(() => {
     const content = scrollRef.current;
     if (!content) return;
@@ -34,7 +35,7 @@ export function AppLayout() {
   const hasPageHeader = isTradePage || isStockFlowPage || isAssetOverview;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: isTradePage ? 0 : `${pageMetrics.headerHeight}px` }}>
     <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
-      {!hasPageHeader && <PageHeader variant={isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={location.pathname === '/more' ? '/' : undefined} showAdd={isHomePage} addPath="/stocks/add?type=watchlist" addLabel="종목 추가" />}
+      {!hasPageHeader && <PageHeader variant={isJournal ? 'more' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isJournal || location.pathname === '/more' ? '/' : undefined} showAdd={isJournal || isHomePage} showAddMobile={!isJournal} addPath={isJournal ? '/trade?type=buy' : '/stocks/add?type=watchlist'} addLabel={isJournal ? '거래등록' : '종목 추가'} />}
     </Box>
     <PageLayout scrollRef={scrollRef} trade={isTradePage} coverTop={isHomePage || location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
     <OverlayPageScrollbar scrollRef={scrollRef} hasHeader={!isTradePage} hasBottomNav={!isTradePage} />
