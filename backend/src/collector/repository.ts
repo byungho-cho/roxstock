@@ -64,6 +64,17 @@ export class PrismaCollectorRepository implements CollectorRepository {
     await this.prisma.collectorRunItem.create({ data: { runId, ...item } });
   }
 
+  async hasCompletedScheduledPriceRun(scheduleDate: string): Promise<boolean> {
+    const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*) AS count
+      FROM collector_runs
+      WHERE job_type = 'market-prices'
+        AND status IN ('SUCCESS', 'PARTIAL', 'SKIPPED')
+        AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.scheduleDate')) = ${scheduleDate}
+    `;
+    return Number(rows[0]?.count ?? 0) > 0;
+  }
+
   async listActiveSecurities(): Promise<SecurityTarget[]> {
     return this.prisma.security.findMany({
       where: { isActive: true },

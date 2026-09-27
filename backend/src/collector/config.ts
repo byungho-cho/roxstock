@@ -20,11 +20,10 @@ const boolean = (value: string | undefined, fallback: boolean, name: string): bo
 
 export interface CollectorConfig {
   provider: 'naver' | 'mock';
-  priceIntervalMinutes: number;
   providerDelayMs: number;
   requestTimeoutMs: number;
-  priceWindowStartHour: number;
-  priceWindowEndHour: number;
+  priceCollectionHour: number;
+  priceRetryDelayMinutes: number;
   snapshotHours: number[];
   lockTtlSeconds: number;
   schedulerTickSeconds: number;
@@ -40,7 +39,7 @@ export const loadCollectorConfig = (): CollectorConfig => {
   const provider = (process.env.COLLECTOR_PRICE_PROVIDER ?? 'naver').toLowerCase();
   if (provider !== 'naver' && provider !== 'mock') throw new Error('COLLECTOR_PRICE_PROVIDER must be naver or mock');
 
-  const snapshotHours = (process.env.COLLECTOR_SNAPSHOT_HOURS ?? '20,21,22,23')
+  const snapshotHours = (process.env.COLLECTOR_SNAPSHOT_HOURS ?? '23')
     .split(',')
     .map((value) => Number(value.trim()));
   if (snapshotHours.some((value) => !Number.isInteger(value) || value < 0 || value > 23)) {
@@ -49,13 +48,12 @@ export const loadCollectorConfig = (): CollectorConfig => {
 
   return {
     provider,
-    priceIntervalMinutes: positiveInteger(process.env.COLLECTOR_PRICE_INTERVAL_MINUTES, 60, 'COLLECTOR_PRICE_INTERVAL_MINUTES'),
     providerDelayMs: positiveInteger(process.env.COLLECTOR_PROVIDER_DELAY_MS, 1000, 'COLLECTOR_PROVIDER_DELAY_MS'),
     requestTimeoutMs: positiveInteger(process.env.COLLECTOR_REQUEST_TIMEOUT_MS, 10000, 'COLLECTOR_REQUEST_TIMEOUT_MS'),
-    priceWindowStartHour: hour(process.env.COLLECTOR_PRICE_WINDOW_START_HOUR, 20, 'COLLECTOR_PRICE_WINDOW_START_HOUR'),
-    priceWindowEndHour: hour(process.env.COLLECTOR_PRICE_WINDOW_END_HOUR, 6, 'COLLECTOR_PRICE_WINDOW_END_HOUR'),
+    priceCollectionHour: hour(process.env.COLLECTOR_PRICE_COLLECTION_HOUR, 20, 'COLLECTOR_PRICE_COLLECTION_HOUR'),
+    priceRetryDelayMinutes: positiveInteger(process.env.COLLECTOR_PRICE_RETRY_DELAY_MINUTES, 60, 'COLLECTOR_PRICE_RETRY_DELAY_MINUTES'),
     snapshotHours: [...new Set(snapshotHours)],
-    lockTtlSeconds: positiveInteger(process.env.COLLECTOR_LOCK_TTL_SECONDS, 1800, 'COLLECTOR_LOCK_TTL_SECONDS'),
+    lockTtlSeconds: positiveInteger(process.env.COLLECTOR_LOCK_TTL_SECONDS, 7200, 'COLLECTOR_LOCK_TTL_SECONDS'),
     schedulerTickSeconds: positiveInteger(process.env.COLLECTOR_SCHEDULER_TICK_SECONDS, 30, 'COLLECTOR_SCHEDULER_TICK_SECONDS'),
     securityMasterHour: hour(process.env.COLLECTOR_SECURITY_MASTER_HOUR, 7, 'COLLECTOR_SECURITY_MASTER_HOUR'),
     securityMasterEndpoint: process.env.DATA_GO_KR_KRX_LISTED_ENDPOINT

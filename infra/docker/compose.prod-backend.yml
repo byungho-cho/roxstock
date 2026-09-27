@@ -34,6 +34,10 @@ services:
     environment:
       NODE_ENV: production
       TZ: Asia/Seoul
+      COLLECTOR_PRICE_COLLECTION_HOUR: ${COLLECTOR_PRICE_COLLECTION_HOUR:-20}
+      COLLECTOR_PRICE_RETRY_DELAY_MINUTES: ${COLLECTOR_PRICE_RETRY_DELAY_MINUTES:-60}
+      COLLECTOR_SNAPSHOT_HOURS: ${COLLECTOR_SNAPSHOT_HOURS:-23}
+      COLLECTOR_LOCK_TTL_SECONDS: ${COLLECTOR_LOCK_TTL_SECONDS:-7200}
     command: ["node", "backend/dist/collector/worker.js", "daemon"]
     networks:
       - db

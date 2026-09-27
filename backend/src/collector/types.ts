@@ -81,6 +81,7 @@ export interface CollectorRepository {
   createRun(jobType: string, provider: string, metadata?: Record<string, unknown>): Promise<bigint>;
   finishRun(runId: bigint, status: CollectorRunStatus, counters: RunCounters, failureReason?: string): Promise<void>;
   addRunItem(runId: bigint, item: RunItemInput): Promise<void>;
+  hasCompletedScheduledPriceRun(scheduleDate: string): Promise<boolean>;
   listActiveSecurities(): Promise<SecurityTarget[]>;
   upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void>;
   deactivateMissingSecurities(items: SecurityMasterItem[]): Promise<number>;

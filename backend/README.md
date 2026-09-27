@@ -51,7 +51,7 @@ npm --workspace backend run collector:once
 npm --workspace backend exec -- tsx src/collector/worker.ts prices 005930,005380
 \`\`\`
 
-스케줄은 \`Asia/Seoul\` 기준입니다. 가격은 기본 20:00~06:00 사이에 60분 간격, 계좌 스냅샷은 20·21·22·23시에 실행합니다. 23시는 당일 마지막 예정 실행입니다. \`COLLECTOR_*\` 환경변수로 시간·주기를 변경할 수 있습니다.
+스케줄은 \`Asia/Seoul\` 기준입니다. 가격은 기본 매일 20시에 한 번 수집하고 계좌 스냅샷은 23시에 생성합니다. 일부 종목 실패는 실패 종목만 즉시 한 번 재시도하고, 전체 원천 장애는 기본 60분 뒤 전체를 한 번 재시도합니다. 전 종목이 휴장·미갱신 데이터이면 \`SKIPPED\`로 기록하고 재시도하지 않습니다. \`COLLECTOR_PRICE_COLLECTION_HOUR\`, \`COLLECTOR_PRICE_RETRY_DELAY_MINUTES\`, \`COLLECTOR_SNAPSHOT_HOURS\`로 조정할 수 있습니다.
 
 운영 서버에서 종목 마스터를 즉시 동기화하려면 다음을 실행합니다.
 
@@ -68,7 +68,7 @@ BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backen
 
 ## 로그와 운영 확인
 
-프로세스 로그는 JSON 한 줄 형식이며 실행별 결과는 \`collector_runs\`, 종목/계좌별 결과는 \`collector_run_items\`에 저장됩니다. DB 락 \`collector_locks\`가 중복 실행을 차단합니다.
+프로세스 로그는 JSON 한 줄 형식이며 실행별 결과는 \`collector_runs\`, 종목/계좌별 결과는 \`collector_run_items\`에 저장됩니다. DB 락 \`collector_locks\`가 실행 중복을 차단하고, 실행 메타데이터의 \`scheduleDate\`가 컨테이너 재시작 후 같은 날짜의 자동 수집 중복을 방지합니다. 전체 종목 처리 시간을 고려해 가격 수집 락은 최소 2시간 유지됩니다.
 
 \`\`\`bash
 docker logs --tail=200 -f roxstock-collector
