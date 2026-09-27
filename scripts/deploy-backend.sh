@@ -37,11 +37,11 @@ flock -n 9 || { echo "Another backend deployment is running."; exit 1; }
 echo "[1/5] Pulling backend image"
 "${COMPOSE[@]}" pull backend collector
 
-echo "[2/5] Checking Prisma migration status with target image"
-"${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate status --schema database/prisma/schema.prisma'
-
-echo "[3/5] Applying Prisma migrations safely (deploy is idempotent)"
+echo "[2/5] Applying Prisma migrations safely (deploy is idempotent)"
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate deploy --schema database/prisma/schema.prisma'
+
+echo "[3/5] Confirming Prisma migration status"
+"${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate status --schema database/prisma/schema.prisma'
 
 previous_image=""
 if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
