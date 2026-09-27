@@ -25,7 +25,13 @@ const solarDate = (year: number, monthDay: string) => {
 };
 function getLunarDates(year: number): [string, string, string] {
   if (lunarDates[year]) return lunarDates[year];
-  const calendar = new Intl.DateTimeFormat('en-u-ca-chinese', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' });
+  let calendar: Intl.DateTimeFormat;
+  try {
+    calendar = new Intl.DateTimeFormat('en-u-ca-chinese', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' });
+  } catch {
+    return ['', '', ''];
+  }
+  if (calendar.resolvedOptions().calendar !== 'chinese') return ['', '', ''];
   const found: Record<string, string> = {};
   for (let date = dateAt(year, 1, 1); date.getUTCFullYear() === year; date = after(date, 1)) {
     const parts = calendar.formatToParts(date);
