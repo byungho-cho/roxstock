@@ -1,8 +1,8 @@
-import { DeleteOutlineRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
+import { DeleteOutlineRounded, FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
 import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useRef, useState, type PointerEventHandler, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { stockItems } from '../../data/mockData';
+import { buyLots, stockItems } from '../../data/mockData';
 import { colors } from '../../styles/tokens';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { navigateToForm } from '../../utils/focusForm';
@@ -47,7 +47,7 @@ export function StockDetailPage() {
     <StockHeader scope={holding ? "cover" : undefined} name={stock.name} symbol={stock.symbol} previousName={previousStock.name} nextName={nextStock.name} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onBack={() => navigate('/stocks')} onPrevious={() => navigate(`/stocks/${previousStock.id}`)} onNext={() => navigate(`/stocks/${nextStock.id}`)} />
     {holding && <><Card sx={{ height: 64, borderRadius: '16px' }}><CardContent sx={{ height: '100%', px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:last-child': { pb: 1 } }}><Box><Typography sx={{ fontSize: 22, fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 12, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice * stock.priceChangeRate / 100)} ({formatRate(stock.priceChangeRate)})</Typography></Box><Button onClick={() => navigateToForm(navigate, `/trade?type=buy&stock=${stock.id}`)} sx={{ minHeight: 32, bgcolor: colors.raised }}>매수 +</Button></CardContent></Card>
     <Tabs value={tab} onChange={(_, value: DetailTab) => setTab(value)} variant="fullWidth" sx={{ minHeight: 40, p: '3px', bgcolor: colors.surface, borderRadius: '14px', '& .MuiTab-root': { minHeight: 34, py: 0, fontSize: 12, borderRadius: '9px' }, '& .MuiTabs-indicator': { display: 'none' }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: '#fff !important' } }}><Tab value="summary" label="요약" /><Tab value="holding" label="보유 현황" /><Tab value="trades" label="거래내역" /></Tabs></>}
-    {holding ? <HoldingDetail tab={tab} stock={stock} onDelete={() => setDialog('delete')} onSellLot={(lotId?: string) => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}${lotId ? `&lot=${lotId}` : ''}`)} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
+    {holding ? <HoldingDetail tab={tab} stock={stock} onDelete={() => setDialog('delete')} onSellLot={(lotId: string) => navigateToForm(navigate, `/trade?type=sell&stock=${stock.id}&lot=${lotId}`)} /> : <InterestDetail stock={stock} onCategory={() => { setCategoryDraft(stock.listType); setDialog('category'); }} onDelete={() => setDialog('delete')} onEdit={() => navigateToForm(navigate, `/stocks/${stock.id}/edit`)} onValue={() => navigate(`/stocks/${stock.id}/value`)} onFinancials={() => navigate(`/stocks/${stock.id}/financials`)} />}
     <SimpleDialog type={dialog} stock={stock} categoryDraft={categoryDraft} onCategoryDraft={setCategoryDraft} onClose={() => setDialog(null)} onCategoryChange={() => { stock.listType = categoryDraft; setDialog(null); }} onDelete={() => { if (!holding) stockItems.splice(stockItems.findIndex((item) => item.id === stock.id), 1); setDialog(null); navigate('/stocks'); }} />
   </Stack>{holding && <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockDetail stock={stock} /></Box>}
     <Snackbar open={savedTrade === 'buy' || savedTrade === 'sell'} autoHideDuration={3000} onClose={() => navigate(location.pathname, { replace: true, state: null })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert severity="success" variant="filled" onClose={() => navigate(location.pathname, { replace: true, state: null })}>모의 {savedTrade === 'sell' ? '매도' : '매수'}가 등록됐어요. 실제 데이터는 변경되지 않았습니다.</Alert></Snackbar>
@@ -78,14 +78,18 @@ function StockHeader({ scope, name, symbol, previousName, nextName, isFavorite, 
   </>;
 }
 
-function HoldingDetail({ tab, stock, onDelete, onSellLot }: { tab: DetailTab; stock: StockItem; onDelete: () => void; onSellLot: (lotId?: string) => void }) {
-  if (tab === 'trades') return <TradeHistory onDelete={onDelete} onEdit={() => onSellLot()} />;
+function HoldingDetail({ tab, stock, onDelete, onSellLot }: { tab: DetailTab; stock: StockItem; onDelete: () => void; onSellLot: (lotId: string) => void }) {
+  if (tab === 'trades') return <TradeHistory onDelete={onDelete} />;
   if (tab === 'summary') return <HoldingSummary />;
-  const lots: HoldingLot[] = [
+  const featuredLots: HoldingLot[] = [
     { lotId: 'lot-hyundai-20260910', date: '2026.09.10', heldDays: 8, quantity: 70, buyPrice: 230_000, expectedPrice: 236_900, profitRate: 3, profitAmount: 483_000, targets: [5, 10, 15] },
     { lotId: 'lot-hyundai-20260722', date: '2026.07.22', heldDays: 58, quantity: 20, buyPrice: 218_500, expectedPrice: 236_854, profitRate: 8.4, profitAmount: 367_080, targets: [10, 15, 20] },
   ];
-  return <Stack spacing="12px">{lots.map((lot) => <HoldingLotCard key={lot.date} lot={lot} onSell={() => onSellLot(stock.id === 'hyundai' ? lot.lotId : undefined)} />)}</Stack>;
+  const lots = stock.id === 'hyundai' ? featuredLots : buyLots.filter((lot) => lot.stockId === stock.id && lot.remainingQuantity > 0).map((lot): HoldingLot => {
+    const profitAmount = lot.remainingQuantity * (stock.currentPrice - lot.buyPrice);
+    return { lotId: lot.id, date: lot.tradeDate.replaceAll('-', '.'), heldDays: Math.max(0, Math.floor((Date.now() - new Date(lot.tradeDate).getTime()) / 86_400_000)), quantity: lot.remainingQuantity, buyPrice: lot.buyPrice, expectedPrice: stock.currentPrice, profitRate: (stock.currentPrice / lot.buyPrice - 1) * 100, profitAmount, targets: [5, 10, 15] };
+  });
+  return <Stack spacing="12px">{lots.length ? lots.map((lot) => <HoldingLotCard key={lot.lotId} lot={lot} onSell={() => onSellLot(lot.lotId)} />) : <Typography sx={{ color: colors.textMuted, fontSize: 13 }}>매도 가능한 매수 항목이 없습니다.</Typography>}</Stack>;
 }
 
 function HoldingSummary() {
@@ -121,19 +125,19 @@ function SummaryCard({ title, height, rows }: { title: string; height: number; r
 
 type TradeHistoryItem = { profit: number; rate: number; sellDate: string; quantity: number; buyPrice: number; buyDate: string; sellPrice: number; annualRate: number; heldDays: number };
 
-function TradeHistory({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+function TradeHistory({ onDelete }: { onDelete: () => void }) {
   const trades: TradeHistoryItem[] = [
     { profit: 275_000, rate: 14.4, sellDate: '2026.08.14', quantity: 5, buyPrice: 381_000, buyDate: '2026.07.28', sellPrice: 436_000, annualRate: 308.8, heldDays: 17 },
     { profit: 185_000, rate: 10, sellDate: '2026.08.05', quantity: 5, buyPrice: 369_000, buyDate: '2026.07.28', sellPrice: 406_000, annualRate: 456.3, heldDays: 8 },
   ];
   return <Stack>
     <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>12건</Typography><Typography sx={{ width: 144, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#FF6B6B' }}>11,930,000원</Typography></Stack>
-    <Stack spacing="8px">{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} onEdit={onEdit} onDelete={onDelete} />)}</Stack>
+    <Stack spacing="8px">{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} onDelete={onDelete} />)}</Stack>
     <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.disabled }}>이전 연도 거래를 불러오는 중…</Typography></Box>
   </Stack>;
 }
 
-function TradeHistoryCard({ trade, onEdit, onDelete }: { trade: TradeHistoryItem; onEdit: () => void; onDelete: () => void }) {
+function TradeHistoryCard({ trade, onDelete }: { trade: TradeHistoryItem; onDelete: () => void }) {
   return <Card sx={{ height: 176, minHeight: 176, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden' }}><CardContent sx={{ p: '11px 15px 8px', '&:last-child': { pb: '8px' } }}>
     <Stack direction="row" sx={{ height: 28, alignItems: 'flex-start', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 600, color: '#FF6B6B' }}>{won(trade.profit)}　{trade.rate.toFixed(1)}%</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>{trade.sellDate}</Typography></Stack>
     <Box sx={{ height: '1px', bgcolor: colors.raised }} />
@@ -142,7 +146,7 @@ function TradeHistoryCard({ trade, onEdit, onDelete }: { trade: TradeHistoryItem
     <Box sx={{ height: '1px', bgcolor: colors.raised, mt: '4px' }} />
     <Stack direction="row" sx={{ height: 35, alignItems: 'center' }}><Typography sx={{ width: 42, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>연수익</Typography><Typography sx={{ width: 136, fontSize: 12, fontWeight: 600, color: '#FF6B6B' }}>{trade.annualRate.toFixed(1)}%</Typography><Typography sx={{ flex: 1, fontSize: 9, color: colors.textMuted }}>[1년기준]</Typography><Typography sx={{ width: 76, textAlign: 'right', fontSize: 11, color: colors.textMuted }}>보유일 {trade.heldDays}일</Typography></Stack>
     <Box sx={{ height: '1px', bgcolor: colors.raised }} />
-    <Stack direction="row" spacing="8px" sx={{ height: 32, alignItems: 'center', justifyContent: 'flex-end' }}><IconButton aria-label="거래 수정" size="small" onClick={onEdit} sx={{ width: 26, height: 26, color: colors.textMuted }}><EditRounded sx={{ fontSize: 17 }} /></IconButton><IconButton aria-label="거래 삭제" size="small" onClick={onDelete} sx={{ width: 26, height: 26, color: colors.textMuted }}><DeleteOutlineRounded sx={{ fontSize: 18 }} /></IconButton></Stack>
+    <Stack direction="row" spacing="8px" sx={{ height: 32, alignItems: 'center', justifyContent: 'flex-end' }}><IconButton aria-label="거래 삭제" size="small" onClick={onDelete} sx={{ width: 26, height: 26, color: colors.textMuted }}><DeleteOutlineRounded sx={{ fontSize: 18 }} /></IconButton></Stack>
   </CardContent></Card>;
 }
 

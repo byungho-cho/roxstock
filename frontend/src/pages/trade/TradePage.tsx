@@ -1,14 +1,14 @@
 import { CheckCircleRounded, KeyboardArrowDownRounded } from '@mui/icons-material';
 import {
-  Alert, Box, Card, CardActionArea, CardContent, CircularProgress, FormControl,
-  FormControlLabel, FormHelperText, Grid, MenuItem, Radio, RadioGroup, Select, Snackbar, Stack, Typography,
+  Alert, Box, CardContent, CircularProgress, FormControl,
+  FormHelperText, Grid, MenuItem, Select, Snackbar, Stack, Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createTrade } from '../../data/mockApi';
 import { currentCashBalance, stockItems } from '../../data/mockData';
 import { useBuyLots, useStocks } from '../../hooks/useMockData';
-import type { BuyLot, StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
+import type { StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
 import { formatDate, formatRate, getMarketColor } from '../../utils/format';
 import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField, FormTextarea } from '../../components/forms/Fields';
@@ -23,9 +23,9 @@ const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(
 export function TradePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [type, setType] = useState<TradeType>(searchParams.get('type') === 'sell' ? 'sell' : 'buy');
+  const [type] = useState<TradeType>(searchParams.get('type') === 'sell' ? 'sell' : 'buy');
   const [stockId, setStockId] = useState(searchParams.get('stock') ?? 'hyundai');
-  const [lotId, setLotId] = useState(searchParams.get('lot') ?? '');
+  const lotId = type === 'sell' ? searchParams.get('lot') ?? '' : '';
   const [tradeDate, setTradeDate] = useState(today);
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
@@ -51,10 +51,15 @@ export function TradePage() {
   }, [stockId]);
 
   useEffect(() => {
-    setLotId(type === 'sell' && stockId === searchParams.get('stock') ? searchParams.get('lot') ?? '' : '');
     setQuantity('');
     setErrors({});
   }, [stockId, type]);
+
+  useEffect(() => {
+    if (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot))) {
+      navigate(`/stocks/${stockId}`, { replace: true });
+    }
+  }, [type, lotId, lotsLoading, selectedLot, stockId, navigate]);
 
   const estimate = useMemo<TradeEstimate>(() => {
     const numericQuantity = Number(quantity) || 0;
@@ -84,7 +89,7 @@ export function TradePage() {
     const next: FieldErrors = {};
     const numericQuantity = Number(quantity);
     if (!stockId) next.stockId = '종목을 선택해 주세요.';
-    if (type === 'sell' && !selectedLot) next.lotId = '매도할 매수 Lot 하나를 선택해 주세요.';
+    if (type === 'sell' && !selectedLot) next.lotId = '연결된 매수 항목을 확인할 수 없습니다.';
     if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) next.quantity = '수량은 1주 이상 입력해 주세요.';
     if (type === 'sell' && selectedLot && numericQuantity > selectedLot.remainingQuantity) next.quantity = `잔여수량 ${selectedLot.remainingQuantity}주를 넘길 수 없습니다.`;
     if (!Number.isFinite(Number(price)) || Number(price) <= 0) next.price = '단가는 1원 이상 입력해 주세요.';
@@ -116,13 +121,16 @@ export function TradePage() {
     else mobileMemoRef.current?.focus();
   };
 
+  if (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot))) return null;
+
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
       <PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} />
       <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={1.25}>
-            <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} />
+            <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} locked={type === 'sell'} />
+            {type === 'sell' && selectedLot && <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>연결된 매수 · {formatDate(selectedLot.tradeDate)} · {formatWon(selectedLot.buyPrice)} · 잔여 {selectedLot.remainingQuantity}주</Alert>}
             <Stack spacing={1}>
               <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required enterKeyHint="next" onEnter={() => quantityRef.current?.focus()} />
               <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus inputRef={quantityRef} selectOnFocus enterKeyHint="next" onEnter={() => priceRef.current?.focus()} />
@@ -132,20 +140,7 @@ export function TradePage() {
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} textareaRef={tabletMemoRef} selectOnFocus onEnter={handleSubmit} /></Box>
             </Stack>
 
-            {type === 'sell' && (
-              <Box sx={{ pt: 0.5 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 750 }}>매수 Lot 선택</Typography>
-                <Typography sx={{ mt: 0.25, mb: 1, color: '#94A3B8', fontSize: 12 }}>한 번에 하나의 Lot만 선택할 수 있어요.</Typography>
-                {lotsLoading ? <CircularProgress size={22} /> : lots.length === 0 ? <Alert severity="info">선택한 종목에 매도 가능한 Lot이 없습니다.</Alert> : (
-                  <FormControl error={Boolean(errors.lotId)} fullWidth>
-                    <RadioGroup value={lotId} onChange={(event) => setLotId(event.target.value)} sx={{ gap: 1 }}>
-                      {lots.map((lot) => <LotOption key={lot.id} lot={lot} selected={lot.id === lotId} />)}
-                    </RadioGroup>
-                    {errors.lotId && <FormHelperText>{errors.lotId}</FormHelperText>}
-                  </FormControl>
-                )}
-              </Box>
-            )}
+            {errors.lotId && <Alert severity="error">{errors.lotId}</Alert>}
           </Stack>
         </Grid>
 
@@ -169,12 +164,12 @@ export function TradePage() {
   );
 }
 
-function StockSelector({ stocks, stockId, selectedStock, error, onChange }: { stocks: StockItem[]; stockId: string; selectedStock?: StockItem; error?: string; onChange: (value: string) => void }) {
+function StockSelector({ stocks, stockId, selectedStock, error, onChange, locked = false }: { stocks: StockItem[]; stockId: string; selectedStock?: StockItem; error?: string; onChange: (value: string) => void; locked?: boolean }) {
   const dailyChange = selectedStock ? Math.round(selectedStock.currentPrice * selectedStock.priceChangeRate / 100) : 0;
   return <FormControl fullWidth error={Boolean(error)}>
     <AppCard sx={{ height: { xs: 74, sm: 68 } }}>
       <Stack direction="row" sx={{ height: '100%', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 1.75 }, gap: 1 }}>
-        <Select value={stockId} onChange={(event) => onChange(event.target.value)} variant="standard" disableUnderline IconComponent={KeyboardArrowDownRounded} renderValue={() => selectedStock ? <StockIdentity name={selectedStock.name} symbol={selectedStock.symbol} /> : '종목 선택'} sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0 }, '& .MuiSelect-icon': { display: { xs: 'none', sm: 'block' }, color: colors.disabled, right: -2 } }}>
+        <Select value={stockId} disabled={locked} onChange={(event) => onChange(event.target.value)} variant="standard" disableUnderline IconComponent={KeyboardArrowDownRounded} renderValue={() => selectedStock ? <StockIdentity name={selectedStock.name} symbol={selectedStock.symbol} /> : '종목 선택'} sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0 }, '&.Mui-disabled': { color: colors.textPrimary }, '& .MuiSelect-icon': { display: { xs: 'none', sm: 'block' }, color: colors.disabled, right: -2 } }}>
           {stocks.map((stock) => <MenuItem key={stock.id} value={stock.id}>{stock.name} · {stock.symbol}</MenuItem>)}
         </Select>
         {selectedStock && <Box sx={{ textAlign: 'right' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 700, color: getMarketColor(selectedStock.priceChangeRate) }}>{selectedStock.currentPrice.toLocaleString('ko-KR')}원</Typography><Typography sx={{ mt: 0.25, color: getMarketColor(selectedStock.priceChangeRate), fontSize: 11 }}>{dailyChange > 0 ? '+' : ''}{dailyChange.toLocaleString('ko-KR')}원&nbsp; ({formatRate(selectedStock.priceChangeRate)})</Typography></Box>}
@@ -182,8 +177,4 @@ function StockSelector({ stocks, stockId, selectedStock, error, onChange }: { st
     </AppCard>
     {error && <FormHelperText>{error}</FormHelperText>}
   </FormControl>;
-}
-
-function LotOption({ lot, selected }: { lot: BuyLot; selected: boolean }) {
-  return <Card variant="outlined" sx={{ borderColor: selected ? 'secondary.main' : 'divider', bgcolor: selected ? 'rgba(251,191,36,0.06)' : 'transparent' }}><CardActionArea component="label"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}><FormControlLabel value={lot.id} control={<Radio color="secondary" size="small" />} label={<Box><Typography sx={{ fontSize: 13, fontWeight: 750 }}>{formatDate(lot.tradeDate)} · {formatWon(lot.buyPrice)}</Typography><Typography sx={{ mt: 0.25, fontSize: 11, color: '#94A3B8' }}>매수 {lot.quantity}주 · 매도 {lot.soldQuantity}주 · 잔여 {lot.remainingQuantity}주</Typography></Box>} sx={{ m: 0, width: '100%' }} /></CardContent></CardActionArea></Card>;
 }
