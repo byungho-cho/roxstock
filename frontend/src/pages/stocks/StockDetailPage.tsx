@@ -64,14 +64,14 @@ type StockHeaderProps = {
 };
 
 function StockHeader({ name, symbol, previousName, nextName, isFavorite, onToggleFavorite, onBack, onPrevious, onNext }: StockHeaderProps) {
-  return <Box>
+  return <>
     <PageHeader title={name} subtitle={symbol} onBack={onBack} showBackTablet showAdd={false} embedded action={<IconButton aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFavorite} onClick={onToggleFavorite} sx={{ width: 36, height: 36, color: isFavorite ? colors.warning : colors.textMuted }}>{isFavorite ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton>} />
-    <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between' }}>
+    <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between', mt: '0 !important' }}>
       <Typography component="button" onClick={onPrevious} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{previousName}</Typography>
       <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{symbol}</Typography>
       <Typography component="button" onClick={onNext} sx={{ border: 0, p: 0, bgcolor: 'transparent', color: colors.textMuted, fontSize: 10, cursor: 'pointer' }}>{nextName}</Typography>
     </Stack>
-  </Box>;
+  </>;
 }
 
 function HoldingDetail({ tab, stock, onDelete, navigate }: any) {
