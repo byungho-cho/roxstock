@@ -24,6 +24,56 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 - 상장폐지 처리: 기본값은 기존 종목을 자동 비활성화하지 않습니다. 전체 응답 확인 후 \`COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING=true\`로 활성화할 수 있습니다.
 - 자동 실행: Asia/Seoul 기준 매일 07시 1회이며 \`COLLECTOR_SECURITY_MASTER_HOUR\`로 조정합니다.
 
+## 선택 종목 장중 실시간 수집
+
+보유·관심·추천 종목은 \`watchlist_items\`에서 합쳐 종목코드 기준으로 중복 없이 조회합니다. 기본 최대 100종목을 한국 정규장 평일 09:00~15:30에 10초 간격으로 수집합니다. 한 회차가 10초를 초과하면 회차를 겹치지 않고 완료 직후 다음 회차를 시작합니다.
+
+- 프로세스: \`backend\`, 일일 \`collector\`, \`realtime-collector\`는 독립 실행됩니다.
+- 화면 전달: 실시간 수집기가 \`POST /internal/realtime-prices\`로 API 프로세스 캐시에 전달하고 API가 \`GET /api/prices/stream\` SSE로 방송합니다.
+- 인증: 내부 전달은 \`COLLECTOR_INTERNAL_TOKEN\` Bearer 토큰을 사용합니다. 실제 토큰은 \`.env.production\`에만 저장합니다.
+- DB 저장: 정상 가격 캐시는 기본 60초마다 \`market_prices\`에 UPSERT합니다.
+- 정합성: 공급자 거래시각이 기존 값보다 오래된 가격은 캐시와 DB를 덮어쓰지 않습니다.
+- 장애 격리: API 전달 실패와 개별 종목 실패가 수집 루프나 DB 저장을 중단시키지 않습니다.
+- 호출 제어: 기본 동시 요청은 5개이며 다음 회차와 중복 실행하지 않습니다.
+- 휴장·미갱신: 공급자 거래일이 한국 기준 오늘과 다르면 \`STALE\`로 분류하고 전송·저장하지 않습니다.
+- 전체 대상이 \`STALE\`이면 기본 300초 동안 원천 호출을 쉬어 휴장일의 불필요한 요청을 줄입니다.
+
+로컬 실행 시 API와 실시간 수집기를 별도 터미널에서 실행합니다.
+
+\`\`\`bash
+# 길고 임의적인 동일 토큰을 API와 수집기 환경에 설정
+export COLLECTOR_INTERNAL_TOKEN='replace-with-a-long-random-value'
+npm --workspace backend run dev
+
+# 다른 터미널
+export COLLECTOR_INTERNAL_TOKEN='replace-with-the-same-value'
+npm --workspace backend run collector:realtime
+\`\`\`
+
+주요 환경변수는 다음과 같습니다.
+
+\`\`\`env
+COLLECTOR_REALTIME_ENABLED=true
+COLLECTOR_REALTIME_INTERVAL_SECONDS=10
+COLLECTOR_REALTIME_DB_FLUSH_SECONDS=60
+COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS=30
+COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS=300
+COLLECTOR_REALTIME_MAX_SECURITIES=100
+COLLECTOR_REALTIME_CONCURRENCY=5
+COLLECTOR_REALTIME_MARKET_OPEN=09:00
+COLLECTOR_REALTIME_MARKET_CLOSE=15:30
+COLLECTOR_REALTIME_API_URL=http://backend:3300/internal/realtime-prices
+COLLECTOR_INTERNAL_TOKEN=replace-with-a-long-random-value
+\`\`\`
+
+운영 로그와 상태는 다음으로 확인합니다.
+
+\`\`\`bash
+docker logs --tail=200 -f roxstock-realtime-collector
+docker inspect --format='{{.State.Health.Status}}' roxstock-realtime-collector
+curl -sS 'http://127.0.0.1:3300/api/prices/latest?symbols=005930,005380'
+\`\`\`
+
 ## 실행
 
 \`\`\`bash
@@ -37,6 +87,9 @@ npm --workspace backend run dev
 
 # 스케줄러
 npm --workspace backend run collector
+
+# 장중 실시간 수집기
+npm --workspace backend run collector:realtime
 
 # 수동 1회 실행
 npm --workspace backend run collector:once:securities

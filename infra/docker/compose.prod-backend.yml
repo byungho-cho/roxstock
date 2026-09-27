@@ -48,6 +48,39 @@ services:
       retries: 3
       start_period: 10s
 
+  realtime-collector:
+    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    container_name: roxstock-realtime-collector
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Seoul
+      COLLECTOR_REALTIME_ENABLED: ${COLLECTOR_REALTIME_ENABLED:-true}
+      COLLECTOR_REALTIME_INTERVAL_SECONDS: ${COLLECTOR_REALTIME_INTERVAL_SECONDS:-10}
+      COLLECTOR_REALTIME_DB_FLUSH_SECONDS: ${COLLECTOR_REALTIME_DB_FLUSH_SECONDS:-60}
+      COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS: ${COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS:-30}
+      COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS: ${COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS:-300}
+      COLLECTOR_REALTIME_MAX_SECURITIES: ${COLLECTOR_REALTIME_MAX_SECURITIES:-100}
+      COLLECTOR_REALTIME_CONCURRENCY: ${COLLECTOR_REALTIME_CONCURRENCY:-5}
+      COLLECTOR_REALTIME_MARKET_OPEN: ${COLLECTOR_REALTIME_MARKET_OPEN:-09:00}
+      COLLECTOR_REALTIME_MARKET_CLOSE: ${COLLECTOR_REALTIME_MARKET_CLOSE:-15:30}
+      COLLECTOR_REALTIME_API_URL: http://backend:3300/internal/realtime-prices
+    command: ["node", "backend/dist/collector/realtime-worker.js"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app
+      - db
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:fs').readFileSync('/proc/1/cmdline','utf8').includes('realtime-worker.js')||process.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   app:
     external: true

@@ -3,6 +3,7 @@ import type {
   CollectorRepository,
   CollectorRunStatus,
   PriceObservation,
+  RealtimePriceValue,
   RunCounters,
   RunItemInput,
   SecurityMasterItem,
@@ -83,6 +84,16 @@ export class PrismaCollectorRepository implements CollectorRepository {
     });
   }
 
+  async listRealtimeSecurities(limit: number): Promise<SecurityTarget[]> {
+    const items = await this.prisma.watchlistItem.findMany({
+      where: { security: { isActive: true } },
+      select: { security: { select: { id: true, symbol: true, name: true } } },
+      orderBy: [{ priority: 'desc' }, { id: 'asc' }],
+      take: limit,
+    });
+    return items.map((item) => item.security);
+  }
+
   async upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void> {
     for (const item of items) {
       await this.prisma.security.upsert({
@@ -116,6 +127,27 @@ export class PrismaCollectorRepository implements CollectorRepository {
       priceUpdatedAt: observation.observedAt,
     };
     await this.prisma.marketPrice.upsert({ where: { securityId }, create: { securityId, ...value }, update: value });
+  }
+
+  async upsertRealtimeMarketPrices(values: RealtimePriceValue[]): Promise<number> {
+    let stored = 0;
+    for (const value of values) {
+      const currentPrice = new Prisma.Decimal(value.currentPrice);
+      const previousClosePrice = value.previousClosePrice === null ? null : new Prisma.Decimal(value.previousClosePrice);
+      const changed = await this.prisma.$executeRaw`
+        INSERT INTO market_prices
+          (security_id, current_price, previous_close_price, price_updated_at, created_at, updated_at)
+        VALUES
+          (${value.securityId}, ${currentPrice}, ${previousClosePrice}, ${value.observedAt}, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
+        ON DUPLICATE KEY UPDATE
+          current_price = IF(VALUES(price_updated_at) >= price_updated_at, VALUES(current_price), current_price),
+          previous_close_price = IF(VALUES(price_updated_at) >= price_updated_at, VALUES(previous_close_price), previous_close_price),
+          updated_at = IF(VALUES(price_updated_at) >= price_updated_at, UTC_TIMESTAMP(3), updated_at),
+          price_updated_at = GREATEST(price_updated_at, VALUES(price_updated_at))
+      `;
+      if (changed > 0) stored += 1;
+    }
+    return stored;
   }
 
   async listActiveAccountsForSnapshot(): Promise<SnapshotAccount[]> {
