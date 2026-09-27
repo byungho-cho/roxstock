@@ -108,7 +108,7 @@ export function CashPage() {
   return <Box>
     <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded />
 
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: `${pageMetrics.gap}px`, sm: '16px' }} sx={{ mt: { xs: `${pageMetrics.gap}px`, sm: '22px' }, alignItems: 'flex-start' }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: `${pageMetrics.gap}px`, sm: '16px' }} sx={{ alignItems: 'flex-start' }}>
       <Stack spacing={`${pageMetrics.gap}px`} sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0 }}>
         <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, p: { xs: `11px ${pageMetrics.cardInset}px`, sm: '16px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ display: { sm: 'none' }, minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>

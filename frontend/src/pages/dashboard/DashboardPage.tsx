@@ -16,6 +16,7 @@ export function DashboardPage() {
   if (isError || !data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
+  const featuredHoldings = ["hyundai", "kia", "samsung"].map((id) => holdings.find((stock) => stock.id === id)).filter((stock): stock is StockItem => Boolean(stock));
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, alignItems: 'start' }}>
     <Stack spacing={`${pageMetrics.gap}px`} sx={{ minWidth: 0 }}>
     <TotalAssetCard summary={summary} />
@@ -25,12 +26,12 @@ export function DashboardPage() {
       <TrendChart values={trend.map((item) => item.value)} />
     </CardActionArea></AppCard>
     </Stack>
-    <AppCard sx={{ minWidth: 0, height: { sm: 452 } }}><Box sx={{ px: `${pageMetrics.cardInset}px`, py: '12px' }}>
+    <AppCard sx={{ minWidth: 0, height: { xs: 164, sm: 452 } }}><Box sx={{ px: `${pageMetrics.cardInset}px`, py: '12px' }}>
       <CardActionArea onClick={() => navigate('/stocks')} sx={{ height: 24, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#34D399' }} /></Stack><Typography sx={{ fontSize: 10, lineHeight: '14px', fontWeight: 500, color: '#60A5FA', letterSpacing: '0.02px' }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
       <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: 'minmax(0, 1fr) 62px 98px', borderTop: `1px solid ${colors.borderStrong}`, mt: '9px', pt: '9px', color: colors.textMuted, fontSize: 10 }}><span>종목</span><Box sx={{ textAlign: 'right' }}>등락률</Box><Box sx={{ textAlign: 'right' }}>평가금액</Box></Box>
-      <Stack sx={{ mt: '10px', display: { xs: 'flex', sm: 'none' } }}>{holdings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
+      <Stack spacing="10px" sx={{ mt: '10px', display: { xs: 'flex', sm: 'none' } }}>{featuredHoldings.map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
       <Stack sx={{ display: { xs: 'none', sm: 'flex' } }}>{holdings.slice(0, 8).map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-      <Button onClick={() => navigate('/stocks?tab=holding')} fullWidth sx={{ mt: 1, fontSize: 11, minHeight: 28, color: colors.focus }}>전체 보기</Button>
+      <Button onClick={() => navigate('/stocks?tab=holding')} fullWidth sx={{ display: { xs: 'none', sm: 'flex' }, mt: 1, fontSize: 11, minHeight: 28, color: colors.focus }}>보유종목 전체 보기 →</Button>
     </Box></AppCard>
   </Box>;
 }
