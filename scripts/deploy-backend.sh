@@ -45,7 +45,14 @@ echo "[3/5] Applying Prisma migrations safely (deploy is idempotent)"
 previous_image=""
 if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   previous_image="$(docker container inspect --format '{{.Config.Image}}' "${CONTAINER_NAME}")"
-  echo "Previous backend image recorded for manual rollback."
+  if [[ "${previous_image}" =~ ^newrox/roxstock-backend:sha-[0-9a-f]{7,40}$ ]]; then
+    printf '%s\n' "${previous_image}" > "${PROJECT_DIR}/.backend-last-good-image"
+    chmod 600 "${PROJECT_DIR}/.backend-last-good-image"
+    echo "Previous healthy backend image recorded for rollback."
+  else
+    echo "Previous backend image is not an immutable SHA tag; automatic rollback will be disabled."
+    previous_image=""
+  fi
 fi
 
 echo "[4/5] Starting backend"
@@ -66,10 +73,31 @@ while (( SECONDS < deadline )); do
 done
 
 echo "Backend deployment health check failed. Stopping failed backend container."
+"${COMPOSE[@]}" logs --tail=100 backend || true
 "${COMPOSE[@]}" stop backend >/dev/null 2>&1 || true
-"${COMPOSE[@]}" ps
-"${COMPOSE[@]}" logs --tail=100 backend
+
 if [[ -n "${previous_image}" ]]; then
-  echo "Previous image for rollback: ${previous_image}"
+  rollback_tag="${previous_image##*:}"
+  echo "Attempting application rollback to previously healthy immutable image: ${previous_image}"
+  export BACKEND_IMAGE_TAG="${rollback_tag}"
+  if "${COMPOSE[@]}" up -d --force-recreate --no-deps --pull never backend; then
+    rollback_deadline=$((SECONDS + HEALTH_TIMEOUT))
+    while (( SECONDS < rollback_deadline )); do
+      rollback_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}missing-healthcheck{{end}}' "${CONTAINER_NAME}" 2>/dev/null || true)"
+      if [[ "${rollback_status}" == "healthy" ]]; then
+        echo "Application rollback succeeded: ${previous_image}"
+        "${COMPOSE[@]}" ps
+        exit 1
+      fi
+      [[ "${rollback_status}" =~ ^(unhealthy|exited|dead|missing-healthcheck)$ ]] && break
+      sleep 2
+    done
+  fi
+  echo "Automatic application rollback failed; stopping backend and requiring manual intervention."
+  "${COMPOSE[@]}" stop backend >/dev/null 2>&1 || true
+else
+  echo "No previously healthy immutable backend image is available for automatic rollback."
 fi
+
+"${COMPOSE[@]}" ps
 exit 1
