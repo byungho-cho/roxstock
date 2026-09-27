@@ -1,5 +1,6 @@
 import { dashboardData, stockItems } from './mockData';
 import { loadCash } from './mockCash';
+import { addBuyTrade } from './mockBuyTrades';
 import { addSellTrade, getAvailableLots } from './mockSellTrades';
 import type { BuyLot, DashboardData, StockItem, StockListType, TradeDraft } from '../types/models';
 
@@ -32,5 +33,5 @@ export async function fetchBuyLots(stockId?: string): Promise<BuyLot[]> {
 
 export async function createTrade(draft: TradeDraft): Promise<{ id: string; draft: TradeDraft }> {
   await delay(650);
-  return { id: draft.type === 'sell' ? addSellTrade(draft).id : `mock-trade-${Date.now()}`, draft: structuredClone(draft) };
+  return { id: draft.type === 'sell' ? addSellTrade(draft).id : addBuyTrade(draft).id, draft: structuredClone(draft) };
 }

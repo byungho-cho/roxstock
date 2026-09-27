@@ -10,6 +10,7 @@ import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
 import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
 import { CashPage } from './pages/cash/CashPage';
+import { JournalPage } from './pages/journal/JournalPage';
 import { MorePage } from './pages/more/MorePage';
 
 export function App() {
@@ -23,7 +24,7 @@ export function App() {
         <Route path="stocks/:stockId/value" element={<StockInsightPage mode="value" />} />
         <Route path="stocks/:stockId/financials" element={<StockInsightPage mode="financials" />} />
         <Route path="stocks/:stockId" element={<StockDetailPage />} />
-        <Route path="journal" element={<PlaceholderPage title="매매일지" description="월간 달력과 날짜별 거래 화면은 다음 구현 단계에서 연결합니다." />} />
+        <Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<PlaceholderPage title="자산분석" description="자산 추이와 기간 성과 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={<CashPage />} />
