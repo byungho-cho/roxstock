@@ -26,7 +26,7 @@ services:
       start_period: 10s
 
   collector:
-    image: newrox/roxstock-backend:\${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
     container_name: roxstock-collector
     restart: unless-stopped
     env_file:
