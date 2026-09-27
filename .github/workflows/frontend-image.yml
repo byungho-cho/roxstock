@@ -105,4 +105,4 @@ jobs:
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /opt/roxstock && git pull --ff-only origin main && ./scripts/deploy.sh '${{ needs.publish.outputs.image_tag }}'"
+            "cd /opt/roxstock && ./scripts/deploy.sh '${{ needs.publish.outputs.image_tag }}'"
