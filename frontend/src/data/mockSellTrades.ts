@@ -1,4 +1,5 @@
 import { buyLots } from './mockData';
+import { getBuyTrades } from './mockBuyTrades';
 import type { BuyLot, TradeDraft } from '../types/models';
 
 export type MockSellTrade = TradeDraft & { id: string; type: 'sell'; lotId: string };
@@ -22,7 +23,8 @@ export function getSellTrade(id: string): MockSellTrade | undefined {
 
 export function getAvailableLots(stockId?: string): BuyLot[] {
   const trades = getSellTrades();
-  return buyLots.filter((lot) => !stockId || lot.stockId === stockId).map((lot) => {
+  const savedLots: BuyLot[] = getBuyTrades().map((trade) => ({ id: trade.id, stockId: trade.stockId, stockName: '', tradeDate: trade.tradeDate, buyPrice: trade.price, quantity: trade.quantity, soldQuantity: 0, remainingQuantity: trade.quantity }));
+  return [...buyLots, ...savedLots].filter((lot) => !stockId || lot.stockId === stockId).map((lot) => {
     const sold = trades.filter((trade) => trade.lotId === lot.id).reduce((sum, trade) => sum + trade.quantity, 0);
     return { ...lot, soldQuantity: lot.soldQuantity + sold, remainingQuantity: lot.remainingQuantity - sold };
   });

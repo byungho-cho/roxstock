@@ -7,7 +7,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createTrade } from '../../data/mockApi';
-import { getSellTrade, updateSellTrade } from '../../data/mockSellTrades';
+import { getBuyTrade, updateBuyTrade } from '../../data/mockBuyTrades';
+import { getAvailableLots, getSellTrade, updateSellTrade } from '../../data/mockSellTrades';
 import { currentCashBalance, stockItems } from '../../data/mockData';
 import { useBuyLots, useStocks } from '../../hooks/useMockData';
 import type { StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
@@ -18,7 +19,7 @@ import { PageHeader } from '../../components/navigation/Navigation';
 import { colors, pageGutter } from '../../styles/tokens';
 
 type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
-const today = '2026-09-24';
+const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
 const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
 
@@ -28,8 +29,9 @@ export function TradePage() {
   const [searchParams] = useSearchParams();
   const [type] = useState<TradeType>(searchParams.get('type') === 'sell' ? 'sell' : 'buy');
   const editId = searchParams.get('edit');
-  const editing = editId ? getSellTrade(editId) : undefined;
-  const [stockId, setStockId] = useState(searchParams.get('stock') ?? 'hyundai');
+  const editing = editId ? type === 'sell' ? getSellTrade(editId) : getBuyTrade(editId) : undefined;
+  const returnToJournal = searchParams.get('return') === 'journal';
+  const [stockId, setStockId] = useState(editing?.stockId ?? searchParams.get('stock') ?? 'hyundai');
   const lotId = type === 'sell' ? searchParams.get('lot') ?? '' : '';
   const [tradeDate, setTradeDate] = useState(editing?.tradeDate ?? today);
   const [quantity, setQuantity] = useState(editing ? String(editing.quantity) : '');
@@ -77,10 +79,10 @@ export function TradePage() {
   }, [quantity, selectedLot]);
 
   useEffect(() => {
-    if ((editId && (!editing || type !== 'sell' || editing.stockId !== stockId || editing.lotId !== lotId)) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) {
-      navigate(`/stocks/${stockId}`, { replace: true });
+    if ((editId && (!editing || editing.stockId !== stockId || (type === 'sell' && editing.type === 'sell' && editing.lotId !== lotId))) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) {
+      navigate(returnToJournal ? '/journal' : `/stocks/${stockId}`, { replace: true });
     }
-  }, [type, editId, editing, lotId, lotsLoading, selectedLot, stockId, navigate]);
+  }, [type, editId, editing, lotId, lotsLoading, selectedLot, stockId, navigate, returnToJournal]);
 
   const estimate = useMemo<TradeEstimate>(() => {
     const numericQuantity = Number(quantity) || 0;
@@ -111,7 +113,7 @@ export function TradePage() {
     const numericQuantity = Number(quantity);
     if (!stockId) next.stockId = '종목을 선택해 주세요.';
     if (type === 'sell' && !selectedLot) next.lotId = '연결된 매수 항목을 확인할 수 없습니다.';
-    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) next.quantity = '수량은 1주 이상 입력해 주세요.';
+    if (!Number.isInteger(numericQuantity) || numericQuantity <= 0) next.quantity = '수량은 1주 이상 정수로 입력해 주세요.';
     if (type === 'sell' && selectedLot && numericQuantity > selectedLot.remainingQuantity + (editing?.quantity ?? 0)) next.quantity = `잔여수량 ${selectedLot.remainingQuantity}주를 넘길 수 없습니다.`;
     if (!Number.isFinite(Number(price)) || Number(price) <= 0) next.price = '단가는 1원 이상 입력해 주세요.';
     return next;
@@ -129,11 +131,12 @@ export function TradePage() {
     submitting.current = true;
     setIsSaving(true);
     try {
-      if (editId) updateSellTrade(editId, draft);
+      if (editId && type === 'sell') updateSellTrade(editId, draft);
+      else if (editId) updateBuyTrade(editId, draft, getAvailableLots(stockId).find((lot) => lot.id === editId)?.soldQuantity ?? 0);
       else await createTrade(draft);
-      if (type === 'sell') await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
+      await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
       setSaved(true);
-      navigate(`/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
+      navigate(returnToJournal ? `/journal?date=${tradeDate}` : `/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
     } catch (error) {
       setErrors((current) => ({ ...current, quantity: error instanceof Error ? error.message : '거래를 저장하지 못했습니다.' }));
     } finally {
@@ -150,17 +153,17 @@ export function TradePage() {
 
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
-      <PageHeader embedded compact showAdd={false} title={editing ? '매도 수정' : type === 'buy' ? '매수' : '매도'} />
+      <PageHeader embedded compact showAdd={false} title={editing ? `${type === 'buy' ? '매수' : '매도'} 수정` : type === 'buy' ? '매수' : '매도'} />
       <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
           <Stack spacing={1.25}>
-            <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} locked={type === 'sell'} />
+            <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} locked={type === 'sell' || Boolean(editing)} />
             {type === 'sell' && selectedLot && <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>연결된 매수 · {formatDate(selectedLot.tradeDate)} · {formatWon(selectedLot.buyPrice)} · 매수 {selectedLot.quantity}주 · 잔여 {selectedLot.remainingQuantity}주</Alert>}
             {editing && selectedLot && <NumberField label="매수수량" value={String(selectedLot.quantity)} onChange={() => {}} suffix="주" readOnly />}
             <Stack spacing={1}>
-              <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required enterKeyHint="next" onEnter={() => editing ? priceRef.current?.focus() : quantityRef.current?.focus()} />
-              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={editing ? '수량이 잘못됐다면 매도 거래를 삭제하고 다시 등록해 주세요.' : selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus={!editing} readOnly={Boolean(editing)} inputRef={quantityRef} selectOnFocus={!editing} enterKeyHint="next" onEnter={() => priceRef.current?.focus()} />
-              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required autoFocus={Boolean(editing)} inputRef={priceRef} selectOnFocus enterKeyHint="next" onEnter={focusAfterPrice} />
+              <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required enterKeyHint="next" onEnter={() => editing && type === 'sell' ? priceRef.current?.focus() : quantityRef.current?.focus()} />
+              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={editing && type === 'sell' ? '수량이 잘못됐다면 매도 거래를 삭제하고 다시 등록해 주세요.' : selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus={!editing || type === 'buy'} readOnly={Boolean(editing && type === 'sell')} inputRef={quantityRef} selectOnFocus={!(editing && type === 'sell')} enterKeyHint="next" onEnter={() => priceRef.current?.focus()} />
+              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required autoFocus={Boolean(editing && type === 'sell')} inputRef={priceRef} selectOnFocus enterKeyHint="next" onEnter={focusAfterPrice} />
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} inputRef={feeRef} selectOnFocus enterKeyHint="next" onEnter={() => tabletMemoRef.current?.focus()} /></Box>
               <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" inputRef={mobileMemoRef} selectOnFocus enterKeyHint="done" onEnter={handleSubmit} /></Box>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} textareaRef={tabletMemoRef} selectOnFocus onEnter={handleSubmit} /></Box>
@@ -181,7 +184,7 @@ export function TradePage() {
 
       <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(8,13,24,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid', borderColor: 'divider', px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 1.5 }}>
         <Stack direction="row" spacing={1.5} sx={{ maxWidth: 880 - pageGutter.sm * 2, mx: 'auto' }}>
-          <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => editing ? navigate(`/stocks/${stockId}?tab=trades`, { replace: true }) : navigate(-1)}>취소</ActionButton>
+          <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => editing ? navigate(returnToJournal ? `/journal?date=${searchParams.get('fromDate') ?? tradeDate}` : `/stocks/${stockId}?tab=trades`, { replace: true }) : navigate(-1)}>취소</ActionButton>
           <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : editing ? '수정' : type === 'buy' ? '매수' : '매도'}</ActionButton>
         </Stack>
       </Box>
