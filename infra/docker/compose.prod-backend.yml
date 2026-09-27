@@ -25,6 +25,25 @@ services:
       retries: 12
       start_period: 10s
 
+  collector:
+    image: newrox/roxstock-backend:\${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    container_name: roxstock-collector
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Seoul
+    command: ["node", "backend/dist/collector/worker.js", "daemon"]
+    networks:
+      - db
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:fs').readFileSync('/proc/1/cmdline','utf8').includes('worker.js')||process.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   app:
     external: true

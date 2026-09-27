@@ -6,6 +6,7 @@ PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${PROJECT_DIR}/infra/docker/compose.prod-backend.yml"
 ENV_FILE="${PROJECT_DIR}/backend/.env.production"
 CONTAINER_NAME="roxstock-backend"
+COLLECTOR_CONTAINER_NAME="roxstock-collector"
 HEALTH_TIMEOUT=120
 COMPOSE=(docker compose --project-name roxstock-backend --file "${COMPOSE_FILE}")
 
@@ -34,7 +35,7 @@ flock -n 9 || { echo "Another backend deployment is running."; exit 1; }
 
 "${COMPOSE[@]}" config --quiet
 echo "[1/5] Pulling backend image"
-"${COMPOSE[@]}" pull backend
+"${COMPOSE[@]}" pull backend collector
 
 echo "[2/5] Checking Prisma migration status with target image"
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate status --schema database/prisma/schema.prisma'
@@ -64,9 +65,25 @@ while (( SECONDS < deadline )); do
   status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}missing-healthcheck{{end}}' "${CONTAINER_NAME}" 2>/dev/null || true)"
   [[ "${status}" == "healthy" ]] && {
     docker exec "${CONTAINER_NAME}" node -e "fetch('http://127.0.0.1:3300/health/db').then(async r=>{if(!r.ok){console.error(await r.text());process.exit(1)}}).catch(e=>{console.error(e);process.exit(1)})"
+    echo "Starting isolated collector service"
+    "${COMPOSE[@]}" up -d --force-recreate --no-deps --pull never collector
+    collector_deadline=$((SECONDS + 60))
+    while (( SECONDS < collector_deadline )); do
+      collector_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
+      if [[ "${collector_status}" =~ ^(healthy|running)$ ]]; then
+        echo "Collector deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
+        echo "Backend deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
+        "${COMPOSE[@]}" ps
+        exit 0
+      fi
+      [[ "${collector_status}" =~ ^(unhealthy|exited|dead)$ ]] && break
+      sleep 2
+    done
+    echo "Collector failed to become healthy; API remains running."
+    "${COMPOSE[@]}" logs --tail=100 collector || true
     echo "Backend deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
     "${COMPOSE[@]}" ps
-    exit 0
+    exit 1
   }
   [[ "${status}" =~ ^(unhealthy|exited|dead|missing-healthcheck)$ ]] && break
   sleep 2
