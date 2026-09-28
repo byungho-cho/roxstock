@@ -6,6 +6,7 @@ import { accountRoutes } from './routes/accounts.js';
 import { securityRoutes } from './routes/securities.js';
 import { tradeRoutes } from './routes/trades.js';
 import { internalPriceRoutes, priceRoutes } from './routes/prices.js';
+import { portfolioRoutes } from './routes/portfolio.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -36,6 +37,7 @@ export function buildApp() {
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });
   void app.register(priceRoutes, { prefix: '/api' });
+  void app.register(portfolioRoutes, { prefix: '/api' });
   void app.register(internalPriceRoutes);
 
   return app;
