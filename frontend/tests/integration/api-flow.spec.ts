@@ -13,7 +13,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await expect(page.getByText('보유종목이 없습니다.')).toBeVisible();
   await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('01-empty-dashboard.png') });
-  await page.getByText('평가자산', { exact: true }).click();
+  await page.getByText('평가자산', { exact: true }).first().click();
   await expect(page).toHaveURL(/detail\/assets/);
   await expect(page.getByText('과거 평가자산 조회 API가 준비되지 않아 상세 추이를 표시할 수 없습니다.')).toBeVisible();
 
