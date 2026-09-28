@@ -44,3 +44,34 @@ POST /api/sell-trades
 ```
 
 필수값은 `buyTradeId`, `soldAt`, `quantity`, `unitPrice`이며 `feeTaxAmount`, `memo`는 선택값입니다. 선택한 Lot의 잔여수량을 초과하면 `409 QUANTITY_EXCEEDS_REMAINING`을 반환합니다.
+
+## 거래 수정
+
+```http
+PATCH /api/buy-trades/{tradeId}
+PATCH /api/sell-trades/{tradeId}
+```
+
+- 매수는 `securityId`, `boughtAt`, `quantity`, `unitPrice`, `memo` 중 변경할 값만 전달합니다.
+- 매도는 `soldAt`, `quantity`, `unitPrice`, `memo` 중 변경할 값만 전달합니다.
+- 매수수량을 이미 매도한 합계보다 작게 수정할 수 없습니다.
+- 연결 매도가 있는 매수의 종목은 변경할 수 없습니다.
+- 매도수량 수정 후에도 해당 Lot의 총 매도수량은 매수수량을 넘을 수 없습니다.
+- 거래 수정은 현재 Lot과 보유수량에는 즉시 반영하지만, 과거 예수금 거래와 과거 스냅샷은 자동 수정하지 않습니다.
+
+응답의 `cashBalanceAdjusted`, `historicalCashTransactionsAdjusted`, `historicalSnapshotsAdjusted`는 모두 `false`입니다. 실제 계좌 예수금과 차이가 생기면 예수금 화면에서 직접 맞춥니다.
+
+## 거래 삭제
+
+```http
+DELETE /api/sell-trades/{tradeId}
+DELETE /api/buy-trades/{tradeId}
+```
+
+연결된 매도가 있는 매수는 기본적으로 `409 CONNECTED_SELLS_EXIST`로 차단합니다. 사용자가 연결 매도까지 삭제한다는 확인을 마친 경우에만 다음처럼 요청합니다.
+
+```http
+DELETE /api/buy-trades/{tradeId}?cascadeSells=true
+```
+
+삭제 후 잔여 Lot을 기준으로 보유종목 분류를 다시 계산합니다. 삭제된 거래가 만들었던 과거 예수금 거래와 과거 스냅샷은 보존합니다.
