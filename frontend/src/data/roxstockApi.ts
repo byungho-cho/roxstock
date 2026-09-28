@@ -76,14 +76,11 @@ export type AccountWriteInput = { name: string; brokerName: string; accountNumbe
 export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
 export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
 
-/** Both values must be positively verified by the server before showing the reset action. */
-export interface AccountResetAvailability { enabled: boolean; authorized: boolean }
-export const getAccountResetAvailability = (accountId: string) =>
-  apiRequest<AccountResetAvailability>(`/accounts/${encodeURIComponent(accountId)}/reset-availability`);
-export const resetAccountData = (accountId: string, accountName: string) =>
+/** The test-only backend accepts a fixed confirmation word; the UI additionally checks the account name. */
+export const resetAccountData = (accountId: string) =>
   apiRequest<{ accountId: string; cashBalance: string; deleted: Record<string, number> }>(
     `/accounts/${encodeURIComponent(accountId)}/reset`,
-    { method: 'POST', body: JSON.stringify({ confirmation: accountName }) },
+    { method: 'POST', body: JSON.stringify({ confirmation: '초기화' }) },
   );
 
 export const selectedAccountStorageKey = 'roxstock-selected-account-id';

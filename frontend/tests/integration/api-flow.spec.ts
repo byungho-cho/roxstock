@@ -133,10 +133,23 @@ test('170 settings: account API create, update, requery and guarded reset across
   await expect(page.getByText(`${unique} 수정`, { exact: true })).toBeVisible();
   const changed = (await (await request.get('/api/accounts')).json()).data as { id: string; name: string }[];
   expect(changed.find((account) => account.id === created?.id)?.name).toBe(`${unique} 수정`);
+  const deposit = await request.post('/api/cash-transactions', { data: { accountId: created!.id, transactionType: 'DEPOSIT', transactionDate: new Date().toISOString(), amount: '10000', memo: '초기화 검증' } });
+  expect(deposit.status()).toBe(201);
+  expect(Number((await (await request.get(`/api/accounts/${created!.id}/dashboard`)).json()).data.cashBalance)).toBe(10000);
   await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
-  await expect(page.getByText(/현재 사용할 수 없는 기능입니다/)).toBeVisible();
-  await expect(page.getByRole('button', { name: '계좌 데이터 초기화', exact: true })).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath('170-cover-reset-disabled.png') });
+  await page.getByRole('textbox', { name: '계좌명 입력' }).fill('틀린 계좌명');
+  await expect(page.getByRole('button', { name: '계좌 데이터 초기화', exact: true })).toBeDisabled();
+  await page.getByRole('textbox', { name: '계좌명 입력' }).fill(`${unique} 수정`);
+  await page.screenshot({ path: testInfo.outputPath('170-cover-reset-confirm.png') });
+  await page.getByRole('button', { name: '계좌 데이터 초기화', exact: true }).click();
+  await expect(page.getByText(/초기화 완료/)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('170-cover-reset-success.png') });
+  const accountAfterReset = (await (await request.get('/api/accounts')).json()).data as { id: string; cashBalance: string }[];
+  expect(accountAfterReset.find((account) => account.id === created!.id)?.cashBalance).toBe('0');
+  const reportAfterReset = await (await request.get(`/api/accounts/${created!.id}/trades`)).json();
+  expect(reportAfterReset.data).toHaveLength(0);
+  const holdingsAfterReset = (await (await request.get(`/api/accounts/${created!.id}/holdings`)).json()).data;
+  expect(holdingsAfterReset).toHaveLength(0);
   for (const [view, filename] of [['cash', 'cash'], ['collection', 'collection'], ['theme', 'theme']] as const) {
     await page.goto(`/detail/settings?view=${view}`);
     await page.screenshot({ path: testInfo.outputPath(`170-cover-${filename}.png`) });
@@ -149,6 +162,6 @@ test('170 settings: account API create, update, requery and guarded reset across
   }
   await page.goto('/detail/settings?view=account');
   await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
-  await expect(page.getByText(/현재 사용할 수 없는 기능입니다/)).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-disabled.png') });
+  await expect(page.getByRole('textbox', { name: '계좌명 입력' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-confirm.png') });
 });

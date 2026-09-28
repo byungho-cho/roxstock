@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { chooseAccount, createAccount, getAccountResetAvailability, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { chooseAccount, createAccount, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { colors } from '../../styles/tokens';
 
 export type MoreView = 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
@@ -78,8 +78,7 @@ export function SettingsOverview() {
 export function AccountManagement({ openReset }: { openReset: () => void }) {
   const navigate = useNavigate();
   const { accounts, selected, query, select } = useMoreAccounts();
-  const availability = useQuery({ queryKey: ['accountResetAvailability', selected?.id], queryFn: () => getAccountResetAvailability(selected!.id), enabled: liveApiEnabled && !!selected, retry: false });
-  const allowed = liveApiEnabled && availability.data?.enabled === true && availability.data.authorized === true;
+  const allowed = liveApiEnabled && !!selected?.isActive;
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
   if (liveApiEnabled && query.isPending) return <Typography role="status">계좌 목록을 불러오는 중입니다.</Typography>;
   if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;

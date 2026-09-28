@@ -26,6 +26,7 @@ jobs:
     env:
       DATABASE_URL: mysql://root:integration@127.0.0.1:3306/roxstock_api_test
       VITE_DATA_SOURCE: api
+      ENABLE_ACCOUNT_DATA_RESET: 'true' # Isolated, disposable MariaDB service only.
       CI: true
     steps:
       - uses: actions/checkout@v4
