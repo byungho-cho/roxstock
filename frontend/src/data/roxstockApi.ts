@@ -100,6 +100,29 @@ export async function currentAccountId(): Promise<string> {
 export const getAccountDashboard = (accountId: string) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`);
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
+export interface AssetHistoryDto {
+  data: { date: string; totalAssetValue: string; cashBalance: string; stockValue: string; change: string | null; changeRate: string | null }[];
+  summary: { profitLoss: string | null; returnRate: string | null };
+}
+export const getAssetHistory = (accountId: string) => apiEnvelope<AssetHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/asset-history`);
+
+export interface CashTransactionDto {
+  id: string; transactionType: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAWAL' | 'DIVIDEND';
+  transactionDate: string; amount: string; signedAmount: string; balanceAfter: string; memo: string | null;
+}
+export interface CashHistoryDto {
+  data: CashTransactionDto[];
+  meta: { total: number };
+}
+export interface CashOverviewDto {
+  account: { id: string; name: string; currentBalance: string };
+  monthly: { deposit: string; withdrawal: string };
+  yearly: { deposit: string; withdrawal: string; dividend: string };
+  recentTransactions: CashTransactionDto[];
+}
+export const getCashHistory = (accountId: string) => apiEnvelope<CashHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions`);
+export const getCashOverview = (accountId: string) => apiRequest<CashOverviewDto>(`/accounts/${encodeURIComponent(accountId)}/cash-overview`);
+
 export function listSecurities(search: SecuritySearch = {}) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(search)) if (value !== undefined && value !== '') params.set(key, String(value));
