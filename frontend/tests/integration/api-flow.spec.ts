@@ -151,6 +151,20 @@ test('170 settings: account API create, update, requery and guarded reset across
   expect(reportAfterReset.data).toHaveLength(0);
   const holdingsAfterReset = (await (await request.get(`/api/accounts/${created!.id}/holdings`)).json()).data;
   expect(holdingsAfterReset).toHaveLength(0);
+  const cashAfterReset = await (await request.get(`/api/accounts/${created!.id}/cash-transactions`)).json();
+  expect(cashAfterReset.data).toHaveLength(0);
+  const overviewAfterReset = (await (await request.get(`/api/accounts/${created!.id}/cash-overview`)).json()).data;
+  expect(overviewAfterReset.account.currentBalance).toBe('0');
+  expect(overviewAfterReset.recentTransactions).toHaveLength(0);
+  const historyAfterReset = await (await request.get(`/api/accounts/${created!.id}/asset-history`)).json();
+  expect(historyAfterReset.data).toHaveLength(0);
+  expect(historyAfterReset.summary.returnRate).toBeNull();
+  await page.goto('/detail/cash');
+  await expect(page.getByText('예수금 내역이 없습니다.')).toBeVisible();
+  await expect(page.getByText('0원', { exact: true }).first()).toBeVisible();
+  await page.goto('/');
+  await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
+  await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   for (const [view, filename] of [['cash', 'cash'], ['collection', 'collection'], ['theme', 'theme']] as const) {
     await page.goto(`/detail/settings?view=${view}`);
     await page.screenshot({ path: testInfo.outputPath(`170-cover-${filename}.png`) });

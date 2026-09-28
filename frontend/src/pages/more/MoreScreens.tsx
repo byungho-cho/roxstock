@@ -150,30 +150,31 @@ function MobileAction({ onClick, disabled, label, danger }: { onClick: () => voi
 }
 
 export function CashAdjustment() {
-  const { selected } = useMoreAccounts(); const navigate = useNavigate();
-  const sample = readDemoSettings().accounts[0];
-  const base = liveApiEnabled ? sample?.cashBalance ?? '203200000' : selected?.cashBalance ?? '0';
-  const [amount, setAmount] = useState(base); const [notice, setNotice] = useState('');
+  const { selected, query } = useMoreAccounts(); const navigate = useNavigate();
+  const base = selected?.cashBalance ?? '';
+  const [amount, setAmount] = useState(base);
+  useEffect(() => { setAmount(base); }, [base, selected?.id]);
   const value = Number(amount.replaceAll(',', '')); const delta = value - Number(base);
   const submit = () => {
-    if (!Number.isFinite(value) || value < 0) return;
-    if (liveApiEnabled) setNotice('목 화면에서만 변경했습니다. 실제 계좌 예수금에는 반영되지 않습니다.');
-    else if (selected) { changeDemoCash(selected.id, String(value)); navigate('/detail/settings?view=account'); }
+    if (liveApiEnabled || !Number.isFinite(value) || value < 0) return;
+    if (selected) { changeDemoCash(selected.id, String(value)); navigate('/detail/settings?view=account'); }
   };
+  if (liveApiEnabled && query.isPending) return <Typography role="status">계좌를 불러오는 중입니다.</Typography>;
+  if (liveApiEnabled && query.isError) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (liveApiEnabled && !selected) return <Typography role="status">선택된 계좌가 없습니다.</Typography>;
   return <Box sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: { sm: 'repeat(2,minmax(0,1fr))' }, gap: '16px', height: { sm: '100%' } }}>
     <LabelledCard title="예수금 수정" description="모든 금액은 원 단위 숫자로 입력합니다.">
-      <Typography sx={{ ...hint, mt: 2 }}>현재 예수금 {liveApiEnabled && '(목 예시)'}</Typography><Typography sx={{ ...row, p: 1.5, mt: 1, textAlign: 'right' }}>{fmt(base)}</Typography>
-      <TextField fullWidth label="변경 예수금" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} sx={{ mt: 1.5 }} />
-      <Button onClick={submit} variant="contained" disabled={!Number.isFinite(value) || value < 0} sx={{ mt: 2, width: '100%', display: { xs: 'none', sm: 'flex' } }}>변경</Button>
+      <Typography sx={{ ...hint, mt: 2 }}>현재 예수금</Typography><Typography sx={{ ...row, p: 1.5, mt: 1, textAlign: 'right' }}>{fmt(base)}</Typography>
+      <TextField fullWidth label="변경 예수금" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} disabled={liveApiEnabled} sx={{ mt: 1.5 }} />
+      {!liveApiEnabled && <Button onClick={submit} variant="contained" disabled={!Number.isFinite(value) || value < 0} sx={{ mt: 2, width: '100%', display: { xs: 'none', sm: 'flex' } }}>변경</Button>}
     </LabelledCard>
     <LabelledCard title="변경 후 예수금" description="입력한 금액으로 즉시 변경됩니다.">
       <Typography sx={{ textAlign: 'right', fontWeight: 600, mt: 3 }}>{Number.isFinite(value) ? fmt(value) : '—'}</Typography>
       <Typography sx={{ textAlign: 'right', color: delta >= 0 ? colors.marketRise : colors.marketFall, mt: 2 }}>변경 금액 {Number.isFinite(delta) ? `${delta >= 0 ? '+' : ''}${fmt(delta)}` : '—'}</Typography>
       <Typography sx={{ ...hint, mt: 4 }}>저장 후 과거 거래내역은 자동으로 재계산하지 않습니다.</Typography>
-      {liveApiEnabled && <Typography role="status" sx={{ ...hint, mt: 2 }}>예수금 잔액 직접 수정 API가 없어 이 화면은 서버와 분리된 목 예시입니다.</Typography>}
-      {notice && <Typography role="status">{notice}</Typography>}
+      {liveApiEnabled && <Typography role="status" sx={{ ...hint, mt: 2 }}>예수금 잔액 직접 수정 API가 없어 변경할 수 없습니다.</Typography>}
     </LabelledCard>
-    <MobileAction onClick={submit} disabled={!Number.isFinite(value) || value < 0} label="변경" />
+    {!liveApiEnabled && <MobileAction onClick={submit} disabled={!Number.isFinite(value) || value < 0} label="변경" />}
   </Box>;
 }
 
