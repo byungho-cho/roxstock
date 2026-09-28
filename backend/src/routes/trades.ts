@@ -25,6 +25,30 @@ type SellBody = {
   memo?: unknown;
 };
 
+type AccountParams = { accountId: string };
+type TradeQuery = { from?: string; to?: string; securityId?: string };
+type LotQuery = { securityId?: string; remainingOnly?: string };
+
+const dateOnly = (value: string | undefined, fieldName: string) => {
+  if (value === undefined) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new ApiError(400, 'INVALID_INPUT', `${fieldName} must use YYYY-MM-DD.`);
+  }
+  const result = new Date(`${value}T00:00:00+09:00`);
+  if (Number.isNaN(result.getTime())) {
+    throw new ApiError(400, 'INVALID_INPUT', `${fieldName} must be a valid date.`);
+  }
+  return result;
+};
+
+const kstDate = (value: Date) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(value);
+
+const optionalId = (value: string | undefined, fieldName: string) => (
+  value === undefined ? undefined : id(value, fieldName)
+);
+
 const transactionOptions = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   maxWait: 5_000,
@@ -32,6 +56,107 @@ const transactionOptions = {
 } as const;
 
 export async function tradeRoutes(app: FastifyInstance) {
+  app.get<{ Params: AccountParams; Querystring: TradeQuery }>('/accounts/:accountId/trades', async (request) => {
+    const accountId = id(request.params.accountId, 'accountId');
+    const securityId = optionalId(request.query.securityId, 'securityId');
+    const from = dateOnly(request.query.from, 'from');
+    const toStart = dateOnly(request.query.to, 'to');
+    const to = toStart ? new Date(toStart.getTime() + 86_400_000) : undefined;
+    if (from && to && from >= to) throw new ApiError(400, 'INVALID_INPUT', 'from must not be later than to.');
+
+    const account = await prisma.account.findUnique({ where: { id: accountId }, select: { id: true, isActive: true } });
+    if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+
+    const dateRange = { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) };
+    const [buys, sells] = await Promise.all([
+      prisma.buyTrade.findMany({
+        where: { accountId, ...(securityId ? { securityId } : {}), ...((from || to) ? { boughtAt: dateRange } : {}) },
+        include: { security: { select: { id: true, symbol: true, name: true, marketType: true } } },
+      }),
+      prisma.sellTrade.findMany({
+        where: { buyTrade: { accountId, ...(securityId ? { securityId } : {}) }, ...((from || to) ? { soldAt: dateRange } : {}) },
+        include: { buyTrade: { include: { security: { select: { id: true, symbol: true, name: true, marketType: true } } } } },
+      }),
+    ]);
+
+    const entries = [
+      ...buys.map((trade) => ({
+        id: trade.id.toString(), type: 'BUY' as const, buyTradeId: trade.id.toString(), tradedAt: trade.boughtAt,
+        security: trade.security, quantity: trade.quantity, unitPrice: trade.unitPrice,
+        amount: trade.quantity.mul(trade.unitPrice), realizedProfitLoss: null as Prisma.Decimal | null, memo: trade.memo,
+      })),
+      ...sells.map((trade) => ({
+        id: trade.id.toString(), type: 'SELL' as const, buyTradeId: trade.buyTradeId.toString(), tradedAt: trade.soldAt,
+        security: trade.buyTrade.security, quantity: trade.quantity, unitPrice: trade.unitPrice,
+        amount: trade.quantity.mul(trade.unitPrice),
+        realizedProfitLoss: trade.quantity.mul(trade.unitPrice.minus(trade.buyTrade.unitPrice)), memo: trade.memo,
+      })),
+    ].sort((left, right) => right.tradedAt.getTime() - left.tradedAt.getTime());
+
+    const daily = new Map<string, { buyCount: number; sellCount: number; buyAmount: Prisma.Decimal; sellAmount: Prisma.Decimal; realizedProfitLoss: Prisma.Decimal }>();
+    for (const entry of entries) {
+      const key = kstDate(entry.tradedAt);
+      const item = daily.get(key) ?? { buyCount: 0, sellCount: 0, buyAmount: new Prisma.Decimal(0), sellAmount: new Prisma.Decimal(0), realizedProfitLoss: new Prisma.Decimal(0) };
+      if (entry.type === 'BUY') {
+        item.buyCount += 1; item.buyAmount = item.buyAmount.plus(entry.amount);
+      } else {
+        item.sellCount += 1; item.sellAmount = item.sellAmount.plus(entry.amount);
+        item.realizedProfitLoss = item.realizedProfitLoss.plus(entry.realizedProfitLoss ?? 0);
+      }
+      daily.set(key, item);
+    }
+
+    return {
+      data: entries.map((entry) => ({
+        id: entry.id, type: entry.type, buyTradeId: entry.buyTradeId, tradedAt: entry.tradedAt.toISOString(),
+        security: { id: entry.security.id.toString(), symbol: entry.security.symbol, name: entry.security.name, marketType: entry.security.marketType },
+        quantity: entry.quantity.toString(), unitPrice: entry.unitPrice.toString(), amount: entry.amount.toString(),
+        realizedProfitLoss: entry.realizedProfitLoss?.toString() ?? null, memo: entry.memo,
+      })),
+      summary: {
+        buyAmount: entries.filter((entry) => entry.type === 'BUY').reduce((sum, entry) => sum.plus(entry.amount), new Prisma.Decimal(0)).toString(),
+        sellAmount: entries.filter((entry) => entry.type === 'SELL').reduce((sum, entry) => sum.plus(entry.amount), new Prisma.Decimal(0)).toString(),
+        realizedProfitLoss: entries.reduce((sum, entry) => sum.plus(entry.realizedProfitLoss ?? 0), new Prisma.Decimal(0)).toString(),
+      },
+      daily: [...daily.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([date, item]) => ({
+        date, buyCount: item.buyCount, sellCount: item.sellCount, buyAmount: item.buyAmount.toString(),
+        sellAmount: item.sellAmount.toString(), realizedProfitLoss: item.realizedProfitLoss.toString(),
+      })),
+      meta: { accountId: accountId.toString(), count: entries.length, timezone: 'Asia/Seoul' },
+    };
+  });
+
+  app.get<{ Params: AccountParams; Querystring: LotQuery }>('/accounts/:accountId/buy-lots', async (request) => {
+    const accountId = id(request.params.accountId, 'accountId');
+    const securityId = optionalId(request.query.securityId, 'securityId');
+    if (request.query.remainingOnly !== undefined && request.query.remainingOnly !== 'true' && request.query.remainingOnly !== 'false') {
+      throw new ApiError(400, 'INVALID_INPUT', 'remainingOnly must be true or false.');
+    }
+    const remainingOnly = request.query.remainingOnly !== 'false';
+    const account = await prisma.account.findUnique({ where: { id: accountId }, select: { id: true, isActive: true } });
+    if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+    const lots = await prisma.buyTrade.findMany({
+      where: { accountId, ...(securityId ? { securityId } : {}) },
+      include: {
+        security: { select: { id: true, symbol: true, name: true, marketType: true } },
+        sellTrades: { select: { id: true, soldAt: true, quantity: true, unitPrice: true }, orderBy: { soldAt: 'asc' } },
+      },
+      orderBy: [{ boughtAt: 'asc' }, { id: 'asc' }],
+    });
+    const data = lots.map((lot) => {
+      const soldQuantity = lot.sellTrades.reduce((sum, sell) => sum.plus(sell.quantity), new Prisma.Decimal(0));
+      const remainingQuantity = calculateRemainingQuantity(lot.quantity, lot.sellTrades.map((sell) => sell.quantity));
+      return {
+        id: lot.id.toString(), boughtAt: lot.boughtAt.toISOString(),
+        security: { id: lot.security.id.toString(), symbol: lot.security.symbol, name: lot.security.name, marketType: lot.security.marketType },
+        quantity: lot.quantity.toString(), soldQuantity: soldQuantity.toString(), remainingQuantity: remainingQuantity.toString(),
+        unitPrice: lot.unitPrice.toString(), remainingPurchaseAmount: remainingQuantity.mul(lot.unitPrice).toString(), memo: lot.memo,
+        sellTrades: lot.sellTrades.map((sell) => ({ id: sell.id.toString(), soldAt: sell.soldAt.toISOString(), quantity: sell.quantity.toString(), unitPrice: sell.unitPrice.toString() })),
+      };
+    }).filter((lot) => !remainingOnly || new Prisma.Decimal(lot.remainingQuantity).greaterThan(0));
+    return { data, meta: { accountId: accountId.toString(), count: data.length, remainingOnly } };
+  });
+
   app.post<{ Body: BuyBody }>('/buy-trades', async (request, reply) => {
     const body = request.body ?? {};
     const accountId = id(body.accountId, 'accountId');

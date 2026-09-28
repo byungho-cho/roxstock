@@ -83,6 +83,8 @@ curl -sS 'http://127.0.0.1:3300/api/prices/latest?symbols=005930,005380'
 
 - `GET /api/accounts/:accountId/holdings`: Lot별 잔여수량을 종목별로 합산해 매입금액, 평가금액, 평가손익과 수익률을 반환합니다.
 - `GET /api/accounts/:accountId/dashboard`: 예수금, 주식평가액, 총평가자산과 보유종목을 한 번에 반환합니다.
+- `GET /api/accounts/:accountId/trades`: 기간·종목별 매수/매도 통합 목록, 합계와 한국 날짜별 달력 집계를 반환합니다.
+- `GET /api/accounts/:accountId/buy-lots`: 매도 화면에서 선택할 잔여 매수 Lot과 연결된 분할매도를 반환합니다.
 - 실시간 메모리 캐시와 DB 가격 중 거래시각이 최신인 값을 사용합니다.
 - 보유종목 중 가격이 누락된 종목이 있으면 `pricingComplete=false`로 반환하고 주식평가액과 총평가자산을 `null`로 유지합니다.
 
