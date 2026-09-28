@@ -14,6 +14,7 @@ test('real API without reset permission: cover and unfolded settings hide execut
     await page.setViewportSize({ width, height });
     await page.goto(url);
     await expect(page.getByText('계좌 데이터 초기화')).toBeVisible();
+    await page.getByText('계좌 데이터 초기화').scrollIntoViewIfNeeded();
     await expect(page.getByText('현재 사용할 수 없는 기능입니다.')).toBeVisible();
     await expect(page.getByRole('button', { name: '초기화 진행' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: '최종 초기화' })).toHaveCount(0);
