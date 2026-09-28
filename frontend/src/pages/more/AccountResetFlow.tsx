@@ -14,7 +14,7 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
   const availability = useQuery({ queryKey: ['accountResetAvailability', selected?.id], queryFn: () => getAccountResetAvailability(selected!.id), enabled: liveApiEnabled && !!selected, retry: false });
   const allowed = liveApiEnabled && availability.data?.enabled === true && availability.data.authorized === true;
   const [entered, setEntered] = useState(''); const [state, setState] = useState<ResetState>('confirm'); const [message, setMessage] = useState('');
-  const lock = useRef(false);
+  const lock = useRef(false); const accepted = useRef(false);
   const close = () => { if (lock.current) return; onClose?.(); if (!tablet) navigate('/detail/settings?view=account'); };
   const execute = async () => {
     if (!allowed || !selected || entered !== selected.name || lock.current) return;
@@ -22,6 +22,7 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
     try {
       const response = await resetAccountData(selected.id, selected.name);
       if (response.accountId !== selected.id) throw new Error('서버 응답의 계좌 ID가 일치하지 않습니다.');
+      accepted.current = true;
       const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'cashOverview', 'cashTransactions'].includes(String(query.queryKey[0]));
       await client.cancelQueries({ predicate: affected }); client.removeQueries({ predicate: affected });
       const [accounts, dashboard, holdings, trades] = await Promise.all([listAccounts(), getAccountDashboard(selected.id), getAccountHoldings(selected.id), getTrades(selected.id)]);
@@ -31,7 +32,7 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
       client.setQueryData(['stocks', 'holding', 'api'], await fetchLiveStocks('holding'));
       await client.invalidateQueries({ predicate: affected });
       setState('success');
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : '초기화에 실패했습니다.'); setState('failure'); }
+    } catch (cause) { setMessage(`${accepted.current ? '초기화 요청이 완료됐지만 재조회 검증에 실패했습니다: ' : ''}${cause instanceof Error ? cause.message : '초기화에 실패했습니다.'}`); setState('failure'); }
     finally { lock.current = false; }
   };
   const content = <Box sx={{ p: '16px', bgcolor: '#0E1420', border: '1px solid #25344D', borderRadius: '8px', minWidth: 0 }}>
@@ -46,8 +47,8 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
         {state === 'failure' && <Typography role="alert" sx={{ fontSize: 12, color: '#F87171' }}>{message}</Typography>}
         {state === 'pending' && <Typography role="status" sx={{ fontSize: 12 }}>초기화 중입니다…</Typography>}
       </Stack>}
-    <Stack direction="row" spacing={1} sx={{ mt: 3, justifyContent: 'flex-end', display: { xs: 'none', sm: 'flex' } }}><Button variant="outlined" onClick={close} disabled={state === 'pending'}>{state === 'success' ? '확인' : '취소'}</Button>{state !== 'success' && allowed && <Button variant="contained" color="error" onClick={() => void execute()} disabled={entered !== selected?.name || state === 'pending'}>계좌 데이터 초기화</Button>}</Stack>
-    <Stack direction="row" spacing={1} sx={{ position: 'fixed', bottom: 44, left: 0, right: 0, p: 1, bgcolor: '#080D19', display: { xs: 'flex', sm: 'none' }, zIndex: 12 }}><Button variant="outlined" onClick={close} disabled={state === 'pending'} sx={{ flex: 1 }}>{state === 'success' ? '확인' : '취소'}</Button>{state !== 'success' && allowed && <Button variant="contained" color="error" onClick={() => void execute()} disabled={entered !== selected?.name || state === 'pending'} sx={{ flex: 2 }}>계좌 데이터 초기화</Button>}</Stack>
+    <Stack direction="row" spacing={1} sx={{ mt: 3, justifyContent: 'flex-end', display: { xs: 'none', sm: 'flex' } }}><Button variant="outlined" onClick={close} disabled={state === 'pending'}>{state === 'success' ? '확인' : '취소'}</Button>{state !== 'success' && allowed && !accepted.current && <Button variant="contained" color="error" onClick={() => void execute()} disabled={entered !== selected?.name || state === 'pending'}>계좌 데이터 초기화</Button>}</Stack>
+    <Stack direction="row" spacing={1} sx={{ position: 'fixed', bottom: 44, left: 0, right: 0, p: 1, bgcolor: '#080D19', display: { xs: 'flex', sm: 'none' }, zIndex: 12 }}><Button variant="outlined" onClick={close} disabled={state === 'pending'} sx={{ flex: 1 }}>{state === 'success' ? '확인' : '취소'}</Button>{state !== 'success' && allowed && !accepted.current && <Button variant="contained" color="error" onClick={() => void execute()} disabled={entered !== selected?.name || state === 'pending'} sx={{ flex: 2 }}>계좌 데이터 초기화</Button>}</Stack>
   </Box>;
   return tablet ? <Dialog open onClose={close} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { bgcolor: '#080D19', maxHeight: 'calc(100dvh - 88px)', m: 1 } } }}><Box sx={{ overflowY: 'auto', p: 1 }}>{content}</Box></Dialog> : content;
 }

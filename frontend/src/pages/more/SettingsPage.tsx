@@ -17,8 +17,8 @@ export function SettingsPage() {
     else window.location.assign('/detail/settings?view=reset');
   };
   return <>
-    <PageHeader embedded title={labels[view]} backPath={backPath} showBackTablet showAdd={false} variant="more" />
-    <Box sx={{ height: { sm: 'calc(100dvh - 120px)' }, minHeight: 0, pb: { xs: ['add', 'edit', 'cash', 'reset', 'collection'].includes(view) ? '75px' : 0, sm: 0 } }}>
+    <PageHeader embedded title={labels[view]} backPath={backPath} showAdd={false} variant="more" compact />
+    <Box sx={{ mt: { xs: '14px', sm: 0 }, height: { sm: 'calc(100dvh - 120px)' }, minHeight: 0, pb: { xs: ['add', 'edit', 'cash', 'reset', 'collection'].includes(view) ? '75px' : 0, sm: 0 } }}>
       {view === 'settings' && <SettingsOverview />}
       {view === 'account' && <AccountManagement openReset={openReset} />}
       {view === 'add' && <AccountForm add />}

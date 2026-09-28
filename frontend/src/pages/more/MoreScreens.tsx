@@ -83,18 +83,19 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
   if (liveApiEnabled && query.isPending) return <Typography role="status">계좌 목록을 불러오는 중입니다.</Typography>;
   if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;
-  const accountList = <LabelledCard title="등록 계좌" description="현재 사용 중인 계좌 정보입니다." sx={{ height: { sm: '100%' }, overflowY: { sm: 'auto' } }}>
+  const accountList = <LabelledCard title="등록 계좌" description="현재 사용 중인 계좌 정보입니다." sx={{ height: { sm: '100%' }, overflowY: { sm: 'auto' }, bgcolor: { xs: 'transparent', sm: panel.bgcolor }, border: { xs: 0, sm: panel.border }, p: { xs: 0, sm: '16px' }, '& > .MuiTypography-root:nth-of-type(-n+2)': { display: { xs: 'none', sm: 'block' } } }}>
     {accounts.length === 0 ? <Typography sx={{ ...hint, mt: 2 }}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> :
-      <Stack spacing={1} sx={{ mt: 2 }}>{accounts.map((item) => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...row, p: '14px', width: '100%', textAlign: 'left', display: 'block', borderColor: selected?.id === item.id ? '#334155' : '#25344D' }}>
+      <Stack spacing={1} sx={{ mt: { xs: 0, sm: 2 } }}>{accounts.map((item) => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...row, p: '14px', width: '100%', textAlign: 'left', display: 'block', borderColor: selected?.id === item.id ? '#334155' : '#25344D' }}>
         <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ color: '#E8EDF7', fontSize: 16, fontWeight: 600 }}>{item.name}</Typography><Typography sx={{ color: '#34D399', fontSize: 11 }}>{item.isDefault ? '기본 계좌' : selected?.id === item.id ? '사용 중' : '선택'}</Typography></Stack>
         <Typography sx={{ ...hint, mt: 1 }}>현재 예수금</Typography><Typography sx={{ fontSize: { xs: 23, sm: 14 }, color: colors.textPrimary, textAlign: { xs: 'left', sm: 'right' } }}>{fmt(item.cashBalance)}</Typography>
         <Typography sx={{ ...hint, mt: 1 }}>최근 수정 {item.updatedAt ? new Date(item.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—'}</Typography>
       </ButtonBase>)}</Stack>}
     <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-      <Button variant="outlined" sx={{ flex: 1 }} onClick={() => go('add')}>계좌 추가</Button>
       {selected && <Button variant="outlined" sx={{ flex: 1 }} onClick={() => go('edit')}>계좌 정보 수정</Button>}
       {selected && <Button variant="contained" sx={{ flex: 1 }} onClick={() => go('cash')}>예수금 수정</Button>}
+      {!selected && <Button variant="contained" sx={{ flex: 1 }} onClick={() => go('add')}>계좌 추가</Button>}
     </Stack>
+    {selected && <Button variant="text" onClick={() => go('add')} sx={{ mt: 1.5, fontSize: 11 }}>+ 계좌 추가</Button>}
     <Box sx={{ mt: 2, pt: 1, borderTop: '1px solid #25344D' }}><Typography sx={{ color: '#F87171', fontSize: 11 }}>위험 영역</Typography>
       {selected && (allowed ? <Button variant="outlined" color="error" sx={{ mt: 1, width: '100%' }} onClick={openReset}>계좌 데이터 초기화</Button> : <ButtonBase onClick={openReset} sx={{ ...row, mt: 1, p: 1.5, width: '100%', display: 'block', textAlign: 'left' }}><Typography sx={{ fontSize: 13, color: '#94A3B8' }}>계좌 데이터 초기화</Typography><Typography sx={hint}>현재 환경에서는 사용할 수 없습니다. 안내 보기 ›</Typography></ButtonBase>)}
     </Box>
