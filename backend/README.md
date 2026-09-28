@@ -85,6 +85,9 @@ curl -sS 'http://127.0.0.1:3300/api/prices/latest?symbols=005930,005380'
 - `GET /api/accounts/:accountId/dashboard`: 예수금, 주식평가액, 총평가자산과 보유종목을 한 번에 반환합니다.
 - `GET /api/accounts/:accountId/trades`: 기간·종목별 매수/매도 통합 목록, 합계와 한국 날짜별 달력 집계를 반환합니다.
 - `GET /api/accounts/:accountId/buy-lots`: 매도 화면에서 선택할 잔여 매수 Lot과 연결된 분할매도를 반환합니다.
+- `PATCH /api/buy-trades/:tradeId`, `PATCH /api/sell-trades/:tradeId`: Lot 정합성을 검증하며 거래를 수정합니다.
+- `DELETE /api/buy-trades/:tradeId`, `DELETE /api/sell-trades/:tradeId`: 거래를 삭제하고 보유 분류를 다시 계산합니다. 연결 매수 삭제는 명시적 `cascadeSells=true` 확인이 필요합니다.
+- 거래 수정·삭제는 확정 정책에 따라 과거 예수금 거래와 과거 스냅샷을 자동 재계산하지 않습니다.
 - 실시간 메모리 캐시와 DB 가격 중 거래시각이 최신인 값을 사용합니다.
 - 보유종목 중 가격이 누락된 종목이 있으면 `pricingComplete=false`로 반환하고 주식평가액과 총평가자산을 `null`로 유지합니다.
 
