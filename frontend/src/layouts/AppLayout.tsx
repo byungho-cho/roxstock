@@ -20,6 +20,7 @@ export function AppLayout() {
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
   const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
   const isJournal = location.pathname === '/journal';
+  const isSettings = location.pathname === '/detail/settings';
   useEffect(() => {
     const content = scrollRef.current;
     if (!content) return;
@@ -32,7 +33,7 @@ export function AppLayout() {
     scrollRef.current?.scrollTo({ top: 0 });
     setShowScrollTop(false);
   }, [location.pathname]);
-  const hasPageHeader = isTradePage || isStockFlowPage || isAssetOverview || isJournal;
+  const hasPageHeader = isTradePage || isStockFlowPage || isAssetOverview || isJournal || isSettings;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: isTradePage ? 0 : `${pageMetrics.headerHeight}px` }}>
     <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
       {!hasPageHeader && <PageHeader variant={isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={location.pathname === '/more' ? '/' : undefined} showAdd={isHomePage} addPath="/stocks/add?type=watchlist" addLabel="종목 추가" />}
