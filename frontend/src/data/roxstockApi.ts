@@ -7,10 +7,11 @@ export interface AccountDto {
   id: string;
   name: string;
   brokerName: string;
-  accountNumber: string | null;
+  accountNumber?: string | null;
+  isDefault?: boolean;
+  updatedAt?: string;
   cashBalance: string;
   isActive: boolean;
-  isDefault: boolean;
 }
 
 export interface SecurityDto {
@@ -71,21 +72,27 @@ export interface SecuritySearch {
 }
 
 export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
+export type AccountWriteInput = { name: string; brokerName: string; accountNumber?: string | null; isDefault?: boolean };
+export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
+export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
 
-export interface AccountResetResult {
-  accountId: string;
-  cashBalance: string;
-  deleted: Record<string, number>;
+/** The test-only backend accepts a fixed confirmation word; the UI additionally checks the account name. */
+export const resetAccountData = (accountId: string) =>
+  apiRequest<{ accountId: string; cashBalance: string; deleted: Record<string, number> }>(
+    `/accounts/${encodeURIComponent(accountId)}/reset`,
+    { method: 'POST', body: JSON.stringify({ confirmation: '초기화' }) },
+  );
+
+export const selectedAccountStorageKey = 'roxstock-selected-account-id';
+export function chooseAccount(accounts: AccountDto[]) {
+  const active = accounts.filter((item) => item.isActive);
+  const configuredId = import.meta.env.VITE_API_ACCOUNT_ID;
+  const selected = typeof window === 'undefined' ? null : window.localStorage.getItem(selectedAccountStorageKey);
+  return active.find((item) => item.id === selected) ?? active.find((item) => item.id === configuredId) ?? active.find((item) => item.isDefault) ?? active[0];
 }
 
-export const resetAccountData = (accountId: string) => apiRequest<AccountResetResult>(
-  `/accounts/${encodeURIComponent(accountId)}/reset`,
-  { method: 'POST', body: JSON.stringify({ confirmation: '초기화' }) },
-);
-
-// The current UI has no account switcher. Use the first active account in server display order.
 export async function currentAccountId(): Promise<string> {
-  const account = (await listAccounts()).find((item) => item.isActive);
+  const account = chooseAccount(await listAccounts());
   if (!account) throw new Error('활성 계좌가 없습니다.');
   return account.id;
 }

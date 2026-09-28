@@ -17,6 +17,7 @@ export interface StockItem {
   id: string;
   watchlistItemId?: string;
   priceAvailable?: boolean;
+  priceChangeAvailable?: boolean;
   symbol: string;
   name: string;
   listType: StockListType;
