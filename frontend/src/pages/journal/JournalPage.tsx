@@ -49,9 +49,10 @@ export function JournalPage() {
   const [month, setMonth] = useState(monthOf(initialDate));
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
+  const [detailNotice, setDetailNotice] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
-  const { data: remoteReport, isError: tradesError, refetch: reloadTrades } = useQuery({
+  const { data: remoteReport, isPending: tradesPending, isError: tradesError, refetch: reloadTrades } = useQuery({
     queryKey: ['journalTrades', month], enabled: liveApiEnabled,
     queryFn: async () => {
       const [year, value] = month.split('-').map(Number);
@@ -129,7 +130,7 @@ export function JournalPage() {
   const dayWeekday = new Date(`${selectedDate}T12:00:00`).getDay();
   const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); };
   const openEntry = (entry: Entry) => {
-    if (liveApiEnabled) return; // A read-only transaction detail endpoint is not available yet.
+    if (liveApiEnabled) { setDetailNotice(true); return; }
     if (entry.sample) { navigate(`/stocks/${entry.stockId}?tab=trades`); return; }
     const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate });
     if (entry.lotId) params.set('lot', entry.lotId);
@@ -148,8 +149,12 @@ export function JournalPage() {
     <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: { xs: 44, sm: 28 }, height: { xs: 44, sm: 36 }, color: colors.textSecondary }}><ChevronRightRounded sx={{ fontSize: 20 }} /></IconButton>
   </Stack>;
 
+  if (liveApiEnabled && (tradesPending || tradesError)) return <>
+    <PageHeader embedded title="매매일지" variant="home" showAdd={false} />
+    {tradesError ? <Button role="alert" onClick={() => void reloadTrades()}>거래내역을 불러오지 못했습니다. 다시 시도</Button> : <Typography role="status">거래내역을 불러오는 중입니다.</Typography>}
+  </>;
   return <>
-    {tradesError && <Button role="alert" onClick={() => void reloadTrades()}>거래내역을 불러오지 못했습니다. 다시 시도</Button>}
+    {detailNotice && <Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>개별 거래 상세 조회 API가 준비되지 않아 수정·삭제 화면에 진입할 수 없습니다.</Typography>}
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
     <Stack spacing={{ xs: '12px', sm: 0 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {

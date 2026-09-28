@@ -72,6 +72,12 @@ export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
 
 // The current UI has no account switcher. Use the first active account in server display order.
 export async function currentAccountId(): Promise<string> {
+  const configuredId = import.meta.env.VITE_API_ACCOUNT_ID;
+  if (configuredId) {
+    const account = (await listAccounts()).find((item) => item.id === configuredId && item.isActive);
+    if (!account) throw new Error('설정한 계좌를 찾을 수 없거나 비활성 상태입니다.');
+    return account.id;
+  }
   const account = (await listAccounts()).find((item) => item.isActive);
   if (!account) throw new Error('활성 계좌가 없습니다.');
   return account.id;
