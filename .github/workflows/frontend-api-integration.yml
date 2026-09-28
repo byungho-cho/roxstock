@@ -3,6 +3,11 @@ name: Frontend API Integration (isolated database)
 on:
   push:
     branches: [feature/api-integration-validation, feature/account-reset-settings]
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/**
+      - .github/workflows/frontend-api-integration.yml
   workflow_dispatch:
   workflow_call:
 

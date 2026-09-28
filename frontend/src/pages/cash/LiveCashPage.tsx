@@ -1,20 +1,23 @@
 import { Box, Button, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { currentAccountId, createCashTransaction } from '../../data/roxstockApi';
+import { chooseAccount, currentAccountId, createCashTransaction, getCashHistory, getCashOverview, listAccounts } from '../../data/roxstockApi';
 import { useDashboard } from '../../hooks/useMockData';
 import { formatWon } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 
-/** Keep the existing shell while cash history/edit APIs are unavailable. */
 export function LiveCashPage() {
   const { data, isPending, isError, refetch } = useDashboard();
   const queryClient = useQueryClient();
+  const accounts = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts });
+  const accountId = chooseAccount(accounts.data ?? [])?.id;
+  const overview = useQuery({ queryKey: ['cashOverview', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
+  const history = useQuery({ queryKey: ['cashTransactions', accountId], queryFn: () => getCashHistory(accountId!), enabled: !!accountId });
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
   const [date, setDate] = useState(today);
@@ -33,6 +36,7 @@ export function LiveCashPage() {
         amount, memo: memo || null,
       });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ['cashOverview'] }), queryClient.invalidateQueries({ queryKey: ['cashTransactions'] })]);
       setOpen(false); setAmount(''); setMemo('');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 등록에 실패했습니다.'); }
     finally { setSaving(false); }
@@ -43,7 +47,18 @@ export function LiveCashPage() {
     {isPending ? <Typography role="status">예수금을 불러오는 중입니다.</Typography> :
       isError ? <Button role="alert" onClick={() => void refetch()}>예수금 조회 실패 · 다시 시도</Button> :
       <AppCard><CardContent><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Typography sx={{ mt: 1, color: colors.warning, fontSize: 28, fontWeight: 700 }}>{formatWon(data?.summary.cashBalance ?? Number.NaN)}</Typography></CardContent></AppCard>}
-    <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 거래내역 조회 API가 준비되지 않아 내역과 월별 합계는 표시할 수 없습니다.</Typography>
+    {accounts.isPending || (accountId && (overview.isPending || history.isPending)) ? <Typography role="status" sx={{ mt: 2 }}>예수금 내역을 불러오는 중입니다.</Typography> :
+      accounts.isError || overview.isError || history.isError ? <Button role="alert" onClick={() => { void accounts.refetch(); void overview.refetch(); void history.refetch(); }}>예수금 내역 조회 실패 · 다시 시도</Button> :
+      !accountId ? <Typography role="status" sx={{ mt: 2 }}>선택된 계좌가 없습니다.</Typography> : <>
+        <AppCard sx={{ mt: 2, p: 2 }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>이번달 입금 {formatWon(Number(overview.data?.monthly.deposit))} · 출금 {formatWon(Number(overview.data?.monthly.withdrawal))}</Typography>
+          <Typography sx={{ color: colors.textMuted, fontSize: 12 }}>올해 입금 {formatWon(Number(overview.data?.yearly.deposit))} · 출금 {formatWon(Number(overview.data?.yearly.withdrawal))} · 배당 {formatWon(Number(overview.data?.yearly.dividend))}</Typography></AppCard>
+        <AppCard sx={{ mt: 2, p: 2 }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>예수금 내역</Typography>
+          {history.data?.data.length ? history.data.data.map((entry) => <Stack key={entry.id} direction="row" sx={{ justifyContent: 'space-between', gap: 1, mt: 1 }}>
+            <Typography sx={{ fontSize: 12 }}>{entry.transactionDate.slice(0, 10)} · {entry.transactionType}</Typography>
+            <Typography sx={{ fontSize: 12, whiteSpace: 'nowrap' }}>{formatWon(Number(entry.signedAmount))}</Typography>
+          </Stack>) : <Typography role="status" sx={{ mt: 1, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
+        </AppCard>
+      </>}
     <Dialog open={open} onClose={() => !saving && setOpen(false)} fullWidth maxWidth="xs">
       <DialogTitle>예수금 등록</DialogTitle>
       <DialogContent><Stack spacing={1.5} sx={{ pt: 1 }}>

@@ -1,5 +1,5 @@
 import type { DashboardData, StockItem, StockListType } from '../types/models';
-import { currentAccountId, getAccountDashboard, getAccountHoldings, getBuyLots, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
 import type { BuyLot } from '../types/models';
 
 /** Enable only after the backend and same-origin /api proxy have been deployed. */
@@ -52,7 +52,8 @@ export async function fetchLiveStocks(listType?: StockListType): Promise<StockIt
 }
 
 export async function fetchLiveDashboard(): Promise<DashboardData> {
-  const response = await getAccountDashboard(await currentAccountId());
+  const accountId = await currentAccountId();
+  const [response, history] = await Promise.all([getAccountDashboard(accountId), getAssetHistory(accountId)]);
   const holdings = response.holdings.map(mapHolding);
   const stockValue = decimal(response.stockValue);
   const totalAssets = decimal(response.totalAssetValue);
@@ -67,8 +68,7 @@ export async function fetchLiveDashboard(): Promise<DashboardData> {
       pricingComplete: response.pricingComplete,
     },
     holdings,
-    // A historical trend endpoint does not exist yet. Keep the chart empty instead of inventing points.
-    trend: [],
+    trend: history.data.slice(-30).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
   };
 }
 
