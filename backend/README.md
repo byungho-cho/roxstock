@@ -81,6 +81,9 @@ curl -sS 'http://127.0.0.1:3300/api/prices/latest?symbols=005930,005380'
 
 ## 계좌 보유종목과 대시보드
 
+- `GET /api/accounts`, `POST /api/accounts`, `PATCH /api/accounts/:accountId`: 계좌 조회·추가·변경과 기본 계좌 지정을 제공합니다.
+- 계좌번호는 공백과 하이픈을 제거한 값으로 비교하며 같은 증권사·계좌번호 조합은 `409 ACCOUNT_ALREADY_EXISTS`로 차단합니다. 첫 활성 계좌는 자동으로 기본 계좌가 됩니다.
+- 테스트 환경에서만 `ENABLE_ACCOUNT_DATA_RESET=true`로 설정하면 `POST /api/accounts/:accountId/reset`을 사용할 수 있습니다. 요청 본문은 `{ "confirmation": "초기화" }`이며 계좌 자체와 공통 종목·시세·관심/추천 목록은 보존합니다.
 - `GET /api/accounts/:accountId/holdings`: Lot별 잔여수량을 종목별로 합산해 매입금액, 평가금액, 평가손익과 수익률을 반환합니다.
 - `GET /api/accounts/:accountId/dashboard`: 예수금, 주식평가액, 총평가자산과 보유종목을 한 번에 반환합니다.
 - `GET /api/accounts/:accountId/trades`: 기간·종목별 매수/매도 통합 목록, 합계와 한국 날짜별 달력 집계를 반환합니다.

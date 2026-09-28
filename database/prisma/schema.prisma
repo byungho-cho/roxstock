@@ -61,22 +61,26 @@ enum CollectorItemStatus {
 }
 
 model Account {
-  id                     BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  name                   String                  @db.VarChar(100)
-  brokerName             String                  @map("broker_name") @db.VarChar(100)
-  accountNumber          String?                 @map("account_number") @db.VarChar(50)
-  cashBalance            Decimal                 @default(0) @map("cash_balance") @db.Decimal(19, 4)
-  isActive               Boolean                 @default(true) @map("is_active")
-  displayOrder           Int                     @default(0) @map("display_order") @db.UnsignedSmallInt
-  createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt              DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
-  buyTrades              BuyTrade[]
-  cashTransactions       CashTransaction[]
-  dividends              Dividend[]
-  dailyAccountSnapshots  DailyAccountSnapshot[]
-  dailyPositionSnapshots DailyPositionSnapshot[]
-  compoundGrowthPlans    CompoundGrowthPlan[]
+  id                      BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                    String                  @db.VarChar(100)
+  brokerName              String                  @map("broker_name") @db.VarChar(100)
+  accountNumber           String?                 @map("account_number") @db.VarChar(50)
+  normalizedAccountNumber String?                 @map("normalized_account_number") @db.VarChar(50)
+  cashBalance             Decimal                 @default(0) @map("cash_balance") @db.Decimal(19, 4)
+  isActive                Boolean                 @default(true) @map("is_active")
+  isDefault               Boolean                 @default(false) @map("is_default")
+  displayOrder            Int                     @default(0) @map("display_order") @db.UnsignedSmallInt
+  createdAt               DateTime                @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt               DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  buyTrades               BuyTrade[]
+  cashTransactions        CashTransaction[]
+  dividends               Dividend[]
+  dailyAccountSnapshots   DailyAccountSnapshot[]
+  dailyPositionSnapshots  DailyPositionSnapshot[]
+  compoundGrowthPlans     CompoundGrowthPlan[]
 
+  @@unique([brokerName, normalizedAccountNumber])
+  @@index([isActive, isDefault])
   @@map("accounts")
 }
 
