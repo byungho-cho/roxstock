@@ -1,0 +1,37 @@
+name: Frontend Viewport QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/**
+      - package-lock.json
+      - .github/workflows/frontend-viewport-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm --workspace frontend run qa:viewport
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journal-viewport-screenshots
+          path: |
+            frontend/test-results/**
+            frontend/playwright-report/**
+          if-no-files-found: warn
+          retention-days: 14

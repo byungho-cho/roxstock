@@ -14,3 +14,7 @@ backend/src/generated/prisma/
 .backend-deploy.lock
 .ops-backups/
 .backend-last-good-image
+
+# Local viewport QA output
+frontend/test-results/
+frontend/playwright-report/
