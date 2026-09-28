@@ -12,6 +12,7 @@ import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
 import { CashPage } from './pages/cash/CashPage';
 import { JournalPage } from './pages/journal/JournalPage';
 import { MorePage } from './pages/more/MorePage';
+import { SettingsPage } from './pages/more/SettingsPage';
 
 export function App() {
   return (
@@ -29,6 +30,7 @@ export function App() {
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={<CashPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="trade" element={<TradePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

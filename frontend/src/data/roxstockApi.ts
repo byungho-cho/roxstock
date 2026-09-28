@@ -7,8 +7,10 @@ export interface AccountDto {
   id: string;
   name: string;
   brokerName: string;
+  accountNumber: string | null;
   cashBalance: string;
   isActive: boolean;
+  isDefault: boolean;
 }
 
 export interface SecurityDto {
@@ -69,6 +71,17 @@ export interface SecuritySearch {
 }
 
 export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
+
+export interface AccountResetResult {
+  accountId: string;
+  cashBalance: string;
+  deleted: Record<string, number>;
+}
+
+export const resetAccountData = (accountId: string) => apiRequest<AccountResetResult>(
+  `/accounts/${encodeURIComponent(accountId)}/reset`,
+  { method: 'POST', body: JSON.stringify({ confirmation: '초기화' }) },
+);
 
 // The current UI has no account switcher. Use the first active account in server display order.
 export async function currentAccountId(): Promise<string> {
