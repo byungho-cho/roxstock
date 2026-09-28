@@ -2,7 +2,7 @@ import { Box, Button, CardActionArea, CircularProgress, Skeleton, Stack, Typogra
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem } from '../../types/models';
-import { formatAmount, formatRate, formatWon, getMarketColor } from '../../utils/format';
+import { formatRate, formatWon, getMarketColor } from '../../utils/format';
 import { AppCard, SectionHeader } from '../../components/common/Common';
 import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
 import { colors } from '../../styles/tokens';
@@ -47,10 +47,11 @@ function TrendChart({ values, labels }: { values: number[]; labels: string[] }) 
   const min = Math.min(...finite); const max = Math.max(...finite); const range = Math.max(max - min, 1);
   const points = values.map((value, index) => `${(index / (values.length - 1)) * 340},${72 - ((value - min) / range) * 58}`).join(' ');
   const ticks = [0, 1, 2, 3, 4].map((i) => { const label = labels[Math.round(i * (labels.length - 1) / 4)]; return label?.includes('-') ? `${Number(label.slice(5, 7))}월` : label; }).filter(Boolean);
+  const axisLabel = (value: number) => `${Math.round(value / 10_000).toLocaleString('ko-KR')}만원`;
   return <Box sx={{ mt: { xs: '7px', sm: '3px' }, width: '100%', height: { xs: 32, sm: 'calc(100% - 28px)' }, minHeight: { sm: 100 }, overflow: 'hidden' }}>
-    <Box sx={{ display: { xs: 'none', sm: 'flex' }, height: 92 }}><Stack sx={{ width: 36, flexShrink: 0, justifyContent: 'space-between', color: colors.disabled, fontSize: 9 }}><span>{formatAmount(max)}</span><span>{formatAmount((min + max) / 2)}</span><span>{formatAmount(min)}</span></Stack><Box sx={{ flex: 1, minWidth: 0 }}><ChartLine points={points} /></Box></Box>
+    <Box sx={{ display: { xs: 'none', sm: 'flex' }, height: 92 }}><Stack sx={{ width: 44, flexShrink: 0, justifyContent: 'space-between', color: colors.disabled, fontSize: 8, whiteSpace: 'nowrap' }}><span>{axisLabel(max)}</span><span>{axisLabel((min + max) / 2)}</span><span>{axisLabel(min)}</span></Stack><Box sx={{ flex: 1, minWidth: 0 }}><ChartLine points={points} /></Box></Box>
     <Box sx={{ display: { xs: 'block', sm: 'none' }, height: 32 }}><ChartLine points={points} /></Box>
-    <Box sx={{ display: { xs: 'none', sm: 'flex' }, ml: '36px', justifyContent: 'space-between', color: colors.disabled, fontSize: 9 }}>{ticks.map((tick, index) => <span key={`${tick}-${index}`}>{tick}월</span>)}</Box>
+    <Box sx={{ display: { xs: 'none', sm: 'flex' }, ml: '44px', justifyContent: 'space-between', color: colors.disabled, fontSize: 9 }}>{ticks.map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}</Box>
   </Box>;
 }
 
