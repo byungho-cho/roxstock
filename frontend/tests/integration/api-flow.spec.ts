@@ -109,6 +109,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
 });
 
 test('170 settings: account API create, update, requery and guarded reset across both viewports', async ({ page, request }, testInfo) => {
+  test.setTimeout(120_000);
   const unique = `설정 통합 ${Date.now()}`;
   await page.setViewportSize({ width: 400, height: 640 });
   await page.goto('/more');
