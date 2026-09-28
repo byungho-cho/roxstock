@@ -19,7 +19,7 @@ const tabs: Array<{ value: StockListType; label: string }> = [
   { value: 'watchlist', label: '관심종목' }, { value: 'holding', label: '보유종목' }, { value: 'recommended', label: '추천종목' },
 ];
 const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
-const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const formatWon = (value: number) => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
 
 export function StockListPage() {
   const navigate = useNavigate();
@@ -66,7 +66,8 @@ export function StockListPage() {
         return (bValue - aValue) * (descending ? 1 : -1);
       });
   }, [activeTab, data, descending, favoriteIds, query, showEmpty]);
-  const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
+  const totalValue = items.some((stock) => stock.listType === 'holding' && stock.marketValue === undefined)
+    ? Number.NaN : items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
     <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>} />
@@ -89,14 +90,14 @@ export function StockListPage() {
 
     <Stack direction="row" sx={{ display: { xs: 'flex', sm: 'none' }, height: 26, alignItems: 'center', justifyContent: 'space-between' }}>
       <Typography sx={{ fontSize: 14, fontWeight: 600 }}>총 {items.length}개</Typography>
-      {activeTab === 'holding' ? <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{formatWon(totalValue)}</Typography> : <Typography sx={{ fontSize: 10, fontWeight: 500, color: colors.textMuted }}>{activeTab === 'watchlist' ? '시세 1분 전' : '오늘 업데이트'}</Typography>}
+      {activeTab === 'holding' ? <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{formatWon(totalValue)}</Typography> : <Typography sx={{ fontSize: 10, fontWeight: 500, color: colors.textMuted }}>{liveApiEnabled ? '서버 시세 기준' : activeTab === 'watchlist' ? '시세 1분 전' : '오늘 업데이트'}</Typography>}
     </Stack>
 
     <Box sx={{ display: { xs: 'block', sm: 'none' }, touchAction: 'pan-y' }} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}>
-      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : isError ? null : items.length === 0 ? <EmptyStocks onRestore={liveApiEnabled ? undefined : () => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
-    <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} /></Box>
-    {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{!isError && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
+    {!liveApiEnabled && !isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;
       if (liveApiEnabled) { setPriceStock(null); setApiMessage('현재가 수동 변경 API는 제공되지 않습니다.'); return; }
@@ -130,22 +131,22 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
       <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '4px', px: '14px', pt: '12px', pb: '10px !important' }}>
         <Stack direction="row" sx={{ height: 22, alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography noWrap sx={{ fontSize: 15, fontWeight: 700 }}>{stock.name}<Box component="span" sx={{ ml: 1, fontSize: 11, fontWeight: 400, color: colors.textMuted }}>{stock.symbol}</Box></Typography>
-          {isHolding ? <IconButton aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFavorite} onClick={(event) => { event.stopPropagation(); onToggleFavorite(); }} sx={{ width: 30, height: 22, p: 0, color: isFavorite ? colors.warning : colors.textMuted }}>{isFavorite ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton> : <Box sx={{ minWidth: 48, height: 20, px: 0.75, display: 'grid', placeItems: 'center', border: `1px solid ${colors.warning}88`, borderRadius: '6px', color: colors.warning, fontSize: 10, fontWeight: 600 }}>W {(stock.pbr ?? 1).toFixed(2)}</Box>}
+          {isHolding ? <IconButton aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} aria-pressed={isFavorite} onClick={(event) => { event.stopPropagation(); onToggleFavorite(); }} sx={{ width: 30, height: 22, p: 0, color: isFavorite ? colors.warning : colors.textMuted }}>{isFavorite ? <FavoriteRounded sx={{ fontSize: 20 }} /> : <FavoriteBorderRounded sx={{ fontSize: 20 }} />}</IconButton> : <Box sx={{ minWidth: 48, height: 20, px: 0.75, display: 'grid', placeItems: 'center', border: `1px solid ${colors.warning}88`, borderRadius: '6px', color: colors.warning, fontSize: 10, fontWeight: 600 }}>W {liveApiEnabled ? '—' : (stock.pbr ?? 1).toFixed(2)}</Box>}
         </Stack>
         <Box sx={{ height: '1px', bgcolor: colors.border }} />
         {isHolding ? <>
           <MetricRow label={<><Box component="span" sx={{ fontSize: 14 }}>보유</Box><Box component="span" sx={{ ml: 2, fontSize: 12.5 }}>{quantity.toLocaleString('ko-KR')} × {formatWon(averagePrice)}</Box></>} value={formatWon(investedAmount)} />
-          <MetricRow label={<><Box component="span" sx={{ fontSize: 14 }}>평가</Box><Box component="span" sx={{ ml: 2, fontSize: 12 }}>{quantity.toLocaleString('ko-KR')} × {formatWon(stock.currentPrice)}</Box></>} value={formatWon(marketValue)} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label={<><Box component="span" sx={{ fontSize: 14 }}>평가</Box><Box component="span" sx={{ ml: 2, fontSize: 12 }}>{quantity.toLocaleString('ko-KR')} × {stock.priceAvailable === false ? '미수집' : formatWon(stock.currentPrice)}</Box></>} value={formatWon(marketValue)} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label={<><Box component="span">평가손익</Box><Box component="span" sx={{ ml: 2, color: getMarketColor(profitAmount) }}>{formatRate(profitRate)}</Box></>} value={formatWon(profitAmount)} color={getMarketColor(profitAmount)} />
           <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}>
-            <Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate), cursor: 'pointer' }}><Typography sx={{ fontSize: 10 }}>{formatWon(dailyChange)}({formatRate(stock.priceChangeRate)})</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>
+            {liveApiEnabled ? <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{stock.priceAvailable === false ? '시세 미수집' : stock.priceChangeAvailable === false ? '등락 정보 없음' : `${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`}</Typography> : <Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate), cursor: 'pointer' }}><Typography sx={{ fontSize: 10 }}>{formatWon(dailyChange)}({formatRate(stock.priceChangeRate)})</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>}
             <Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography>
           </Stack>
         </> : <>
-          <MetricRow label={<Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}><span>현재가</span><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>} value={formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
-          <MetricRow label="전일대비" value={`${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label={<Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}><span>현재가</span>{!liveApiEnabled && <EditRounded sx={{ fontSize: 12, color: colors.textMuted }} />}</Stack>} value={stock.priceAvailable === false ? '미수집' : formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label="전일대비" value={stock.priceChangeAvailable === false ? '—' : `${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label={`PER ${stock.per ?? '-'} · PBR ${stock.pbr ?? '-'}`} value={`ROE ${stock.roe ?? '-'}%`} color={getMarketColor(stock.roe ?? 0)} />
-          <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}><Typography noWrap sx={{ maxWidth: 230, fontSize: 10, color: colors.textMuted }}>{stock.note ?? (stock.listType === 'recommended' ? '이익 성장 · 현금흐름 우수' : '재평가 구간 관찰')}</Typography><Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography></Stack>
+          <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}><Typography noWrap sx={{ maxWidth: 230, fontSize: 10, color: colors.textMuted }}>{stock.note ?? (liveApiEnabled ? '' : stock.listType === 'recommended' ? '이익 성장 · 현금흐름 우수' : '재평가 구간 관찰')}</Typography><Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography></Stack>
         </>}
         <Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} />
       </CardContent>
@@ -184,8 +185,8 @@ function MetricRow({ label, value, color = colors.textPrimary }: { label: ReactN
   return <Stack direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}><Typography component="div" noWrap sx={{ minWidth: 0, fontSize: 12, color: colors.textSecondary }}>{label}</Typography><Typography noWrap sx={{ width: 130, textAlign: 'right', fontSize: 12, fontWeight: 600, color }}>{value}</Typography></Stack>;
 }
 
-function EmptyStocks({ onRestore }: { onRestore: () => void }) {
-  return <Card><CardContent sx={{ py: 5, textAlign: 'center' }}><InboxRounded sx={{ fontSize: 42, color: 'text.secondary' }} /><Typography sx={{ mt: 1, fontWeight: 750 }}>표시할 종목이 없어요.</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>종목을 추가하거나 다른 탭을 확인해 주세요.</Typography><Button sx={{ mt: 2 }} onClick={onRestore}>목 데이터 다시 보기</Button></CardContent></Card>;
+function EmptyStocks({ onRestore }: { onRestore?: () => void }) {
+  return <Card><CardContent sx={{ py: 5, textAlign: 'center' }}><InboxRounded sx={{ fontSize: 42, color: 'text.secondary' }} /><Typography sx={{ mt: 1, fontWeight: 750 }}>표시할 종목이 없어요.</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>종목을 추가하거나 다른 탭을 확인해 주세요.</Typography>{onRestore && <Button sx={{ mt: 2 }} onClick={onRestore}>목 데이터 다시 보기</Button>}</CardContent></Card>;
 }
 
 function StockListLoading() {

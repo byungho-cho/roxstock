@@ -21,7 +21,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  integration:
+    uses: ./.github/workflows/frontend-api-integration.yml
+
   publish:
+    needs: integration
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.image.outputs.tag }}
@@ -57,6 +61,8 @@ jobs:
         with:
           context: .
           file: frontend/Dockerfile
+          build-args: |
+            VITE_DATA_SOURCE=api
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
