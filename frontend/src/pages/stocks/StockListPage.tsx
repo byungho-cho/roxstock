@@ -8,6 +8,7 @@ import { useStocks } from '../../hooks/useMockData';
 import { useFavoriteStocks } from '../../hooks/useFavoriteStocks';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
+import { liveApiEnabled } from '../../data/liveData';
 import type { CollectionStatus, StockItem, StockListType } from '../../types/models';
 import { formatRate, getMarketColor } from '../../utils/format';
 import { colors } from '../../styles/tokens';
@@ -34,7 +35,8 @@ export function StockListPage() {
   const touchStartX = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
-  const { data = [], isPending } = useStocks(activeTab);
+  const { data = [], isPending, isError, refetch } = useStocks(activeTab);
+  const [apiMessage, setApiMessage] = useState('');
   const { favoriteIds, toggleFavorite } = useFavoriteStocks();
 
   const moveTab = (direction: -1 | 1) => {
@@ -75,6 +77,8 @@ export function StockListPage() {
       </Tabs>
     </Card>
 
+    {isError && <Button role="alert" onClick={() => void refetch()}>종목 목록을 불러오지 못했습니다. 다시 시도</Button>}
+    {apiMessage && <Box role="alert" sx={{ color: colors.marketRise, fontSize: 12 }}>{apiMessage}</Box>}
     <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', sm: 'none' } }}>
       <Box sx={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', gap: 1, px: '14px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '12px' }}>
         <SearchRounded sx={{ fontSize: 16, color: colors.textMuted }} />
@@ -95,6 +99,7 @@ export function StockListPage() {
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;
+      if (liveApiEnabled) { setPriceStock(null); setApiMessage('현재가 수동 변경 API는 제공되지 않습니다.'); return; }
       const sourceStock = stockItems.find((item) => item.id === priceStock.id);
       if (!sourceStock) return;
       const previousClose = sourceStock.currentPrice / (1 + sourceStock.priceChangeRate / 100);

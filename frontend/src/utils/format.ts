@@ -5,6 +5,7 @@ const numberFormatter = new Intl.NumberFormat('ko-KR', {
 });
 
 export function formatAmount(value: number): string {
+  if (!Number.isFinite(value)) return '—';
   const absolute = Math.abs(value);
   const sign = value < 0 ? '-' : '';
 
@@ -20,11 +21,12 @@ export function formatSignedAmount(value: number): string {
   return `${value > 0 ? '+' : ''}${formatAmount(value)}`;
 }
 
-export const formatWon = (value: number): string => `${Math.round(value).toLocaleString('ko-KR')}원`;
-export const formatSignedWon = (value: number): string => `${value > 0 ? '+' : ''}${formatWon(value)}`;
-export const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
+export const formatWon = (value: number): string => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
+export const formatSignedWon = (value: number): string => Number.isFinite(value) ? `${value > 0 ? '+' : ''}${formatWon(value)}` : '—';
+export const formatPercent = (value: number): string => Number.isFinite(value) ? `${value.toFixed(1)}%` : '—';
 
 export function formatRate(value: number, fractionDigits = 1): string {
+  if (!Number.isFinite(value)) return '—';
   if (value === 0) return `${(0).toFixed(fractionDigits)}%`;
   return `${value > 0 ? '+' : ''}${value.toFixed(fractionDigits)}%`;
 }

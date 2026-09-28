@@ -15,6 +15,8 @@ export interface CashEntry {
 
 export interface StockItem {
   id: string;
+  watchlistItemId?: string;
+  priceAvailable?: boolean;
   symbol: string;
   name: string;
   listType: StockListType;
@@ -46,6 +48,7 @@ export interface BuyLot {
 }
 
 export interface DashboardSummary {
+  pricingComplete?: boolean;
   totalAssets: number;
   stockValue: number;
   stockPurchaseAmount: number;

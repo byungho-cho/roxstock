@@ -10,7 +10,8 @@ import { createTrade } from '../../data/mockApi';
 import { getBuyTrade, updateBuyTrade } from '../../data/mockBuyTrades';
 import { getAvailableLots, getSellTrade, updateSellTrade } from '../../data/mockSellTrades';
 import { currentCashBalance, stockItems } from '../../data/mockData';
-import { useBuyLots, useStocks } from '../../hooks/useMockData';
+import { liveApiEnabled } from '../../data/liveData';
+import { useBuyLots, useDashboard, useStocks } from '../../hooks/useMockData';
 import type { StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
 import { formatDate, formatRate, getMarketColor } from '../../utils/format';
 import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
@@ -20,7 +21,7 @@ import { colors, pageGutter } from '../../styles/tokens';
 
 type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
 const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
-const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const formatWon = (value: number) => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
 const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
 
 export function TradePage() {
@@ -50,10 +51,17 @@ export function TradePage() {
   const mobileMemoRef = useRef<HTMLInputElement>(null);
   const tabletMemoRef = useRef<HTMLTextAreaElement>(null);
   const { data: fetchedStocks } = useStocks();
-  const stocks = fetchedStocks ?? stockItems;
+  const { data: dashboard } = useDashboard();
+  const stocks = fetchedStocks ?? (liveApiEnabled ? [] : stockItems);
   const { data: lots = [], isPending: lotsLoading } = useBuyLots(type === 'sell' ? stockId : undefined);
   const selectedLot = lots.find((lot) => lot.id === lotId);
   const selectedStock = stocks.find((stock) => stock.id === stockId);
+
+  useEffect(() => {
+    if (liveApiEnabled && !editId && type === 'buy' && fetchedStocks?.length && !fetchedStocks.some((stock) => stock.id === stockId)) {
+      setStockId(fetchedStocks[0].id);
+    }
+  }, [editId, fetchedStocks, stockId, type]);
 
   useEffect(() => {
     if (selectedStock && !editId) setPrice(String(selectedStock.currentPrice));
@@ -94,9 +102,9 @@ export function TradePage() {
       tradeAmount,
       realizedProfit: type === 'sell' && selectedLot ? numericQuantity * (numericPrice - selectedLot.buyPrice) - numericFee : undefined,
       cashChange,
-      expectedCashBalance: currentCashBalance + cashChange,
+      expectedCashBalance: (liveApiEnabled ? dashboard?.summary.cashBalance ?? Number.NaN : currentCashBalance) + cashChange,
     };
-  }, [feeTaxAmount, price, quantity, selectedLot, type]);
+  }, [dashboard?.summary.cashBalance, feeTaxAmount, price, quantity, selectedLot, type]);
 
   const averagePriceAfterBuy = useMemo(() => {
     if (type !== 'buy' || !selectedStock) return undefined;
@@ -111,7 +119,7 @@ export function TradePage() {
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
     const numericQuantity = Number(quantity);
-    if (!stockId) next.stockId = '종목을 선택해 주세요.';
+    if (!selectedStock) next.stockId = '종목을 선택해 주세요.';
     if (type === 'sell' && !selectedLot) next.lotId = '연결된 매수 항목을 확인할 수 없습니다.';
     if (!Number.isInteger(numericQuantity) || numericQuantity <= 0) next.quantity = '수량은 1주 이상 정수로 입력해 주세요.';
     if (type === 'sell' && selectedLot && numericQuantity > selectedLot.remainingQuantity + (editing?.quantity ?? 0)) next.quantity = `잔여수량 ${selectedLot.remainingQuantity}주를 넘길 수 없습니다.`;
@@ -131,12 +139,16 @@ export function TradePage() {
     submitting.current = true;
     setIsSaving(true);
     try {
+      if (liveApiEnabled && editId) throw new Error('거래 수정 API가 아직 제공되지 않습니다.');
       if (editId && type === 'sell') updateSellTrade(editId, draft);
       else if (editId) updateBuyTrade(editId, draft, getAvailableLots(stockId).find((lot) => lot.id === editId)?.soldQuantity ?? 0);
       else await createTrade(draft);
       await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
+      if (liveApiEnabled) {
+        await Promise.all([queryClient.invalidateQueries({ queryKey: ['stocks'] }), queryClient.invalidateQueries({ queryKey: ['dashboard'] }), queryClient.invalidateQueries({ queryKey: ['journalTrades'] })]);
+      }
       setSaved(true);
-      navigate(returnToJournal ? `/journal?date=${tradeDate}` : `/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
+      navigate(returnToJournal ? `/journal?date=${tradeDate}` : liveApiEnabled ? '/stocks?tab=holding' : `/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
     } catch (error) {
       setErrors((current) => ({ ...current, quantity: error instanceof Error ? error.message : '거래를 저장하지 못했습니다.' }));
     } finally {
@@ -188,7 +200,7 @@ export function TradePage() {
           <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : editing ? '수정' : type === 'buy' ? '매수' : '매도'}</ActionButton>
         </Stack>
       </Box>
-      <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.</Alert></Snackbar>
+      <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>{liveApiEnabled ? '매수 거래가 등록되었습니다.' : '목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.'}</Alert></Snackbar>
     </Stack>
   );
 }

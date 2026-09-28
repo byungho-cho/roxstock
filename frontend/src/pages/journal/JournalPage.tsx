@@ -1,10 +1,13 @@
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useMemo, useRef, useState, type TouchEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBuyTrades } from '../../data/mockBuyTrades';
 import { buyLots, stockItems } from '../../data/mockData';
 import { getAvailableLots, getSellTrades } from '../../data/mockSellTrades';
+import { liveApiEnabled } from '../../data/liveData';
+import { currentAccountId, getTrades } from '../../data/roxstockApi';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
@@ -48,8 +51,29 @@ export function JournalPage() {
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
+  const { data: remoteReport, isError: tradesError, refetch: reloadTrades } = useQuery({
+    queryKey: ['journalTrades', month], enabled: liveApiEnabled,
+    queryFn: async () => {
+      const [year, value] = month.split('-').map(Number);
+      const first = new Date(year, value - 1, 1);
+      const last = new Date(year, value, 0);
+      first.setDate(first.getDate() - 6);
+      last.setDate(last.getDate() + 6);
+      return getTrades(await currentAccountId(), {
+        from: dateOf(first.getFullYear(), first.getMonth() + 1, first.getDate()),
+        to: dateOf(last.getFullYear(), last.getMonth() + 1, last.getDate()),
+      });
+    },
+  });
 
   const entries = useMemo(() => {
+    if (liveApiEnabled) return (remoteReport?.data ?? []).map((trade): Entry => ({
+      id: trade.id, type: trade.type === 'BUY' ? 'buy' : 'sell',
+      date: new Date(trade.tradedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
+      stockId: trade.security.id, stockName: trade.security.name, quantity: Number(trade.quantity),
+      price: Number(trade.unitPrice), profit: trade.realizedProfitLoss === null ? undefined : Number(trade.realizedProfitLoss),
+      lotId: trade.type === 'SELL' ? trade.buyTradeId : undefined,
+    }));
     const lots = getAvailableLots();
     const buys: Entry[] = getBuyTrades().map((trade) => ({ id: trade.id, type: 'buy', date: trade.tradeDate, stockId: trade.stockId, stockName: stockItems.find((stock) => stock.id === trade.stockId)?.name ?? trade.stockId, quantity: trade.quantity, price: trade.price }));
     const samples: Entry[] = buyLots.map((lot) => ({ id: lot.id, type: 'buy', date: lot.tradeDate, stockId: lot.stockId, stockName: stockItems.find((stock) => stock.id === lot.stockId)?.name ?? lot.stockName, quantity: lot.quantity, price: lot.buyPrice, sample: true }));
@@ -58,7 +82,7 @@ export function JournalPage() {
       return { id: trade.id, type: 'sell', date: trade.tradeDate, stockId: trade.stockId, stockName: stockItems.find((stock) => stock.id === trade.stockId)?.name ?? trade.stockId, quantity: trade.quantity, price: trade.price, lotId: trade.lotId, profit: lot ? trade.quantity * (trade.price - lot.buyPrice) : undefined };
     });
     return [...buys, ...samples, ...sells, ...exampleTrades].sort((a, b) => b.date.localeCompare(a.date));
-  }, []);
+  }, [remoteReport]);
   const goToMonth = (next: string) => {
     const day = Math.min(Number(selectedDate.slice(8, 10)), new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate());
     setMonth(next);
@@ -105,6 +129,7 @@ export function JournalPage() {
   const dayWeekday = new Date(`${selectedDate}T12:00:00`).getDay();
   const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); };
   const openEntry = (entry: Entry) => {
+    if (liveApiEnabled) return; // A read-only transaction detail endpoint is not available yet.
     if (entry.sample) { navigate(`/stocks/${entry.stockId}?tab=trades`); return; }
     const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate });
     if (entry.lotId) params.set('lot', entry.lotId);
@@ -124,6 +149,7 @@ export function JournalPage() {
   </Stack>;
 
   return <>
+    {tradesError && <Button role="alert" onClick={() => void reloadTrades()}>거래내역을 불러오지 못했습니다. 다시 시도</Button>}
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
     <Stack spacing={{ xs: '12px', sm: 0 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {

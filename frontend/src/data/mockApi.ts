@@ -3,6 +3,8 @@ import { loadCash } from './mockCash';
 import { addBuyTrade } from './mockBuyTrades';
 import { addSellTrade, getAvailableLots } from './mockSellTrades';
 import type { BuyLot, DashboardData, StockItem, StockListType, TradeDraft } from '../types/models';
+import { liveApiEnabled } from './liveData';
+import { createBuyTrade, createSellTrade, currentAccountId } from './roxstockApi';
 
 const delay = (milliseconds = 420) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
@@ -32,6 +34,20 @@ export async function fetchBuyLots(stockId?: string): Promise<BuyLot[]> {
 }
 
 export async function createTrade(draft: TradeDraft): Promise<{ id: string; draft: TradeDraft }> {
+  if (liveApiEnabled) {
+    const tradedAt = new Date(`${draft.tradeDate}T12:00:00+09:00`).toISOString();
+    const fields = { quantity: String(draft.quantity), unitPrice: String(draft.price), feeTaxAmount: String(draft.feeTaxAmount), memo: draft.memo || null };
+    if (draft.type === 'sell') {
+      if (!draft.lotId) throw new Error('연결할 매수 Lot이 없습니다.');
+      const result = await createSellTrade({ buyTradeId: draft.lotId, soldAt: tradedAt, ...fields });
+      return { id: result.id, draft };
+    }
+    const result = await createBuyTrade({
+      accountId: await currentAccountId(), securityId: draft.stockId,
+      boughtAt: tradedAt, ...fields,
+    });
+    return { id: result.id, draft };
+  }
   await delay(650);
   return { id: draft.type === 'sell' ? addSellTrade(draft).id : addBuyTrade(draft).id, draft: structuredClone(draft) };
 }
