@@ -29,12 +29,13 @@ type PageHeaderProps = {
   action?: ReactNode;
   embedded?: boolean;
   scope?: 'cover' | 'tablet';
+  maxWidth?: number;
 };
 
 export const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
 // A page can supply its actions, while the header always renders in AppLayout's fixed slot.
-export function PageHeader({ title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile, action, embedded = false, scope }: PageHeaderProps) {
+export function PageHeader({ title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile, action, embedded = false, scope, maxWidth = 816 }: PageHeaderProps) {
   const navigate = useNavigate();
   const slot = useContext(HeaderSlotContext);
   const tablet = useMediaQuery('(min-width:600px)');
@@ -42,7 +43,7 @@ export function PageHeader({ title, variant = 'standard', showAdd = true, compac
   const mobileAddVisible = showAddMobile ?? variant !== 'detail';
   if ((scope === 'cover' && tablet) || (scope === 'tablet' && !tablet)) return null;
   const header = <AppBar position="static" elevation={0} color="transparent" sx={{ height: pageMetrics.headerHeight, bgcolor: colors.canvas, border: 0 }}>
-    <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: 816 }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 0, alignItems: 'center' }}>
+    <Toolbar sx={{ width: '100%', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 0, alignItems: 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: variant === 'more' ? 28 : pageMetrics.headerHeight, height: pageMetrics.headerHeight, p: variant === 'more' ? 0 : undefined, color: colors.textPrimary }}><ArrowBackRounded sx={{ fontSize: variant === 'more' ? 18 : 24 }} /></IconButton>}
       <Box sx={{ flex: 1, minWidth: 0, textAlign: variant === 'more' ? 'left' : variant === 'detail' || compact || hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
         <Typography component="h1" noWrap sx={{ fontSize: { xs: variant === 'more' ? 18 : 22, sm: 21 }, lineHeight: variant === 'more' ? { xs: '22px', sm: '30px' } : '30px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
