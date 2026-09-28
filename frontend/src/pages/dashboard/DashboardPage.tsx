@@ -16,7 +16,7 @@ export function DashboardPage() {
   if (isError || !data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
-  const featuredHoldings = ["hyundai", "kia", "samsung"].map((id) => holdings.find((stock) => stock.id === id)).filter((stock): stock is StockItem => Boolean(stock));
+  const featuredHoldings = holdings.slice(0, 3);
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: `${pageMetrics.gap}px`, sm: '16px' }, alignItems: 'start' }}>
     <Stack spacing={`${pageMetrics.gap}px`} sx={{ minWidth: 0 }}>
     <TotalAssetCard summary={summary} />
@@ -37,10 +37,11 @@ export function DashboardPage() {
 }
 
 function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
-  return <CardActionArea onClick={onClick} sx={{ minHeight: { xs: 28, sm: 39 }, borderRadius: '4px', borderBottom: { sm: `1px solid ${colors.border}` } }}><Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 62px 128px', sm: 'minmax(0, 1fr) 62px 98px' }, alignItems: 'center', minWidth: 0 }}><Typography noWrap sx={{ fontSize: { xs: 14, sm: 12 }, lineHeight: '21px' }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography><Typography noWrap sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatWon(stock.marketValue ?? 0)}</Typography><Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} /></Box></CardActionArea>;
+  return <CardActionArea onClick={onClick} sx={{ minHeight: { xs: 28, sm: 39 }, borderRadius: '4px', borderBottom: { sm: `1px solid ${colors.border}` } }}><Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 62px 128px', sm: 'minmax(0, 1fr) 62px 98px' }, alignItems: 'center', minWidth: 0 }}><Typography noWrap sx={{ fontSize: { xs: 14, sm: 12 }, lineHeight: '21px' }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{stock.priceAvailable === false ? '—' : formatRate(stock.priceChangeRate)}</Typography><Typography noWrap sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatWon(stock.marketValue ?? Number.NaN)}</Typography><Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} /></Box></CardActionArea>;
 }
 
 function TrendChart({ values }: { values: number[] }) {
+  if (values.length < 2) return <Box sx={{ mt: '10px', height: 40 }} />;
   const min = Math.min(...values); const max = Math.max(...values); const range = Math.max(max - min, 1);
   const points = values.map((value, index) => `${(index / (values.length - 1)) * 340},${36 - ((value - min) / range) * 28}`).join(' ');
   return <Box sx={{ mt: '10px', width: '100%', height: 40, overflow: 'hidden' }}><svg viewBox="0 0 340 40" preserveAspectRatio="none" width="100%" height="40" role="img" aria-label="최근 1개월 자산 추이"><defs><linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#60A5FA" stopOpacity="0.28" /><stop offset="100%" stopColor="#60A5FA" stopOpacity="0" /></linearGradient></defs><line x1="0" y1="37.5" x2="340" y2="37.5" stroke="#1E293B" /><polygon points={`0,40 ${points} 340,40`} fill="url(#trendFill)" /><polyline points={points} fill="none" stroke="#60A5FA" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg></Box>;

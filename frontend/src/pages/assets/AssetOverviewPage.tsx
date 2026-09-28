@@ -27,7 +27,10 @@ export function AssetOverviewPage() {
   const cashPercent = summary.totalAssets ? summary.cashBalance / summary.totalAssets * 100 : 0;
   const valuationProfit = summary.stockValue - summary.stockPurchaseAmount;
   const valuationRate = summary.stockPurchaseAmount ? valuationProfit / summary.stockPurchaseAmount * 100 : 0;
-  const chartItems = assetComposition.map(({ id, percent }, index) => ({
+  const composition = summary.pricingComplete === undefined ? assetComposition : !summary.pricingComplete ? [] :
+    holdings.filter((stock) => stock.marketValue !== undefined && stock.marketValue > 0)
+      .map((stock) => ({ id: stock.id, percent: summary.stockValue > 0 ? stock.marketValue! / summary.stockValue * 100 : 0 }));
+  const chartItems = composition.map(({ id, percent }, index) => ({
     id, percent, color: chartColors[index],
     name: id === 'other' ? '기타' : holdings.find((stock) => stock.id === id)?.name ?? '기타',
   }));

@@ -1,12 +1,14 @@
 import { SearchRounded } from '@mui/icons-material';
 import { Box, Button, Card, CardContent, Chip, InputBase, Stack, Typography } from '@mui/material';
-import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormTextField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
+import { liveApiEnabled, mapSecurity } from '../../data/liveData';
+import { createWatchlistItem, listSecurities, type MarketType } from '../../data/roxstockApi';
 import { colors } from '../../styles/tokens';
 import type { StockItem, StockListType } from '../../types/models';
 
@@ -28,22 +30,45 @@ export function StockAddPage() {
   const [symbol, setSymbol] = useState('');
   const symbolRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  const { data: remoteResults = [], isError: searchError } = useQuery({
+    queryKey: ['securitySearch', debouncedQuery, market],
+    enabled: liveApiEnabled && debouncedQuery.length > 0,
+    queryFn: async () => (await listSecurities({
+      query: debouncedQuery,
+      marketType: ({ '코스피': 'KOSPI', '코스닥': 'KOSDAQ' } as Record<string, MarketType>)[market],
+      excludeRegistered: true, limit: 20, offset: 0,
+    })).map(mapSecurity),
+  });
 
   const results = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return [];
+    if (liveApiEnabled) return remoteResults;
     const unique = new Map<string, StockItem>();
     stockItems.forEach((stock) => {
       if ((stock.name.toLowerCase().includes(keyword) || stock.symbol.includes(keyword)) && !unique.has(stock.symbol)) unique.set(stock.symbol, stock);
     });
     return [...unique.values()].slice(0, 6);
-  }, [query]);
+  }, [query, remoteResults]);
 
   const finish = async () => {
     await queryClient.invalidateQueries({ queryKey: ['stocks'] });
     navigate(`/stocks?tab=${category}`);
   };
   const addExisting = async (source: StockItem) => {
+    if (liveApiEnabled) {
+      if (category === 'holding') { setMessage('보유종목은 매수 거래를 등록하면 자동으로 추가됩니다.'); return; }
+      try {
+        await createWatchlistItem({ securityId: source.id, listType: category === 'watchlist' ? 'WATCHLIST' : 'RECOMMENDED' });
+        await finish();
+      } catch (error) { setMessage(error instanceof Error ? error.message : '종목 등록에 실패했습니다.'); }
+      return;
+    }
     if (stockItems.some((stock) => stock.symbol === source.symbol && stock.listType === category)) {
       setMessage(`이미 ${categories.find((item) => item.value === category)?.label}에 등록된 종목입니다.`);
       return;
@@ -52,6 +77,7 @@ export function StockAddPage() {
     await finish();
   };
   const addDirect = async () => {
+    if (liveApiEnabled) { setMessage('종목 원장 등록 API가 아직 제공되지 않습니다. 종목코드로 검색해 주세요.'); return; }
     const normalizedName = name.trim();
     const normalizedSymbol = symbol.replace(/[^0-9]/g, '').slice(0, 6);
     if (!normalizedName || normalizedSymbol.length !== 6) { setMessage('종목명과 6자리 종목코드를 입력해 주세요.'); return; }
@@ -69,6 +95,6 @@ export function StockAddPage() {
       {results.length === 0 ? <Card sx={{ height: 180, borderRadius: '14px' }}><CardContent sx={{ height: '100%', display: 'grid', placeItems: 'center', textAlign: 'center' }}><Box><SearchRounded sx={{ fontSize: 30, color: colors.textMuted }} /><Typography sx={{ mt: 1, fontSize: 15, fontWeight: 600 }}>코스피·코스닥 전체 종목 검색</Typography><Typography sx={{ mt: 1, fontSize: 12, color: colors.textMuted }}>종목명 또는 종목코드를 입력해 주세요.</Typography></Box></CardContent></Card> : <Stack spacing={1}>{results.map((stock) => <Card key={stock.symbol}><CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, '&:last-child': { pb: 1.25 } }}><Box><Typography sx={{ fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>A{stock.symbol} · 코스피</Typography></Box><Button variant="outlined" onClick={() => void addExisting(stock)}>+ 추가</Button></CardContent></Card>)}</Stack>}
       <Card sx={{ height: 46, borderRadius: '12px' }}><CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0, px: 1.5, '&:last-child': { pb: 0 } }}><Typography sx={{ fontSize: 12, color: colors.textMuted }}>검색되지 않는 종목인가요?</Typography><Button onClick={() => { flushSync(() => { setDirect(true); setMessage(''); }); document.querySelector<HTMLInputElement>('[data-initial-focus="true"]')?.focus({ preventScroll: true }); }} sx={{ fontSize: 12 }}>직접 추가 ›</Button></CardContent></Card>
     </> : <Card sx={{ borderRadius: '12px' }}><CardContent><Stack spacing={1.5}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>종목 직접 추가</Typography><FormTextField label="종목명" value={name} onChange={setName} autoFocus enterKeyHint="next" onEnter={() => symbolRef.current?.focus()} /><FormTextField label="종목코드" value={symbol} onChange={(value) => setSymbol(value.replace(/[^0-9]/g, '').slice(0, 6))} inputRef={symbolRef} enterKeyHint="done" onEnter={() => void addDirect()} /><Stack direction="row" spacing={1}><Button fullWidth onClick={() => setDirect(false)}>취소</Button><Button fullWidth variant="contained" onClick={() => void addDirect()}>추가</Button></Stack></Stack></CardContent></Card>}
-    {message && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message}</Typography>}
+    {(message || searchError) && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message || '종목 검색에 실패했습니다. 다시 입력해 주세요.'}</Typography>}
   </Stack>;
 }

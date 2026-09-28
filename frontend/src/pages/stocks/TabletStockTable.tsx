@@ -2,9 +2,10 @@ import { Box, Skeleton, Stack, Typography } from '@mui/material';
 import type { StockItem, StockListType } from '../../types/models';
 import { colors } from '../../styles/tokens';
 import { formatRate, getMarketColor } from '../../utils/format';
+import { liveApiEnabled } from '../../data/liveData';
 
-const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
-const number = (value: number) => Math.round(value).toLocaleString('ko-KR');
+const won = (value: number) => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
+const number = (value: number) => Number.isFinite(value) ? Math.round(value).toLocaleString('ko-KR') : '—';
 const holdingColumns = 'minmax(0, 176fr) minmax(0, 42fr) minmax(0, 60fr) minmax(0, 46fr) minmax(0, 42fr) minmax(0, 64fr) minmax(0, 79fr) minmax(0, 80fr) minmax(0, 50fr) minmax(0, 103fr)';
 const watchColumns = 'minmax(0, 245fr) minmax(0, 54fr) minmax(0, 78fr) minmax(0, 78fr) minmax(0, 78fr) minmax(0, 52fr) minmax(0, 48fr) minmax(0, 48fr) minmax(0, 57fr)';
 const mockW: Record<string, number> = { '005380': 1.35, '005930': 1.2, '000660': 0.92, '000270': 2.3, '035420': 0.8, '012330': 1.9, '006400': 0.76, '051910': 0.88 };
@@ -36,7 +37,7 @@ function StockName({ stock, favorite }: { stock: StockItem; favorite?: boolean }
 }
 
 function WChip({ stock }: { stock: StockItem }) {
-  const w = mockW[stock.symbol];
+  const w = liveApiEnabled ? undefined : mockW[stock.symbol];
   const color = w === undefined ? colors.textMuted : w >= 1 ? colors.marketRise : colors.marketFall;
   return <Box component="span" sx={{ justifySelf: 'end', width: 38, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${color}88`, borderRadius: '7px', color, fontSize: 7.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>W{w?.toFixed(2) ?? '—'}</Box>;
 }
