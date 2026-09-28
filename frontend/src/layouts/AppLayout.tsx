@@ -10,7 +10,7 @@ import { PageLayout } from './PageLayout';
 function getHeaderTitle(pathname: string): string {
   if (pathname.startsWith('/stocks')) return '종목목록'; if (pathname.startsWith('/journal')) return '매매일지';
   if (pathname.startsWith('/assets')) return '자산분석'; if (pathname.startsWith('/more')) return '더보기';
-  if (pathname.startsWith('/detail')) return '상세정보'; return '대시보드';
+  if (pathname === '/detail/settings') return '설정'; if (pathname.startsWith('/detail')) return '상세정보'; return '대시보드';
 }
 
 export function AppLayout() {
