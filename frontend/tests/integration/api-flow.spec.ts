@@ -31,7 +31,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('button', { name: '예수금 등록' }).click();
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
-  await expect(page.getByText('20,000원')).toBeVisible();
+  await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
   const cashAfterDeposit = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
@@ -76,7 +76,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('button', { name: '출금' }).click();
   await page.getByRole('textbox', { name: '금액' }).fill('500');
   await page.getByRole('button', { name: '등록', exact: true }).click();
-  await expect(page.getByText('19,000원')).toBeVisible();
+  await expect(page.getByText('19,000원', { exact: true }).first()).toBeVisible();
   const afterWithdrawal = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(afterWithdrawal.cashBalance)).toBe(19_000);
   await page.screenshot({ path: testInfo.outputPath('04-after-withdrawal.png') });
