@@ -2,7 +2,7 @@ name: Frontend API Integration (isolated database)
 
 on:
   push:
-    branches: [feature/api-integration-validation]
+    branches: [feature/api-integration-validation, feature/account-reset-settings]
   workflow_dispatch:
 
 permissions:
