@@ -126,27 +126,27 @@ export function JournalPage() {
   return <>
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
-    <Stack spacing="12px" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
+    <Stack spacing={{ xs: '12px', sm: 0 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
         event.preventDefault();
         event.stopPropagation();
         suppressClickUntil.current = 0;
       }
-    }} sx={{ minWidth: 0, minHeight: 0, touchAction: 'pan-y' }}>
+    }} sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, touchAction: 'pan-y' }}>
       <Stack direction="row" sx={{ ...panel, display: { sm: 'none' }, height: 44, alignItems: 'center', justifyContent: 'space-between', px: '6px', flexShrink: 0 }}>
         {monthControls}
       </Stack>
-      <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: '8px', userSelect: 'none', display: 'flex', flexDirection: 'column', flex: { sm: 1 }, minHeight: 0 }}>
+      <Box aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, p: { xs: '8px', sm: '4px 8px' }, userSelect: 'none', display: 'flex', flexDirection: 'column', flex: { sm: 1 }, minHeight: 0 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 25, alignItems: 'center' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 9, fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
         <Box sx={{ flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', borderTop: `1px solid ${colors.borderStrong}` }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: { sm: `repeat(${rows}, minmax(54px, 1fr))` }, minHeight: { sm: '100%' } }}>{calendar.map(({ date, day, adjacent }, index) => {
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: { sm: `repeat(${rows}, minmax(42px, 1fr))` }, minHeight: { sm: '100%' } }}>{calendar.map(({ date, day, adjacent }, index) => {
           const count = counts.get(date);
           const selected = selectedDate === date;
           const holiday = holidays.get(date);
-          return <ButtonBase key={date} component="button" aria-label={`${date}${holiday ? ` ${holiday}` : ''} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 50, sm: '100%' }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: '3px', border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
+          return <ButtonBase key={date} component="button" aria-label={`${date}${holiday ? ` ${holiday}` : ''} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)} sx={{ minWidth: 0, height: { xs: 50, sm: '100%' }, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', alignSelf: 'stretch', textAlign: 'left', px: '3px', py: { xs: '3px', sm: '1px' }, border: 0, borderBottom: index >= calendar.length - 7 ? 0 : `1px solid ${colors.borderStrong}`, bgcolor: selected ? '#302B1B' : 'transparent', outline: selected ? `1px solid ${colors.warning}` : 'none', outlineOffset: selected ? '-2px' : undefined, borderRadius: selected ? '7px' : 0, color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
             <Typography component="span" sx={{ display: 'block', fontSize: 9, lineHeight: '13px', fontWeight: selected ? 700 : 400, color: holiday ? colors.marketRise : 'inherit' }}>{day}</Typography>
-            {count?.buy ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketFall}`, borderRadius: '3px', color: colors.marketFall, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매수 {count.buy}</Typography> : null}
-            {count?.sell ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: '2px', border: `1px solid ${colors.marketRise}`, borderRadius: '3px', color: colors.marketRise, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매도 {count.sell}</Typography> : null}
+            {count?.buy ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: { xs: '2px', sm: '1px' }, border: `1px solid ${colors.marketFall}`, borderRadius: '3px', color: colors.marketFall, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매수 {count.buy}</Typography> : null}
+            {count?.sell ? <Typography component="span" sx={{ display: 'block', width: 'fit-content', maxWidth: '100%', px: '2px', mt: { xs: '2px', sm: '1px' }, border: `1px solid ${colors.marketRise}`, borderRadius: '3px', color: colors.marketRise, fontSize: 8, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }}>매도 {count.sell}</Typography> : null}
           </ButtonBase>;
         })}</Box></Box>
       </Box>
@@ -166,8 +166,8 @@ export function JournalPage() {
             <Typography sx={{ minWidth: 0, fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 600, lineHeight: '16px', overflowWrap: 'anywhere' }}>{entry.stockName}</Typography>
           </Box>
           <Box sx={{ gridArea: 'values', display: { xs: 'none', sm: 'flex' }, minWidth: 0, flexDirection: 'column', alignItems: 'flex-end' }}>
-            <Typography noWrap sx={{ color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: 11.5, fontWeight: 700, lineHeight: '18px', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
             <Typography noWrap sx={{ color: colors.textMuted, fontSize: 10.25, lineHeight: '16px', textAlign: 'right' }}>{entry.quantity.toLocaleString('ko-KR')} × {won(entry.price)}</Typography>
+            <Typography noWrap sx={{ color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: 11.5, fontWeight: 700, lineHeight: '18px', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
           </Box>
           <Typography noWrap sx={{ gridArea: 'expression', display: { sm: 'none' }, minWidth: 0, color: colors.textMuted, fontSize: 9.25, textAlign: 'right' }}>{entry.quantity.toLocaleString('ko-KR')} × {won(entry.price)}</Typography>
           <Typography sx={{ gridArea: 'amount', display: { sm: 'none' }, minWidth: 0, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
