@@ -117,7 +117,7 @@ test('170 settings: account API create, update, requery and guarded reset across
   await page.screenshot({ path: testInfo.outputPath('170-cover-settings.png') });
   await page.getByText('계좌 관리', { exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('170-cover-account.png') });
-  await page.getByRole('button', { name: '계좌 추가' }).click();
+  await page.getByRole('button', { name: /계좌 추가/ }).click();
   await page.screenshot({ path: testInfo.outputPath('170-cover-add.png') });
   await page.getByLabel('계좌명').fill(unique);
   await page.getByLabel('증권사').fill('CI 증권');
@@ -137,6 +137,10 @@ test('170 settings: account API create, update, requery and guarded reset across
   await expect(page.getByText(/현재 사용할 수 없는 기능입니다/)).toBeVisible();
   await expect(page.getByRole('button', { name: '계좌 데이터 초기화', exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('170-cover-reset-disabled.png') });
+  for (const [view, filename] of [['cash', 'cash'], ['collection', 'collection'], ['theme', 'theme']] as const) {
+    await page.goto(`/detail/settings?view=${view}`);
+    await page.screenshot({ path: testInfo.outputPath(`170-cover-${filename}.png`) });
+  }
 
   await page.setViewportSize({ width: 816, height: 616 });
   for (const [view, filename] of [['/more', 'more'], ['/detail/settings?view=account', 'account'], ['/detail/settings?view=edit', 'edit'], ['/detail/settings?view=cash', 'cash'], ['/detail/settings?view=collection', 'collection'], ['/detail/settings?view=theme', 'theme']] as const) {

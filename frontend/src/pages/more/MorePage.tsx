@@ -23,7 +23,7 @@ export function MorePage() {
     {shortcuts.map((item) => <ButtonBase key={item.label} onClick={() => navigate(item.path)} aria-label={item.label} sx={{ height: { xs: 86, sm: 83 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center', border: '1px solid #25344D', borderRadius: '9px', bgcolor: '#111825', color: '#E8EDF7', '& .MuiSvgIcon-root': { fontSize: 20 } }}><Box sx={{ width: 32, height: 32, display: 'grid', placeItems: 'center' }}>{item.icon}</Box><Typography sx={{ fontSize: 12 }}>{item.label}</Typography></ButtonBase>)}
   </Box>;
   return <>
-    <Box sx={{ display: { xs: 'block', sm: 'none' } }}><Typography sx={{ mb: '14px', color: '#7A859E', fontSize: 11 }}>자주 사용하지 않는 기능을 한곳에서 확인합니다.</Typography>{menu}</Box>
+    <Box sx={{ display: { xs: 'block', sm: 'none' }, mt: '16px' }}>{menu}</Box>
     <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px', height: 'calc(100dvh - 120px)', minHeight: 0 }}>
       <Box sx={{ bgcolor: '#0E1420', border: '1px solid #1F2B42', borderRadius: '8px', p: '16px', overflowY: 'auto' }}><Typography sx={{ mb: 1.5, fontSize: 18, fontWeight: 600 }}>메뉴</Typography>{menu}</Box>
       <SettingsOverview />
