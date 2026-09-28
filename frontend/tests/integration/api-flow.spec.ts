@@ -28,12 +28,12 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
   await page.goto(`/trade?type=buy&stock=${securityId}`);
-  await expect(page.getByText('통합테스트종목').first()).toBeVisible();
+  await expect(page.getByText('통합테스트종목').filter({ visible: true }).first()).toBeVisible();
   await page.getByRole('textbox', { name: '매수수량' }).fill('2');
   await page.getByRole('textbox', { name: '매수가격' }).fill('1000');
   await page.getByRole('button', { name: '매수', exact: true }).click();
   await expect(page).toHaveURL(/stocks\?tab=holding/);
-  await expect(page.getByText('통합테스트종목').first()).toBeVisible();
+  await expect(page.getByText('통합테스트종목').filter({ visible: true }).first()).toBeVisible();
   const lotsBeforeSell = (await (await request.get(`/api/accounts/${accountId}/buy-lots?securityId=${securityId}`)).json()).data;
   expect(lotsBeforeSell).toHaveLength(1);
   expect(Number(lotsBeforeSell[0].remainingQuantity)).toBe(2);
