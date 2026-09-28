@@ -14,9 +14,10 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.screenshot({ path: testInfo.outputPath('01-empty-dashboard.png') });
 
   await page.goto('/stocks?tab=holding');
-  await expect(page.getByText('총 0개')).toBeVisible();
+  await expect(page.getByText('보유중 0')).toBeVisible();
+  await expect(page.getByText('표시할 종목이 없습니다.')).toBeVisible();
   await page.goto('/journal');
-  await expect(page.getByText('거래 0건')).toBeVisible();
+  await expect(page.getByText('총 0건')).toBeVisible();
 
   await page.goto('/detail/cash');
   await page.getByRole('button', { name: '예수금 등록' }).click();
@@ -40,7 +41,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(Number(afterBuy.cashBalance)).toBe(18_000);
   expect(Number(afterBuy.totalAssetValue)).toBe(20_400);
   await page.goto('/journal');
-  await expect(page.getByText('거래 1건')).toBeVisible();
+  await expect(page.getByText('총 1건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-journal.png') });
 
   await page.goto(`/trade?type=sell&stock=${securityId}&lot=${lotsBeforeSell[0].id}`);
@@ -56,7 +57,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(report.data.find((entry: { type: string }) => entry.type === 'SELL').buyTradeId).toBe(lotsBeforeSell[0].id);
   expect(Number(report.summary.realizedProfitLoss)).toBe(500);
   await page.goto('/journal');
-  await expect(page.getByText('거래 2건')).toBeVisible();
+  await expect(page.getByText('총 2건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('03-after-sell-journal.png') });
 
   await page.goto('/detail/cash');

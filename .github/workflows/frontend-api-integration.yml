@@ -38,6 +38,8 @@ jobs:
       - run: npm --workspace backend run prisma:migrate:deploy
       - run: npm exec -- tsx frontend/tests/integration/seed.ts
       - run: npm --workspace backend run build
+      # TypeScript does not copy Prisma's generated JavaScript into dist; the backend Dockerfile does.
+      - run: cp -R backend/src/generated backend/dist/generated
       - name: Build API-mode frontend Docker image without pushing or deploying
         run: docker build --build-arg VITE_DATA_SOURCE=api -f frontend/Dockerfile -t roxstock-frontend:api-integration .
       - name: Start isolated API and frontend
