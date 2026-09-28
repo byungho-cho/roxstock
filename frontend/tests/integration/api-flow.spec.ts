@@ -31,7 +31,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('button', { name: '예수금 등록' }).click();
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
-  await expect(page.getByText('20,000원')).toBeVisible();
+  await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
   const cashAfterDeposit = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
@@ -76,7 +76,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('button', { name: '출금' }).click();
   await page.getByRole('textbox', { name: '금액' }).fill('500');
   await page.getByRole('button', { name: '등록', exact: true }).click();
-  await expect(page.getByText('19,000원')).toBeVisible();
+  await expect(page.getByText('19,000원', { exact: true }).first()).toBeVisible();
   const afterWithdrawal = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(afterWithdrawal.cashBalance)).toBe(19_000);
   await page.screenshot({ path: testInfo.outputPath('04-after-withdrawal.png') });
@@ -151,6 +151,20 @@ test('170 settings: account API create, update, requery and guarded reset across
   expect(reportAfterReset.data).toHaveLength(0);
   const holdingsAfterReset = (await (await request.get(`/api/accounts/${created!.id}/holdings`)).json()).data;
   expect(holdingsAfterReset).toHaveLength(0);
+  const cashAfterReset = await (await request.get(`/api/accounts/${created!.id}/cash-transactions`)).json();
+  expect(cashAfterReset.data).toHaveLength(0);
+  const overviewAfterReset = (await (await request.get(`/api/accounts/${created!.id}/cash-overview`)).json()).data;
+  expect(overviewAfterReset.account.currentBalance).toBe('0');
+  expect(overviewAfterReset.recentTransactions).toHaveLength(0);
+  const historyAfterReset = await (await request.get(`/api/accounts/${created!.id}/asset-history`)).json();
+  expect(historyAfterReset.data).toHaveLength(0);
+  expect(historyAfterReset.summary.returnRate).toBeNull();
+  await page.goto('/detail/cash');
+  await expect(page.getByText('예수금 내역이 없습니다.')).toBeVisible();
+  await expect(page.getByText('0원', { exact: true }).first()).toBeVisible();
+  await page.goto('/');
+  await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
+  await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   for (const [view, filename] of [['cash', 'cash'], ['collection', 'collection'], ['theme', 'theme']] as const) {
     await page.goto(`/detail/settings?view=${view}`);
     await page.screenshot({ path: testInfo.outputPath(`170-cover-${filename}.png`) });

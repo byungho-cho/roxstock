@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../data/apiClient';
 import { fetchLiveDashboard, fetchLiveStocks, liveApiEnabled } from '../../data/liveData';
-import { getAccountDashboard, getAccountHoldings, getTrades, listAccounts, resetAccountData } from '../../data/roxstockApi';
+import { getAccountDashboard, getAccountHoldings, getAssetHistory, getCashHistory, getCashOverview, getTrades, listAccounts, resetAccountData } from '../../data/roxstockApi';
 import { useMoreAccounts } from './MoreScreens';
 
 type ResetState = 'confirm' | 'pending' | 'success' | 'failure';
@@ -24,11 +24,22 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
       const response = await resetAccountData(selected.id);
       if (response.accountId !== selected.id) throw new Error('서버 응답의 계좌 ID가 일치하지 않습니다.');
       accepted.current = true;
-      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'cashOverview', 'cashTransactions'].includes(String(query.queryKey[0]));
+      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'cashOverview', 'cashTransactions', 'assetHistory'].includes(String(query.queryKey[0]));
       await client.cancelQueries({ predicate: affected }); client.removeQueries({ predicate: affected });
-      const [accounts, dashboard, holdings, trades] = await Promise.all([listAccounts(), getAccountDashboard(selected.id), getAccountHoldings(selected.id), getTrades(selected.id)]);
-      if (!accounts.some((account) => account.id === selected.id) || Number(dashboard.cashBalance) !== 0 || dashboard.holdings.length || holdings.length || trades.data.length) throw new Error('초기화 후 재조회 결과가 예상과 다릅니다. 계좌 데이터를 확인해 주세요.');
+      const [accounts, dashboard, holdings, trades, cashHistory, cashOverview, assetHistory] = await Promise.all([
+        listAccounts(), getAccountDashboard(selected.id), getAccountHoldings(selected.id), getTrades(selected.id),
+        getCashHistory(selected.id), getCashOverview(selected.id), getAssetHistory(selected.id),
+      ]);
+      if (!accounts.some((account) => account.id === selected.id) || Number(dashboard.cashBalance) !== 0 ||
+        dashboard.holdings.length || holdings.length || trades.data.length || cashHistory.data.length ||
+        cashOverview.recentTransactions.length || Number(cashOverview.account.currentBalance) !== 0 ||
+        assetHistory.data.length || assetHistory.summary.returnRate !== null) {
+        throw new Error('초기화 후 재조회 결과가 예상과 다릅니다. 계좌 데이터를 확인해 주세요.');
+      }
       client.setQueryData(['accounts', 'api'], accounts);
+      client.setQueryData(['cashTransactions', selected.id], cashHistory);
+      client.setQueryData(['cashOverview', selected.id], cashOverview);
+      client.setQueryData(['assetHistory', selected.id], assetHistory);
       client.setQueryData(['dashboard', 'api'], await fetchLiveDashboard());
       client.setQueryData(['stocks', 'holding', 'api'], await fetchLiveStocks('holding'));
       await client.invalidateQueries({ predicate: affected });
