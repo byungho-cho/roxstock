@@ -11,7 +11,7 @@ export function TotalAssetCard({ summary, tabletHeight = 116 }: { summary: Dashb
     <Typography sx={{ position: 'absolute', top: { xs: 17, sm: 24 }, left: pageMetrics.cardInset, fontSize: { xs: 12, sm: 14 }, lineHeight: '18px', color: colors.textSecondary }}>평가자산</Typography>
     <Box sx={{ position: 'absolute', top: { xs: 9, sm: 15 }, right: pageMetrics.cardInset, maxWidth: 'calc(100% - 32px)', textAlign: 'right', lineHeight: '36px' }}><Typography component="span" sx={{ color: getMarketColor(summary.dailyProfit), fontSize: { xs: 24, sm: 30 }, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatWon(summary.totalAssets)}</Typography></Box>
     <Typography sx={{ position: 'absolute', top: { xs: 61, sm: 74 }, left: pageMetrics.cardInset, fontSize: { xs: 12, sm: 14 }, lineHeight: '18px', color: colors.textSecondary }}>일별손익</Typography>
-    <Typography sx={{ position: 'absolute', top: { xs: 61, sm: 74 }, left: 77, fontSize: { xs: 12, sm: 14 }, lineHeight: '18px', color: getMarketColor(summary.dailyProfit) }}>{formatRate(summary.dailyProfitRate)}</Typography>
+    <Typography sx={{ position: 'absolute', top: { xs: 61, sm: 74 }, left: 77, fontSize: { xs: 12, sm: 14 }, lineHeight: '18px', color: getMarketColor(summary.dailyProfit) }}>{Number.isFinite(summary.dailyProfitRate) ? formatRate(summary.dailyProfitRate) : '데이터 없음'}</Typography>
     <Typography sx={{ position: 'absolute', top: { xs: 59, sm: 71 }, right: pageMetrics.cardInset, textAlign: 'right', fontSize: { xs: 15, sm: 18 }, lineHeight: '22px', fontWeight: 600, color: getMarketColor(summary.dailyProfit) }}>{formatSignedWon(summary.dailyProfit)}</Typography>
   </CardActionArea></AppCard>;
 }
