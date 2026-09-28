@@ -94,6 +94,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(unpricedDashboard.totalAssetValue).toBeNull();
   await page.goto('/');
   await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
+  await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
   await page.goto('/stocks?tab=holding');
   await page.setViewportSize({ width: 400, height: 640 });
