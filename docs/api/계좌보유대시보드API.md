@@ -1,4 +1,35 @@
-# RoxStock 계좌·보유종목·대시보드 API v0.1
+# RoxStock 계좌·보유종목·대시보드 API v0.2
+
+## 0. 계좌 목록·추가·변경
+
+```http
+GET /api/accounts
+POST /api/accounts
+PATCH /api/accounts/{accountId}
+```
+
+생성·변경 요청은 `name`, `brokerName`, 선택값 `accountNumber`, `isDefault`를 사용합니다. 첫 활성 계좌는 자동으로 기본 계좌가 됩니다. 기본 계좌를 다른 계좌로 변경하면 기존 기본 계좌는 같은 트랜잭션에서 해제됩니다.
+
+계좌번호는 공백·탭·하이픈을 제거해 정규화하며 `brokerName + normalizedAccountNumber`가 같은 계좌는 중복 등록할 수 없습니다. 계좌번호가 없는 계좌는 중복 번호 검사를 적용하지 않습니다. 중복 시 `409 ACCOUNT_ALREADY_EXISTS`, 현재 기본 계좌를 대체 계좌 없이 해제하면 `409 DEFAULT_ACCOUNT_REQUIRED`를 반환합니다.
+
+### 테스트용 계좌 데이터 초기화
+
+```http
+POST /api/accounts/{accountId}/reset
+Content-Type: application/json
+
+{ "confirmation": "초기화" }
+```
+
+`ENABLE_ACCOUNT_DATA_RESET=true`인 환경에서만 실행됩니다. 계좌 자체와 계좌 설정, 공통 종목·시세, 계좌 공통 관심·추천 목록은 유지하고 다음 계좌 종속 데이터를 단일 트랜잭션으로 삭제합니다.
+
+- 매수·매도와 현금 거래
+- 배당
+- 일별 계좌·보유종목 스냅샷
+- 복리 계획과 목표
+- 현재 예수금(0원으로 변경)
+
+보유 종목 분류는 다른 계좌의 잔여 Lot까지 확인한 뒤 재계산합니다. 비활성 환경은 `403 ACCOUNT_RESET_DISABLED`, 확인 문구 불일치는 `400 RESET_CONFIRMATION_MISMATCH`, 같은 API 프로세스의 중복 실행은 `409 ACCOUNT_RESET_IN_PROGRESS`입니다.
 
 ## 1. 계산 기준
 
@@ -35,4 +66,3 @@ GET /api/accounts/{accountId}/dashboard
 
 - 잘못된 계좌 ID: `400 INVALID_INPUT`
 - 없거나 비활성화된 계좌: `404 ACCOUNT_NOT_FOUND`
-
