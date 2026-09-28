@@ -142,7 +142,7 @@ export function JournalPage() {
       <ButtonBase aria-label={`${year}년 ${value}월, 월 선택`} onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} sx={{ display: 'block', mx: 'auto', borderRadius: '4px', '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}><Typography sx={{ fontSize: 13, lineHeight: '18px', fontWeight: 700 }}>{year}년 {value}월</Typography></ButtonBase>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap', color: monthProfit >= 0 ? colors.marketRise : colors.marketFall }}>
         <Box component="span">월손익</Box>
-        <Box component="span">{monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Box>
+        <Box component="span">{liveApiEnabled ? '—' : monthBuy ? `${(monthProfit / monthBuy * 100).toFixed(1)}%` : '0.0%'}</Box>
         <Box component="span">{signedWon(monthProfit)}</Box>
       </Box>
     </Box>
@@ -154,7 +154,7 @@ export function JournalPage() {
     {tradesError ? <Button role="alert" onClick={() => void reloadTrades()}>거래내역을 불러오지 못했습니다. 다시 시도</Button> : <Typography role="status">거래내역을 불러오는 중입니다.</Typography>}
   </>;
   return <>
-    {detailNotice && <Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>개별 거래 상세 조회 API가 준비되지 않아 수정·삭제 화면에 진입할 수 없습니다.</Typography>}
+    {detailNotice && <Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>개별 거래 상세 조회와 수정·삭제 화면 연결이 준비되지 않았습니다.</Typography>}
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
     <Stack spacing={{ xs: '12px', sm: 0 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
@@ -185,7 +185,7 @@ export function JournalPage() {
     <Box sx={{ ...panel, mt: { xs: 0, sm: 0 }, px: { xs: '12px', sm: '16px' }, py: { xs: '12px', sm: '14px' }, minWidth: 0, minHeight: 0, display: { sm: 'flex' }, flexDirection: { sm: 'column' }, alignSelf: { xs: 'start', sm: 'stretch' }, containerType: 'inline-size' }}>
       {tablet ? <>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography></Stack>
-        <Stack direction="row" sx={{ mt: '20px', justifyContent: 'space-between' }}><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>전체손익</Typography><Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textMuted, fontSize: 11 }}>{dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
+        <Stack direction="row" sx={{ mt: '20px', justifyContent: 'space-between' }}><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>전체손익</Typography><Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textMuted, fontSize: 11 }}>{liveApiEnabled ? '—' : dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
         <Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textPrimary, fontSize: 24, fontWeight: 700, lineHeight: '31px', textAlign: 'right' }}>{signedWon(dayProfit)}</Typography>
         <Typography sx={{ color: colors.textMuted, fontSize: 10, mt: '2px' }}>매수 {won(dayBuy)} · 매도 {won(daySell)}</Typography>
         <Stack direction="row" sx={{ mt: '25px', mb: '7px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래현황</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>총 {dayEntries.length}건</Typography></Stack>
@@ -204,7 +204,7 @@ export function JournalPage() {
           <Typography sx={{ gridArea: 'amount', display: { sm: 'none' }, minWidth: 0, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
         </ButtonBase>) : <Typography sx={{ color: colors.textMuted, fontSize: 11, py: 2, borderTop: `1px solid ${colors.border}` }}>선택한 날짜의 거래가 없습니다.</Typography>}
       </Box>
-      {!tablet && <ButtonBase onClick={() => navigate(`/detail/daily-profit?date=${selectedDate}`)} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
+      {!tablet && !liveApiEnabled && <ButtonBase onClick={() => navigate(`/detail/daily-profit?date=${selectedDate}`)} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
     </Box>
     </Box>
     <Dialog open={monthPickerOpen} onClose={() => setMonthPickerOpen(false)} aria-labelledby="journal-month-picker-title" fullWidth maxWidth="xs" slotProps={{ paper: { sx: { m: 2, maxWidth: 320, bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', backgroundImage: 'none' } } }}>

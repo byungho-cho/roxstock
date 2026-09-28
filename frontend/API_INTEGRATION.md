@@ -10,7 +10,7 @@
 | 관심·추천 목록 | `GET /api/securities?listType=...` | 서버 목록 사용 |
 | 종목 검색 | `GET /api/securities` | 300ms 입력 지연, `excludeRegistered=true&limit=20&offset=0` |
 | 관심·추천 등록 | `POST /api/watchlist-items` | 서버 등록 후 목록 다시 조회 |
-| 거래내역·매매일지 | `GET /api/accounts/:id/trades` | 월별 날짜 범위 조회, 달력과 거래 요약에 실제 거래 반영 |
+| 거래내역·매매일지 | `GET /api/accounts/:id/trades` | 월별 날짜 범위 조회, 달력과 거래 요약에 실제 거래 반영. API에 없는 손익률은 `—` |
 | 매도 가능 Lot | `GET /api/accounts/:id/buy-lots` | 계좌·종목별 잔여 Lot 조회, 매도 폼에서 실제 Lot 검증 |
 | 매수·매도 등록 | `POST /api/buy-trades`, `POST /api/sell-trades` | 문자열 금액·Lot ID 전달 후 캐시 무효화 |
 | 거래 수정·삭제 | `PATCH/DELETE /api/{buy,sell}-trades/:id` | 백엔드는 제공하지만 프론트 상세 폼 미연결. 계좌 예수금·과거 스냅샷 자동 보정 없음 |
