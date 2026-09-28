@@ -1,0 +1,67 @@
+name: Frontend API Integration (isolated database)
+
+on:
+  push:
+    branches: [feature/api-integration-validation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: integration
+          MARIADB_DATABASE: roxstock_api_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      DATABASE_URL: mysql://root:integration@127.0.0.1:3306/roxstock_api_test
+      VITE_DATA_SOURCE: api
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace backend run prisma:generate
+      - run: npm --workspace backend run prisma:migrate:deploy
+      - run: npm exec -- tsx frontend/tests/integration/seed.ts
+      - run: npm --workspace backend run build
+      - name: Build API-mode frontend Docker image without pushing or deploying
+        run: docker build --build-arg VITE_DATA_SOURCE=api -f frontend/Dockerfile -t roxstock-frontend:api-integration .
+      - name: Start isolated API and frontend
+        run: |
+          npm --workspace backend start > /tmp/roxstock-api.log 2>&1 &
+          npm --workspace frontend run dev > /tmp/roxstock-frontend.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3300/health >/dev/null && curl --fail --silent http://127.0.0.1:3000/api/accounts >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/roxstock-api.log /tmp/roxstock-frontend.log
+          exit 1
+      - run: npm --workspace frontend exec -- playwright install --with-deps chromium
+      - name: Test real API through browser
+        working-directory: frontend
+        run: npx playwright test --config=playwright.api.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-integration-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report-api/
+          if-no-files-found: ignore
+      - name: Print server logs on failure
+        if: failure()
+        run: cat /tmp/roxstock-api.log /tmp/roxstock-frontend.log || true

@@ -19,7 +19,7 @@ const tabs: Array<{ value: StockListType; label: string }> = [
   { value: 'watchlist', label: '관심종목' }, { value: 'holding', label: '보유종목' }, { value: 'recommended', label: '추천종목' },
 ];
 const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
-const formatWon = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
+const formatWon = (value: number) => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
 
 export function StockListPage() {
   const navigate = useNavigate();
@@ -66,7 +66,8 @@ export function StockListPage() {
         return (bValue - aValue) * (descending ? 1 : -1);
       });
   }, [activeTab, data, descending, favoriteIds, query, showEmpty]);
-  const totalValue = items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
+  const totalValue = items.some((stock) => stock.listType === 'holding' && stock.marketValue === undefined)
+    ? Number.NaN : items.reduce((sum, stock) => sum + (stock.marketValue ?? 0), 0);
 
   return <Stack spacing="12px">
     <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" showAdd={false} embedded action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, `/stocks/add?type=${activeTab}`)} sx={{ width: 36, height: 36, bgcolor: colors.raised }}><AddRounded sx={{ fontSize: 22 }} /></IconButton>} />
@@ -93,9 +94,9 @@ export function StockListPage() {
     </Stack>
 
     <Box sx={{ display: { xs: 'block', sm: 'none' }, touchAction: 'pan-y' }} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}>
-      {isPending ? <StockListLoading /> : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : isError ? null : items.length === 0 ? <EmptyStocks onRestore={() => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
-    <Box sx={{ display: { xs: 'none', sm: 'block' } }}><TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} /></Box>
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{!isError && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
     {!isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;
