@@ -37,9 +37,9 @@ export function AppLayout() {
   const hasPageHeader = isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: isTradePage ? 0 : `${pageMetrics.headerHeight}px` }}>
     <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
-      {!hasPageHeader && <PageHeader variant={isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={location.pathname === '/more' ? '/' : undefined} showAdd={isHomePage} addPath="/stocks/add?type=watchlist" addLabel="종목 추가" />}
+      {!hasPageHeader && <PageHeader variant={isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={location.pathname === '/more' ? '/' : undefined} showAdd={isHomePage} addPath="/trade" addLabel="거래등록" />}
     </Box>
-    <PageLayout scrollRef={scrollRef} trade={isTradePage} journal={isJournal} more={isMoreSettings || location.pathname === '/more'} coverTop={isHomePage || location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
+    <PageLayout scrollRef={scrollRef} trade={isTradePage} journal={isJournal} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} coverTop={location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
     <OverlayPageScrollbar scrollRef={scrollRef} hasHeader={!isTradePage} hasBottomNav={!isTradePage} />
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
     {!isTradePage && <><Zoom in={showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}

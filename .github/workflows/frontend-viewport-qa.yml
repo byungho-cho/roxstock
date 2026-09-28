@@ -1,6 +1,12 @@
 name: Frontend Viewport QA
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/**
+      - package-lock.json
+      - .github/workflows/frontend-viewport-qa.yml
   push:
     branches: [main]
     paths:
