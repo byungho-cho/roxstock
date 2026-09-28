@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { BottomNav, HeaderSlotContext, PageHeader } from '../components/navigation/Navigation';
 import { OverlayPageScrollbar } from '../components/navigation/OverlayPageScrollbar';
+import { ViewportMetricsPanel } from '../components/navigation/ViewportMetricsPanel';
 import { colors, pageMetrics } from '../styles/tokens';
 import { PageLayout } from './PageLayout';
 
@@ -40,6 +41,7 @@ export function AppLayout() {
     </Box>
     <PageLayout scrollRef={scrollRef} trade={isTradePage} journal={isJournal} more={isMoreSettings || location.pathname === '/more'} coverTop={isHomePage || location.pathname === '/detail/assets' ? 18 : 16} stocks={isStockFlowPage}><Outlet /></PageLayout>
     <OverlayPageScrollbar scrollRef={scrollRef} hasHeader={!isTradePage} hasBottomNav={!isTradePage} />
+    {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
     {!isTradePage && <><Zoom in={showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
   </Box></HeaderSlotContext.Provider>;
 }

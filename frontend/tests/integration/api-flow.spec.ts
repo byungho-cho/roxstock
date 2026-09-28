@@ -1,5 +1,21 @@
 import { expect, test } from '@playwright/test';
 
+test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
+  await page.setViewportSize({ width: 400, height: 640 });
+  await page.goto('/journal');
+  const panel = page.getByRole('complementary', { name: '뷰포트 측정값' });
+  await expect(panel).toHaveCount(0);
+  const normalSize = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
+  await page.goto('/journal?viewport=1');
+  await expect(panel).toContainText('400 × 640');
+  await expect(panel).toContainText('visualViewport scale');
+  expect(await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }))).toEqual(normalSize);
+  await page.setViewportSize({ width: 816, height: 616 });
+  await expect(panel).toContainText('816 × 616');
+  await page.goto('/journal?viewport=0');
+  await expect(panel).toHaveCount(0);
+});
+
 test('isolated account: dashboard → stocks → journal → cash/buy/sell/withdrawal', async ({ page, request }, testInfo) => {
   test.setTimeout(120_000);
   const accountResponse = await request.post('/api/accounts', { data: { name: '프론트 통합테스트 전용', brokerName: 'CI' } });
