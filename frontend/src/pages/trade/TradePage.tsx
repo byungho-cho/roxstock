@@ -139,7 +139,7 @@ export function TradePage() {
     submitting.current = true;
     setIsSaving(true);
     try {
-      if (liveApiEnabled && editId) throw new Error('거래 수정 API가 아직 제공되지 않습니다.');
+      if (liveApiEnabled && editId) throw new Error('거래 상세와 수정 화면이 아직 연결되지 않았습니다.');
       if (editId && type === 'sell') updateSellTrade(editId, draft);
       else if (editId) updateBuyTrade(editId, draft, getAvailableLots(stockId).find((lot) => lot.id === editId)?.soldQuantity ?? 0);
       else await createTrade(draft);
@@ -161,7 +161,7 @@ export function TradePage() {
     else mobileMemoRef.current?.focus();
   };
 
-  if (liveApiEnabled && editId) return <Alert severity="info">개별 거래 상세 조회 API가 준비되지 않아 수정 화면을 열 수 없습니다.</Alert>;
+  if (liveApiEnabled && editId) return <Alert severity="info">개별 거래 상세 조회와 수정 화면의 연결이 준비되지 않았습니다.</Alert>;
   if (liveApiEnabled && (stocksError || dashboardError)) return <Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert>;
   if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Typography role="status" sx={{ p: 2 }}>거래 정보를 불러오는 중입니다.</Typography>;
   if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
@@ -204,7 +204,7 @@ export function TradePage() {
           <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : editing ? '수정' : type === 'buy' ? '매수' : '매도'}</ActionButton>
         </Stack>
       </Box>
-      <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>{liveApiEnabled ? '매수 거래가 등록되었습니다.' : '목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.'}</Alert></Snackbar>
+      <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>{liveApiEnabled ? `${type === 'buy' ? '매수' : '매도'} 거래가 등록되었습니다.` : '목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.'}</Alert></Snackbar>
     </Stack>
   );
 }

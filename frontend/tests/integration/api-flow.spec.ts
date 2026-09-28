@@ -17,6 +17,10 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/stocks?tab=holding');
   await expect(page.getByText('보유중 0')).toBeVisible();
   await expect(page.getByText('표시할 종목이 없습니다.')).toBeVisible();
+  await page.setViewportSize({ width: 400, height: 640 });
+  await expect(page.getByText('표시할 종목이 없어요.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '목 데이터 다시 보기' })).toHaveCount(0);
+  await page.setViewportSize({ width: 816, height: 616 });
   await page.goto('/journal');
   await expect(page.getByText('총 0건')).toBeVisible();
 
@@ -88,6 +92,10 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/');
   await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
+  await page.goto('/stocks?tab=holding');
+  await page.setViewportSize({ width: 400, height: 640 });
+  await expect(page.getByText('시세 미수집')).toBeVisible();
+  await page.setViewportSize({ width: 816, height: 616 });
 
   // A failed live request must show an error, never previously rendered or bundled mock figures.
   await page.route('**/api/accounts/*/dashboard', (route) => route.fulfill({ status: 503, body: '{"error":{"message":"temporary failure"}}' }));
