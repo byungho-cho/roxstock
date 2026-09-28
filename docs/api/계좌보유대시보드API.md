@@ -73,3 +73,37 @@ GET /api/accounts/{accountId}/dashboard
 | 409 | `ACCOUNT_ALREADY_INACTIVE` | 이미 비활성화된 계좌 재비활성화 |
 
 현재 구현 상태(2026-09-28): `GET /accounts`와 `POST /accounts`만 구현되어 있다. 현재 `POST`는 계좌번호를 선택사항으로 받으며 `isDefault`를 지원하지 않는다. 위 v0.2의 번호 필수화·기본 계좌·중복 제약·변경/비활성화는 **구현 목표**이며 배포 API에 반영되기 전 프론트가 완료로 표시하지 않는다.
+
+## 6. 테스트용 계좌 데이터 초기화 (구현 예정)
+
+```http
+POST /api/accounts/{accountId}/reset
+Content-Type: application/json
+
+{ "confirmation": "화면에 표시된 계좌명" }
+```
+
+현재 선택한 활성 계좌의 테스트 데이터를 초기화하되 계좌 행·이름·증권사·번호·기본 여부는 유지한다. 서버의 테스트 환경 플래그 **및 서버 검증 관리자 접근 제한**을 모두 만족해야 한다. 프론트 환경변수나 계좌명 입력만으로 권한을 대신할 수 없다. 보호 수단이 없는 배포에서는 API가 비활성이다.
+
+```json
+{
+  "data": {
+    "accountId": "1",
+    "cashBalance": "0",
+    "deleted": {
+      "sellTrades": 0,
+      "buyTrades": 0,
+      "cashTransactions": 0,
+      "dividends": 0,
+      "dailyPositionSnapshots": 0,
+      "dailyAccountSnapshots": 0,
+      "compoundGrowthGoals": 0,
+      "compoundGrowthPlans": 0
+    }
+  }
+}
+```
+
+성공하면 `200`이며 재실행해도 계좌는 남고 삭제 건수만 0이 된다. `400 INVALID_INPUT`(확인 문자열 누락·불일치), `401 UNAUTHORIZED` 또는 `403 FORBIDDEN`(관리자 접근 불가), `404 ACCOUNT_NOT_FOUND`(계좌 없음·비활성), `404 FEATURE_NOT_AVAILABLE`(테스트 기능 비활성)으로 구분한다. 원자성 실패 시 `500 INTERNAL_ERROR`이며 일부 삭제 결과를 반환하지 않는다.
+
+삭제 범위는 설계 v0.6 20장 및 DB 스키마 v0.4 9장에 명시한다. 현재 `watchlist_items`는 계좌 FK가 없으므로 공통 관심·추천 목록을 보존한다. 계좌별 Lot에서 산출하는 보유종목은 자연히 0이 된다. 과거 기간의 집계는 빈 데이터로 반환하며 수익률 분모가 없으면 숫자 0% 대신 계산 불가로 표시한다. **2026-09-28 현재 이 API는 구현되지 않았다.**
