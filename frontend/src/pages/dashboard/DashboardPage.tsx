@@ -20,9 +20,9 @@ export function DashboardPage() {
     <Stack spacing="8px" sx={{ minWidth: 0, height: { sm: '100%' } }}>
       <TotalAssetCard summary={summary} home />
       <AssetQuickCards summary={summary} home />
-      <AppCard sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 167 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '9px' } }}>
+      <AppCard sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 167 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '9px' }, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: { xs: colors.focus, sm: colors.textMuted } }}>{trend.length > 1 ? <><Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>1개월</Box><Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>최근 1년</Box></> : '데이터 없음'}</Typography>} />
-        {trend.length > 1 ? <TrendChart values={trend.map((item) => item.value)} labels={trend.map((item) => item.label)} /> : <Typography sx={{ mt: 1, color: colors.textMuted, fontSize: 11 }}>과거 자산 추이 데이터가 없습니다.</Typography>}
+        {trend.length > 1 ? <TrendChart values={trend.map((item) => item.value)} labels={trend.map((item) => item.label)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>과거 자산 추이 데이터가 없습니다.</Typography></Box>}
       </CardActionArea></AppCard>
     </Stack>
     <AppCard sx={{ minWidth: 0, height: { xs: 156, sm: '100%' }, minHeight: { sm: 327 }, borderRadius: '8px' }}><Box sx={{ px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '11px' }, height: '100%', display: 'flex', flexDirection: 'column' }}>
