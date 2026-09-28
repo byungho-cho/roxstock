@@ -49,7 +49,7 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
       <Stack spacing={1.5} sx={{ mt: 3 }}>
         <Typography sx={{ fontSize: 13, color: '#F87171' }}>삭제된 데이터는 복구할 수 없습니다.</Typography>
         {allowed ? <><Typography sx={{ fontSize: 12 }}>확인을 위해 계좌명 ‘{selected?.name}’을 입력해 주세요.</Typography><TextField label="계좌명 입력" value={entered} onChange={(event) => { setEntered(event.target.value); setState('confirm'); }} disabled={state === 'pending'} fullWidth autoFocus={tablet} />{entered && entered !== selected?.name && <Typography role="alert" sx={{ fontSize: 11, color: '#F87171' }}>계좌명이 일치하지 않습니다.</Typography>}</> : <Typography role="status" sx={{ color: '#F87171', fontSize: 12 }}>{serverDisabled ? '현재 서버에서 계좌 초기화 기능을 비활성화했습니다.' : 'API 모드가 아니거나 선택된 계좌가 없어 사용할 수 없습니다.'}</Typography>}
-        {state === 'failure' && <Typography role="alert" sx={{ fontSize: 12, color: '#F87171' }}>{message}</Typography>}
+        {state === 'failure' && !serverDisabled && <Typography role="alert" sx={{ fontSize: 12, color: '#F87171' }}>{message}</Typography>}
         {state === 'pending' && <Typography role="status" sx={{ fontSize: 12 }}>초기화 중입니다…</Typography>}
       </Stack>}
     <Stack direction="row" spacing={1} sx={{ mt: 3, justifyContent: 'flex-end', display: { xs: 'none', sm: 'flex' } }}><Button variant="outlined" onClick={close} disabled={state === 'pending'}>{state === 'success' ? '확인' : '취소'}</Button>{state !== 'success' && allowed && !accepted.current && <Button variant="contained" color="error" onClick={() => void execute()} disabled={entered !== selected?.name || state === 'pending'}>계좌 데이터 초기화</Button>}</Stack>
