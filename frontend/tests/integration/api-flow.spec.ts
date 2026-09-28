@@ -108,24 +108,43 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await expect(page.getByText('20,400원')).toHaveCount(0);
 });
 
-test('real API without reset permission: cover and unfolded settings hide execution', async ({ page, request }, testInfo) => {
-  const accountsResponse = await request.get('/api/accounts');
-  expect(accountsResponse.ok()).toBeTruthy();
-  const accountId: string = (await accountsResponse.json()).data.find((account: { isActive: boolean }) => account.isActive).id;
-  const availability = await request.get(`/api/accounts/${accountId}/reset-availability`);
-  expect([401, 403, 404]).toContain(availability.status());
+test('170 settings: account API create, update, requery and guarded reset across both viewports', async ({ page, request }, testInfo) => {
+  const unique = `설정 통합 ${Date.now()}`;
+  await page.setViewportSize({ width: 400, height: 640 });
+  await page.goto('/more');
+  await page.screenshot({ path: testInfo.outputPath('170-cover-more.png') });
+  await page.getByRole('button', { name: '설정' }).click();
+  await page.screenshot({ path: testInfo.outputPath('170-cover-settings.png') });
+  await page.getByText('계좌 관리', { exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath('170-cover-account.png') });
+  await page.getByRole('button', { name: '계좌 추가' }).click();
+  await page.screenshot({ path: testInfo.outputPath('170-cover-add.png') });
+  await page.getByLabel('계좌명').fill(unique);
+  await page.getByLabel('증권사').fill('CI 증권');
+  await page.getByLabel('계좌번호').fill('123-789');
+  await page.getByRole('button', { name: '추가', exact: true }).click();
+  await expect(page.getByText(unique, { exact: true })).toBeVisible();
+  const accounts = (await (await request.get('/api/accounts')).json()).data as { id: string; name: string; accountNumber: string }[];
+  const created = accounts.find((account) => account.name === unique);
+  expect(created?.accountNumber).toBe('123-789');
+  await page.getByRole('button', { name: '계좌 정보 수정' }).click();
+  await page.getByLabel('계좌명').fill(`${unique} 수정`);
+  await page.getByRole('button', { name: '변경', exact: true }).click();
+  await expect(page.getByText(`${unique} 수정`, { exact: true })).toBeVisible();
+  const changed = (await (await request.get('/api/accounts')).json()).data as { id: string; name: string }[];
+  expect(changed.find((account) => account.id === created?.id)?.name).toBe(`${unique} 수정`);
+  await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
+  await expect(page.getByText(/현재 사용할 수 없는 기능입니다/)).toBeVisible();
+  await expect(page.getByRole('button', { name: '계좌 데이터 초기화', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('170-cover-reset-disabled.png') });
 
-  for (const [width, height, url, label] of [
-    [400, 640, '/detail/settings', 'cover'],
-    [816, 616, '/more', 'unfolded'],
-  ] as const) {
-    await page.setViewportSize({ width, height });
-    await page.goto(url);
-    await expect(page.getByText('계좌 데이터 초기화')).toBeVisible();
-    await page.getByText('계좌 데이터 초기화').scrollIntoViewIfNeeded();
-    await expect(page.getByText('현재 사용할 수 없는 기능입니다.')).toBeVisible();
-    await expect(page.getByRole('button', { name: '초기화 진행' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '최종 초기화' })).toHaveCount(0);
-    await page.screenshot({ path: testInfo.outputPath(`account-reset-${label}.png`), fullPage: true });
+  await page.setViewportSize({ width: 816, height: 616 });
+  for (const [view, filename] of [['/more', 'more'], ['/detail/settings?view=account', 'account'], ['/detail/settings?view=edit', 'edit'], ['/detail/settings?view=cash', 'cash'], ['/detail/settings?view=collection', 'collection'], ['/detail/settings?view=theme', 'theme']] as const) {
+    await page.goto(view);
+    await page.screenshot({ path: testInfo.outputPath(`170-tablet-${filename}.png`) });
   }
+  await page.goto('/detail/settings?view=account');
+  await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
+  await expect(page.getByText(/현재 사용할 수 없는 기능입니다/)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-disabled.png') });
 });

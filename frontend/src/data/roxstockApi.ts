@@ -7,6 +7,9 @@ export interface AccountDto {
   id: string;
   name: string;
   brokerName: string;
+  accountNumber?: string | null;
+  isDefault?: boolean;
+  updatedAt?: string;
   cashBalance: string;
   isActive: boolean;
 }
@@ -69,6 +72,9 @@ export interface SecuritySearch {
 }
 
 export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
+export type AccountWriteInput = { name: string; brokerName: string; accountNumber?: string | null; isDefault?: boolean };
+export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
+export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
 
 /** Both values must be positively verified by the server before showing the reset action. */
 export interface AccountResetAvailability { enabled: boolean; authorized: boolean }
@@ -80,15 +86,16 @@ export const resetAccountData = (accountId: string, accountName: string) =>
     { method: 'POST', body: JSON.stringify({ confirmation: accountName }) },
   );
 
-// The current UI has no account switcher. Use the first active account in server display order.
-export async function currentAccountId(): Promise<string> {
+export const selectedAccountStorageKey = 'roxstock-selected-account-id';
+export function chooseAccount(accounts: AccountDto[]) {
+  const active = accounts.filter((item) => item.isActive);
   const configuredId = import.meta.env.VITE_API_ACCOUNT_ID;
-  if (configuredId) {
-    const account = (await listAccounts()).find((item) => item.id === configuredId && item.isActive);
-    if (!account) throw new Error('설정한 계좌를 찾을 수 없거나 비활성 상태입니다.');
-    return account.id;
-  }
-  const account = (await listAccounts()).find((item) => item.isActive);
+  const selected = typeof window === 'undefined' ? null : window.localStorage.getItem(selectedAccountStorageKey);
+  return active.find((item) => item.id === selected) ?? active.find((item) => item.id === configuredId) ?? active.find((item) => item.isDefault) ?? active[0];
+}
+
+export async function currentAccountId(): Promise<string> {
+  const account = chooseAccount(await listAccounts());
   if (!account) throw new Error('활성 계좌가 없습니다.');
   return account.id;
 }
