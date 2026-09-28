@@ -9,6 +9,9 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3300
+      # The current Cafe24 deployment is a disposable development/test server.
+      # Change to false or remove this override before production use.
+      ENABLE_ACCOUNT_DATA_RESET: ${ENABLE_ACCOUNT_DATA_RESET:-true}
     expose:
       - "3300"
     networks:
