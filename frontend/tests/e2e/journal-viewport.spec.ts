@@ -22,6 +22,8 @@ test('journal calendar and trades fit the selected viewport', async ({ page }, t
       const scroller = calendar.children[1];
       const rows = [...document.querySelectorAll('button[aria-label$="거래 상세"]')];
       const title = document.querySelector('header h1')!;
+      const titleText = document.createRange();
+      titleText.selectNodeContents(title);
       const prev = document.querySelector('header button[aria-label="이전 달"]')!;
       const next = document.querySelector('header button[aria-label="다음 달"]')!;
       const today = document.querySelector('header button[aria-label="오늘 날짜로 이동"]')!;
@@ -31,7 +33,7 @@ test('journal calendar and trades fit the selected viewport', async ({ page }, t
         mainOverflow: document.querySelector('main')!.scrollHeight > document.querySelector('main')!.clientHeight,
         calendarOverflow: scroller.scrollHeight > scroller.clientHeight,
         chipsFit: chips.every((el) => el.scrollWidth <= el.clientWidth && el.getBoundingClientRect().bottom <= day.getBoundingClientRect().bottom),
-        headerFits: title.getBoundingClientRect().right < prev.getBoundingClientRect().left && next.getBoundingClientRect().right < today.getBoundingClientRect().left,
+        headerFits: titleText.getBoundingClientRect().right < prev.getBoundingClientRect().left && next.getBoundingClientRect().right < today.getBoundingClientRect().left,
         rows: rows.map((row) => {
           const [expression, amount] = [...row.children[1].children];
           return {
