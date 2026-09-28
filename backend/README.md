@@ -26,7 +26,7 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 
 ## 선택 종목 장중 실시간 수집
 
-보유·관심·추천 종목은 \`watchlist_items\`에서 합쳐 종목코드 기준으로 중복 없이 조회합니다. 기본 최대 100종목을 평일 NXT 프리마켓 08:00~08:50, KRX 정규장 09:00~15:30, NXT 애프터마켓 15:40~20:00에 10초 간격으로 수집합니다. 세션 전환 공백에는 수집하지 않으며, 한 회차가 10초를 초과하면 회차를 겹치지 않고 완료 직후 다음 회차를 시작합니다.
+보유·관심·추천 종목은 \`watchlist_items\`에서 합쳐 종목코드 기준으로 중복 없이 조회합니다. 기본 최대 100종목을 평일 NXT 프리마켓 08:00~08:50, KRX 정규장 09:00~15:30, NXT 애프터마켓 15:40~20:00에 60초 간격으로 수집합니다. 세션 전환 공백에는 수집하지 않으며, 한 회차가 60초를 초과하면 회차를 겹치지 않고 완료 직후 다음 회차를 시작합니다.
 
 - 프로세스: \`backend\`, 일일 \`collector\`, \`realtime-collector\`는 독립 실행됩니다.
 - 화면 전달: 실시간 수집기가 \`POST /internal/realtime-prices\`로 API 프로세스 캐시에 전달하고 API가 \`GET /api/prices/stream\` SSE로 방송합니다.
@@ -55,7 +55,7 @@ npm --workspace backend run collector:realtime
 
 \`\`\`env
 COLLECTOR_REALTIME_ENABLED=true
-COLLECTOR_REALTIME_INTERVAL_SECONDS=10
+COLLECTOR_REALTIME_INTERVAL_SECONDS=60
 COLLECTOR_REALTIME_DB_FLUSH_SECONDS=60
 COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS=30
 COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS=300

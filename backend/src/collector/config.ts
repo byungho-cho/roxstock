@@ -91,7 +91,7 @@ export const loadCollectorConfig = (): CollectorConfig => {
     securityMasterMinimumCount: positiveInteger(process.env.COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT, 2000, 'COLLECTOR_SECURITY_MASTER_MINIMUM_COUNT'),
     securityMasterDeactivateMissing: boolean(process.env.COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING, false, 'COLLECTOR_SECURITY_MASTER_DEACTIVATE_MISSING'),
     realtimeEnabled: boolean(process.env.COLLECTOR_REALTIME_ENABLED, true, 'COLLECTOR_REALTIME_ENABLED'),
-    realtimeIntervalSeconds: integerAtLeast(process.env.COLLECTOR_REALTIME_INTERVAL_SECONDS, 10, 5, 'COLLECTOR_REALTIME_INTERVAL_SECONDS'),
+    realtimeIntervalSeconds: integerAtLeast(process.env.COLLECTOR_REALTIME_INTERVAL_SECONDS, 60, 5, 'COLLECTOR_REALTIME_INTERVAL_SECONDS'),
     realtimeDbFlushSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_DB_FLUSH_SECONDS, 60, 'COLLECTOR_REALTIME_DB_FLUSH_SECONDS'),
     realtimeTargetRefreshSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS, 30, 'COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS'),
     realtimeStaleBackoffSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS, 300, 'COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS'),
