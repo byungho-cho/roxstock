@@ -29,6 +29,17 @@ GET /api/accounts/{accountId}/buy-lots?securityId=262&remainingOnly=true
 
 프론트엔드 매도 입력 화면은 이 API에서 하나의 Lot을 선택한 뒤 `POST /api/sell-trades`에 해당 `buyTradeId`를 전달합니다.
 
+## 거래 단건 상세
+
+```http
+GET /api/buy-trades/{tradeId}
+GET /api/sell-trades/{tradeId}
+```
+
+매수 상세는 계좌·종목, 원 매수수량, 매도수량, 잔여수량, 잔여 매입금액, 누적 실현손익과 연결된 모든 분할매도를 반환합니다. 매도 상세는 연결된 `buyTradeId`, 원 매수단가와 해당 매도의 실현손익을 반환합니다.
+
+신규 등록 거래의 `cashTransaction`에는 예수금 거래 ID, 거래비용, 거래 후 잔액이 포함됩니다. 연결키 도입 전에 등록된 기존 거래는 `cashTransaction=null`, `meta.historicalCashLinkAvailable=false`일 수 있으며 이 경우 프론트가 비용을 임의로 추정하지 않습니다.
+
 ## 매수 등록
 
 ```http
@@ -37,6 +48,8 @@ POST /api/buy-trades
 
 필수값은 `accountId`, `securityId`, `boughtAt`, `quantity`, `unitPrice`이며 `feeTaxAmount`, `memo`는 선택값입니다. 예수금에서 `수량 × 단가 + 거래비용`을 즉시 차감합니다.
 
+등록과 동시에 생성되는 예수금 거래는 해당 매수 ID와 영구 연결됩니다.
+
 ## 분할매도 등록
 
 ```http
@@ -44,6 +57,8 @@ POST /api/sell-trades
 ```
 
 필수값은 `buyTradeId`, `soldAt`, `quantity`, `unitPrice`이며 `feeTaxAmount`, `memo`는 선택값입니다. 선택한 Lot의 잔여수량을 초과하면 `409 QUANTITY_EXCEEDS_REMAINING`을 반환합니다.
+
+등록과 동시에 생성되는 예수금 거래는 해당 매도 ID와 영구 연결됩니다.
 
 ## 거래 수정
 

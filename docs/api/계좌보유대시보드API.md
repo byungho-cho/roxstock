@@ -62,7 +62,25 @@ GET /api/accounts/{accountId}/dashboard
 
 `holdings`에는 계좌별 보유종목 API와 동일한 항목이 포함됩니다. 프론트엔드는 대시보드 최초 진입 시 이 API를 사용하고 이후 SSE 가격 메시지로 해당 종목을 갱신합니다.
 
-## 4. 오류
+## 4. 과거 자산 추이
+
+```http
+GET /api/accounts/{accountId}/asset-history?from=2026-01-01&to=2026-09-28
+```
+
+`from`, `to`는 선택값이며 한국 날짜 `YYYY-MM-DD` 형식이고 양 끝 날짜를 포함합니다. `data`는 일별 스냅샷의 `cashBalance`, `stockValue`, `totalAssetValue`, 직전 스냅샷 대비 `change`, `changeRate`, 최종 갱신시각을 날짜 오름차순으로 반환합니다.
+
+`summary`는 조회 범위의 시작·종료 자산, 두 스냅샷 사이의 입금·출금, 순투입금, 자산증감, 순투입금을 제외한 손익과 단순 수익률을 반환합니다.
+
+```text
+순투입금 = 입금 - 출금
+손익 = 종료자산 - 시작자산 - 순투입금
+수익률 = 손익 / 시작자산 × 100
+```
+
+계산 방식은 `NET_FLOW_ADJUSTED_SIMPLE`로 명시합니다. 이는 TWR·MWR이 아니며, 스냅샷이 2개 미만이거나 시작자산이 0원이면 계산할 근거가 없으므로 `profitLoss`, `returnRate`를 임의의 `0` 대신 `null`로 반환합니다. 거래 수정·삭제로 과거 스냅샷을 자동 재계산하지 않는 규칙을 그대로 따릅니다.
+
+## 5. 오류
 
 - 잘못된 계좌 ID: `400 INVALID_INPUT`
 - 없거나 비활성화된 계좌: `404 ACCOUNT_NOT_FOUND`
