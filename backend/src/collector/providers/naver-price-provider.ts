@@ -10,6 +10,16 @@ interface NaverStockData {
   compareToPreviousPrice?: { name?: string };
   localTradedAt?: string;
   marketStatus?: string;
+  overMarketPriceInfo?: {
+    tradingSessionType?: string;
+    overMarketStatus?: string;
+    overPrice?: string;
+    overPriceRaw?: string;
+    compareToPreviousClosePrice?: string;
+    compareToPreviousClosePriceRaw?: string;
+    compareToPreviousPrice?: { name?: string };
+    localTradedAt?: string;
+  };
 }
 
 interface NaverResponse {
@@ -24,25 +34,37 @@ const normalizeSymbol = (symbol: string): string => {
 };
 
 const positivePrice = (value: string | undefined, field: string): number => {
-  const parsed = Number(value);
+  const parsed = Number(value?.replaceAll(',', ''));
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`Invalid ${field} from Naver Finance`);
   return parsed;
 };
+
+const numeric = (value: string | undefined): number => Number((value ?? '0').replaceAll(',', ''));
 
 export const parseNaverPrice = (security: SecurityTarget, response: NaverResponse, now = new Date()): PriceObservation => {
   const symbol = normalizeSymbol(security.symbol);
   const data = response.datas?.find((item) => item.itemCode === symbol);
   if (!data) throw new Error(`Naver Finance response did not contain ${symbol}`);
 
-  const current = positivePrice(data.closePriceRaw, 'closePriceRaw');
-  const difference = Math.abs(Number(data.compareToPreviousClosePriceRaw ?? '0'));
+  const overMarket = data.overMarketPriceInfo;
+  const usesNxt = overMarket?.overMarketStatus === 'OPEN'
+    && (overMarket.tradingSessionType === 'PRE_MARKET' || overMarket.tradingSessionType === 'AFTER_MARKET')
+    && Boolean(overMarket.overPriceRaw ?? overMarket.overPrice);
+  const current = positivePrice(
+    usesNxt ? (overMarket?.overPriceRaw ?? overMarket?.overPrice) : data.closePriceRaw,
+    usesNxt ? 'overMarketPriceInfo.overPrice' : 'closePriceRaw',
+  );
+  const difference = Math.abs(numeric(usesNxt
+    ? (overMarket?.compareToPreviousClosePriceRaw ?? overMarket?.compareToPreviousClosePrice)
+    : data.compareToPreviousClosePriceRaw));
   if (!Number.isFinite(difference)) throw new Error('Invalid compareToPreviousClosePriceRaw from Naver Finance');
-  const direction = data.compareToPreviousPrice?.name;
+  const direction = usesNxt ? overMarket?.compareToPreviousPrice?.name : data.compareToPreviousPrice?.name;
   const previous = direction === 'RISING' ? current - difference : direction === 'FALLING' ? current + difference : current;
   if (previous <= 0) throw new Error('Calculated previous close price is invalid');
-  if (!data.localTradedAt) throw new Error('Naver Finance response did not include localTradedAt');
+  const localTradedAt = usesNxt ? overMarket?.localTradedAt : data.localTradedAt;
+  if (!localTradedAt) throw new Error('Naver Finance response did not include localTradedAt');
 
-  const observedAt = new Date(data.localTradedAt);
+  const observedAt = new Date(localTradedAt);
   if (Number.isNaN(observedAt.getTime())) throw new Error('Invalid localTradedAt from Naver Finance');
   const observedDate = getSeoulClock(observedAt).dateKey;
   const nowClock = getSeoulClock(now);
@@ -56,7 +78,7 @@ export const parseNaverPrice = (security: SecurityTarget, response: NaverRespons
     currentPrice: String(current),
     previousClosePrice: String(previous),
     observedAt,
-    marketStatus: data.marketStatus ?? 'UNKNOWN',
+    marketStatus: usesNxt ? `NXT_${overMarket?.tradingSessionType}` : (data.marketStatus ?? 'UNKNOWN'),
     freshness: stale ? 'STALE' : 'CURRENT',
     freshnessReason: stale ? `provider trading date ${observedDate} differs from expected market date ${expectedDate}` : undefined,
   };

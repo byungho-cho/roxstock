@@ -26,7 +26,7 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 
 ## 선택 종목 장중 실시간 수집
 
-보유·관심·추천 종목은 \`watchlist_items\`에서 합쳐 종목코드 기준으로 중복 없이 조회합니다. 기본 최대 100종목을 한국 정규장 평일 09:00~15:30에 10초 간격으로 수집합니다. 한 회차가 10초를 초과하면 회차를 겹치지 않고 완료 직후 다음 회차를 시작합니다.
+보유·관심·추천 종목은 \`watchlist_items\`에서 합쳐 종목코드 기준으로 중복 없이 조회합니다. 기본 최대 100종목을 평일 NXT 프리마켓 08:00~08:50, KRX 정규장 09:00~15:30, NXT 애프터마켓 15:40~20:00에 10초 간격으로 수집합니다. 세션 전환 공백에는 수집하지 않으며, 한 회차가 10초를 초과하면 회차를 겹치지 않고 완료 직후 다음 회차를 시작합니다.
 
 - 프로세스: \`backend\`, 일일 \`collector\`, \`realtime-collector\`는 독립 실행됩니다.
 - 화면 전달: 실시간 수집기가 \`POST /internal/realtime-prices\`로 API 프로세스 캐시에 전달하고 API가 \`GET /api/prices/stream\` SSE로 방송합니다.
@@ -37,6 +37,7 @@ Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수�
 - 호출 제어: 기본 동시 요청은 5개이며 다음 회차와 중복 실행하지 않습니다.
 - 휴장·미갱신: 공급자 거래일이 한국 기준 오늘과 다르면 \`STALE\`로 분류하고 전송·저장하지 않습니다.
 - 전체 대상이 \`STALE\`이면 기본 300초 동안 원천 호출을 쉬어 휴장일의 불필요한 요청을 줄입니다.
+- 네이버 응답의 \`overMarketPriceInfo\`가 프리·애프터마켓 \`OPEN\`일 때 NXT 가격과 거래시각을 우선 사용합니다. NXT 미지원 종목은 마지막 정상 KRX 가격을 유지합니다.
 
 로컬 실행 시 API와 실시간 수집기를 별도 터미널에서 실행합니다.
 
@@ -60,8 +61,12 @@ COLLECTOR_REALTIME_TARGET_REFRESH_SECONDS=30
 COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS=300
 COLLECTOR_REALTIME_MAX_SECURITIES=100
 COLLECTOR_REALTIME_CONCURRENCY=5
-COLLECTOR_REALTIME_MARKET_OPEN=09:00
-COLLECTOR_REALTIME_MARKET_CLOSE=15:30
+COLLECTOR_REALTIME_PRE_MARKET_OPEN=08:00
+COLLECTOR_REALTIME_PRE_MARKET_CLOSE=08:50
+COLLECTOR_REALTIME_REGULAR_MARKET_OPEN=09:00
+COLLECTOR_REALTIME_REGULAR_MARKET_CLOSE=15:30
+COLLECTOR_REALTIME_AFTER_MARKET_OPEN=15:40
+COLLECTOR_REALTIME_AFTER_MARKET_CLOSE=20:00
 COLLECTOR_REALTIME_API_URL=http://backend:3300/internal/realtime-prices
 COLLECTOR_INTERNAL_TOKEN=replace-with-a-long-random-value
 \`\`\`

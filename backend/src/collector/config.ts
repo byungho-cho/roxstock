@@ -52,8 +52,12 @@ export interface CollectorConfig {
   realtimeStaleBackoffSeconds: number;
   realtimeMaxSecurities: number;
   realtimeConcurrency: number;
-  realtimeMarketOpen: string;
-  realtimeMarketClose: string;
+  realtimePreMarketOpen: string;
+  realtimePreMarketClose: string;
+  realtimeRegularMarketOpen: string;
+  realtimeRegularMarketClose: string;
+  realtimeAfterMarketOpen: string;
+  realtimeAfterMarketClose: string;
   realtimeApiUrl: string;
   realtimeInternalToken: string;
 }
@@ -93,8 +97,12 @@ export const loadCollectorConfig = (): CollectorConfig => {
     realtimeStaleBackoffSeconds: positiveInteger(process.env.COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS, 300, 'COLLECTOR_REALTIME_STALE_BACKOFF_SECONDS'),
     realtimeMaxSecurities: positiveInteger(process.env.COLLECTOR_REALTIME_MAX_SECURITIES, 100, 'COLLECTOR_REALTIME_MAX_SECURITIES'),
     realtimeConcurrency: positiveInteger(process.env.COLLECTOR_REALTIME_CONCURRENCY, 5, 'COLLECTOR_REALTIME_CONCURRENCY'),
-    realtimeMarketOpen: clockTime(process.env.COLLECTOR_REALTIME_MARKET_OPEN, '09:00', 'COLLECTOR_REALTIME_MARKET_OPEN'),
-    realtimeMarketClose: clockTime(process.env.COLLECTOR_REALTIME_MARKET_CLOSE, '15:30', 'COLLECTOR_REALTIME_MARKET_CLOSE'),
+    realtimePreMarketOpen: clockTime(process.env.COLLECTOR_REALTIME_PRE_MARKET_OPEN, '08:00', 'COLLECTOR_REALTIME_PRE_MARKET_OPEN'),
+    realtimePreMarketClose: clockTime(process.env.COLLECTOR_REALTIME_PRE_MARKET_CLOSE, '08:50', 'COLLECTOR_REALTIME_PRE_MARKET_CLOSE'),
+    realtimeRegularMarketOpen: clockTime(process.env.COLLECTOR_REALTIME_REGULAR_MARKET_OPEN, '09:00', 'COLLECTOR_REALTIME_REGULAR_MARKET_OPEN'),
+    realtimeRegularMarketClose: clockTime(process.env.COLLECTOR_REALTIME_REGULAR_MARKET_CLOSE, '15:30', 'COLLECTOR_REALTIME_REGULAR_MARKET_CLOSE'),
+    realtimeAfterMarketOpen: clockTime(process.env.COLLECTOR_REALTIME_AFTER_MARKET_OPEN, '15:40', 'COLLECTOR_REALTIME_AFTER_MARKET_OPEN'),
+    realtimeAfterMarketClose: clockTime(process.env.COLLECTOR_REALTIME_AFTER_MARKET_CLOSE, '20:00', 'COLLECTOR_REALTIME_AFTER_MARKET_CLOSE'),
     realtimeApiUrl: (process.env.COLLECTOR_REALTIME_API_URL ?? 'http://backend:3300/internal/realtime-prices').trim(),
     realtimeInternalToken: (process.env.COLLECTOR_INTERNAL_TOKEN ?? '').trim(),
   };

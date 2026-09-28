@@ -19,11 +19,20 @@ export interface RealtimeCollectorOptions {
   staleBackoffSeconds: number;
   maxSecurities: number;
   concurrency: number;
-  marketOpen: string;
-  marketClose: string;
+  marketSessions: RealtimeMarketSessions;
   apiUrl: string;
   internalToken: string;
   requestTimeoutMs: number;
+}
+
+export type RealtimeMarketSession = 'PRE_MARKET' | 'REGULAR' | 'AFTER_MARKET';
+export interface RealtimeMarketSessions {
+  preMarketOpen: string;
+  preMarketClose: string;
+  regularMarketOpen: string;
+  regularMarketClose: string;
+  afterMarketOpen: string;
+  afterMarketClose: string;
 }
 
 export interface RealtimeCycleResult {
@@ -43,16 +52,18 @@ const minuteOfDay = (value: string): number => {
   return Number(hour) * 60 + Number(minute);
 };
 
-export const isRealtimeMarketWindow = (
+export const getRealtimeMarketSession = (
   now: Date,
-  marketOpen: string,
-  marketClose: string,
-): boolean => {
+  sessions: RealtimeMarketSessions,
+): RealtimeMarketSession | null => {
   const clock = getSeoulClock(now);
   const weekday = new Date(`${clock.dateKey}T00:00:00.000Z`).getUTCDay();
-  if (weekday === 0 || weekday === 6) return false;
+  if (weekday === 0 || weekday === 6) return null;
   const current = clock.hour * 60 + clock.minute;
-  return current >= minuteOfDay(marketOpen) && current <= minuteOfDay(marketClose);
+  if (current >= minuteOfDay(sessions.preMarketOpen) && current < minuteOfDay(sessions.preMarketClose)) return 'PRE_MARKET';
+  if (current >= minuteOfDay(sessions.regularMarketOpen) && current <= minuteOfDay(sessions.regularMarketClose)) return 'REGULAR';
+  if (current >= minuteOfDay(sessions.afterMarketOpen) && current < minuteOfDay(sessions.afterMarketClose)) return 'AFTER_MARKET';
+  return null;
 };
 
 const mapConcurrent = async <T>(
@@ -168,13 +179,13 @@ export const runRealtimeCollector = async (
       dbFlushSeconds: options.dbFlushSeconds,
       maxSecurities: options.maxSecurities,
       concurrency: options.concurrency,
-      marketOpen: options.marketOpen,
-      marketClose: options.marketClose,
+      marketSessions: options.marketSessions,
       timezone: 'Asia/Seoul',
     });
     while (!stopped) {
       const cycleStartedAt = Date.now();
-      if (!options.enabled || !isRealtimeMarketWindow(new Date(cycleStartedAt), options.marketOpen, options.marketClose)) {
+      const marketSession = getRealtimeMarketSession(new Date(cycleStartedAt), options.marketSessions);
+      if (!options.enabled || marketSession === null) {
         await sleep(options.intervalSeconds * 1000);
         continue;
       }
@@ -201,6 +212,7 @@ export const runRealtimeCollector = async (
         }
         log(result.failed > 0 ? 'warn' : 'info', 'realtime price cycle finished', {
           durationMs: Date.now() - cycleStartedAt,
+          marketSession,
           ...result,
         });
         if (result.publishError) log('warn', 'realtime price API publish failed', { reason: result.publishError });
