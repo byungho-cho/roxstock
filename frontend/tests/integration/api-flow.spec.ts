@@ -74,6 +74,21 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(Number(afterWithdrawal.cashBalance)).toBe(19_000);
   await page.screenshot({ path: testInfo.outputPath('04-after-withdrawal.png') });
 
+  const unpricedResponse = await request.get('/api/securities?query=099998&limit=20&offset=0');
+  const unpricedId: string = (await unpricedResponse.json()).data[0].id;
+  await page.goto(`/trade?type=buy&stock=${unpricedId}`);
+  await page.getByRole('textbox', { name: '매수수량' }).fill('1');
+  await page.getByRole('textbox', { name: '매수가격' }).fill('1000');
+  await page.getByRole('button', { name: '매수', exact: true }).click();
+  await expect(page).toHaveURL(/stocks\?tab=holding/);
+  await expect(page.getByRole('button', { name: '시세없는테스트종목 상세보기' }).getByText('미수집')).toBeVisible();
+  const unpricedDashboard = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
+  expect(unpricedDashboard.pricingComplete).toBe(false);
+  expect(unpricedDashboard.totalAssetValue).toBeNull();
+  await page.goto('/');
+  await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
+
   // A failed live request must show an error, never previously rendered or bundled mock figures.
   await page.route('**/api/accounts/*/dashboard', (route) => route.fulfill({ status: 503, body: '{"error":{"message":"temporary failure"}}' }));
   await page.goto('/');
