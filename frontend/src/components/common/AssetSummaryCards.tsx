@@ -18,8 +18,8 @@ export function TotalAssetCard({ summary, tabletHeight = 116 }: { summary: Dashb
 
 export function AssetQuickCards({ summary, tabletHeight = 88 }: { summary: DashboardSummary; tabletHeight?: number }) {
   const navigate = useNavigate();
-  const stockRate = summary.totalAssets ? summary.stockValue / summary.totalAssets * 100 : 0;
-  const cashRate = summary.totalAssets ? summary.cashBalance / summary.totalAssets * 100 : 0;
+  const stockRate = Number.isFinite(summary.totalAssets) && summary.totalAssets > 0 ? summary.stockValue / summary.totalAssets * 100 : Number.NaN;
+  const cashRate = Number.isFinite(summary.totalAssets) && summary.totalAssets > 0 ? summary.cashBalance / summary.totalAssets * 100 : Number.NaN;
   return <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: { xs: '10px', sm: `${pageMetrics.gap}px` }, height: { xs: 82, sm: tabletHeight } }}>
     <QuickCard title="주식평가액" value={formatWon(summary.stockValue)} rate={formatPercent(stockRate)} monthly={formatSignedWon(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} tabletHeight={tabletHeight} />
     <QuickCard title="예수금" value={formatWon(summary.cashBalance)} rate={formatPercent(cashRate)} monthly={formatSignedWon(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} tabletHeight={tabletHeight} />

@@ -10,6 +10,10 @@ RUN npm ci --workspace frontend --include-workspace-root=false
 
 COPY frontend frontend
 
+ARG VITE_DATA_SOURCE=mock
+ARG VITE_API_ACCOUNT_ID=
+ENV VITE_DATA_SOURCE=${VITE_DATA_SOURCE}
+ENV VITE_API_ACCOUNT_ID=${VITE_API_ACCOUNT_ID}
 RUN npm run build:frontend
 
 FROM nginx:1.28-alpine

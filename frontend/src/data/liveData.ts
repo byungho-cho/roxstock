@@ -11,7 +11,7 @@ const listTypeMap: Record<StockListType, ServerListType> = {
 
 const decimal = (value: string | null | undefined) => value === null || value === undefined ? undefined : Number(value);
 const priceChange = (current: number | undefined, previous: number | undefined) =>
-  current !== undefined && previous ? (current - previous) / previous * 100 : 0;
+  current !== undefined && previous ? (current - previous) / previous * 100 : Number.NaN;
 
 export function mapSecurity(stock: SecurityDto): StockItem {
   const currentPrice = decimal(stock.currentPrice);
@@ -24,6 +24,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
     priceAvailable: currentPrice !== undefined,
+    priceChangeAvailable: currentPrice !== undefined && decimal(stock.previousClosePrice) !== undefined,
   };
 }
 
@@ -32,11 +33,12 @@ export function mapHolding(holding: HoldingDto): StockItem {
   return {
     id: holding.securityId, symbol: holding.symbol, name: holding.name, listType: 'holding',
     currentPrice: currentPrice ?? Number.NaN,
-    priceChangeRate: decimal(holding.priceChangeRate) ?? 0,
+    priceChangeRate: decimal(holding.priceChangeRate) ?? Number.NaN,
     quantity: Number(holding.quantity), averagePrice: Number(holding.averagePurchasePrice),
     marketValue: decimal(holding.marketValue), profitAmount: decimal(holding.unrealizedProfitLoss),
     profitRate: decimal(holding.unrealizedReturnRate),
     priceAvailable: currentPrice !== undefined,
+    priceChangeAvailable: decimal(holding.priceChangeRate) !== undefined,
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
   };
 }
