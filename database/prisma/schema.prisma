@@ -168,18 +168,19 @@ model WatchlistItem {
 }
 
 model BuyTrade {
-  id         BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
-  accountId  BigInt      @map("account_id") @db.UnsignedBigInt
-  securityId BigInt      @map("security_id") @db.UnsignedBigInt
-  boughtAt   DateTime    @map("bought_at") @db.DateTime(3)
-  quantity   Decimal     @db.Decimal(18, 6)
-  unitPrice  Decimal     @map("unit_price") @db.Decimal(19, 4)
-  memo       String?     @db.VarChar(500)
-  createdAt  DateTime    @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt  DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
-  account    Account     @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  security   Security    @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  sellTrades SellTrade[]
+  id              BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId       BigInt           @map("account_id") @db.UnsignedBigInt
+  securityId      BigInt           @map("security_id") @db.UnsignedBigInt
+  boughtAt        DateTime         @map("bought_at") @db.DateTime(3)
+  quantity        Decimal          @db.Decimal(18, 6)
+  unitPrice       Decimal          @map("unit_price") @db.Decimal(19, 4)
+  memo            String?          @db.VarChar(500)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+  account         Account          @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  security        Security         @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sellTrades      SellTrade[]
+  cashTransaction CashTransaction?
 
   @@index([accountId, boughtAt])
   @@index([accountId, securityId, boughtAt])
@@ -187,15 +188,16 @@ model BuyTrade {
 }
 
 model SellTrade {
-  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  buyTradeId BigInt   @map("buy_trade_id") @db.UnsignedBigInt
-  soldAt     DateTime @map("sold_at") @db.DateTime(3)
-  quantity   Decimal  @db.Decimal(18, 6)
-  unitPrice  Decimal  @map("unit_price") @db.Decimal(19, 4)
-  memo       String?  @db.VarChar(500)
-  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
-  buyTrade   BuyTrade @relation(fields: [buyTradeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id              BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  buyTradeId      BigInt           @map("buy_trade_id") @db.UnsignedBigInt
+  soldAt          DateTime         @map("sold_at") @db.DateTime(3)
+  quantity        Decimal          @db.Decimal(18, 6)
+  unitPrice       Decimal          @map("unit_price") @db.Decimal(19, 4)
+  memo            String?          @db.VarChar(500)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+  buyTrade        BuyTrade         @relation(fields: [buyTradeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cashTransaction CashTransaction?
 
   @@index([buyTradeId, soldAt])
   @@index([soldAt])
@@ -205,6 +207,8 @@ model SellTrade {
 model CashTransaction {
   id              BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
   accountId       BigInt              @map("account_id") @db.UnsignedBigInt
+  buyTradeId      BigInt?             @unique @map("buy_trade_id") @db.UnsignedBigInt
+  sellTradeId     BigInt?             @unique @map("sell_trade_id") @db.UnsignedBigInt
   transactionType CashTransactionType @map("transaction_type")
   transactionDate DateTime            @map("transaction_date") @db.DateTime(3)
   amount          Decimal             @db.Decimal(19, 4)
@@ -214,6 +218,8 @@ model CashTransaction {
   createdAt       DateTime            @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt       DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
   account         Account             @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  buyTrade        BuyTrade?           @relation(fields: [buyTradeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  sellTrade       SellTrade?          @relation(fields: [sellTradeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([accountId, transactionDate])
   @@index([accountId, transactionType, transactionDate])

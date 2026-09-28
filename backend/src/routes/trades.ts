@@ -88,6 +88,14 @@ const syncHoldingStatus = async (tx: Prisma.TransactionClient, securityId: bigin
   }
 };
 
+const mapLinkedCashTransaction = (cashTransaction: {
+  id: bigint; feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal;
+} | null) => cashTransaction ? {
+  id: cashTransaction.id.toString(),
+  feeTaxAmount: cashTransaction.feeTaxAmount.toString(),
+  balanceAfter: cashTransaction.balanceAfter.toString(),
+} : null;
+
 export async function tradeRoutes(app: FastifyInstance) {
   app.get<{ Params: AccountParams; Querystring: TradeQuery }>('/accounts/:accountId/trades', async (request) => {
     const accountId = id(request.params.accountId, 'accountId');
@@ -156,6 +164,82 @@ export async function tradeRoutes(app: FastifyInstance) {
         sellAmount: item.sellAmount.toString(), realizedProfitLoss: item.realizedProfitLoss.toString(),
       })),
       meta: { accountId: accountId.toString(), count: entries.length, timezone: 'Asia/Seoul' },
+    };
+  });
+
+  app.get<{ Params: TradeParams }>('/buy-trades/:tradeId', async (request) => {
+    const tradeId = id(request.params.tradeId, 'tradeId');
+    const trade = await prisma.buyTrade.findUnique({
+      where: { id: tradeId },
+      include: {
+        account: { select: { id: true, name: true } },
+        security: { select: { id: true, symbol: true, name: true, marketType: true } },
+        cashTransaction: { select: { id: true, feeTaxAmount: true, balanceAfter: true } },
+        sellTrades: {
+          include: { cashTransaction: { select: { id: true, feeTaxAmount: true, balanceAfter: true } } },
+          orderBy: [{ soldAt: 'asc' }, { id: 'asc' }],
+        },
+      },
+    });
+    if (!trade) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
+    const soldQuantity = trade.sellTrades.reduce((sum, sell) => sum.plus(sell.quantity), new Prisma.Decimal(0));
+    const remainingQuantity = trade.quantity.minus(soldQuantity);
+    const realizedProfitLoss = trade.sellTrades.reduce(
+      (sum, sell) => sum.plus(sell.quantity.mul(sell.unitPrice.minus(trade.unitPrice))),
+      new Prisma.Decimal(0),
+    );
+    return {
+      data: {
+        id: trade.id.toString(), type: 'BUY',
+        account: { id: trade.account.id.toString(), name: trade.account.name },
+        security: { id: trade.security.id.toString(), symbol: trade.security.symbol, name: trade.security.name, marketType: trade.security.marketType },
+        boughtAt: trade.boughtAt.toISOString(), quantity: trade.quantity.toString(), soldQuantity: soldQuantity.toString(),
+        remainingQuantity: remainingQuantity.toString(), unitPrice: trade.unitPrice.toString(),
+        amount: trade.quantity.mul(trade.unitPrice).toString(), remainingPurchaseAmount: remainingQuantity.mul(trade.unitPrice).toString(),
+        realizedProfitLoss: realizedProfitLoss.toString(), memo: trade.memo,
+        cashTransaction: mapLinkedCashTransaction(trade.cashTransaction),
+        sellTrades: trade.sellTrades.map((sell) => ({
+          id: sell.id.toString(), buyTradeId: trade.id.toString(), soldAt: sell.soldAt.toISOString(),
+          quantity: sell.quantity.toString(), unitPrice: sell.unitPrice.toString(), amount: sell.quantity.mul(sell.unitPrice).toString(),
+          realizedProfitLoss: sell.quantity.mul(sell.unitPrice.minus(trade.unitPrice)).toString(), memo: sell.memo,
+          cashTransaction: mapLinkedCashTransaction(sell.cashTransaction),
+        })),
+        createdAt: trade.createdAt.toISOString(), updatedAt: trade.updatedAt.toISOString(),
+      },
+      meta: { historicalCashLinkAvailable: trade.cashTransaction !== null },
+    };
+  });
+
+  app.get<{ Params: TradeParams }>('/sell-trades/:tradeId', async (request) => {
+    const tradeId = id(request.params.tradeId, 'tradeId');
+    const trade = await prisma.sellTrade.findUnique({
+      where: { id: tradeId },
+      include: {
+        cashTransaction: { select: { id: true, feeTaxAmount: true, balanceAfter: true } },
+        buyTrade: {
+          include: {
+            account: { select: { id: true, name: true } },
+            security: { select: { id: true, symbol: true, name: true, marketType: true } },
+          },
+        },
+      },
+    });
+    if (!trade) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
+    return {
+      data: {
+        id: trade.id.toString(), type: 'SELL', buyTradeId: trade.buyTradeId.toString(),
+        account: { id: trade.buyTrade.account.id.toString(), name: trade.buyTrade.account.name },
+        security: {
+          id: trade.buyTrade.security.id.toString(), symbol: trade.buyTrade.security.symbol,
+          name: trade.buyTrade.security.name, marketType: trade.buyTrade.security.marketType,
+        },
+        soldAt: trade.soldAt.toISOString(), quantity: trade.quantity.toString(), unitPrice: trade.unitPrice.toString(),
+        amount: trade.quantity.mul(trade.unitPrice).toString(), buyUnitPrice: trade.buyTrade.unitPrice.toString(),
+        realizedProfitLoss: trade.quantity.mul(trade.unitPrice.minus(trade.buyTrade.unitPrice)).toString(), memo: trade.memo,
+        cashTransaction: mapLinkedCashTransaction(trade.cashTransaction),
+        createdAt: trade.createdAt.toISOString(), updatedAt: trade.updatedAt.toISOString(),
+      },
+      meta: { historicalCashLinkAvailable: trade.cashTransaction !== null },
     };
   });
 
@@ -336,6 +420,7 @@ export async function tradeRoutes(app: FastifyInstance) {
       const cashTransaction = await tx.cashTransaction.create({
         data: {
           accountId,
+          buyTradeId: trade.id,
           transactionType: 'BUY',
           transactionDate: boughtAt,
           amount,
@@ -407,6 +492,7 @@ export async function tradeRoutes(app: FastifyInstance) {
       const cashTransaction = await tx.cashTransaction.create({
         data: {
           accountId: buyTrade.accountId,
+          sellTradeId: trade.id,
           transactionType: 'SELL',
           transactionDate: soldAt,
           amount,
