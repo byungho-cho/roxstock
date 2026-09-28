@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('isolated account: dashboard → stocks → journal → cash/buy/sell/withdrawal', async ({ page, request }, testInfo) => {
+  test.setTimeout(120_000);
   const accountResponse = await request.post('/api/accounts', { data: { name: '프론트 통합테스트 전용', brokerName: 'CI' } });
   expect(accountResponse.status()).toBe(201);
   const accountId: string = (await accountResponse.json()).data.id;
@@ -40,6 +41,9 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   const afterBuy = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(afterBuy.cashBalance)).toBe(18_000);
   expect(Number(afterBuy.totalAssetValue)).toBe(20_400);
+  await page.goto('/');
+  await expect(page.getByText('20,400원')).toBeVisible();
+  await expect(page.getByText('18,000원')).toBeVisible();
   await page.goto('/journal');
   await expect(page.getByText('총 1건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-journal.png') });
@@ -69,4 +73,10 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   const afterWithdrawal = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(afterWithdrawal.cashBalance)).toBe(19_000);
   await page.screenshot({ path: testInfo.outputPath('04-after-withdrawal.png') });
+
+  // A failed live request must show an error, never previously rendered or bundled mock figures.
+  await page.route('**/api/accounts/*/dashboard', (route) => route.fulfill({ status: 503, body: '{"error":{"message":"temporary failure"}}' }));
+  await page.goto('/');
+  await expect(page.getByText('대시보드를 불러오지 못했어요.')).toBeVisible();
+  await expect(page.getByText('20,400원')).toHaveCount(0);
 });
