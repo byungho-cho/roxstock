@@ -68,7 +68,7 @@ export async function fetchLiveDashboard(): Promise<DashboardData> {
       pricingComplete: response.pricingComplete,
     },
     holdings,
-    trend: history.data.slice(-30).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
+    trend: history.data.slice(-365).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
   };
 }
 
