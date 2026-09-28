@@ -175,6 +175,23 @@ test('Naver response maps current and previous close and marks old trading dates
   assert.equal(stale.freshness, 'STALE');
 });
 
+test('Naver response prefers an open NXT pre or after market price', () => {
+  const result = parseNaverPrice(security(1n, '005930'), { datas: [{
+    itemCode: '005930', closePriceRaw: '280000', compareToPreviousClosePriceRaw: '1000',
+    compareToPreviousPrice: { name: 'RISING' }, localTradedAt: '2026-09-28T07:59:00+09:00',
+    marketStatus: 'PREOPEN',
+    overMarketPriceInfo: {
+      tradingSessionType: 'PRE_MARKET', overMarketStatus: 'OPEN', overPrice: '285,500',
+      compareToPreviousClosePrice: '4,500', compareToPreviousPrice: { name: 'RISING' },
+      localTradedAt: '2026-09-28T08:28:00+09:00',
+    },
+  }] }, new Date('2026-09-28T08:28:10+09:00'));
+  assert.equal(result.currentPrice, '285500');
+  assert.equal(result.previousClosePrice, '281000');
+  assert.equal(result.marketStatus, 'NXT_PRE_MARKET');
+  assert.equal(result.freshness, 'CURRENT');
+});
+
 test('data.go.kr response keeps valid KOSPI and KOSDAQ common stock rows', () => {
   const result = parseSecurityMasterResponse({ response: {
     header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },

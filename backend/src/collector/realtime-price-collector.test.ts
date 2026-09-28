@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RealtimePriceCache } from '../realtime/price-cache.js';
-import { collectRealtimeCycle, isRealtimeMarketWindow } from './realtime-price-collector.js';
+import { collectRealtimeCycle, getRealtimeMarketSession, type RealtimeMarketSessions } from './realtime-price-collector.js';
 import type { PriceObservation, PriceProvider, RealtimePriceValue, SecurityTarget } from './types.js';
 
 const target = (id: bigint, symbol: string): SecurityTarget => ({ id, symbol, name: symbol });
@@ -58,10 +58,19 @@ test('API publish failure does not discard collected prices', async () => {
   assert.equal(cache.size, 1);
 });
 
-test('market window uses Asia/Seoul weekdays and configured times', () => {
-  assert.equal(isRealtimeMarketWindow(new Date('2026-09-28T01:00:00Z'), '09:00', '15:30'), true);
-  assert.equal(isRealtimeMarketWindow(new Date('2026-09-28T07:00:00Z'), '09:00', '15:30'), false);
-  assert.equal(isRealtimeMarketWindow(new Date('2026-09-27T01:00:00Z'), '09:00', '15:30'), false);
+const sessions: RealtimeMarketSessions = {
+  preMarketOpen: '08:00', preMarketClose: '08:50',
+  regularMarketOpen: '09:00', regularMarketClose: '15:30',
+  afterMarketOpen: '15:40', afterMarketClose: '20:00',
+};
+
+test('market sessions use Asia/Seoul weekdays and preserve transition gaps', () => {
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-27T23:10:00Z'), sessions), 'PRE_MARKET');
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-27T23:55:00Z'), sessions), null);
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-28T01:00:00Z'), sessions), 'REGULAR');
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-28T06:35:00Z'), sessions), null);
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-28T07:00:00Z'), sessions), 'AFTER_MARKET');
+  assert.equal(getRealtimeMarketSession(new Date('2026-09-27T01:00:00Z'), sessions), null);
 });
 
 test('realtime API cache validates input and prevents older overwrite', () => {
