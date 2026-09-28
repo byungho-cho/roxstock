@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | 계좌 선택 | `GET /api/accounts` | 서버 표시 순서의 첫 활성 계좌 사용. 계좌 전환 UI는 미구현 |
 | 대시보드 | `GET /api/accounts/:id/dashboard` | 계좌 요약과 보유종목 사용. 응답에 없는 일별·월별 값과 추이는 `—`/빈 영역 |
+| 과거 평가자산 상세 | 공개 경로 없음 | API 모드에서 목업 상세 대신 조회 API 필요 안내 |
 | 보유 목록 | `GET /api/accounts/:id/holdings` | 서버 수량·가격·손익 사용 |
 | 관심·추천 목록 | `GET /api/securities?listType=...` | 서버 목록 사용 |
 | 종목 검색 | `GET /api/securities` | 300ms 입력 지연, `excludeRegistered=true&limit=20&offset=0` |
