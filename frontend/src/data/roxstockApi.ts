@@ -70,6 +70,16 @@ export interface SecuritySearch {
 
 export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
 
+/** Both values must be positively verified by the server before showing the reset action. */
+export interface AccountResetAvailability { enabled: boolean; authorized: boolean }
+export const getAccountResetAvailability = (accountId: string) =>
+  apiRequest<AccountResetAvailability>(`/accounts/${encodeURIComponent(accountId)}/reset-availability`);
+export const resetAccountData = (accountId: string, accountName: string) =>
+  apiRequest<{ accountId: string; cashBalance: string; deleted: Record<string, number> }>(
+    `/accounts/${encodeURIComponent(accountId)}/reset`,
+    { method: 'POST', body: JSON.stringify({ confirmation: accountName }) },
+  );
+
 // The current UI has no account switcher. Use the first active account in server display order.
 export async function currentAccountId(): Promise<string> {
   const configuredId = import.meta.env.VITE_API_ACCOUNT_ID;

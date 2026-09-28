@@ -3,6 +3,7 @@ import { Box, ButtonBase, Stack, Typography } from '@mui/material';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { colors } from '../../styles/tokens';
+import { AccountResetSection } from './AccountResetSection';
 
 type Shortcut = { label: string; path: string; icon: ReactNode; description?: string };
 const shortcuts: Shortcut[] = [
@@ -44,7 +45,7 @@ export function MorePage() {
           </ButtonBase>)}
         </Stack>
       </Box>
-      <Box id="more-settings" tabIndex={-1} sx={panelStyle}>
+      <Box id="more-settings" tabIndex={-1} sx={{ ...panelStyle, overflowY: 'auto' }}>
         <Typography sx={{ fontSize: 18, fontWeight: 600 }}>설정</Typography>
         <Typography sx={{ mt: '4px', fontSize: 11, color: '#7A859E' }}>개인 사용에 필요한 핵심 설정만 제공합니다.</Typography>
         <Box sx={{ mt: '20px', p: '15px', height: 178, border: '1px solid #212B40', borderRadius: '12px', bgcolor: '#121724' }}>
@@ -55,6 +56,7 @@ export function MorePage() {
           </Stack>
         </Box>
         <Typography sx={{ mt: '24px', fontSize: 11, color: '#7A859E' }}>기본은 다크 모드이며, 테마 외 설정은 필요 시 확장합니다.</Typography>
+        <AccountResetSection />
       </Box>
     </Box>
   </>;
