@@ -27,6 +27,7 @@ test('110 evaluation assets v0.2 matches cover and unfolded layout', async ({ pa
     expect(layout.cards[2].height).toBe(174);
     expect(layout.composition.top).toBeGreaterThan(layout.cards[2].bottom);
     expect(layout.mainScrollable).toBe(true);
+    await expect(page.getByRole('button', { name: '홈', exact: true })).toHaveClass(/Mui-selected/);
   } else {
     expect(layout.cards[2].height).toBe(167);
     expect(Math.abs(layout.cards[0].top - layout.composition.top)).toBeLessThan(1);
