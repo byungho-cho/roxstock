@@ -46,3 +46,16 @@ test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ pa
   await page.getByRole('button', { name: '거래등록' }).click();
   await expect(page).toHaveURL(/\/trade/);
 });
+
+
+test('bottom navigation keeps the same icons when selection changes', async ({ page }, testInfo) => {
+  await page.setViewportSize(testInfo.project.name.startsWith('cover') ? { width: 370, height: 465 } : { width: 725, height: 396 });
+  await page.goto('/');
+  const activeNav = page.locator('.MuiBottomNavigation-root:visible');
+  const iconsBefore = await activeNav.locator('button').evaluateAll((buttons) => buttons.map((button) => button.querySelector('svg')?.innerHTML));
+  expect(iconsBefore.every(Boolean)).toBe(true);
+  await activeNav.getByRole('button', { name: '더보기' }).click();
+  await expect(page).toHaveURL(/\/more/);
+  const iconsAfter = await page.locator('.MuiBottomNavigation-root:visible button').evaluateAll((buttons) => buttons.map((button) => button.querySelector('svg')?.innerHTML));
+  expect(iconsAfter).toEqual(iconsBefore);
+});

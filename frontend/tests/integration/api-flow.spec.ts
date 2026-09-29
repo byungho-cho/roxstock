@@ -282,6 +282,13 @@ test('cash history reveals one calendar month at a time in API mode', async ({ p
   await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
   await page.goto('/detail/cash');
   await expect(page.getByText('최근 10개')).toBeVisible();
+  await page.route('**/api/accounts/*/cash-overview?*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.continue();
+  });
+  await page.getByRole('button', { name: '이전 기간' }).click();
+  await expect(page.getByText('최근 10개')).toBeVisible();
+  await expect(page.getByText('예수금 내역을 불러오는 중입니다.')).toHaveCount(0);
   await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
   await expect(page.getByText('최근 11개')).toBeVisible();
   await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
