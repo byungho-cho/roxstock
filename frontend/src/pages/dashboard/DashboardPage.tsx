@@ -1,4 +1,4 @@
-import { Box, Button, CardActionArea, CircularProgress, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
 import type { CollectionStatus, StockItem } from '../../types/models';
@@ -11,12 +11,13 @@ const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시�
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, isPending, isError, refetch } = useDashboard();
+  const { data, isPending, isError, refetch } = useDashboard({ pollPrices: true });
   if (isPending) return <DashboardLoading />;
-  if (isError || !data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
+  if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, alignItems: 'stretch', height: { sm: '100%' }, minHeight: { sm: 327 } }}>
+    <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Stack spacing="8px" sx={{ minWidth: 0, height: { sm: '100%' } }}>
       <TotalAssetCard summary={summary} home />
       <AssetQuickCards summary={summary} home />
