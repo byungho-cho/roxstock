@@ -1,12 +1,11 @@
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, CircularProgress, IconButton, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { chooseAccount, currentAccountId, createCashTransaction, getCashHistory, getCashOverview, listAccounts, type CashTransactionDto } from '../../data/roxstockApi';
-import { useDashboard } from '../../hooks/useMockData';
 import { formatWon } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 
@@ -23,7 +22,6 @@ const amountColor = (amount: number) => amount > 0 ? colors.marketRise : amount 
 const signed = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '−' : ''}${formatWon(Math.abs(amount))}`;
 
 export function LiveCashPage() {
-  const { data, isPending, isError, refetch } = useDashboard();
   const queryClient = useQueryClient();
   const accounts = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts });
   const accountId = chooseAccount(accounts.data ?? [])?.id;
@@ -32,7 +30,8 @@ export function LiveCashPage() {
   const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
   const [olderMonths, setOlderMonths] = useState(0);
   const touchStart = useRef<number | null>(null);
-  const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, year, month], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, Number(month.slice(5))), enabled: !!accountId });
+  const balance = useQuery({ queryKey: ['cashBalance', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
+  const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, mode === 'month' ? month : year], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, mode === 'month' ? Number(month.slice(5)) : undefined), enabled: !!accountId, staleTime: 60_000 });
   const history = useQuery({ queryKey: ['cashTransactions', accountId, olderMonths], queryFn: async () => {
     const first = await getCashHistory(accountId!, 10);
     const oldestDate = first.data.at(-1)?.transactionDate;
@@ -51,7 +50,7 @@ export function LiveCashPage() {
       }
     }
     return { data: [...new Map([...first.data, ...older].map((item) => [item.id, item])).values()].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (BigInt(b.id) > BigInt(a.id) ? 1 : -1)), meta: first.meta };
-  }, enabled: !!accountId });
+  }, enabled: !!accountId, placeholderData: (previous, query) => query?.queryKey[1] === accountId ? previous : undefined });
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
   const [date, setDate] = useState(today);
@@ -69,7 +68,7 @@ export function LiveCashPage() {
     setSaving(true); setError('');
     try {
       await createCashTransaction({ accountId: await currentAccountId(), transactionType: type, transactionDate: new Date(`${date}T12:00:00+09:00`).toISOString(), amount, memo: memo || null });
-      await Promise.all(['dashboard', 'cashOverview', 'cashTransactions'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+      await Promise.all(['dashboard', 'cashBalance', 'cashOverview', 'cashTransactions'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
       setOpen(false); setAmount(''); setMemo('');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 등록에 실패했습니다.'); }
     finally { setSaving(false); }
@@ -81,22 +80,17 @@ export function LiveCashPage() {
   const dividend = Number(period?.dividend ?? 0);
   const net = Number(period?.netChange ?? 0);
   const entries = history.data?.data ?? [];
-  const loading = accounts.isPending || (!!accountId && (overview.isPending || history.isPending));
-  const failed = accounts.isError || overview.isError || history.isError;
   return <Box>
-    <Snackbar open={isError && !!data} message="최신 예수금 조회에 실패했습니다. 이전 값을 표시합니다." />
+    <Snackbar open={balance.isError && !!balance.data} message="최신 예수금 조회에 실패했습니다. 이전 값을 표시합니다." />
     <PageHeader title="예수금" backPath="/" addLabel="예수금 등록" onAdd={() => setOpen(true)} embedded />
-    {isPending ? <Typography role="status">예수금을 불러오는 중입니다.</Typography> :
-      isError && !data ? <Button role="alert" onClick={() => void refetch()}>예수금 조회 실패 · 다시 시도</Button> :
-      loading ? <Typography role="status">예수금 내역을 불러오는 중입니다.</Typography> :
-      failed ? <Button role="alert" onClick={() => { void accounts.refetch(); void overview.refetch(); void history.refetch(); }}>예수금 내역 조회 실패 · 다시 시도</Button> :
-      !accountId ? <Typography role="status">선택된 계좌가 없습니다.</Typography> :
+    {accounts.isError ? <Button role="alert" onClick={() => void accounts.refetch()}>계좌 조회 실패 · 다시 시도</Button> :
+      !accounts.isPending && !accountId ? <Typography role="status">선택된 계좌가 없습니다.</Typography> :
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, minWidth: 0, height: { sm: '100%' }, alignItems: 'start' }}>
         <Stack spacing="8px" sx={{ minWidth: 0 }}>
           <AppCard sx={{ height: 96, borderRadius: '8px', p: { xs: '10px 16px', sm: '10px 17px' } }}>
             <Stack direction="row" sx={{ justifyContent: "space-between" }}><Typography sx={{ color: colors.textSecondary, fontSize: 12 }}>현재 예수금</Typography></Stack>
-            <Typography sx={{ color: colors.warning, fontSize: 28, fontWeight: 700, textAlign: 'right', lineHeight: '36px', whiteSpace: 'nowrap' }}>{formatWon(data?.summary.cashBalance ?? Number.NaN)}</Typography>
-            <Stack direction="row" sx={{ justifyContent: "space-between", mt: "2px" }}><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>{overview.data?.account.updatedAt ? shortDate(overview.data.account.updatedAt) + ' 갱신' : ''}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: amountColor(Number(overview.data?.monthly.netChange ?? 0)), fontSize: 11 }}>이번달 {signed(Number(overview.data?.monthly.netChange ?? 0))}</Typography></Stack>
+            <Typography sx={{ color: colors.warning, fontSize: 28, fontWeight: 700, textAlign: 'right', lineHeight: '36px', whiteSpace: 'nowrap' }}>{balance.data ? formatWon(Number(balance.data.account.currentBalance)) : <Skeleton variant="text" width="70%" sx={{ ml: 'auto' }} />}</Typography>
+            <Stack direction="row" sx={{ justifyContent: "space-between", mt: "2px" }}><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>{balance.data?.account.updatedAt ? shortDate(balance.data.account.updatedAt) + ' 갱신' : ''}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: amountColor(Number(balance.data?.monthly.netChange ?? 0)), fontSize: 11 }}>이번달 {balance.data ? signed(Number(balance.data.monthly.netChange)) : '—'}</Typography></Stack>
           </AppCard>
           <AppCard onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={(event) => { if (touchStart.current !== null && Math.abs(event.changedTouches[0].clientX - touchStart.current) > 55) changePeriod(event.changedTouches[0].clientX < touchStart.current ? 1 : -1); touchStart.current = null; }} sx={{ minHeight: { xs: 102, sm: 223 }, borderRadius: '8px', px: { xs: '15px', sm: '17px' }, py: '10px', touchAction: 'pan-y' }}>
             <Stack direction="row" sx={{ alignItems: "center", borderBottom: `1px solid ${colors.border}`, pb: { xs: '7px', sm: '12px' } }}>
@@ -106,8 +100,10 @@ export function LiveCashPage() {
               <Button onClick={() => setMode((previous) => previous === 'month' ? 'year' : 'month')} aria-label="월간 연간 전환" sx={{ ml: 1, minWidth: 54, flexShrink: 0, height: 24, bgcolor: colors.raised, color: colors.focus, borderRadius: '12px', fontSize: 10 }}>{mode === 'month' ? '월간' : '연간'}</Button>
             </Stack>
             <Stack direction={{ xs: 'row', sm: 'column' }} sx={{ justifyContent: 'space-between', mt: { xs: '7px', sm: 0 } }}>
-              {([['출금', withdrawal, colors.marketFall], ['입금', deposit, colors.marketRise], ['배당', dividend, colors.textPrimary], ['순변동', net, amountColor(net)]] as const).map(([label, value, color]) => <Stack key={label} direction={{ xs: 'column', sm: 'row' }} sx={{ display: { xs: label === '출금' || label === '입금' ? 'flex' : 'none', sm: 'flex' }, justifyContent: 'space-between', flex: 1, height: { sm: label === '순변동' ? 42 : 34 }, alignItems: { sm: 'center' }, borderBottom: { sm: label === '순변동' ? 'none' : `1px solid ${colors.border}` } }}><Typography sx={{ fontSize: { xs: 10, sm: 12 }, color: colors.textMuted }}>{label}</Typography><Typography sx={{ textAlign: 'right', fontSize: { xs: 12, sm: 16 }, fontWeight: 600, color }}>{label === '순변동' ? signed(value) : formatWon(value)}</Typography></Stack>)}
+              {([['출금', withdrawal, colors.marketFall], ['입금', deposit, colors.marketRise], ['배당', dividend, colors.textPrimary], ['순변동', net, amountColor(net)]] as const).map(([label, value, color]) => <Stack key={label} direction={{ xs: 'column', sm: 'row' }} sx={{ display: { xs: label === '출금' || label === '입금' ? 'flex' : 'none', sm: 'flex' }, justifyContent: 'space-between', flex: 1, height: { sm: label === '순변동' ? 42 : 34 }, alignItems: { sm: 'center' }, borderBottom: { sm: label === '순변동' ? 'none' : `1px solid ${colors.border}` } }}><Typography sx={{ fontSize: { xs: 10, sm: 12 }, color: colors.textMuted }}>{label}</Typography><Typography sx={{ textAlign: 'right', fontSize: { xs: 12, sm: 16 }, fontWeight: 600, color }}>{overview.data ? label === '순변동' ? signed(value) : formatWon(value) : <Skeleton variant="text" width={54} />}</Typography></Stack>)}
             </Stack>
+            {overview.isError && !overview.data && <Button size="small" role="alert" onClick={() => void overview.refetch()}>기간 조회 실패 · 다시 시도</Button>}
+            {overview.isFetching && overview.data && <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>갱신 중</Typography>}
           </AppCard>
         </Stack>
         <AppCard sx={{ borderRadius: '8px', p: { xs: '12px 15px', sm: '10px 17px' }, minWidth: 0, height: { sm: '100%' }, minHeight: { sm: 327 }, display: 'flex', flexDirection: 'column' }}>
@@ -115,8 +111,11 @@ export function LiveCashPage() {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, mt: 1, color: colors.textMuted, fontSize: 10 }}><Box sx={{ display: { xs: 'none', sm: 'block' } }}>날짜</Box><Box>구분</Box><Box sx={{ display: { xs: 'block', sm: 'none' } }}>날짜</Box><Box sx={{ textAlign: 'right' }}>금액</Box><Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>잔액</Box></Box>
           <Box sx={{ minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', flex: 1 }}>
             {entries.map((entry) => <Box key={entry.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, alignItems: 'center', height: { xs: 30, sm: 32 }, borderBottom: { sm: `1px solid ${colors.border}` } }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, color: amountColor(Number(entry.signedAmount)) }}>{labels[entry.transactionType]}</Typography><Typography sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: amountColor(Number(entry.signedAmount)) }}>{signed(Number(entry.signedAmount))}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, textAlign: 'right' }}>{formatWon(Number(entry.balanceAfter))}</Typography></Box>)}
-            {!entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
-            {(history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setOlderMonths((count) => count + 1)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 한 달 더보기</Button>}
+            {history.isPending && <Stack spacing={1} role="status" aria-label="예수금 내역을 불러오는 중"><Skeleton variant="text" /><Skeleton variant="text" /><Skeleton variant="text" /></Stack>}
+            {history.isError && !history.data && <Button role="alert" onClick={() => void history.refetch()}>내역 조회 실패 · 다시 시도</Button>}
+            {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
+            {history.isFetching && history.data && <Stack direction="row" spacing={1} role="status" sx={{ my: 1, alignItems: "center", color: colors.textMuted }}><CircularProgress size={14} /><Typography sx={{ fontSize: 11 }}>내역 갱신 중</Typography></Stack>}
+            {!history.isFetching && (history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setOlderMonths((count) => count + 1)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 한 달 더보기</Button>}
           </Box>
         </AppCard>
       </Box>}
