@@ -26,6 +26,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     note: stock.memo ?? undefined,
     per: decimal(stock.valuation?.per), pbr: decimal(stock.valuation?.pbr), roe: decimal(stock.valuation?.roe),
     operatingProfit: stock.operatingProfit == null ? undefined : Number(stock.operatingProfit) / 1e8,
+    previousOperatingProfit: stock.previousOperatingProfit == null ? undefined : Number(stock.previousOperatingProfit) / 1e8,
     valuationW: fair !== undefined && currentPrice ? fair / currentPrice : undefined,
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
