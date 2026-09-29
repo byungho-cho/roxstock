@@ -31,7 +31,7 @@ export function LiveStockDetailPage() {
         </AppCard>}
         <AppCard sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>거래내역</Typography>
           {trades.isPending ? <Typography role="status">거래 조회 중</Typography> : trades.isError ? <Typography role="alert">거래 조회에 실패했습니다.</Typography> :
-            trades.data?.data.length ? trades.data.data.map((entry) => <Box key={`${entry.type}-${entry.id}`} sx={{ mt: 1 }}><Typography>{entry.type === 'BUY' ? '매수' : '매도'} · {new Date(entry.tradedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })} · {entry.quantity}주 × {formatWon(Number(entry.unitPrice))}</Typography></Box>) : <Typography>거래내역이 없습니다.</Typography>}
+            trades.data?.data.length ? trades.data.data.map((entry) => <Box key={`${entry.type}-${entry.id}`} sx={{ mt: 1 }}><Typography>{entry.type === 'BUY' ? '매수' : '매도'} · {new Date(entry.tradedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })} · {entry.quantity}주 × {formatWon(Number(entry.unitPrice))}</Typography><Button onClick={() => navigate(`/trade?${new URLSearchParams({ type: entry.type.toLowerCase(), stock: stock.id, edit: entry.id, ...(entry.type === 'SELL' ? { lot: entry.buyTradeId } : {}) })}`)}>상세·수정</Button></Box>) : <Typography>거래내역이 없습니다.</Typography>}
         </AppCard>
       </>}
   </Stack>;
