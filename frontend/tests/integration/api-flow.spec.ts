@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { Prisma } from '../../../backend/src/generated/prisma/index.js';
+import { prisma } from '../../../backend/src/lib/prisma.js';
 
 test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
   await page.setViewportSize({ width: 400, height: 640 });
@@ -51,6 +53,50 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
   await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('최근 변경')).toBeVisible();
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await expect(page.getByRole('button', { name: '월간 연간 전환' })).toHaveText('연간');
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-370x465.png') });
+  await page.setViewportSize({ width: 725, height: 396 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-725x396.png') });
+  await page.setViewportSize({ width: 816, height: 616 });
+  const missingBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
+  expect(missingBaseline.dailyProfit).toBeNull();
+  expect(missingBaseline.dailyProfitRate).toBeNull();
+  expect(missingBaseline.stockMonthlyProfit).toBeNull();
+  expect(missingBaseline.cashMonthlyProfit).toBeNull();
+  expect(missingBaseline.performanceMeta.dailyProfitUnavailableReason).toBe('PREVIOUS_DAY_SNAPSHOT_MISSING');
+  const previousDay = new Date(`${new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })}T00:00:00.000Z`);
+  await prisma.dailyAccountSnapshot.create({ data: { accountId: BigInt(accountId), snapshotDate: previousDay, cashBalance: new Prisma.Decimal(10_000), stockValue: new Prisma.Decimal(0), totalAssetValue: new Prisma.Decimal(10_000) } });
+  const withBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
+  expect(Number(withBaseline.dailyProfit)).toBe(-10_000);
+  expect(Number(withBaseline.dailyProfitRate)).toBe(-100);
+  expect(withBaseline.stockMonthlyProfit).toBeNull();
+  expect(withBaseline.cashMonthlyProfit).toBeNull();
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.goto('/detail/assets');
+  await expect(page.getByText('-10,000원').first()).toBeVisible();
+  await expect(page.getByText('-100.0%').first()).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('110-daily-performance-370x465.png') });
+  for (const [width, height] of [[400, 640], [725, 396], [816, 616]]) {
+    await page.setViewportSize({ width, height });
+    await expect(page.getByText('-10,000원').first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.screenshot({ path: testInfo.outputPath(`110-daily-performance-${width}x${height}.png`) });
+  }
+  const secondAccountResponse = await request.post('/api/accounts', { data: { name: '손익 격리 계좌', brokerName: 'CI' } });
+  expect(secondAccountResponse.status()).toBe(201);
+  const secondAccountId: string = (await secondAccountResponse.json()).data.id;
+  await page.evaluate((id) => { localStorage.setItem('roxstock-selected-account-id', id); }, secondAccountId);
+  await page.reload();
+  await expect(page.getByText('-10,000원')).toHaveCount(0);
+  await expect(page.getByText('-100.0%')).toHaveCount(0);
+  await page.evaluate((id) => { localStorage.setItem('roxstock-selected-account-id', id); }, accountId);
+  await page.reload();
+  await expect(page.getByText('-10,000원').first()).toBeVisible();
   const cashAfterDeposit = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
@@ -73,7 +119,17 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/detail/assets');
   await expect(page.getByText('20,400원')).toBeVisible();
   await expect(page.getByText('2,400원').first()).toBeVisible();
+  await expect(page.getByText('400원', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: '주식 11.8%, 예수금 88.2%' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '종목별 자산 구성 도넛' }).getByText('2,400원')).toBeVisible();
+  await expect(page.getByText('통합테스트종목').first()).toBeVisible();
+  await expect(page.getByText('현대자동차')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets.png') });
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets-370x465.png') });
+  await page.setViewportSize({ width: 725, height: 396 });
+  await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets-725x396.png') });
+  await page.setViewportSize({ width: 816, height: 616 });
   await page.goto('/journal');
   await expect(page.getByText('총 1건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-journal.png') });
@@ -119,6 +175,9 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
   await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
+  await page.goto('/detail/assets');
+  await expect(page.getByText('가격 미수집 종목이 있어 자산구성을 계산할 수 없습니다.')).toBeVisible();
+  await expect(page.getByText('20,400원')).toHaveCount(0);
   await page.goto('/stocks?tab=holding');
   await page.setViewportSize({ width: 400, height: 640 });
   await expect(page.getByText('시세 미수집')).toBeVisible();
@@ -203,4 +262,29 @@ test('170 settings: account API create, update, requery and guarded reset across
   await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
   await expect(page.getByRole('textbox', { name: '계좌명 입력' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-confirm.png') });
+});
+
+test('cash history reveals one calendar month at a time in API mode', async ({ page, request }) => {
+  const created = await request.post('/api/accounts', { data: { name: '월별 내역 계좌', brokerName: 'CI' } });
+  expect(created.status()).toBe(201);
+  const accountId: string = (await created.json()).data.id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const [year, month] = current.slice(0, 7).split('-').map(Number);
+  const previousDate = new Date(Date.UTC(year, month - 2, 15)).toISOString().slice(0, 10);
+  for (let i = 0; i < 12; i++) {
+    const response = await request.post('/api/cash-transactions', { data: {
+      accountId, transactionType: 'DEPOSIT',
+      transactionDate: new Date(`${i === 0 ? previousDate : current}T12:00:00+09:00`).toISOString(),
+      amount: String(i + 1), memo: null,
+    } });
+    expect(response.status()).toBe(201);
+  }
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  await page.goto('/detail/cash');
+  await expect(page.getByText('최근 10개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 11개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 12개')).toBeVisible();
+  await expect(page.getByRole('button', { name: '이전 한 달 더보기' })).toHaveCount(0);
 });
