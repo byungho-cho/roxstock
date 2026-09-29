@@ -14,6 +14,7 @@ import { formatRate, getMarketColor } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 import { navigateToForm } from '../../utils/focusForm';
 import { TabletStockTable } from './TabletStockTable';
+import { updateSecurityPrice } from '../../data/roxstockApi';
 
 const tabs: Array<{ value: StockListType; label: string }> = [
   { value: 'watchlist', label: '관심종목' }, { value: 'holding', label: '보유종목' }, { value: 'recommended', label: '추천종목' },
@@ -100,9 +101,13 @@ export function StockListPage() {
     </Box>
     <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{(!isError || stockData) && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
     {!liveApiEnabled && !isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
-    {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
+    {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={async (value) => {
       if (!priceStock) return;
-      if (liveApiEnabled) { setPriceStock(null); setApiMessage('현재가 수동 변경 API는 제공되지 않습니다.'); return; }
+      if (liveApiEnabled) {
+        try { await updateSecurityPrice(priceStock.id, String(value)); await queryClient.invalidateQueries({ queryKey: ['stocks'] }); setPriceStock(null); }
+        catch (error) { setApiMessage(error instanceof Error ? error.message : '현재가 변경에 실패했습니다.'); }
+        return;
+      }
       const sourceStock = stockItems.find((item) => item.id === priceStock.id);
       if (!sourceStock) return;
       const previousClose = sourceStock.currentPrice / (1 + sourceStock.priceChangeRate / 100);
@@ -141,7 +146,7 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
           <MetricRow label={<><Box component="span" sx={{ fontSize: 14 }}>평가</Box><Box component="span" sx={{ ml: 2, fontSize: 12 }}>{quantity.toLocaleString('ko-KR')} × {stock.priceAvailable === false ? '미수집' : formatWon(stock.currentPrice)}</Box></>} value={formatWon(marketValue)} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label={<><Box component="span">평가손익</Box><Box component="span" sx={{ ml: 2, color: getMarketColor(profitAmount) }}>{formatRate(profitRate)}</Box></>} value={formatWon(profitAmount)} color={getMarketColor(profitAmount)} />
           <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}>
-            {liveApiEnabled ? <Typography sx={{ fontSize: 10, color: colors.textMuted }}>{stock.priceAvailable === false ? '시세 미수집' : stock.priceChangeAvailable === false ? '등락 정보 없음' : `${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`}</Typography> : <Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate), cursor: 'pointer' }}><Typography sx={{ fontSize: 10 }}>{formatWon(dailyChange)}({formatRate(stock.priceChangeRate)})</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>}
+            <Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', color: getMarketColor(stock.priceChangeRate), cursor: 'pointer' }}><Typography sx={{ fontSize: 10 }}>{stock.priceAvailable === false ? '시세 미수집' : stock.priceChangeAvailable === false ? '등락 정보 없음' : `${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`}</Typography><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>
             <Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography>
           </Stack>
         </> : <>
@@ -156,7 +161,7 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
   </Card>;
 }
 
-function CurrentPriceDialog({ stock, inputRef, onClose, onSave }: { stock: StockItem | null; inputRef: Ref<HTMLInputElement>; onClose: () => void; onSave: (value: number) => void }) {
+function CurrentPriceDialog({ stock, inputRef, onClose, onSave }: { stock: StockItem | null; inputRef: Ref<HTMLInputElement>; onClose: () => void; onSave: (value: number) => void | Promise<void> }) {
   const [value, setValue] = useState<string | null>(null);
   const currentValue = value ?? String(stock?.currentPrice ?? '');
   const parsedValue = Number(currentValue.replace(/,/g, '')) || 0;
