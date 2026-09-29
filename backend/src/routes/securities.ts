@@ -107,7 +107,7 @@ export async function securityRoutes(app: FastifyInstance) {
       const value = body[key];
       if (value === undefined) return undefined;
       if (value === null || value === '') return null;
-      if (typeof value !== 'string' || !/^\d+$/.test(value)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be a non-negative integer string or null.`);
+      if (typeof value !== 'string' || !/^-?\d+$/.test(value)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be an integer string or null.`);
       return new Prisma.Decimal(value);
     };
     const operatingProfit = decimal('operatingProfit');
@@ -145,6 +145,33 @@ export async function securityRoutes(app: FastifyInstance) {
           where: { securityId },
           create: { securityId, controllingProfit, issuedShares, treasuryShares, previousEquity },
           update: { controllingProfit, issuedShares, treasuryShares, previousEquity },
+        });
+      }
+      if ([controllingProfit, issuedShares, treasuryShares, previousEquity, equity, dividend].some((value) => value !== undefined)) {
+        const [fundamentals, annual, price, latest] = await Promise.all([
+          tx.securityFundamentals.findUnique({ where: { securityId } }),
+          tx.financialStatement.findFirst({ where: { securityId, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' } }),
+          tx.marketPrice.findUnique({ where: { securityId } }),
+          tx.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } }),
+        ]);
+        const shares = fundamentals?.issuedShares?.minus(fundamentals.treasuryShares ?? 0);
+        const bps = shares?.gt(0) && annual?.totalEquity ? annual.totalEquity.div(shares) : null;
+        const eps = shares?.gt(0) && fundamentals?.controllingProfit ? fundamentals.controllingProfit.div(shares) : null;
+        const prior = fundamentals?.previousEquity;
+        const averageEquity = annual?.totalEquity && prior ? annual.totalEquity.plus(prior).div(2) : annual?.totalEquity;
+        const roe = averageEquity?.gt(0) && fundamentals?.controllingProfit ? fundamentals.controllingProfit.div(averageEquity).mul(100) : null;
+        const current = price?.currentPrice;
+        const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const calculated = {
+          eps, bps, roe,
+          per: current && eps?.gt(0) ? current.div(eps) : null,
+          pbr: current && bps?.gt(0) ? current.div(bps) : null,
+          dividendYield: current?.gt(0) && latest?.dividendPerShare ? latest.dividendPerShare.div(current).mul(100) : null,
+        };
+        await tx.valuationMetric.upsert({
+          where: { securityId_metricDate: { securityId, metricDate: today } },
+          create: { securityId, metricDate: today, ...calculated, dividendPerShare: latest?.dividendPerShare ?? null },
+          update: calculated,
         });
       }
     });
