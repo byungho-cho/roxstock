@@ -430,6 +430,6 @@ test('journal and stock detail keep their frames during slow and rapid API navig
   await page.goto('/detail/settings?view=account');
   await page.getByRole('button', { name: /다른 계좌/ }).click();
   await page.getByRole('button', { name: '예수금', exact: true }).click();
-  await expect(page.getByText('7,777원', { exact: true })).toBeVisible();
+  await expect(page.getByText('7,777원', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('8,000원', { exact: true })).toHaveCount(0);
 });
