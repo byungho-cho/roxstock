@@ -94,8 +94,8 @@ export function StockListPage() {
     </Stack>
 
     <Stack direction="row" sx={{ display: { xs: 'flex', sm: 'none' }, height: 26, alignItems: 'center', justifyContent: 'space-between' }}>
-      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>총 {items.length}개</Typography>
-      {activeTab === 'holding' ? <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{formatWon(totalValue)}</Typography> : <Typography sx={{ fontSize: 10, fontWeight: 500, color: colors.textMuted }}>{liveApiEnabled ? '서버 시세 기준' : activeTab === 'watchlist' ? '시세 1분 전' : '오늘 업데이트'}</Typography>}
+      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{isPending ? '조회 중' : `총 ${items.length}개`}</Typography>
+      {activeTab === 'holding' ? <Typography sx={{ fontSize: 13, fontWeight: 600, color: colors.marketRise }}>{isPending ? '—' : formatWon(totalValue)}</Typography> : <Typography sx={{ fontSize: 10, fontWeight: 500, color: colors.textMuted }}>{liveApiEnabled ? '서버 시세 기준' : activeTab === 'watchlist' ? '시세 1분 전' : '오늘 업데이트'}</Typography>}
     </Stack>
 
     <Box sx={{ display: { xs: 'block', sm: 'none' }, touchAction: 'pan-y' }} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}>

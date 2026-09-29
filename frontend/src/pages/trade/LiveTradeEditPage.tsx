@@ -1,33 +1,35 @@
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { currentAccountId, deleteTrade, getTradeDetail, updateTrade, type TradeDetailDto } from '../../data/roxstockApi';
+import { deleteTrade, getTradeDetail, updateTrade } from '../../data/roxstockApi';
 import { formatWon } from '../../utils/format';
+import { useActiveAccount } from '../../hooks/useActiveAccount';
 
 const kstDate = (value: string) => new Date(value).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 const dateTime = (date: string) => new Date(`${date}T12:00:00+09:00`).toISOString();
 
 export function LiveTradeEditPage() {
+  const { accountId } = useActiveAccount();
   const [params] = useSearchParams();
   const type = params.get('type') === 'sell' ? 'sell' : 'buy';
   const tradeId = params.get('edit') ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const detail = useQuery({ queryKey: ['tradeDetail', type, tradeId], queryFn: () => getTradeDetail(type, tradeId), enabled: !!tradeId });
-  const [form, setForm] = useState<{ date: string; quantity: string; price: string; memo: string } | null>(null);
+  const [form, setForm] = useState<{ key: string; date: string; quantity: string; price: string; memo: string } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const trade = detail.data;
-  const account = useQuery({ queryKey: ['tradeEditAccount'], queryFn: currentAccountId, enabled: !!trade });
-  const mismatch = !!trade && (trade.type !== type.toUpperCase() || (!!account.data && trade.account.id !== account.data));
+  const mismatch = !!trade && (trade.type !== type.toUpperCase() || (!!accountId && trade.account.id !== accountId));
 
   useEffect(() => {
     if (!trade) return;
     setForm({
+      key: `${type}:${tradeId}`,
       date: kstDate((type === 'buy' ? trade.boughtAt : trade.soldAt) ?? ''),
       quantity: trade.quantity, price: trade.unitPrice, memo: trade.memo ?? '',
     });
@@ -75,10 +77,10 @@ export function LiveTradeEditPage() {
 
   return <Stack spacing={1.5} sx={{ p: 2, pb: 10, maxWidth: 680, mx: 'auto' }}>
     <PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수 거래 상세' : '매도 거래 상세'} />
-    {detail.isPending || account.isPending && !!trade ? <Typography role="status">거래 정보를 불러오는 중입니다.</Typography>
-      : detail.isError || account.isError ? <Alert severity="error">거래 정보를 불러오지 못했습니다. <Button onClick={() => { void detail.refetch(); void account.refetch(); }}>다시 시도</Button></Alert>
+    {detail.isPending || !accountId && !!trade ? <Box role="status" aria-label="거래 정보를 불러오는 중"><Skeleton variant="rounded" height={55} /><Skeleton variant="rounded" height={55} sx={{ mt: 1 }} /><Skeleton variant="rounded" height={55} sx={{ mt: 1 }} /></Box>
+      : detail.isError ? <Alert severity="error">거래 정보를 불러오지 못했습니다. <Button onClick={() => void detail.refetch()}>다시 시도</Button></Alert>
       : !trade || mismatch ? <Alert severity="error">현재 계좌의 거래가 아닙니다.</Alert>
-      : form && <>
+      : form?.key === `${type}:${tradeId}` && <>
         <Typography sx={{ fontWeight: 700 }}>{trade.security.name} ({trade.security.symbol}) · {trade.account.name}</Typography>
         {type === 'sell' && <Typography>연결 매수 Lot #{trade.buyTradeId}</Typography>}
         <DateField label="거래일자" value={form.date} onChange={(date) => setForm({ ...form, date })} />

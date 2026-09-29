@@ -1,5 +1,5 @@
 import { AddRounded } from '@mui/icons-material';
-import { Box, Button, CircularProgress, IconButton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button, IconButton, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
@@ -21,7 +21,7 @@ export function AssetOverviewPage() {
   const { data, isPending, isError, refetch } = useDashboard({ pollPrices: true });
   const [mode, setMode] = useState<'cumulative' | 'ranked'>('cumulative');
   const header = <PageHeader title="평가자산" variant="detail" backPath="/" embedded action={<Box sx={{ width: { xs: 44, sm: 32 }, flexShrink: 0 }}><IconButton aria-label="거래등록" onClick={() => navigateToForm(navigate, '/trade')} sx={{ display: { xs: 'none', sm: 'flex' }, width: 32, height: 32, bgcolor: '#202938', border: '1px solid #25344D', color: colors.textPrimary }}><AddRounded sx={{ fontSize: 20 }} /></IconButton></Box>} />;
-  if (isPending) return <>{header}<Stack sx={{ alignItems: 'center', pt: 8 }}><CircularProgress aria-label="평가자산을 불러오는 중" /></Stack></>;
+  if (isPending) return <>{header}<Stack spacing="8px" role="status" aria-label="평가자산을 불러오는 중"><Skeleton variant="rounded" height={76} /><Stack direction="row" spacing="8px"><Skeleton variant="rounded" height={68} sx={{ flex: 1 }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1 }} /></Stack><Skeleton variant="rounded" height={174} /></Stack></>;
   if (!data) return <>{header}<AppCard sx={{ p: 2 }}><Typography>평가자산을 불러오지 못했어요.</Typography><Button onClick={() => refetch()}>다시 시도</Button></AppCard></>;
   const { summary, holdings } = data;
   const profit = summary.pricingComplete === false ? Number.NaN : summary.stockValue - summary.stockPurchaseAmount;

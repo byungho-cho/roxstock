@@ -122,6 +122,7 @@ export function LiveCashPage() {
             {history.isError && !history.data && <Button role="alert" onClick={() => void history.refetch()}>내역 조회 실패 · 다시 시도</Button>}
             {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
             {history.isFetching && history.data && <Stack direction="row" spacing={1} role="status" sx={{ my: 1, alignItems: "center", color: colors.textMuted }}><CircularProgress size={14} /><Typography sx={{ fontSize: 11 }}>내역 갱신 중</Typography></Stack>}
+            {history.isError && !!history.data && <Button role="alert" onClick={() => void history.refetch()} sx={{ alignSelf: 'flex-start', fontSize: 11 }}>추가 내역 조회 실패 · 다시 시도</Button>}
             {!history.isFetching && (history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setOlderMonths((count) => count + 1)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 한 달 더보기</Button>}
           </Box>
         </AppCard>
