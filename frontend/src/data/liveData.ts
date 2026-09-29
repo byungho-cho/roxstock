@@ -61,7 +61,10 @@ export async function fetchLiveDashboard(): Promise<DashboardData> {
     summary: {
       totalAssets: totalAssets ?? Number.NaN, stockValue: stockValue ?? Number.NaN,
       stockPurchaseAmount: Number(response.purchaseAmount), cashBalance: Number(response.cashBalance),
-      dailyProfit: Number.NaN, dailyProfitRate: Number.NaN, stockMonthlyProfit: Number.NaN, cashMonthlyProfit: Number.NaN,
+      dailyProfit: decimal(response.dailyProfit) ?? Number.NaN,
+      dailyProfitRate: decimal(response.dailyProfitRate) ?? Number.NaN,
+      stockMonthlyProfit: decimal(response.stockMonthlyProfit) ?? Number.NaN,
+      cashMonthlyProfit: decimal(response.cashMonthlyProfit) ?? Number.NaN,
       totalProfit: decimal(response.unrealizedProfitLoss) ?? Number.NaN,
       totalProfitRate: decimal(response.unrealizedReturnRate) ?? Number.NaN,
       collectedAt: response.latestPriceUpdatedAt ?? '',
