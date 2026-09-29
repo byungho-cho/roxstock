@@ -10,7 +10,7 @@ import { liveApiEnabled } from '../../data/liveData';
 import { useDashboard } from '../../hooks/useMockData';
 import { colors } from '../../styles/tokens';
 import type { DashboardSummary } from '../../types/models';
-import { formatPercent, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
+import { formatAmount, formatPercent, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
 import { navigateToForm } from '../../utils/focusForm';
 
 const palette = ['#FA6170', '#60A5FA', '#34D399', '#A78BFA', '#FBC02D', '#94A3B8'];
@@ -66,7 +66,7 @@ function CompositionCard({ summary, items, mode, onToggle }: { summary: Dashboar
       <Stack role="img" aria-label={`주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} direction="row" sx={{ height: 12, borderRadius: '6px', overflow: 'hidden', mt: '5px', bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: colors.warning }} /></Stack>
       <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '5px', pb: { xs: '8px', sm: '5px' }, borderBottom: '1px solid #25344D', fontSize: 11, fontWeight: 600, color: colors.positive }}><span>{formatPercent(stockPercent)}</span><Box component="span" sx={{ color: colors.warning }}>{formatPercent(cashPercent)}</Box></Stack>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '156px minmax(0, 1fr)', sm: '112px minmax(0, 1fr)' }, gap: { xs: '6px', sm: '24px' }, alignItems: 'center', mt: { xs: '16px', sm: '3px' }, minHeight: { xs: 180, sm: 112 } }}>
-        <Box role="img" aria-label="종목별 자산 구성 도넛" sx={{ width: { xs: 156, sm: 112 }, height: { xs: 156, sm: 112 }, borderRadius: '50%', background: items.length ? `conic-gradient(${gradient})` : colors.raised, display: 'grid', placeItems: 'center' }}><Stack sx={{ width: '54%', height: '54%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ fontSize: { xs: 10, sm: 7 }, color: colors.textMuted }}>주식평가액</Typography><Typography noWrap sx={{ fontSize: { xs: 14, sm: 10 }, fontWeight: 700 }}>{`${Math.round(summary.stockValue / 10_000).toLocaleString('ko-KR')}만원`}</Typography></Stack></Box>
+        <Box role="img" aria-label="종목별 자산 구성 도넛" sx={{ width: { xs: 156, sm: 112 }, height: { xs: 156, sm: 112 }, borderRadius: '50%', background: items.length ? `conic-gradient(${gradient})` : colors.raised, display: 'grid', placeItems: 'center' }}><Stack sx={{ width: '54%', height: '54%', bgcolor: colors.surface, borderRadius: '50%', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ fontSize: { xs: 10, sm: 7 }, color: colors.textMuted }}>주식평가액</Typography><Typography noWrap sx={{ fontSize: { xs: 14, sm: 10 }, fontWeight: 700 }}>{formatAmount(summary.stockValue)}</Typography></Stack></Box>
         <Stack spacing={{ xs: '8px', sm: '1px' }}>{items.map((item) => <Box key={item.id} sx={{ display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) 58px', alignItems: 'center', gap: '8px', minHeight: 18 }}><Box sx={{ width: 8, height: 8, bgcolor: item.color, borderRadius: '50%' }} /><Typography noWrap sx={{ fontSize: 11 }}>{item.name}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: colors.textMuted }}>{formatPercent(item.percent)}</Typography></Box>)}</Stack>
       </Box>
       <Box sx={{ borderTop: '1px solid #25344D', mt: { xs: '2px', sm: '2px' }, pt: { xs: '10px', sm: '2px' } }}>
