@@ -248,13 +248,14 @@ export async function securityRoutes(app: FastifyInstance) {
       }),
       prisma.security.count({ where }),
     ]);
-    const metrics = await prisma.valuationMetric.findMany({
-      where: { securityId: { in: securities.map((item) => item.id) } },
-      orderBy: { metricDate: 'desc' },
-      distinct: ['securityId'],
-    });
+    const securityIds = securities.map((item) => item.id);
+    const [metrics, financials] = await Promise.all([
+      prisma.valuationMetric.findMany({ where: { securityId: { in: securityIds } }, orderBy: { metricDate: 'desc' }, distinct: ['securityId'] }),
+      prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' }, distinct: ['securityId'] }),
+    ]);
     const metricById = new Map(metrics.map((item) => [item.securityId.toString(), item]));
-    return { data: securities.map((item) => ({ ...serializeSecurity(item), valuation: serializeMetrics(metricById.get(item.id.toString()) ?? null) })), meta: { total, limit: hasPagination ? limit : total, offset: hasPagination ? offset : 0 } };
+    const financialById = new Map(financials.map((item) => [item.securityId.toString(), item]));
+    return { data: securities.map((item) => ({ ...serializeSecurity(item), valuation: serializeMetrics(metricById.get(item.id.toString()) ?? null), operatingProfit: financialById.get(item.id.toString())?.operatingProfit?.toString() ?? null })), meta: { total, limit: hasPagination ? limit : total, offset: hasPagination ? offset : 0 } };
   });
 
   app.post<{ Body: WatchlistBody }>('/watchlist-items', async (request, reply) => {
