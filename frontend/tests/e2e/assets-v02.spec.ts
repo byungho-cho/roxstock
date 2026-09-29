@@ -40,6 +40,6 @@ test('110 evaluation assets v0.2 matches cover and unfolded layout', async ({ pa
   if (!cover) {
     const card = page.getByText('자산구성', { exact: true }).locator('..');
     await card.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-    await expect(card.getByText('NAVER')).toBeVisible();
+    await expect(card.getByText('NAVER').last()).toBeVisible();
   }
 });
