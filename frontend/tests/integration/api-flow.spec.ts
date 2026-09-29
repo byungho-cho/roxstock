@@ -513,13 +513,13 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
     await expect.poll(() => journalResponses.includes(queryStart(previous))).toBe(true);
     await page.getByRole('button', { name: '이전 달' }).click();
     await page.getByRole('button', { name: new RegExp(`^${previous}(?: .*)? 매수 1건`) }).click();
-    await expect(page.getByText('2 × 1,000원').first()).toBeVisible();
+    await expect(page.getByText('2 × 1,000원').filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
     await page.getByRole('button', { name: '이전 달' }).click();
     await expect(page.getByLabel(/거래 달력/)).toBeVisible();
     await page.getByRole('button', { name: '다음 달' }).click();
     await page.getByRole('button', { name: new RegExp(`^${previous}(?: .*)? 매수 1건`) }).click();
-    await expect(page.getByText('2 × 1,000원').first()).toBeVisible();
+    await expect(page.getByText('2 × 1,000원').filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
     expect(journalRequests.filter((from) => from === queryStart(previous)).length).toBeLessThanOrEqual(1);
   }
