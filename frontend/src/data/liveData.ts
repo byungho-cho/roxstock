@@ -21,6 +21,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     currentPrice: currentPrice ?? Number.NaN,
     priceChangeRate: priceChange(currentPrice, decimal(stock.previousClosePrice)),
     note: stock.memo ?? undefined,
+    per: decimal(stock.valuation?.per), pbr: decimal(stock.valuation?.pbr), roe: decimal(stock.valuation?.roe),
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
     priceAvailable: currentPrice !== undefined,
