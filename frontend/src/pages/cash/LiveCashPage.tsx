@@ -29,7 +29,7 @@ export function LiveCashPage() {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
   const [olderMonths, setOlderMonths] = useState(0);
-  const touchStart = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const balance = useQuery({ queryKey: ['cashBalance', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
   const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, mode === 'month' ? month : year], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, mode === 'month' ? Number(month.slice(5)) : undefined), enabled: !!accountId, staleTime: 60_000 });
   const history = useQuery({ queryKey: ['cashTransactions', accountId, olderMonths], queryFn: async () => {
@@ -63,6 +63,13 @@ export function LiveCashPage() {
     if (mode === 'month') setMonth((previous) => { const next = monthShift(previous, delta); return next > initialMonth ? previous : next; });
     else setYear((previous) => Math.min(Number(initialMonth.slice(0, 4)), previous + delta));
   };
+  const handleTouchEnd = (x: number, y: number) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const horizontal = x - start.x;
+    if (Math.abs(horizontal) > 55 && Math.abs(horizontal) > Math.abs(y - start.y)) changePeriod(horizontal < 0 ? 1 : -1);
+  };
   const submit = async () => {
     if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) { setError('0원보다 큰 금액을 입력해 주세요.'); return; }
     setSaving(true); setError('');
@@ -85,14 +92,14 @@ export function LiveCashPage() {
     <PageHeader title="예수금" backPath="/" addLabel="예수금 등록" onAdd={() => setOpen(true)} embedded />
     {accounts.isError ? <Button role="alert" onClick={() => void accounts.refetch()}>계좌 조회 실패 · 다시 시도</Button> :
       !accounts.isPending && !accountId ? <Typography role="status">선택된 계좌가 없습니다.</Typography> :
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, minWidth: 0, height: { sm: '100%' }, alignItems: 'start' }}>
+      <Box onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null; }} onTouchEnd={(event) => { const touch = event.changedTouches[0]; if (touch) handleTouchEnd(touch.clientX, touch.clientY); }} onTouchCancel={() => { touchStart.current = null; }} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, minWidth: 0, height: { sm: '100%' }, alignItems: 'start', touchAction: 'pan-y' }}>
         <Stack spacing="8px" sx={{ minWidth: 0 }}>
           <AppCard sx={{ height: 96, borderRadius: '8px', p: { xs: '10px 16px', sm: '10px 17px' } }}>
             <Stack direction="row" sx={{ justifyContent: "space-between" }}><Typography sx={{ color: colors.textSecondary, fontSize: 12 }}>현재 예수금</Typography></Stack>
             <Typography sx={{ color: colors.warning, fontSize: 28, fontWeight: 700, textAlign: 'right', lineHeight: '36px', whiteSpace: 'nowrap' }}>{balance.data ? formatWon(Number(balance.data.account.currentBalance)) : <Skeleton variant="text" width="70%" sx={{ ml: 'auto' }} />}</Typography>
             <Stack direction="row" sx={{ justifyContent: "space-between", mt: "2px" }}><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>{balance.data?.account.updatedAt ? shortDate(balance.data.account.updatedAt) + ' 갱신' : ''}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: amountColor(Number(balance.data?.monthly.netChange ?? 0)), fontSize: 11 }}>이번달 {balance.data ? signed(Number(balance.data.monthly.netChange)) : '—'}</Typography></Stack>
           </AppCard>
-          <AppCard onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={(event) => { if (touchStart.current !== null && Math.abs(event.changedTouches[0].clientX - touchStart.current) > 55) changePeriod(event.changedTouches[0].clientX < touchStart.current ? 1 : -1); touchStart.current = null; }} sx={{ minHeight: { xs: 102, sm: 223 }, borderRadius: '8px', px: { xs: '15px', sm: '17px' }, py: '10px', touchAction: 'pan-y' }}>
+          <AppCard sx={{ minHeight: { xs: 102, sm: 223 }, borderRadius: '8px', px: { xs: '15px', sm: '17px' }, py: '10px' }}>
             <Stack direction="row" sx={{ alignItems: "center", borderBottom: `1px solid ${colors.border}`, pb: { xs: '7px', sm: '12px' } }}>
               <IconButton aria-label="이전 기간" size="small" onClick={() => changePeriod(-1)} sx={{ width: 24, height: 24, p: 0, flexShrink: 0 }}><ChevronLeftRounded sx={{ fontSize: 16 }} /></IconButton>
               <Typography sx={{ flex: 1, minWidth: 0, textAlign: 'center', fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>{mode === 'month' ? `${month.slice(0, 4)}년 ${Number(month.slice(5))}월` : `${year}년`}</Typography>
