@@ -29,6 +29,7 @@ export interface SecurityDto {
   previousClosePrice: string | null;
   priceUpdatedAt: string | null;
   valuation?: ValuationDto | null;
+  operatingProfit?: string | null;
 }
 
 export interface ValuationDto {
