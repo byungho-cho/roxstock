@@ -58,7 +58,27 @@ GET /api/accounts/{accountId}/holdings
 GET /api/accounts/{accountId}/dashboard
 ```
 
-응답은 계좌 정보, `cashBalance`, `purchaseAmount`, `stockValue`, `totalAssetValue`, `unrealizedProfitLoss`, `unrealizedReturnRate`, `pricingComplete`, `missingPriceSymbols`, `latestPriceUpdatedAt`, `holdings`를 포함합니다.
+응답은 계좌 정보, `cashBalance`, `purchaseAmount`, `stockValue`, `totalAssetValue`, `unrealizedProfitLoss`, `unrealizedReturnRate`, `pricingComplete`, `missingPriceSymbols`, `latestPriceUpdatedAt`, `holdings`와 다음 성과 필드를 포함합니다.
+
+| 필드 | 단위 | 계산 기준 |
+|---|---:|---|
+| `dailyProfit` | 원(문자열) | 현재 총자산 - 한국시간 직전 달력일 최종 스냅샷 총자산 - 당일 입금 + 당일 출금 |
+| `dailyProfitRate` | %(문자열) | `dailyProfit / 직전 달력일 총자산 * 100` |
+| `stockMonthlyProfit` | 원(문자열) | 현재 주식평가액 - 전월 말일 스냅샷 주식평가액 |
+| `cashMonthlyProfit` | 원(문자열) | 현재 예수금 - 전월 말일 스냅샷 예수금 |
+
+매수·매도는 예수금과 주식 간 내부 이동이므로 일별손익에서 별도로 더하거나 빼지 않습니다. 따라서 당일 매수, 분할매도, 매도 실현손익과 수수료·세금은 현재 총자산 변화에 자연스럽게 포함됩니다. 입금·출금만 외부 현금흐름으로 제거하며 배당은 투자 손익으로 남깁니다. 월간 주식·예수금 변화액은 손익이 아니라 각 자산 구성요소의 변화이므로 해당 월의 매수·매도·입출금·배당 효과를 모두 포함합니다.
+
+`performanceMeta`는 `timezone=Asia/Seoul`, `asOfDate`, `calculatedAt`, `previousDayBaselineDate`, `previousMonthEndBaselineDate`, 당일 입출금 합계, 각 필드의 계산 불가 사유와 `calculationMethod=NET_FLOW_ADJUSTED_SIMPLE`을 제공합니다. 금액·비율은 Decimal 문자열이며 계산 불가 값은 `0`이 아니라 `null`입니다.
+
+계산 불가 사유는 다음과 같습니다.
+
+- `CURRENT_PRICE_INCOMPLETE`: 보유종목 현재가 누락
+- `PREVIOUS_DAY_SNAPSHOT_MISSING`: 직전 달력일 스냅샷 부재
+- `PREVIOUS_DAY_ASSET_VALUE_ZERO`: 일별손익률 분모가 0원(일별손익 금액은 계산 가능)
+- `PREVIOUS_MONTH_END_SNAPSHOT_MISSING`: 전월 말일 스냅샷 부재
+
+시세 누락 시 `dailyProfit`, `dailyProfitRate`, `stockMonthlyProfit`은 `null`이지만, 전월 말 스냅샷이 있으면 현재 예수금만으로 계산 가능한 `cashMonthlyProfit`은 정상 반환합니다. 초기 계좌처럼 기준 스냅샷이 없으면 대응 필드는 `null`입니다. 휴일도 직전 달력일 스냅샷을 사용하므로 기준일이 다른 날짜로 암묵적으로 늘어나지 않습니다.
 
 `holdings`에는 계좌별 보유종목 API와 동일한 항목이 포함됩니다. 프론트엔드는 대시보드 최초 진입 시 이 API를 사용하고 이후 SSE 가격 메시지로 해당 종목을 갱신합니다.
 
