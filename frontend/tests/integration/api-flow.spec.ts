@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { Prisma } from '../../../backend/src/generated/prisma/index.js';
+import { prisma } from '../../../backend/src/lib/prisma.js';
 
 test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
   await page.setViewportSize({ width: 400, height: 640 });
@@ -51,6 +53,33 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
   await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
+  const missingBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
+  expect(missingBaseline.dailyProfit).toBeNull();
+  expect(missingBaseline.dailyProfitRate).toBeNull();
+  expect(missingBaseline.stockMonthlyProfit).toBeNull();
+  expect(missingBaseline.cashMonthlyProfit).toBeNull();
+  expect(missingBaseline.performanceMeta.dailyProfitUnavailableReason).toBe('PREVIOUS_DAY_SNAPSHOT_MISSING');
+  const previousDay = new Date(`${new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })}T00:00:00.000Z`);
+  await prisma.dailyAccountSnapshot.create({ data: { accountId: BigInt(accountId), snapshotDate: previousDay, cashBalance: new Prisma.Decimal(10_000), stockValue: new Prisma.Decimal(0), totalAssetValue: new Prisma.Decimal(10_000) } });
+  const withBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
+  expect(Number(withBaseline.dailyProfit)).toBe(-10_000);
+  expect(Number(withBaseline.dailyProfitRate)).toBe(-100);
+  expect(withBaseline.stockMonthlyProfit).toBeNull();
+  expect(withBaseline.cashMonthlyProfit).toBeNull();
+  await page.goto('/detail/assets');
+  await expect(page.getByText('-10,000원').first()).toBeVisible();
+  await expect(page.getByText('-100.0%').first()).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('110-daily-performance-370x465.png') });
+  const secondAccountResponse = await request.post('/api/accounts', { data: { name: '손익 격리 계좌', brokerName: 'CI' } });
+  expect(secondAccountResponse.status()).toBe(201);
+  const secondAccountId: string = (await secondAccountResponse.json()).data.id;
+  await page.evaluate((id) => { localStorage.setItem('roxstock-selected-account-id', id); }, secondAccountId);
+  await page.reload();
+  await expect(page.getByText('-10,000원')).toHaveCount(0);
+  await expect(page.getByText('-100.0%')).toHaveCount(0);
+  await page.evaluate((id) => { localStorage.setItem('roxstock-selected-account-id', id); }, accountId);
+  await page.reload();
+  await expect(page.getByText('-10,000원').first()).toBeVisible();
   const cashAfterDeposit = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
