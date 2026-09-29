@@ -150,7 +150,7 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
             <Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography>
           </Stack>
         </> : <>
-          <MetricRow label={<Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}><span>현재가</span>{!liveApiEnabled && <EditRounded sx={{ fontSize: 12, color: colors.textMuted }} />}</Stack>} value={stock.priceAvailable === false ? '미수집' : formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
+          <MetricRow label={<Stack role="button" tabIndex={0} aria-label={`${stock.name} 현재가 수정`} direction="row" spacing={0.75} onClick={(event) => { event.stopPropagation(); onEditPrice(); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onEditPrice(); } }} sx={{ alignItems: 'center', cursor: 'pointer' }}><span>현재가</span><EditRounded sx={{ fontSize: 12, color: colors.textMuted }} /></Stack>} value={stock.priceAvailable === false ? '미수집' : formatWon(stock.currentPrice)} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label="전일대비" value={stock.priceChangeAvailable === false ? '—' : `${formatWon(dailyChange)} (${formatRate(stock.priceChangeRate)})`} color={getMarketColor(stock.priceChangeRate)} />
           <MetricRow label={`PER ${stock.per ?? '-'} · PBR ${stock.pbr ?? '-'}`} value={`ROE ${stock.roe ?? '-'}%`} color={getMarketColor(stock.roe ?? 0)} />
           <Stack direction="row" sx={{ height: 14, alignItems: 'center', justifyContent: 'space-between' }}><Typography noWrap sx={{ maxWidth: 230, fontSize: 10, color: colors.textMuted }}>{stock.note ?? (liveApiEnabled ? '' : stock.listType === 'recommended' ? '이익 성장 · 현금흐름 우수' : '재평가 구간 관찰')}</Typography><Typography sx={{ fontSize: 10, fontWeight: 600, color: colors.textMuted }}>상세보기 ›</Typography></Stack>
@@ -161,7 +161,7 @@ function StockCard({ stock, isFavorite, onToggleFavorite, onClick, onEditPrice }
   </Card>;
 }
 
-function CurrentPriceDialog({ stock, inputRef, onClose, onSave }: { stock: StockItem | null; inputRef: Ref<HTMLInputElement>; onClose: () => void; onSave: (value: number) => void | Promise<void> }) {
+export function CurrentPriceDialog({ stock, inputRef, onClose, onSave }: { stock: StockItem | null; inputRef: Ref<HTMLInputElement>; onClose: () => void; onSave: (value: number) => void | Promise<void> }) {
   const [value, setValue] = useState<string | null>(null);
   const currentValue = value ?? String(stock?.currentPrice ?? '');
   const parsedValue = Number(currentValue.replace(/,/g, '')) || 0;
