@@ -178,6 +178,22 @@ export interface SellTradeInput {
 export interface TradeResult { id: string; cashTransactionId: string; amount: string; feeTaxAmount: string; balanceAfter: string; remainingQuantity?: string; realizedProfitLoss?: string }
 export const createBuyTrade = (body: BuyTradeInput) => apiRequest<TradeResult>('/buy-trades', { method: 'POST', body: JSON.stringify(body) });
 export const createSellTrade = (body: SellTradeInput) => apiRequest<TradeResult>('/sell-trades', { method: 'POST', body: JSON.stringify(body) });
+export interface TradeDetailDto {
+  id: string; type: 'BUY' | 'SELL';
+  account: { id: string; name: string };
+  security: TradeDto['security'];
+  boughtAt?: string; soldAt?: string; buyTradeId?: string;
+  quantity: string; soldQuantity?: string; remainingQuantity?: string;
+  unitPrice: string; memo: string | null;
+  cashTransaction: { id: string; feeTaxAmount: string; balanceAfter: string } | null;
+  sellTrades?: { id: string; soldAt: string; quantity: string }[];
+}
+const tradePath = (type: 'buy' | 'sell', tradeId: string) => `/${type}-trades/${encodeURIComponent(tradeId)}`;
+export const getTradeDetail = (type: 'buy' | 'sell', tradeId: string) => apiRequest<TradeDetailDto>(tradePath(type, tradeId));
+export const updateTrade = (type: 'buy' | 'sell', tradeId: string, body: { quantity: string; unitPrice: string; memo: string | null; boughtAt?: string; soldAt?: string }) =>
+  apiRequest<{ id: string; remainingQuantity: string; cashBalanceAdjusted: false }>(tradePath(type, tradeId), { method: 'PATCH', body: JSON.stringify(body) });
+export const deleteTrade = (type: 'buy' | 'sell', tradeId: string, cascadeSells = false) =>
+  apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}${cascadeSells ? '?cascadeSells=true' : ''}`, { method: 'DELETE' });
 export const createCashTransaction = (body: { accountId: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; transactionDate: string; amount: string; memo: string | null }) => apiRequest<{ id: string; balanceAfter: string }>('/cash-transactions', { method: 'POST', body: JSON.stringify(body) });
 
 export interface TradeDto {

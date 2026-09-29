@@ -18,6 +18,41 @@ test('viewport panel is opt-in, updates on resize, and does not expand the docum
   await expect(panel).toHaveCount(0);
 });
 
+test('trade details: edit sell and confirm cascading buy deletion without cash recalculation', async ({ page, request }) => {
+  const accountResponse = await request.post('/api/accounts', { data: { name: `거래 수정 ${Date.now()}`, brokerName: 'CI' } });
+  expect(accountResponse.status()).toBe(201);
+  const accountId: string = (await accountResponse.json()).data.id;
+  const securities = await (await request.get('/api/securities?query=099999&limit=20')).json();
+  const securityId: string = securities.data[0].id;
+  const at = new Date().toISOString();
+  await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: at, amount: '20000' } });
+  const buy = await (await request.post('/api/buy-trades', { data: { accountId, securityId, boughtAt: at, quantity: '2', unitPrice: '1000', feeTaxAmount: '0' } })).json();
+  const sell = await (await request.post('/api/sell-trades', { data: { buyTradeId: buy.data.id, soldAt: at, quantity: '1', unitPrice: '1500', feeTaxAmount: '0' } })).json();
+  await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[400, 640], [725, 396]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`/trade?type=sell&edit=${sell.data.id}&stock=${securityId}&return=journal`);
+    await expect(page.getByText('연결 매수 Lot')).toBeVisible();
+    await expect(page.getByText('수정과 삭제는 현재 예수금')).toBeVisible();
+    await page.getByRole('textbox', { name: '단가' }).fill('1600');
+    await page.getByRole('button', { name: '수정', exact: true }).click();
+    await expect(page).toHaveURL(/journal/);
+    expect(Number((await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data.cashBalance)).toBe(19500);
+  }
+  const sellDetail = await (await request.get(`/api/sell-trades/${sell.data.id}`)).json();
+  expect(sellDetail.data.unitPrice).toBe('1600');
+  await page.goto(`/trade?type=buy&edit=${buy.data.id}&stock=${securityId}&return=journal`);
+  await expect(page.getByText('매도 1건이 연결되어 있습니다.')).toBeVisible();
+  await page.getByRole('button', { name: '삭제' }).first().click();
+  await expect(page.getByText('연결된 매도 1건도 함께 삭제됩니다.')).toBeVisible();
+  await page.getByRole('button', { name: '삭제' }).last().click();
+  await expect(page).toHaveURL(/journal/);
+  const report = await (await request.get(`/api/accounts/${accountId}/trades`)).json();
+  expect(report.data).toHaveLength(0);
+  expect(Number((await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data.cashBalance)).toBe(19500);
+});
+
 test('isolated account: dashboard → stocks → journal → cash/buy/sell/withdrawal', async ({ page, request }, testInfo) => {
   test.setTimeout(120_000);
   const accountResponse = await request.post('/api/accounts', { data: { name: '프론트 통합테스트 전용', brokerName: 'CI' } });
@@ -28,6 +63,8 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   const securityId: string = (await securityResponse.json()).data[0].id;
 
   await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  await page.reload();
   await expect(page.getByText('보유종목이 없습니다.')).toBeVisible();
   await expect(page.getByText('데이터 없음', { exact: true })).toBeVisible();
   await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();

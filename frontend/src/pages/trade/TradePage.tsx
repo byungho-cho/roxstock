@@ -18,6 +18,7 @@ import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../compone
 import { DateField, FormTextField, NumberField, FormTextarea } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors, pageGutter } from '../../styles/tokens';
+import { LiveTradeEditPage } from './LiveTradeEditPage';
 
 type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
 const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
@@ -25,6 +26,11 @@ const formatWon = (value: number) => Number.isFinite(value) ? `${Math.round(valu
 const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
 
 export function TradePage() {
+  const [params] = useSearchParams();
+  return liveApiEnabled && params.has('edit') ? <LiveTradeEditPage /> : <TradeEntry />;
+}
+
+function TradeEntry() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -161,7 +167,6 @@ export function TradePage() {
     else mobileMemoRef.current?.focus();
   };
 
-  if (liveApiEnabled && editId) return <Alert severity="info">개별 거래 상세 조회와 수정 화면의 연결이 준비되지 않았습니다.</Alert>;
   if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert>;
   if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Typography role="status" sx={{ p: 2 }}>거래 정보를 불러오는 중입니다.</Typography>;
   if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
