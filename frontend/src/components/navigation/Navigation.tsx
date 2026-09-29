@@ -1,4 +1,4 @@
-import { AccountBalanceWalletRounded, AddRounded, ArrowBackRounded, AnalyticsRounded, AssessmentRounded, CalendarMonthRounded, HomeRounded, MenuRounded, MoreHorizRounded, PriceCheckRounded } from '@mui/icons-material';
+import { AccountBalanceWalletOutlined, AddRounded, ArrowBackRounded, AssessmentOutlined, CalendarMonthRounded, DonutSmallOutlined, HomeRounded, MenuRounded, MoreHorizRounded, PaidOutlined, SyncRounded } from '@mui/icons-material';
 import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createContext, useContext, type ReactNode } from 'react';
@@ -9,9 +9,9 @@ import { navigateToForm } from '../../utils/focusForm';
 
 const coverItems = [
   { label: '종목목록', path: '/stocks', icon: <MenuRounded /> }, { label: '매매일지', path: '/journal', icon: <CalendarMonthRounded /> },
-  { label: '홈', path: '/', icon: <HomeRounded /> }, { label: '자산분석', path: '/assets', icon: <AnalyticsRounded /> }, { label: '더보기', path: '/more', icon: <MoreHorizRounded /> },
+  { label: '홈', path: '/', icon: <HomeRounded /> }, { label: '자산분석', path: '/assets', icon: <DonutSmallOutlined /> }, { label: '더보기', path: '/more', icon: <MoreHorizRounded /> },
 ];
-const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <AssessmentRounded /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletRounded /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/financials', icon: <PriceCheckRounded /> }, { label: '시세수집', path: '/collection', icon: <PriceCheckRounded /> }, coverItems[4]];
+const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <PaidOutlined /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletOutlined /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/financials', icon: <AssessmentOutlined /> }, { label: '시세수집', path: '/collection', icon: <SyncRounded /> }, coverItems[4]];
 
 type PageHeaderProps = {
   title: string;
@@ -59,11 +59,8 @@ export function PageHeader({ title, variant = 'standard', showAdd = true, compac
 
 export function BottomNav() {
   const navigate = useNavigate(); const location = useLocation();
-  const homeIcons = location.pathname === '/' || location.pathname === '/detail/assets';
-  const coverIconPaths = ['/figma-100/cover-stocks.svg', '/figma-100/cover-journal.svg', '/figma-100/cover-home.svg', '/figma-100/cover-assets.svg', '/figma-100/cover-more.svg'];
-  const tabletIconPaths = ['/figma-100/tablet-stocks.svg', '/figma-100/tablet-journal.svg', '/figma-100/tablet-assets.svg', '/figma-100/tablet-cash.svg', '/figma-100/tablet-home.svg', '/figma-100/tablet-analysis.svg', '/figma-100/tablet-financials.svg', '/figma-100/tablet-collection.svg', '/figma-100/tablet-more.svg'];
   const value = [...tabletItems].sort((a, b) => b.path.length - a.path.length).find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/';
   const isAssetOverview = location.pathname === '/detail/cash';
   const style = { position: 'fixed', inset: 'auto 0 0', zIndex: 10, mx: 'auto', width: '100%', height: pageMetrics.headerHeight, borderTop: `1px solid ${colors.border}`, bgcolor: colors.surface, '& .MuiBottomNavigationAction-root': { minWidth: 0, height: '100%', color: colors.textMuted, px: '2px', py: '2px', justifyContent: 'center' }, '& .Mui-selected': { color: colors.navActive }, '& .MuiBottomNavigationAction-label': { fontSize: 10, lineHeight: '14px', mt: '1px', '&.Mui-selected': { fontSize: 10, fontWeight: 500 } }, '& .MuiSvgIcon-root': { fontSize: 17 } } as const;
-  return <><MuiBottomNavigation showLabels value={isAssetOverview || location.pathname === '/detail/assets' ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'flex', sm: 'none' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: '1 1 20%' } }}>{coverItems.map((item, index) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={homeIcons ? <img src={coverIconPaths[index]} width="18" height="18" alt="" /> : item.icon} />)}</MuiBottomNavigation><MuiBottomNavigation showLabels value={value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'none', sm: 'flex' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: '1 1 11.111%' } }}>{tabletItems.map((item, index) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={location.pathname === '/' ? <img src={tabletIconPaths[index]} width="16" height="16" alt="" /> : item.icon} />)}</MuiBottomNavigation></>;
+  return <><MuiBottomNavigation showLabels value={isAssetOverview || location.pathname === '/detail/assets' ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'flex', sm: 'none' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: '1 1 20%' } }}>{coverItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation><MuiBottomNavigation showLabels value={value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'none', sm: 'flex' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: '1 1 11.111%' } }}>{tabletItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation></>;
 }
