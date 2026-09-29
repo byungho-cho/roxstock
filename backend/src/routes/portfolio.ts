@@ -3,6 +3,7 @@ import { Prisma } from '../generated/prisma/index.js';
 
 import { calculateDashboard, calculateHoldings, type PortfolioLotInput } from '../domain/portfolio.js';
 import { calculateAssetPeriod, calculatePointChange } from '../domain/asset-history.js';
+import { calculateDashboardPerformance } from '../domain/dashboard-performance.js';
 import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
@@ -23,6 +24,20 @@ const dateOnly = (value: string | undefined, fieldName: string) => {
 };
 
 const decimal = (value: Prisma.Decimal | null) => value?.toString() ?? null;
+const KST_OFFSET_MS = 9 * 60 * 60 * 1_000;
+
+const dashboardPeriod = (now: Date) => {
+  const kst = new Date(now.getTime() + KST_OFFSET_MS);
+  const year = kst.getUTCFullYear();
+  const monthIndex = kst.getUTCMonth();
+  const day = kst.getUTCDate();
+  const todayKey = new Date(Date.UTC(year, monthIndex, day));
+  const previousDayKey = new Date(Date.UTC(year, monthIndex, day - 1));
+  const previousMonthEndKey = new Date(Date.UTC(year, monthIndex, 0));
+  const todayStart = new Date(todayKey.getTime() - KST_OFFSET_MS);
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1_000);
+  return { todayKey, previousDayKey, previousMonthEndKey, todayStart, tomorrowStart };
+};
 
 const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number]) => ({
   securityId: holding.securityId.toString(),
@@ -94,6 +109,37 @@ export async function portfolioRoutes(app: FastifyInstance) {
     const accountId = id(request.params.accountId, 'accountId');
     const { account, holdings } = await loadPortfolio(accountId);
     const dashboard = calculateDashboard(account.cashBalance, holdings);
+    const calculatedAt = new Date();
+    const period = dashboardPeriod(calculatedAt);
+    const [previousDaySnapshot, previousMonthEndSnapshot, externalFlowGroups] = await Promise.all([
+      prisma.dailyAccountSnapshot.findUnique({
+        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousDayKey } },
+      }),
+      prisma.dailyAccountSnapshot.findUnique({
+        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousMonthEndKey } },
+      }),
+      prisma.cashTransaction.groupBy({
+        by: ['transactionType'],
+        where: {
+          accountId,
+          transactionType: { in: ['DEPOSIT', 'WITHDRAWAL'] },
+          transactionDate: { gte: period.todayStart, lt: period.tomorrowStart },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+    const externalAmount = (type: 'DEPOSIT' | 'WITHDRAWAL') => externalFlowGroups
+      .find((group) => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
+    const todayDepositAmount = externalAmount('DEPOSIT');
+    const todayWithdrawalAmount = externalAmount('WITHDRAWAL');
+    const performance = calculateDashboardPerformance({
+      currentCashBalance: dashboard.cashBalance,
+      currentStockValue: dashboard.stockValue,
+      previousDaySnapshot,
+      previousMonthEndSnapshot,
+      todayDepositAmount,
+      todayWithdrawalAmount,
+    });
     return {
       data: {
         account: { id: account.id.toString(), name: account.name, brokerName: account.brokerName },
@@ -106,6 +152,24 @@ export async function portfolioRoutes(app: FastifyInstance) {
         pricingComplete: dashboard.pricingComplete,
         missingPriceSymbols: dashboard.missingPriceSymbols,
         latestPriceUpdatedAt: dashboard.latestPriceUpdatedAt?.toISOString() ?? null,
+        dailyProfit: performance.dailyProfit,
+        dailyProfitRate: performance.dailyProfitRate,
+        stockMonthlyProfit: performance.stockMonthlyProfit,
+        cashMonthlyProfit: performance.cashMonthlyProfit,
+        performanceMeta: {
+          timezone: 'Asia/Seoul',
+          asOfDate: period.todayKey.toISOString().slice(0, 10),
+          calculatedAt: calculatedAt.toISOString(),
+          previousDayBaselineDate: previousDaySnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
+          previousMonthEndBaselineDate: previousMonthEndSnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
+          todayDepositAmount: todayDepositAmount.toString(),
+          todayWithdrawalAmount: todayWithdrawalAmount.toString(),
+          dailyProfitUnavailableReason: performance.dailyProfitUnavailableReason,
+          dailyProfitRateUnavailableReason: performance.dailyProfitRateUnavailableReason,
+          stockMonthlyProfitUnavailableReason: performance.stockMonthlyProfitUnavailableReason,
+          cashMonthlyProfitUnavailableReason: performance.cashMonthlyProfitUnavailableReason,
+          calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE',
+        },
         holdings: holdings.map(serializeHolding),
       },
     };
