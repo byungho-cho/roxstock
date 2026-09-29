@@ -133,9 +133,10 @@ export async function securityRoutes(app: FastifyInstance) {
       }
       if (dividend !== undefined) {
         const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const latest = await tx.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } });
         await tx.valuationMetric.upsert({
           where: { securityId_metricDate: { securityId, metricDate: today } },
-          create: { securityId, metricDate: today, dividendPerShare: dividend },
+          create: { securityId, metricDate: today, eps: latest?.eps, bps: latest?.bps, per: latest?.per, pbr: latest?.pbr, roe: latest?.roe, dividendYield: latest?.dividendYield, marketCap: latest?.marketCap, dividendPerShare: dividend },
           update: { dividendPerShare: dividend },
         });
       }
@@ -251,11 +252,22 @@ export async function securityRoutes(app: FastifyInstance) {
     const securityIds = securities.map((item) => item.id);
     const [metrics, financials] = await Promise.all([
       prisma.valuationMetric.findMany({ where: { securityId: { in: securityIds } }, orderBy: { metricDate: 'desc' }, distinct: ['securityId'] }),
-      prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' }, distinct: ['securityId'] }),
+      prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' } }),
     ]);
     const metricById = new Map(metrics.map((item) => [item.securityId.toString(), item]));
-    const financialById = new Map(financials.map((item) => [item.securityId.toString(), item]));
-    return { data: securities.map((item) => ({ ...serializeSecurity(item), valuation: serializeMetrics(metricById.get(item.id.toString()) ?? null), operatingProfit: financialById.get(item.id.toString())?.operatingProfit?.toString() ?? null })), meta: { total, limit: hasPagination ? limit : total, offset: hasPagination ? offset : 0 } };
+    const financialById = new Map<string, typeof financials>();
+    for (const item of financials) {
+      const key = item.securityId.toString();
+      const entries = financialById.get(key) ?? [];
+      if (entries.length < 2) entries.push(item);
+      financialById.set(key, entries);
+    }
+    return { data: securities.map((item) => {
+      const years = financialById.get(item.id.toString()) ?? [];
+      return { ...serializeSecurity(item), valuation: serializeMetrics(metricById.get(item.id.toString()) ?? null),
+        operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
+        previousOperatingProfit: years[1]?.operatingProfit?.toString() ?? null };
+    }), meta: { total, limit: hasPagination ? limit : total, offset: hasPagination ? offset : 0 } };
   });
 
   app.post<{ Body: WatchlistBody }>('/watchlist-items', async (request, reply) => {
