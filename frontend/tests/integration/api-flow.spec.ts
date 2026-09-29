@@ -63,6 +63,8 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   const securityId: string = (await securityResponse.json()).data[0].id;
 
   await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  await page.reload();
   await expect(page.getByText('보유종목이 없습니다.')).toBeVisible();
   await expect(page.getByText('데이터 없음', { exact: true })).toBeVisible();
   await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
