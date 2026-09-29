@@ -50,16 +50,16 @@ export function mapHolding(holding: HoldingDto): StockItem {
   };
 }
 
-export async function fetchLiveStocks(listType?: StockListType): Promise<StockItem[]> {
-  if (listType === 'holding') return (await getAccountHoldings(await currentAccountId())).map(mapHolding);
+export async function fetchLiveStocks(listType?: StockListType, accountId?: string): Promise<StockItem[]> {
+  if (listType === 'holding') return (await getAccountHoldings(accountId ?? await currentAccountId())).map(mapHolding);
   if (listType) return (await listSecurities({ listType: listTypeMap[listType] })).map(mapSecurity);
-  const [catalog, holdings] = await Promise.all([listSecurities(), getAccountHoldings(await currentAccountId())]);
+  const [catalog, holdings] = await Promise.all([listSecurities(), getAccountHoldings(accountId ?? await currentAccountId())]);
   const holdingById = new Map(holdings.map((item) => [item.securityId, item]));
   return catalog.map((item) => holdingById.has(item.id) ? mapHolding(holdingById.get(item.id)!) : mapSecurity(item));
 }
 
-export async function fetchLiveDashboard(): Promise<DashboardData> {
-  const accountId = await currentAccountId();
+export async function fetchLiveDashboard(selectedAccountId?: string): Promise<DashboardData> {
+  const accountId = selectedAccountId ?? await currentAccountId();
   const [response, history] = await Promise.all([getAccountDashboard(accountId), getAssetHistory(accountId)]);
   const holdings = response.holdings.map(mapHolding);
   const stockValue = decimal(response.stockValue);
@@ -82,8 +82,8 @@ export async function fetchLiveDashboard(): Promise<DashboardData> {
   };
 }
 
-export async function fetchLiveBuyLots(stockId?: string): Promise<BuyLot[]> {
-  const lots = await getBuyLots(await currentAccountId(), stockId);
+export async function fetchLiveBuyLots(stockId?: string, accountId?: string): Promise<BuyLot[]> {
+  const lots = await getBuyLots(accountId ?? await currentAccountId(), stockId);
   return lots.map((lot) => ({
     id: lot.id, stockId: lot.security.id, stockName: lot.security.name,
     tradeDate: new Date(lot.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
