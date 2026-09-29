@@ -15,6 +15,9 @@ const priceChange = (current: number | undefined, previous: number | undefined) 
 
 export function mapSecurity(stock: SecurityDto): StockItem {
   const currentPrice = decimal(stock.currentPrice);
+  const bps = decimal(stock.valuation?.bps);
+  const roe = decimal(stock.valuation?.roe);
+  const fair = bps !== undefined && roe !== undefined ? bps * (1 + (roe / 100 - 0.08) * 0.8 / 0.08) : undefined;
   return {
     id: stock.id, symbol: stock.symbol, name: stock.name,
     listType: (stock.listType?.toLowerCase() ?? 'watchlist') as StockListType,
@@ -22,6 +25,8 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     priceChangeRate: priceChange(currentPrice, decimal(stock.previousClosePrice)),
     note: stock.memo ?? undefined,
     per: decimal(stock.valuation?.per), pbr: decimal(stock.valuation?.pbr), roe: decimal(stock.valuation?.roe),
+    operatingProfit: stock.operatingProfit == null ? undefined : Number(stock.operatingProfit) / 1e8,
+    valuationW: fair !== undefined && currentPrice ? fair / currentPrice : undefined,
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
     priceAvailable: currentPrice !== undefined,
