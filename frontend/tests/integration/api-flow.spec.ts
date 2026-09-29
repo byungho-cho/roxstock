@@ -32,7 +32,9 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.screenshot({ path: testInfo.outputPath('01-empty-dashboard.png') });
   await page.getByText('평가자산', { exact: true }).first().click();
   await expect(page).toHaveURL(/detail\/assets/);
-  await expect(page.getByText('과거 평가자산 조회 API가 준비되지 않아 상세 추이를 표시할 수 없습니다.')).toBeVisible();
+  await expect(page.getByText('자산구성', { exact: true })).toBeVisible();
+  await expect(page.getByText('표시할 자산 데이터가 없습니다.')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('01-empty-assets.png') });
 
   await page.goto('/stocks?tab=holding');
   await expect(page.getByText('보유중 0')).toBeVisible();
@@ -68,6 +70,10 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/');
   await expect(page.getByText('20,400원')).toBeVisible();
   await expect(page.getByText('18,000원')).toBeVisible();
+  await page.goto('/detail/assets');
+  await expect(page.getByText('20,400원')).toBeVisible();
+  await expect(page.getByText('2,400원').first()).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets.png') });
   await page.goto('/journal');
   await expect(page.getByText('총 1건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-journal.png') });
