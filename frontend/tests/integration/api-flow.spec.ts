@@ -98,8 +98,11 @@ test('trade details: edit sell and confirm cascading buy deletion without cash r
   await expect(page.getByText('연결된 매도 1건도 함께 삭제됩니다.')).toBeVisible();
   await page.getByRole('button', { name: '삭제' }).last().click();
   await expect(page).toHaveURL(/journal/);
-  const report = await (await request.get(`/api/accounts/${accountId}/trades`)).json();
-  expect(report.data).toHaveLength(0);
+  // The route changes while deletion is in flight; wait for the API commit.
+  await expect.poll(async () => {
+    const report = await (await request.get(`/api/accounts/${accountId}/trades`)).json();
+    return report.data.length;
+  }).toBe(0);
   expect(Number((await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data.cashBalance)).toBe(19500);
 });
 
