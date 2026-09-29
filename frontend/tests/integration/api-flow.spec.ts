@@ -214,3 +214,29 @@ test('170 settings: account API create, update, requery and guarded reset across
   await expect(page.getByRole('textbox', { name: '계좌명 입력' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-confirm.png') });
 });
+
+
+test('cash history reveals one calendar month at a time in API mode', async ({ page, request }) => {
+  const created = await request.post('/api/accounts', { data: { name: '월별 내역 계좌', brokerName: 'CI' } });
+  expect(created.status()).toBe(201);
+  const accountId: string = (await created.json()).data.id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const [year, month] = current.slice(0, 7).split('-').map(Number);
+  const previousDate = new Date(Date.UTC(year, month - 2, 15)).toISOString().slice(0, 10);
+  for (let i = 0; i < 12; i++) {
+    const response = await request.post('/api/cash-transactions', { data: {
+      accountId, transactionType: 'DEPOSIT',
+      transactionDate: new Date(`${i === 0 ? previousDate : current}T12:00:00+09:00`).toISOString(),
+      amount: String(i + 1), memo: null,
+    } });
+    expect(response.status()).toBe(201);
+  }
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  await page.goto('/detail/cash');
+  await expect(page.getByText('최근 10개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 11개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 12개')).toBeVisible();
+  await expect(page.getByRole('button', { name: '이전 한 달 더보기' })).toHaveCount(0);
+});
