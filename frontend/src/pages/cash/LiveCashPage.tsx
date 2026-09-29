@@ -1,23 +1,57 @@
-import { Box, Button, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
+import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { chooseAccount, currentAccountId, createCashTransaction, getCashHistory, getCashOverview, listAccounts } from '../../data/roxstockApi';
+import { chooseAccount, currentAccountId, createCashTransaction, getCashHistory, getCashOverview, listAccounts, type CashTransactionDto } from '../../data/roxstockApi';
 import { useDashboard } from '../../hooks/useMockData';
 import { formatWon } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+const initialMonth = today().slice(0, 7);
+const labels: Record<CashTransactionDto['transactionType'], string> = { BUY: '매수', SELL: '매도', DEPOSIT: '입금', WITHDRAWAL: '출금', DIVIDEND: '배당' };
+const monthShift = (month: string, delta: number) => {
+  const [year, number] = month.split('-').map(Number);
+  const next = new Date(Date.UTC(year, number - 1 + delta, 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+const shortDate = (date: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' }).format(new Date(date)).replace(/\s/g, '').replace(/\.$/, '');
+const amountColor = (amount: number) => amount > 0 ? colors.marketRise : amount < 0 ? colors.marketFall : colors.textPrimary;
+const signed = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '−' : ''}${formatWon(Math.abs(amount))}`;
 
 export function LiveCashPage() {
   const { data, isPending, isError, refetch } = useDashboard();
   const queryClient = useQueryClient();
   const accounts = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts });
   const accountId = chooseAccount(accounts.data ?? [])?.id;
-  const overview = useQuery({ queryKey: ['cashOverview', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
-  const history = useQuery({ queryKey: ['cashTransactions', accountId], queryFn: () => getCashHistory(accountId!), enabled: !!accountId });
+  const [mode, setMode] = useState<'month' | 'year'>('month');
+  const [month, setMonth] = useState(initialMonth);
+  const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
+  const [olderMonths, setOlderMonths] = useState(0);
+  const touchStart = useRef<number | null>(null);
+  const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, year, month], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, Number(month.slice(5))), enabled: !!accountId });
+  const history = useQuery({ queryKey: ['cashTransactions', accountId, olderMonths], queryFn: async () => {
+    const first = await getCashHistory(accountId!, 10);
+    const oldestDate = first.data.at(-1)?.transactionDate;
+    if (!oldestDate || !olderMonths) return first;
+    const oldestMonth = new Date(oldestDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 7);
+    const older = [];
+    for (let index = 0; index < olderMonths; index++) {
+      const month = monthShift(oldestMonth, -index);
+      const [year, number] = month.split('-').map(Number);
+      const to = new Date(Date.UTC(year, number, 0)).toISOString().slice(0, 10);
+      const range = { from: `${month}-01`, to };
+      const page = await getCashHistory(accountId!, 100, 0, range);
+      older.push(...page.data);
+      for (let offset = 100; offset < page.meta.total; offset += 100) {
+        older.push(...(await getCashHistory(accountId!, 100, offset, range)).data);
+      }
+    }
+    return { data: [...new Map([...first.data, ...older].map((item) => [item.id, item])).values()].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (BigInt(b.id) > BigInt(a.id) ? 1 : -1)), meta: first.meta };
+  }, enabled: !!accountId });
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
   const [date, setDate] = useState(today);
@@ -26,40 +60,66 @@ export function LiveCashPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const changePeriod = (delta: number) => {
+    if (mode === 'month') setMonth((previous) => { const next = monthShift(previous, delta); return next > initialMonth ? previous : next; });
+    else setYear((previous) => Math.min(Number(initialMonth.slice(0, 4)), previous + delta));
+  };
   const submit = async () => {
     if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) { setError('0원보다 큰 금액을 입력해 주세요.'); return; }
     setSaving(true); setError('');
     try {
-      await createCashTransaction({
-        accountId: await currentAccountId(), transactionType: type,
-        transactionDate: new Date(`${date}T12:00:00+09:00`).toISOString(),
-        amount, memo: memo || null,
-      });
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ['cashOverview'] }), queryClient.invalidateQueries({ queryKey: ['cashTransactions'] })]);
+      await createCashTransaction({ accountId: await currentAccountId(), transactionType: type, transactionDate: new Date(`${date}T12:00:00+09:00`).toISOString(), amount, memo: memo || null });
+      await Promise.all(['dashboard', 'cashOverview', 'cashTransactions'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
       setOpen(false); setAmount(''); setMemo('');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 등록에 실패했습니다.'); }
     finally { setSaving(false); }
   };
 
+  const period = mode === 'month' ? overview.data?.monthly : overview.data?.yearly;
+  const deposit = Number(period?.deposit ?? 0);
+  const withdrawal = Number(period?.withdrawal ?? 0);
+  const dividend = Number(period?.dividend ?? 0);
+  const net = Number(period?.netChange ?? 0);
+  const entries = history.data?.data ?? [];
+  const loading = accounts.isPending || (!!accountId && (overview.isPending || history.isPending));
+  const failed = accounts.isError || overview.isError || history.isError;
   return <Box>
     <Snackbar open={isError && !!data} message="최신 예수금 조회에 실패했습니다. 이전 값을 표시합니다." />
-    <PageHeader title="예수금" subtitle="계좌 현금 잔액" backPath="/" addLabel="예수금 등록" onAdd={() => setOpen(true)} embedded />
+    <PageHeader title="예수금" backPath="/" addLabel="예수금 등록" onAdd={() => setOpen(true)} embedded />
     {isPending ? <Typography role="status">예수금을 불러오는 중입니다.</Typography> :
       isError && !data ? <Button role="alert" onClick={() => void refetch()}>예수금 조회 실패 · 다시 시도</Button> :
-      <AppCard><CardContent><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Typography sx={{ mt: 1, color: colors.warning, fontSize: 28, fontWeight: 700 }}>{formatWon(data?.summary.cashBalance ?? Number.NaN)}</Typography></CardContent></AppCard>}
-    {accounts.isPending || (accountId && (overview.isPending || history.isPending)) ? <Typography role="status" sx={{ mt: 2 }}>예수금 내역을 불러오는 중입니다.</Typography> :
-      accounts.isError || overview.isError || history.isError ? <Button role="alert" onClick={() => { void accounts.refetch(); void overview.refetch(); void history.refetch(); }}>예수금 내역 조회 실패 · 다시 시도</Button> :
-      !accountId ? <Typography role="status" sx={{ mt: 2 }}>선택된 계좌가 없습니다.</Typography> : <>
-        <AppCard sx={{ mt: 2, p: 2 }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>이번달 입금 {formatWon(Number(overview.data?.monthly.deposit))} · 출금 {formatWon(Number(overview.data?.monthly.withdrawal))}</Typography>
-          <Typography sx={{ color: colors.textMuted, fontSize: 12 }}>올해 입금 {formatWon(Number(overview.data?.yearly.deposit))} · 출금 {formatWon(Number(overview.data?.yearly.withdrawal))} · 배당 {formatWon(Number(overview.data?.yearly.dividend))}</Typography></AppCard>
-        <AppCard sx={{ mt: 2, p: 2 }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>예수금 내역</Typography>
-          {history.data?.data.length ? history.data.data.map((entry) => <Stack key={entry.id} direction="row" sx={{ justifyContent: 'space-between', gap: 1, mt: 1 }}>
-            <Typography sx={{ fontSize: 12 }}>{entry.transactionDate.slice(0, 10)} · {entry.transactionType}</Typography>
-            <Typography sx={{ fontSize: 12, whiteSpace: 'nowrap' }}>{formatWon(Number(entry.signedAmount))}</Typography>
-          </Stack>) : <Typography role="status" sx={{ mt: 1, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
+      loading ? <Typography role="status">예수금 내역을 불러오는 중입니다.</Typography> :
+      failed ? <Button role="alert" onClick={() => { void accounts.refetch(); void overview.refetch(); void history.refetch(); }}>예수금 내역 조회 실패 · 다시 시도</Button> :
+      !accountId ? <Typography role="status">선택된 계좌가 없습니다.</Typography> :
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, minWidth: 0, height: { sm: '100%' }, alignItems: 'start' }}>
+        <Stack spacing="8px" sx={{ minWidth: 0 }}>
+          <AppCard sx={{ height: 96, borderRadius: '8px', p: { xs: '10px 16px', sm: '10px 17px' } }}>
+            <Stack direction="row" sx={{ justifyContent: "space-between" }}><Typography sx={{ color: colors.textSecondary, fontSize: 12 }}>현재 예수금</Typography></Stack>
+            <Typography sx={{ color: colors.warning, fontSize: 28, fontWeight: 700, textAlign: 'right', lineHeight: '36px', whiteSpace: 'nowrap' }}>{formatWon(data?.summary.cashBalance ?? Number.NaN)}</Typography>
+            <Stack direction="row" sx={{ justifyContent: "space-between", mt: "2px" }}><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>{overview.data?.account.updatedAt ? shortDate(overview.data.account.updatedAt) + ' 갱신' : ''}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: amountColor(Number(overview.data?.monthly.netChange ?? 0)), fontSize: 11 }}>이번달 {signed(Number(overview.data?.monthly.netChange ?? 0))}</Typography></Stack>
+          </AppCard>
+          <AppCard onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={(event) => { if (touchStart.current !== null && Math.abs(event.changedTouches[0].clientX - touchStart.current) > 55) changePeriod(event.changedTouches[0].clientX < touchStart.current ? 1 : -1); touchStart.current = null; }} sx={{ minHeight: { xs: 102, sm: 223 }, borderRadius: '8px', px: { xs: '15px', sm: '17px' }, py: '10px', touchAction: 'pan-y' }}>
+            <Stack direction="row" sx={{ alignItems: "center", borderBottom: `1px solid ${colors.border}`, pb: { xs: '7px', sm: '12px' } }}>
+              <IconButton aria-label="이전 기간" size="small" onClick={() => changePeriod(-1)} sx={{ width: 24, height: 24, p: 0, flexShrink: 0 }}><ChevronLeftRounded sx={{ fontSize: 16 }} /></IconButton>
+              <Typography sx={{ flex: 1, minWidth: 0, textAlign: 'center', fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>{mode === 'month' ? `${month.slice(0, 4)}년 ${Number(month.slice(5))}월` : `${year}년`}</Typography>
+              <IconButton aria-label="다음 기간" size="small" onClick={() => changePeriod(1)} sx={{ width: 24, height: 24, p: 0, flexShrink: 0 }}><ChevronRightRounded sx={{ fontSize: 16 }} /></IconButton>
+              <Button onClick={() => setMode((previous) => previous === 'month' ? 'year' : 'month')} aria-label="월간 연간 전환" sx={{ ml: 1, minWidth: 54, flexShrink: 0, height: 24, bgcolor: colors.raised, color: colors.focus, borderRadius: '12px', fontSize: 10 }}>{mode === 'month' ? '월간' : '연간'}</Button>
+            </Stack>
+            <Stack direction={{ xs: 'row', sm: 'column' }} sx={{ justifyContent: 'space-between', mt: { xs: '7px', sm: 0 } }}>
+              {([['출금', withdrawal, colors.marketFall], ['입금', deposit, colors.marketRise], ['배당', dividend, colors.textPrimary], ['순변동', net, amountColor(net)]] as const).map(([label, value, color]) => <Stack key={label} direction={{ xs: 'column', sm: 'row' }} sx={{ display: { xs: label === '출금' || label === '입금' ? 'flex' : 'none', sm: 'flex' }, justifyContent: 'space-between', flex: 1, height: { sm: label === '순변동' ? 42 : 34 }, alignItems: { sm: 'center' }, borderBottom: { sm: label === '순변동' ? 'none' : `1px solid ${colors.border}` } }}><Typography sx={{ fontSize: { xs: 10, sm: 12 }, color: colors.textMuted }}>{label}</Typography><Typography sx={{ textAlign: 'right', fontSize: { xs: 12, sm: 16 }, fontWeight: 600, color }}>{label === '순변동' ? signed(value) : formatWon(value)}</Typography></Stack>)}
+            </Stack>
+          </AppCard>
+        </Stack>
+        <AppCard sx={{ borderRadius: '8px', p: { xs: '12px 15px', sm: '10px 17px' }, minWidth: 0, height: { sm: '100%' }, minHeight: { sm: 327 }, display: 'flex', flexDirection: 'column' }}>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}><Typography sx={{ fontSize: 16, fontWeight: 700 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>최근 {entries.length}개</Typography></Stack>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, mt: 1, color: colors.textMuted, fontSize: 10 }}><Box sx={{ display: { xs: 'none', sm: 'block' } }}>날짜</Box><Box>구분</Box><Box sx={{ display: { xs: 'block', sm: 'none' } }}>날짜</Box><Box sx={{ textAlign: 'right' }}>금액</Box><Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>잔액</Box></Box>
+          <Box sx={{ minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', flex: 1 }}>
+            {entries.map((entry) => <Box key={entry.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, alignItems: 'center', height: { xs: 30, sm: 32 }, borderBottom: { sm: `1px solid ${colors.border}` } }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, color: amountColor(Number(entry.signedAmount)) }}>{labels[entry.transactionType]}</Typography><Typography sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: amountColor(Number(entry.signedAmount)) }}>{signed(Number(entry.signedAmount))}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, textAlign: 'right' }}>{formatWon(Number(entry.balanceAfter))}</Typography></Box>)}
+            {!entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
+            {(history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setOlderMonths((count) => count + 1)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 한 달 더보기</Button>}
+          </Box>
         </AppCard>
-      </>}
+      </Box>}
     <Dialog open={open} onClose={() => !saving && setOpen(false)} fullWidth maxWidth="xs">
       <DialogTitle>예수금 등록</DialogTitle>
       <DialogContent><Stack spacing={1.5} sx={{ pt: 1 }}>
