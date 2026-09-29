@@ -120,7 +120,7 @@ export interface CashOverviewDto {
   yearly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
   recentTransactions: CashTransactionDto[];
 }
-export const getCashHistory = (accountId: string, limit = 20, offset = 0) => apiEnvelope<CashHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`);
+export const getCashHistory = (accountId: string, limit = 20, offset = 0, range?: { from: string; to: string }) => apiEnvelope<CashHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions?${new URLSearchParams({ limit: String(limit), offset: String(offset), ...range })}`);
 export const getCashOverview = (accountId: string, year?: number, month?: number) => {
   const params = new URLSearchParams();
   if (year !== undefined) params.set('year', String(year));
