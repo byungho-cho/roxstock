@@ -392,6 +392,43 @@ test('cash history reveals one calendar month at a time in API mode', async ({ p
   await expect(page.getByRole('button', { name: '이전 한 달 더보기' })).toHaveCount(0);
 });
 
+test('cash period navigation uses adjacent cache and retains card on failed requests', async ({ page, request }) => {
+  const created = await request.post('/api/accounts', { data: { name: `예수금 선조회 ${Date.now()}`, brokerName: 'CI' } });
+  expect(created.status()).toBe(201);
+  const accountId: string = (await created.json()).data.id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const [year, month] = current.slice(0, 7).split('-').map(Number);
+  const previous = new Date(Date.UTC(year, month - 2, 1));
+  const previousMonth = previous.getUTCMonth() + 1;
+  const previousYear = previous.getUTCFullYear();
+  const requests: string[] = [];
+  const responses: string[] = [];
+  await page.route(`**/api/accounts/${accountId}/cash-overview?*`, async (route) => {
+    const url = new URL(route.request().url());
+    requests.push(`${url.searchParams.get('year')}-${url.searchParams.get('month')}`);
+    await route.continue();
+  });
+  page.on('response', (response) => {
+    if (response.url().includes(`/api/accounts/${accountId}/cash-overview?`) && response.ok()) {
+      const url = new URL(response.url());
+      responses.push(`${url.searchParams.get('year')}-${url.searchParams.get('month')}`);
+    }
+  });
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    requests.length = 0;
+    responses.length = 0;
+    await page.setViewportSize({ width, height });
+    await page.goto('/detail/cash');
+    await expect.poll(() => responses.includes(`${previousYear}-${previousMonth}`)).toBe(true);
+    await page.getByRole('button', { name: '이전 기간' }).click();
+    await expect(page.getByText(`${previousYear}년 ${previousMonth}월`)).toBeVisible();
+    await expect(page.getByText('최근 변경')).toBeVisible();
+    expect(requests.filter((key) => key === `${previousYear}-${previousMonth}`)).toHaveLength(1);
+  }
+  await page.unrouteAll({ behavior: 'wait' });
+});
+
 test('journal and stock detail keep their frames during slow and rapid API navigation', async ({ page, request }) => {
   const accountResponse = await request.post('/api/accounts', { data: { name: `조회 상태 ${Date.now()}`, brokerName: 'CI' } });
   expect(accountResponse.status()).toBe(201);
@@ -411,6 +448,7 @@ test('journal and stock detail keep their frames during slow and rapid API navig
       await new Promise((resolve) => setTimeout(resolve, 900));
       await route.continue();
     });
+    await page.getByRole('button', { name: '이전 달' }).click();
     await page.getByRole('button', { name: '이전 달' }).click();
     await expect(page.getByLabel(/거래 달력/)).toBeVisible();
     await expect(page.getByText('거래내역을 불러오는 중입니다.')).toBeVisible();
@@ -432,4 +470,71 @@ test('journal and stock detail keep their frames during slow and rapid API navig
   await page.getByRole('button', { name: '예수금', exact: true }).click();
   await expect(page.getByText('7,777원', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('8,000원', { exact: true })).toHaveCount(0);
+});
+
+test('adjacent journal months are fetched once, shown from cache, and isolated by account', async ({ page, request }) => {
+  test.setTimeout(120_000);
+  const createAccount = async (name: string) => {
+    const response = await request.post('/api/accounts', { data: { name: `${name} ${Date.now()}`, brokerName: 'CI' } });
+    expect(response.status()).toBe(201);
+    return (await response.json()).data.id as string;
+  };
+  const accountId = await createAccount('선조회');
+  const secondId = await createAccount('선조회 격리');
+  const securityId: string = (await (await request.get('/api/securities?query=099999&limit=20')).json()).data[0].id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const previous = new Date(Date.UTC(Number(current.slice(0, 4)), Number(current.slice(5, 7)) - 2, 15)).toISOString().slice(0, 10);
+  const twoBack = new Date(Date.UTC(Number(current.slice(0, 4)), Number(current.slice(5, 7)) - 3, 15)).toISOString().slice(0, 10);
+  const queryStart = (date: string) => {
+    const first = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, 1);
+    first.setDate(first.getDate() - 6);
+    return `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}-${String(first.getDate()).padStart(2, '0')}`;
+  };
+  const deposit = await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: `${previous}T03:00:00.000Z`, amount: '10000' } });
+  expect(deposit.status()).toBe(201);
+  expect((await request.post('/api/buy-trades', { data: { accountId, securityId, boughtAt: `${previous}T03:00:00.000Z`, quantity: '2', unitPrice: '1000', feeTaxAmount: '0' } })).status()).toBe(201);
+  const journalRequests: string[] = [];
+  const journalResponses: string[] = [];
+  page.on('response', (response) => {
+    if (response.url().includes(`/api/accounts/${accountId}/trades?`) && response.ok()) journalResponses.push(new URL(response.url()).searchParams.get('from') ?? '');
+  });
+  await page.route(`**/api/accounts/${accountId}/trades?*`, async (route) => {
+    const from = new URL(route.request().url()).searchParams.get('from') ?? '';
+    journalRequests.push(from);
+    if (from === queryStart(twoBack)) await new Promise((resolve) => setTimeout(resolve, 650));
+    await route.continue();
+  });
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    journalRequests.length = 0;
+    journalResponses.length = 0;
+    await page.setViewportSize({ width, height });
+    await page.goto('/journal');
+    await expect.poll(() => journalResponses.includes(queryStart(previous))).toBe(true);
+    await page.getByRole('button', { name: '이전 달' }).click();
+    await page.getByRole('button', { name: new RegExp(`^${previous} 매수 1건`) }).click();
+    await expect(page.getByText('2 × 1,000원').first()).toBeVisible();
+    await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
+    await page.getByRole('button', { name: '이전 달' }).click();
+    await expect(page.getByLabel(/거래 달력/)).toBeVisible();
+    await page.getByRole('button', { name: '다음 달' }).click();
+    await page.getByRole('button', { name: new RegExp(`^${previous} 매수 1건`) }).click();
+    await expect(page.getByText('2 × 1,000원').first()).toBeVisible();
+    await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
+    expect(journalRequests.filter((from) => from === queryStart(previous)).length).toBeLessThanOrEqual(1);
+  }
+  await page.goto('/detail/settings?view=account');
+  await page.getByRole('button', { name: /선조회 격리/ }).click();
+  await page.route(`**/api/accounts/${secondId}/trades?*`, (route) => {
+    const from = new URL(route.request().url()).searchParams.get('from');
+    return from === queryStart(previous) ? route.fulfill({ status: 503, body: '{"error":{"message":"temporary failure"}}' }) : route.continue();
+  });
+  await page.goto('/journal');
+  await expect(page.getByText('총 0건')).toBeVisible();
+  await page.getByRole('button', { name: '이전 달' }).click();
+  await expect(page.getByText('2 × 1,000원')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '거래내역 조회 실패 · 다시 시도' })).toBeVisible();
+  await expect(page.getByLabel(/거래 달력/)).toBeVisible();
+  await page.unrouteAll({ behavior: 'wait' });
+  expect(secondId).not.toBe(accountId);
 });
