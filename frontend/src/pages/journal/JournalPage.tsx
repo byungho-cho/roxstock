@@ -1,13 +1,13 @@
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
-import { useMemo, useRef, useState, type TouchEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getBuyTrades } from '../../data/mockBuyTrades';
 import { buyLots, stockItems } from '../../data/mockData';
 import { getAvailableLots, getSellTrades } from '../../data/mockSellTrades';
 import { liveApiEnabled } from '../../data/liveData';
-import { currentAccountId, getTrades } from '../../data/roxstockApi';
+import { getTrades } from '../../data/roxstockApi';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
@@ -39,9 +39,25 @@ function shiftMonth(month: string, offset: number) {
   return dateOf(next.getFullYear(), next.getMonth() + 1, 1).slice(0, 7);
 }
 const panel = { bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px' } as const;
+const journalQuery = (accountId: string, month: string) => ({
+  queryKey: ['journalTrades', accountId, month] as const,
+  staleTime: 60_000,
+  queryFn: () => {
+    const [year, value] = month.split('-').map(Number);
+    const first = new Date(year, value - 1, 1);
+    const last = new Date(year, value, 0);
+    first.setDate(first.getDate() - 6);
+    last.setDate(last.getDate() + 6);
+    return getTrades(accountId, {
+      from: dateOf(first.getFullYear(), first.getMonth() + 1, first.getDate()),
+      to: dateOf(last.getFullYear(), last.getMonth() + 1, last.getDate()),
+    });
+  },
+});
 
 export function JournalPage() {
   const { accountId } = useActiveAccount();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const tablet = useMediaQuery('(min-width:600px)');
   const [searchParams] = useSearchParams();
@@ -54,19 +70,12 @@ export function JournalPage() {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
   const { data: remoteReport, isPending: tradesPending, isError: tradesError, refetch: reloadTrades } = useQuery({
-    queryKey: ['journalTrades', accountId, month], enabled: liveApiEnabled && !!accountId,
-    queryFn: async () => {
-      const [year, value] = month.split('-').map(Number);
-      const first = new Date(year, value - 1, 1);
-      const last = new Date(year, value, 0);
-      first.setDate(first.getDate() - 6);
-      last.setDate(last.getDate() + 6);
-      return getTrades(accountId ?? await currentAccountId(), {
-        from: dateOf(first.getFullYear(), first.getMonth() + 1, first.getDate()),
-        to: dateOf(last.getFullYear(), last.getMonth() + 1, last.getDate()),
-      });
-    },
+    ...journalQuery(accountId ?? '', month), enabled: liveApiEnabled && !!accountId,
   });
+  useEffect(() => {
+    if (!liveApiEnabled || !accountId || !remoteReport || tradesError) return;
+    for (const offset of [-1, 1]) void queryClient.prefetchQuery(journalQuery(accountId, shiftMonth(month, offset)));
+  }, [accountId, month, queryClient, remoteReport, tradesError]);
 
   const entries = useMemo(() => {
     if (liveApiEnabled) return (remoteReport?.data ?? []).map((trade): Entry => ({
