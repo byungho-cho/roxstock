@@ -66,10 +66,17 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(Number(withBaseline.dailyProfitRate)).toBe(-100);
   expect(withBaseline.stockMonthlyProfit).toBeNull();
   expect(withBaseline.cashMonthlyProfit).toBeNull();
+  await page.setViewportSize({ width: 370, height: 465 });
   await page.goto('/detail/assets');
   await expect(page.getByText('-10,000원').first()).toBeVisible();
   await expect(page.getByText('-100.0%').first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('110-daily-performance-370x465.png') });
+  for (const [width, height] of [[400, 640], [725, 396], [816, 616]]) {
+    await page.setViewportSize({ width, height });
+    await expect(page.getByText('-10,000원').first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.screenshot({ path: testInfo.outputPath(`110-daily-performance-${width}x${height}.png`) });
+  }
   const secondAccountResponse = await request.post('/api/accounts', { data: { name: '손익 격리 계좌', brokerName: 'CI' } });
   expect(secondAccountResponse.status()).toBe(201);
   const secondAccountId: string = (await secondAccountResponse.json()).data.id;
