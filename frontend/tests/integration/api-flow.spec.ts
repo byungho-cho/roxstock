@@ -21,6 +21,8 @@ test('stock screens use persisted analysis, category, and price data', async ({ 
   const analysis = (await (await request.get(`/api/securities/${id}/analysis`)).json()).data;
   expect(analysis.fundamentals.issuedShares).toBe('100000000');
   expect(analysis.statements[0].operatingProfit).toBe('3000000000000');
+  expect(Number(analysis.valuation.bps)).toBeGreaterThan(300000);
+  expect(Number(analysis.valuation.roe)).toBeGreaterThan(8);
   const account = await request.post('/api/accounts', { data: { name: `종목 화면 검증 ${Date.now()}`, brokerName: 'CI' } });
   expect(account.status()).toBe(201);
   const accountId: string = (await account.json()).data.id;
