@@ -53,6 +53,16 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
   await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('최근 변경')).toBeVisible();
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await expect(page.getByRole('button', { name: '월간 연간 전환' })).toHaveText('연간');
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-370x465.png') });
+  await page.setViewportSize({ width: 725, height: 396 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-725x396.png') });
+  await page.setViewportSize({ width: 816, height: 616 });
   const missingBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(missingBaseline.dailyProfit).toBeNull();
   expect(missingBaseline.dailyProfitRate).toBeNull();
@@ -252,4 +262,29 @@ test('170 settings: account API create, update, requery and guarded reset across
   await page.getByRole('button', { name: /계좌 데이터 초기화/ }).click();
   await expect(page.getByRole('textbox', { name: '계좌명 입력' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('170-tablet-reset-confirm.png') });
+});
+
+test('cash history reveals one calendar month at a time in API mode', async ({ page, request }) => {
+  const created = await request.post('/api/accounts', { data: { name: '월별 내역 계좌', brokerName: 'CI' } });
+  expect(created.status()).toBe(201);
+  const accountId: string = (await created.json()).data.id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const [year, month] = current.slice(0, 7).split('-').map(Number);
+  const previousDate = new Date(Date.UTC(year, month - 2, 15)).toISOString().slice(0, 10);
+  for (let i = 0; i < 12; i++) {
+    const response = await request.post('/api/cash-transactions', { data: {
+      accountId, transactionType: 'DEPOSIT',
+      transactionDate: new Date(`${i === 0 ? previousDate : current}T12:00:00+09:00`).toISOString(),
+      amount: String(i + 1), memo: null,
+    } });
+    expect(response.status()).toBe(201);
+  }
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  await page.goto('/detail/cash');
+  await expect(page.getByText('최근 10개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 11개')).toBeVisible();
+  await page.getByRole('button', { name: '이전 한 달 더보기' }).click();
+  await expect(page.getByText('최근 12개')).toBeVisible();
+  await expect(page.getByRole('button', { name: '이전 한 달 더보기' })).toHaveCount(0);
 });
