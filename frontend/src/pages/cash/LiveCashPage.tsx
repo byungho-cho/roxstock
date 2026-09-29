@@ -1,4 +1,4 @@
-import { Box, Button, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
+import { Box, Button, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { AppCard } from '../../components/common/Common';
@@ -43,9 +43,10 @@ export function LiveCashPage() {
   };
 
   return <Box>
+    <Snackbar open={isError && !!data} message="최신 예수금 조회에 실패했습니다. 이전 값을 표시합니다." />
     <PageHeader title="예수금" subtitle="계좌 현금 잔액" backPath="/" addLabel="예수금 등록" onAdd={() => setOpen(true)} embedded />
     {isPending ? <Typography role="status">예수금을 불러오는 중입니다.</Typography> :
-      isError ? <Button role="alert" onClick={() => void refetch()}>예수금 조회 실패 · 다시 시도</Button> :
+      isError && !data ? <Button role="alert" onClick={() => void refetch()}>예수금 조회 실패 · 다시 시도</Button> :
       <AppCard><CardContent><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Typography sx={{ mt: 1, color: colors.warning, fontSize: 28, fontWeight: 700 }}>{formatWon(data?.summary.cashBalance ?? Number.NaN)}</Typography></CardContent></AppCard>}
     {accounts.isPending || (accountId && (overview.isPending || history.isPending)) ? <Typography role="status" sx={{ mt: 2 }}>예수금 내역을 불러오는 중입니다.</Typography> :
       accounts.isError || overview.isError || history.isError ? <Button role="alert" onClick={() => { void accounts.refetch(); void overview.refetch(); void history.refetch(); }}>예수금 내역 조회 실패 · 다시 시도</Button> :
