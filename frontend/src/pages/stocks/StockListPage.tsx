@@ -14,6 +14,7 @@ import { formatRate, getMarketColor } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 import { navigateToForm } from '../../utils/focusForm';
 import { TabletStockTable } from './TabletStockTable';
+import { TabletStockMasterDetail } from './TabletStockMasterDetail';
 import { updateSecurityPrice } from '../../data/roxstockApi';
 
 const tabs: Array<{ value: StockListType; label: string }> = [
@@ -33,6 +34,7 @@ export function StockListPage() {
   const [descending, setDescending] = useState(true);
   const [showEmpty, setShowEmpty] = useState(false);
   const [priceStock, setPriceStock] = useState<StockItem | null>(null);
+  const [selectedTabletStockId, setSelectedTabletStockId] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
@@ -99,7 +101,9 @@ export function StockListPage() {
     <Box sx={{ display: { xs: 'block', sm: 'none' }, touchAction: 'pan-y' }} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}>
       {isPending ? <StockListLoading /> : isError && !stockData ? null : items.length === 0 ? <EmptyStocks onRestore={liveApiEnabled ? undefined : () => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
-    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{(!isError || stockData) && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{(!isError || stockData) && (liveApiEnabled && selectedTabletStockId && items.some((stock) => stock.id === selectedTabletStockId) ?
+      <TabletStockMasterDetail stocks={items} stock={items.find((stock) => stock.id === selectedTabletStockId)!} favoriteIds={favoriteIds} onSelect={(stock) => setSelectedTabletStockId(stock.id)} onClose={() => setSelectedTabletStockId(null)} /> :
+      <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => liveApiEnabled ? setSelectedTabletStockId(stock.id) : navigate(`/stocks/${stock.id}`)} />)}</Box>
     {!liveApiEnabled && !isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={async (value) => {
       if (!priceStock) return;
