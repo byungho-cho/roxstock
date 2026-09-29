@@ -1,5 +1,5 @@
 import { AddRounded, CloseRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded, InboxRounded, SearchRounded, SwapVertRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Button, Card, CardActionArea, CardContent, Dialog, Grid, IconButton, InputBase, Skeleton, Snackbar, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -35,7 +35,8 @@ export function StockListPage() {
   const touchStartX = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
-  const { data = [], isPending, isError, refetch } = useStocks(activeTab);
+  const { data: stockData, isPending, isError, refetch } = useStocks(activeTab);
+  const data = stockData ?? [];
   const [apiMessage, setApiMessage] = useState('');
   const { favoriteIds, toggleFavorite } = useFavoriteStocks();
 
@@ -78,7 +79,8 @@ export function StockListPage() {
       </Tabs>
     </Card>
 
-    {isError && <Button role="alert" onClick={() => void refetch()}>종목 목록을 불러오지 못했습니다. 다시 시도</Button>}
+    {isError && !stockData && <Button role="alert" onClick={() => void refetch()}>종목 목록을 불러오지 못했습니다. 다시 시도</Button>}
+    <Snackbar open={isError && !!stockData} message="최신 시세 조회에 실패했습니다. 이전 값을 표시합니다." />
     {apiMessage && <Box role="alert" sx={{ color: colors.marketRise, fontSize: 12 }}>{apiMessage}</Box>}
     <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', sm: 'none' } }}>
       <Box sx={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', gap: 1, px: '14px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '12px' }}>
@@ -94,9 +96,9 @@ export function StockListPage() {
     </Stack>
 
     <Box sx={{ display: { xs: 'block', sm: 'none' }, touchAction: 'pan-y' }} onTouchStart={(event) => { touchStartX.current = event.changedTouches[0].clientX; }} onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0].clientX)}>
-      {isPending ? <StockListLoading /> : isError ? null : items.length === 0 ? <EmptyStocks onRestore={liveApiEnabled ? undefined : () => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
+      {isPending ? <StockListLoading /> : isError && !stockData ? null : items.length === 0 ? <EmptyStocks onRestore={liveApiEnabled ? undefined : () => { setShowEmpty(false); setQuery(''); }} /> : <Grid container spacing="12px">{items.map((stock) => <Grid key={stock.id} size={{ xs: 12, sm: 6 }}><StockCard stock={stock} isFavorite={favoriteIds.has(stock.id)} onToggleFavorite={() => toggleFavorite(stock.id)} onClick={() => navigate(`/stocks/${stock.id}`)} onEditPrice={() => { flushSync(() => setPriceStock(stock)); priceInputRef.current?.focus({ preventScroll: true }); }} /></Grid>)}</Grid>}
     </Box>
-    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{!isError && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
+    <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{(!isError || stockData) && <TabletStockTable stocks={data} activeTab={activeTab} loading={isPending} favoriteIds={favoriteIds} onSelect={(stock) => navigate(`/stocks/${stock.id}`)} />}</Box>
     {!liveApiEnabled && !isPending && !showEmpty && <Button variant="text" color="inherit" onClick={() => setShowEmpty(true)} sx={{ display: { xs: 'inline-flex', sm: 'none' }, alignSelf: 'center', color: 'text.secondary', fontSize: 11 }}>빈 목록 상태 미리보기</Button>}
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={(value) => {
       if (!priceStock) return;

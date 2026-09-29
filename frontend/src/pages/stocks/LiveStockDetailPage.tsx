@@ -1,4 +1,4 @@
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Button, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
@@ -18,8 +18,9 @@ export function LiveStockDetailPage() {
   const stock = stocks?.find((item) => item.id === stockId);
   return <Stack spacing={1.5}>
     <PageHeader embedded showAdd={false} title={stock?.name ?? '종목 상세'} onBack={() => navigate('/stocks')} />
+    <Snackbar open={isError && !!stocks} message="최신 시세 조회에 실패했습니다. 이전 값을 표시합니다." />
     {isPending ? <Typography role="status">종목을 불러오는 중입니다.</Typography> :
-      isError ? <Button role="alert" onClick={() => void refetch()}>종목 조회 실패 · 다시 시도</Button> : !stock ? <Typography role="status">종목을 찾을 수 없습니다.</Typography> : <>
+      isError && !stocks ? <Button role="alert" onClick={() => void refetch()}>종목 조회 실패 · 다시 시도</Button> : !stock ? <Typography role="status">종목을 찾을 수 없습니다.</Typography> : <>
         <AppCard sx={{ p: 2 }}><Typography>{stock.name} · {stock.symbol}</Typography><Typography sx={{ mt: 1, color: colors.textMuted }}>{stock.priceAvailable ? formatWon(stock.currentPrice) : '가격 미수집'}</Typography>
           {stock.listType === 'holding' && <Typography>잔여수량 {stock.quantity}주 · 평가금액 {formatWon(stock.marketValue ?? Number.NaN)}</Typography>}
           <Button onClick={() => navigate(`/trade?type=buy&stock=${stock.id}`)}>매수</Button>
