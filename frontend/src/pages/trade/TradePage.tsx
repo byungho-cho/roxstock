@@ -162,13 +162,14 @@ export function TradePage() {
   };
 
   if (liveApiEnabled && editId) return <Alert severity="info">개별 거래 상세 조회와 수정 화면의 연결이 준비되지 않았습니다.</Alert>;
-  if (liveApiEnabled && (stocksError || dashboardError)) return <Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert>;
+  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert>;
   if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Typography role="status" sx={{ p: 2 }}>거래 정보를 불러오는 중입니다.</Typography>;
   if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
   if ((!liveApiEnabled && editId && !editing) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) return null;
 
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
+      <Snackbar open={(stocksError && !!fetchedStocks) || (dashboardError && !!dashboard)} message="최신 시세 조회에 실패했습니다. 이전 값을 표시합니다." />
       <PageHeader embedded compact showAdd={false} title={editing ? `${type === 'buy' ? '매수' : '매도'} 수정` : type === 'buy' ? '매수' : '매도'} />
       <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
         <Grid size={{ xs: 12, sm: 7 }}>
