@@ -52,9 +52,10 @@ export function LiveTradeEditPage() {
     }
     setBusy(true); setError('');
     try {
+      const originalDateTime = (type === 'buy' ? trade.boughtAt : trade.soldAt)!;
       await updateTrade(type, tradeId, {
         quantity: form.quantity, unitPrice: form.price, memo: form.memo || null,
-        [type === 'buy' ? 'boughtAt' : 'soldAt']: dateTime(form.date),
+        [type === 'buy' ? 'boughtAt' : 'soldAt']: form.date === kstDate(originalDateTime) ? originalDateTime : dateTime(form.date),
       });
       await refresh();
       navigate(returnPath, { replace: true });
