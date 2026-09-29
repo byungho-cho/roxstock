@@ -112,16 +112,21 @@ export interface CashTransactionDto {
 }
 export interface CashHistoryDto {
   data: CashTransactionDto[];
-  meta: { total: number };
+  meta: { total: number; limit: number; offset: number };
 }
 export interface CashOverviewDto {
-  account: { id: string; name: string; currentBalance: string };
-  monthly: { deposit: string; withdrawal: string };
-  yearly: { deposit: string; withdrawal: string; dividend: string };
+  account: { id: string; name: string; currentBalance: string; updatedAt: string };
+  monthly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
+  yearly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
   recentTransactions: CashTransactionDto[];
 }
-export const getCashHistory = (accountId: string) => apiEnvelope<CashHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions`);
-export const getCashOverview = (accountId: string) => apiRequest<CashOverviewDto>(`/accounts/${encodeURIComponent(accountId)}/cash-overview`);
+export const getCashHistory = (accountId: string, limit = 20, offset = 0) => apiEnvelope<CashHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`);
+export const getCashOverview = (accountId: string, year?: number, month?: number) => {
+  const params = new URLSearchParams();
+  if (year !== undefined) params.set('year', String(year));
+  if (month !== undefined) params.set('month', String(month));
+  return apiRequest<CashOverviewDto>(`/accounts/${encodeURIComponent(accountId)}/cash-overview${params.size ? `?${params}` : ''}`);
+};
 
 export function listSecurities(search: SecuritySearch = {}) {
   const params = new URLSearchParams();
