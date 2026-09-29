@@ -51,6 +51,17 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.getByRole('textbox', { name: '금액' }).fill('20000');
   await page.getByRole('button', { name: '등록', exact: true }).click();
   await expect(page.getByText('20,000원', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('최근 변경')).toBeVisible();
+  await expect(page.getByText(`${new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 4)}년`, { exact: false }).first()).toBeVisible();
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await expect(page.getByRole('button', { name: '월간 연간 전환' })).toHaveText('연간');
+  await page.getByRole('button', { name: '월간 연간 전환' }).click();
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-370x465.png') });
+  await page.setViewportSize({ width: 725, height: 396 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('120-cash-api-725x396.png') });
+  await page.setViewportSize({ width: 816, height: 616 });
   const cashAfterDeposit = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(cashAfterDeposit.cashBalance)).toBe(20_000);
 
@@ -73,7 +84,17 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/detail/assets');
   await expect(page.getByText('20,400원')).toBeVisible();
   await expect(page.getByText('2,400원').first()).toBeVisible();
+  await expect(page.getByText('400원', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: '주식 11.8%, 예수금 88.2%' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '종목별 자산 구성 도넛' }).getByText('2,400원')).toBeVisible();
+  await expect(page.getByText('통합테스트종목').first()).toBeVisible();
+  await expect(page.getByText('현대자동차')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets.png') });
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets-370x465.png') });
+  await page.setViewportSize({ width: 725, height: 396 });
+  await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets-725x396.png') });
+  await page.setViewportSize({ width: 816, height: 616 });
   await page.goto('/journal');
   await expect(page.getByText('총 1건')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-journal.png') });
@@ -119,6 +140,9 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
   await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
+  await page.goto('/detail/assets');
+  await expect(page.getByText('가격 미수집 종목이 있어 자산구성을 계산할 수 없습니다.')).toBeVisible();
+  await expect(page.getByText('20,400원')).toHaveCount(0);
   await page.goto('/stocks?tab=holding');
   await page.setViewportSize({ width: 400, height: 640 });
   await expect(page.getByText('시세 미수집')).toBeVisible();
