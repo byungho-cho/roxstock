@@ -27,7 +27,7 @@ const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(
 
 export function TradePage() {
   const [params] = useSearchParams();
-  return liveApiEnabled && params.has('edit') ? <LiveTradeEditPage /> : <TradeEntry />;
+  return liveApiEnabled && params.has('edit') ? <LiveTradeEditPage key={`${params.get('type')}:${params.get('edit')}`} /> : <TradeEntry key={`${params.get('type')}:${params.get('stock')}:${params.get('lot')}`} />;
 }
 
 function TradeEntry() {
@@ -167,8 +167,8 @@ function TradeEntry() {
     else mobileMemoRef.current?.focus();
   };
 
-  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert>;
-  if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Typography role="status" sx={{ p: 2 }}>거래 정보를 불러오는 중입니다.</Typography>;
+  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert></Stack>;
+  if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Box role="status" sx={{ bgcolor: colors.surface, borderRadius: 2, p: 2, color: colors.textMuted }}>거래 정보를 불러오는 중입니다.</Box></Stack>;
   if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
   if ((!liveApiEnabled && editId && !editing) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) return null;
 

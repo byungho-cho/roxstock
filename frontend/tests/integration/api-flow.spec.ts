@@ -391,3 +391,45 @@ test('cash history reveals one calendar month at a time in API mode', async ({ p
   await expect(page.getByText('최근 12개')).toBeVisible();
   await expect(page.getByRole('button', { name: '이전 한 달 더보기' })).toHaveCount(0);
 });
+
+test('journal and stock detail keep their frames during slow and rapid API navigation', async ({ page, request }) => {
+  const accountResponse = await request.post('/api/accounts', { data: { name: `조회 상태 ${Date.now()}`, brokerName: 'CI' } });
+  expect(accountResponse.status()).toBe(201);
+  const accountId: string = (await accountResponse.json()).data.id;
+  const securities = (await (await request.get('/api/securities?query=099999&limit=20')).json()).data;
+  const securityId: string = securities[0].id;
+  const current = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: `${current}T03:00:00.000Z`, amount: '10000' } });
+  const buy = await request.post('/api/buy-trades', { data: { accountId, securityId, boughtAt: `${current}T03:00:00.000Z`, quantity: '2', unitPrice: '1000', feeTaxAmount: '0' } });
+  expect(buy.status()).toBe(201);
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/journal');
+    await expect(page.getByRole('button', { name: '이전 달' })).toBeVisible();
+    await page.route(`**/api/accounts/${accountId}/trades?*`, async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      await route.continue();
+    });
+    await page.getByRole('button', { name: '이전 달' }).click();
+    await expect(page.getByLabel(/거래 달력/)).toBeVisible();
+    await expect(page.getByText('거래내역을 불러오는 중입니다.')).toBeVisible();
+    await page.getByRole('button', { name: '다음 달' }).click();
+    await expect(page.getByLabel(/거래 달력/)).toBeVisible();
+    await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
+    await page.goto(`/stocks/${securityId}`);
+    await expect(page.getByRole('heading', { name: '통합테스트종목' })).toBeVisible();
+    await page.getByRole('tab', { name: '거래내역' }).click();
+    await expect(page.getByText('2주 × 1,000원')).toBeVisible();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+  const secondResponse = await request.post('/api/accounts', { data: { name: `다른 계좌 ${Date.now()}`, brokerName: 'CI' } });
+  expect(secondResponse.status()).toBe(201);
+  const secondId: string = (await secondResponse.json()).data.id;
+  await request.post('/api/cash-transactions', { data: { accountId: secondId, transactionType: 'DEPOSIT', transactionDate: `${current}T03:00:00.000Z`, amount: '7777' } });
+  await page.goto('/detail/settings?view=account');
+  await page.getByRole('button', { name: /다른 계좌/ }).click();
+  await page.getByRole('button', { name: '예수금', exact: true }).click();
+  await expect(page.getByText('7,777원', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('8,000원', { exact: true })).toHaveCount(0);
+});
