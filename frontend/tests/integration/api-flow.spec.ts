@@ -50,6 +50,12 @@ test('stock screens use persisted analysis, category, and price data', async ({ 
   await page.getByRole('button', { name: '확인' }).click();
   await expect(page).toHaveURL(/stocks\?tab=recommended/);
   expect((await (await request.get(`/api/securities/${id}/analysis`)).json()).data.security.listType).toBe('RECOMMENDED');
+  await page.setViewportSize({ width: 816, height: 616 });
+  await page.goto('/stocks?tab=recommended');
+  await page.getByRole('button', { name: '화면검증종목 상세보기' }).click();
+  await expect(page.getByRole('button', { name: '전체 상세보기 ›' })).toBeVisible();
+  await page.getByRole('button', { name: '표로 돌아가기' }).click();
+  await expect(page.getByRole('table', { name: '추천종목' })).toBeVisible();
 });
 
 test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
