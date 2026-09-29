@@ -75,6 +75,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await expect(page.getByText('2,400원').first()).toBeVisible();
   await expect(page.getByText('400원', { exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: '주식 11.8%, 예수금 88.2%' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '종목별 자산 구성 도넛' }).getByText('2,400원')).toBeVisible();
   await expect(page.getByText('통합테스트종목').first()).toBeVisible();
   await expect(page.getByText('현대자동차')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('02-after-buy-assets.png') });
