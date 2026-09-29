@@ -30,16 +30,27 @@ export function LiveCashPage() {
   const [mode, setMode] = useState<'month' | 'year'>('month');
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [olderMonths, setOlderMonths] = useState(0);
   const touchStart = useRef<number | null>(null);
   const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, year, month], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, Number(month.slice(5))), enabled: !!accountId });
-  const history = useQuery({ queryKey: ['cashTransactions', accountId, visibleCount], queryFn: async () => {
-    const first = await getCashHistory(accountId!, Math.min(visibleCount, 100));
-    const pages = [first];
-    for (let offset = 100; offset < Math.min(visibleCount, first.meta.total); offset += 100) {
-      pages.push(await getCashHistory(accountId!, Math.min(100, visibleCount - offset), offset));
+  const history = useQuery({ queryKey: ['cashTransactions', accountId, olderMonths], queryFn: async () => {
+    const first = await getCashHistory(accountId!, 10);
+    const oldestDate = first.data.at(-1)?.transactionDate;
+    if (!oldestDate || !olderMonths) return first;
+    const oldestMonth = new Date(oldestDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 7);
+    const older = [];
+    for (let index = 0; index < olderMonths; index++) {
+      const month = monthShift(oldestMonth, -index);
+      const [year, number] = month.split('-').map(Number);
+      const to = new Date(Date.UTC(year, number, 0)).toISOString().slice(0, 10);
+      const range = { from: `${month}-01`, to };
+      const page = await getCashHistory(accountId!, 100, 0, range);
+      older.push(...page.data);
+      for (let offset = 100; offset < page.meta.total; offset += 100) {
+        older.push(...(await getCashHistory(accountId!, 100, offset, range)).data);
+      }
     }
-    return { data: pages.flatMap((page) => page.data), meta: first.meta };
+    return { data: [...new Map([...first.data, ...older].map((item) => [item.id, item])).values()].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (BigInt(b.id) > BigInt(a.id) ? 1 : -1)), meta: first.meta };
   }, enabled: !!accountId });
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
@@ -100,12 +111,12 @@ export function LiveCashPage() {
           </AppCard>
         </Stack>
         <AppCard sx={{ borderRadius: '8px', p: { xs: '12px 15px', sm: '10px 17px' }, minWidth: 0, height: { sm: '100%' }, minHeight: { sm: 327 }, display: 'flex', flexDirection: 'column' }}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}><Typography sx={{ fontSize: 16, fontWeight: 700 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>최근 {Math.min(history.data?.meta.total ?? 0, visibleCount)}개</Typography></Stack>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}><Typography sx={{ fontSize: 16, fontWeight: 700 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>최근 {entries.length}개</Typography></Stack>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, mt: 1, color: colors.textMuted, fontSize: 10 }}><Box sx={{ display: { xs: 'none', sm: 'block' } }}>날짜</Box><Box>구분</Box><Box sx={{ display: { xs: 'block', sm: 'none' } }}>날짜</Box><Box sx={{ textAlign: 'right' }}>금액</Box><Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>잔액</Box></Box>
           <Box sx={{ minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', flex: 1 }}>
             {entries.map((entry) => <Box key={entry.id} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, alignItems: 'center', height: { xs: 30, sm: 32 }, borderBottom: { sm: `1px solid ${colors.border}` } }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, color: amountColor(Number(entry.signedAmount)) }}>{labels[entry.transactionType]}</Typography><Typography sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: amountColor(Number(entry.signedAmount)) }}>{signed(Number(entry.signedAmount))}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, textAlign: 'right' }}>{formatWon(Number(entry.balanceAfter))}</Typography></Box>)}
             {!entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
-            {(history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setVisibleCount((count) => count + 30)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 내역 더보기</Button>}
+            {(history.data?.meta.total ?? 0) > entries.length && <Button fullWidth onClick={() => setOlderMonths((count) => count + 1)} sx={{ mt: 1, color: colors.textSecondary, fontSize: 11 }}>이전 한 달 더보기</Button>}
           </Box>
         </AppCard>
       </Box>}
