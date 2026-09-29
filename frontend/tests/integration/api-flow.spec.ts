@@ -31,6 +31,11 @@ test('stock screens use persisted analysis, category, and price data', async ({ 
   await page.evaluate((value) => localStorage.setItem('roxstock-selected-account-id', value), accountId);
   await page.goto(`/stocks/${id}`);
   await expect(page.getByText('실제 저장된 메모')).toBeVisible();
+  await page.getByRole('button', { name: '현재가 수정' }).click();
+  await page.getByRole('textbox', { name: '변경할 현재가' }).fill('12000');
+  await page.getByRole('button', { name: '변경', exact: true }).click();
+  await expect(page.getByText('12,000원').first()).toBeVisible();
+  expect((await (await request.get(`/api/securities/${id}/analysis`)).json()).data.security.currentPrice).toBe('12000');
   await page.getByRole('button', { name: '재무지표' }).click();
   await expect(page.getByText('영업이익')).toBeVisible();
   await page.getByRole('button', { name: '연간 ↕' }).click();
