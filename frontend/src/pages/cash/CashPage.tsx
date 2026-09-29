@@ -47,7 +47,7 @@ export function CashPage() {
   const [memo, setMemo] = useState('');
   const [stockId, setStockId] = useState('hyundai');
   const [error, setError] = useState('');
-  const touchStart = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const firstAmountRef = useRef<HTMLInputElement>(null);
   const taxRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -117,12 +117,18 @@ export function CashPage() {
     setEntries((previous) => previous.filter((entry) => entry.id !== deleting.id));
     setDeleting(null); setEditing(null);
   };
-  const handleSwipe = (endX: number) => { if (touchStart.current !== null && Math.abs(endX - touchStart.current) > 55) changePeriod(endX < touchStart.current ? -1 : 1); touchStart.current = null; };
+  const handleSwipe = (endX: number, endY: number) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const horizontal = endX - start.x;
+    if (Math.abs(horizontal) > 55 && Math.abs(horizontal) > Math.abs(endY - start.y)) changePeriod(horizontal < 0 ? -1 : 1);
+  };
 
   return <Box>
     <PageHeader title="예수금" subtitle="실제 증권계좌에서 사용할 수 있는 현금 잔액입니다" backPath="/" addLabel="예수금 등록" onAdd={() => openEditor('new')} embedded />
 
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: `${pageMetrics.gap}px`, sm: '16px' }} sx={{ alignItems: 'flex-start' }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: `${pageMetrics.gap}px`, sm: '16px' }} onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null; }} onTouchEnd={(event) => { const touch = event.changedTouches[0]; if (touch) handleSwipe(touch.clientX, touch.clientY); }} onTouchCancel={() => { touchStart.current = null; }} sx={{ alignItems: 'flex-start', touchAction: 'pan-y' }}>
       <Stack spacing={`${pageMetrics.gap}px`} sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0 }}>
         <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, p: { xs: `11px ${pageMetrics.cardInset}px`, sm: '16px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ display: { sm: 'none' }, minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>
@@ -130,7 +136,7 @@ export function CashPage() {
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end', gap: 1 }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: tone(monthChange), fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>이번 달 {amountText(Math.abs(monthChange))} {monthChange >= 0 ? '증가' : '감소'}</Typography><Typography sx={{ flex: 1, textAlign: 'right', color: colors.textMuted, fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap' }}>09.20 05:30</Typography></Stack>
         </AppCard>
 
-        <AppCard sx={{ minHeight: { xs: 116, sm: 314 }, p: { xs: `12px ${pageMetrics.cardInset}px`, sm: '12px 17px 16px' }, borderRadius: '16px', touchAction: 'pan-y', display: 'flex', flexDirection: 'column' }} onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={(event) => handleSwipe(event.changedTouches[0].clientX)}>
+        <AppCard sx={{ minHeight: { xs: 116, sm: 314 }, p: { xs: `12px ${pageMetrics.cardInset}px`, sm: '12px 17px 16px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
           <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: { xs: '7px', sm: 0 } }}>
             <Stack direction="row" sx={{ alignItems: 'center', flex: 1 }}>
               <IconButton aria-label="이전 기간" size="small" onClick={() => changePeriod(-1)} sx={{ display: { sm: 'none' } }}><ChevronLeftRounded sx={{ fontSize: 18 }} /></IconButton>
