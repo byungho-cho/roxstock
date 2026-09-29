@@ -28,7 +28,33 @@ export interface SecurityDto {
   currentPrice: string | null;
   previousClosePrice: string | null;
   priceUpdatedAt: string | null;
+  valuation?: ValuationDto | null;
 }
+
+export interface ValuationDto {
+  metricDate: string; eps: string | null; bps: string | null; per: string | null;
+  pbr: string | null; roe: string | null; dividendPerShare: string | null;
+  dividendYield: string | null; marketCap: string | null;
+}
+export interface FinancialStatementDto {
+  fiscalYear: number; periodType: 'ANNUAL' | 'Q1' | 'Q2' | 'Q3' | 'Q4'; periodEndDate: string;
+  revenue: string | null; operatingProfit: string | null; netIncome: string | null;
+  totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null;
+  operatingCashFlow: string | null; capitalExpenditure: string | null;
+}
+export interface SecurityAnalysisDto {
+  security: SecurityDto; valuation: ValuationDto | null; previousValuation: ValuationDto | null;
+  fundamentals: { controllingProfit: string | null; issuedShares: string | null; treasuryShares: string | null; previousEquity: string | null } | null;
+  statements: FinancialStatementDto[];
+}
+export const getSecurityAnalysis = (securityId: string) => apiRequest<SecurityAnalysisDto>(`/securities/${encodeURIComponent(securityId)}/analysis`);
+export type AnalysisWriteInput = Partial<Record<'operatingProfit' | 'controllingProfit' | 'issuedShares' | 'treasuryShares' | 'assets' | 'liabilities' | 'equity' | 'previousEquity' | 'dividend' | 'memo', string | null>>;
+export const updateSecurityAnalysis = (securityId: string, body: AnalysisWriteInput) =>
+  apiRequest<{ updated: true }>(`/securities/${encodeURIComponent(securityId)}/analysis`, { method: 'PATCH', body: JSON.stringify(body) });
+export const createSecurity = (body: { symbol: string; name: string; marketType: MarketType; listType: 'WATCHLIST' | 'RECOMMENDED' }) =>
+  apiRequest<SecurityDto>('/securities', { method: 'POST', body: JSON.stringify(body) });
+export const updateSecurityPrice = (securityId: string, currentPrice: string) =>
+  apiRequest<{ currentPrice: string; previousClosePrice: string | null; priceUpdatedAt: string }>(`/securities/${encodeURIComponent(securityId)}/price`, { method: 'PATCH', body: JSON.stringify({ currentPrice }) });
 
 export interface HoldingDto {
   securityId: string;
