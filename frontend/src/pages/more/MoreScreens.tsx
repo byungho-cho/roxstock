@@ -80,7 +80,7 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
   const { accounts, selected, query, select } = useMoreAccounts();
   const allowed = liveApiEnabled && !!selected?.isActive;
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
-  if (liveApiEnabled && query.isPending) return <Typography role="status">계좌 목록을 불러오는 중입니다.</Typography>;
+  if (liveApiEnabled && query.isPending) return <LabelledCard title="등록 계좌"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌 목록을 불러오는 중입니다.</Typography></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;
   const accountList = <LabelledCard title="등록 계좌" description="현재 사용 중인 계좌 정보입니다." sx={{ height: { sm: '100%' }, overflowY: { sm: 'auto' }, bgcolor: { xs: 'transparent', sm: panel.bgcolor }, border: { xs: 0, sm: panel.border }, p: { xs: 0, sm: '16px' }, '& > .MuiTypography-root:nth-of-type(-n+2)': { display: { xs: 'none', sm: 'block' } } }}>
     {accounts.length === 0 ? <Typography sx={{ ...hint, mt: 2 }}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> :
@@ -159,7 +159,7 @@ export function CashAdjustment() {
     if (liveApiEnabled || !Number.isFinite(value) || value < 0) return;
     if (selected) { changeDemoCash(selected.id, String(value)); navigate('/detail/settings?view=account'); }
   };
-  if (liveApiEnabled && query.isPending) return <Typography role="status">계좌를 불러오는 중입니다.</Typography>;
+  if (liveApiEnabled && query.isPending) return <LabelledCard title="계좌 정보"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌를 불러오는 중입니다.</Typography></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (liveApiEnabled && !selected) return <Typography role="status">선택된 계좌가 없습니다.</Typography>;
   return <Box sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: { sm: 'repeat(2,minmax(0,1fr))' }, gap: '16px', height: { sm: '100%' } }}>
