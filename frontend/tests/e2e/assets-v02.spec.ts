@@ -45,7 +45,7 @@ test('110 evaluation assets v0.2 matches cover and unfolded layout', async ({ pa
   }
 });
 
-test('110 evaluation assets remains reachable at the minimum unfolded viewport', async ({ page }) => {
+test('110 evaluation assets remains reachable at the minimum unfolded viewport', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 725, height: 396 });
   await page.goto('/detail/assets');
   await expect(page.getByRole('heading', { name: '평가자산' })).toBeVisible();
@@ -55,6 +55,7 @@ test('110 evaluation assets remains reachable at the minimum unfolded viewport',
   await expect(page.getByText('전일 대비', { exact: true })).toBeVisible();
   await expect.poll(() => main.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
   await expect.poll(() => composition.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('assets-v02-725x396.png') });
   await main.evaluate((element) => { element.scrollTop = element.scrollHeight; });
   await expect(page.getByText('전일 대비', { exact: true })).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
