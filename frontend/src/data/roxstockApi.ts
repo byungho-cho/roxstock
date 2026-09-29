@@ -59,6 +59,18 @@ export interface AccountDashboardDto {
   pricingComplete: boolean;
   missingPriceSymbols: string[];
   latestPriceUpdatedAt: string | null;
+  dailyProfit: string | null;
+  dailyProfitRate: string | null;
+  stockMonthlyProfit: string | null;
+  cashMonthlyProfit: string | null;
+  performanceMeta: {
+    timezone: 'Asia/Seoul'; asOfDate: string; calculatedAt: string;
+    previousDayBaselineDate: string | null; previousMonthEndBaselineDate: string | null;
+    todayDepositAmount: string; todayWithdrawalAmount: string;
+    dailyProfitUnavailableReason: string | null; dailyProfitRateUnavailableReason: string | null;
+    stockMonthlyProfitUnavailableReason: string | null; cashMonthlyProfitUnavailableReason: string | null;
+    calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE';
+  };
   holdings: HoldingDto[];
 }
 
