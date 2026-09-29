@@ -100,6 +100,7 @@ model Security {
   dailyPositionSnapshots DailyPositionSnapshot[]
   financialStatements    FinancialStatement[]
   valuationMetrics       ValuationMetric[]
+  fundamentals           SecurityFundamentals?
   collectorRunItems      CollectorRunItem[]
 
   @@unique([marketType, symbol])
@@ -330,6 +331,18 @@ model ValuationMetric {
 
   @@unique([securityId, metricDate])
   @@map("valuation_metrics")
+}
+
+model SecurityFundamentals {
+  securityId        BigInt   @id @map("security_id") @db.UnsignedBigInt
+  controllingProfit Decimal? @map("controlling_profit") @db.Decimal(24, 0)
+  issuedShares      Decimal? @map("issued_shares") @db.Decimal(24, 0)
+  treasuryShares    Decimal? @map("treasury_shares") @db.Decimal(24, 0)
+  previousEquity    Decimal? @map("previous_equity") @db.Decimal(24, 0)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  security          Security @relation(fields: [securityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("security_fundamentals")
 }
 
 model CompoundGrowthPlan {

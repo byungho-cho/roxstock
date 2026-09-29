@@ -30,9 +30,11 @@ export interface StockItem {
   profitRate?: number;
   per?: number;
   pbr?: number;
+  valuationW?: number;
   roe?: number;
   /** 영업이익, 억원 단위. 값이 없으면 —로 표시한다. */
   operatingProfit?: number;
+  previousOperatingProfit?: number;
   note?: string;
   collectionStatus: CollectionStatus;
 }

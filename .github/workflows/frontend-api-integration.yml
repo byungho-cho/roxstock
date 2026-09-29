@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - frontend/**
+      - backend/**
+      - database/prisma/**
       - .github/workflows/frontend-api-integration.yml
   workflow_dispatch:
   workflow_call:
@@ -36,8 +38,6 @@ jobs:
       CI: true
     steps:
       - uses: actions/checkout@v4
-      # The feature branch contains frontend work; test against the latest account API contract on main.
-      - run: git fetch origin main && git checkout origin/main -- backend
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
