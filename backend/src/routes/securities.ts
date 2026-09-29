@@ -240,6 +240,14 @@ export async function securityRoutes(app: FastifyInstance) {
       create: { securityId, currentPrice, previousClosePrice: previous?.previousClosePrice ?? null, priceUpdatedAt: new Date() },
       update: { currentPrice, priceUpdatedAt: new Date() },
     });
+    const latest = await prisma.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } });
+    if (latest) {
+      await prisma.valuationMetric.update({ where: { id: latest.id }, data: {
+        per: latest.eps?.gt(0) ? currentPrice.div(latest.eps) : null,
+        pbr: latest.bps?.gt(0) ? currentPrice.div(latest.bps) : null,
+        dividendYield: latest.dividendPerShare ? latest.dividendPerShare.div(currentPrice).mul(100) : null,
+      } });
+    }
     return { data: { currentPrice: marketPrice.currentPrice.toString(), previousClosePrice: marketPrice.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice.priceUpdatedAt.toISOString() } };
   });
 
