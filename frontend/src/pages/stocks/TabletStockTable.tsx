@@ -37,7 +37,7 @@ function StockName({ stock, favorite }: { stock: StockItem; favorite?: boolean }
 }
 
 function WChip({ stock }: { stock: StockItem }) {
-  const w = liveApiEnabled ? undefined : mockW[stock.symbol];
+  const w = liveApiEnabled ? stock.valuationW : mockW[stock.symbol];
   const color = w === undefined ? colors.textMuted : w >= 1 ? colors.marketRise : colors.marketFall;
   return <Box component="span" sx={{ justifySelf: 'end', width: 38, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${color}88`, borderRadius: '7px', color, fontSize: 7.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>W{w?.toFixed(2) ?? '—'}</Box>;
 }
@@ -54,5 +54,6 @@ function HoldingRow({ stock, favorite }: { stock: StockItem; favorite: boolean }
 function WatchRow({ stock }: { stock: StockItem }) {
   const rate = stock.priceChangeRate;
   const change = rate ? stock.currentPrice * rate / (100 + rate) : 0;
-  return <><StockName stock={stock} /><WChip stock={stock} /><Typography component="span" sx={{ ...cell, color: stock.operatingProfit === undefined ? colors.textMuted : getMarketColor(stock.operatingProfit) }}>{stock.operatingProfit === undefined ? "—" : `${stock.operatingProfit < 0 ? "(−) " : ""}${number(Math.abs(stock.operatingProfit))}억`}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate), fontWeight: 600 }}>{stock.priceAvailable === false ? '미수집' : won(stock.currentPrice)}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate) }}>{won(change)}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate) }}>{formatRate(rate)}</Typography><Typography component="span" sx={cell}>{stock.per?.toFixed(1) ?? '—'}</Typography><Typography component="span" sx={cell}>{stock.pbr?.toFixed(1) ?? '—'}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(stock.roe ?? 0) }}>{stock.roe === undefined ? '—' : `${stock.roe.toFixed(1)}%`}</Typography></>;
+  const profitChange = stock.operatingProfit !== undefined && stock.previousOperatingProfit !== undefined ? stock.operatingProfit - stock.previousOperatingProfit : undefined;
+  return <><StockName stock={stock} /><WChip stock={stock} /><Typography component="span" title={profitChange === undefined ? '전년 비교 자료 없음' : `전년 대비 ${profitChange >= 0 ? '+' : ''}${number(profitChange)}억`} sx={{ ...cell, color: profitChange === undefined ? colors.textMuted : getMarketColor(profitChange) }}>{stock.operatingProfit === undefined ? "—" : `${stock.operatingProfit < 0 ? "(−) " : ""}${number(Math.abs(stock.operatingProfit))}억`}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate), fontWeight: 600 }}>{stock.priceAvailable === false ? '미수집' : won(stock.currentPrice)}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate) }}>{won(change)}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(rate) }}>{formatRate(rate)}</Typography><Typography component="span" sx={cell}>{stock.per?.toFixed(1) ?? '—'}</Typography><Typography component="span" sx={cell}>{stock.pbr?.toFixed(1) ?? '—'}</Typography><Typography component="span" sx={{ ...cell, color: getMarketColor(stock.roe ?? 0) }}>{stock.roe === undefined ? '—' : `${stock.roe.toFixed(1)}%`}</Typography></>;
 }

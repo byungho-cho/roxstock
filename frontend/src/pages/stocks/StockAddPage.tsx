@@ -8,7 +8,7 @@ import { FormTextField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import { liveApiEnabled, mapSecurity } from '../../data/liveData';
-import { createWatchlistItem, listSecurities, type MarketType } from '../../data/roxstockApi';
+import { createSecurity, createWatchlistItem, listSecurities, type MarketType } from '../../data/roxstockApi';
 import { colors } from '../../styles/tokens';
 import type { StockItem, StockListType } from '../../types/models';
 
@@ -77,10 +77,17 @@ export function StockAddPage() {
     await finish();
   };
   const addDirect = async () => {
-    if (liveApiEnabled) { setMessage('종목 원장 등록 API가 아직 제공되지 않습니다. 종목코드로 검색해 주세요.'); return; }
     const normalizedName = name.trim();
     const normalizedSymbol = symbol.replace(/[^0-9]/g, '').slice(0, 6);
     if (!normalizedName || normalizedSymbol.length !== 6) { setMessage('종목명과 6자리 종목코드를 입력해 주세요.'); return; }
+    if (liveApiEnabled) {
+      if (category === 'holding') { setMessage('보유종목은 매수 거래를 등록하면 자동으로 추가됩니다. 관심종목으로 등록한 뒤 매수해 주세요.'); return; }
+      try {
+        await createSecurity({ symbol: normalizedSymbol, name: normalizedName, marketType: ({ '코스피': 'KOSPI', '코스닥': 'KOSDAQ' } as Record<string, MarketType>)[market] ?? 'OTHER', listType: category === 'watchlist' ? 'WATCHLIST' : 'RECOMMENDED' });
+        await finish();
+      } catch (error) { setMessage(error instanceof Error ? error.message : '종목 등록에 실패했습니다.'); }
+      return;
+    }
     if (stockItems.some((stock) => stock.symbol === normalizedSymbol && stock.listType === category)) { setMessage('선택한 분류에 같은 종목코드가 이미 등록되어 있습니다.'); return; }
     stockItems.push({ id: `${normalizedSymbol}-${category}-${Date.now()}`, symbol: normalizedSymbol, name: normalizedName, listType: category, currentPrice: 0, priceChangeRate: 0, collectionStatus: 'partial' });
     await finish();

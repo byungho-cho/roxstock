@@ -2,6 +2,51 @@ import { expect, test } from '@playwright/test';
 import { Prisma } from '../../../backend/src/generated/prisma/index.js';
 import { prisma } from '../../../backend/src/lib/prisma.js';
 
+test('stock screens use persisted analysis, category, and price data', async ({ page, request }) => {
+  const symbol = String(100000 + Math.floor(Math.random() * 800000));
+  const created = await request.post('/api/securities', { data: { symbol, name: '화면검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
+  expect(created.status()).toBe(201);
+  const stock = (await created.json()).data;
+  const id = stock.id as string;
+  const saved = await request.patch(`/api/securities/${id}/analysis`, { data: {
+    operatingProfit: '3000000000000', controllingProfit: '2500000000000',
+    issuedShares: '100000000', treasuryShares: '1000000',
+    assets: '50000000000000', liabilities: '20000000000000',
+    equity: '30000000000000', previousEquity: '28000000000000',
+    dividend: '5000', memo: '실제 저장된 메모',
+  } });
+  expect(saved.ok()).toBeTruthy();
+  const priced = await request.patch(`/api/securities/${id}/price`, { data: { currentPrice: '10000' } });
+  expect(priced.ok()).toBeTruthy();
+  const analysis = (await (await request.get(`/api/securities/${id}/analysis`)).json()).data;
+  expect(analysis.fundamentals.issuedShares).toBe('100000000');
+  expect(analysis.statements[0].operatingProfit).toBe('3000000000000');
+  expect(Number(analysis.valuation.bps)).toBeGreaterThan(300000);
+  expect(Number(analysis.valuation.roe)).toBeGreaterThan(8);
+  const account = await request.post('/api/accounts', { data: { name: `종목 화면 검증 ${Date.now()}`, brokerName: 'CI' } });
+  expect(account.status()).toBe(201);
+  const accountId: string = (await account.json()).data.id;
+  await page.setViewportSize({ width: 400, height: 640 });
+  await page.goto('/');
+  await page.evaluate((value) => localStorage.setItem('roxstock-selected-account-id', value), accountId);
+  await page.goto(`/stocks/${id}`);
+  await expect(page.getByText('실제 저장된 메모')).toBeVisible();
+  await page.getByRole('button', { name: '재무지표' }).click();
+  await expect(page.getByText('영업이익')).toBeVisible();
+  await page.getByRole('button', { name: '연간 ↕' }).click();
+  await expect(page.getByText('등록된 분기 재무 데이터가 없습니다.')).toBeVisible();
+  await page.goto(`/stocks/${id}/edit`);
+  await expect(page.getByRole('textbox', { name: '발행주식수' })).toHaveValue('100000000');
+  await page.getByRole('textbox', { name: '메모' }).fill('변경된 메모');
+  await page.getByRole('button', { name: '저장' }).click();
+  await expect(page.getByText('변경된 메모')).toBeVisible();
+  await page.getByRole('button', { name: '관심종목 ›' }).click();
+  await page.getByRole('button', { name: '추천종목' }).click();
+  await page.getByRole('button', { name: '확인' }).click();
+  await expect(page).toHaveURL(/stocks\?tab=recommended/);
+  expect((await (await request.get(`/api/securities/${id}/analysis`)).json()).data.security.listType).toBe('RECOMMENDED');
+});
+
 test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
   await page.setViewportSize({ width: 400, height: 640 });
   await page.goto('/journal');
