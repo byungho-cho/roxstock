@@ -1,11 +1,12 @@
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, CircularProgress, IconButton, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { chooseAccount, currentAccountId, createCashTransaction, getCashHistory, getCashOverview, listAccounts, type CashTransactionDto } from '../../data/roxstockApi';
+import { currentAccountId, createCashTransaction, getCashHistory, getCashOverview, type CashTransactionDto } from '../../data/roxstockApi';
+import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { formatWon } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 
@@ -20,18 +21,27 @@ const monthShift = (month: string, delta: number) => {
 const shortDate = (date: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' }).format(new Date(date)).replace(/\s/g, '').replace(/\.$/, '');
 const amountColor = (amount: number) => amount > 0 ? colors.marketRise : amount < 0 ? colors.marketFall : colors.textPrimary;
 const signed = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '−' : ''}${formatWon(Math.abs(amount))}`;
+const overviewQuery = (accountId: string, mode: 'month' | 'year', period: string | number) => ({
+  queryKey: ['cashOverview', accountId, mode, period] as const,
+  queryFn: () => getCashOverview(accountId, mode === 'month' ? Number(String(period).slice(0, 4)) : Number(period), mode === 'month' ? Number(String(period).slice(5)) : undefined),
+  staleTime: 60_000,
+});
 
 export function LiveCashPage() {
   const queryClient = useQueryClient();
-  const accounts = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts });
-  const accountId = chooseAccount(accounts.data ?? [])?.id;
+  const { accountId, accounts } = useActiveAccount();
   const [mode, setMode] = useState<'month' | 'year'>('month');
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
   const [olderMonths, setOlderMonths] = useState(0);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const balance = useQuery({ queryKey: ['cashBalance', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
-  const overview = useQuery({ queryKey: ['cashOverview', accountId, mode, mode === 'month' ? month : year], queryFn: () => getCashOverview(accountId!, mode === 'month' ? Number(month.slice(0, 4)) : year, mode === 'month' ? Number(month.slice(5)) : undefined), enabled: !!accountId, staleTime: 60_000 });
+  const overview = useQuery({ ...overviewQuery(accountId ?? '', mode, mode === 'month' ? month : year), enabled: !!accountId });
+  useEffect(() => {
+    if (!accountId || !overview.data || overview.isError) return;
+    const adjacent = mode === 'month' ? [monthShift(month, -1), monthShift(month, 1)].filter((target) => target <= initialMonth) : [year - 1, year + 1].filter((target) => target <= Number(initialMonth.slice(0, 4)));
+    for (const period of adjacent) void queryClient.prefetchQuery(overviewQuery(accountId, mode, period));
+  }, [accountId, mode, month, year, overview.data, overview.isError, queryClient]);
   const history = useQuery({ queryKey: ['cashTransactions', accountId, olderMonths], queryFn: async () => {
     const first = await getCashHistory(accountId!, 10);
     const oldestDate = first.data.at(-1)?.transactionDate;
