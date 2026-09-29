@@ -30,7 +30,7 @@ export function App() {
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
         <Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<PlaceholderPage title="자산분석" description="자산 추이와 기간 성과 화면은 다음 구현 단계에서 연결합니다." />} />
-        <Route path="detail/assets" element={liveApiEnabled ? <PlaceholderPage title="평가자산" description="과거 평가자산 조회 API가 준비되지 않아 상세 추이를 표시할 수 없습니다." /> : <AssetOverviewPage />} />
+        <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
