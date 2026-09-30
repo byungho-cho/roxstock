@@ -211,7 +211,8 @@ export function JournalPage() {
         </>}
       </> : <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>{selectedDate.slice(5).replace('-', '.')} 거래 {dayEntries.length}건</Typography><Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.marketRise }}>{won(dayAmount)}</Typography></Stack>}
       <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
-        {tablet && detailMode === 'profit' ? <Stack spacing={1.5}>
+        {!tablet && detailMode !== 'trades' && <Stack direction="row" sx={{ alignItems: 'center', mb: 1 }}><IconButton aria-label="거래현황으로 돌아가기" onClick={() => setDetailMode('trades')} sx={{ width: 28, height: 28, mr: 0.5 }}><ArrowBackRounded sx={{ fontSize: 18 }} /></IconButton><Typography sx={{ fontSize: 13, fontWeight: 700 }}>{detailMode === 'profit' ? '일별 손익' : '거래 상세'}</Typography></Stack>}
+        {detailMode === 'profit' ? <Stack spacing={1.5}>
           <Box sx={{ p: 1.5, bgcolor: colors.raised, borderRadius: '6px' }}><Typography sx={{ fontSize: 11 }}>전체 손익</Typography><Typography sx={{ textAlign: 'right', fontSize: 19, fontWeight: 700, color: getProfitColor(dayProfit) }}>{liveApiEnabled && tradesPending ? '—' : signedWon(dayProfit)}</Typography></Box>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>실현손익 구성</Typography>
           <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>매도금액</span><span>{won(daySell)}</span></Stack>
@@ -219,7 +220,7 @@ export function JournalPage() {
           <Typography sx={{ fontSize: 13, fontWeight: 700, pt: 1, borderTop: `1px solid ${colors.borderStrong}` }}>종목별 실현손익</Typography>
           {dayEntries.filter((entry) => entry.type === 'sell').map((entry) => <ButtonBase key={entry.id} onClick={() => openEntry(entry)} sx={{ display: 'flex', justifyContent: 'space-between', color: colors.textPrimary, fontSize: 11 }}><span>{entry.stockName}</span><span>{entry.profit === undefined ? '—' : signedWon(entry.profit)}</span></ButtonBase>)}
           {!dayEntries.some((entry) => entry.type === 'sell') && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>매도 거래가 없습니다.</Typography>}
-        </Stack> : tablet && detailMode === 'trade' && selectedTrade ? <Stack spacing={1}>
+        </Stack> : detailMode === 'trade' && selectedTrade ? <Stack spacing={1}>
           <Box sx={{ p: 1.5, bgcolor: colors.raised, borderRadius: '6px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{selectedTrade.type === 'buy' ? '매수' : '매도'} · {selectedTrade.date}</Typography><Typography sx={{ fontSize: 17, fontWeight: 700 }}>{selectedTrade.stockName}</Typography><Typography sx={{ textAlign: 'right', fontSize: 18, fontWeight: 700 }}>{won(selectedTrade.quantity * selectedTrade.price)}</Typography></Box>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래 정보</Typography>
           <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>수량</span><span>{selectedTrade.quantity.toLocaleString('ko-KR')}주</span></Stack>
@@ -239,7 +240,7 @@ export function JournalPage() {
           <Typography sx={{ gridArea: 'amount', display: { sm: 'none' }, minWidth: 0, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap', textAlign: 'right' }}>{won(entry.quantity * entry.price)}</Typography>
         </ButtonBase>) : <Typography sx={{ color: colors.textMuted, fontSize: 11, py: 2, borderTop: `1px solid ${colors.border}` }}>선택한 날짜의 거래가 없습니다.</Typography>}
       </Box>
-      {!tablet && !liveApiEnabled && <ButtonBase onClick={() => navigate(`/detail/daily-profit?date=${selectedDate}`)} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
+      {!tablet && detailMode === 'trades' && <ButtonBase onClick={() => setDetailMode('profit')} sx={{ mt: '8px', color: colors.focus, fontSize: 11, fontWeight: 600, minHeight: 28 }}>일별 상세보기 ›</ButtonBase>}
     </Box>
     </Box>
     <Dialog open={monthPickerOpen} onClose={() => setMonthPickerOpen(false)} aria-labelledby="journal-month-picker-title" fullWidth maxWidth="xs" slotProps={{ paper: { sx: { m: 2, maxWidth: 320, bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', backgroundImage: 'none' } } }}>
