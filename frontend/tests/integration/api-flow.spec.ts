@@ -43,6 +43,28 @@ test('cash v0.2 editing, period picker, and keyboard form use live API at cover 
   await page.getByRole('button', { name: '삭제', exact: true }).first().click();
   await page.getByRole('button', { name: '삭제', exact: true }).last().click();
   await expect(page.getByRole('button', { name: '입금 내역 수정' })).toHaveCount(0);
+  const security = await request.post('/api/securities', { data: { symbol: String(100000 + Math.floor(Math.random() * 800000)), name: '배당UI종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
+  expect(security.status()).toBe(201);
+  await page.reload();
+  await page.getByRole('button', { name: '예수금 등록' }).click();
+  await page.getByRole('button', { name: '배당', exact: true }).click();
+  await page.getByRole('button', { name: '등록', exact: true }).click();
+  await expect(page.getByText('배당 종목을 선택해 주세요.')).toBeVisible();
+  await page.getByRole('combobox').click();
+  await page.getByRole('option', { name: '배당UI종목' }).click();
+  await page.getByRole('textbox', { name: '세전 배당' }).fill('1200');
+  await page.getByRole('textbox', { name: '세전 배당' }).press('Enter');
+  await expect(page.getByRole('textbox', { name: '세금' })).toBeFocused();
+  await page.getByRole('textbox', { name: '세금' }).fill('200');
+  await page.getByRole('textbox', { name: '세금' }).press('Enter');
+  await expect(page.getByRole('textbox', { name: '세후 배당' })).toBeFocused();
+  await expect(page.getByRole('textbox', { name: '세후 배당' })).toHaveValue('1,000');
+  await page.getByRole('button', { name: '등록', exact: true }).click();
+  await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toContainText('7,000원');
+  await page.getByRole('button', { name: '배당 내역 수정' }).click();
+  await page.getByRole('textbox', { name: '세후 배당' }).fill('900');
+  await page.getByRole('button', { name: '변경', exact: true }).click();
+  expect(Number((await (await request.get(`/api/accounts/${accountId}/cash-overview`)).json()).data.account.currentBalance)).toBe(7000);
 });
 
 test('cash dividend, historical edits, correction, and collection status use persisted API data', async ({ page, request }) => {
