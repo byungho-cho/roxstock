@@ -88,7 +88,7 @@ test('cash dividend, historical edits, correction, and collection status use per
     await expect(page.getByText('1,000원').first()).toBeVisible();
     await page.getByRole('button', { name: '배당 내역 수정' }).click();
     await expect(page.getByText('과거 내역을 수정해도 현재 예수금')).toBeVisible();
-    await page.getByRole('button', { name: '취소' }).click();
+    await page.keyboard.press('Escape');
     await page.goto('/detail/settings?view=collection');
     await expect(page.getByRole('button', { name: '지금 수집 · 서버 미지원' })).toBeDisabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
