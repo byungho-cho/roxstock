@@ -198,23 +198,30 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
   </Box>;
 }
 
-function DartStageCard({ title, label, completed, planned, success, noFiling, notApplicable, failed, pending, accent, disabled = false, usageText }: {
-  title: string; label: string; completed: number; planned: number; success: number; noFiling: number; notApplicable: number; failed: number; pending: number; accent: string; disabled?: boolean; usageText?: string;
+function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, universeOver90Days, priorityPending, universePending, dailyApiCalls, dailyApiLimit, companyChecks }: {
+  phase: string; status: string; priorityCheckedWithinDay: number; universeOver90Days: number; priorityPending: number; universePending: number; dailyApiCalls: number; dailyApiLimit: number; companyChecks: number;
 }) {
-  const percent = planned ? Math.min(100, completed * 100 / planned) : 0;
+  const disabled = phase !== 'CURRENT';
+  const statusInfo = statusStyle[status] ?? statusStyle.WAITING;
+  const label = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
+    ? statusInfo.label
+    : disabled ? '1단계 후 대기' : status === 'RUNNING' ? '진행 중' : '상시 수집';
+  const badge = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
+    ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
   return <Box sx={{ ...cardSx, p: { xs: '6px 8px', sm: '8px 10px' }, minHeight: { xs: 43, sm: 85 }, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" alignItems="center" spacing={0.5}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{title}</Typography>
-      <Box component="span" sx={{ bgcolor: disabled ? '#7A8CA8' : accent, color: '#050A12', borderRadius: '999px', minWidth: 76, px: 1, height: 19, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
+      <Box component="span" sx={{ bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
     </Stack>
-    <Typography sx={{ color: disabled ? '#7A8CA8' : accent, fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>
-      {disabled ? '1단계 완료 후 시작' : `${numberText(completed)} / ${numberText(planned)}개 작업 완료`}
+    <Typography sx={{ color: disabled ? '#7A8CA8' : '#3D8CF5', fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>
+      {disabled ? status === 'NOT_CONFIGURED' ? '설정 후 1단계 완료 시 시작' : status === 'NOT_IMPLEMENTED' ? '수집기 배포 후 1단계 완료 시 시작' : '1단계 완료 후 자동 시작' : '우선종목 하루 1회 · 전체종목 약 3개월 순환'}
     </Typography>
-    {!disabled && <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.25, overflow: 'hidden' }}><Box sx={{ width: `${percent}%`, height: '100%', bgcolor: accent }} /></Box>}
     <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {disabled ? '미공시 · 1단계 완료 전에는 수집을 시작하지 않습니다.' : `성공 ${numberText(success)} · 미공시 ${numberText(noFiling)} · 대상 아님 ${numberText(notApplicable)} · 실패 ${numberText(failed)} · 대기 ${numberText(pending)}`}
+      {disabled ? '현행 공시 확인은 과거 자료 구축 완료 후 시작합니다.' : `우선 확인 ${numberText(priorityCheckedWithinDay)} · 전체 지연 ${numberText(universeOver90Days)}`}
     </Typography>
-    {!disabled && <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usageText}</Typography>}
+    <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      API {numberText(dailyApiCalls)}/{numberText(dailyApiLimit)} · 종목 확인 {numberText(companyChecks)} · 우선 대기 {numberText(priorityPending)} · 전체 대기 {numberText(universePending)}
+    </Typography>}
   </Box>;
 }
 
@@ -270,7 +277,6 @@ export function CollectionMonitoringPage() {
   const runs = Array.isArray(body.runs) ? body.runs as DataRecord[] : [];
   const items = Array.isArray(body.items) ? body.items as DataRecord[] : [];
   const dart = asRecord(body.dart);
-  const realtime = asRecord(body.realtime);
   const refreshStats = () => {
     void summary.refetch();
     if (feature) void detail.refetch();
@@ -307,6 +313,7 @@ export function CollectionMonitoringPage() {
   if (!current) return <Typography role="alert" sx={{ mx: 2, mt: 1, color: '#7A8CA8', fontSize: 10 }}>수집 기능 정보를 찾을 수 없습니다.</Typography>;
 
   const backfill = asRecord(dart.backfill);
+  const dartCurrent = asRecord(dart.current);
   const byStatus = asRecord(backfill.byStatus);
   const planned = Number(backfill.planned ?? 0);
   const success = Number(byStatus.SUCCESS ?? 0);
@@ -317,6 +324,9 @@ export function CollectionMonitoringPage() {
   const completed = success + noFiling + notApplicable;
   const isDart = feature === 'dart-financial-statements';
   const isRealtime = feature === 'realtime-prices';
+  const stageOneBadge = current.phase !== 'BACKFILL' ? statusStyle.OK : statusStyle[current.status] ?? statusStyle.WAITING;
+  const stageOneLabel = current.phase !== 'BACKFILL' ? '완료'
+    : current.status === 'WAITING' ? '야간 대기' : (statusStyle[current.status]?.label ?? '실행 전');
 
   return <Box sx={{ px: '16px', pt: '8px', pb: '8px' }}>
     {detail.isError && !detail.data && <Typography role="alert" sx={{ color: '#F26A6F', fontSize: 9, mb: 0.5 }}>수집 상세를 불러오지 못했습니다.</Typography>}
@@ -325,7 +335,7 @@ export function CollectionMonitoringPage() {
         <Box sx={{ ...cardSx, p: '8px 10px', minHeight: { xs: 54, sm: 85 } }}>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
-            <Box component="span" sx={{ bgcolor: current.phase === 'BACKFILL' ? '#34D399' : '#3D8CF5', color: '#050A12', minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{current.phase === 'BACKFILL' ? '진행 중' : '완료'}</Box>
+            <Box component="span" sx={{ bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{stageOneLabel}</Box>
             <ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} />
           </Stack>
           <Typography sx={{ color: '#34D399', fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>{numberText(completed)} / {numberText(planned)}개 작업 완료</Typography>
@@ -335,7 +345,7 @@ export function CollectionMonitoringPage() {
           </Box>
           <Typography sx={{ display: { xs: 'block', sm: 'none' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(current.lastAttemptAt)} · 성공 {dateText(current.lastSuccessAt)}</Typography>
         </Box>
-        <DartStageCard title="2단계 · 현재 사업연도 상시 수집" label={current.phase === 'CURRENT' ? '진행 중' : '미공시'} completed={Number(current.recent.success)} planned={Number(current.recent.target)} success={Number(current.recent.success)} noFiling={Number(byStatus.NO_FILING ?? 0)} notApplicable={Number(byStatus.NOT_APPLICABLE ?? 0)} failed={Number(current.recent.failed)} pending={Number(current.priorityPending ?? 0) + Number(current.universePending ?? 0)} accent="#3D8CF5" disabled={current.phase !== 'CURRENT'} usageText={`API ${numberText(current.dailyApiCalls)}/${numberText(current.dailyApiLimit)} · 종목 확인 ${numberText(current.companyChecks)} · 우선 대기 ${numberText(current.priorityPending)} · 전체 대기 ${numberText(current.universePending)}`} />
+        <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={Number(dartCurrent.priorityCheckedWithinDay ?? 0)} universeOver90Days={Number(dartCurrent.universeOver90Days ?? 0)} priorityPending={Number(current.priorityPending ?? 0)} universePending={Number(current.universePending ?? 0)} dailyApiCalls={Number(current.dailyApiCalls ?? 0)} dailyApiLimit={Number(current.dailyApiLimit ?? 0)} companyChecks={Number(current.companyChecks ?? 0)} />
         <Box sx={{ display: { xs: 'block', sm: 'none' } }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 94 } }}>
           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
