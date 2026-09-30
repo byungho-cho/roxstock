@@ -23,7 +23,7 @@ test('collection monitor keeps status cards visible while stats refresh and fits
   await expect(page.getByText('선택 종목 실시간 주가', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('DART 재무제표', { exact: true })).toBeVisible();
   await page.getByText('선택 종목 실시간 주가', { exact: true }).first().click();
-  await expect(page.getByText(/API 응답 본문에서 오류를 확인했습니다/)).toBeVisible();
+  await expect(page.getByText(/API 응답 본문에서 오류를 확인했습니다/).first()).toBeVisible();
   const dimensions = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth, mainHeight: document.querySelector('main')!.clientHeight }));
   expect(dimensions.overflow).toBe(false);
   expect(dimensions.mainHeight).toBeGreaterThan(0);
