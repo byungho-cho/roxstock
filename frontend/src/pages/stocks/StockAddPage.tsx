@@ -35,7 +35,7 @@ export function StockAddPage() {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [query]);
-  const { data: remoteResults = [], isError: searchError } = useQuery({
+  const { data: remoteResults = [], isError: searchError, isPending: searchPending, refetch: retrySearch } = useQuery({
     queryKey: ['securitySearch', debouncedQuery, market],
     enabled: liveApiEnabled && debouncedQuery.length > 0,
     queryFn: async () => (await listSecurities({
@@ -48,13 +48,13 @@ export function StockAddPage() {
   const results = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return [];
-    if (liveApiEnabled) return remoteResults;
+    if (liveApiEnabled) return debouncedQuery === query.trim() ? remoteResults : [];
     const unique = new Map<string, StockItem>();
     stockItems.forEach((stock) => {
       if ((stock.name.toLowerCase().includes(keyword) || stock.symbol.includes(keyword)) && !unique.has(stock.symbol)) unique.set(stock.symbol, stock);
     });
     return [...unique.values()].slice(0, 6);
-  }, [query, remoteResults]);
+  }, [query, remoteResults, debouncedQuery]);
 
   const finish = async () => {
     await queryClient.invalidateQueries({ queryKey: ['stocks'] });
@@ -99,9 +99,9 @@ export function StockAddPage() {
     {!direct ? <>
       <Box sx={{ height: 48, display: 'flex', alignItems: 'center', gap: 1, px: 1.75, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, borderRadius: '12px' }}><SearchRounded sx={{ fontSize: 17, color: colors.textMuted }} /><InputBase autoFocus inputProps={{ 'data-initial-focus': 'true', enterKeyHint: 'done' }} value={query} onChange={(event) => { setQuery(event.target.value); setMessage(''); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); (event.target as HTMLElement).blur(); } }} placeholder="종목명·종목코드 검색" sx={{ flex: 1, fontSize: 13 }} /></Box>
       <Stack direction="row" spacing={1}>{['전체', '코스피', '코스닥'].map((value) => <Chip key={value} label={value} onClick={() => setMarket(value)} sx={{ height: 30, minWidth: value === '전체' ? 68 : 78, bgcolor: market === value ? colors.buttonPrimary : '#0F172A', color: market === value ? '#fff' : colors.textMuted }} />)}</Stack>
-      {results.length === 0 ? <Card sx={{ height: 180, borderRadius: '14px' }}><CardContent sx={{ height: '100%', display: 'grid', placeItems: 'center', textAlign: 'center' }}><Box><SearchRounded sx={{ fontSize: 30, color: colors.textMuted }} /><Typography sx={{ mt: 1, fontSize: 15, fontWeight: 600 }}>코스피·코스닥 전체 종목 검색</Typography><Typography sx={{ mt: 1, fontSize: 12, color: colors.textMuted }}>종목명 또는 종목코드를 입력해 주세요.</Typography></Box></CardContent></Card> : <Stack spacing={1}>{results.map((stock) => <Card key={stock.symbol}><CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, '&:last-child': { pb: 1.25 } }}><Box><Typography sx={{ fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>A{stock.symbol} · 코스피</Typography></Box><Button variant="outlined" onClick={() => void addExisting(stock)}>+ 추가</Button></CardContent></Card>)}</Stack>}
+      {results.length === 0 ? <Card sx={{ height: 180, borderRadius: '14px' }}><CardContent sx={{ height: '100%', display: 'grid', placeItems: 'center', textAlign: 'center' }}><Box><SearchRounded sx={{ fontSize: 30, color: colors.textMuted }} /><Typography sx={{ mt: 1, fontSize: 15, fontWeight: 600 }}>{query.trim() ? searchError ? '검색에 실패했습니다' : searchPending || debouncedQuery !== query.trim() ? '검색 중' : '검색 결과가 없습니다' : '코스피·코스닥 전체 종목 검색'}</Typography><Typography sx={{ mt: 1, fontSize: 12, color: colors.textMuted }}>{query.trim() ? searchError ? '잠시 후 다시 시도해 주세요.' : searchPending ? '종목을 찾고 있습니다.' : '다른 종목명 또는 종목코드를 입력해 주세요.' : '종목명 또는 종목코드를 입력해 주세요.'}</Typography>{searchError && <Button onClick={() => void retrySearch()}>다시 시도</Button>}</Box></CardContent></Card> : <Stack spacing={1}>{results.map((stock) => <Card key={stock.symbol}><CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, '&:last-child': { pb: 1.25 } }}><Box><Typography sx={{ fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>A{stock.symbol} · 코스피</Typography></Box><Button variant="outlined" onClick={() => void addExisting(stock)}>+ 추가</Button></CardContent></Card>)}</Stack>}
       <Card sx={{ height: 46, borderRadius: '12px' }}><CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0, px: 1.5, '&:last-child': { pb: 0 } }}><Typography sx={{ fontSize: 12, color: colors.textMuted }}>검색되지 않는 종목인가요?</Typography><Button onClick={() => { flushSync(() => { setDirect(true); setMessage(''); }); document.querySelector<HTMLInputElement>('[data-initial-focus="true"]')?.focus({ preventScroll: true }); }} sx={{ fontSize: 12 }}>직접 추가 ›</Button></CardContent></Card>
     </> : <Card sx={{ borderRadius: '12px' }}><CardContent><Stack spacing={1.5}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>종목 직접 추가</Typography><FormTextField label="종목명" value={name} onChange={setName} autoFocus enterKeyHint="next" onEnter={() => symbolRef.current?.focus()} /><FormTextField label="종목코드" value={symbol} onChange={(value) => setSymbol(value.replace(/[^0-9]/g, '').slice(0, 6))} inputRef={symbolRef} enterKeyHint="done" onEnter={() => void addDirect()} /><Stack direction="row" spacing={1}><Button fullWidth onClick={() => setDirect(false)}>취소</Button><Button fullWidth variant="contained" onClick={() => void addDirect()}>추가</Button></Stack></Stack></CardContent></Card>}
-    {(message || searchError) && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message || '종목 검색에 실패했습니다. 다시 입력해 주세요.'}</Typography>}
+    {message && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message}</Typography>}
   </Stack>;
 }
