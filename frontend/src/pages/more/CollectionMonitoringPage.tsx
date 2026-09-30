@@ -221,7 +221,7 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
     </Typography>
     <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
       API {numberText(dailyApiCalls)}/{numberText(dailyApiLimit)} · 종목 확인 {numberText(companyChecks)} · 우선 대기 {numberText(priorityPending)} · 전체 대기 {numberText(universePending)}
-    </Typography>}
+    </Typography>
   </Box>;
 }
 
