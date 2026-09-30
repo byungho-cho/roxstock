@@ -203,6 +203,36 @@ test('stock screens use persisted analysis, category, and price data', async ({ 
   expect((await (await request.get('/api/securities?listType=RECOMMENDED')).json()).data.some((item: { id: string }) => item.id === id)).toBe(false);
 });
 
+test('DART statements fill manual gaps, preserve manual values, and mark same-basis Q4 as derived', async ({ request }) => {
+  const symbol = String(100000 + Math.floor(Math.random() * 800000));
+  const created = await request.post('/api/securities', { data: { symbol, name: '재무출처검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
+  expect(created.status()).toBe(201);
+  const securityId = BigInt((await created.json()).data.id as string);
+  const receipt = () => String(Math.floor(10_000_000_000_000 + Math.random() * 89_999_999_999_999));
+  await prisma.financialStatement.create({ data: { securityId, fiscalYear: 2024, periodType: 'ANNUAL', periodEndDate: new Date('2024-12-31T00:00:00Z'), operatingProfit: new Prisma.Decimal('777'), totalEquity: new Prisma.Decimal('999') } });
+  const filing = async (input: { receiptNo: string; periodType: 'ANNUAL' | 'Q3'; reportCode: string; periodEndDate: string; revenueYtd: string; operatingProfitYtd: string }) => prisma.dartFinancialFiling.create({ data: {
+    securityId, fiscalYear: 2024, periodType: input.periodType, reportCode: input.reportCode, fsDivision: 'CFS', receiptNo: input.receiptNo,
+    reportName: input.periodType === 'ANNUAL' ? '사업보고서 (2024.12)' : '분기보고서 (2024.09)',
+    receiptDate: new Date(input.periodType === 'ANNUAL' ? '2025-03-14T00:00:00Z' : '2024-11-14T00:00:00Z'),
+    periodEndDate: new Date(input.periodEndDate), collectedAt: new Date(), revenueYtd: new Prisma.Decimal(input.revenueYtd),
+    operatingProfitYtd: new Prisma.Decimal(input.operatingProfitYtd), accountSources: {},
+  } });
+  await filing({ receiptNo: receipt(), periodType: 'ANNUAL', reportCode: '11011', periodEndDate: '2024-12-31T00:00:00Z', revenueYtd: '400', operatingProfitYtd: '200' });
+  await filing({ receiptNo: receipt(), periodType: 'Q3', reportCode: '11014', periodEndDate: '2024-09-30T00:00:00Z', revenueYtd: '300', operatingProfitYtd: '80' });
+  const response = await request.get(`/api/securities/${securityId}/analysis`);
+  expect(response.ok()).toBeTruthy();
+  const statements = (await response.json()).data.statements as Array<Record<string, unknown>>;
+  const annual = statements.find((item) => item.periodType === 'ANNUAL');
+  const q4 = statements.find((item) => item.periodType === 'Q4');
+  expect(annual?.revenue).toBe('400');
+  expect(annual?.operatingProfit).toBe('777');
+  expect(annual?.totalEquity).toBe('999');
+  expect(q4?.revenue).toBe('100');
+  expect(q4?.operatingProfit).toBe('120');
+  expect(q4?.isDerived).toBe(true);
+  expect((await prisma.financialStatement.findUnique({ where: { securityId_fiscalYear_periodType: { securityId, fiscalYear: 2024, periodType: 'ANNUAL' } } }))?.operatingProfit?.toString()).toBe('777');
+});
+
 test('final journal keeps the calendar while browsing live daily profit and trade detail', async ({ page, request }, testInfo) => {
   const account = await request.post('/api/accounts', { data: { name: `매매일지 확정 시안 ${Date.now()}`, brokerName: 'CI' } });
   expect(account.status()).toBe(201);
