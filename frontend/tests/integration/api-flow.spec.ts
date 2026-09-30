@@ -425,6 +425,13 @@ test('cash period navigation uses adjacent cache and retains card on failed requ
     await expect(page.getByText(`${previousYear}년 ${previousMonth}월`)).toBeVisible();
     await expect(page.getByText('최근 변경')).toBeVisible();
     expect(requests.filter((key) => key === `${previousYear}-${previousMonth}`)).toHaveLength(1);
+    await page.getByText('최근 변경').evaluate((element) => {
+      const start = new Touch({ identifier: 1, target: element, clientX: 220, clientY: 180 });
+      const end = new Touch({ identifier: 1, target: element, clientX: 80, clientY: 180 });
+      element.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [start], changedTouches: [start] }));
+      element.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [end] }));
+    });
+    await expect(page.getByText(`${year}년 ${month}월`)).toBeVisible();
   }
   await page.unrouteAll({ behavior: 'wait' });
 });
@@ -522,6 +529,15 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
     await expect(page.getByText('2 × 1,000원').filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText('거래내역을 불러오는 중입니다.')).toHaveCount(0);
     expect(journalRequests.filter((from) => from === queryStart(previous)).length).toBeLessThanOrEqual(1);
+    for (const [startX, endX, target] of [[80, 220, twoBack.slice(0, 7)], [220, 80, previous.slice(0, 7)]] as const) {
+      await page.getByLabel(/거래 달력/).evaluate((element, [from, to]) => {
+        const start = new Touch({ identifier: 1, target: element, clientX: from, clientY: 180 });
+        const end = new Touch({ identifier: 1, target: element, clientX: to, clientY: 180 });
+        element.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [start], changedTouches: [start] }));
+        element.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [end] }));
+      }, [startX, endX]);
+      await expect(page.getByLabel(`${Number(target.slice(0, 4))}년 ${Number(target.slice(5))}월 거래 달력`)).toBeVisible();
+    }
   }
   await page.goto('/detail/settings?view=account');
   await page.getByRole('button', { name: /선조회 격리/ }).click();
@@ -533,7 +549,7 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
   await expect(page.getByText('총 0건')).toBeVisible();
   await page.getByRole('button', { name: '이전 달' }).click();
   await expect(page.getByText('2 × 1,000원')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '거래내역 조회 실패 · 다시 시도' })).toBeVisible();
+  await expect(page.getByRole('alert', { name: '거래내역 조회 실패 · 다시 시도' })).toBeVisible();
   await expect(page.getByLabel(/거래 달력/)).toBeVisible();
   await page.unrouteAll({ behavior: 'wait' });
   expect(secondId).not.toBe(accountId);
