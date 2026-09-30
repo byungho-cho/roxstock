@@ -233,6 +233,11 @@ test('final journal keeps the calendar while browsing live daily profit and trad
       await page.getByRole('button', { name: '거래 수정·삭제 ›' }).click();
       await expect(page).toHaveURL(/trade\?type=sell/);
     } else {
+      await page.getByRole('button', { name: '일별 상세보기 ›' }).click();
+      await expect(page.getByText('실현손익 구성')).toBeVisible();
+      await expect(page.getByText('+500원').first()).toBeVisible();
+      await page.getByRole('button', { name: '거래현황으로 돌아가기' }).click();
+      await expect(page.getByRole('button', { name: /매도 통합테스트종목 거래 상세/ })).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath(`journal-final-${width}x${height}.png`) });
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
