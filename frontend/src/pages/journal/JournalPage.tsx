@@ -1,4 +1,4 @@
-import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
+import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,6 +31,7 @@ const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 const getTodayDate = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 const won = (amount: number) => `${Math.round(amount).toLocaleString('ko-KR')}원`;
 const signedWon = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '-' : ''}${won(Math.abs(amount))}`;
+const getProfitColor = (amount: number) => amount > 0 ? colors.marketRise : amount < 0 ? colors.marketFall : colors.textPrimary;
 const dateOf = (year: number, month: number, day: number) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 const monthOf = (date: string) => date.slice(0, 7);
 function shiftMonth(month: string, offset: number) {
@@ -67,6 +68,8 @@ export function JournalPage() {
   const [month, setMonth] = useState(monthOf(initialDate));
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
+  const [detailMode, setDetailMode] = useState<'trades' | 'profit' | 'trade'>('trades');
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
   const { data: remoteReport, isPending: tradesPending, isError: tradesError, refetch: reloadTrades } = useQuery({
@@ -98,6 +101,8 @@ export function JournalPage() {
     const day = Math.min(Number(selectedDate.slice(8, 10)), new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate());
     setMonth(next);
     setSelectedDate(`${next}-${String(day).padStart(2, '0')}`);
+    setDetailMode('trades');
+    setSelectedTradeId(null);
   };
   const changeMonth = (offset: number) => goToMonth(shiftMonth(month, offset));
   const onTouchStart = (event: TouchEvent) => {
@@ -137,9 +142,11 @@ export function JournalPage() {
   const dayBuy = dayEntries.filter((entry) => entry.type === 'buy').reduce((sum, entry) => sum + entry.quantity * entry.price, 0);
   const daySell = dayEntries.filter((entry) => entry.type === 'sell').reduce((sum, entry) => sum + entry.quantity * entry.price, 0);
   const dayAmount = dayBuy + daySell;
+  const selectedTrade = dayEntries.find((entry) => entry.id === selectedTradeId);
   const dayWeekday = new Date(`${selectedDate}T12:00:00`).getDay();
-  const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); };
+  const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); setDetailMode('trades'); setSelectedTradeId(null); };
   const openEntry = (entry: Entry) => {
+    if (tablet) { setSelectedTradeId(entry.id); setDetailMode('trade'); return; }
     if (entry.sample) { navigate(`/stocks/${entry.stockId}?tab=trades`); return; }
     const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate });
     if (entry.lotId) params.set('lot', entry.lotId);
@@ -191,14 +198,35 @@ export function JournalPage() {
     </Stack>
     <Box sx={{ ...panel, mt: { xs: 0, sm: 0 }, px: { xs: '12px', sm: '16px' }, py: { xs: '12px', sm: '14px' }, minWidth: 0, minHeight: 0, display: { sm: 'flex' }, flexDirection: { sm: 'column' }, alignSelf: { xs: 'start', sm: 'stretch' }, containerType: 'inline-size' }}>
       {tablet ? <>
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography></Stack>
-        <Stack direction="row" sx={{ mt: '20px', justifyContent: 'space-between' }}><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>전체손익</Typography><Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textMuted, fontSize: 11 }}>{liveApiEnabled ? '—' : dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
-        <Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textPrimary, fontSize: 24, fontWeight: 700, lineHeight: '31px', textAlign: 'right' }}>{signedWon(dayProfit)}</Typography>
-        <Typography sx={{ color: colors.textMuted, fontSize: 10, mt: '2px' }}>매수 {won(dayBuy)} · 매도 {won(daySell)}</Typography>
-        <Stack direction="row" sx={{ mt: '25px', mb: '7px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래현황</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>총 {dayEntries.length}건</Typography></Stack>
+        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Stack direction="row" sx={{ alignItems: 'center' }}>{detailMode !== 'trades' && <IconButton aria-label="거래현황으로 돌아가기" onClick={() => setDetailMode('trades')} sx={{ width: 26, height: 26, mr: 0.5 }}><ArrowBackRounded sx={{ fontSize: 17 }} /></IconButton>}<Typography sx={{ fontSize: 15, fontWeight: 700 }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography></Stack>
+          {detailMode === 'trades' && <Button size="small" onClick={() => setDetailMode('profit')} sx={{ fontSize: 11 }}>일별 손익 ›</Button>}
+        </Stack>
+        {detailMode === 'trades' && <>
+          <Box sx={{ mt: '12px', p: '10px 12px', bgcolor: colors.raised, borderRadius: '6px' }}>
+            <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ color: colors.textSecondary, fontSize: 11 }}>전체 손익</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>{liveApiEnabled ? '—' : dayProfit && dayBuy ? `${(dayProfit / dayBuy * 100).toFixed(1)}%` : '0.0%'}</Typography></Stack>
+            <Typography sx={{ color: dayProfit > 0 ? colors.marketRise : dayProfit < 0 ? colors.marketFall : colors.textPrimary, fontSize: 19, fontWeight: 700, textAlign: 'right' }}>{liveApiEnabled && tradesPending ? '—' : signedWon(dayProfit)}</Typography>
+          </Box>
+          <Stack direction="row" sx={{ mt: '14px', mb: '5px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래현황</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>총 {dayEntries.length}건</Typography></Stack>
+        </>}
       </> : <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>{selectedDate.slice(5).replace('-', '.')} 거래 {dayEntries.length}건</Typography><Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.marketRise }}>{won(dayAmount)}</Typography></Stack>}
       <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
-        {liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28} /><Skeleton variant="rounded" height={28} /></Stack> : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : dayEntries.length ? dayEntries.map((entry) => <ButtonBase key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 45 }, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 102px 110px', sm: 'minmax(0, 1fr) minmax(112px, auto)' }, gridTemplateAreas: { xs: '"stock expression amount"', sm: '"stock values"' }, alignItems: 'center', textAlign: 'left', color: colors.textPrimary, '@media (max-width:599px)': { '@container (max-width: 300px)': { gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateAreas: '"stock amount" "expression amount"', rowGap: '2px' } }, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
+        {tablet && detailMode === 'profit' ? <Stack spacing={1.5}>
+          <Box sx={{ p: 1.5, bgcolor: colors.raised, borderRadius: '6px' }}><Typography sx={{ fontSize: 11 }}>전체 손익</Typography><Typography sx={{ textAlign: 'right', fontSize: 19, fontWeight: 700, color: getProfitColor(dayProfit) }}>{liveApiEnabled && tradesPending ? '—' : signedWon(dayProfit)}</Typography></Box>
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>실현손익 구성</Typography>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>매도금액</span><span>{won(daySell)}</span></Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>실현손익</span><span>{signedWon(dayProfit)}</span></Stack>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, pt: 1, borderTop: `1px solid ${colors.borderStrong}` }}>종목별 실현손익</Typography>
+          {dayEntries.filter((entry) => entry.type === 'sell').map((entry) => <ButtonBase key={entry.id} onClick={() => openEntry(entry)} sx={{ display: 'flex', justifyContent: 'space-between', color: colors.textPrimary, fontSize: 11 }}><span>{entry.stockName}</span><span>{entry.profit === undefined ? '—' : signedWon(entry.profit)}</span></ButtonBase>)}
+          {!dayEntries.some((entry) => entry.type === 'sell') && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>매도 거래가 없습니다.</Typography>}
+        </Stack> : tablet && detailMode === 'trade' && selectedTrade ? <Stack spacing={1}>
+          <Box sx={{ p: 1.5, bgcolor: colors.raised, borderRadius: '6px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{selectedTrade.type === 'buy' ? '매수' : '매도'} · {selectedTrade.date}</Typography><Typography sx={{ fontSize: 17, fontWeight: 700 }}>{selectedTrade.stockName}</Typography><Typography sx={{ textAlign: 'right', fontSize: 18, fontWeight: 700 }}>{won(selectedTrade.quantity * selectedTrade.price)}</Typography></Box>
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래 정보</Typography>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>수량</span><span>{selectedTrade.quantity.toLocaleString('ko-KR')}주</span></Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>거래 단가</span><span>{won(selectedTrade.price)}</span></Stack>
+          {selectedTrade.profit !== undefined && <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>실현손익</span><span>{signedWon(selectedTrade.profit)}</span></Stack>}
+          <Button onClick={() => { const entry = selectedTrade; const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate }); if (entry.lotId) params.set('lot', entry.lotId); navigate(entry.sample ? `/stocks/${entry.stockId}?tab=trades` : `/trade?${params}`); }} sx={{ alignSelf: 'flex-end' }}>거래 수정·삭제 ›</Button>
+        </Stack> : liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28} /><Skeleton variant="rounded" height={28} /></Stack> : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : dayEntries.length ? dayEntries.map((entry) => <ButtonBase key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 45 }, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 102px 110px', sm: 'minmax(0, 1fr) minmax(112px, auto)' }, gridTemplateAreas: { xs: '"stock expression amount"', sm: '"stock values"' }, alignItems: 'center', textAlign: 'left', color: colors.textPrimary, '@media (max-width:599px)': { '@container (max-width: 300px)': { gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateAreas: '"stock amount" "expression amount"', rowGap: '2px' } }, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
           <Box sx={{ gridArea: 'stock', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
             <Typography component="span" sx={{ flexShrink: 0, width: 'fit-content', border: `1px solid ${entry.type === 'buy' ? colors.marketFall : colors.marketRise}`, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, borderRadius: '3px', px: '3px', fontSize: 9, lineHeight: '15px' }}>{entry.type === 'buy' ? '매수' : '매도'}</Typography>
             <Typography sx={{ minWidth: 0, fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 600, lineHeight: '16px', overflowWrap: 'anywhere' }}>{entry.stockName}</Typography>
