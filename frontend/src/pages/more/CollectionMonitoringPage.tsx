@@ -64,7 +64,7 @@ function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { featu
     label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
   } : { label: '정상', background: '#3D8CF5', foreground: '#050A12' };
   return <Box sx={{ ...cardSx, mx: '16px', mt: '7px', mb: '8px', px: '10px', py: '5px', height: { xs: 58, sm: 48 }, borderRadius: '10px' }}>
-    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minHeight: 20 }}>
+    <Stack direction="row" spacing={0.5} sx={{ minHeight: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 11, fontWeight: 700, flex: 1 }}>전체 상태</Typography>
       <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, minWidth: 82, height: 19, borderRadius: '999px', bgcolor: badge.background, color: badge.foreground, fontSize: 9, fontWeight: 700 }}>{badge.label}</Box>
       <ManualRefresh refreshing={refreshing} onClick={onRefresh} />
@@ -96,7 +96,7 @@ function FeatureSummaryCard({ item, onOpen }: { item: Feature; onOpen: () => voi
     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(); } }}
     sx={{ ...cardSx, display: 'block', textAlign: 'left', cursor: 'pointer', textDecoration: 'none', p: '4px 9px', height: { xs: 55, sm: dart ? 98 : 66 }, overflow: 'hidden', '&:hover': { borderColor: '#456186' }, '&:focus-visible': { outline: '2px solid #3D8CF5', outlineOffset: 1 } }}
   >
-    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ height: 19 }}>
+    <Stack direction="row" spacing={0.5} sx={{ height: 19, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, lineHeight: 1.1, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
       <StatusPill feature={item} compact />
     </Stack>
@@ -118,7 +118,7 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
     ['건너뜀', skipped, '#F2F7FC'],
   ] as const;
   return <Box sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', height: 42, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
-    {values.map(([label, value, color]) => <Stack key={label} alignItems="center" justifyContent="center" spacing={0.15} sx={{ minWidth: 0 }}>
+    {values.map(([label, value, color]) => <Stack key={label} spacing={0.15} sx={{ minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
       <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '11px' }}>{label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 700 }}>{numberText(value)}</Typography>
     </Stack>)}
@@ -127,7 +127,7 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
 
 function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
   return <Box sx={{ ...cardSx, px: '9px', py: '4px', minHeight: { xs: 55, sm: 62 } }}>
-    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ height: 20 }}>
+    <Stack direction="row" spacing={0.5} sx={{ height: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>현재 상태</Typography>
       <StatusPill feature={feature} />
       <ManualRefresh refreshing={refreshing} onClick={onRefresh} />
@@ -142,7 +142,7 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
 }) {
   const visibleRuns = showAllRuns ? runs : runs.slice(0, 2);
   return <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 156 } }}>
-    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+    <Stack direction="row" spacing={0.5} sx={{ mb: 0.75, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
       <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8, lineHeight: 1 }}>
         필터
@@ -170,10 +170,10 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
 }
 
 function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[] }) {
-  const fallbacks = runs.filter((run) => run.failureReason).slice(0, 3).map((run) => ({ symbol: '실행 오류', status: run.status, reason: run.failureReason, occurredAt: run.startedAt }));
+  const fallbacks: DataRecord[] = runs.filter((run) => run.failureReason).slice(0, 3).map((run) => ({ symbol: '실행 오류', status: run.status, reason: run.failureReason, occurredAt: run.startedAt }));
   const entries = items.length ? items.slice(0, 100) : fallbacks;
   return <Box sx={{ ...cardSx, display: 'flex', flexDirection: 'column', p: '10px', minHeight: { xs: 116, sm: 280 }, height: { sm: '100%' } }}>
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+    <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>대상별 오류·상태</Typography>
       <Typography sx={{ ...mutedText, fontSize: 8 }}>확인 {numberText(entries.length)}</Typography>
     </Stack>
@@ -183,7 +183,7 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
         const title = item.security?.name ?? item.symbol ?? '대상';
         const outcome = item.reason ?? resultStyle.label;
         return <Box key={`${item.symbol ?? 'result'}-${index}`} sx={{ py: '7px', minWidth: 0, borderBottom: index === entries.length - 1 ? 0 : '1px solid #26334A' }}>
-          <Stack direction="row" alignItems="baseline" spacing={0.5}>
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline' }}>
             <Typography sx={{ color: resultStyle.background, fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}</Typography>
             <Typography sx={{ color: resultStyle.background, fontSize: 7.5, flexShrink: 0 }}>{resultStyle.label}</Typography>
           </Stack>
@@ -209,7 +209,7 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
   const badge = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
     ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
   return <Box sx={{ ...cardSx, p: { xs: '6px 8px', sm: '8px 10px' }, minHeight: { xs: 43, sm: 85 }, opacity: disabled ? 0.86 : 1 }}>
-    <Stack direction="row" alignItems="center" spacing={0.5}>
+    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
       <Box component="span" sx={{ bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
     </Stack>
@@ -333,7 +333,7 @@ export function CollectionMonitoringPage() {
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <Box sx={{ ...cardSx, p: '8px 10px', minHeight: { xs: 54, sm: 85 } }}>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
             <Box component="span" sx={{ bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{stageOneLabel}</Box>
             <ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} />
@@ -348,7 +348,7 @@ export function CollectionMonitoringPage() {
         <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={Number(dartCurrent.priorityCheckedWithinDay ?? 0)} universeOver90Days={Number(dartCurrent.universeOver90Days ?? 0)} priorityPending={Number(current.priorityPending ?? 0)} universePending={Number(current.universePending ?? 0)} dailyApiCalls={Number(current.dailyApiCalls ?? 0)} dailyApiLimit={Number(current.dailyApiLimit ?? 0)} companyChecks={Number(current.companyChecks ?? 0)} />
         <Box sx={{ display: { xs: 'block', sm: 'none' } }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 94 } }}>
-          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+          <Stack direction="row" spacing={0.5} sx={{ mb: 0.75, alignItems: 'center' }}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
             <Typography sx={{ ...mutedText, fontSize: 8 }}>최근 {numberText(runs.length)}회</Typography>
             <ManualRefresh refreshing={detail.isFetching} onClick={refreshStats} />
