@@ -45,7 +45,7 @@ export function LiveStockDetailPage() {
       if (dialog === 'delete') await deleteWatchlistItem(stock.watchlistItemId);
       else await updateWatchlistItem(stock.watchlistItemId, { listType: category });
       await queryClient.invalidateQueries({ queryKey: ['stocks'] });
-      navigate(`/stocks?tab=${dialog === 'delete' ? 'watchlist' : category === 'WATCHLIST' ? 'watchlist' : 'recommended'}`);
+      navigate(`/stocks?tab=${dialog === 'delete' ? stock.listType : category === 'WATCHLIST' ? 'watchlist' : 'recommended'}`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : '변경에 실패했습니다.'); }
     finally { setBusy(false); setDialog(null); }
   };

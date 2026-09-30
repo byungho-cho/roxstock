@@ -196,6 +196,47 @@ test('stock screens use persisted analysis, category, and price data', async ({ 
   await expect(page.getByRole('button', { name: '전체 상세보기 ›' })).toBeVisible();
   await page.getByRole('button', { name: '표로 돌아가기' }).click();
   await expect(page.getByRole('table', { name: '추천종목' })).toBeVisible();
+  await page.goto(`/stocks/${id}`);
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.getByRole('button', { name: '확인' }).click();
+  await expect(page).toHaveURL(/stocks\?tab=recommended/);
+  expect((await (await request.get('/api/securities?listType=RECOMMENDED')).json()).data.some((item: { id: string }) => item.id === id)).toBe(false);
+});
+
+test('final journal keeps the calendar while browsing live daily profit and trade detail', async ({ page, request }, testInfo) => {
+  const account = await request.post('/api/accounts', { data: { name: `매매일지 확정 시안 ${Date.now()}`, brokerName: 'CI' } });
+  expect(account.status()).toBe(201);
+  const accountId: string = (await account.json()).data.id;
+  const securityId: string = (await (await request.get('/api/securities?query=099999&limit=20')).json()).data[0].id;
+  const date = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+  const at = `${date}T03:00:00.000Z`;
+  expect((await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: at, amount: '10000' } })).status()).toBe(201);
+  const buy = await request.post('/api/buy-trades', { data: { accountId, securityId, boughtAt: at, quantity: '2', unitPrice: '1000', feeTaxAmount: '0' } });
+  expect(buy.status()).toBe(201);
+  const sell = await request.post('/api/sell-trades', { data: { buyTradeId: (await buy.json()).data.id, soldAt: at, quantity: '1', unitPrice: '1500', feeTaxAmount: '0' } });
+  expect(sell.status()).toBe(201);
+  await page.addInitScript((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`/journal?date=${date}`);
+    await expect(page.getByLabel(/거래 달력/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /매도 통합테스트종목 거래 상세/ })).toBeVisible();
+    if (width > 600) {
+      await page.getByRole('button', { name: '일별 손익 ›' }).click();
+      await expect(page.getByText('실현손익 구성')).toBeVisible();
+      await expect(page.getByText('+500원').first()).toBeVisible();
+      await page.getByRole('button', { name: '거래현황으로 돌아가기' }).click();
+      await page.getByRole('button', { name: /매도 통합테스트종목 거래 상세/ }).click();
+      await expect(page.getByText('거래 정보')).toBeVisible();
+      await expect(page.getByText('1,500원').first()).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`journal-final-${width}x${height}.png`) });
+      await page.getByRole('button', { name: '거래 수정·삭제 ›' }).click();
+      await expect(page).toHaveURL(/trade\?type=sell/);
+    } else {
+      await page.screenshot({ path: testInfo.outputPath(`journal-final-${width}x${height}.png`) });
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
 });
 
 test('viewport panel is opt-in, updates on resize, and does not expand the document', async ({ page }) => {
