@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { chooseAccount, createAccount, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { chooseAccount, correctCashBalance, createAccount, getCollectionStatus, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { colors } from '../../styles/tokens';
 
 export type MoreView = 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
@@ -65,7 +65,7 @@ export function SettingsOverview() {
     <Typography sx={{ ...heading, display: { xs: 'none', sm: 'block' } }}>설정</Typography>
     <Stack spacing="12px" sx={{ mt: { xs: 0, sm: '12px' } }}>
       <LinkRow title="계좌 관리" caption="계좌 정보와 현재 예수금을 관리합니다." value={`${accounts.length}개 계좌`} onClick={() => go('account')} />
-      <LinkRow title="시세 수집" caption="수집 주기와 최근 수집 상태를 확인합니다." value="목 화면" onClick={() => go('collection')} />
+      <LinkRow title="시세 수집" caption="최근 수집 상태를 확인합니다." value="상태 조회" onClick={() => go('collection')} />
       <LinkRow title="테마 설정" caption="앱 화면의 테마를 선택합니다." value={theme === 'dark' ? '다크' : theme === 'light' ? '라이트' : '시스템 설정'} onClick={() => go('theme')} active={false} />
       <Box sx={{ display: { xs: 'none', sm: 'block' }, pt: '2px' }}>
         <Stack direction="row" spacing="8px">{(['dark', 'light', 'system'] as const).map((value) => <ButtonBase key={value} onClick={() => chooseTheme(value)} sx={{ ...row, flex: 1, height: 54, color: colors.textPrimary, fontSize: 11, bgcolor: theme === value ? '#3B82F6' : '#0E1420', borderColor: theme === value ? '#60A5FA' : '#25344D' }}>{value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'}</ButtonBase>)}</Stack>
@@ -151,13 +151,23 @@ function MobileAction({ onClick, disabled, label, danger }: { onClick: () => voi
 
 export function CashAdjustment() {
   const { selected, query } = useMoreAccounts(); const navigate = useNavigate();
+  const client = useQueryClient();
+  const [saving, setSaving] = useState(false); const [error, setError] = useState('');
   const base = selected?.cashBalance ?? '';
   const [amount, setAmount] = useState(base);
   useEffect(() => { setAmount(base); }, [base, selected?.id]);
   const value = Number(amount.replaceAll(',', '')); const delta = value - Number(base);
-  const submit = () => {
-    if (liveApiEnabled || !Number.isFinite(value) || value < 0) return;
-    if (selected) { changeDemoCash(selected.id, String(value)); navigate('/detail/settings?view=account'); }
+  const submit = async () => {
+    if (!selected || saving || !Number.isFinite(value) || value < 0) return;
+    setSaving(true); setError('');
+    try {
+      if (liveApiEnabled) {
+        await correctCashBalance(selected.id, String(value));
+        await Promise.all(['accounts', 'dashboard', 'cashBalance', 'cashOverview', 'assetHistory'].map((key) => client.invalidateQueries({ queryKey: [key] })));
+      } else changeDemoCash(selected.id, String(value));
+      navigate('/detail/settings?view=account');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 수정에 실패했습니다.'); }
+    finally { setSaving(false); }
   };
   if (liveApiEnabled && query.isPending) return <LabelledCard title="계좌 정보"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌를 불러오는 중입니다.</Typography></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
@@ -165,35 +175,32 @@ export function CashAdjustment() {
   return <Box sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: { sm: 'repeat(2,minmax(0,1fr))' }, gap: '16px', height: { sm: '100%' } }}>
     <LabelledCard title="예수금 수정" description="모든 금액은 원 단위 숫자로 입력합니다.">
       <Typography sx={{ ...hint, mt: 2 }}>현재 예수금</Typography><Typography sx={{ ...row, p: 1.5, mt: 1, textAlign: 'right' }}>{fmt(base)}</Typography>
-      <TextField fullWidth label="변경 예수금" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} disabled={liveApiEnabled} sx={{ mt: 1.5 }} />
-      {!liveApiEnabled && <Button onClick={submit} variant="contained" disabled={!Number.isFinite(value) || value < 0} sx={{ mt: 2, width: '100%', display: { xs: 'none', sm: 'flex' } }}>변경</Button>}
+      <TextField fullWidth label="변경 예수금" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ''))} sx={{ mt: 1.5 }} />
+      {error && <Typography role="alert" color="error">{error}</Typography>}
+      <Button onClick={() => void submit()} variant="contained" disabled={saving || !Number.isFinite(value) || value < 0} sx={{ mt: 2, width: '100%', display: { xs: 'none', sm: 'flex' } }}>{saving ? '저장 중…' : '변경'}</Button>
     </LabelledCard>
     <LabelledCard title="변경 후 예수금" description="입력한 금액으로 즉시 변경됩니다.">
       <Typography sx={{ textAlign: 'right', fontWeight: 600, mt: 3 }}>{Number.isFinite(value) ? fmt(value) : '—'}</Typography>
       <Typography sx={{ textAlign: 'right', color: delta >= 0 ? colors.marketRise : colors.marketFall, mt: 2 }}>변경 금액 {Number.isFinite(delta) ? `${delta >= 0 ? '+' : ''}${fmt(delta)}` : '—'}</Typography>
       <Typography sx={{ ...hint, mt: 4 }}>저장 후 과거 거래내역은 자동으로 재계산하지 않습니다.</Typography>
-      {liveApiEnabled && <Typography role="status" sx={{ ...hint, mt: 2 }}>예수금 잔액 직접 수정 API가 없어 변경할 수 없습니다.</Typography>}
     </LabelledCard>
-    {!liveApiEnabled && <MobileAction onClick={submit} disabled={!Number.isFinite(value) || value < 0} label="변경" />}
+    <MobileAction onClick={() => void submit()} disabled={saving || !Number.isFinite(value) || value < 0} label={saving ? '저장 중…' : '변경'} />
   </Box>;
 }
 
 export function CollectionSettings() {
-  const [demo, setDemo] = useState(readDemoSettings());
-  const [last, setLast] = useState('2026.09.20 08:54');
-  const update = (value: Parameters<typeof saveDemoSettings>[0]) => setDemo(saveDemoSettings(value));
+  const status = useQuery({ queryKey: ['collectionStatus'], queryFn: getCollectionStatus, enabled: liveApiEnabled, refetchInterval: 60_000 });
+  const run = status.data?.latestRun;
+  const dateLabel = (value: string | null | undefined) => value ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '기록 없음';
   const detail = <Stack spacing={2} sx={{ mt: 3 }}>
-    {[['수집 상태', '목 예시'], ['최근 수집', last], ['다음 수집', '08:55'], ['수집 실패', '0건']].map(([label, value]) => <Stack key={label} direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={hint}>{label}</Typography><Typography sx={{ fontSize: 12 }}>{value}</Typography></Stack>)}
+    {[['수집 상태', status.isPending ? '조회 중' : run?.status ?? '기록 없음'], ['최근 수집', dateLabel(run?.finishedAt ?? run?.startedAt)], ['최근 시세', dateLabel(status.data?.latestPriceAt)], ['수집 실패', run ? `${run.failureCount}건` : '—']].map(([label, value]) => <Stack key={label} direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={hint}>{label}</Typography><Typography sx={{ fontSize: 12 }}>{value}</Typography></Stack>)}
   </Stack>;
-  const collect = () => { setLast(new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })); };
   return <Box sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: { sm: 'repeat(2,minmax(0,1fr))' }, gap: '12px', height: { sm: '100%' } }}>
-    <LabelledCard title="수집 상태" description="최근 자동 수집 상태를 확인합니다.">{detail}<Button variant="contained" onClick={collect} sx={{ display: { xs: 'none', sm: 'flex' }, mt: 3, width: '100%' }}>지금 수집</Button></LabelledCard>
+    <LabelledCard title="수집 상태" description="서버의 최근 자동 수집 상태를 확인합니다.">{detail}{status.isError && <Button role="alert" onClick={() => void status.refetch()}>수집 상태 조회 실패 · 다시 시도</Button>}{run?.failureReason && <Typography sx={{ ...hint, mt: 1 }}>{run.failureReason}</Typography>}</LabelledCard>
     <LabelledCard title="수집 설정" description="장 운영 중 현재가를 설정 주기로 갱신합니다." sx={{ mt: { xs: 1.5, sm: 0 } }}>
-      <Stack spacing={2} sx={{ mt: 2 }}><Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={hint}>자동 수집</Typography><Switch checked={demo.automatic} onChange={(event) => update({ automatic: event.target.checked })} /></Stack>
-        <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={hint}>수집 주기</Typography><Button onClick={() => update({ interval: demo.interval === 1 ? 5 : 1 })}>{demo.interval}분 ›</Button></Stack><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={hint}>수집 대상</Typography><Typography sx={{ fontSize: 12 }}>보유·관심·추천</Typography></Stack></Stack>
-      <Typography sx={{ ...hint, mt: 2 }}>실시간 현재가는 설정된 주기로 갱신됩니다.</Typography><Typography role="status" sx={{ ...hint, mt: 2 }}>목 화면 · 수집 설정 및 실행은 실제 서버에 반영되지 않습니다.</Typography>
+      <Typography sx={{ ...hint, mt: 2 }}>자동 수집은 서버 작업에서 관리합니다. 앱에서 주기 변경과 수동 실행은 제공하지 않습니다.</Typography>
+      <Button disabled variant="outlined" sx={{ mt: 2 }}>지금 수집 · 서버 미지원</Button>
     </LabelledCard>
-    <MobileAction onClick={collect} label="지금 수집" />
   </Box>;
 }
 
