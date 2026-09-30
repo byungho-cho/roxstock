@@ -1,16 +1,240 @@
-import { ArrowBackRounded, RefreshRounded, SyncRounded } from '@mui/icons-material';
-import { Alert, Box, Button, Chip, CircularProgress, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { ArrowDropDownRounded, FilterListRounded, RefreshRounded } from '@mui/icons-material';
+import { Box, Button, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCollectionMonitorDetail, getCollectionMonitorSummary } from '../../data/roxstockApi';
+import { getCollectionMonitorDetail, getCollectionMonitorSummary, type CollectionMonitorSummary } from '../../data/roxstockApi';
 
-const stateLabels: Record<string, string> = { OK: '정상', RUNNING: '수집 중', PARTIAL: '일부 실패', FAILED: '실패', DELAYED: '지연', WAITING: '대기', NOT_CONFIGURED: '미설정', NOT_IMPLEMENTED: '미배포', NO_DATA: '데이터 없음' };
-const stateColor: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'> = { OK: 'success', RUNNING: 'info', PARTIAL: 'warning', FAILED: 'error', DELAYED: 'error', WAITING: 'default', NOT_CONFIGURED: 'warning', NOT_IMPLEMENTED: 'default', NO_DATA: 'default' };
-const dateText = (value?: string | null) => value ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '기록 없음';
-const numberText = (value?: number) => (value ?? 0).toLocaleString('ko-KR');
-const asRecord = (value: unknown): Record<string, any> => value && typeof value === 'object' ? value as Record<string, any> : {};
-const panelSx = { p: { xs: '12px', sm: '14px' }, border: '1px solid #25344D', borderRadius: '10px', bgcolor: '#111825', minWidth: 0 };
+type Feature = CollectionMonitorSummary['features'][number];
+type DataRecord = Record<string, any>;
+
+const statusStyle: Record<string, { label: string; background: string; foreground: string }> = {
+  OK: { label: '완료', background: '#3D8CF5', foreground: '#050A12' },
+  RUNNING: { label: '진행 중', background: '#34D399', foreground: '#050A12' },
+  PARTIAL: { label: '일부 실패', background: '#F26A6F', foreground: '#050A12' },
+  FAILED: { label: '오류', background: '#F26A6F', foreground: '#050A12' },
+  DELAYED: { label: '지연', background: '#FAB83B', foreground: '#050A12' },
+  WAITING: { label: '실행 전', background: '#111825', foreground: '#F2F7FC' },
+  NOT_CONFIGURED: { label: '설정 누락', background: '#7A8CA8', foreground: '#050A12' },
+  NOT_IMPLEMENTED: { label: '미구현', background: '#7A8CA8', foreground: '#050A12' },
+  NO_DATA: { label: '데이터 없음', background: '#7A8CA8', foreground: '#050A12' },
+  NO_FILING: { label: '미공시', background: '#3D8CF5', foreground: '#050A12' },
+  NOT_APPLICABLE: { label: '대상 아님', background: '#7A8CA8', foreground: '#050A12' },
+  SUCCESS: { label: '완료', background: '#3D8CF5', foreground: '#050A12' },
+  SKIPPED: { label: '건너뜀', background: '#7A8CA8', foreground: '#050A12' },
+};
+const featureNames: Record<string, string> = {
+  'security-master': '종목 마스터',
+  'realtime-prices': '실시간 주가',
+  'market-prices': '전체 종목 주가',
+  'account-snapshots': '일별 계좌 스냅샷',
+  'dart-financial-statements': 'DART 재무제표',
+};
+const dateText = (value?: string | null) => value
+  ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  : '기록 없음';
+const clockText = (value?: string | null) => value
+  ? new Date(value).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })
+  : '미정';
+const numberText = (value?: number | null) => (value ?? 0).toLocaleString('ko-KR');
+const asRecord = (value: unknown): DataRecord => value && typeof value === 'object' ? value as DataRecord : {};
+const mutedText = { color: '#7A8CA8' };
+const cardSx = { bgcolor: '#0E131F', border: '1px solid #26334A', borderRadius: '9px', minWidth: 0 };
+
+function StatusPill({ feature, compact = false }: { feature: Feature; compact?: boolean }) {
+  const base = statusStyle[feature.status] ?? statusStyle.WAITING;
+  const outOfSession = feature.id === 'realtime-prices' && feature.realtime?.session === 'OUT_OF_SESSION';
+  const phaseOne = feature.id === 'dart-financial-statements' && feature.phase === 'BACKFILL' && feature.status === 'RUNNING';
+  const label = outOfSession ? '장 외 대기' : phaseOne ? '1단계 진행' : base.label;
+  const style = outOfSession ? statusStyle.WAITING : base;
+  return <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minWidth: compact ? 75 : 82, height: compact ? 19 : 20, px: 1, borderRadius: '999px', bgcolor: style.background, color: style.foreground, fontSize: 9, lineHeight: 1, fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</Box>;
+}
+
+function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: () => void }) {
+  return <Button aria-label="통계 새로고침" onClick={onClick} disabled={refreshing} sx={{ minWidth: 24, width: 24, height: 24, p: 0, color: '#7A8CA8', flexShrink: 0 }}>
+    {refreshing ? <CircularProgress size={13} color="inherit" /> : <RefreshRounded sx={{ fontSize: 16 }} />}
+  </Button>;
+}
+
+function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { features: Feature[]; generatedAt: string; refreshing: boolean; onRefresh: () => void }) {
+  const failed = features.filter((item) => item.status === 'FAILED' || item.status === 'PARTIAL').length;
+  const delayed = features.filter((item) => item.status === 'DELAYED').length;
+  const needsAttention = failed + delayed;
+  const badge = needsAttention ? {
+    label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
+  } : { label: '정상', background: '#3D8CF5', foreground: '#050A12' };
+  return <Box sx={{ ...cardSx, mx: '16px', mt: '7px', mb: '8px', px: '10px', py: '5px', height: { xs: 58, sm: 48 }, borderRadius: '10px' }}>
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minHeight: 20 }}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 11, fontWeight: 700, flex: 1 }}>전체 상태</Typography>
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, minWidth: 82, height: 19, borderRadius: '999px', bgcolor: badge.background, color: badge.foreground, fontSize: 9, fontWeight: 700 }}>{badge.label}</Box>
+      <ManualRefresh refreshing={refreshing} onClick={onRefresh} />
+    </Stack>
+    <Typography sx={{ color: needsAttention ? '#FAB83B' : '#7A8CA8', fontSize: 9, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      오류 {failed} · 지연 {delayed}{refreshing ? '  ·  갱신 중' : ''}
+    </Typography>
+    <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: 'none' } }}>
+      {refreshing ? `${clockText(generatedAt)} 기준 완료 데이터 유지` : `통계 갱신 ${dateText(generatedAt)}`}
+    </Typography>
+  </Box>;
+}
+
+function FeatureSummaryCard({ item, onOpen }: { item: Feature; onOpen: () => void }) {
+  const name = featureNames[item.id] ?? item.name;
+  const dart = item.id === 'dart-financial-statements';
+  const realtime = item.id === 'realtime-prices';
+  const secondLine = dart
+    ? `1단계 ${numberText((item.backfill?.success ?? 0) + (item.backfill?.noFiling ?? 0) + (item.backfill?.notApplicable ?? 0))}/${numberText(item.backfill?.planned)} · 2단계 ${item.phase === 'CURRENT' ? '확인 중' : '대기'}`
+    : realtime
+      ? `수신 ${numberText(item.recent.processed)}건 · 다음 장중`
+      : `${numberText(item.recent.success)}/${numberText(item.recent.target)}건 성공 · 다음 ${clockText(item.nextAt)}`;
+  const attemptLine = `시도 ${clockText(item.lastAttemptAt)} · 성공 ${clockText(item.lastSuccessAt)}`;
+  return <Box
+    role="link"
+    tabIndex={0}
+    aria-label={`${name} 상세 보기`}
+    onClick={onOpen}
+    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(); } }}
+    sx={{ ...cardSx, display: 'block', textAlign: 'left', cursor: 'pointer', textDecoration: 'none', p: '4px 9px', height: { xs: 55, sm: dart ? 98 : 66 }, overflow: 'hidden', '&:hover': { borderColor: '#456186' }, '&:focus-visible': { outline: '2px solid #3D8CF5', outlineOffset: 1 } }}
+  >
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ height: 19 }}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, lineHeight: 1.1, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
+      <StatusPill feature={item} compact />
+    </Stack>
+    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{attemptLine}</Typography>
+    {dart && <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: '1fr 1fr', columnGap: 1, mt: 0.5 }}>
+      <Typography sx={{ color: '#34D399', fontSize: 9, lineHeight: '17px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>1단계 · {secondLine.split(' · ')[0]}</Typography>
+      <Typography sx={{ color: '#3D8CF5', fontSize: 9, lineHeight: '17px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>2단계 · {item.phase === 'CURRENT' ? '현행 공시 확인' : '1단계 완료 후 대기'}</Typography>
+      <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '12px', gridColumn: '1 / -1' }}>대상 {numberText(item.recent.target)} · 성공 {numberText(item.recent.success)} · 실패 {numberText(item.recent.failed)} · API {numberText(item.dailyApiCalls)}/{numberText(item.dailyApiLimit)}</Typography>
+    </Box>}
+    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: dart ? 'none' : 'block' } }}>{secondLine}</Typography>
+  </Box>;
+}
+
+function CountStrip({ target, success, failed, skipped }: { target?: number; success?: number; failed?: number; skipped?: number }) {
+  const values = [
+    ['대상', target, '#F2F7FC'],
+    ['성공', success, '#F2F7FC'],
+    ['실패', failed, failed ? '#F26A6F' : '#F2F7FC'],
+    ['건너뜀', skipped, '#F2F7FC'],
+  ] as const;
+  return <Box sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', height: 42, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
+    {values.map(([label, value, color]) => <Stack key={label} alignItems="center" justifyContent="center" spacing={0.15} sx={{ minWidth: 0 }}>
+      <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '11px' }}>{label}</Typography>
+      <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 700 }}>{numberText(value)}</Typography>
+    </Stack>)}
+  </Box>;
+}
+
+function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
+  return <Box sx={{ ...cardSx, px: '9px', py: '4px', minHeight: { xs: 55, sm: 62 } }}>
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ height: 20 }}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>현재 상태</Typography>
+      <StatusPill feature={feature} />
+      <ManualRefresh refreshing={refreshing} onClick={onRefresh} />
+    </Stack>
+    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(feature.lastAttemptAt)} · 성공 {dateText(feature.lastSuccessAt)}</Typography>
+    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px' }}>다음 예정 {clockText(feature.nextAt)}</Typography>
+  </Box>;
+}
+
+function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, showAllRuns, onToggleRuns, filterControls }: {
+  runs: DataRecord[]; loading: boolean; feature: string; filtersOpen: boolean; onToggleFilters: () => void; showAllRuns: boolean; onToggleRuns: () => void; filterControls: ReactNode;
+}) {
+  const visibleRuns = showAllRuns ? runs : runs.slice(0, 2);
+  return <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 156 } }}>
+    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
+      <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8, lineHeight: 1 }}>
+        필터
+      </Button>
+      {runs.length > 2 && <Button onClick={onToggleRuns} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8 }}>{showAllRuns ? '최근 실행' : '전체 기록'}</Button>}
+    </Stack>
+    <Collapse in={filtersOpen} unmountOnExit>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', sm: '1fr' }, gap: 0.5, mb: 1 }}>{filterControls}</Box>
+    </Collapse>
+    {loading && runs.length === 0 && <CircularProgress size={16} />}
+    {visibleRuns.length ? <Stack spacing={0.35}>{visibleRuns.map((run) => {
+      const status = statusStyle[String(run.status)] ?? statusStyle.WAITING;
+      const metadata = asRecord(run.metadata);
+      return <Box key={run.id} sx={{ minWidth: 0, py: 0.25 }}>
+        <Typography sx={{ color: '#7A8CA8', fontSize: 8.5, lineHeight: '14px', overflowWrap: 'anywhere' }}>
+          {dateText(run.startedAt)} · {feature === 'dart-financial-statements' ? (metadata.phase === 'BACKFILL' ? '1단계 과거 수집' : '2단계 현행 수집') : status.label}
+        </Typography>
+        <Typography sx={{ color: '#7A8CA8', fontSize: 8.5, lineHeight: '14px', overflowWrap: 'anywhere' }}>
+          대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}
+        </Typography>
+        {run.failureReason && <Typography sx={{ color: '#F26A6F', fontSize: 8.5, lineHeight: '14px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{run.failureReason}</Typography>}
+      </Box>;
+    })}</Stack> : <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '18px' }}>실행 이력이 없습니다.</Typography>}
+  </Box>;
+}
+
+function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[] }) {
+  const fallbacks = runs.filter((run) => run.failureReason).slice(0, 3).map((run) => ({ symbol: '실행 오류', status: run.status, reason: run.failureReason, occurredAt: run.startedAt }));
+  const entries = items.length ? items.slice(0, 100) : fallbacks;
+  return <Box sx={{ ...cardSx, display: 'flex', flexDirection: 'column', p: '10px', minHeight: { xs: 116, sm: 280 }, height: { sm: '100%' } }}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>대상별 오류·상태</Typography>
+      <Typography sx={{ ...mutedText, fontSize: 8 }}>확인 {numberText(entries.length)}</Typography>
+    </Stack>
+    {entries.length ? <Stack spacing={0} sx={{ minWidth: 0, flex: 1 }}>
+      {entries.map((item, index) => {
+        const resultStyle = statusStyle[String(item.status)] ?? statusStyle.WAITING;
+        const title = item.security?.name ?? item.symbol ?? '대상';
+        const outcome = item.reason ?? resultStyle.label;
+        return <Box key={`${item.symbol ?? 'result'}-${index}`} sx={{ py: '7px', minWidth: 0, borderBottom: index === entries.length - 1 ? 0 : '1px solid #26334A' }}>
+          <Stack direction="row" alignItems="baseline" spacing={0.5}>
+            <Typography sx={{ color: resultStyle.background, fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}</Typography>
+            <Typography sx={{ color: resultStyle.background, fontSize: 7.5, flexShrink: 0 }}>{resultStyle.label}</Typography>
+          </Stack>
+          <Typography sx={{ color: '#7A8CA8', fontSize: 8, lineHeight: '13px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{outcome}</Typography>
+          {item.occurredAt && <Typography sx={{ color: '#52627A', fontSize: 7.5, lineHeight: '11px' }}>{dateText(item.occurredAt)}</Typography>}
+        </Box>;
+      })}
+    </Stack> : <Box sx={{ flex: 1, display: 'grid', placeItems: 'center' }}><Typography sx={{ ...mutedText, fontSize: 8.5 }}>확인할 대상 결과가 없습니다.</Typography></Box>}
+    <Box sx={{ bgcolor: '#111825', borderRadius: '6px', px: '8px', py: '7px', mt: 1 }}>
+      <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '12px' }}>갱신 중에도 마지막 완료 결과를 유지합니다.</Typography>
+    </Box>
+  </Box>;
+}
+
+function DartStageCard({ title, label, completed, planned, success, noFiling, notApplicable, failed, pending, accent, disabled = false, usageText }: {
+  title: string; label: string; completed: number; planned: number; success: number; noFiling: number; notApplicable: number; failed: number; pending: number; accent: string; disabled?: boolean; usageText?: string;
+}) {
+  const percent = planned ? Math.min(100, completed * 100 / planned) : 0;
+  return <Box sx={{ ...cardSx, p: { xs: '6px 8px', sm: '8px 10px' }, minHeight: { xs: 43, sm: 85 }, opacity: disabled ? 0.86 : 1 }}>
+    <Stack direction="row" alignItems="center" spacing={0.5}>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{title}</Typography>
+      <Box component="span" sx={{ bgcolor: disabled ? '#7A8CA8' : accent, color: '#050A12', borderRadius: '999px', minWidth: 76, px: 1, height: 19, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
+    </Stack>
+    <Typography sx={{ color: disabled ? '#7A8CA8' : accent, fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>
+      {disabled ? '1단계 완료 후 시작' : `${numberText(completed)} / ${numberText(planned)}개 작업 완료`}
+    </Typography>
+    {!disabled && <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.25, overflow: 'hidden' }}><Box sx={{ width: `${percent}%`, height: '100%', bgcolor: accent }} /></Box>}
+    <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {disabled ? '미공시 · 1단계 완료 전에는 수집을 시작하지 않습니다.' : `성공 ${numberText(success)} · 미공시 ${numberText(noFiling)} · 대상 아님 ${numberText(notApplicable)} · 실패 ${numberText(failed)} · 대기 ${numberText(pending)}`}
+    </Typography>
+    {!disabled && <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usageText}</Typography>}
+  </Box>;
+}
+
+function CollectionFilters({ feature, resultFilter, setResultFilter, phaseFilter, setPhaseFilter, symbolFilter, setSymbolFilter, marketFilter, setMarketFilter, accountFilter, setAccountFilter, from, setFrom, to, setTo }: {
+  feature: string; resultFilter: string; setResultFilter: (value: string) => void; phaseFilter: string; setPhaseFilter: (value: string) => void;
+  symbolFilter: string; setSymbolFilter: (value: string) => void; marketFilter: string; setMarketFilter: (value: string) => void;
+  accountFilter: string; setAccountFilter: (value: string) => void; from: string; setFrom: (value: string) => void; to: string; setTo: (value: string) => void;
+}) {
+  const selectSx = { height: 30, color: '#CBD5E1', fontSize: 9, bgcolor: '#0B1220', borderRadius: '6px', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#26334A' }, '& .MuiSelect-select': { py: '5px', pl: '8px' }, minWidth: 0 };
+  const inputSx = { width: '100%', minWidth: 0, height: 30, boxSizing: 'border-box', bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #26334A', borderRadius: '6px', px: '7px', fontSize: 9, outline: 'none', colorScheme: 'dark' };
+  return <>
+    <FormControl size="small"><Select<string> value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터" sx={selectSx}><MenuItem value="">전체 결과</MenuItem>{['SUCCESS','PARTIAL','FAILED','SKIPPED'].map((value) => <MenuItem key={value} value={value}>{statusStyle[value]?.label ?? value}</MenuItem>)}</Select></FormControl>
+    {feature === 'dart-financial-statements' && <FormControl size="small"><Select<string> value={phaseFilter} displayEmpty onChange={(event) => setPhaseFilter(event.target.value)} aria-label="수집 단계 필터" sx={selectSx}><MenuItem value="">전체 단계</MenuItem><MenuItem value="BACKFILL">1단계 과거 구축</MenuItem><MenuItem value="CURRENT">2단계 상시</MenuItem></Select></FormControl>}
+    <Box component="input" aria-label="종목 필터" placeholder="종목코드" value={symbolFilter} onChange={(event: ChangeEvent<HTMLInputElement>) => setSymbolFilter(event.target.value)} sx={inputSx} />
+    {feature !== 'account-snapshots' && <FormControl size="small"><Select<string> value={marketFilter} displayEmpty onChange={(event) => setMarketFilter(event.target.value)} aria-label="시장 필터" sx={selectSx}><MenuItem value="">전체 시장</MenuItem>{['KOSPI','KOSDAQ','KONEX','OTHER'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>}
+    {feature === 'account-snapshots' && <Box component="input" aria-label="계좌 필터" placeholder="계좌 ID" value={accountFilter} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccountFilter(event.target.value)} sx={inputSx} />}
+    <Box component="input" aria-label="시작일" type="date" value={from} onChange={(event: ChangeEvent<HTMLInputElement>) => setFrom(event.target.value)} sx={inputSx} />
+    <Box component="input" aria-label="종료일" type="date" value={to} onChange={(event: ChangeEvent<HTMLInputElement>) => setTo(event.target.value)} sx={inputSx} />
+  </>;
+}
 
 export function CollectionMonitoringPage() {
   const { feature } = useParams();
@@ -22,85 +246,126 @@ export function CollectionMonitoringPage() {
   const [accountFilter, setAccountFilter] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showAllRuns, setShowAllRuns] = useState(false);
   const summary = useQuery({ queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, refetchInterval: 60_000 });
-  const detailQueryParams = useMemo(() => ({ ...(resultFilter && { result: resultFilter }), ...(phaseFilter && { phase: phaseFilter }), ...(symbolFilter && { symbol: symbolFilter }), ...(marketFilter && { market: marketFilter }), ...(accountFilter && { accountId: accountFilter }), ...(from && { from }), ...(to && { to }) }), [resultFilter, phaseFilter, symbolFilter, marketFilter, accountFilter, from, to]);
-  const detail = useQuery({ queryKey: ['collection-monitoring-detail', feature, detailQueryParams], queryFn: () => getCollectionMonitorDetail(feature ?? '', detailQueryParams), enabled: Boolean(feature), placeholderData: (previous) => previous, refetchInterval: feature ? 60_000 : false });
+  const detailQueryParams = useMemo(() => ({
+    ...(resultFilter && { result: resultFilter }), ...(phaseFilter && { phase: phaseFilter }),
+    ...(symbolFilter && { symbol: symbolFilter }), ...(marketFilter && { market: marketFilter }),
+    ...(accountFilter && { accountId: accountFilter }), ...(from && { from }), ...(to && { to }),
+  }), [resultFilter, phaseFilter, symbolFilter, marketFilter, accountFilter, from, to]);
+  const detail = useQuery({
+    queryKey: ['collection-monitoring-detail', feature, detailQueryParams],
+    queryFn: () => getCollectionMonitorDetail(feature ?? '', detailQueryParams),
+    enabled: Boolean(feature),
+    placeholderData: (previous) => previous,
+    refetchInterval: feature ? 60_000 : false,
+  });
   const current = summary.data?.features.find((item) => item.id === feature);
-  const statusCounts = useMemo(() => (summary.data?.features ?? []).reduce<Record<string, number>>((counts, item) => { counts[item.status] = (counts[item.status] ?? 0) + 1; return counts; }, {}), [summary.data?.features]);
+  const statusCounts = useMemo(() => (summary.data?.features ?? []).reduce<Record<string, number>>((counts, item) => {
+    counts[item.status] = (counts[item.status] ?? 0) + 1;
+    return counts;
+  }, {}), [summary.data?.features]);
   const body = asRecord(detail.data);
-  const runs = Array.isArray(body.runs) ? body.runs as Record<string, any>[] : [];
-  const items = Array.isArray(body.items) ? body.items as Record<string, any>[] : [];
+  const runs = Array.isArray(body.runs) ? body.runs as DataRecord[] : [];
+  const items = Array.isArray(body.items) ? body.items as DataRecord[] : [];
   const dart = asRecord(body.dart);
   const realtime = asRecord(body.realtime);
+  const refreshStats = () => {
+    void summary.refetch();
+    if (feature) void detail.refetch();
+  };
+  const filterControls = <CollectionFilters
+    feature={feature ?? ''} resultFilter={resultFilter} setResultFilter={setResultFilter}
+    phaseFilter={phaseFilter} setPhaseFilter={setPhaseFilter} symbolFilter={symbolFilter} setSymbolFilter={setSymbolFilter}
+    marketFilter={marketFilter} setMarketFilter={setMarketFilter} accountFilter={accountFilter} setAccountFilter={setAccountFilter}
+    from={from} setFrom={setFrom} to={to} setTo={setTo}
+  />;
 
-  if (feature) return <Stack spacing={1.25} sx={{ pb: '8px' }}>
-    <Stack spacing={1} sx={{ flexDirection: 'row', alignItems: 'center' }}>
-      <Button onClick={() => navigate('/detail/collection-monitoring')} startIcon={<ArrowBackRounded />} sx={{ minWidth: 0, color: '#CBD5E1', px: 0.5 }}>전체</Button>
-      <Typography sx={{ fontWeight: 700, fontSize: 17, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{current?.name ?? '수집 상세'}</Typography>
-      <Button aria-label="통계 새로고침" onClick={() => { void summary.refetch(); void detail.refetch(); }} disabled={summary.isFetching || detail.isFetching} sx={{ minWidth: 38, px: 0.5, color: '#CBD5E1' }}><RefreshRounded /></Button>
-    </Stack>
-    {detail.isError && !detail.data && <Alert severity="error">수집 통계를 불러오지 못했습니다.</Alert>}
-    {feature === 'dart-financial-statements' && <>
-      <Box sx={panelSx}>
-        <Typography sx={{ fontWeight: 700, mb: 1 }}>1단계 · 과거 자료 최초 구축</Typography>
-        <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>계획 {numberText(dart.backfill?.planned)} · 완료 {numberText(dart.backfill?.success + dart.backfill?.noFiling + dart.backfill?.notApplicable)} · 대기 {numberText(dart.backfill?.byStatus?.PENDING + dart.backfill?.byStatus?.PROCESSING)} · 실패 {numberText(dart.backfill?.byStatus?.FAILED)}</Typography>
-        <Box sx={{ height: 6, bgcolor: '#263348', borderRadius: 4, mt: 1, overflow: 'hidden' }}><Box sx={{ width: `${dart.backfill?.planned ? Math.min(100, (100 * (dart.backfill.success + dart.backfill.noFiling + dart.backfill.notApplicable) / dart.backfill.planned)) : 0}%`, height: '100%', bgcolor: '#34D399' }} /></Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, overflowWrap: 'anywhere' }}>미공시 {numberText(dart.backfill?.byStatus?.NO_FILING)} · 대상 아님 {numberText(dart.backfill?.byStatus?.NOT_APPLICABLE)} · 단계: {dart.phase ?? '확인 중'}</Typography>
+  if (!feature) {
+    const features = summary.data?.features ?? [];
+    const generatedAt = summary.data?.generatedAt ?? new Date().toISOString();
+    const errors = (statusCounts.FAILED ?? 0) + (statusCounts.PARTIAL ?? 0);
+    const delays = statusCounts.DELAYED ?? 0;
+    return <Box sx={{ pb: '8px' }}>
+      {summary.isError && !summary.data && <Typography role="alert" sx={{ mx: 2, mt: 1, color: '#F26A6F', fontSize: 10 }}>수집 통계를 불러오지 못했습니다.</Typography>}
+      {summary.isLoading && !summary.data && <CircularProgress size={18} sx={{ mx: 2, mt: 1 }} />}
+      {summary.data && <SummaryStatus features={features} generatedAt={generatedAt} refreshing={summary.isFetching} onRefresh={() => { void summary.refetch(); }} />}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: { xs: '4px', sm: '6px' }, px: '16px' }}>
+        {features.map((item) => <Box key={item.id} sx={{ gridColumn: { xs: '1', sm: item.id === 'dart-financial-statements' ? '1 / -1' : 'auto' } }}>
+          <FeatureSummaryCard item={item} onOpen={() => navigate(`/detail/collection-monitoring/${item.id}`)} />
+        </Box>)}
+        {summary.data && features.length > 0 && <Typography sx={{ ...mutedText, gridColumn: '1 / -1', fontSize: 7.5, textAlign: 'right', mt: '1px', display: { xs: 'none', sm: 'block' } }}>
+          오류 {errors} · 지연 {delays} · 갱신 {dateText(generatedAt)}
+        </Typography>}
       </Box>
-      <Box sx={panelSx}>
-        <Typography sx={{ fontWeight: 700, mb: 0.75 }}>2단계 · 현재 공시 확인</Typography>
-        <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>우선종목: 하루 1회 · 전체종목 야간 순환: 하루 약 35종목</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, overflowWrap: 'anywhere' }}>우선종목 확인 대기 {numberText(dart.current?.priorityCheckedWithinDay)} · 전체종목 90일 초과/미확인 {numberText(dart.current?.universeOver90Days)}</Typography>
-      </Box>
-      <Box sx={panelSx}><Typography sx={{ fontWeight: 700 }}>일일 DART 사용량</Typography><Typography variant="body2" sx={{ mt: 0.5 }}>API 호출 {numberText(current?.dailyApiCalls)} / {numberText(current?.dailyApiLimit)} · 종목 확인 {numberText(current?.recent?.processed)}</Typography></Box>
-    </>}
-    {feature === 'realtime-prices' && <Box sx={panelSx}>
-      <Typography sx={{ fontWeight: 700, mb: 1 }}>실시간 워커 · {stateLabels[current?.status ?? 'WAITING'] ?? current?.status}</Typography>
-      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>워커 하트비트 {dateText(current?.realtime?.heartbeatAt)} · 세션 {current?.realtime?.session ?? '기록 없음'}</Typography>
-      <Stack spacing={0.4} sx={{ mt: 1 }}>
-        <Typography variant="caption">가격 수신 {dateText(current?.realtime?.lastPriceReceivedAt)} · 원천 가격 기준 {dateText(current?.realtime?.lastSourcePriceAt)}</Typography>
-        <Typography variant="caption">SSE 발행 {dateText(current?.realtime?.lastSsePublishedAt)} · DB 저장 {dateText(current?.realtime?.lastDbSavedAt)}</Typography>
-        {[[current?.realtime?.sourceError, '원천 오류'], [current?.realtime?.publishError, 'API 발행 오류'], [current?.realtime?.saveError, 'DB 저장 오류']].filter(([message]) => message).map(([message, label]) => <Typography key={label} variant="caption" color="error.main" sx={{ overflowWrap: 'anywhere' }}>{label}: {message}</Typography>)}
+      {summary.isError && summary.data && <Typography role="status" sx={{ ...mutedText, mx: 2, mt: 0.5, fontSize: 8 }}>갱신에 실패했습니다. 표시 중인 완료 데이터는 유지합니다.</Typography>}
+    </Box>;
+  }
+
+  if (!current && summary.isLoading) return <CircularProgress size={18} sx={{ mx: 2, mt: 1 }} />;
+  if (!current) return <Typography role="alert" sx={{ mx: 2, mt: 1, color: '#7A8CA8', fontSize: 10 }}>수집 기능 정보를 찾을 수 없습니다.</Typography>;
+
+  const backfill = asRecord(dart.backfill);
+  const byStatus = asRecord(backfill.byStatus);
+  const planned = Number(backfill.planned ?? 0);
+  const success = Number(byStatus.SUCCESS ?? 0);
+  const noFiling = Number(byStatus.NO_FILING ?? 0);
+  const notApplicable = Number(byStatus.NOT_APPLICABLE ?? 0);
+  const failed = Number(byStatus.FAILED ?? 0);
+  const pending = Number(byStatus.PENDING ?? 0) + Number(byStatus.PROCESSING ?? 0);
+  const completed = success + noFiling + notApplicable;
+  const isDart = feature === 'dart-financial-statements';
+  const isRealtime = feature === 'realtime-prices';
+
+  return <Box sx={{ px: '16px', pt: '8px', pb: '8px' }}>
+    {detail.isError && !detail.data && <Typography role="alert" sx={{ color: '#F26A6F', fontSize: 9, mb: 0.5 }}>수집 상세를 불러오지 못했습니다.</Typography>}
+    {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: '8px', alignItems: 'stretch' }}>
+      <Stack spacing={1} sx={{ minWidth: 0 }}>
+        <Box sx={{ ...cardSx, p: '8px 10px', minHeight: { xs: 54, sm: 85 } }}>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
+            <Box component="span" sx={{ bgcolor: current.phase === 'BACKFILL' ? '#34D399' : '#3D8CF5', color: '#050A12', minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{current.phase === 'BACKFILL' ? '진행 중' : '완료'}</Box>
+            <ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} />
+          </Stack>
+          <Typography sx={{ color: '#34D399', fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>{numberText(completed)} / {numberText(planned)}개 작업 완료</Typography>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.5, overflow: 'hidden' }}><Box sx={{ height: '100%', width: planned ? `${Math.min(100, completed * 100 / planned)}%` : 0, bgcolor: '#34D399' }} /></Box>
+            <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px' }}>대상 {numberText(planned)} · 성공 {numberText(success)} · 미공시 {numberText(noFiling)} · 실패 {numberText(failed)} · 대기 {numberText(pending)}</Typography>
+          </Box>
+          <Typography sx={{ display: { xs: 'block', sm: 'none' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(current.lastAttemptAt)} · 성공 {dateText(current.lastSuccessAt)}</Typography>
+        </Box>
+        <DartStageCard title="2단계 · 현재 사업연도 상시 수집" label={current.phase === 'CURRENT' ? '진행 중' : '미공시'} completed={Number(current.recent.success)} planned={Number(current.recent.target)} success={Number(current.recent.success)} noFiling={Number(byStatus.NO_FILING ?? 0)} notApplicable={Number(byStatus.NOT_APPLICABLE ?? 0)} failed={Number(current.recent.failed)} pending={Number(current.priorityPending ?? 0) + Number(current.universePending ?? 0)} accent="#3D8CF5" disabled={current.phase !== 'CURRENT'} usageText={`API ${numberText(current.dailyApiCalls)}/${numberText(current.dailyApiLimit)} · 종목 확인 ${numberText(current.companyChecks)} · 우선 대기 ${numberText(current.priorityPending)} · 전체 대기 ${numberText(current.universePending)}`} />
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
+        <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 94 } }}>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+            <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
+            <Typography sx={{ ...mutedText, fontSize: 8 }}>최근 {numberText(runs.length)}회</Typography>
+            <ManualRefresh refreshing={detail.isFetching} onClick={refreshStats} />
+          </Stack>
+          {runs.length ? runs.slice(0, 2).map((run) => <Typography key={run.id} sx={{ ...mutedText, fontSize: 8, lineHeight: '17px', overflowWrap: 'anywhere' }}>{dateText(run.startedAt)} · {asRecord(run.metadata).phase === 'BACKFILL' ? '1단계 과거 수집' : '2단계 현행 수집'} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)}</Typography>) : <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '17px' }}>실행 이력이 없습니다.</Typography>}
+        </Box>
       </Stack>
+      <TargetResults items={items} runs={runs} />
+    </Box> : <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: '8px', alignItems: 'stretch' }}>
+      <Stack spacing={1} sx={{ minWidth: 0 }}>
+        <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
+        {isRealtime && <Box sx={{ ...cardSx, p: '7px 9px', display: { xs: 'block', sm: 'none' } }}>
+          <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '14px' }}>워커 {dateText(current.realtime?.heartbeatAt)} · {current.realtime?.session ?? '세션 기록 없음'}</Typography>
+          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 {dateText(current.realtime?.lastPriceReceivedAt)} · 원천 {dateText(current.realtime?.lastSourcePriceAt)}</Typography>
+          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE {dateText(current.realtime?.lastSsePublishedAt)} · DB {dateText(current.realtime?.lastDbSavedAt)}</Typography>
+        </Box>}
+        <CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
+        <Box sx={{ display: { xs: 'none', sm: isRealtime ? 'block' : 'none' }, ...cardSx, p: '8px 9px' }}>
+          <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '14px' }}>워커 {dateText(current.realtime?.heartbeatAt)} · {current.realtime?.session ?? '세션 기록 없음'}</Typography>
+          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 {dateText(current.realtime?.lastPriceReceivedAt)} · 원천 {dateText(current.realtime?.lastSourcePriceAt)}</Typography>
+          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE {dateText(current.realtime?.lastSsePublishedAt)} · DB {dateText(current.realtime?.lastDbSavedAt)}</Typography>
+          {[[current.realtime?.sourceError, '원천 가격'], [current.realtime?.publishError, 'SSE 전달'], [current.realtime?.saveError, 'DB 저장']].filter(([message]) => message).map(([message, label]) => <Typography key={label} sx={{ color: '#F26A6F', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>{label} 오류: {message}</Typography>)}
+        </Box>
+        <RunHistory runs={runs} loading={detail.isFetching} feature={feature} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen((value) => !value)} showAllRuns={showAllRuns} onToggleRuns={() => setShowAllRuns((value) => !value)} filterControls={filterControls} />
+      </Stack>
+      <TargetResults items={items} runs={runs} />
     </Box>}
-    <Box sx={panelSx}>
-      <Typography sx={{ fontWeight: 700, mb: 1 }}>실행 이력</Typography>
-      <Stack spacing={0.75} sx={{ mb: 1, flexDirection: 'row', flexWrap: 'wrap', gap: '6px' }}>
-        <FormControl size="small" sx={{ minWidth: 112 }}><Select value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터"><MenuItem value="">전체 결과</MenuItem>{['SUCCESS','PARTIAL','FAILED','SKIPPED'].map((value) => <MenuItem key={value} value={value}>{stateLabels[value] ?? value}</MenuItem>)}</Select></FormControl>
-        {feature === 'dart-financial-statements' && <FormControl size="small" sx={{ minWidth: 112 }}><Select value={phaseFilter} displayEmpty onChange={(event) => setPhaseFilter(event.target.value)} aria-label="수집 단계 필터"><MenuItem value="">전체 단계</MenuItem><MenuItem value="BACKFILL">1단계 과거 구축</MenuItem><MenuItem value="CURRENT">2단계 상시</MenuItem></Select></FormControl>}
-        <Box component="input" aria-label="종목 필터" placeholder="종목코드" value={symbolFilter} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSymbolFilter(event.target.value)} sx={{ width: 100, height: 38, bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #334155', borderRadius: 1, px: 1 }} />
-        {feature !== 'account-snapshots' && <FormControl size="small" sx={{ minWidth: 100 }}><Select value={marketFilter} displayEmpty onChange={(event) => setMarketFilter(event.target.value)} aria-label="시장 필터"><MenuItem value="">전체 시장</MenuItem>{['KOSPI','KOSDAQ','KONEX','OTHER'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>}
-        {feature === 'account-snapshots' && <Box component="input" aria-label="계좌 필터" placeholder="계좌 ID" value={accountFilter} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setAccountFilter(event.target.value)} sx={{ width: 100, height: 38, bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #334155', borderRadius: 1, px: 1 }} />}
-        <Box component="input" aria-label="시작일" type="date" value={from} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setFrom(event.target.value)} sx={{ width: 132, bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #334155', borderRadius: 1, px: 1 }} />
-        <Box component="input" aria-label="종료일" type="date" value={to} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTo(event.target.value)} sx={{ width: 132, bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #334155', borderRadius: 1, px: 1 }} />
-      </Stack>
-      {detail.isLoading && <CircularProgress size={22} />}
-      <Stack spacing={0.75}>{runs.map((run) => <Box key={run.id} sx={{ p: 1, borderRadius: 1, bgcolor: '#0B1220', minWidth: 0 }}>
-        <Stack spacing={0.75} sx={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}><Chip size="small" label={stateLabels[run.status] ?? run.status} color={stateColor[run.status] ?? 'default'} /><Typography variant="caption">{dateText(run.startedAt)}</Typography><Typography variant="caption" sx={{ overflowWrap: 'anywhere' }}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}</Typography></Stack>
-        {run.failureReason && <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5, overflowWrap: 'anywhere', whiteSpace: 'normal' }}>{run.failureReason}</Typography>}
-      </Box>)}</Stack>
-      {items.length > 0 && <><Typography sx={{ fontWeight: 700, mt: 1.5, mb: 0.75 }}>대상별 결과 및 오류</Typography><Stack spacing={0.5}>{items.map((item, index) => <Box key={`${item.symbol}-${index}`} sx={{ p: 1, borderRadius: 1, bgcolor: '#0B1220', minWidth: 0 }}><Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{item.security?.name ?? item.symbol} · {item.status}</Typography>{item.reason && <Typography variant="caption" color="error.main" sx={{ display: 'block', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{item.reason}</Typography>}</Box>)}</Stack></>}
-      {feature === 'realtime-prices' && Array.isArray(realtime.issues) && <><Typography sx={{ fontWeight: 700, mt: 1.5, mb: 0.75 }}>실시간 오류 이력</Typography>{realtime.issues.map((issue: Record<string, any>, index: number) => <Typography key={index} variant="caption" color="error.main" sx={{ display: 'block', overflowWrap: 'anywhere' }}>{dateText(issue.at)} · {issue.stage}: {issue.reason}</Typography>)}</>}
-      {detail.isFetching && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>통계 갱신 중…</Typography>}
-    </Box>
-  </Stack>;
-
-  return <Stack spacing={1.25} sx={{ pb: '8px' }}>
-    <Stack spacing={1} sx={{ flexDirection: 'row', alignItems: 'center' }}><SyncRounded sx={{ color: '#60A5FA' }} /><Typography sx={{ fontWeight: 700, fontSize: 18, flex: 1 }}>수집 모니터링</Typography><Button aria-label="통계 새로고침" onClick={() => { void summary.refetch(); }} disabled={summary.isFetching} sx={{ minWidth: 40, color: '#CBD5E1' }}><RefreshRounded /></Button></Stack>
-    {summary.isError && !summary.data && <Alert severity="error">수집 통계를 불러오지 못했습니다.</Alert>}
-    {summary.isLoading && <CircularProgress size={24} />}
-    {summary.data && <Box sx={{ ...panelSx, py: 1 }}><Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>정상 주기 {numberText(statusCounts.OK)} · 실행 중 {numberText(statusCounts.RUNNING)} · 확인 필요 {numberText((statusCounts.PARTIAL ?? 0) + (statusCounts.FAILED ?? 0) + (statusCounts.DELAYED ?? 0))} · 미설정/미배포 {numberText((statusCounts.NOT_CONFIGURED ?? 0) + (statusCounts.NOT_IMPLEMENTED ?? 0))}</Typography><Typography variant="caption" sx={{ display: 'block', overflowWrap: 'anywhere' }}>{summary.data.features.filter((item) => ['PARTIAL', 'FAILED', 'DELAYED', 'NOT_CONFIGURED', 'NOT_IMPLEMENTED'].includes(item.status)).map((item) => `${item.name}: ${stateLabels[item.status] ?? item.status}`).join(' · ') || '확인이 필요한 수집 기능이 없습니다.'}</Typography></Box>}
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' }, gap: 1 }}>
-      {(summary.data?.features ?? []).map((item) => <Box key={item.id} role="button" tabIndex={0} onClick={() => navigate(`/detail/collection-monitoring/${item.id}`)} onKeyDown={(event) => { if (event.key === 'Enter') navigate(`/detail/collection-monitoring/${item.id}`); }} sx={{ ...panelSx, cursor: 'pointer', '&:hover': { borderColor: '#456186' } }}>
-        <Stack spacing={1} sx={{ flexDirection: 'row', alignItems: 'center' }}><Typography sx={{ fontWeight: 700, fontSize: 14, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{item.name}</Typography><Chip size="small" color={stateColor[item.status] ?? 'default'} label={stateLabels[item.status] ?? item.status} sx={{ flexShrink: 0 }} /></Stack>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75, overflowWrap: 'anywhere' }}>{item.schedule}</Typography>
-        <Typography variant="body2" sx={{ mt: 0.5, overflowWrap: 'anywhere' }}>최근: 대상 {numberText(item.recent.target)} · 성공 {numberText(item.recent.success)} · 실패 {numberText(item.recent.failed)} · 건너뜀 {numberText(item.recent.skipped)}</Typography>
-        {item.phase && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35, overflowWrap: 'anywhere' }}>{item.phase === 'BACKFILL' ? '1단계 과거 구축' : '2단계 현재 공시'} · 잔여 {numberText(item.backfill?.pending)} · 미공시 {numberText(item.backfill?.noFiling)} · API {numberText(item.dailyApiCalls)}/{numberText(item.dailyApiLimit)}</Typography>}
-        {item.realtime && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35, overflowWrap: 'anywhere' }}>워커 {dateText(item.realtime.heartbeatAt)} · 수신 {dateText(item.realtime.lastPriceReceivedAt)} · 발행 {dateText(item.realtime.lastSsePublishedAt)} · 저장 {dateText(item.realtime.lastDbSavedAt)}</Typography>}
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35, overflowWrap: 'anywhere' }}>데이터 기준 {dateText(item.lastDataAt)} · 통계 갱신 {dateText(item.statsGeneratedAt)}</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>마지막 성공 {dateText(item.lastSuccessAt)} · 다음 예정 {dateText(item.nextAt)}</Typography>
-      </Box>)}
-    </Box>
-    {summary.isFetching && <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>통계 갱신 중…</Typography>}
-  </Stack>;
+    {detail.isError && detail.data && <Typography role="status" sx={{ ...mutedText, fontSize: 8, mt: 0.5 }}>갱신 실패 · 마지막 완료 결과를 계속 표시합니다.</Typography>}
+  </Box>;
 }
