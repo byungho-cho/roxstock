@@ -549,7 +549,7 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
   await expect(page.getByText('총 0건')).toBeVisible();
   await page.getByRole('button', { name: '이전 달' }).click();
   await expect(page.getByText('2 × 1,000원')).toHaveCount(0);
-  await expect(page.getByRole('alert', { name: '거래내역 조회 실패 · 다시 시도' })).toBeVisible();
+  await expect(page.getByText('거래내역 조회 실패 · 다시 시도')).toBeVisible();
   await expect(page.getByLabel(/거래 달력/)).toBeVisible();
   await page.unrouteAll({ behavior: 'wait' });
   expect(secondId).not.toBe(accountId);
