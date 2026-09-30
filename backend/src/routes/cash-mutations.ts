@@ -8,7 +8,7 @@ type CashEditBody = { transactionDate?: unknown; amount?: unknown; memo?: unknow
 type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
 const transactionOptions = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5_000, timeout: 10_000 } as const;
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
-const editable = (type: CashTransactionType) => [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND].includes(type);
+const editable = (type: CashTransactionType) => type === CashTransactionType.DEPOSIT || type === CashTransactionType.WITHDRAWAL || type === CashTransactionType.DIVIDEND;
 
 export async function cashMutationRoutes(app: FastifyInstance) {
   app.post<{ Body: DividendBody }>('/dividends', async (request, reply) => {
