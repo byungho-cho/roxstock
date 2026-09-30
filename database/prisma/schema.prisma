@@ -221,6 +221,7 @@ model CashTransaction {
   account         Account             @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   buyTrade        BuyTrade?           @relation(fields: [buyTradeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   sellTrade       SellTrade?          @relation(fields: [sellTradeId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  dividend        Dividend?
 
   @@index([accountId, transactionDate])
   @@index([accountId, transactionType, transactionDate])
@@ -231,6 +232,7 @@ model Dividend {
   id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
   accountId    BigInt   @map("account_id") @db.UnsignedBigInt
   securityId   BigInt   @map("security_id") @db.UnsignedBigInt
+  cashTransactionId BigInt? @unique @map("cash_transaction_id") @db.UnsignedBigInt
   receivedDate DateTime @map("received_date") @db.Date
   grossAmount  Decimal  @map("gross_amount") @db.Decimal(19, 4)
   netAmount    Decimal  @map("net_amount") @db.Decimal(19, 4)
@@ -239,6 +241,7 @@ model Dividend {
   updatedAt    DateTime @updatedAt @map("updated_at") @db.DateTime(3)
   account      Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   security     Security @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cashTransaction CashTransaction? @relation(fields: [cashTransactionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([accountId, receivedDate])
   @@index([securityId, receivedDate])

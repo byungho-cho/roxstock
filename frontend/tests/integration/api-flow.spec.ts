@@ -2,6 +2,81 @@ import { expect, test } from '@playwright/test';
 import { Prisma } from '../../../backend/src/generated/prisma/index.js';
 import { prisma } from '../../../backend/src/lib/prisma.js';
 
+test('cash dividend, historical edits, correction, and collection status use persisted API data', async ({ page, request }) => {
+  const account = await request.post('/api/accounts', { data: { name: `예수금 검증 ${Date.now()}`, brokerName: 'CI' } });
+  expect(account.status()).toBe(201);
+  const accountId: string = (await account.json()).data.id;
+  const securities = await (await request.get('/api/securities?query=099999&limit=20')).json();
+  const securityId: string = securities.data[0].id;
+  const date = new Date().toISOString();
+  const dividend = await request.post('/api/dividends', { data: { accountId, securityId, receivedDate: date, grossAmount: '1200', netAmount: '1000', memo: '검증 배당' } });
+  expect(dividend.status()).toBe(201);
+  const cashId: string = (await dividend.json()).data.cashTransactionId;
+  const overviewUrl = `/api/accounts/${accountId}/cash-overview`;
+  expect(Number((await (await request.get(overviewUrl)).json()).data.monthly.dividend)).toBe(1000);
+  expect(Number((await (await request.get(overviewUrl)).json()).data.account.currentBalance)).toBe(1000);
+  await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/detail/cash');
+    await expect(page.getByText('1,000원').first()).toBeVisible();
+    await page.getByRole('button', { name: '배당 내역 수정' }).click();
+    await expect(page.getByText('과거 내역을 수정해도 현재 예수금')).toBeVisible();
+    await page.getByRole('button', { name: '취소' }).click();
+    await page.goto('/detail/settings?view=collection');
+    await expect(page.getByRole('button', { name: '지금 수집 · 서버 미지원' })).toBeDisabled();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  const changed = await request.patch(`/api/cash-transactions/${cashId}`, { data: { amount: '900', grossAmount: '1200', memo: '수정 배당' } });
+  expect(changed.ok()).toBeTruthy();
+  const afterEdit = (await (await request.get(overviewUrl)).json()).data;
+  expect(Number(afterEdit.monthly.dividend)).toBe(900);
+  expect(Number(afterEdit.account.currentBalance)).toBe(1000);
+  expect((await (await request.get(`/api/accounts/${accountId}/cash-transactions`)).json()).data[0].dividend.netAmount).toBe('900');
+  const corrected = await request.patch(`/api/accounts/${accountId}/cash-balance`, { data: { amount: '1500' } });
+  expect(corrected.ok()).toBeTruthy();
+  expect(Number((await (await request.get(overviewUrl)).json()).data.account.currentBalance)).toBe(1500);
+  await page.goto('/detail/settings?view=cash');
+  await expect(page.getByText('1,500원').first()).toBeVisible();
+  const deleted = await request.delete(`/api/cash-transactions/${cashId}`);
+  expect(deleted.ok()).toBeTruthy();
+  const afterDelete = (await (await request.get(overviewUrl)).json()).data;
+  expect(Number(afterDelete.monthly.dividend)).toBe(0);
+  expect(Number(afterDelete.account.currentBalance)).toBe(1500);
+  expect((await (await request.get('/api/collection/status')).json()).data.manualRunAvailable).toBe(false);
+});
+
+test('stock categories: empty search, persisted watchlist deletion, and holding from buy trade', async ({ page, request }) => {
+  const accountResponse = await request.post('/api/accounts', { data: { name: `분류 검증 ${Date.now()}`, brokerName: 'CI' } });
+  const accountId: string = (await accountResponse.json()).data.id;
+  const created = await request.post('/api/securities', { data: { symbol: String(100000 + Math.floor(Math.random() * 800000)), name: '분류검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
+  expect(created.status()).toBe(201);
+  const id: string = (await created.json()).data.id;
+  await page.goto('/');
+  await page.evaluate((value) => localStorage.setItem('roxstock-selected-account-id', value), accountId);
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.goto('/stocks/add?type=watchlist');
+  await page.getByPlaceholder('종목명·종목코드 검색').fill('없는종목999999');
+  await expect(page.getByText('검색 결과가 없습니다')).toBeVisible();
+  await page.goto(`/stocks/${id}`);
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.getByRole('button', { name: '확인' }).click();
+  await expect(page).toHaveURL(/stocks\?tab=watchlist/);
+  const watchlist = await (await request.get('/api/securities?listType=WATCHLIST')).json();
+  expect(watchlist.data.some((item: { id: string }) => item.id === id)).toBe(false);
+  await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: new Date().toISOString(), amount: '10000' } });
+  const buy = await request.post('/api/buy-trades', { data: { accountId, securityId: id, boughtAt: new Date().toISOString(), quantity: '1', unitPrice: '1000', feeTaxAmount: '0' } });
+  expect(buy.status()).toBe(201);
+  await page.goto('/stocks?tab=holding');
+  await expect(page.getByText('분류검증종목').first()).toBeVisible();
+  await page.goto(`/stocks/${id}`);
+  await expect(page.getByRole('tab', { name: '보유 현황' })).toBeVisible();
+  await page.setViewportSize({ width: 725, height: 396 });
+  await page.goto('/stocks?tab=holding');
+  await expect(page.getByRole('table', { name: '보유종목' })).toBeVisible();
+});
+
 test('stock screens use persisted analysis, category, and price data', async ({ page, request }) => {
   const symbol = String(100000 + Math.floor(Math.random() * 800000));
   const created = await request.post('/api/securities', { data: { symbol, name: '화면검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });

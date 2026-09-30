@@ -8,6 +8,8 @@ import { tradeRoutes } from './routes/trades.js';
 import { internalPriceRoutes, priceRoutes } from './routes/prices.js';
 import { portfolioRoutes } from './routes/portfolio.js';
 import { cashRoutes } from './routes/cash.js';
+import { cashMutationRoutes } from './routes/cash-mutations.js';
+import { collectionStatusRoutes } from './routes/collection-status.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -40,6 +42,8 @@ export function buildApp() {
   void app.register(priceRoutes, { prefix: '/api' });
   void app.register(portfolioRoutes, { prefix: '/api' });
   void app.register(cashRoutes, { prefix: '/api' });
+  void app.register(cashMutationRoutes, { prefix: '/api' });
+  void app.register(collectionStatusRoutes, { prefix: '/api' });
   void app.register(internalPriceRoutes);
 
   return app;

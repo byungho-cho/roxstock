@@ -85,6 +85,7 @@ export const summarizeCashGroups = (groups: CashGroup[]) => {
 const mapTransaction = (transaction: {
   id: bigint; transactionType: CashTransactionType; transactionDate: Date; amount: Prisma.Decimal;
   feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal; memo: string | null; createdAt: Date; updatedAt: Date;
+  dividend?: { id: bigint; securityId: bigint; grossAmount: Prisma.Decimal; netAmount: Prisma.Decimal; security: { name: string } } | null;
 }) => ({
   id: transaction.id.toString(),
   transactionType: transaction.transactionType,
@@ -94,6 +95,7 @@ const mapTransaction = (transaction: {
   signedAmount: cashDelta(transaction.transactionType, transaction.amount, transaction.feeTaxAmount).toString(),
   balanceAfter: transaction.balanceAfter.toString(),
   memo: transaction.memo,
+  dividend: transaction.dividend ? { id: transaction.dividend.id.toString(), securityId: transaction.dividend.securityId.toString(), securityName: transaction.dividend.security.name, grossAmount: transaction.dividend.grossAmount.toString(), netAmount: transaction.dividend.netAmount.toString() } : null,
   createdAt: transaction.createdAt.toISOString(),
   updatedAt: transaction.updatedAt.toISOString(),
 });
@@ -132,7 +134,7 @@ export async function cashRoutes(app: FastifyInstance) {
       ...(typedTypes ? { transactionType: { in: typedTypes } } : {}),
     };
     const [transactions, total, groups] = await Promise.all([
-      prisma.cashTransaction.findMany({ where, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], skip: offset, take: limit }),
+      prisma.cashTransaction.findMany({ where, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], skip: offset, take: limit }),
       prisma.cashTransaction.count({ where }),
       groupedSummary(accountId, { gte: from, lt: to }, typedTypes),
     ]);
@@ -151,9 +153,9 @@ export async function cashRoutes(app: FastifyInstance) {
     const month = integer(request.query.month, 'month', nowKst.getMonth() + 1, 1, 12);
     const limit = integer(request.query.limit, 'limit', 10, 1, 100);
     const [monthlyGroups, yearlyGroups, recent] = await Promise.all([
-      groupedSummary(accountId, kstMonthRange(year, month), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL]),
+      groupedSummary(accountId, kstMonthRange(year, month), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
       groupedSummary(accountId, kstYearRange(year), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
-      prisma.cashTransaction.findMany({ where: { accountId }, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], take: limit }),
+      prisma.cashTransaction.findMany({ where: { accountId }, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], take: limit }),
     ]);
     return {
       data: {
