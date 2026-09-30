@@ -182,11 +182,55 @@ export async function securityRoutes(app: FastifyInstance) {
     const securityId = id(request.params.id, 'id');
     const security = await prisma.security.findUnique({ where: { id: securityId }, include: { marketPrice: true, watchlistItem: true } });
     if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
-    const [metrics, statements, fundamentals] = await Promise.all([
+    const [metrics, manualStatements, dartFilings, fundamentals] = await Promise.all([
       prisma.valuationMetric.findMany({ where: { securityId }, orderBy: { metricDate: 'desc' }, take: 2 }),
       prisma.financialStatement.findMany({ where: { securityId }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }], take: 24 }),
+      prisma.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }], take: 40 }),
       prisma.securityFundamentals.findUnique({ where: { securityId } }),
     ]);
+    const manualByPeriod = new Map(manualStatements.map((item) => [`${item.fiscalYear}:${item.periodType}`, item]));
+    const filingByPeriod = new Map<string, typeof dartFilings[number]>();
+    for (const filing of dartFilings) {
+      const key = `${filing.fiscalYear}:${filing.periodType}`;
+      if (!filingByPeriod.has(key)) filingByPeriod.set(key, filing);
+    }
+    const periodKeys = new Set([...manualByPeriod.keys(), ...filingByPeriod.keys()]);
+    for (const annual of dartFilings.filter((item) => item.periodType === 'ANNUAL')) {
+      const q3 = filingByPeriod.get(`${annual.fiscalYear}:Q3`);
+      if (q3 && q3.fsDivision === annual.fsDivision) periodKeys.add(`${annual.fiscalYear}:Q4`);
+    }
+    const statements = [...periodKeys].map((key) => {
+      const [yearString, periodType] = key.split(':');
+      const fiscalYear = Number(yearString);
+      const manual = manualByPeriod.get(key);
+      const filing = filingByPeriod.get(key);
+      const annual = periodType === 'Q4' ? filingByPeriod.get(`${fiscalYear}:ANNUAL`) : undefined;
+      const q3 = periodType === 'Q4' ? filingByPeriod.get(`${fiscalYear}:Q3`) : undefined;
+      const dec = (value: { toString(): string } | null | undefined) => value?.toString() ?? null;
+      const d = (value: unknown) => value === null || value === undefined ? null : String(value);
+      const derived = (annualValue: unknown, q3Value: unknown) => {
+        if (annualValue === null || annualValue === undefined || q3Value === null || q3Value === undefined) return null;
+        try { return (BigInt(String(annualValue)) - BigInt(String(q3Value))).toString(); } catch { return null; }
+      };
+      const dartValue = (field: string) => {
+        if (periodType === 'Q4' && annual && q3 && annual.fsDivision === q3.fsDivision) {
+          const ytdKey = field === 'revenue' ? 'revenueYtd' : field === 'operatingProfit' ? 'operatingProfitYtd' : field === 'netIncome' ? 'netIncomeYtd' : field === 'operatingCashFlow' ? 'operatingCashFlowYtd' : 'capitalExpenditureYtd';
+          return derived((annual as any)[ytdKey]?.toString(), (q3 as any)[ytdKey]?.toString());
+        }
+        if (!filing) return null;
+        const ytd = periodType === 'ANNUAL';
+        const suffix = ytd ? 'Ytd' : 'Quarter';
+        const prop = field === 'totalAssets' || field === 'totalLiabilities' || field === 'totalEquity' ? field : `${field}${suffix}`;
+        return d((filing as any)[prop]?.toString());
+      };
+      const periodEndDate = manual?.periodEndDate ?? filing?.periodEndDate ?? (annual && periodType === 'Q4' ? annual.periodEndDate : null);
+      return { fiscalYear, periodType, periodEndDate: periodEndDate?.toISOString().slice(0, 10) ?? `${fiscalYear}-12-31`,
+        revenue: dec(manual?.revenue) ?? dartValue('revenue'), operatingProfit: dec(manual?.operatingProfit) ?? dartValue('operatingProfit'), netIncome: dec(manual?.netIncome) ?? dartValue('netIncome'),
+        totalAssets: dec(manual?.totalAssets) ?? dartValue('totalAssets'), totalLiabilities: dec(manual?.totalLiabilities) ?? dartValue('totalLiabilities'), totalEquity: dec(manual?.totalEquity) ?? dartValue('totalEquity'),
+        operatingCashFlow: dec(manual?.operatingCashFlow) ?? dartValue('operatingCashFlow'), capitalExpenditure: dec(manual?.capitalExpenditure) ?? dartValue('capitalExpenditure'),
+        source: manual ? 'MANUAL_WITH_DART_FALLBACK' : filing || annual ? 'OPEN_DART' : 'MANUAL', isDerived: periodType === 'Q4' && !manual && Boolean(annual && q3 && annual.fsDivision === q3.fsDivision),
+        dartSource: filing ? { receiptNo: filing.receiptNo, reportName: filing.reportName, fsDivision: filing.fsDivision, collectedAt: filing.collectedAt.toISOString(), source: filing.source } : annual && q3 ? { receiptNo: annual.receiptNo, reportName: annual.reportName, fsDivision: annual.fsDivision, collectedAt: annual.collectedAt.toISOString(), source: 'OPEN_DART_Q4_DERIVED_FROM_YTD' } : null };
+    }).sort((a, b) => b.fiscalYear - a.fiscalYear || String(b.periodType).localeCompare(String(a.periodType))).slice(0, 24);
     return { data: {
       security: serializeSecurity(security),
       valuation: serializeMetrics(metrics[0] ?? null),
@@ -197,18 +241,7 @@ export async function securityRoutes(app: FastifyInstance) {
         treasuryShares: fundamentals.treasuryShares?.toString() ?? null,
         previousEquity: fundamentals.previousEquity?.toString() ?? null,
       },
-      statements: statements.map((statement) => ({
-        fiscalYear: statement.fiscalYear, periodType: statement.periodType,
-        periodEndDate: statement.periodEndDate.toISOString().slice(0, 10),
-        revenue: statement.revenue?.toString() ?? null,
-        operatingProfit: statement.operatingProfit?.toString() ?? null,
-        netIncome: statement.netIncome?.toString() ?? null,
-        totalAssets: statement.totalAssets?.toString() ?? null,
-        totalLiabilities: statement.totalLiabilities?.toString() ?? null,
-        totalEquity: statement.totalEquity?.toString() ?? null,
-        operatingCashFlow: statement.operatingCashFlow?.toString() ?? null,
-        capitalExpenditure: statement.capitalExpenditure?.toString() ?? null,
-      })),
+      statements,
     } };
   });
 

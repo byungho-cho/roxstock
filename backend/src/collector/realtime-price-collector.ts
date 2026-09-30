@@ -23,6 +23,11 @@ export interface RealtimeCollectorOptions {
   apiUrl: string;
   internalToken: string;
   requestTimeoutMs: number;
+  monitor?: {
+    heartbeat: (status: { workerStatus: string; marketSession: string; at: Date }) => Promise<void>;
+    cycle: (data: { startedAt: Date; finishedAt: Date; session: string; targetCount: number; receivedCount: number; sourceFailureCount: number; staleCount: number; publishedCount: number; publishFailureCount: number; savedCount: number; saveFailureCount: number; lastSourcePriceAt: Date | null; sourceError?: string; sourceIssues?: Array<{ symbol: string; reason: string }>; publishError?: string; saveError?: string }) => Promise<void>;
+    stopped: (at: Date) => Promise<void>;
+  };
 }
 
 export type RealtimeMarketSession = 'PRE_MARKET' | 'REGULAR' | 'AFTER_MARKET';
@@ -186,19 +191,25 @@ export const runRealtimeCollector = async (
       const cycleStartedAt = Date.now();
       const marketSession = getRealtimeMarketSession(new Date(cycleStartedAt), options.marketSessions);
       if (!options.enabled || marketSession === null) {
+        await options.monitor?.heartbeat({ workerStatus: options.enabled ? 'RUNNING' : 'DISABLED', marketSession: marketSession ?? 'OUT_OF_SESSION', at: new Date() });
         await sleep(options.intervalSeconds * 1000);
         continue;
       }
       if (cycleStartedAt < staleBackoffUntil) {
+        await options.monitor?.heartbeat({ workerStatus: 'RUNNING', marketSession, at: new Date() });
         await sleep(Math.min(options.intervalSeconds * 1000, staleBackoffUntil - cycleStartedAt));
         continue;
       }
+      let result: RealtimeCycleResult | undefined;
+      let savedCount = 0;
+      let saveError: string | undefined;
+      let targetRefreshError: string | undefined;
       try {
         if (cycleStartedAt >= targetRefreshAt) {
           targets = await repository.listRealtimeSecurities(options.maxSecurities);
           targetRefreshAt = cycleStartedAt + options.targetRefreshSeconds * 1000;
         }
-        const result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish);
+        result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish);
         if (result.targetCount > 0 && result.stale === result.targetCount) {
           staleBackoffUntil = cycleStartedAt + options.staleBackoffSeconds * 1000;
           log('warn', 'all realtime prices are stale; applying source backoff', {
@@ -206,9 +217,14 @@ export const runRealtimeCollector = async (
           });
         }
         if (cycleStartedAt >= dbFlushAt && cache.size > 0) {
-          const stored = await repository.upsertRealtimeMarketPrices([...cache.values()]);
-          dbFlushAt = cycleStartedAt + options.dbFlushSeconds * 1000;
-          log('info', 'realtime price cache flushed', { cached: cache.size, stored });
+          try {
+            savedCount = await repository.upsertRealtimeMarketPrices([...cache.values()]);
+            dbFlushAt = cycleStartedAt + options.dbFlushSeconds * 1000;
+            log('info', 'realtime price cache flushed', { cached: cache.size, stored: savedCount });
+          } catch (error) {
+            saveError = messageOf(error).slice(0, 1000);
+            log('error', 'realtime price cache flush failed', { reason: saveError });
+          }
         }
         log(result.failed > 0 ? 'warn' : 'info', 'realtime price cycle finished', {
           durationMs: Date.now() - cycleStartedAt,
@@ -220,12 +236,25 @@ export const runRealtimeCollector = async (
           log('error', 'realtime price failed for security', failure);
         }
       } catch (error) {
+        targetRefreshError = messageOf(error).slice(0, 1000);
         log('error', 'realtime price cycle aborted', { reason: messageOf(error) });
       }
+      try {
+        await options.monitor?.cycle({
+          startedAt: new Date(cycleStartedAt), finishedAt: new Date(), session: marketSession,
+          targetCount: result?.targetCount ?? targets.length, receivedCount: result?.success ?? 0,
+          sourceFailureCount: result?.failed ?? (targetRefreshError ? targets.length || 1 : 0), staleCount: result?.stale ?? 0,
+          publishedCount: result?.published ?? 0, publishFailureCount: result?.publishError ? 1 : 0,
+          savedCount, saveFailureCount: saveError ? 1 : 0,
+          lastSourcePriceAt: result?.success ? new Date(Math.max(...cacheValuesObservedAt(cache))) : null,
+          ...(targetRefreshError && { sourceError: targetRefreshError }), ...(result?.failures.length && { sourceIssues: result.failures }), ...(result?.publishError && { publishError: result.publishError }), ...(saveError && { saveError }),
+        });
+      } catch (error) { log('error', 'realtime monitoring state write failed', { reason: messageOf(error).slice(0, 300) }); }
       const remaining = options.intervalSeconds * 1000 - (Date.now() - cycleStartedAt);
       if (remaining > 0) await sleep(remaining);
     }
     if (cache.size > 0) await repository.upsertRealtimeMarketPrices([...cache.values()]);
+    await options.monitor?.stopped(new Date());
     log('info', 'realtime price collector stopped');
   };
 
@@ -235,3 +264,5 @@ export const runRealtimeCollector = async (
     await running;
   };
 };
+
+const cacheValuesObservedAt = (cache: Map<string, RealtimePriceValue>): number[] => [...cache.values()].map((value) => value.observedAt.getTime());
