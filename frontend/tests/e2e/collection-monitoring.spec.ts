@@ -44,7 +44,7 @@ test('collection monitor keeps status cards visible while stats refresh and fits
   await expect(page.getByText('DART 재무제표', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: '실시간 주가 상세 보기' }).click();
   await expect(page.getByRole('heading', { name: '실시간 주가' })).toBeVisible();
-  await expect(page.getByText(/워커/).first()).toBeVisible();
+  await expect(page.locator('main p:visible').filter({ hasText: /워커/ }).first()).toBeVisible();
   await expect(page.getByText(/API 응답 본문에서 오류를 확인했습니다/).first()).toBeVisible();
   const requestsBeforeRefresh = { summary: summaryRequests, detail: detailRequests };
   await page.getByRole('button', { name: '통계 새로고침' }).first().click();
