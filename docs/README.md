@@ -46,6 +46,7 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 ## UI·UX 디자인
 
 - [RoxStock UI·UX 디자인 가이드 v0.1](./RoxStock%20UI%C2%B7UX%20디자인%20가이드%20v0.1.md)
+- [RoxStock UI·UX 디자인 가이드 v0.2](./RoxStock%20UI%C2%B7UX%20디자인%20가이드%20v0.2.md): 수집기 전체 모니터링 요약·상세 화면 기획
 
 ## DB 스키마
 
