@@ -2,6 +2,48 @@ import { expect, test } from '@playwright/test';
 import { Prisma } from '../../../backend/src/generated/prisma/index.js';
 import { prisma } from '../../../backend/src/lib/prisma.js';
 
+test('cash v0.2 editing, period picker, and keyboard form use live API at cover and unfolded sizes', async ({ page, request }) => {
+  const accountResponse = await request.post('/api/accounts', { data: { name: `예수금 UI ${Date.now()}`, brokerName: 'CI' } });
+  expect(accountResponse.status()).toBe(201);
+  const accountId: string = (await accountResponse.json()).data.id;
+  await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
+  for (const [width, height] of [[370, 465], [725, 396]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/detail/cash');
+    await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toBeVisible();
+    await page.getByRole('button', { name: '현재 예수금 편집' }).press('Enter');
+    await page.getByRole('textbox', { name: '변경 예수금' }).fill('5000');
+    await page.getByRole('button', { name: '변경', exact: true }).click();
+    await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toContainText('5,000원');
+    await page.getByRole('button', { name: '기간 직접 선택' }).click();
+    await expect(page.getByText('월간 기간 선택')).toBeVisible();
+    await page.getByRole('button', { name: '선택', exact: true }).click();
+    await page.getByRole('button', { name: '월간 연간 전환' }).click();
+    await page.getByRole('button', { name: '기간 직접 선택' }).click();
+    await expect(page.getByText('연간 기간 선택')).toBeVisible();
+    await page.getByRole('button', { name: '선택', exact: true }).click();
+  }
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.goto('/detail/cash');
+  await page.getByRole('button', { name: '예수금 등록' }).click();
+  await page.getByRole('textbox', { name: '금액' }).fill('1000');
+  await page.getByRole('textbox', { name: '금액' }).press('Enter');
+  await expect(page.getByRole('textbox', { name: '메모' })).toBeFocused();
+  await page.getByRole('textbox', { name: '메모' }).fill('키보드 등록');
+  await page.getByRole('textbox', { name: '메모' }).press('Enter');
+  await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toContainText('6,000원');
+  expect(Number((await (await request.get(`/api/accounts/${accountId}/cash-overview`)).json()).data.account.currentBalance)).toBe(6000);
+  await page.getByRole('button', { name: '입금 내역 수정' }).click();
+  await page.getByRole('textbox', { name: '금액' }).fill('900');
+  await page.getByRole('button', { name: '변경', exact: true }).click();
+  await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toContainText('6,000원');
+  await page.getByRole('button', { name: '입금 내역 수정' }).click();
+  await page.getByRole('button', { name: '삭제', exact: true }).first().click();
+  await page.getByRole('button', { name: '삭제', exact: true }).last().click();
+  await expect(page.getByRole('button', { name: '입금 내역 수정' })).toHaveCount(0);
+});
+
 test('cash dividend, historical edits, correction, and collection status use persisted API data', async ({ page, request }) => {
   const account = await request.post('/api/accounts', { data: { name: `예수금 검증 ${Date.now()}`, brokerName: 'CI' } });
   expect(account.status()).toBe(201);
