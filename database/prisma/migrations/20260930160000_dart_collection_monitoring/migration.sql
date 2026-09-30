@@ -81,7 +81,7 @@ CREATE TABLE `dart_security_state` (
   `last_error` VARCHAR(1000) NULL,
   `updated_at` DATETIME(3) NOT NULL,
   PRIMARY KEY (`security_id`),
-  INDEX `dart_security_state_backfill_started_at_backfill_completed_at_idx` (`backfill_started_at`, `backfill_completed_at`),
+  INDEX `dart_security_backfill_queue_idx` (`backfill_started_at`, `backfill_completed_at`),
   INDEX `dart_security_state_priority_checked_at_idx` (`priority_checked_at`),
   INDEX `dart_security_state_universe_checked_at_idx` (`universe_checked_at`),
   CONSTRAINT `dart_security_state_security_id_fkey` FOREIGN KEY (`security_id`) REFERENCES `securities`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
