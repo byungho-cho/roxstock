@@ -60,6 +60,15 @@ export interface CollectorConfig {
   realtimeAfterMarketClose: string;
   realtimeApiUrl: string;
   realtimeInternalToken: string;
+  dartEnabled: boolean;
+  dartDailyCallLimit: number;
+  dartMinDelayMs: number;
+  dartBackfillStartYear: number;
+  dartBackfillCompanyLimit: number;
+  dartUniverseBatchSize: number;
+  dartWindowStartHour: number;
+  dartWindowEndHour: number;
+  dartCorpRefreshHours: number;
 }
 
 export const loadCollectorConfig = (): CollectorConfig => {
@@ -72,6 +81,13 @@ export const loadCollectorConfig = (): CollectorConfig => {
   if (snapshotHours.some((value) => !Number.isInteger(value) || value < 0 || value > 23)) {
     throw new Error('COLLECTOR_SNAPSHOT_HOURS must contain comma-separated hours from 0 to 23');
   }
+
+  const dartDailyCallLimit = positiveInteger(process.env.DART_DAILY_CALL_LIMIT, 3000, 'DART_DAILY_CALL_LIMIT');
+  if (dartDailyCallLimit > 3000) throw new Error('DART_DAILY_CALL_LIMIT cannot exceed 3000');
+  const dartBackfillStartYear = positiveInteger(process.env.DART_BACKFILL_START_YEAR, 2015, 'DART_BACKFILL_START_YEAR');
+  if (dartBackfillStartYear !== 2015) throw new Error('DART_BACKFILL_START_YEAR must remain 2015');
+  const dartBackfillCompanyLimit = positiveInteger(process.env.DART_BACKFILL_COMPANY_LIMIT, 100, 'DART_BACKFILL_COMPANY_LIMIT');
+  if (dartBackfillCompanyLimit > 100) throw new Error('DART_BACKFILL_COMPANY_LIMIT cannot exceed 100');
 
   return {
     provider,
@@ -105,5 +121,14 @@ export const loadCollectorConfig = (): CollectorConfig => {
     realtimeAfterMarketClose: clockTime(process.env.COLLECTOR_REALTIME_AFTER_MARKET_CLOSE, '20:00', 'COLLECTOR_REALTIME_AFTER_MARKET_CLOSE'),
     realtimeApiUrl: (process.env.COLLECTOR_REALTIME_API_URL ?? 'http://backend:3300/internal/realtime-prices').trim(),
     realtimeInternalToken: (process.env.COLLECTOR_INTERNAL_TOKEN ?? '').trim(),
+    dartEnabled: boolean(process.env.DART_COLLECTOR_ENABLED, true, 'DART_COLLECTOR_ENABLED'),
+    dartDailyCallLimit,
+    dartMinDelayMs: integerAtLeast(process.env.DART_MIN_DELAY_MS, 5000, 5000, 'DART_MIN_DELAY_MS'),
+    dartBackfillStartYear,
+    dartBackfillCompanyLimit,
+    dartUniverseBatchSize: positiveInteger(process.env.DART_UNIVERSE_DAILY_COMPANIES, 35, 'DART_UNIVERSE_DAILY_COMPANIES'),
+    dartWindowStartHour: hour(process.env.DART_NIGHT_WINDOW_START_HOUR, 18, 'DART_NIGHT_WINDOW_START_HOUR'),
+    dartWindowEndHour: hour(process.env.DART_NIGHT_WINDOW_END_HOUR, 6, 'DART_NIGHT_WINDOW_END_HOUR'),
+    dartCorpRefreshHours: positiveInteger(process.env.DART_CORP_CODE_REFRESH_HOURS, 24, 'DART_CORP_CODE_REFRESH_HOURS'),
   };
 };

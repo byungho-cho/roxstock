@@ -11,7 +11,7 @@ const coverItems = [
   { label: '종목목록', path: '/stocks', icon: <MenuRounded /> }, { label: '매매일지', path: '/journal', icon: <CalendarMonthRounded /> },
   { label: '홈', path: '/', icon: <HomeRounded /> }, { label: '자산분석', path: '/assets', icon: <DonutSmallOutlined /> }, { label: '더보기', path: '/more', icon: <MoreHorizRounded /> },
 ];
-const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <PaidOutlined /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletOutlined /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/financials', icon: <AssessmentOutlined /> }, { label: '시세수집', path: '/collection', icon: <SyncRounded /> }, coverItems[4]];
+const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <PaidOutlined /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletOutlined /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/financials', icon: <AssessmentOutlined /> }, { label: '수집현황', path: '/detail/collection-monitoring', icon: <SyncRounded /> }, coverItems[4]];
 
 type PageHeaderProps = {
   title: string;
