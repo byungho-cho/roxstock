@@ -12,6 +12,7 @@ test('cash v0.2 editing, period picker, and keyboard form use live API at cover 
     await page.setViewportSize({ width, height });
     await page.goto('/detail/cash');
     await expect(page.getByRole('button', { name: '현재 예수금 편집' })).toBeVisible();
+    await page.screenshot({ path: `test-results/cash-v02-${width}x${height}.png` });
     await page.getByRole('button', { name: '현재 예수금 편집' }).press('Enter');
     await page.getByRole('textbox', { name: '변경 예수금' }).fill('5000');
     await page.getByRole('button', { name: '변경', exact: true }).click();
