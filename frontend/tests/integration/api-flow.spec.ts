@@ -47,6 +47,36 @@ test('cash dividend, historical edits, correction, and collection status use per
   expect((await (await request.get('/api/collection/status')).json()).data.manualRunAvailable).toBe(false);
 });
 
+test('stock categories: empty search, persisted watchlist deletion, and holding from buy trade', async ({ page, request }) => {
+  const accountResponse = await request.post('/api/accounts', { data: { name: `분류 검증 ${Date.now()}`, brokerName: 'CI' } });
+  const accountId: string = (await accountResponse.json()).data.id;
+  const created = await request.post('/api/securities', { data: { symbol: String(100000 + Math.floor(Math.random() * 800000)), name: '분류검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
+  expect(created.status()).toBe(201);
+  const id: string = (await created.json()).data.id;
+  await page.goto('/');
+  await page.evaluate((value) => localStorage.setItem('roxstock-selected-account-id', value), accountId);
+  await page.setViewportSize({ width: 370, height: 465 });
+  await page.goto('/stocks/add?type=watchlist');
+  await page.getByPlaceholder('종목명·종목코드 검색').fill('없는종목999999');
+  await expect(page.getByText('검색 결과가 없습니다')).toBeVisible();
+  await page.goto(`/stocks/${id}`);
+  await page.getByRole('button', { name: '삭제', exact: true }).click();
+  await page.getByRole('button', { name: '확인' }).click();
+  await expect(page).toHaveURL(/stocks\?tab=watchlist/);
+  const watchlist = await (await request.get('/api/securities?listType=WATCHLIST')).json();
+  expect(watchlist.data.some((item: { id: string }) => item.id === id)).toBe(false);
+  await request.post('/api/cash-transactions', { data: { accountId, transactionType: 'DEPOSIT', transactionDate: new Date().toISOString(), amount: '10000' } });
+  const buy = await request.post('/api/buy-trades', { data: { accountId, securityId: id, boughtAt: new Date().toISOString(), quantity: '1', unitPrice: '1000', feeTaxAmount: '0' } });
+  expect(buy.status()).toBe(201);
+  await page.goto('/stocks?tab=holding');
+  await expect(page.getByText('분류검증종목').first()).toBeVisible();
+  await page.goto(`/stocks/${id}`);
+  await expect(page.getByRole('tab', { name: '보유 현황' })).toBeVisible();
+  await page.setViewportSize({ width: 725, height: 396 });
+  await page.goto('/stocks?tab=holding');
+  await expect(page.getByRole('table', { name: '보유종목' })).toBeVisible();
+});
+
 test('stock screens use persisted analysis, category, and price data', async ({ page, request }) => {
   const symbol = String(100000 + Math.floor(Math.random() * 800000));
   const created = await request.post('/api/securities', { data: { symbol, name: '화면검증종목', marketType: 'OTHER', listType: 'WATCHLIST' } });
