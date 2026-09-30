@@ -43,6 +43,7 @@ export interface FinancialStatementDto {
   revenue: string | null; operatingProfit: string | null; netIncome: string | null;
   totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null;
   operatingCashFlow: string | null; capitalExpenditure: string | null;
+  source?: string; isDerived?: boolean; dartSource?: { receiptNo: string; reportName: string; fsDivision: 'CFS' | 'OFS'; collectedAt: string; source: string } | null;
 }
 export interface SecurityAnalysisDto {
   security: SecurityDto; valuation: ValuationDto | null; previousValuation: ValuationDto | null;
@@ -230,6 +231,17 @@ export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id:
 export const correctCashBalance = (accountId: string, amount: string) => apiRequest<{ accountId: string; previousBalance: string; cashBalance: string }>(`/accounts/${encodeURIComponent(accountId)}/cash-balance`, { method: 'PATCH', body: JSON.stringify({ amount }) });
 export type CollectionStatusDto = { latestRun: { id: string; status: string; startedAt: string; finishedAt: string | null; successCount: number; failureCount: number; failureReason: string | null } | null; latestPriceAt: string | null; manualRunAvailable: false; settingsAvailable: false };
 export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/collection/status');
+export interface CollectionMonitorSummary {
+  generatedAt: string; timezone: string;
+  features: Array<{ id: string; name: string; schedule: string; status: string; lastAttemptAt: string | null; lastSuccessAt: string | null; lastDataAt: string | null; statsGeneratedAt: string; nextAt: string | null;
+    recent: { target: number; processed: number; success: number; failed: number; skipped: number }; lastError?: string | null; failureReason?: string | null; phase?: string; backfillCompletedAt?: string | null; backfill?: { planned: number; success: number; noFiling: number; notApplicable: number; failed: number; pending: number }; priorityPending?: number; universePending?: number; dailyApiCalls?: number; dailyApiLimit?: number; companyChecks?: number; lastCollectedAt?: string | null; latestReceiptDate?: string | null;
+    realtime?: { workerStatus: string; heartbeatAt: string | null; session: string; cycleStartedAt: string | null; cycleFinishedAt: string | null; lastPriceReceivedAt: string | null; lastSourcePriceAt: string | null; lastSsePublishedAt: string | null; lastDbSavedAt: string | null; sourceError: string | null; publishError: string | null; saveError: string | null; counts: Record<string, number> } }>;
+}
+export const getCollectionMonitorSummary = () => apiRequest<CollectionMonitorSummary>('/collection/monitoring');
+export const getCollectionMonitorDetail = (feature: string, query: Record<string, string> = {}) => {
+  const params = new URLSearchParams(query);
+  return apiRequest<Record<string, unknown>>(`/collection/monitoring/${encodeURIComponent(feature)}${params.size ? `?${params.toString()}` : ''}`);
+};
 
 export interface TradeDto {
   id: string;

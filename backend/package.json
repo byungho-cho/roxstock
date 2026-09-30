@@ -12,6 +12,7 @@
     "test": "node --import tsx --test src/domain/*.test.ts src/collector/*.test.ts src/routes/*.test.ts",
     "collector": "tsx src/collector/worker.ts daemon",
     "collector:realtime": "tsx src/collector/realtime-worker.ts",
+    "collector:dart": "tsx src/collector/dart-worker.ts",
     "collector:once:prices": "tsx src/collector/worker.ts prices",
     "collector:once:securities": "tsx src/collector/worker.ts securities",
     "collector:once:snapshots": "tsx src/collector/worker.ts snapshots",

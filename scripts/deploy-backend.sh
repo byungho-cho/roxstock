@@ -8,6 +8,7 @@ ENV_FILE="${PROJECT_DIR}/backend/.env.production"
 CONTAINER_NAME="roxstock-backend"
 COLLECTOR_CONTAINER_NAME="roxstock-collector"
 REALTIME_COLLECTOR_CONTAINER_NAME="roxstock-realtime-collector"
+DART_COLLECTOR_CONTAINER_NAME="roxstock-dart-collector"
 HEALTH_TIMEOUT=120
 COMPOSE=(docker compose --project-name roxstock-backend --file "${COMPOSE_FILE}")
 
@@ -43,7 +44,7 @@ flock -n 9 || { echo "Another backend deployment is running."; exit 1; }
 
 "${COMPOSE[@]}" config --quiet
 echo "[1/5] Pulling backend image"
-"${COMPOSE[@]}" pull backend collector realtime-collector
+"${COMPOSE[@]}" pull backend collector realtime-collector dart-collector
 
 echo "[2/5] Applying Prisma migrations safely (deploy is idempotent)"
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate deploy --schema database/prisma/schema.prisma'
@@ -73,25 +74,28 @@ while (( SECONDS < deadline )); do
   status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}missing-healthcheck{{end}}' "${CONTAINER_NAME}" 2>/dev/null || true)"
   [[ "${status}" == "healthy" ]] && {
     docker exec "${CONTAINER_NAME}" node -e "fetch('http://127.0.0.1:3300/health/db').then(async r=>{if(!r.ok){console.error(await r.text());process.exit(1)}}).catch(e=>{console.error(e);process.exit(1)})"
-    echo "Starting isolated batch and realtime collector services"
-    "${COMPOSE[@]}" up -d --force-recreate --no-deps --pull never collector realtime-collector
+    echo "Starting isolated batch, realtime, and DART collector services"
+    "${COMPOSE[@]}" up -d --force-recreate --no-deps --pull never collector realtime-collector dart-collector
     collector_deadline=$((SECONDS + 60))
     while (( SECONDS < collector_deadline )); do
       collector_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
       realtime_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${REALTIME_COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
-      if [[ "${collector_status}" =~ ^(healthy|running)$ && "${realtime_status}" =~ ^(healthy|running)$ ]]; then
+      dart_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${DART_COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
+      if [[ "${collector_status}" =~ ^(healthy|running)$ && "${realtime_status}" =~ ^(healthy|running)$ && "${dart_status}" =~ ^(healthy|running)$ ]]; then
         echo "Collector deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
         echo "Realtime collector deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
+        echo "DART collector deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
         echo "Backend deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
         "${COMPOSE[@]}" ps
         exit 0
       fi
-      [[ "${collector_status}" =~ ^(unhealthy|exited|dead)$ || "${realtime_status}" =~ ^(unhealthy|exited|dead)$ ]] && break
+      [[ "${collector_status}" =~ ^(unhealthy|exited|dead)$ || "${realtime_status}" =~ ^(unhealthy|exited|dead)$ || "${dart_status}" =~ ^(unhealthy|exited|dead)$ ]] && break
       sleep 2
     done
     echo "One or more collector services failed to become healthy; API remains running."
     "${COMPOSE[@]}" logs --tail=100 collector || true
     "${COMPOSE[@]}" logs --tail=100 realtime-collector || true
+    "${COMPOSE[@]}" logs --tail=100 dart-collector || true
     echo "Backend deployment completed: newrox/roxstock-backend:${IMAGE_TAG}"
     "${COMPOSE[@]}" ps
     exit 1

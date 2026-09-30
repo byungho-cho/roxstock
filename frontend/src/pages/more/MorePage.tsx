@@ -13,7 +13,7 @@ const shortcuts = [
   { label: '복리계획', path: '/detail/compound', icon: <TrackChangesOutlined /> },
   { label: '가치분석', path: '/detail/value', icon: <AutoGraphOutlined /> },
   { label: '재무제표', path: '/detail/financials', icon: <AssessmentOutlined /> },
-  { label: '시세수집', path: '/detail/settings?view=collection', icon: <SyncRounded /> },
+  { label: '수집 모니터링', path: '/detail/collection-monitoring', icon: <SyncRounded /> },
   { label: '설정', path: '/detail/settings?view=settings', icon: <SettingsOutlined /> },
 ];
 

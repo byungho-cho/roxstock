@@ -88,6 +88,34 @@ services:
       retries: 3
       start_period: 10s
 
+  dart-collector:
+    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    container_name: roxstock-dart-collector
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Seoul
+      DART_COLLECTOR_ENABLED: ${DART_COLLECTOR_ENABLED:-true}
+      DART_DAILY_CALL_LIMIT: ${DART_DAILY_CALL_LIMIT:-3000}
+      DART_MIN_DELAY_MS: ${DART_MIN_DELAY_MS:-5000}
+      DART_BACKFILL_START_YEAR: ${DART_BACKFILL_START_YEAR:-2015}
+      DART_BACKFILL_COMPANY_LIMIT: ${DART_BACKFILL_COMPANY_LIMIT:-100}
+      DART_UNIVERSE_DAILY_COMPANIES: ${DART_UNIVERSE_DAILY_COMPANIES:-35}
+      DART_NIGHT_WINDOW_START_HOUR: ${DART_NIGHT_WINDOW_START_HOUR:-18}
+      DART_NIGHT_WINDOW_END_HOUR: ${DART_NIGHT_WINDOW_END_HOUR:-6}
+      DART_CORP_CODE_REFRESH_HOURS: ${DART_CORP_CODE_REFRESH_HOURS:-24}
+    command: ["node", "backend/dist/collector/dart-worker.js"]
+    networks:
+      - db
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:fs').readFileSync('/proc/1/cmdline','utf8').includes('dart-worker.js')||process.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 networks:
   app:
     external: true
