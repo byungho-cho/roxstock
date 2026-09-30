@@ -176,7 +176,7 @@ CREATE TABLE `dart_financial_filings` (
   `account_sources` JSON NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `dart_financial_filings_receipt_no_key` (`receipt_no`),
-  INDEX `dart_financial_filings_security_id_fiscal_year_period_type_receipt_date_idx` (`security_id`, `fiscal_year`, `period_type`, `receipt_date`),
+  INDEX `dart_filing_company_period_idx` (`security_id`, `fiscal_year`, `period_type`, `receipt_date`),
   INDEX `dart_financial_filings_fiscal_year_period_type_idx` (`fiscal_year`, `period_type`),
   CONSTRAINT `dart_financial_filings_security_id_fkey` FOREIGN KEY (`security_id`) REFERENCES `securities`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
