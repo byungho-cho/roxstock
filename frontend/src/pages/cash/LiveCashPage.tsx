@@ -31,7 +31,7 @@ const overviewQuery = (accountId: string, mode: 'month' | 'year', period: string
 export function LiveCashPage() {
   const queryClient = useQueryClient();
   const { accountId, accounts } = useActiveAccount();
-  const holdingStocks = useStocks('holding');
+  const dividendStocks = useStocks();
   const [mode, setMode] = useState<'month' | 'year'>('month');
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
@@ -172,7 +172,7 @@ export function LiveCashPage() {
       <DialogContent><Stack spacing={1.5} sx={{ pt: 1 }}>
         <Stack direction="row" spacing={1}>{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map((option) => <Button key={option} disabled={!!editing && type !== option} variant={type === option ? 'contained' : 'outlined'} onClick={() => setType(option)}>{labels[option]}</Button>)}</Stack>
         <DateField label="거래일자" value={date} onChange={setDate} />
-        {type === 'DIVIDEND' && <><FormSelect label="배당 종목" value={securityId} onChange={setSecurityId} options={holdingStocks.data?.map((stock) => ({ value: stock.id, label: stock.name })) ?? []} /><NumberField label="세전 배당금" value={gross} onChange={(value) => { setGross(value); setAmount(String(Math.max(0, Number(value) - Number(tax)))); }} suffix="원" required /><NumberField label="원천징수 세금" value={tax} onChange={(value) => { setTax(value); setAmount(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" /></>}
+        {type === 'DIVIDEND' && <><FormSelect label="배당 종목" value={securityId} onChange={setSecurityId} options={dividendStocks.data?.map((stock) => ({ value: stock.id, label: stock.name })) ?? []} /><NumberField label="세전 배당금" value={gross} onChange={(value) => { setGross(value); setAmount(String(Math.max(0, Number(value) - Number(tax)))); }} suffix="원" required /><NumberField label="원천징수 세금" value={tax} onChange={(value) => { setTax(value); setAmount(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" /></>}
         <NumberField label={type === 'DIVIDEND' ? '세후 배당금' : '금액'} value={amount} onChange={setAmount} suffix="원" required autoFocus enterKeyHint="next" />
         <FormTextField label="메모" value={memo} onChange={setMemo} enterKeyHint="done" onEnter={submit} />
         {editing && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>과거 내역을 수정해도 현재 예수금은 자동으로 변경되지 않습니다. 현재 잔액은 설정에서 직접 수정할 수 있습니다.</Typography>}
