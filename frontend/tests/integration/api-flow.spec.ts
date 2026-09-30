@@ -529,7 +529,7 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
     const from = new URL(route.request().url()).searchParams.get('from');
     return from === queryStart(previous) ? route.fulfill({ status: 503, body: '{"error":{"message":"temporary failure"}}' }) : route.continue();
   });
-  await page.goto('/journal');
+  await page.getByRole('button', { name: '매매일지', exact: true }).click();
   await expect(page.getByText('총 0건')).toBeVisible();
   await page.getByRole('button', { name: '이전 달' }).click();
   await expect(page.getByText('2 × 1,000원')).toHaveCount(0);
