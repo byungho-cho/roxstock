@@ -1,0 +1,78 @@
+name: Production Home QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_ref:
+        description: Branch, tag, or commit containing the QA test code
+        required: true
+        default: main
+        type: string
+      target_url:
+        description: Read-only production URL
+        required: true
+        default: https://newrox.cafe24.com
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-home-qa-${{ inputs.test_ref }}
+  cancel-in-progress: false
+
+jobs:
+  home:
+    name: Home / ${{ matrix.viewport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport:
+          - cover-required-370x465
+          - unfolded-required-725x396
+          - cover-responsive-400x640
+          - unfolded-responsive-816x616
+    env:
+      CI: true
+      QA_BASE_URL: ${{ inputs.target_url }}
+      QA_TEST_REF: ${{ inputs.test_ref }}
+    steps:
+      - name: Checkout selected QA test ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.test_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Record checked-out test SHA
+        shell: bash
+        run: echo "QA_TEST_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Install frontend dependencies
+        run: npm ci --workspace frontend --include-workspace-root=false
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run read-only production home QA
+        working-directory: frontend
+        run: npx playwright test --config=playwright.production.config.ts --project="${{ matrix.viewport }}"
+
+      - name: Upload viewport evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-home-qa-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.viewport }}
+          path: |
+            frontend/test-results/production-home-*/
+            frontend/playwright-report-production/
+            frontend/qa-results/
+          if-no-files-found: warn
+          retention-days: 30
