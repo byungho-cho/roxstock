@@ -36,7 +36,7 @@ test('100 home v0.3 fits the measured cover and unfolded viewports', async ({ pa
     expect(layout.mainScrollable).toBe(true);
   } else {
     expect(layout.cards[2].height).toBe(130);
-    expect(Math.abs(layout.cards[0].left - 16)).toBeLessThan(1);
+    expect(Math.abs(layout.cards[0].left - 8)).toBeLessThan(1);
     expect(Math.abs(layout.cards[0].top - layout.right.top)).toBeLessThan(1);
     expect(Math.abs(layout.cards[2].bottom - layout.right.bottom)).toBeLessThan(1);
     expect(layout.mainScrollable).toBe(true);
