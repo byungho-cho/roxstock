@@ -33,7 +33,7 @@ async function checkLayout(page:Page){
   expect(r.overflow).toBe(false);expect(r.header).toBe(44);expect(r.nav).toBe(44);
 }
 test('home five-lot summary, complete snapshot, row navigation and bottom safety',async({page},info)=>{
-  await fixture(page);await page.goto('/');const card=page.getByTestId('target-arrival-card');await expect(card.getByText('전체 26건')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
+  await fixture(page);await page.goto('/');const card=page.getByTestId('target-arrival-card');await expect(card.getByText('26건')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await checkLayout(page);await card.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('home-cards.png')});
   await card.getByRole('button',{name:'더보기',exact:true}).click();await expect(page).toHaveURL(/target-arrivals/);await expect(page.getByTestId('target-lot')).toHaveCount(20);
   await page.getByRole('button',{name:'20건 더 보기'}).click();await expect(page.getByTestId('target-lot')).toHaveCount(26);
@@ -49,7 +49,7 @@ test('conditions edit, max five, enter flow, retry and explicit empty settings',
   await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByText('저장했습니다. 홈 목록을 갱신했습니다.')).toBeVisible();await page.goto('/detail/target-arrivals');await expect(page.getByText('조건이 설정되지 않아 기능이 비활성화되었습니다.')).toBeVisible();await page.screenshot({path:info.outputPath('conditions-empty.png')});
 });
 test('unavailable is distinct from empty and account switches discard prior results',async({page})=>{
-  const f=await fixture(page);f.unavailable();await page.goto('/detail/target-arrivals');await expect(page.getByText(/판정 불가 2건/)).toBeVisible();await expect(page.getByText('현재 목표가 도래 항목이 없습니다.')).toHaveCount(0);
+  const f=await fixture(page);f.unavailable();await page.goto('/detail/target-arrivals');await expect(page.getByText(/판정 불가 2건/)).toBeVisible();await expect(page.getByText('내용이 없습니다.')).toHaveCount(0);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('target-lot')).toHaveCount(0);
 });
 test('long names and large amounts preserve all numeric cells',async({page},info)=>{
