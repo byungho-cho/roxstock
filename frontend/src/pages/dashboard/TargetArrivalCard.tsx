@@ -36,7 +36,7 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
   const report = query.data?.meta.accountId === query.accountId ? query.data : undefined;
   const failed = query.isError || query.accounts.isError;
   if (!full) return <HomeListCard testId="target-arrival-card" title="목표가 도래" count={report ? `${report.meta.total}건` : undefined}
-    action={<IconButton aria-label="목표가 도래 조건 설정" onClick={() => navigate(targetSettingsPath)} sx={{ width: 20, height: 20, p: 0, color: colors.textMuted }}><SettingsOutlined sx={{ fontSize: 16 }} /></IconButton>}
+    titleAction={() => navigate(targetSettingsPath)}
     notice={failed ? '조회 실패 · 이전 결과' : report?.meta.unavailableCount ? `시세·거래 데이터 판정 불가 ${report.meta.unavailableCount}건 · 확인 가능한 Lot 기준` : undefined} timestamp={report?.meta.priceAsOf} updating={query.isFetching} more={report?.meta.enabled && report.meta.total > 5 ? () => navigate('/detail/target-arrivals') : undefined}>
     {failed && !report && <HomeEmpty>목표가 도래 조회 실패{report && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void query.refetch(); void query.accounts.refetch(); }}>재시도</Button></HomeEmpty>}
     {!report && !failed && (query.accountId || query.accounts.isPending ? <Skeleton variant="rounded" height={76} /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}

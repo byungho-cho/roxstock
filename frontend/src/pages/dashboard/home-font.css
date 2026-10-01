@@ -1,0 +1,10 @@
+@font-face {
+  font-family: 'RoxHomeInter';
+  src: url('/home-v03/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+.rox-home, .rox-home .MuiTypography-root {
+  font-family: 'RoxHomeInter', Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
