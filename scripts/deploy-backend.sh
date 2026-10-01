@@ -76,7 +76,8 @@ while (( SECONDS < deadline )); do
     docker exec "${CONTAINER_NAME}" node -e "fetch('http://127.0.0.1:3300/health/db').then(async r=>{if(!r.ok){console.error(await r.text());process.exit(1)}}).catch(e=>{console.error(e);process.exit(1)})"
     echo "Starting isolated batch, realtime, and DART collector services"
     "${COMPOSE[@]}" up -d --force-recreate --no-deps --pull never collector realtime-collector dart-collector
-    collector_deadline=$((SECONDS + 60))
+    # Allow the previous 45-second realtime worker lease and Docker restart/health intervals to settle.
+    collector_deadline=$((SECONDS + 180))
     while (( SECONDS < collector_deadline )); do
       collector_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
       realtime_status="$(docker container inspect --format '{{if ne .State.Status "running"}}{{.State.Status}}{{else if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}' "${REALTIME_COLLECTOR_CONTAINER_NAME}" 2>/dev/null || true)"
@@ -133,3 +134,4 @@ fi
 
 "${COMPOSE[@]}" ps
 exit 1
+
