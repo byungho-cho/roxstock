@@ -57,6 +57,8 @@ export interface DashboardSummary {
   stockValue: number;
   stockPurchaseAmount: number;
   cashBalance: number;
+  previousDayChange?: number;
+  previousDayChangeRate?: number;
   dailyProfit: number;
   dailyProfitRate: number;
   stockMonthlyProfit: number;
