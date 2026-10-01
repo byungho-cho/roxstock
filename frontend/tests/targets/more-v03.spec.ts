@@ -17,7 +17,9 @@ test('more v0.3: 12 equal buttons, fixed header/nav, 8px edges and exact icon si
   await fixture(page); await page.goto('/more');
   const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(12);
   await expect(menu.getByRole('button')).toHaveText(menus.map(([label])=>label));
-  await expect(page.getByRole('heading',{name:'더보기',exact:true})).toHaveCount(0);await expect(page.getByText('메뉴',{exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'뒤로가기'})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'더보기',exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{name:'메뉴',exact:true})).toBeVisible();
+  const title=await page.getByRole('heading',{name:'메뉴',exact:true}).boundingBox();expect(title!.x).toBe(8);expect(title!.y+title!.height).toBeLessThanOrEqual(44);
+  expect(await page.locator('header .MuiToolbar-root').evaluate(n=>[getComputedStyle(n).paddingLeft,getComputedStyle(n).paddingRight])).toEqual(['8px','8px']);await expect(page.getByRole('button',{name:'뒤로가기'})).toHaveCount(0);
   await page.evaluate(()=>document.fonts.ready);
   const state=await page.evaluate(()=>{
     const main=document.querySelector('main')!,menu=document.querySelector('[data-testid="more-menu"]')!,nav=document.querySelector('.MuiBottomNavigation-root:not([hidden])')!;
