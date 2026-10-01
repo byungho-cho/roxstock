@@ -73,7 +73,7 @@ export function LiveStockDetailPage() {
       <Dialog open={dialog !== null} onClose={() => setDialog(null)} fullWidth maxWidth="xs"><DialogTitle>{dialog === 'delete' ? '종목을 삭제할까요?' : '종목 분류 변경'}</DialogTitle><DialogContent>{dialog === 'delete' ? '목록에서 이 종목이 삭제됩니다.' : <Stack spacing={1}><Button variant={category === 'WATCHLIST' ? 'contained' : 'outlined'} onClick={() => setCategory('WATCHLIST')}>관심종목</Button><Button variant={category === 'RECOMMENDED' ? 'contained' : 'outlined'} onClick={() => setCategory('RECOMMENDED')}>추천종목</Button></Stack>}</DialogContent><DialogActions><Button onClick={() => setDialog(null)}>취소</Button><Button disabled={busy} color={dialog === 'delete' ? 'error' : 'primary'} onClick={() => void updateList()}>확인</Button></DialogActions></Dialog>
       <CurrentPriceDialog stock={priceOpen ? stock : null} inputRef={priceInputRef} onClose={() => setPriceOpen(false)} onSave={async (value) => {
         try {
-          await updateSecurityPrice(stock.id, String(value));
+          await updateSecurityPrice(stock.id, String(value)); await queryClient.invalidateQueries({ queryKey: ['targetArrivals'] });
           await Promise.all([queryClient.invalidateQueries({ queryKey: ['stocks'] }), queryClient.invalidateQueries({ queryKey: ['securityAnalysis', stock.id] })]);
           setPriceOpen(false);
         } catch (cause) { setError(cause instanceof Error ? cause.message : '현재가 변경에 실패했습니다.'); }
@@ -81,3 +81,4 @@ export function LiveStockDetailPage() {
     </>}
   </Stack>;
 }
+

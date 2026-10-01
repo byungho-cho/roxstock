@@ -24,7 +24,7 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
       const response = await resetAccountData(selected.id);
       if (response.accountId !== selected.id) throw new Error('서버 응답의 계좌 ID가 일치하지 않습니다.');
       accepted.current = true;
-      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'cashOverview', 'cashTransactions', 'assetHistory'].includes(String(query.queryKey[0]));
+      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys', 'cashOverview', 'cashTransactions', 'assetHistory'].includes(String(query.queryKey[0]));
       await client.cancelQueries({ predicate: affected }); client.removeQueries({ predicate: affected });
       const [accounts, dashboard, holdings, trades, cashHistory, cashOverview, assetHistory] = await Promise.all([
         listAccounts(), getAccountDashboard(selected.id), getAccountHoldings(selected.id), getTrades(selected.id),
@@ -68,3 +68,4 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
   </Box>;
   return tablet ? <Dialog open onClose={close} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { bgcolor: '#080D19', maxHeight: 'calc(100dvh - 88px)', m: 1 } } }}><Box sx={{ overflowY: 'auto', p: 1 }}>{content}</Box></Dialog> : content;
 }
+
