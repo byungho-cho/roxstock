@@ -9,7 +9,7 @@ async function fixture(page: Page) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/accounts') return route.fulfill({ json: {data: [{id:'1', name:'기본 계좌', brokerName:'CI', isActive:true, isDefault:true, cashBalance:'0'}]} });
-    return route.fulfill({ json: {data: [], summary: {}} });
+    return route.fulfill({ status: 503, json: {error: {message: 'Navigation fixture: data unavailable'}} });
   });
 }
 
