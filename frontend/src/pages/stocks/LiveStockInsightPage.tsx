@@ -1,3 +1,4 @@
+import { FinancialRefreshControls } from './FinancialRefreshControls';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -44,9 +45,11 @@ export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' })
       <DetailCard title="계산 기준"><DetailRow label="BPS" value={money(bps)} /><DetailRow label="ROE" value={rate(roe)} /><DetailRow label="요구수익률" value="8.0%" /><DetailRow label="지표 기준일" value={data?.valuation?.metricDate ?? '—'} /><Typography sx={{ mt: 1, fontSize: 11, color: colors.textMuted }}>적정가 = BPS × [1 + (ROE − 8%) × 지속계수 ÷ 8%]. 입력 지표가 없으면 계산값을 표시하지 않습니다.</Typography></DetailCard>
       <DetailCard title="핵심 재무지표"><DetailRow label="EPS" value={money(number(data?.valuation?.eps))} /><DetailRow label="PER" value={data?.valuation?.per ?? '—'} /><DetailRow label="PBR" value={data?.valuation?.pbr ?? '—'} /><DetailRow label="배당수익률" value={rate(number(data?.valuation?.dividendYield))} /></DetailCard>
     </> : <>
+      <FinancialRefreshControls key={stockId} stockId={stockId} collectedAt={data?.statements.flatMap((s) => s.dartSource ? [s.dartSource.collectedAt] : []).sort().at(-1) ?? null} />
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontWeight: 600, fontSize: 13 }}>전체 재무지표</Typography><Button variant="outlined" onClick={() => setAnnual((value) => !value)}>{annual ? '연간 ↕' : '분기 ↕'}</Button></Stack>
       {!annual && statements.some((item) => item.isDerived) && <Typography sx={{ fontSize: 11, color: colors.textMuted, overflowWrap: 'anywhere' }}>Q4*는 연간 누적에서 3분기 누적을 뺀 계산값입니다. 연결/별도 구분이 같은 자료끼리 계산합니다.</Typography>}
       {!statements.length ? <Typography sx={{ color: colors.textMuted }}>등록된 {annual ? '연간' : '분기'} 재무 데이터가 없습니다.</Typography> : <>{financialGroups.map((group) => <Box key={group.title}><Typography sx={{ my: 1, color: colors.warning, fontSize: 13, fontWeight: 700 }}>{group.title}</Typography><Stack spacing={1}>{group.entries.map(([label, key]) => <DetailCard key={key} title={`${label} · 조원`}><Stack direction="row">{statements.map((statement) => <Box key={`${statement.fiscalYear}-${statement.periodType}`} sx={{ flex: 1, textAlign: 'center' }}><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{statement.fiscalYear}{annual ? '' : ` ${statement.periodType}${statement.isDerived ? '*' : ''}`}</Typography><Typography sx={{ fontSize: 12, fontWeight: 700 }}>{metricValue(statement, key)}</Typography></Box>)}</Stack></DetailCard>)}</Stack></Box>)}<Box sx={{ borderTop: `1px solid ${colors.border}`, pt: 1 }}><Typography sx={{ fontSize: 11, color: colors.textMuted, overflowWrap: 'anywhere' }}>공시 출처: {statements.filter((item) => item.dartSource).map((item) => `${item.fiscalYear} ${item.periodType} ${item.dartSource?.fsDivision} · 접수 ${item.dartSource?.receiptNo}`).join(' / ') || '수동 입력'}</Typography></Box></>}
     </>}
   </Stack>;
 }
+

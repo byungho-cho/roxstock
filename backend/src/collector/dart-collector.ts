@@ -189,17 +189,18 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   }
 }
 
-async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode) {
+export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode) {
   const cfs = await provider.fetchFinancials(corpCode, year, reportCode, 'CFS');
   if (cfs.length) return { division: 'CFS' as const, rows: cfs };
   const ofs = await provider.fetchFinancials(corpCode, year, reportCode, 'OFS');
   return { division: 'OFS' as const, rows: ofs };
 }
 
-function parseDartDate(value: string): Date {
+export function parseDartDate(value: string): Date {
   return new Date(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00.000Z`);
 }
-function endOfFiscalPeriod(year: number, period: DartPeriodType): Date {
+export function endOfFiscalPeriod(year: number, period: DartPeriodType): Date {
   const month = period === 'Q1' ? 3 : period === 'Q2' ? 6 : period === 'Q3' ? 9 : 12;
   return new Date(Date.UTC(year, month, 0, 12));
 }
+

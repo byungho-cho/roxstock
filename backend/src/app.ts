@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { financialRefreshRoutes } from './routes/financial-refresh.js';
 
 import { ApiError } from './lib/api-error.js';
 import { prisma } from './lib/prisma.js';
@@ -37,6 +38,7 @@ export function buildApp() {
     });
   });
 
+  void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });
   void app.register(accountRoutes, { prefix: '/api' });
   void app.register(securityRoutes, { prefix: '/api' });
