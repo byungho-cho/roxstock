@@ -25,6 +25,11 @@ export function FinancialRefreshControls({ stockId, collectedAt }: { stockId: st
   const status = useQuery({ queryKey: ['financialRefresh', stockId, requestId], queryFn: () => apiRequest<RefreshStatus>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/${requestId}`), enabled: Boolean(requestId),
     refetchInterval: (query) => query.state.data?.state === 'FINISHED' ? false : 2000, retry: 1 });
   useEffect(() => {
+    if (status.data && status.data.state !== 'FINISHED') {
+      setYear(status.data.fiscalYear); setPeriod(status.data.period);
+    }
+  }, [status.data?.fiscalYear, status.data?.period, status.data?.state]);
+  useEffect(() => {
     if (status.data?.state === 'FINISHED') {
       sessionStorage.removeItem(`financialRefresh:${stockId}`);
       void queryClient.invalidateQueries({ queryKey: ['securityAnalysis', stockId] });
