@@ -41,7 +41,9 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
   const repo = new PrismaDartRepository(db);
   const owner = randomUUID();
   if (!await repo.acquireLock(owner, 900)) return true;
-  const fresh = await db.collectorRun.findUnique({ where: { id: run.id } });
+  let fresh;
+  try { fresh = await db.collectorRun.findUnique({ where: { id: run.id } }); }
+  catch (error) { await repo.releaseLock(owner); throw error; }
   if (fresh?.status !== 'RUNNING') { await repo.releaseLock(owner); return true; }
   const metadata = run.metadata as unknown as ManualRefreshMetadata;
   const results: NonNullable<ManualRefreshMetadata['results']> = [];
