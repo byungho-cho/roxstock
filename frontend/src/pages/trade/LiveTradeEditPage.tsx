@@ -19,7 +19,7 @@ export function LiveTradeEditPage() {
   const tradeId = params.get('edit') ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const detail = useQuery({ queryKey: ['targetArrivals', 'recentBuys', 'tradeDetail', type, tradeId], queryFn: () => getTradeDetail(type, tradeId), enabled: !!tradeId });
+  const detail = useQuery({ queryKey: ['tradeDetail', type, tradeId], queryFn: () => getTradeDetail(type, tradeId), enabled: !!tradeId });
   const [form, setForm] = useState<{ key: string; date: string; quantity: string; price: string; memo: string } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
