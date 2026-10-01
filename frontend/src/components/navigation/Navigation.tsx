@@ -62,17 +62,24 @@ export function PageHeader({ title, variant = 'standard', showAdd = true, compac
 export function BottomNav() {
   const navigate = useNavigate(); const location = useLocation();
   const value = [...tabletItems].sort((a, b) => b.path.length - a.path.length).find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/';
-  const iconFor = (item: typeof coverItems[number]) => {
+  const isMore = location.pathname === '/more';
+  const iconFor = (item: typeof coverItems[number], tabletMore = false) => {
+    if (tabletMore) {
+      const names = ['stocks', 'journal', 'assets', 'cash', 'home', 'analysis', 'financials', 'collection', 'more'];
+      const src = `/figma-100/tablet-${names[tabletItems.findIndex(entry => entry.path === item.path)]}.svg`;
+      return <Box component="span" sx={{ display: 'inline-flex', width: 16, height: 16, bgcolor: 'currentColor', maskImage: `url(${src})`, maskRepeat: 'no-repeat', maskPosition: 'center' }}><Box component="img" src={src} alt="" sx={{ opacity: 0 }} /></Box>;
+    }
     const index = coverItems.findIndex(entry => entry.path === item.path);
     if (index < 0) return item.icon;
     const src = `/home-v03/${['stocks', 'journal', 'home', 'assets', 'more'][index]}.svg`;
     return <Box component="span" sx={{ display: 'inline-flex', width: 18, height: 18, bgcolor: 'currentColor', maskImage: `url(${src})`, maskRepeat: 'no-repeat', maskPosition: 'center' }}><Box component="img" src={src} alt="" sx={{ opacity: 0 }} /></Box>;
   };
   const homeItems = coverItems.map(item => ({ ...item, icon: iconFor(item) }));
-  const extendedItems = tabletItems.map(item => ({ ...item, icon: iconFor(item) }));
+  const extendedItems = tabletItems.map(item => ({ ...item, icon: iconFor(item, isMore) }));
   const isHome = location.pathname === '/' || location.pathname === '/detail/assets';
   const isAssetOverview = location.pathname === '/detail/cash';
-  const style = { fontFamily: isHome ? 'RoxHomeInter, sans-serif' : undefined, position: 'fixed', inset: 'auto 0 0', zIndex: 10, mx: 'auto', width: '100%', height: pageMetrics.headerHeight, borderTop: `1px solid ${colors.border}`, bgcolor: colors.surface, '& .MuiBottomNavigationAction-root': { minWidth: 0, height: '100%', color: colors.textMuted, px: '2px', py: '2px', justifyContent: 'center' }, '& .MuiBottomNavigationAction-root.Mui-selected': { color: colors.navActive }, '& .MuiBottomNavigationAction-label': { fontSize: isHome ? 8 : 10, lineHeight: '14px', mt: '1px', '&.Mui-selected': { fontSize: isHome ? 8 : 10, fontWeight: 500 } }, '& .MuiSvgIcon-root': { fontSize: 17 } } as const;
-  return <><MuiBottomNavigation showLabels value={isAssetOverview || location.pathname === '/detail/assets' ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'flex', sm: 'none' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: '1 1 20%' } }}>{homeItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation><MuiBottomNavigation showLabels value={isHome ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, display: { xs: 'none', sm: 'flex' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], flex: isHome ? '1 1 20%' : '1 1 11.111%' } }}>{(isHome ? homeItems : extendedItems).map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation></>;
+  const moreStyle = isMore ? { bgcolor: { xs: colors.surface, sm: '#0B1220' }, '& .MuiBottomNavigationAction-root': { justifyContent: 'flex-start', py: 0, pt: { xs: '9px', sm: '2px' } }, '& .MuiBottomNavigationAction-label': { fontSize: { xs: 9, sm: 8 }, lineHeight: { xs: '11px', sm: '10px' }, mt: { xs: '3px', sm: '10px' }, '&.Mui-selected': { fontSize: { xs: 9, sm: 8 } } } } : {};
+  const style = { fontFamily: isHome || isMore ? 'RoxHomeInter, sans-serif' : undefined, position: 'fixed', inset: 'auto 0 0', zIndex: 10, mx: 'auto', width: '100%', height: pageMetrics.headerHeight, borderTop: `1px solid ${colors.border}`, bgcolor: colors.surface, '& .MuiBottomNavigationAction-root': { minWidth: 0, height: '100%', color: colors.textMuted, px: '2px', py: '2px', justifyContent: 'center' }, '& .MuiBottomNavigationAction-root.Mui-selected': { color: colors.navActive }, '& .MuiBottomNavigationAction-label': { fontSize: isHome ? 8 : 10, lineHeight: '14px', mt: '1px', '&.Mui-selected': { fontSize: isHome ? 8 : 10, fontWeight: 500 } }, '& .MuiSvgIcon-root': { fontSize: 17 } } as const;
+  return <><MuiBottomNavigation showLabels value={isAssetOverview || location.pathname === '/detail/assets' ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, ...moreStyle, display: { xs: 'flex', sm: 'none' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], ...moreStyle['& .MuiBottomNavigationAction-root'], flex: '1 1 20%' } }}>{homeItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation><MuiBottomNavigation showLabels value={isHome ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, ...moreStyle, display: { xs: 'none', sm: 'flex' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], ...moreStyle['& .MuiBottomNavigationAction-root'], flex: isHome ? '1 1 20%' : '1 1 11.111%' } }}>{(isHome ? homeItems : extendedItems).map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation></>;
 }
 
