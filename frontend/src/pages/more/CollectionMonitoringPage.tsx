@@ -64,7 +64,7 @@ function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { featu
   const badge = needsAttention ? {
     label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
   } : { label: '정상', background: '#3D8CF5', foreground: '#050A12' };
-  return <Box sx={{ ...cardSx, mx: '16px', mt: '7px', mb: '8px', px: '10px', py: '5px', height: { xs: 58, sm: 48 }, borderRadius: '8px' }}>
+  return <Box sx={{ ...cardSx, mx: '16px', mt: '7px', mb: '8px', px: '10px', py: '5px', height: { xs: 58, sm: 48 }, borderRadius: '8px', '& > p:first-of-type': { mt: '3px' }, '& > p:last-of-type': { mt: '2px' } }}>
     <Stack direction="row" spacing={0.5} sx={{ minHeight: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 11, fontWeight: 700, flex: 1 }}>전체 상태</Typography>
       <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, minWidth: 82, height: 19, borderRadius: '999px', bgcolor: badge.background, color: badge.foreground, fontSize: 9, fontWeight: 700 }}>{badge.label}</Box>
@@ -73,7 +73,7 @@ function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { featu
     <Typography sx={{ color: needsAttention ? '#FAB83B' : '#7A8CA8', fontSize: 9, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       오류 {failed} · 지연 {delayed}{unavailable > 0 ? ` · 미설정/미구현/미수집 ${unavailable}` : ''}{refreshing ? '  ·  갱신 중' : ''}
     </Typography>
-    <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: 'none' } }}>
+    <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: 'none' } }}>
       {refreshing ? `${clockText(generatedAt)} 기준 완료 데이터 유지` : `통계 갱신 ${dateText(generatedAt)}`}
     </Typography>
   </Box>;
@@ -129,14 +129,19 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
 }
 
 function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
-  return <Box sx={{ ...cardSx, px: '9px', py: '4px', minHeight: { xs: 55, sm: 62 } }}>
+  return <Box sx={{ ...cardSx, px: '9px', py: '4px', minHeight: { xs: feature.id === 'realtime-prices' ? 70 : 55, sm: 62 } }}>
     <Stack direction="row" spacing={0.5} sx={{ height: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>현재 상태</Typography>
       <StatusPill feature={feature} />
       <ManualRefresh refreshing={refreshing} onClick={onRefresh} />
     </Stack>
-    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(feature.lastAttemptAt)} · 성공 {dateText(feature.lastSuccessAt)}</Typography>
-    <Typography sx={{ ...mutedText, fontSize: 8.5, lineHeight: '14px' }}>다음 예정 {clockText(feature.nextAt)}</Typography>
+    {feature.id === 'realtime-prices' ? <>
+      <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: '18px', overflowWrap: 'anywhere' }}>워커 {dateText(feature.realtime?.heartbeatAt)} · {feature.realtime?.session ?? '세션 기록 없음'}</Typography>
+      <Typography sx={{ color: '#3D8CF5', fontSize: 9, lineHeight: '18px', overflowWrap: 'anywhere' }}>수신 {clockText(feature.realtime?.lastPriceReceivedAt)} · 발행 {clockText(feature.realtime?.lastSsePublishedAt)} · 저장 {clockText(feature.realtime?.lastDbSavedAt)}</Typography>
+    </> : <>
+      <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(feature.lastAttemptAt)} · 성공 {dateText(feature.lastSuccessAt)}</Typography>
+      <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: '15px' }}>다음 예정 {clockText(feature.nextAt)}</Typography>
+    </>}
   </Box>;
 }
 
@@ -144,7 +149,7 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
   runs: DataRecord[]; loading: boolean; feature: string; filtersOpen: boolean; onToggleFilters: () => void; showAllRuns: boolean; onToggleRuns: () => void; filterControls: ReactNode;
 }) {
   const visibleRuns = showAllRuns ? runs : runs.slice(0, 2);
-  return <Box sx={{ ...cardSx, p: '8px', minHeight: { sm: 156 } }}>
+  return <Box sx={{ ...cardSx, bgcolor: { xs: 'transparent', sm: cardSx.bgcolor }, border: { xs: 0, sm: cardSx.border }, p: { xs: 0, sm: '8px' }, minHeight: { sm: 94 } }}>
     <Stack direction="row" spacing={0.5} sx={{ mb: 0.75, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
       <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8, lineHeight: 1 }}>
@@ -175,8 +180,8 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
 function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[] }) {
   const fallbacks: DataRecord[] = runs.filter((run) => run.failureReason).slice(0, 3).map((run) => ({ symbol: '실행 오류', status: run.status, reason: run.failureReason, occurredAt: run.startedAt }));
   const entries = items.length ? items.slice(0, 100) : fallbacks;
-  return <Box sx={{ ...cardSx, display: 'flex', flexDirection: 'column', p: '10px', minHeight: { xs: 116, sm: 280 }, height: { sm: '100%' } }}>
-    <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center' }}>
+  return <Box sx={{ ...cardSx, bgcolor: { xs: 'transparent', sm: cardSx.bgcolor }, border: { xs: 0, sm: cardSx.border }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: '10px' }, minHeight: { xs: 116, sm: 280 }, height: { sm: '100%' } }}>
+    <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center', borderBottom: { xs: '1px solid #26334A', sm: 0 }, pb: '3px' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>대상별 오류·상태</Typography>
       <Typography sx={{ ...mutedText, fontSize: 8 }}>확인 {numberText(entries.length)}</Typography>
     </Stack>
@@ -336,7 +341,8 @@ export function CollectionMonitoringPage() {
     {detail.isError && !detail.data && <Typography role="alert" sx={{ color: '#F26A6F', fontSize: 9, mb: 0.5 }}>수집 상세를 불러오지 못했습니다.</Typography>}
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
-        <Box sx={{ ...cardSx, p: '8px 10px', minHeight: { xs: 54, sm: 85 } }}>
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}><CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} /></Box>
+        <Box sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 } }}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
             <Box component="span" sx={{ bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{stageOneLabel}</Box>
@@ -347,7 +353,6 @@ export function CollectionMonitoringPage() {
             <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.5, overflow: 'hidden' }}><Box sx={{ height: '100%', width: planned && completed != null ? `${Math.min(100, completed * 100 / planned)}%` : 0, bgcolor: '#34D399' }} /></Box>
             <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px' }}>대상 {numberText(planned)} · 성공 {numberText(success)} · 미공시 {numberText(noFiling)} · 실패 {numberText(failed)} · 대기 {numberText(pending)}</Typography>
           </Box>
-          <Typography sx={{ display: { xs: 'block', sm: 'none' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>시도 {dateText(current.lastAttemptAt)} · 성공 {dateText(current.lastSuccessAt)}</Typography>
         </Box>
         <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={Number(dartCurrent.priorityCheckedWithinDay ?? 0)} universeOver90Days={Number(dartCurrent.universeOver90Days ?? 0)} priorityPending={Number(current.priorityPending ?? 0)} universePending={Number(current.universePending ?? 0)} dailyApiCalls={Number(current.dailyApiCalls ?? 0)} dailyApiLimit={Number(current.dailyApiLimit ?? 0)} companyChecks={Number(current.companyChecks ?? 0)} />
         <Box sx={{ display: { xs: 'block', sm: 'none' } }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
@@ -357,13 +362,8 @@ export function CollectionMonitoringPage() {
     </Box> : <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, columnGap: '16px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
-        {isRealtime && <Box sx={{ ...cardSx, p: '7px 9px', display: { xs: 'block', sm: 'none' } }}>
-          <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '14px' }}>워커 {dateText(current.realtime?.heartbeatAt)} · {current.realtime?.session ?? '세션 기록 없음'}</Typography>
-          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 {dateText(current.realtime?.lastPriceReceivedAt)} · 원천 {dateText(current.realtime?.lastSourcePriceAt)}</Typography>
-          <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE {dateText(current.realtime?.lastSsePublishedAt)} · DB {dateText(current.realtime?.lastDbSavedAt)}</Typography>
-        </Box>}
         <CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
-        <Box sx={{ display: { xs: 'none', sm: isRealtime ? 'block' : 'none' }, ...cardSx, p: '8px 9px' }}>
+        <Box sx={{ display: { xs: isRealtime && [current.realtime?.sourceError, current.realtime?.publishError, current.realtime?.saveError].some(Boolean) ? 'block' : 'none', sm: isRealtime ? 'block' : 'none' }, ...cardSx, p: '8px 9px' }}>
           <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '14px' }}>워커 {dateText(current.realtime?.heartbeatAt)} · {current.realtime?.session ?? '세션 기록 없음'}</Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 {dateText(current.realtime?.lastPriceReceivedAt)} · 원천 {dateText(current.realtime?.lastSourcePriceAt)}</Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 8, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE {dateText(current.realtime?.lastSsePublishedAt)} · DB {dateText(current.realtime?.lastDbSavedAt)}</Typography>

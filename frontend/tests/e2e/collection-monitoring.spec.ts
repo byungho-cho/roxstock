@@ -82,3 +82,36 @@ test('out-of-session does not hide an actual worker failure and unavailable deta
   await page.getByRole('button', { name: '뒤로가기' }).click();
   await expect(page).toHaveURL(/\/detail\/collection-monitoring$/);
 });
+
+
+test('all monitoring details keep the fixed shell and safe scroll clearance at minimum and larger sizes', async ({ page }, testInfo) => {
+  await page.route('**/api/collection/monitoring', (route) => route.fulfill({ json: { data: summary } }));
+  await page.route('**/api/collection/monitoring/**', (route) => route.fulfill({ json: { data: {
+    runs: [{ id: 'visual', status: 'SUCCESS', startedAt: summary.generatedAt, target: 12, success: 12, failed: 0, skipped: 0 }],
+    items: [{ symbol: '005930', status: 'SUCCESS', reason: '수집 완료' }],
+    dart: { backfill: { planned: 10000, byStatus: { SUCCESS: 120, NO_FILING: 45, NOT_APPLICABLE: 5, FAILED: 2, PENDING: 9828 } } },
+  } } }));
+  const sizes = testInfo.project.name.startsWith('cover')
+    ? [{ width: 370, height: 465 }, { width: 400, height: 640 }]
+    : [{ width: 725, height: 396 }, { width: 816, height: 616 }, { width: 1280, height: 800 }];
+  for (const size of sizes) {
+    await page.setViewportSize(size);
+    for (const feature of summary.features) {
+      await page.goto(`/detail/collection-monitoring/${feature.id}`);
+      await expect(page.getByText('수집 완료', { exact: true })).toBeVisible();
+      const shell = await page.evaluate(() => {
+        const main = document.querySelector('main')!;
+        main.scrollTop = main.scrollHeight;
+        const bounds = main.getBoundingClientRect();
+        const last = [...main.querySelectorAll('p')].find((p) => p.textContent === '갱신 중에도 마지막 완료 결과를 유지합니다.')!;
+        return { top: bounds.top, bottom: bounds.bottom, overflow: document.documentElement.scrollWidth > innerWidth, clearance: bounds.bottom - last.getBoundingClientRect().bottom };
+      });
+      expect(shell.top).toBe(44);
+      expect(shell.bottom).toBe(size.height - 44);
+      expect(shell.overflow).toBe(false);
+      expect(shell.clearance).toBeGreaterThanOrEqual(70);
+      await page.locator('main').evaluate((main) => { main.scrollTop = 0; });
+      await page.screenshot({ path: testInfo.outputPath(`monitor-${feature.id}-${size.width}x${size.height}.png`) });
+    }
+  }
+});
