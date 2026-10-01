@@ -108,7 +108,7 @@ export function StockListPage() {
     {priceStock && <CurrentPriceDialog stock={priceStock} inputRef={priceInputRef} onClose={() => setPriceStock(null)} onSave={async (value) => {
       if (!priceStock) return;
       if (liveApiEnabled) {
-        try { await updateSecurityPrice(priceStock.id, String(value)); await queryClient.invalidateQueries({ queryKey: ['stocks'] }); setPriceStock(null); }
+        try { await updateSecurityPrice(priceStock.id, String(value)); await queryClient.invalidateQueries({ queryKey: ['targetArrivals'] }); await queryClient.invalidateQueries({ queryKey: ['stocks'] }); setPriceStock(null); }
         catch (error) { setApiMessage(error instanceof Error ? error.message : '현재가 변경에 실패했습니다.'); }
         return;
       }
@@ -203,3 +203,4 @@ function EmptyStocks({ onRestore }: { onRestore?: () => void }) {
 function StockListLoading() {
   return <Grid container spacing="12px">{[1, 2, 3, 4].map((item) => <Grid key={item} size={{ xs: 12, sm: 6 }}><Skeleton variant="rounded" height={148} sx={{ borderRadius: '16px' }} /></Grid>)}</Grid>;
 }
+
