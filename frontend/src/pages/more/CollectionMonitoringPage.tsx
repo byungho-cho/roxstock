@@ -103,13 +103,13 @@ function FeatureSummaryCard({ item, onOpen }: { item: Feature; onOpen: () => voi
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, lineHeight: 1.1, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
       <StatusPill feature={item} compact />
     </Stack>
-    <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: '15px', mt: { xs: 0, sm: '3px' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{attemptLine}</Typography>
+    <Typography sx={{ ...mutedText, fontSize: 9, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: '1px', sm: '3px' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{attemptLine}</Typography>
     {dart && <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: '1fr 1fr', columnGap: 1, mt: 0.5 }}>
       <Typography sx={{ color: '#34D399', fontSize: 9, lineHeight: '17px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>1단계 · {secondLine.split(' · ')[0]}</Typography>
       <Typography sx={{ color: '#3D8CF5', fontSize: 9, lineHeight: '17px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>2단계 · {item.phase === 'CURRENT' ? '현행 공시 확인' : '1단계 완료 후 대기'}</Typography>
       <Typography sx={{ ...mutedText, fontSize: 8, lineHeight: '12px', gridColumn: '1 / -1' }}>대상 {numberText(item.recent.target)} · 성공 {numberText(item.recent.success)} · 실패 {numberText(item.recent.failed)} · API {numberText(item.dailyApiCalls)}/{numberText(item.dailyApiLimit)}</Typography>
     </Box>}
-    <Typography sx={{ ...mutedText, color: '#F2F7FC', fontSize: 9, lineHeight: '15px', mt: { xs: 0, sm: '3px' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: dart ? 'none' : 'block' } }}>{secondLine}</Typography>
+    <Typography sx={{ ...mutedText, color: '#F2F7FC', fontSize: 9, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: '1px', sm: '3px' }, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: { xs: 'block', sm: dart ? 'none' : 'block' } }}>{secondLine}</Typography>
   </Box>;
 }
 
