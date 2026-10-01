@@ -38,7 +38,7 @@ export function AppLayout() {
   const isMoreSettings = location.pathname === '/detail/settings'; const isCollectionMonitoring = location.pathname.startsWith('/detail/collection-monitoring');
   const hasPageHeader = isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: isTradePage ? 0 : `${pageMetrics.headerHeight}px` }}>
-    <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
+    <Box ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11, ...(isCollectionMonitoring ? { '& h1': { fontSize: { xs: 18, sm: 21 } } } : {}) }}>
       {!hasPageHeader && <PageHeader variant={isCollectionMonitoring ? 'detail' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isCollectionMonitoring ? location.pathname === '/detail/collection-monitoring' ? '/more' : '/detail/collection-monitoring' : location.pathname === '/more' ? '/' : undefined} showBackTablet={isCollectionMonitoring} showAddMobile={!isCollectionMonitoring} showAdd={isHomePage} addPath="/trade" addLabel="거래등록" maxWidth={isCollectionMonitoring ? 725 : 816} />}
     </Box>
     <PageLayout scrollRef={scrollRef} trade={isTradePage} journal={isJournal} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage} collectionMonitoring={isCollectionMonitoring}><Outlet /></PageLayout>
