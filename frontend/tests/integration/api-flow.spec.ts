@@ -386,8 +386,19 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   const withBaseline = (await (await request.get(`/api/accounts/${accountId}/dashboard`)).json()).data;
   expect(Number(withBaseline.dailyProfit)).toBe(-10_000);
   expect(Number(withBaseline.dailyProfitRate)).toBe(-100);
-  expect(withBaseline.stockMonthlyProfit).toBeNull();
-  expect(withBaseline.cashMonthlyProfit).toBeNull();
+  // On the first Seoul calendar day, yesterday is also the month-end baseline.
+  const isMonthStart = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).endsWith('-01');
+  if (isMonthStart) {
+    expect(Number(withBaseline.stockMonthlyProfit)).toBe(0);
+    expect(Number(withBaseline.cashMonthlyProfit)).toBe(10_000);
+    expect(withBaseline.performanceMeta.previousMonthEndBaselineDate).toBe(previousDay.toISOString().slice(0, 10));
+    expect(withBaseline.performanceMeta.stockMonthlyProfitUnavailableReason).toBeNull();
+    expect(withBaseline.performanceMeta.cashMonthlyProfitUnavailableReason).toBeNull();
+  } else {
+    expect(withBaseline.stockMonthlyProfit).toBeNull();
+    expect(withBaseline.cashMonthlyProfit).toBeNull();
+    expect(withBaseline.performanceMeta.previousMonthEndBaselineDate).toBeNull();
+  }
   await page.setViewportSize({ width: 370, height: 465 });
   await page.goto('/detail/assets');
   await expect(page.getByText('-10,000원').first()).toBeVisible();
@@ -770,3 +781,4 @@ test('adjacent journal months are fetched once, shown from cache, and isolated b
   await page.unrouteAll({ behavior: 'wait' });
   expect(secondId).not.toBe(accountId);
 });
+
