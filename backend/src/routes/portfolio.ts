@@ -152,6 +152,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
         pricingComplete: dashboard.pricingComplete,
         missingPriceSymbols: dashboard.missingPriceSymbols,
         latestPriceUpdatedAt: dashboard.latestPriceUpdatedAt?.toISOString() ?? null,
+        previousDayChange: performance.previousDayChange,
+        previousDayChangeRate: performance.previousDayChangeRate,
         dailyProfit: performance.dailyProfit,
         dailyProfitRate: performance.dailyProfitRate,
         stockMonthlyProfit: performance.stockMonthlyProfit,
@@ -230,3 +232,4 @@ export async function portfolioRoutes(app: FastifyInstance) {
     };
   });
 }
+
