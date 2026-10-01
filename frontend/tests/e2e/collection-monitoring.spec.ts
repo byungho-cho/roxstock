@@ -12,20 +12,73 @@ const longError = `API 응답 본문에서 오류를 확인했습니다. ${'원�
 test('collection monitor keeps status cards visible while stats refresh and fits both target viewports', async ({ page }, testInfo) => {
   const cover = testInfo.project.name.startsWith('cover');
   await page.setViewportSize(cover ? { width: 370, height: 465 } : { width: 725, height: 396 });
+  let summaryRequests = 0;
+  let detailRequests = 0;
+  const collectionActionRequests: string[] = [];
+  page.on('request', (request) => {
+    if (!request.url().includes('/api/')) return;
+    if (request.url().endsWith('/api/collection/monitoring')) summaryRequests += 1;
+    else if (request.url().includes('/api/collection/monitoring/')) detailRequests += 1;
+    else if (request.url().includes('/api/collection/')) collectionActionRequests.push(request.url());
+  });
   await page.route('**/api/collection/monitoring', async (route) => route.fulfill({ json: { data: summary } }));
-  await page.route('**/api/collection/monitoring/**', async (route) => route.fulfill({ json: { data: {
-    id: 'realtime-prices', name: '선택 종목 실시간 주가', generatedAt: '2026-09-30T00:00:00.000Z',
-    runs: [{ id: '1', status: 'PARTIAL', startedAt: '2026-09-30T00:00:00.000Z', finishedAt: '2026-09-30T00:01:00.000Z', target: 2, success: 1, failed: 1, skipped: 0, failureReason: longError }],
-    items: [{ symbol: '005930', status: 'FAILED', reason: longError, occurredAt: '2026-09-30T00:00:00.000Z' }],
-    realtime: { state: null, aggregates: [], issues: [{ at: '2026-09-30T00:00:00.000Z', stage: 'SOURCE', reason: longError }] },
-  } } }));
+  await page.route('**/api/collection/monitoring/**', async (route) => {
+    if (route.request().url().includes('dart-financial-statements')) {
+      return route.fulfill({ json: { data: {
+        id: 'dart-financial-statements', name: 'DART 재무제표', generatedAt: '2026-09-30T00:00:00.000Z',
+        runs: [{ id: '2', status: 'PARTIAL', startedAt: '2026-09-30T00:00:00.000Z', target: 8, success: 5, failed: 1, skipped: 2, metadata: { phase: 'BACKFILL' } }],
+        items: [{ symbol: '005930', status: 'FAILED', reason: longError, occurredAt: '2026-09-30T00:00:00.000Z' }],
+        dart: { backfill: { planned: 10000, byStatus: { SUCCESS: 120, NO_FILING: 45, NOT_APPLICABLE: 5, FAILED: 2, PENDING: 9828 } }, priority: {}, universe: {} },
+      } } });
+    }
+    return route.fulfill({ json: { data: {
+      id: 'realtime-prices', name: '선택 종목 실시간 주가', generatedAt: '2026-09-30T00:00:00.000Z',
+      runs: [{ id: '1', status: 'PARTIAL', startedAt: '2026-09-30T00:00:00.000Z', finishedAt: '2026-09-30T00:01:00.000Z', target: 2, success: 1, failed: 1, skipped: 0, failureReason: longError }],
+      items: [{ symbol: '005930', status: 'FAILED', reason: longError, occurredAt: '2026-09-30T00:00:00.000Z' }],
+      realtime: { state: null, aggregates: [], issues: [{ at: '2026-09-30T00:00:00.000Z', stage: 'SOURCE', reason: longError }] },
+    } } });
+  });
   await page.goto('/detail/collection-monitoring');
-  await expect(page.getByText('선택 종목 실시간 주가', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: '수집 모니터링' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '실시간 주가 상세 보기' })).toBeVisible();
   await expect(page.getByText('DART 재무제표', { exact: true })).toBeVisible();
-  await page.getByText('선택 종목 실시간 주가', { exact: true }).first().click();
+  await expect(page.getByText('확인 필요 2', { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath(`monitor-summary-${cover ? '370x465' : '725x396'}.png`) });
+  await page.getByRole('link', { name: '실시간 주가 상세 보기' }).click();
+  await expect(page.getByRole('heading', { name: '실시간 주가' })).toBeVisible();
+  await expect(page.locator('main p:visible').filter({ hasText: /워커/ }).first()).toBeVisible();
   await expect(page.getByText(/API 응답 본문에서 오류를 확인했습니다/).first()).toBeVisible();
+  const requestsBeforeRefresh = { summary: summaryRequests, detail: detailRequests };
+  await page.getByRole('button', { name: '통계 새로고침' }).first().click();
+  await expect.poll(() => summaryRequests).toBeGreaterThan(requestsBeforeRefresh.summary);
+  await expect.poll(() => detailRequests).toBeGreaterThan(requestsBeforeRefresh.detail);
+  expect(collectionActionRequests).toEqual([]);
+  await page.goto('/detail/collection-monitoring/dart-financial-statements');
+  await expect(page.getByRole('heading', { name: 'DART 재무제표' })).toBeVisible();
+  await expect(page.getByText(/1단계 · 과거 자료 최초 수집/)).toBeVisible();
+  await expect(page.getByText(/2단계 · 현재 사업연도 상시 수집/)).toBeVisible();
+  if (!cover) await expect(page.getByText(/API 0\/3,000/)).toBeVisible();
+  await page.getByRole('button', { name: '필터', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '종목 필터' })).toBeVisible();
+  await page.getByRole('button', { name: '필터', exact: true }).click();
   const dimensions = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > innerWidth, mainHeight: document.querySelector('main')!.clientHeight }));
   expect(dimensions.overflow).toBe(false);
   expect(dimensions.mainHeight).toBeGreaterThan(0);
   await page.screenshot({ path: testInfo.outputPath(`collection-monitoring-${cover ? '370x465' : '725x396'}.png`) });
+});
+
+
+test('out-of-session does not hide an actual worker failure and unavailable detail stays unknown', async ({ page }) => {
+  const features = summary.features.map((item) => item.id === 'realtime-prices'
+    ? { ...item, status: 'FAILED', realtime: { ...summary.features[1].realtime!, session: 'OUT_OF_SESSION' } }
+    : item);
+  await page.route('**/api/collection/monitoring', (route) => route.fulfill({ json: { data: { ...summary, features } } }));
+  await page.route('**/api/collection/monitoring/**', (route) => route.fulfill({ status: 503, json: { error: { message: '일시적인 조회 실패' } } }));
+  await page.goto('/detail/collection-monitoring');
+  await expect(page.getByRole('link', { name: '실시간 주가 상세 보기' }).getByText('오류', { exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'DART 재무제표 상세 보기' }).click();
+  await expect(page.getByRole('alert')).toHaveText('수집 상세를 불러오지 못했습니다.');
+  await expect(page.getByText('0 / 0개 작업 완료', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '뒤로가기' }).click();
+  await expect(page).toHaveURL(/\/detail\/collection-monitoring$/);
 });
