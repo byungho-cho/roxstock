@@ -94,7 +94,7 @@ test('production home viewport evidence and read-only navigation', async ({ page
 
   const main = page.locator('main');
   const maxScroll = await main.evaluate((element) => element.scrollHeight - element.clientHeight);
-  await main.evaluate((element) => element.scrollTo({ top: element.scrollHeight, behavior: 'instant' }));
+  await main.evaluate((element) => element.scrollTo({ top: element.scrollHeight, behavior: 'auto' }));
   await page.waitForTimeout(250);
 
   const bottomMetrics = await page.evaluate(() => {
@@ -120,8 +120,11 @@ test('production home viewport evidence and read-only navigation', async ({ page
     expect.soft(visible).toBe(true);
     if (visible) {
       await topButton.click();
-      await expect.poll(() => main.evaluate((element) => element.scrollTop)).toBeLessThanOrEqual(1);
-      checks.push({ name: 'scroll-top-button-action', status: 'passed' });
+      await page.waitForTimeout(500);
+      const returnedTop = await main.evaluate((element) => element.scrollTop);
+      const returned = returnedTop <= 1;
+      checks.push({ name: 'scroll-top-button-action', status: returned ? 'passed' : 'failed', detail: { scrollTop: returnedTop } });
+      expect.soft(returnedTop).toBeLessThanOrEqual(1);
     }
   } else {
     checks.push({ name: 'scroll-top-button', status: 'not-applicable', detail: 'main has no vertical overflow at this viewport/data condition' });
@@ -130,24 +133,35 @@ test('production home viewport evidence and read-only navigation', async ({ page
   expect.soft(bottomMetrics.headerTop).toBe(initialMetrics.header?.top);
   expect.soft(bottomMetrics.navBottom).toBe(0);
 
-  const routeChecks: Array<{ control: string; actualUrl?: string; status: CheckStatus; error?: string }> = [];
-  const controls = ['평가자산', '주식평가액', '예수금', '자산 추이', '보유종목 전체 보기', '거래등록',
-    '종목목록', '매매일지', '홈', '자산분석', '더보기'];
+  const routeChecks: Array<{ surface: 'card' | 'header' | 'bottom-nav'; control: string; actualUrl?: string; status: CheckStatus; error?: string }> = [];
+  const cardControls = ['평가자산', '주식평가액', '예수금', '자산 추이', '보유종목 전체 보기'];
+  const navControls = ['종목목록', '매매일지', '평가자산', '예수금', '홈', '자산분석', '재무제표', '수집현황', '더보기'];
 
-  for (const control of controls) {
+  for (const item of [
+    ...cardControls.map((control) => ({ surface: 'card' as const, control })),
+    { surface: 'header' as const, control: '거래등록' },
+    ...navControls.map((control) => ({ surface: 'bottom-nav' as const, control })),
+  ]) {
     try {
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await waitForHome(page);
-      const button = await visibleButton(page, control);
-      if (await button.count() === 0) {
-        routeChecks.push({ control, status: 'not-applicable', error: 'visible control not present for this viewport' });
+      const locator = item.surface === 'bottom-nav'
+        ? page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: item.control, exact: true })
+        : await visibleButton(page, item.control);
+      if (await locator.count() === 0) {
+        routeChecks.push({ ...item, status: 'not-applicable', error: 'visible control not present for this viewport' });
         continue;
       }
-      await button.click();
-      await page.waitForTimeout(150);
-      routeChecks.push({ control, actualUrl: page.url(), status: page.url() === new URL('/', testInfo.project.use.baseURL as string).href ? 'failed' : 'passed' });
+      const before = page.url();
+      await locator.first().click();
+      await page.waitForTimeout(200);
+      const actualUrl = page.url();
+      const samePageIsExpected = item.surface === 'bottom-nav' && item.control === '홈';
+      const passed = samePageIsExpected ? new URL(actualUrl).pathname === '/' : actualUrl !== before;
+      routeChecks.push({ ...item, actualUrl, status: passed ? 'passed' : 'failed' });
+      expect.soft(passed, `${item.surface} ${item.control} navigation`).toBe(true);
     } catch (error) {
-      routeChecks.push({ control, status: 'failed', error: String(error) });
+      routeChecks.push({ ...item, status: 'failed', error: String(error) });
     }
   }
 
