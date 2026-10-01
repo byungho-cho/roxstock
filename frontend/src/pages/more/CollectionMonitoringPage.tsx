@@ -51,7 +51,7 @@ function StatusPill({ feature, compact = false }: { feature: Feature; compact?: 
 }
 
 function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: () => void }) {
-  return <Button aria-label="통계 새로고침" onClick={onClick} disabled={refreshing} sx={{ minWidth: 24, width: 24, height: 24, p: 0, color: '#7A8CA8', flexShrink: 0 }}>
+  return <Button aria-label="통계 새로고침" onClick={onClick} disabled={refreshing} sx={{ minWidth: 20, minHeight: 20, width: 20, height: 20, p: 0, color: '#7A8CA8', flexShrink: 0 }}>
     {refreshing ? <CircularProgress size={13} color="inherit" /> : <RefreshRounded sx={{ fontSize: 16 }} />}
   </Button>;
 }
@@ -152,10 +152,10 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
   return <Box sx={{ ...cardSx, bgcolor: { xs: 'transparent', sm: cardSx.bgcolor }, border: { xs: 0, sm: cardSx.border }, p: { xs: 0, sm: '8px' }, minHeight: { sm: 94 } }}>
     <Stack direction="row" spacing={0.5} sx={{ mb: 0.75, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 10, fontWeight: 700, flex: 1 }}>실행 이력</Typography>
-      <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8, lineHeight: 1 }}>
+      <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, minHeight: 20, height: 20, p: 0, color: '#7A8CA8', fontSize: 8, lineHeight: 1 }}>
         필터
       </Button>
-      {runs.length > 2 && <Button onClick={onToggleRuns} sx={{ minWidth: 0, p: 0, color: '#7A8CA8', fontSize: 8 }}>{showAllRuns ? '최근 실행' : '전체 기록'}</Button>}
+      {runs.length > 2 && <Button onClick={onToggleRuns} sx={{ minWidth: 0, minHeight: 20, height: 20, p: 0, color: '#7A8CA8', fontSize: 8 }}>{showAllRuns ? '최근 실행' : '전체 기록'}</Button>}
     </Stack>
     <Collapse in={filtersOpen} unmountOnExit>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', sm: '1fr' }, gap: 0.5, mb: 1 }}>{filterControls}</Box>
@@ -216,15 +216,15 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
     : disabled ? '1단계 후 대기' : status === 'RUNNING' ? '진행 중' : '상시 수집';
   const badge = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
     ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
-  return <Box sx={{ ...cardSx, p: { xs: '6px 8px', sm: '8px 10px' }, minHeight: { xs: 43, sm: 85 }, opacity: disabled ? 0.86 : 1 }}>
+  return <Box sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 }, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
-      <Box component="span" sx={{ bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
+      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, justifyContent: 'center', alignItems: 'center', fontSize: 8, fontWeight: 700 }}>{label}</Box>
     </Stack>
-    <Typography sx={{ color: disabled ? '#7A8CA8' : '#3D8CF5', fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>
+    <Typography sx={{ color: disabled ? '#7A8CA8' : '#3D8CF5', fontSize: 8.5, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}>
       {disabled ? status === 'NOT_CONFIGURED' ? '설정 후 1단계 완료 시 시작' : status === 'NOT_IMPLEMENTED' ? '수집기 배포 후 1단계 완료 시 시작' : '1단계 완료 후 자동 시작' : '우선종목 하루 1회 · 전체종목 약 3개월 순환'}
     </Typography>
-    <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
       {disabled ? '현행 공시 확인은 과거 자료 구축 완료 후 시작합니다.' : `우선 확인 ${numberText(priorityCheckedWithinDay)} · 전체 지연 ${numberText(universeOver90Days)}`}
     </Typography>
     <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 7.5, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -346,10 +346,10 @@ export function CollectionMonitoringPage() {
         <Box sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 } }}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 9, fontWeight: 700, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
-            <Box component="span" sx={{ bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{stageOneLabel}</Box>
-            <ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{stageOneLabel}</Box>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}><ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} /></Box>
           </Stack>
-          <Typography sx={{ color: '#34D399', fontSize: 8.5, lineHeight: '15px', mt: 0.5 }}>{numberText(completed)} / {numberText(planned)}개 작업 완료</Typography>
+          <Typography sx={{ color: '#34D399', fontSize: 8.5, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}>{numberText(completed)} / {numberText(planned)}개 작업 완료</Typography>
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.5, overflow: 'hidden' }}><Box sx={{ height: '100%', width: planned && completed != null ? `${Math.min(100, completed * 100 / planned)}%` : 0, bgcolor: '#34D399' }} /></Box>
             <Typography sx={{ ...mutedText, fontSize: 7.5, lineHeight: '12px' }}>대상 {numberText(planned)} · 성공 {numberText(success)} · 미공시 {numberText(noFiling)} · 실패 {numberText(failed)} · 대기 {numberText(pending)}</Typography>

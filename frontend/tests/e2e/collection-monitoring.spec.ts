@@ -43,6 +43,11 @@ test('collection monitor keeps status cards visible while stats refresh and fits
   await expect(page.getByRole('link', { name: '실시간 주가 상세 보기' })).toBeVisible();
   await expect(page.getByText('DART 재무제표', { exact: true })).toBeVisible();
   await expect(page.getByText('확인 필요 2', { exact: true })).toBeVisible();
+  const statusFits = await page.getByText('전체 상태', { exact: true }).evaluate((label) => {
+    const card = label.parentElement!.parentElement!;
+    return [...card.querySelectorAll('p')].filter((p) => p.getClientRects().length > 0).every((p) => p.getBoundingClientRect().bottom <= card.getBoundingClientRect().bottom);
+  });
+  expect(statusFits).toBe(true);
   await page.screenshot({ path: testInfo.outputPath(`monitor-summary-${cover ? '370x465' : '725x396'}.png`) });
   await page.getByRole('link', { name: '실시간 주가 상세 보기' }).click();
   await expect(page.getByRole('heading', { name: '실시간 주가' })).toBeVisible();
