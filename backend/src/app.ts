@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 
 import { ApiError } from './lib/api-error.js';
 import { prisma } from './lib/prisma.js';
+import { targetArrivalRoutes } from './routes/target-arrivals.js';
 import { accountRoutes } from './routes/accounts.js';
 import { securityRoutes } from './routes/securities.js';
 import { tradeRoutes } from './routes/trades.js';
@@ -36,6 +37,7 @@ export function buildApp() {
     });
   });
 
+  void app.register(targetArrivalRoutes, { prefix: '/api' });
   void app.register(accountRoutes, { prefix: '/api' });
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });
@@ -48,3 +50,4 @@ export function buildApp() {
 
   return app;
 }
+

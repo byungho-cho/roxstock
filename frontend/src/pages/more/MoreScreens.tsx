@@ -7,7 +7,7 @@ import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, save
 import { chooseAccount, correctCashBalance, createAccount, getCollectionStatus, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { colors } from '../../styles/tokens';
 
-export type MoreView = 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
+export type MoreView = 'target-arrival' | 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
 const panel = { bgcolor: '#0E1420', border: '1px solid #1F2B42', borderRadius: '8px', p: '16px', minWidth: 0 } as const;
 const row = { bgcolor: '#111825', border: '1px solid #25344D', borderRadius: '8px' } as const;
 const fmt = (value: string | number) => `${Number(value).toLocaleString('ko-KR')}원`;
@@ -30,7 +30,7 @@ export function useMoreAccounts() {
   const selected = liveApiEnabled ? chooseAccount(accounts) : accounts.find((item) => item.id === demo.selectedId) ?? accounts[0];
   const refresh = async () => {
     if (!liveApiEnabled) return;
-    await client.invalidateQueries({ predicate: (item) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades'].includes(String(item.queryKey[0])) });
+    await client.invalidateQueries({ predicate: (item) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys'].includes(String(item.queryKey[0])) });
   };
   const select = async (id: string) => {
     if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); await refresh(); }
@@ -65,6 +65,7 @@ export function SettingsOverview() {
     <Typography sx={{ ...heading, display: { xs: 'none', sm: 'block' } }}>설정</Typography>
     <Stack spacing="12px" sx={{ mt: { xs: 0, sm: '12px' } }}>
       <LinkRow title="계좌 관리" caption="계좌 정보와 현재 예수금을 관리합니다." value={`${accounts.length}개 계좌`} onClick={() => go('account')} />
+      <LinkRow title="목표가 도래 조건" caption="선택 계좌의 보유기간별 목표수익률을 편집합니다." onClick={() => go('target-arrival')} />
       <LinkRow title="시세 수집" caption="최근 수집 상태를 확인합니다." value="상태 조회" onClick={() => go('collection')} />
       <LinkRow title="테마 설정" caption="앱 화면의 테마를 선택합니다." value={theme === 'dark' ? '다크' : theme === 'light' ? '라이트' : '시스템 설정'} onClick={() => go('theme')} active={false} />
       <Box sx={{ display: { xs: 'none', sm: 'block' }, pt: '2px' }}>
@@ -212,3 +213,4 @@ export function ThemeSettings() {
     <Typography role="status" sx={{ ...hint, mt: 1 }}>목 설정 · 테마 선택 상태만 저장됩니다.</Typography>
   </LabelledCard>;
 }
+

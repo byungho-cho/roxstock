@@ -151,7 +151,7 @@ function TradeEntry() {
       else await createTrade(draft);
       await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
       if (liveApiEnabled) {
-        await Promise.all([queryClient.invalidateQueries({ queryKey: ['stocks'] }), queryClient.invalidateQueries({ queryKey: ['dashboard'] }), queryClient.invalidateQueries({ queryKey: ['journalTrades'] })]);
+        await Promise.all([queryClient.invalidateQueries({ queryKey: ['stocks'] }), queryClient.invalidateQueries({ queryKey: ['dashboard'] }), queryClient.invalidateQueries({ queryKey: ['journalTrades'] }), queryClient.invalidateQueries({ queryKey: ['targetArrivals'] }), queryClient.invalidateQueries({ queryKey: ['recentBuys'] })]);
       }
       setSaved(true);
       navigate(returnToJournal ? `/journal?date=${tradeDate}` : liveApiEnabled ? '/stocks?tab=holding' : `/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
@@ -229,3 +229,4 @@ function StockSelector({ stocks, stockId, selectedStock, error, onChange, locked
     {error && <FormHelperText>{error}</FormHelperText>}
   </FormControl>;
 }
+

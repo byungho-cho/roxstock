@@ -80,7 +80,7 @@ export function JournalPage() {
     for (const offset of [-1, 1]) void queryClient.prefetchQuery(journalQuery(accountId, shiftMonth(month, offset)));
   }, [accountId, month, queryClient, remoteReport, tradesError]);
 
-  const entries = useMemo(() => {
+  const allEntries = useMemo(() => {
     if (liveApiEnabled) return (remoteReport?.data ?? []).map((trade): Entry => ({
       id: trade.id, type: trade.type === 'BUY' ? 'buy' : 'sell',
       date: new Date(trade.tradedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
@@ -97,6 +97,8 @@ export function JournalPage() {
     });
     return [...buys, ...samples, ...sells, ...exampleTrades].sort((a, b) => b.date.localeCompare(a.date));
   }, [remoteReport]);
+  const buyFilter = searchParams.get('filter') === 'buy';
+  const entries = buyFilter ? allEntries.filter(entry => entry.type === 'buy') : allEntries;
   const goToMonth = (next: string) => {
     const day = Math.min(Number(selectedDate.slice(8, 10)), new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0).getDate());
     setMonth(next);
@@ -263,3 +265,4 @@ export function JournalPage() {
     </Dialog>
   </>;
 }
+
