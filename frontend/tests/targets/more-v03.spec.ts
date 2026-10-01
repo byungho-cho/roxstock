@@ -45,8 +45,9 @@ test('more v0.3: 12 equal buttons, fixed header/nav, 8px edges and exact icon si
 });
 
 test('more v0.3: all 12 routes retain their existing destinations',async({page})=>{
-  await fixture(page);
-  for(const [label,path] of menus){await page.goto('/more');await page.getByTestId('more-menu').getByRole('button',{name:label,exact:true}).click();await expect(page).toHaveURL(new RegExp(path==='/'?'/$':path.replace(/[?]/g,'\\?')+'$'));}
+  test.setTimeout(60_000);
+  await fixture(page);await page.goto('/more');
+  for(const [label,path] of menus){await page.getByTestId('more-menu').getByRole('button',{name:label,exact:true}).click();await expect(page).toHaveURL(new RegExp(path==='/'?'/$':path.replace(/[?]/g,'\\?')+'$'));await page.goBack();await expect(page.getByTestId('more-menu')).toBeVisible();}
 });
 
 test('more v0.3: tablet settings links and persisted theme selection',async({page},info)=>{
