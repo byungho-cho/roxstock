@@ -18,14 +18,17 @@ export function DashboardPage() {
   if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const monthAgo = new Date(`${today}T00:00:00Z`); monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+  const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: { xs: '8px', sm: '16px' }, rowGap: '8px', alignItems: 'start' }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, height: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       <TotalAssetCard summary={summary} home />
       <AssetQuickCards summary={summary} home />
-      <AppCard sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 130 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
-        <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{trend.length > 1 ? '1개월' : '—'}</Typography>} />
-        {trend.length > 1 ? <TrendChart values={trend.slice(-31).map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
+      <AppCard data-testid="home-trend-card" sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 130 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+        <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>} />
+        {homeTrend.length > 1 ? <TrendChart values={homeTrend.map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
       </CardActionArea></AppCard>
     </Stack>
     <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard testId="home-holdings-card" title="보유종목" count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching} more={holdings.length > 5 ? () => navigate('/stocks?tab=holding') : undefined}>

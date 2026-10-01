@@ -30,7 +30,9 @@ test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and o
   await expect(recent.getByText('8건')).toBeVisible(); await expect(recent.getByText('26.09.30 (1일)')).toBeVisible();
   const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,header:document.querySelector('header')!.getBoundingClientRect().height,nav:[...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!.getBoundingClientRect().height,panels:[...document.querySelectorAll('[data-testid$="-card"], [data-testid="home-summary-area"]')].map(n=>({id:n.getAttribute('data-testid'),rect:n.getBoundingClientRect().toJSON(),scroll:getComputedStyle(n).overflowY})),scrolls:[...document.querySelectorAll('main *')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY))}));
   expect(layout.overflow).toBe(false);expect(layout.header).toBe(44);expect(layout.nav).toBe(44);expect(layout.scrolls).toHaveLength(0);
-  for(const p of layout.panels.filter(p=>p.id!=='home-summary-area'))expect(p.rect.height).toBe(290);
+  const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
+  expect(assets).toHaveLength(5);for(const asset of assets){expect(asset.width).toBe(18);expect(asset.height).toBe(18);expect(asset.render.width).toBe(18);expect(asset.render.height).toBe(18);}
+  for(const p of layout.panels.filter(p=>p.id!=='home-summary-area' && p.id!=='home-trend-card'))expect(p.rect.height).toBe(290);
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;
     expect(summary.rect.height).toBe(290);expect(summary.rect.y).toBe(t.rect.y);expect(h.rect.y).toBe(r.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);

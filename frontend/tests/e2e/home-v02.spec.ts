@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ page }, testInfo) => {
+test('100 home v0.3 fits the measured cover and unfolded viewports', async ({ page }, testInfo) => {
   const cover = testInfo.project.name.startsWith('cover');
   await page.setViewportSize(cover ? { width: 370, height: 465 } : { width: 816, height: 425 });
   await page.goto('/');
@@ -12,8 +12,8 @@ test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ pa
     const main = document.querySelector('main')!;
     const nav = [...document.querySelectorAll('.MuiBottomNavigation-root')].find((element) => getComputedStyle(element).display !== 'none')!;
     const grid = main.firstElementChild!;
-    const left = grid.firstElementChild!;
-    const right = grid.children[1]!;
+    const left = document.querySelector('[data-testid="home-summary-area"]')!;
+    const right = document.querySelector('[data-testid="target-arrival-card"]')!;
     const cards = [...left.children].map((element) => element.getBoundingClientRect());
     return {
       header: header.getBoundingClientRect().toJSON(),
@@ -32,16 +32,16 @@ test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ pa
   expect(layout.cards[1].height).toBe(68);
   if (cover) {
     expect(layout.cards[2].height).toBe(88);
-    expect(layout.right.height).toBe(156);
+    expect(layout.right.height).toBe(290);
     expect(layout.mainScrollable).toBe(true);
   } else {
-    expect(layout.cards[2].height).toBeGreaterThanOrEqual(167);
-    expect(Math.abs(layout.cards[0].left - 20)).toBeLessThan(1);
+    expect(layout.cards[2].height).toBe(130);
+    expect(Math.abs(layout.cards[0].left - 16)).toBeLessThan(1);
     expect(Math.abs(layout.cards[0].top - layout.right.top)).toBeLessThan(1);
     expect(Math.abs(layout.cards[2].bottom - layout.right.bottom)).toBeLessThan(1);
     expect(layout.mainScrollable).toBe(true);
   }
-  await page.screenshot({ path: testInfo.outputPath(`home-v02-${cover ? '370x465' : '816x425'}.png`) });
+  await page.screenshot({ path: testInfo.outputPath(`home-v03-${cover ? '370x465' : '816x425'}.png`) });
 
   await page.getByRole('button', { name: '거래등록' }).click();
   await expect(page).toHaveURL(/\/trade/);
@@ -52,11 +52,11 @@ test('bottom navigation keeps the same icons when selection changes', async ({ p
   await page.setViewportSize(testInfo.project.name.startsWith('cover') ? { width: 370, height: 465 } : { width: 725, height: 396 });
   await page.goto('/');
   const activeNav = page.locator('.MuiBottomNavigation-root:visible');
-  const iconsBefore = await activeNav.locator('button').evaluateAll((buttons) => buttons.map((button) => button.querySelector('svg')?.innerHTML));
-  expect(iconsBefore.every(Boolean)).toBe(true);
+  const iconsBefore = await activeNav.locator('button').evaluateAll((buttons) => buttons.map((button) => ({label:button.textContent,icon:button.querySelector('img')?.getAttribute('src') ?? button.querySelector('svg')?.innerHTML})));
+  expect(iconsBefore.every(item=>!!item.icon)).toBe(true);
   await activeNav.getByRole('button', { name: '더보기' }).click();
   await expect(page).toHaveURL(/\/more/);
-  const iconsAfter = await page.locator('.MuiBottomNavigation-root:visible button').evaluateAll((buttons) => buttons.map((button) => button.querySelector('svg')?.innerHTML));
-  expect(iconsAfter).toEqual(iconsBefore);
+  const iconsAfter = await page.locator('.MuiBottomNavigation-root:visible button').evaluateAll((buttons) => buttons.map((button) => ({label:button.textContent,icon:button.querySelector('img')?.getAttribute('src') ?? button.querySelector('svg')?.innerHTML})));
+  for(const before of iconsBefore) expect(iconsAfter.find(after=>after.label===before.label)?.icon).toBe(before.icon);
 });
 

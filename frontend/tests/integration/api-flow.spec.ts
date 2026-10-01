@@ -340,9 +340,9 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   await page.goto('/');
   await page.evaluate((id) => localStorage.setItem('roxstock-selected-account-id', id), accountId);
   await page.reload();
-  await expect(page.getByText('보유종목이 없습니다.')).toBeVisible();
+  await expect(page.getByTestId('home-holdings-card').getByText('내용이 없습니다.')).toBeVisible();
   await expect(page.getByText('데이터 없음', { exact: true })).toBeVisible();
-  await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
+  await expect(page.getByTestId('home-trend-card').getByText('내용이 없습니다.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('01-empty-dashboard.png') });
   await page.getByText('평가자산', { exact: true }).first().click();
   await expect(page).toHaveURL(/detail\/assets/);
@@ -568,7 +568,7 @@ test('170 settings: account API create, update, requery and guarded reset across
   await expect(page.getByText('예수금 내역이 없습니다.')).toBeVisible();
   await expect(page.getByText('0원', { exact: true }).first()).toBeVisible();
   await page.goto('/');
-  await expect(page.getByText('과거 자산 추이 데이터가 없습니다.')).toBeVisible();
+  await expect(page.getByTestId('home-trend-card').getByText('내용이 없습니다.')).toBeVisible();
   await expect(page.getByText('데이터 없음', { exact: true })).toBeVisible();
   await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   for (const [view, filename] of [['cash', 'cash'], ['collection', 'collection'], ['theme', 'theme']] as const) {
