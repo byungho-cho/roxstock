@@ -55,12 +55,24 @@ function LinkRow({ title, caption, value, onClick, active = false }: { title: st
   </ButtonBase>;
 }
 
-export function SettingsOverview() {
+export function SettingsOverview({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const { accounts } = useMoreAccounts();
   const [theme, setTheme] = useState(readDemoSettings().theme);
   const chooseTheme = (value: 'dark' | 'light' | 'system') => { setTheme(value); saveDemoSettings({ theme: value }); };
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
+  if (compact) return <Box data-testid="more-settings-panel" sx={{ ...panel, height: '100%', p: '16px' }}>
+    <Typography sx={{ ...heading, lineHeight: '28px', mb: '6px' }}>설정</Typography>
+    <Stack spacing="8px">
+      <LinkRow title="계좌 관리" onClick={() => go('account')} />
+      <LinkRow title="시세 수집" value="상태 조회" onClick={() => go('collection')} />
+      <LinkRow title="테마 설정" value={theme === 'dark' ? '다크' : theme === 'light' ? '라이트' : '시스템 설정'} onClick={() => go('theme')} active />
+      <Stack direction="row" spacing="8px">{(['dark', 'light', 'system'] as const).map(value => <ButtonBase key={value} aria-label={value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'} aria-pressed={theme === value} onClick={() => chooseTheme(value)} sx={{ ...row, flex: 1, minWidth: 0, height: 56, display: 'flex', flexDirection: 'column', gap: '4px', bgcolor: theme === value ? '#3C85F2' : '#0B111B', borderColor: '#1F2B42', color: '#E8EDF7' }}>
+        <Typography sx={{ fontSize: 12, lineHeight: '19px', fontWeight: theme === value ? 600 : 400, whiteSpace: 'nowrap' }}>{value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'}</Typography>
+        <Typography sx={{ fontSize: 9, lineHeight: '14px', height: 14 }}>{theme === value ? '선택됨' : ''}</Typography>
+      </ButtonBase>)}</Stack>
+    </Stack>
+  </Box>;
   return <Box sx={{ ...panel, height: { sm: '100%' }, overflowY: { sm: 'auto' }, bgcolor: { xs: 'transparent', sm: panel.bgcolor }, border: { xs: 0, sm: panel.border }, p: { xs: 0, sm: '16px' } }}>
     <Typography sx={{ ...heading, display: { xs: 'none', sm: 'block' } }}>설정</Typography>
     <Stack spacing="12px" sx={{ mt: { xs: 0, sm: '12px' } }}>
