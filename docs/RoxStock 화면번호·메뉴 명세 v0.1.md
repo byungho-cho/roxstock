@@ -1,7 +1,7 @@
 # RoxStock 화면번호·메뉴 명세
 
 **버전:** v0.1  
-**기준일:** 2026-10-01 (Asia/Seoul)  
+**기준일:** 2026-10-02 (Asia/Seoul)  
 **근거:** 사용자가 정리한 현재 Figma 페이지명·순서, A0000~A0003, C9900/T9900의 메뉴 구성  
 **상태:** 기획·문서 현행화. 실제 앱 코드·배포·운영 검증 결과를 의미하지 않음
 
@@ -26,25 +26,26 @@
 | 2 | 1100 | 종목목록 | C1100 | T1100 | 관심·보유·추천 목록과 종목 상세 |
 | 3 | 1200 | 매매일지 | C1200 | T1200 | 월간 달력·선택일 거래·일별손익 |
 | 4 | 1300 | 자산분석 | C1300 | T1300 | 자산추이·기간 성과·자산 구성 |
-| 5 | 1400 | 투자금 | C1400 | T1400 | 투자금과 평가금액 추이 |
-| 6 | 1500 | 투자손익 | C1500 | T1500 | 연도별·종목별 손익 |
-| 7 | 1600 | 가치분석 | C1600 | T1600 | 종목 가치지표와 계산 근거 |
-| 8 | 1700 | 재무제표 | C1700 | T1700 | 독립 조회 화면 설계 대기 |
-| 9 | 1800 | 복리계획 | C1800 | T1800 | 계획과 하위 목표·목표 대비 실제 성과 |
-| 10 | 1900 | 모니터링 | C1900 | T1900 | 수집 기능 전체의 요약·기능별 상세 |
-| 11 | 2000 | 설정 | C2000 | T2000 | 계좌·예수금·현재가·테마 등 관리 |
+| 5 | 1400 | 예수금 | C1400 | T1400 | 예수금 조회·입출금·배당·변동 내역 |
+| 6 | 1500 | 투자금 | C1500 | T1500 | 투자금과 평가금액 추이 |
+| 7 | 1600 | 투자손익 | C1600 | T1600 | 연도별·종목별 손익 |
+| 8 | 1700 | 가치분석 | C1700 | T1700 | 종목 가치지표와 계산 근거 |
+| 9 | 1800 | 재무제표 | C1800 | T1800 | 독립 조회 화면 설계 대기 |
+| 10 | 1900 | 복리계획 | C1900 | T1900 | 계획과 하위 목표·목표 대비 실제 성과 |
+| 11 | 2000 | 모니터링 | C2000 | T2000 | 수집 기능 전체의 요약·기능별 상세 |
+| 12 | 2100 | 설정 | C2100 | T2100 | 계좌·예수금·현재가·테마 등 관리 |
 
-홈을 첫 번째에 표시한다. 메뉴·대표 페이지명은 `매매일지`로 통일하고, 일별손익은 그 하위 기능명으로 사용한다. 재무제표와 재무제표 수집 모니터링은 기능이 다르며 1700과 1900으로 분리한다.
+홈을 첫 번째에 표시한다. 메뉴·대표 페이지명은 `매매일지`로 통일하고, 일별손익은 그 하위 기능명으로 사용한다. 재무제표와 재무제표 수집 모니터링은 기능이 다르며 1800과 2000으로 분리한다.
 
 # 4. 번호·명명 규칙
 
 - `A`는 공통 기획·명세 페이지, `C`는 커버, `T`는 펼침·태블릿을 뜻한다.
 - 같은 기능은 커버·태블릿에서 같은 숫자를 쓴다. 예: `C1000 / T1000`.
-- 대메뉴는 1000부터 2000까지 100 단위로 배정한다. 하위 화면은 해당 대메뉴 번호에 1부터 더한다.
+- 대메뉴는 1000부터 2100까지 100 단위로 배정한다. 하위 화면은 해당 대메뉴 번호에 1부터 더한다.
 - 공유 기능은 대표 기능 아래 번호를 한 번만 배정한다. 진입 메뉴마다 페이지나 번호를 복제하지 않는다.
-- 평가자산은 `C1001 / T1001`, 예수금은 `C1002 / T1002`이며 홈에서 진입한다.
+- 평가자산은 홈 하위 `C1001 / T1001`이다. 예수금은 대메뉴 `C1400 / T1400`이며 홈 카드와 더보기에서 같은 화면으로 진입한다.
 - 거래등록은 `C1101 / T1101`이며 종목목록·종목 상세와 매매일지에서 공통 호출한다.
-- 더보기는 공통 탐색 화면인 `C9900 / T9900`이다. 더보기 화면 자체는 11개 대메뉴 항목에 포함하지 않는다.
+- 더보기는 공통 탐색 화면인 `C9900 / T9900`이다. 더보기 화면 자체는 12개 대메뉴 항목에 포함하지 않는다.
 - 페이지명은 `C1000. 홈 · v0.2 · 09.28` 형식이다. 날짜는 해당 수정일의 `MM.DD`이며 연도를 생략한다. 날짜가 없는 `v0.0` 페이지에 임의의 완료일을 추가하지 않는다.
 - 업무 데이터의 거래일자·재무 사업연도와 문서 이력의 기준일은 실제 연도를 유지한다. 페이지명 날짜 규칙과 혼동하지 않는다.
 - 하단 메뉴의 기존 배치·순서는 유지한다. 더보기 순서와 강제로 맞추지 않는다.
@@ -54,60 +55,61 @@
 
 | 현재 Figma 페이지명 | 원본 링크 |
 |---|---|
-| A0000. 정보구조 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=0-1) |
-| A0001. 화면흐름도 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1072-2) |
-| A0002. 입력폼 표준 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1304-2) |
-| A0003. 디자인 가이드 명세 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1705-2) |
-| C1000. 홈 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-2) |
-| T1000. 홈 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=721-2) |
-| C1001. 평가자산 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-3) |
-| T1001. 평가자산 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=735-2) |
-| C1002. 예수금 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-4) |
-| T1002. 예수금 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=740-2) |
+| A0000. 정보구조 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=0-1) |
+| A0001. 화면흐름도 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1072-2) |
+| A0002. 입력폼 표준 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1304-2) |
+| A0003. 디자인 가이드 명세 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1705-2) |
+| C1000. 홈 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-2) |
+| T1000. 홈 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=721-2) |
+| C1001. 평가자산 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-3) |
+| T1001. 평가자산 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=735-2) |
+| C1003. 목표가 도래 전체 · v0.4 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2741-692) |
+| T1003. 목표가 도래 전체 · v0.4 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2741-219) |
 | C1100. 종목목록 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-7) |
-| T1100. 종목목록 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=747-2) |
+| T1100. 종목목록 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=747-2) |
 | C1101. 거래등록 · v0.1 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-8) |
 | T1101. 거래등록 · v0.1 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=940-2) |
 | C1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-5) |
 | T1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=774-2) |
 | C1300. 자산분석 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-6) |
 | T1300. 자산분석 · v0.1 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=921-2) |
-| C1400. 투자금 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-4) |
-| T1400. 투자금 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-5) |
-| C1500. 투자손익 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-6) |
-| T1500. 투자손익 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-7) |
-| C1600. 가치분석 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-8) |
-| T1600. 가치분석 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-9) |
-| C1700. 재무제표 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-10) |
-| T1700. 재무제표 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-11) |
-| C1800. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-2) |
-| T1800. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-3) |
-| C1900. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2398-2) |
-| T1900. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-12) |
-| C2000. 설정 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=646-2) |
-| T2000. 설정 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=977-2) |
+| C1400. 예수금 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-4) |
+| T1400. 예수금 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=740-2) |
+| C1500. 투자금 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-4) |
+| T1500. 투자금 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-5) |
+| C1600. 투자손익 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-6) |
+| T1600. 투자손익 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-7) |
+| C1700. 가치분석 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-8) |
+| T1700. 가치분석 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-9) |
+| C1800. 재무제표 · v0.1 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-10) |
+| T1800. 재무제표 · v0.1 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-11) |
+| C1900. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-2) |
+| T1900. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-3) |
+| C2000. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2398-2) |
+| T2000. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-12) |
+| C2100. 설정 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=646-2) |
+| T2100. 설정 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=977-2) |
 | C9900. 더보기 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-2) |
 | T9900. 더보기 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-3) |
-| 900. 이전·비교 시안 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=22-12) |
 
-900. 이전·비교 시안은 기록 보관용이며 현행 구현 기준에서 제외한다. 링크는 기존 노드 ID를 사용해 페이지명 변경 후에도 추적할 수 있게 한다.
+기존 노드 ID와 링크를 보존한다. 페이지의 버전·디자인 수정일은 번호 변경만으로 올리지 않는다.
 
 # 6. 대표 진입 흐름
 
 | 진입점 | 목적지 |
 |---|---|
 | 홈 평가자산 카드 | 1001 평가자산 |
-| 홈 예수금 카드 | 1002 예수금 |
+| 홈 예수금 카드 | 1400 예수금 |
 | 홈 보유종목 제목·행 | 1100 목록·선택 종목 상세 |
 | 홈 오늘손익·거래 요약 | 1200 매매일지의 오늘 날짜·일별손익 |
 | 홈 자산추이 | 1300 자산분석 |
 | 홈 헤더 + | 종목 추가; 성공 후 1100의 해당 탭 |
 | 종목 상세 매수·매도 / 매매일지 거래 선택 | 1101 거래등록·수정 |
-| 자산분석 투자금·투자손익 진입 | 1400 투자금 / 1500 투자손익 |
-| 더보기 각 항목 | 1000~2000의 해당 메뉴 |
-| 복리계획 메뉴 | 1800 독립 페이지 |
-| 모니터링 메뉴 | 1900 요약 → 기능별 상세 |
-| 설정 메뉴 | 2000 설정 |
+| 자산분석 투자금·투자손익 진입 | 1500 투자금 / 1600 투자손익 |
+| 더보기 각 항목 | 1000~2100의 해당 메뉴 |
+| 복리계획 메뉴 | 1900 독립 페이지 |
+| 모니터링 메뉴 | 2000 요약 → 기능별 상세 |
+| 설정 메뉴 | 2100 설정 |
 
 # 7. 공통 디자인 기준
 
@@ -124,19 +126,19 @@
 
 | 대상 | 이번 확인 상태 | 후속 작업 |
 |---|---|---|
-| T1400. 투자금 · v0.0 | 참조 안내만 있으며 T1300의 투자금 추이 상세를 원본으로 안내 | 독립 태블릿 투자금 화면 설계 |
-| T1500. 투자손익 · v0.0 | 참조 안내만 있으며 T1300의 기간 투자손익 정보를 원본으로 안내 | 독립 태블릿 투자손익 화면 설계 |
-| C1700 / T1700. 재무제표 · v0.0 | 번호 예약 안내; 독립 조회 화면 없음 | 재무제표 조회 화면 설계 |
-| C1800 / T1800. 복리계획 | 독립 페이지로 분리됨 | 계획별 목표 대비 실제 성과 요약은 별도 요구사항으로 검수; 이번 번호 현행화로 완료 처리하지 않음 |
-| C1900 / T1900. 모니터링 | 요약·기능별 상세를 위한 페이지; WORK 프레임 포함 | 실제 프레임 상태와 디자인 검수·개발 상태를 따로 확인 |
+| T1500. 투자금 · v0.0 | 참조 안내만 있으며 T1300의 투자금 추이 상세를 원본으로 안내 | 독립 태블릿 투자금 화면 설계 |
+| T1600. 투자손익 · v0.0 | 참조 안내만 있으며 T1300의 기간 투자손익 정보를 원본으로 안내 | 독립 태블릿 투자손익 화면 설계 |
+| C1800 / T1800. 재무제표 · v0.0 | 번호 예약 안내; 독립 조회 화면 없음 | 재무제표 조회 화면 설계 |
+| C1900 / T1900. 복리계획 | 독립 페이지로 분리됨 | 계획별 목표 대비 실제 성과 요약은 별도 요구사항으로 검수; 이번 번호 현행화로 완료 처리하지 않음 |
+| C2000 / T2000. 모니터링 | 요약·기능별 상세를 위한 페이지; WORK 프레임 포함 | 실제 프레임 상태와 디자인 검수·개발 상태를 따로 확인 |
 
 # 9. 원본 내부의 잔존 표기와 해석
 
-현재 페이지 이름은 사용자가 정리한 상태로 유지하고 이 문서에서 해석 기준을 명확히 한다.
+2026-10-02 사용자 확정 순서에 맞춰 페이지명과 현재 번호 참조를 현행화한다. 이전 기록은 과거 기준이며 현행 번호를 우선한다.
 
 - C9900/T9900 내부 대표 프레임 이름에는 C0900/T0900이 남아 있다. 현재 식별자는 9900이다.
 - A0003의 이전 번호표에는 0900 더보기 및 000~003 문서 표기가 남아 있다. 현재 페이지 목록의 9900 및 A0000~A0003으로 읽는다.
-- A0000 일부 홈 진입 안내에는 예전 110·120·130·140·150이 남아 있다. 해당 목적지는 순서대로 1001·1002·1100·1200·1300이다.
+- A0000 일부 홈 진입 안내에는 예전 110·120·130·140·150이 남아 있다. 해당 목적지는 순서대로 1001·1400·1100·1200·1300이다.
 - 하단 메뉴는 공통 기획의 5개 기본 메뉴와 일부 기존 태블릿 프레임의 9개 확장 메뉴가 혼재한다. 이번 작업은 하단을 더보기 순서로 재배열하는 작업이 아니며, 새로운 하단 메뉴 개수나 배치를 임의 확정하지 않는다. 화면별 현행 시안의 차이는 별도 디자인 교정 항목으로 기록한다.
 
 # 10. 구 번호 대응
@@ -146,17 +148,22 @@
 | 000 정보구조 / 001 화면흐름도 / 002 입력폼 / 003 레이아웃 | A0000 / A0001 / A0002 / A0003 디자인 가이드 명세 |
 | 100 홈 | C1000 / T1000 |
 | 110 평가자산 | C1001 / T1001 |
-| 120 예수금 | C1002 / T1002 |
+| 120 예수금 | C1400 / T1400 |
 | 130 종목목록 | C1100 / T1100 |
 | 140 매매일지·일별손익 | C1200 / T1200 매매일지 |
-| 150 자산분석 | C1300 / T1300; 투자금 1400·투자손익 1500·복리계획 1800 분리 |
+| 150 자산분석 | C1300 / T1300; 투자금 1500·투자손익 1600·복리계획 1900 분리 |
 | 160 거래등록 | C1101 / T1101 |
-| 170 더보기·설정 | C9900 / T9900 더보기, C2000 / T2000 설정 |
-| 180 복리계획 | C1800 / T1800 |
-| 199 통계·수집 모니터링 | C1900 / T1900 모니터링 |
+| 170 더보기·설정 | C9900 / T9900 더보기, C2100 / T2100 설정 |
+| 180 복리계획 | C1900 / T1900 |
+| 199 통계·수집 모니터링 | C2000 / T2000 모니터링 |
 | 임시 C0900 / T0900 더보기 | C9900 / T9900 |
 
 
 ## 2026-10-01 홈 하위 화면 추가
 
-C1003/T1003 목표가 도래 전체 (`/detail/target-arrivals`)는 홈 1000 하위 화면입니다. 더보기 대메뉴에는 추가하지 않습니다. 홈 설정 아이콘은 2000 목표가 도래 조건 영역으로 이동하며 행은 기존 매수 Lot 상세를 재사용합니다.
+C1003/T1003 목표가 도래 전체 (`/detail/target-arrivals`)는 홈 1000 하위 화면입니다. 더보기 대메뉴에는 추가하지 않습니다. 홈 설정 아이콘은 2100 목표가 도래 조건 영역으로 이동하며 행은 기존 매수 Lot 상세를 재사용합니다.
+
+
+## 2026-10-02 예수금 대메뉴 승격·번호 현행화
+
+예수금은 기존 1002에서 1400으로 이동한다. 투자금1500·투자손익1600·가치분석1700·재무제표1800·복리계획1900·모니터링2000·설정2100을 사용한다. 홈1000·평가자산1001·목표가 도래 전체1003·종목목록1100·공유 거래등록1101·매매일지1200·자산분석1300·더보기9900은 유지한다. 하단 메뉴 순서는 유지한다. 번호 변경은 기능 구현·QA·배포 완료를 뜻하지 않는다. 앱 내부 route/API는 별도 개발 계약이며 이번 문서 작업에서 변경하지 않는다.
