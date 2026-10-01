@@ -495,7 +495,7 @@ test('isolated account: dashboard → stocks → journal → cash/buy/sell/withd
   expect(unpricedDashboard.pricingComplete).toBe(false);
   expect(unpricedDashboard.totalAssetValue).toBeNull();
   await page.goto('/');
-  await expect(page.getByText('가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.')).toBeVisible();
+  await expect(page.getByTestId('home-holdings-card').getByText('시세 미수집 · 평가금액 판정 불가')).toBeVisible();
   await expect(page.getByText('0.0%', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('05-unpriced-holding.png') });
   await page.goto('/detail/assets');
