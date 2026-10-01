@@ -39,6 +39,7 @@ test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and o
   }
   const colors=await held.getByTestId('home-holding').evaluateAll(rows=>rows.map(row=>[...row.querySelectorAll('div > div')].filter(n=>n.textContent && n.childElementCount===0).map(n=>getComputedStyle(n).color)));
   expect(colors[0]).toContain('rgb(248, 113, 113)');expect(colors[1]).toContain('rgb(96, 165, 250)');expect(colors[2]).toContain('rgb(248, 250, 252)');
+  await page.evaluate(()=>document.fonts.ready);expect(await page.evaluate(()=>document.fonts.check('16px RoxHomeInter'))).toBe(true);
   await page.screenshot({path:info.outputPath('home-v03-top.png')});
   for(const [card,name] of [[held,'holdings'],[targets,'targets'],[recent,'recent']] as const){await card.scrollIntoViewIfNeeded();await card.screenshot({path:info.outputPath(`home-v03-${name}.png`)});}
   await page.locator('main').evaluate(n=>n.scrollTop=n.scrollHeight);await page.screenshot({path:info.outputPath('home-v03-bottom.png')});
