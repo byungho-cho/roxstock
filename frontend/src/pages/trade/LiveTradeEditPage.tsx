@@ -1,3 +1,4 @@
+import { useTargetArrivals } from '../../hooks/useTargetArrivals';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -23,6 +24,8 @@ export function LiveTradeEditPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const targets = useTargetArrivals();
+  const representative = targets.data?.data.find(lot => lot.lotId === tradeId)?.representativeCondition;
   const trade = detail.data;
   const mismatch = !!trade && (trade.type !== type.toUpperCase() || (!!accountId && trade.account.id !== accountId));
 
@@ -35,11 +38,11 @@ export function LiveTradeEditPage() {
     });
   }, [trade, type]);
 
-  const returnPath = params.get('return') === 'journal'
+  const returnPath = params.get('return') === 'targets' ? '/detail/target-arrivals' : params.get('return') === 'home' ? '/' : params.get('return') === 'journal'
     ? `/journal?date=${encodeURIComponent(params.get('fromDate') ?? form?.date ?? '')}`
     : `/stocks/${encodeURIComponent(trade?.security.id ?? params.get('stock') ?? '')}?tab=trades`;
   const refresh = async () => {
-    await Promise.all(['tradeDetail', 'stockTrades', 'journalTrades', 'buyLots', 'stocks', 'dashboard', 'cashOverview', 'cashTransactions'].map((key) =>
+    await Promise.all(['targetArrivals', 'recentBuys', 'tradeDetail', 'stockTrades', 'journalTrades', 'buyLots', 'stocks', 'dashboard', 'cashOverview', 'cashTransactions'].map((key) =>
       queryClient.invalidateQueries({ queryKey: [key] })));
   };
   const save = async () => {
@@ -82,6 +85,7 @@ export function LiveTradeEditPage() {
       : !trade || mismatch ? <Alert severity="error">현재 계좌의 거래가 아닙니다.</Alert>
       : form?.key === `${type}:${tradeId}` && <>
         <Typography sx={{ fontWeight: 700 }}>{trade.security.name} ({trade.security.symbol}) · {trade.account.name}</Typography>
+        {type === 'buy' && representative && <Typography sx={{ fontSize: 12 }}>대표 충족 조건: {representative.days}일 이내 · {representative.rate}% 이상</Typography>}
         {type === 'sell' && <Typography>연결 매수 Lot #{trade.buyTradeId}</Typography>}
         <DateField label="거래일자" value={form.date} onChange={(date) => setForm({ ...form, date })} />
         <NumberField label="수량" value={form.quantity} onChange={(quantity) => setForm({ ...form, quantity })} suffix="주" min={1} />
@@ -103,3 +107,4 @@ export function LiveTradeEditPage() {
       </>}
   </Stack>;
 }
+

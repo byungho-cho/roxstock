@@ -1,3 +1,4 @@
+import { TargetArrivalSettings } from './TargetArrivalSettings';
 import { Box } from '@mui/material';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { PageHeader } from '../../components/navigation/Navigation';
 import { AccountResetFlow } from './AccountResetFlow';
 import { AccountForm, AccountManagement, CashAdjustment, CollectionSettings, SettingsOverview, ThemeSettings, type MoreView } from './MoreScreens';
 
-const labels: Record<MoreView, string> = { settings: '설정', account: '계좌 관리', add: '계좌 추가', edit: '계좌 정보 수정', cash: '예수금 수정', collection: '시세 수집', theme: '테마 설정', reset: '계좌 데이터 초기화' };
+const labels: Record<MoreView, string> = { 'target-arrival': '목표가 도래 조건', settings: '설정', account: '계좌 관리', add: '계좌 추가', edit: '계좌 정보 수정', cash: '예수금 수정', collection: '시세 수집', theme: '테마 설정', reset: '계좌 데이터 초기화' };
 export function SettingsPage() {
   const [params] = useSearchParams();
   const requested = params.get('view') ?? 'settings';
@@ -18,7 +19,8 @@ export function SettingsPage() {
   };
   return <>
     <PageHeader embedded title={labels[view]} backPath={backPath} showAdd={false} variant="more" compact />
-    <Box sx={{ mt: { xs: '14px', sm: 0 }, height: { sm: 'calc(100dvh - 120px)' }, minHeight: 0, pb: { xs: ['add', 'edit', 'cash', 'reset', 'collection'].includes(view) ? '75px' : 0, sm: 0 } }}>
+    <Box sx={{ mt: { xs: '14px', sm: 0 }, height: view === 'target-arrival' ? 'auto' : { sm: 'calc(100dvh - 120px)' }, minHeight: 0, pb: { xs: ['add', 'edit', 'cash', 'reset', 'collection'].includes(view) ? '75px' : 0, sm: 0 } }}>
+      {view === 'target-arrival' && <TargetArrivalSettings />}
       {view === 'settings' && <SettingsOverview />}
       {view === 'account' && <AccountManagement openReset={openReset} />}
       {view === 'add' && <AccountForm add />}
@@ -31,3 +33,4 @@ export function SettingsPage() {
     {tabletReset && <AccountResetFlow tablet onClose={() => setTabletReset(false)} />}
   </>;
 }
+

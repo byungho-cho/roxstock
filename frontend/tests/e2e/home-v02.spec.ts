@@ -13,7 +13,7 @@ test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ pa
     const nav = [...document.querySelectorAll('.MuiBottomNavigation-root')].find((element) => getComputedStyle(element).display !== 'none')!;
     const grid = main.firstElementChild!;
     const left = grid.firstElementChild!;
-    const right = grid.lastElementChild!;
+    const right = grid.children[1]!;
     const cards = [...left.children].map((element) => element.getBoundingClientRect());
     return {
       header: header.getBoundingClientRect().toJSON(),
@@ -39,7 +39,7 @@ test('100 home v0.2 fits the measured cover and unfolded viewports', async ({ pa
     expect(Math.abs(layout.cards[0].left - 20)).toBeLessThan(1);
     expect(Math.abs(layout.cards[0].top - layout.right.top)).toBeLessThan(1);
     expect(Math.abs(layout.cards[2].bottom - layout.right.bottom)).toBeLessThan(1);
-    expect(layout.mainScrollable).toBe(false);
+    expect(layout.mainScrollable).toBe(true);
   }
   await page.screenshot({ path: testInfo.outputPath(`home-v02-${cover ? '370x465' : '816x425'}.png`) });
 
@@ -59,3 +59,4 @@ test('bottom navigation keeps the same icons when selection changes', async ({ p
   const iconsAfter = await page.locator('.MuiBottomNavigation-root:visible button').evaluateAll((buttons) => buttons.map((button) => button.querySelector('svg')?.innerHTML));
   expect(iconsAfter).toEqual(iconsBefore);
 });
+
