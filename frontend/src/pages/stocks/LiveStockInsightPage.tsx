@@ -21,7 +21,7 @@ export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' })
   const { stockId = '' } = useParams();
   const [annual, setAnnual] = useState(true);
   const [selection, setSelection] = useState<{ year: number; period: string } | null>(null);
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId], queryFn: () => getSecurityAnalysis(stockId) });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId, selection?.year ?? null], queryFn: () => getSecurityAnalysis(stockId, selection?.year), placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === stockId ? previous : undefined });
   const price = number(data?.security.currentPrice);
   const prior = number(data?.security.previousClosePrice);
   const bps = number(data?.valuation?.bps);
@@ -40,7 +40,7 @@ export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' })
   ];
   return <Stack spacing={1.5} sx={{ pb: 2 }}>
     <PageHeader embedded showAdd={false} title={data?.security.name ?? (mode === 'value' ? '종목 가치분석' : '종목 재무지표')} subtitle={data?.security.symbol} onBack={() => navigate(-1)} />
-    {isPending ? <DetailCard title={mode === 'value' ? '현재 가치 요약' : '전체 재무지표'}><Stack role="status" aria-label="데이터를 불러오는 중"><Skeleton /><Skeleton /><Skeleton /></Stack></DetailCard> : isError ? <DetailCard title="조회 결과"><Button role="alert" onClick={() => void refetch()}>조회 실패 · 다시 시도</Button></DetailCard> : mode === 'value' ? <>
+    {isPending ? <DetailCard title={mode === 'value' ? '현재 가치 요약' : '전체 재무지표'}><Stack role="status" aria-label="데이터를 불러오는 중"><Skeleton /><Skeleton /><Skeleton /></Stack></DetailCard> : isError && !data ? <DetailCard title="조회 결과"><Button role="alert" onClick={() => void refetch()}>조회 실패 · 다시 시도</Button></DetailCard> : mode === 'value' ? <>
       <DetailCard title="현재 가치 요약"><DetailRow label="현재가" value={money(price)} /><DetailRow label="전일대비" value={price !== null && prior ? money(price - prior) : '—'} /><DetailRow label="W (적정가 ÷ 현재가)" value={w === null ? '—' : w.toFixed(2)} /><DetailRow label="상승여력 (W 0.8 기준)" value={rate(upside)} /></DetailCard>
       <DetailCard title="적정주가 · RIM">{[0.7, 0.8, 0.9, 1].map((weight) => <DetailRow key={weight} label={`W ${weight.toFixed(1)}`} value={money(fair(weight))} />)}</DetailCard>
       <DetailCard title="계산 기준"><DetailRow label="BPS" value={money(bps)} /><DetailRow label="ROE" value={rate(roe)} /><DetailRow label="요구수익률" value="8.0%" /><DetailRow label="지표 기준일" value={data?.valuation?.metricDate ?? '—'} /><Typography sx={{ mt: 1, fontSize: 11, color: colors.textMuted }}>적정가 = BPS × [1 + (ROE − 8%) × 지속계수 ÷ 8%]. 입력 지표가 없으면 계산값을 표시하지 않습니다.</Typography></DetailCard>
