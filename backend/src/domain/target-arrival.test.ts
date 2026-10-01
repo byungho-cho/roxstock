@@ -40,6 +40,9 @@ test('exact ratio sort, older Korean date, numeric Lot ID; results are not cappe
 test('large decimal boundary uses exact multiplication; rounded display never enters judgment', () => {
   const high=lot(7,'5',{unitPrice:'900000000000000.0000', currentPrice:'945000000000000.0000'});
   assert.equal(evaluateTargetLots([high],defaultTargetConditions,now).data.length,1);
+  const huge=evaluateTargetLots([lot(0,'6',{unitPrice:'888888888888888',currentPrice:'999999999999999',quantity:'100000000000'})],defaultTargetConditions,now).data[0]!;
+  assert.equal(huge.profitLoss,'11111111111111100000000000');
+  assert.equal(huge.currentPrice,'999999999999999');
   high.currentPrice='944999999999999.9999';
   assert.equal(evaluateTargetLots([high],defaultTargetConditions,now).data.length,0);
 });

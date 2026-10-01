@@ -163,7 +163,7 @@
 - `GET /api/accounts/:accountId/target-arrival-conditions`: `{data:{accountId,scope:"ACCOUNT",version,conditions:[{days,rate}]}}`.
 - `PUT` 같은 경로: `{version,conditions}`. 전체 초안을 원자적으로 저장한다. 낙관적 버전 조건 불일치는 `409 TARGET_SETTINGS_CONFLICT`. 유효성 오류는 `400 INVALID_TARGET_CONDITIONS`.
 - `GET /api/accounts/:accountId/target-arrivals`: `{data: 모든 충족 Lot,meta:{accountId,enabled,total,unavailableCount,unavailable,conditionsVersion,asOfDate,calculatedAt,priceAsOf,priceAsOfLatest,timezone,snapshotMode}}`.
-- Decimal은 문자열; ID는 문자열. `priceAsOf`는 유효한 보유 Lot 시세 중 가장 이른 기준시각, latest는 가장 늦은 시각이다. 각 행에도 기준시각이 있다.
+- Decimal은 지수 표기 없는 일반 숫자 문자열(`toFixed()`); ID는 문자열. `priceAsOf`는 유효한 보유 Lot 시세 중 가장 이른 기준시각, latest는 가장 늦은 시각이다. 각 행에도 기준시각이 있다.
 - 권한은 기존 테스트용 계좌 API와 동일하다. 새 인증 시스템을 이번 기능에 추가하지 않는다.
 - 조건 변경은 계좌 예수금·거래·스냅샷을 변경하지 않는다. 마이그레이션은 계좌에 설정 필드 2개만 추가한다.
 
@@ -206,4 +206,4 @@ Prisma Decimal의 전역 설정을 변경하지 않는 로컬 80자리 정밀도
 
 ### 검증 및 배포 기록
 
-관련 단위 테스트와 API 주입 검증은 `backend/src/domain/target-arrival.test.ts`, `backend/src/routes/target-arrivals.test.ts`를 참조한다. 4개 뷰포트 UI 검증·캡처는 `frontend/playwright.targets.config.ts` 및 `frontend/tests/targets/target-arrivals.spec.ts`에서 실행한다. 검사·시각 대조·배포 결과는 PR과 Actions 결과로 별도 확인한다. 이 문서 작성 시점에 배포 완료로 표기하지 않는다.
+관련 단위 테스트와 API 주입 검증은 `backend/src/domain/target-arrival.test.ts`, `backend/src/routes/target-arrivals.test.ts`를 참조한다. 4개 뷰포트 UI 검증·캡처는 `frontend/playwright.targets.config.ts` 및 `frontend/tests/targets/target-arrivals.spec.ts`에서 실행한다. 실제 MariaDB 조건 영구 저장·잔여 Lot·전량 매도·계좌 격리·버전 충돌 검증은 `frontend/tests/integration/target-api.spec.ts`를 참조한다. 검사·시각 대조·배포 결과는 PR과 Actions 결과로 별도 확인한다. 이 문서 작성 시점에 배포 완료로 표기하지 않는다.
