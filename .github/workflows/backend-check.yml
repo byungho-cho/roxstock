@@ -8,15 +8,6 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/backend-check.yml"
-  push:
-    branches:
-      - main
-    paths:
-      - "backend/**"
-      - "database/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/backend-check.yml"
 
 permissions:
   contents: read
@@ -74,3 +65,7 @@ jobs:
 
       - name: Test backend
         run: npm --workspace backend run test
+
+
+      - name: Build backend
+        run: npm run build:backend
