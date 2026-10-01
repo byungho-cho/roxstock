@@ -18,3 +18,7 @@ backend/src/generated/prisma/
 # Local viewport QA output
 frontend/test-results/
 frontend/playwright-report/
+
+
+*.tsbuildinfo
+frontend/playwright-targets-report/

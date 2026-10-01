@@ -1,3 +1,5 @@
+import { TargetArrivalCard } from './TargetArrivalCard';
+import { RecentBuysCard } from './RecentBuysCard';
 import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
@@ -16,9 +18,9 @@ export function DashboardPage() {
   if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, alignItems: 'stretch', height: { sm: '100%' }, minHeight: { sm: 327 } }}>
+  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, alignItems: 'stretch', minHeight: { sm: 308 } }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
-    <Stack spacing="8px" sx={{ minWidth: 0, height: { sm: '100%' } }}>
+    <Stack spacing="8px" sx={{ minWidth: 0, minHeight: { sm: 308 } }}>
       <TotalAssetCard summary={summary} home />
       <AssetQuickCards summary={summary} home />
       <AppCard sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 167 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '9px' }, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
@@ -26,7 +28,7 @@ export function DashboardPage() {
         {trend.length > 1 ? <TrendChart values={trend.map((item) => item.value)} labels={trend.map((item) => item.label)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>과거 자산 추이 데이터가 없습니다.</Typography></Box>}
       </CardActionArea></AppCard>
     </Stack>
-    <AppCard sx={{ minWidth: 0, height: { xs: 156, sm: '100%' }, minHeight: { sm: 327 }, borderRadius: '8px' }}><Box sx={{ px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '11px' }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <AppCard sx={{ minWidth: 0, height: { xs: 156, sm: 'auto' }, minHeight: { sm: 308 }, borderRadius: '8px' }}><Box sx={{ px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '11px' }, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea onClick={() => navigate('/stocks?tab=holding')} sx={{ height: 24, flexShrink: 0, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: { xs: 16, sm: 15 }, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography>{summary.pricingComplete === false ? <Box role="img" aria-label="가격 미수집" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors.textMuted }} /> : <Box component="img" src="/figma-100/cover-status.svg" alt="시세 수집 정상" sx={{ width: 8, height: 8 }} />}</Stack><Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: { xs: colors.focus, sm: colors.textMuted } }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
       {summary.pricingComplete === false && <Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.</Typography>}
       {holdings.length === 0 && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>보유종목이 없습니다.</Typography>}
@@ -35,6 +37,8 @@ export function DashboardPage() {
       <Stack sx={{ display: { xs: 'none', sm: 'flex' } }}>{holdings.slice(0, 5).map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
       <Button onClick={() => navigate('/stocks?tab=holding')} sx={{ display: { xs: 'none', sm: 'flex' }, mt: 'auto', alignSelf: 'flex-end', fontSize: 11, minHeight: 24, color: colors.focus }}>보유종목 전체 보기 →</Button>
     </Box></AppCard>
+    <TargetArrivalCard />
+    <RecentBuysCard />
   </Box>;
 }
 
@@ -63,3 +67,4 @@ function ChartLine({ points }: { points: string }) {
 function DashboardLoading() {
   return <Stack spacing="8px"><Skeleton variant="rounded" height={76} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /></Stack><Skeleton variant="rounded" height={88} sx={{ borderRadius: '8px' }} /><Skeleton variant="rounded" height={156} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
 }
+
