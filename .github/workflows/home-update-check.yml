@@ -1,0 +1,37 @@
+name: Home Update Check (requested screen only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/**
+      - .github/workflows/home-update-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  home:
+    # One-off, explicitly requested four-size home check. Not a required/general QA gate.
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/home-v03-spacing-20261001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Check changed home only at the four requested sizes
+        working-directory: frontend
+        run: npx playwright test --config=playwright.targets.config.ts home-v03.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: home-update-failure
+          path: frontend/test-results/targets/
+          retention-days: 3

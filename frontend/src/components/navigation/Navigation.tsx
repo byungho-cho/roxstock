@@ -31,12 +31,13 @@ type PageHeaderProps = {
   embedded?: boolean;
   scope?: 'cover' | 'tablet';
   maxWidth?: number;
+  homeDashboard?: boolean;
 };
 
 export const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
 // A page can supply its actions, while the header always renders in AppLayout's fixed slot.
-export function PageHeader({ title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816 }: PageHeaderProps) {
+export function PageHeader({ title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const slot = useContext(HeaderSlotContext);
   const tablet = useMediaQuery('(min-width:600px)');
@@ -44,7 +45,7 @@ export function PageHeader({ title, variant = 'standard', showAdd = true, compac
   const mobileAddVisible = showAddMobile ?? variant !== 'detail';
   if ((scope === 'cover' && tablet) || (scope === 'tablet' && !tablet)) return null;
   const header = <AppBar position="static" elevation={0} color="transparent" sx={{ height: pageMetrics.headerHeight, bgcolor: colors.canvas, border: 0 }}>
-    <Toolbar className={variant === 'home' ? 'rox-home' : undefined} sx={{ position: 'relative', width: '100%', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: { xs: `${pageGutter.xs}px`, sm: variant === 'home' ? '16px' : `${pageGutter.sm}px` }, py: 0, alignItems: variant === 'home' ? 'flex-start' : 'center' }}>
+    <Toolbar disableGutters={homeDashboard} className={variant === 'home' ? 'rox-home' : undefined} sx={{ position: 'relative', width: '100%', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: homeDashboard ? '8px' : { xs: `${pageGutter.xs}px`, sm: variant === 'home' ? '16px' : `${pageGutter.sm}px` }, py: 0, alignItems: homeDashboard ? 'center' : variant === 'home' ? 'flex-start' : 'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, width: variant === 'more' ? 28 : pageMetrics.headerHeight, height: pageMetrics.headerHeight, p: variant === 'more' ? 0 : undefined, color: colors.textPrimary }}><ArrowBackRounded sx={{ fontSize: variant === 'more' ? 18 : 24 }} /></IconButton>}
       <Box sx={{ flex: 1, minWidth: 0, textAlign: variant === 'more' && !compact ? 'left' : variant === 'detail' || compact || hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
         <Typography component="h1" noWrap sx={{ fontSize: { xs: variant === 'more' ? compact ? 16 : 18 : 22, sm: variant === 'home' ? 22 : 21 }, lineHeight: variant === 'more' ? { xs: '22px', sm: '30px' } : '30px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
