@@ -62,6 +62,8 @@ GET /api/accounts/{accountId}/dashboard
 
 | 필드 | 단위 | 계산 기준 |
 |---|---:|---|
+| `previousDayChange` | 원(문자열) | 현재 총자산 - 한국시간 직전 달력일 최종 스냅샷 총자산(입출금 포함) |
+| `previousDayChangeRate` | %(문자열) | `previousDayChange / 직전 달력일 총자산 * 100` |
 | `dailyProfit` | 원(문자열) | 현재 총자산 - 한국시간 직전 달력일 최종 스냅샷 총자산 - 당일 입금 + 당일 출금 |
 | `dailyProfitRate` | %(문자열) | `dailyProfit / 직전 달력일 총자산 * 100` |
 | `stockMonthlyProfit` | 원(문자열) | 현재 주식평가액 - 전월 말일 스냅샷 주식평가액 |
@@ -104,3 +106,6 @@ GET /api/accounts/{accountId}/asset-history?from=2026-01-01&to=2026-09-28
 
 - 잘못된 계좌 ID: `400 INVALID_INPUT`
 - 없거나 비활성화된 계좌: `404 ACCOUNT_NOT_FOUND`
+
+
+1001 전일 대비는 `previousDayChange`·`previousDayChangeRate`를 표시합니다. 일별손익과 별도 계산하며, 시세·직전 달력일 스냅샷 부재는 두 값 모두 null, 전일 총자산 0원은 비율만 null입니다. 갱신 시각은 계산 시각이 아닌 `latestPriceUpdatedAt`을 표시합니다.

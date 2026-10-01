@@ -88,6 +88,8 @@ export interface AccountDashboardDto {
   pricingComplete: boolean;
   missingPriceSymbols: string[];
   latestPriceUpdatedAt: string | null;
+  previousDayChange: string | null;
+  previousDayChangeRate: string | null;
   dailyProfit: string | null;
   dailyProfitRate: string | null;
   stockMonthlyProfit: string | null;
