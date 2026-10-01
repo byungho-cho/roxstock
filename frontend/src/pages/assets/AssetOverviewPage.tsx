@@ -26,7 +26,7 @@ export function AssetOverviewPage() {
   if (!data) return <>{header}<AppCard sx={{ p: 2 }}><Typography>평가자산을 불러오지 못했어요.</Typography><Button onClick={() => refetch()}>다시 시도</Button></AppCard></>;
   const { summary, holdings } = data;
   const profit = summary.pricingComplete === false ? Number.NaN : summary.totalProfit;
-  const rate = summary.pricingComplete === false ? Number.NaN : summary.totalProfitRate;
+  const rate = summary.pricingComplete === false || !(summary.stockPurchaseAmount > 0) ? Number.NaN : summary.totalProfitRate;
   const composition = (liveApiEnabled
     ? summary.pricingComplete === false ? [] : holdings.filter(stock => Number.isFinite(stock.marketValue) && stock.marketValue! > 0).map(stock => ({ id: stock.id, percent: summary.stockValue > 0 ? stock.marketValue! / summary.stockValue * 100 : 0 }))
     : [...assetComposition]).sort((a, b) => b.percent - a.percent);
