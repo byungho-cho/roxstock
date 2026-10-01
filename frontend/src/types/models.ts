@@ -25,6 +25,7 @@ export interface StockItem {
   priceChangeRate: number;
   quantity?: number;
   averagePrice?: number;
+  purchaseAmount?: number;
   marketValue?: number;
   profitAmount?: number;
   profitRate?: number;
@@ -93,3 +94,4 @@ export interface TradeEstimate {
   cashChange: number;
   expectedCashBalance: number;
 }
+

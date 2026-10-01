@@ -261,6 +261,13 @@ export interface TradeReport {
   daily: { date: string; buyCount: number; sellCount: number; buyAmount: string; sellAmount: string; realizedProfitLoss: string }[];
 }
 export interface BuyLotDto {
+  buyDate: string;
+  holdingDays: number;
+  currentPrice: string | null;
+  returnRate: string | null;
+  profitLoss: string | null;
+  priceUpdatedAt: string | null;
+  valuationStatus: 'AVAILABLE' | 'UNAVAILABLE';
   id: string;
   boughtAt: string;
   security: TradeDto['security'];

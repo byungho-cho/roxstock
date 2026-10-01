@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
 import { calculateBuyBalance, calculateRemainingQuantity, calculateSellBalance } from '../domain/trade.js';
+import { valueBuyLot } from '../domain/lot-valuation.js';
+import { realtimePriceCache } from '../realtime/price-cache.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, nonNegativeDecimal, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
@@ -255,15 +257,24 @@ export async function tradeRoutes(app: FastifyInstance) {
     const lots = await prisma.buyTrade.findMany({
       where: { accountId, ...(securityId ? { securityId } : {}) },
       include: {
-        security: { select: { id: true, symbol: true, name: true, marketType: true } },
+        security: { select: { id: true, symbol: true, name: true, marketType: true, marketPrice: true } },
         sellTrades: { select: { id: true, soldAt: true, quantity: true, unitPrice: true }, orderBy: { soldAt: 'asc' } },
       },
       orderBy: [{ boughtAt: 'asc' }, { id: 'asc' }],
     });
+    const now = new Date();
+    const livePrices = new Map(realtimePriceCache.get().map(price => [price.securityId, price]));
     const data = lots.map((lot) => {
       const soldQuantity = lot.sellTrades.reduce((sum, sell) => sum.plus(sell.quantity), new Prisma.Decimal(0));
       const remainingQuantity = calculateRemainingQuantity(lot.quantity, lot.sellTrades.map((sell) => sell.quantity));
+      const stored = lot.security.marketPrice;
+      const live = livePrices.get(lot.securityId.toString());
+      const useLive = live && (!stored || Date.parse(live.observedAt) >= stored.priceUpdatedAt.getTime());
+      const valuation = valueBuyLot(lot.boughtAt, lot.quantity.toString(), lot.unitPrice.toString(),
+        useLive ? live.currentPrice : stored?.currentPrice.toString() ?? null,
+        useLive ? new Date(live.observedAt) : stored?.priceUpdatedAt ?? null, now);
       return {
+        ...valuation,
         id: lot.id.toString(), boughtAt: lot.boughtAt.toISOString(),
         security: { id: lot.security.id.toString(), symbol: lot.security.symbol, name: lot.security.name, marketType: lot.security.marketType },
         quantity: lot.quantity.toString(), soldQuantity: soldQuantity.toString(), remainingQuantity: remainingQuantity.toString(),
@@ -271,7 +282,7 @@ export async function tradeRoutes(app: FastifyInstance) {
         sellTrades: lot.sellTrades.map((sell) => ({ id: sell.id.toString(), soldAt: sell.soldAt.toISOString(), quantity: sell.quantity.toString(), unitPrice: sell.unitPrice.toString() })),
       };
     }).filter((lot) => !remainingOnly || new Prisma.Decimal(lot.remainingQuantity).greaterThan(0));
-    return { data, meta: { accountId: accountId.toString(), count: data.length, remainingOnly } };
+    return { data, meta: { accountId: accountId.toString(), count: data.length, remainingOnly, calculatedAt: now.toISOString(), timezone: 'Asia/Seoul' } };
   });
 
   app.patch<{ Params: TradeParams; Body: EditBuyBody }>('/buy-trades/:tradeId', async (request) => {
@@ -527,3 +538,4 @@ export async function tradeRoutes(app: FastifyInstance) {
     });
   });
 }
+
