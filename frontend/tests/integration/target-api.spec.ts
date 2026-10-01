@@ -20,6 +20,10 @@ test('target conditions persist and selected-account lots use remaining quantity
   expect(initial.conditions).toHaveLength(5);
   const report = await (await request.get(`${base}/target-arrivals`)).json();
   expect(report.meta.total).toBe(1); expect(report.data[0]).toMatchObject({ lotId: lot.id, holdingDays: 0, remainingQuantity: '6', profitLoss: '1200', representativeCondition: { days: 7, rate: '5' } });
+  const recent = await (await request.get(`${base}/buy-lots?remainingOnly=false`)).json();
+  expect(recent.data).toHaveLength(2);
+  expect(recent.data.find((row: {id:string}) => row.id === lot.id)).toMatchObject({remainingQuantity:'6',profitLoss:'2000',returnRate:'20',currentPrice:'1200',valuationStatus:'AVAILABLE'});
+  expect(recent.data.find((row: {id:string}) => row.id === closed.id)).toMatchObject({remainingQuantity:'0',profitLoss:'200',returnRate:'20'});
   const emptyOther = await (await request.get(`/api/accounts/${other.id}/target-arrivals`)).json(); expect(emptyOther.meta.total).toBe(0);
   expect((await request.put(`${base}/target-arrival-conditions`, { data: { version: initial.version, conditions: [] } })).status()).toBe(200);
   expect((await (await request.get(`${base}/target-arrival-conditions`)).json()).data.conditions).toEqual([]);

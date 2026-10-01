@@ -1,63 +1,59 @@
+import './home-font.css';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
 import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '../../hooks/useMockData';
-import type { CollectionStatus, StockItem } from '../../types/models';
-import { formatRate, formatWon, getMarketColor } from '../../utils/format';
+import type { StockItem } from '../../types/models';
+import { formatRate, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
 import { AppCard, SectionHeader } from '../../components/common/Common';
 import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
+import { HomeEmpty, HomeListCard, HomeTwoLineRow } from './HomeListCard';
 import { colors } from '../../styles/tokens';
 
-const collectionStatusLabel: Record<CollectionStatus, string> = { success: '시세 수집 정상', partial: '시세 일부 실패', failed: '시세 수집 실패' };
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { data, isPending, isError, refetch } = useDashboard({ pollPrices: true });
+  const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true });
   if (isPending) return <DashboardLoading />;
   if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
   const { summary, holdings, trend } = data;
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: '8px', sm: '16px' }, alignItems: 'stretch', minHeight: { sm: 308 } }}>
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const monthAgo = new Date(`${today}T00:00:00Z`); monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+  const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
+  return <Box className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: { xs: '8px', sm: '16px' }, rowGap: '8px', alignItems: 'start' }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
-    <Stack spacing="8px" sx={{ minWidth: 0, minHeight: { sm: 308 } }}>
+    <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, height: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       <TotalAssetCard summary={summary} home />
       <AssetQuickCards summary={summary} home />
-      <AppCard sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 167 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '9px' }, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
-        <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: { xs: colors.focus, sm: colors.textMuted } }}>{trend.length > 1 ? <><Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>1개월</Box><Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>최근 1년</Box></> : '데이터 없음'}</Typography>} />
-        {trend.length > 1 ? <TrendChart values={trend.map((item) => item.value)} labels={trend.map((item) => item.label)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>과거 자산 추이 데이터가 없습니다.</Typography></Box>}
+      <AppCard data-testid="home-trend-card" sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 130 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+        <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>} />
+        {homeTrend.length > 1 ? <TrendChart values={homeTrend.map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
       </CardActionArea></AppCard>
     </Stack>
-    <AppCard sx={{ minWidth: 0, height: { xs: 156, sm: 'auto' }, minHeight: { sm: 308 }, borderRadius: '8px' }}><Box sx={{ px: { xs: '14px', sm: '15px' }, py: { xs: '12px', sm: '11px' }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea onClick={() => navigate('/stocks?tab=holding')} sx={{ height: 24, flexShrink: 0, borderRadius: '4px' }}><Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}><Stack direction="row" spacing="7px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: { xs: 16, sm: 15 }, lineHeight: '24px', fontWeight: 600 }}>보유종목</Typography>{summary.pricingComplete === false ? <Box role="img" aria-label="가격 미수집" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors.textMuted }} /> : <Box component="img" src="/figma-100/cover-status.svg" alt="시세 수집 정상" sx={{ width: 8, height: 8 }} />}</Stack><Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: { xs: colors.focus, sm: colors.textMuted } }}>전체 {holdings.length}</Typography></Stack></CardActionArea>
-      {summary.pricingComplete === false && <Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>가격 미수집 종목이 있어 평가자산을 계산할 수 없습니다.</Typography>}
-      {holdings.length === 0 && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>보유종목이 없습니다.</Typography>}
-      <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: 'minmax(0, 1fr) 62px 98px', borderTop: `1px solid ${colors.borderStrong}`, mt: '3px', pt: '7px', color: colors.textMuted, fontSize: 10 }}><span>종목</span><Box sx={{ textAlign: 'right' }}>등락률</Box><Box sx={{ textAlign: 'right' }}>평가금액</Box></Box>
-      <Stack sx={{ mt: '10px', display: { xs: 'flex', sm: 'none' } }}>{holdings.slice(0, 3).map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-      <Stack sx={{ display: { xs: 'none', sm: 'flex' } }}>{holdings.slice(0, 5).map((holding) => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}</Stack>
-      <Button onClick={() => navigate('/stocks?tab=holding')} sx={{ display: { xs: 'none', sm: 'flex' }, mt: 'auto', alignSelf: 'flex-end', fontSize: 11, minHeight: 24, color: colors.focus }}>보유종목 전체 보기 →</Button>
-    </Box></AppCard>
-    <TargetArrivalCard />
-    <RecentBuysCard />
+    <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard testId="home-holdings-card" title="보유종목" timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching} more={holdings.length > 5 ? () => navigate('/stocks?tab=holding') : undefined}>
+      {holdings.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}
+      {holdings.length === 0 && <HomeEmpty />}
+    </HomeListCard></Box>
+    <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
+    <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard /></Box>
   </Box>;
 }
 
 function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
-  return <CardActionArea onClick={onClick} sx={{ minHeight: { xs: 28, sm: 38 }, borderRadius: '4px', borderBottom: { sm: `1px solid ${colors.border}` } }}><Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 50px 128px', sm: 'minmax(0, 1fr) 62px 98px' }, alignItems: 'center', minWidth: 0 }}><Typography noWrap sx={{ fontSize: { xs: 14, sm: 12 }, lineHeight: '21px' }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{stock.priceAvailable === false ? '—' : formatRate(stock.priceChangeRate)}</Typography><Typography noWrap sx={{ fontSize: 11, lineHeight: '16px', textAlign: 'right', fontWeight: 600, color: getMarketColor(stock.priceChangeRate) }}>{formatWon(stock.marketValue ?? Number.NaN)}</Typography><Box role="img" aria-label={collectionStatusLabel[stock.collectionStatus]} title={collectionStatusLabel[stock.collectionStatus]} sx={{ display: 'none' }} /></Box></CardActionArea>;
+  const cost = stock.purchaseAmount ?? (stock.quantity !== undefined && stock.averagePrice !== undefined ? stock.quantity * stock.averagePrice : Number.NaN);
+  return <HomeTwoLineRow testId="home-holding" onClick={onClick} color={getMarketColor(stock.profitAmount ?? Number.NaN)}
+    first={[stock.name, `${stock.quantity?.toLocaleString('ko-KR') ?? '—'} × ${formatWon(stock.averagePrice ?? Number.NaN)}`, formatRate(stock.profitRate ?? Number.NaN)]}
+    second={[formatWon(cost), formatWon(stock.marketValue ?? Number.NaN), formatSignedWon(stock.profitAmount ?? Number.NaN)]} />;
 }
 
-function TrendChart({ values, labels }: { values: number[]; labels: string[] }) {
+function TrendChart({ values }: { values: number[] }) {
   const finite = values.filter(Number.isFinite);
-  if (finite.length < 2) return <Typography sx={{ color: colors.textMuted, fontSize: 11 }}>과거 자산 추이 데이터가 없습니다.</Typography>;
+  if (finite.length < 2) return <HomeEmpty />;
   const min = Math.min(...finite); const max = Math.max(...finite); const range = Math.max(max - min, 1);
   const points = values.map((value, index) => `${(index / (values.length - 1)) * 340},${72 - ((value - min) / range) * 58}`).join(' ');
-  const ticks = [0, 1, 2, 3, 4].map((i) => { const label = labels[Math.round(i * (labels.length - 1) / 4)]; return label?.includes('-') ? `${Number(label.slice(5, 7))}월` : label; }).filter(Boolean);
-  const axisLabel = (value: number) => `${Math.round(value / 10_000).toLocaleString('ko-KR')}만원`;
-  return <Box sx={{ mt: { xs: '7px', sm: '3px' }, width: '100%', height: { xs: 32, sm: 'calc(100% - 28px)' }, minHeight: { sm: 100 }, overflow: 'hidden' }}>
-    <Box sx={{ display: { xs: 'none', sm: 'flex' }, height: 92 }}><Stack sx={{ width: 44, flexShrink: 0, justifyContent: 'space-between', color: colors.disabled, fontSize: 8, whiteSpace: 'nowrap' }}><span>{axisLabel(max)}</span><span>{axisLabel((min + max) / 2)}</span><span>{axisLabel(min)}</span></Stack><Box sx={{ flex: 1, minWidth: 0 }}><ChartLine points={points} /></Box></Box>
-    <Box sx={{ display: { xs: 'block', sm: 'none' }, height: 32 }}><ChartLine points={points} /></Box>
-    <Box sx={{ display: { xs: 'none', sm: 'flex' }, ml: '44px', justifyContent: 'space-between', color: colors.disabled, fontSize: 9 }}>{ticks.map((tick, index) => <span key={`${tick}-${index}`}>{tick}</span>)}</Box>
-  </Box>;
+  return <Box sx={{ mt: '7px', width: '100%', height: { xs: 32, sm: 74 }, overflow: 'hidden' }}><ChartLine points={points} /></Box>;
 }
 
 function ChartLine({ points }: { points: string }) {
