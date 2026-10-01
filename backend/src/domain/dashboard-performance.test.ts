@@ -22,6 +22,8 @@ const input = (overrides: Partial<DashboardPerformanceInput> = {}): DashboardPer
 
 test('입출금을 제거한 총자산 변화로 일별손익과 전일자산 기준 수익률을 계산한다', () => {
   const result = calculateDashboardPerformance(input());
+  assert.equal(result.previousDayChange, '200');
+  assert.equal(result.previousDayChangeRate, '20');
   assert.equal(result.dailyProfit, '150');
   assert.equal(result.dailyProfitRate, '15');
   assert.equal(result.stockMonthlyProfit, '200');
@@ -57,6 +59,8 @@ test('월초에는 전월 말 스냅샷을 기준으로 주식과 예수금 변�
 
 test('기준 스냅샷이 없으면 임의의 0 대신 null과 사유를 반환한다', () => {
   const result = calculateDashboardPerformance(input({ previousDaySnapshot: null, previousMonthEndSnapshot: null }));
+  assert.equal(result.previousDayChange, null);
+  assert.equal(result.previousDayChangeRate, null);
   assert.equal(result.dailyProfit, null);
   assert.equal(result.stockMonthlyProfit, null);
   assert.equal(result.cashMonthlyProfit, null);
@@ -66,6 +70,8 @@ test('기준 스냅샷이 없으면 임의의 0 대신 null과 사유를 반환�
 
 test('현재 시세가 하나라도 없으면 자산 기반 값은 null이고 예수금 월간 변화는 독립 계산한다', () => {
   const result = calculateDashboardPerformance(input({ currentStockValue: null }));
+  assert.equal(result.previousDayChange, null);
+  assert.equal(result.previousDayChangeRate, null);
   assert.equal(result.dailyProfit, null);
   assert.equal(result.dailyProfitRate, null);
   assert.equal(result.stockMonthlyProfit, null);
@@ -75,7 +81,10 @@ test('현재 시세가 하나라도 없으면 자산 기반 값은 null이고 �
 
 test('전일 총자산이 0원이면 손익은 계산하되 수익률은 null로 반환한다', () => {
   const result = calculateDashboardPerformance(input({ previousDaySnapshot: snapshot('2026-09-28', 0, 0) }));
+  assert.equal(result.previousDayChange, '1200');
+  assert.equal(result.previousDayChangeRate, null);
   assert.equal(result.dailyProfit, '1150');
   assert.equal(result.dailyProfitRate, null);
   assert.equal(result.dailyProfitRateUnavailableReason, 'PREVIOUS_DAY_ASSET_VALUE_ZERO');
 });
+

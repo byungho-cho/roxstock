@@ -51,6 +51,12 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
     }
   }
 
+  // Raw total asset change includes external cash flows; dailyProfit removes them.
+  const previousDayChange = currentTotalAssetValue !== null && input.previousDaySnapshot
+    ? currentTotalAssetValue.minus(input.previousDaySnapshot.totalAssetValue) : null;
+  const previousDayChangeRate = previousDayChange !== null && input.previousDaySnapshot?.totalAssetValue.greaterThan(0)
+    ? previousDayChange.div(input.previousDaySnapshot.totalAssetValue).mul(100) : null;
+
   const cashMonthlyProfit = input.previousMonthEndSnapshot
     ? input.currentCashBalance.minus(input.previousMonthEndSnapshot.cashBalance)
     : null;
@@ -59,6 +65,8 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
     : null;
 
   return {
+    previousDayChange: stringOrNull(previousDayChange),
+    previousDayChangeRate: stringOrNull(previousDayChangeRate),
     dailyProfit: stringOrNull(dailyProfit),
     dailyProfitRate: stringOrNull(dailyProfitRate),
     stockMonthlyProfit: stringOrNull(stockMonthlyProfit),
@@ -73,3 +81,4 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
       : 'PREVIOUS_MONTH_END_SNAPSHOT_MISSING' as const,
   };
 };
+

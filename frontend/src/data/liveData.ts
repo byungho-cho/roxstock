@@ -68,6 +68,8 @@ export async function fetchLiveDashboard(selectedAccountId?: string): Promise<Da
     summary: {
       totalAssets: totalAssets ?? Number.NaN, stockValue: stockValue ?? Number.NaN,
       stockPurchaseAmount: Number(response.purchaseAmount), cashBalance: Number(response.cashBalance),
+      previousDayChange: decimal(response.previousDayChange) ?? Number.NaN,
+      previousDayChangeRate: decimal(response.previousDayChangeRate) ?? Number.NaN,
       dailyProfit: decimal(response.dailyProfit) ?? Number.NaN,
       dailyProfitRate: decimal(response.dailyProfitRate) ?? Number.NaN,
       stockMonthlyProfit: decimal(response.stockMonthlyProfit) ?? Number.NaN,
