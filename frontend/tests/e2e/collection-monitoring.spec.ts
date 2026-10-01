@@ -85,6 +85,8 @@ test('out-of-session does not hide an actual worker failure and unavailable deta
 
 
 test('all monitoring details keep the fixed shell and safe scroll clearance at minimum and larger sizes', async ({ page }, testInfo) => {
+  // Fifteen page loads and PNG renders on the single-worker CI runner.
+  test.setTimeout(90_000);
   await page.route('**/api/collection/monitoring', (route) => route.fulfill({ json: { data: summary } }));
   await page.route('**/api/collection/monitoring/**', (route) => route.fulfill({ json: { data: {
     runs: [{ id: 'visual', status: 'SUCCESS', startedAt: summary.generatedAt, target: 12, success: 12, failed: 0, skipped: 0 }],
