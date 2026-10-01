@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('target conditions persist and selected-account lots use remaining quantity', async ({ request }) => {
   const create = async (path: string, data: object) => {
-    const response = await request.post(path, { data }); expect(response.status()).toBe(201); return (await response.json()).data;
+    const response = await request.post(path, { data }); const body = await response.json(); expect(response.status(), JSON.stringify(body)).toBe(201); return body.data;
   };
   const account = await create('/api/accounts', { name: `목표 검증 ${Date.now()}`, brokerName: 'CI' });
   const other = await create('/api/accounts', { name: `목표 격리 ${Date.now()}`, brokerName: 'CI' });
@@ -10,6 +10,7 @@ test('target conditions persist and selected-account lots use remaining quantity
   const securityId = security.id;
   expect((await request.patch(`/api/securities/${securityId}/price`, { data: { currentPrice: '1200' } })).status()).toBe(200);
   const at = new Date().toISOString();
+  await create('/api/cash-transactions', { accountId: account.id, transactionType: 'DEPOSIT', transactionDate: at, amount: '20000' });
   const lot = await create('/api/buy-trades', { accountId: account.id, securityId, boughtAt: at, quantity: '10', unitPrice: '1000', feeTaxAmount: '0' });
   const closed = await create('/api/buy-trades', { accountId: account.id, securityId, boughtAt: at, quantity: '1', unitPrice: '1000', feeTaxAmount: '0' });
   await create('/api/sell-trades', { buyTradeId: lot.id, soldAt: at, quantity: '4', unitPrice: '1200', feeTaxAmount: '0' });
