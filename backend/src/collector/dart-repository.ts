@@ -23,22 +23,22 @@ export interface DartSecurityRecord { id: bigint; symbol: string; securityType: 
 export class PrismaDartRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async acquireLock(owner: string, ttlSeconds: number): Promise<boolean> {
+  async acquireLock(owner: string, ttlSeconds: number, jobName = 'dart-financial-statements'): Promise<boolean> {
     const changed = await this.prisma.$executeRaw`
       INSERT INTO collector_locks (job_name, owner_token, locked_until, created_at, updated_at)
-      VALUES ('dart-financial-statements', ${owner}, DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
+      VALUES (${jobName}, ${owner}, DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
       ON DUPLICATE KEY UPDATE
         owner_token = IF(locked_until < UTC_TIMESTAMP(3), VALUES(owner_token), owner_token),
         locked_until = IF(locked_until < UTC_TIMESTAMP(3), VALUES(locked_until), locked_until),
         updated_at = IF(locked_until < UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), updated_at)
     `;
     if (!changed) return false;
-    const rows = await this.prisma.$queryRaw<Array<{ owner_token: string }>>`SELECT owner_token FROM collector_locks WHERE job_name = 'dart-financial-statements'`;
+    const rows = await this.prisma.$queryRaw<Array<{ owner_token: string }>>`SELECT owner_token FROM collector_locks WHERE job_name = ${jobName}`;
     return rows[0]?.owner_token === owner;
   }
 
-  async releaseLock(owner: string): Promise<void> {
-    await this.prisma.collectorLock.deleteMany({ where: { jobName: 'dart-financial-statements', ownerToken: owner } });
+  async releaseLock(owner: string, jobName = 'dart-financial-statements'): Promise<void> {
+    await this.prisma.collectorLock.deleteMany({ where: { jobName, ownerToken: owner } });
   }
 
   async getState() {
@@ -379,3 +379,4 @@ export class PrismaDartRepository {
     await this.setState({ lastError: error?.slice(0, 1000) ?? null, lastRunAt: new Date() });
   }
 }
+
