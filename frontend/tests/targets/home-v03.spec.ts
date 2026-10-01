@@ -29,6 +29,17 @@ test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and o
   await expect(targets.getByText('내용이 없습니다.')).toBeVisible(); await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5); await expect(held.getByTestId('home-holding')).toHaveCount(3);
   await expect(recent.getByText('8건')).toBeVisible(); await expect(recent.getByText('26.09.30 (1일)')).toBeVisible();
   const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,header:document.querySelector('header')!.getBoundingClientRect().height,nav:[...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!.getBoundingClientRect().height,panels:[...document.querySelectorAll('[data-testid$="-card"], [data-testid="home-summary-area"]')].map(n=>({id:n.getAttribute('data-testid'),rect:n.getBoundingClientRect().toJSON(),scroll:getComputedStyle(n).overflowY})),scrolls:[...document.querySelectorAll('main *')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY))}));
+  const spacing = await page.evaluate(() => {
+    const main = document.querySelector('main')!;
+    const title = document.querySelector('header h1')!;
+    const card = document.querySelector('[data-testid="home-summary-area"]')!;
+    const cells = [...document.querySelectorAll('[data-testid="home-holding"] > div > div')];
+    return { paddingTop: getComputedStyle(main).paddingTop, paddingLeft: getComputedStyle(main).paddingLeft,
+      paddingRight: getComputedStyle(main).paddingRight, titleLeft: title.getBoundingClientRect().left,
+      cardLeft: card.getBoundingClientRect().left, cardTop: card.getBoundingClientRect().top,
+      clipped: cells.filter((cell, i) => i % 6 !== 0 && cell.scrollWidth > cell.clientWidth + 1).map(cell => cell.textContent) };
+  });
+  expect(spacing).toMatchObject({ paddingTop: '0px', paddingLeft: '8px', paddingRight: '8px', titleLeft: 8, cardLeft: 8, cardTop: 44, clipped: [] });
   expect(layout.overflow).toBe(false);expect(layout.header).toBe(44);expect(layout.nav).toBe(44);expect(layout.scrolls).toHaveLength(0);
   const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
   expect(await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(251, 191, 36)');
