@@ -19,6 +19,9 @@ test('financial refresh is explicit, scoped, preserves data and reports no filin
   await expect(page.getByRole('button',{name:'요청 처리 대기 중'})).toBeDisabled();
   await expect(page.getByText('매출액 · 조원')).toBeVisible(); expect(posts).toBe(1);
   await page.screenshot({path:info.outputPath('financial-refresh-pending.png')});
+  await page.reload();
+  await expect(page.getByRole('button',{name:'요청 처리 대기 중'})).toBeDisabled();
+  expect(posts).toBe(1);
   finished=true;
   await expect(page.getByText('1분기: 공시·재무제표 없음 · 기존 데이터 유지')).toBeVisible({timeout:10000});
   await expect(page.getByText('매출액 · 조원')).toBeVisible();
