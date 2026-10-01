@@ -36,6 +36,7 @@ jobs:
       - run: npm ci
       - run: npm --workspace backend run prisma:validate
       - run: npm --workspace backend run prisma:generate
+      - run: npm --workspace backend run typecheck
       - run: npm --workspace backend test
 
   build:
@@ -151,3 +152,4 @@ jobs:
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
           ssh -i "$HOME/.ssh/deploy_key" -p "$DEPLOY_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "test \"\$(docker inspect --format='{{.State.Health.Status}}' roxstock-collector)\" = healthy && test \"\$(docker inspect --format='{{.State.Health.Status}}' roxstock-realtime-collector)\" = healthy && test \"\$(docker inspect --format='{{.State.Health.Status}}' roxstock-dart-collector)\" = healthy"
+

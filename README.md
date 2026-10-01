@@ -20,3 +20,6 @@
 - `.github/workflows/`: CI/CD 워크플로
 
 운영 프론트엔드 배포와 복구 절차는 [배포 안내](scripts/README.md)를 참고하세요.
+
+
+개발·기본 검사·자동 배포 및 요청 시 QA 절차는 [GitHub Actions 작업 기준](.github/workflows/README.md)을 따릅니다.

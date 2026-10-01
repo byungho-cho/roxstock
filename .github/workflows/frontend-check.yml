@@ -1,0 +1,30 @@
+name: Frontend Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/frontend-check.yml
+      - .github/workflows/frontend-image.yml
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Frontend Basic Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm run typecheck:frontend
+      - run: npm run build:frontend

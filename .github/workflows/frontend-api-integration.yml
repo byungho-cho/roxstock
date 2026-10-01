@@ -1,17 +1,7 @@
 name: Frontend API Integration (isolated database)
 
 on:
-  push:
-    branches: [feature/api-integration-validation, feature/account-reset-settings]
-  pull_request:
-    branches: [main]
-    paths:
-      - frontend/**
-      - backend/**
-      - database/prisma/**
-      - .github/workflows/frontend-api-integration.yml
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
@@ -76,3 +66,4 @@ jobs:
       - name: Print server logs on failure
         if: failure()
         run: cat /tmp/roxstock-api.log /tmp/roxstock-frontend.log || true
+
