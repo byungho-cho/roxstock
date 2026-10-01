@@ -83,6 +83,8 @@ model Account {
   displayOrder            Int                     @default(0) @map("display_order") @db.UnsignedSmallInt
   createdAt               DateTime                @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt               DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  targetArrivalConditions Json?                   @map("target_arrival_conditions")
+  targetArrivalVersion    Int                     @default(0) @map("target_arrival_version") @db.UnsignedInt
   buyTrades               BuyTrade[]
   cashTransactions        CashTransaction[]
   dividends               Dividend[]
@@ -591,3 +593,4 @@ model CompoundGrowthGoal {
   @@index([planId, isVisible, displayOrder])
   @@map("compound_growth_goals")
 }
+

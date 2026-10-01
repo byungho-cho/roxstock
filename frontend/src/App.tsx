@@ -1,3 +1,4 @@
+import { TargetArrivalPage } from './pages/dashboard/TargetArrivalCard';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -33,6 +34,7 @@ export function App() {
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
         <Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<PlaceholderPage title="자산분석" description="자산 추이와 기간 성과 화면은 다음 구현 단계에서 연결합니다." />} />
+        <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />
@@ -46,3 +48,4 @@ export function App() {
     </Routes>
   );
 }
+

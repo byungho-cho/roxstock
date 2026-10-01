@@ -41,3 +41,28 @@ jobs:
             frontend/playwright-report/**
           if-no-files-found: warn
           retention-days: 14
+
+
+  target-arrivals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm --workspace frontend run build
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.targets.config.ts
+        working-directory: frontend
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: target-arrival-viewport-evidence
+          path: |
+            frontend/test-results/targets/**
+            frontend/playwright-targets-report/**
+          retention-days: 14
