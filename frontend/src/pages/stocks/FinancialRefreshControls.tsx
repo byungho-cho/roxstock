@@ -14,7 +14,7 @@ const errorText = (code?: string) => {
   if (code === 'DART_CORP_CODE_NOT_MAPPED') return 'DART 기업코드가 연결되지 않았습니다.';
   return '업데이트에 실패했습니다. 잠시 후 다시 시도해 주세요.';
 };
-export function FinancialRefreshControls({ stockId, collectedAt }: { stockId: string; collectedAt: string | null }) {
+export function FinancialRefreshControls({ stockId, collectedAt, onSelection }: { stockId: string; collectedAt: string | null; onSelection: (year: number, period: Period) => void }) {
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
   const [year, setYear] = useState(currentYear - 1);
   const [period, setPeriod] = useState<Period>('ANNUAL');
@@ -40,10 +40,10 @@ export function FinancialRefreshControls({ stockId, collectedAt }: { stockId: st
   return <Stack spacing={1} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', p: 1.5 }}>
     <Typography sx={{ fontSize: 13, fontWeight: 600 }}>DART 재무제표 업데이트</Typography>
     <Stack direction="row" spacing={1}>
-      <TextField select label="사업연도" value={year} disabled={busy} size="small" onChange={(e) => setYear(Number(e.target.value))} sx={{ flex: 1 }}>{Array.from({ length: currentYear - 2015 + 1 }, (_, i) => currentYear - i).map((y) => <MenuItem key={y} value={y}>{y}년</MenuItem>)}</TextField>
-      <TextField select label="갱신 범위" value={period} disabled={busy} size="small" onChange={(e) => setPeriod(e.target.value as Period)} sx={{ flex: 1.4 }}>{Object.entries(labels).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</TextField>
+      <TextField select label="사업연도" value={year} disabled={busy} size="small" onChange={(e) => { setYear(Number(e.target.value)); onSelection(Number(e.target.value), period); }} sx={{ flex: 1 }}>{Array.from({ length: currentYear - 2015 + 1 }, (_, i) => currentYear - i).map((y) => <MenuItem key={y} value={y}>{y}년</MenuItem>)}</TextField>
+      <TextField select label="갱신 범위" value={period} disabled={busy} size="small" onChange={(e) => { setPeriod(e.target.value as Period); onSelection(year, e.target.value as Period); }} sx={{ flex: 1.4 }}>{Object.entries(labels).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</TextField>
     </Stack>
-    <Button variant="outlined" startIcon={<RefreshIcon />} disabled={busy} onClick={() => mutation.mutate()}>{busy ? status.data?.state === 'PROCESSING' ? '업데이트 중' : '요청 처리 대기 중' : `${year}년 ${labels[period]} 업데이트`}</Button>
+    <Button variant="outlined" startIcon={<RefreshIcon />} disabled={busy} onClick={() => { onSelection(year, period); mutation.mutate(); }}>{busy ? status.data?.state === 'PROCESSING' ? '업데이트 중' : '요청 처리 대기 중' : `${year}년 ${labels[period]} 업데이트`}</Button>
     <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>버튼을 누를 때만 수집합니다. {period === 'ALL' ? '선택 연도의 보고서 4개를 조회합니다.' : '선택한 보고서만 조회합니다.'}</Typography>
     <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>저장 데이터 수집 시각: {collectedAt ? new Date(collectedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '미수집'}</Typography>
     {mutation.isError && <Alert severity="error">{mutation.error instanceof ApiError && ['DART_REFRESH_IN_PROGRESS', 'DART_REFRESH_BUSY', 'DART_REFRESH_QUEUE_FULL', 'DART_NOT_APPLICABLE'].includes(mutation.error.code) ? mutation.error.message : errorText(mutation.error instanceof ApiError ? mutation.error.code : undefined)}</Alert>}
