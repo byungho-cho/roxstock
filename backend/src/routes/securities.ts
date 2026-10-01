@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma, type MarketType, type WatchlistType } from '../generated/prisma/index.js';
 
 import { ApiError } from '../lib/api-error.js';
+import { parseManualRefresh } from '../collector/dart-manual-refresh.js';
 import { id, optionalMemo } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -178,14 +179,15 @@ export async function securityRoutes(app: FastifyInstance) {
     return { data: { updated: true } };
   });
 
-  app.get<{ Params: SecurityParams }>('/securities/:id/analysis', async (request) => {
+  app.get<{ Params: SecurityParams; Querystring: { fiscalYear?: string } }>('/securities/:id/analysis', async (request) => {
     const securityId = id(request.params.id, 'id');
     const security = await prisma.security.findUnique({ where: { id: securityId }, include: { marketPrice: true, watchlistItem: true } });
     if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
+    const fiscalYear = request.query.fiscalYear === undefined ? undefined : parseManualRefresh({ fiscalYear: Number(request.query.fiscalYear), period: 'ANNUAL' }).fiscalYear;
     const [metrics, manualStatements, dartFilings, fundamentals] = await Promise.all([
       prisma.valuationMetric.findMany({ where: { securityId }, orderBy: { metricDate: 'desc' }, take: 2 }),
-      prisma.financialStatement.findMany({ where: { securityId }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }], take: 24 }),
-      prisma.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }], take: 40 }),
+      prisma.financialStatement.findMany({ where: { securityId, ...(fiscalYear === undefined ? {} : { fiscalYear }) }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }], take: 24 }),
+      prisma.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false, ...(fiscalYear === undefined ? {} : { fiscalYear }) }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }], take: 40 }),
       prisma.securityFundamentals.findUnique({ where: { securityId } }),
     ]);
     const manualByPeriod = new Map(manualStatements.map((item) => [`${item.fiscalYear}:${item.periodType}`, item]));
@@ -388,3 +390,4 @@ export async function securityRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 }
+

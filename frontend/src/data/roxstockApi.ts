@@ -50,7 +50,7 @@ export interface SecurityAnalysisDto {
   fundamentals: { controllingProfit: string | null; issuedShares: string | null; treasuryShares: string | null; previousEquity: string | null } | null;
   statements: FinancialStatementDto[];
 }
-export const getSecurityAnalysis = (securityId: string) => apiRequest<SecurityAnalysisDto>(`/securities/${encodeURIComponent(securityId)}/analysis`);
+export const getSecurityAnalysis = (securityId: string, fiscalYear?: number) => apiRequest<SecurityAnalysisDto>(`/securities/${encodeURIComponent(securityId)}/analysis${fiscalYear === undefined ? '' : `?fiscalYear=${fiscalYear}`}`);
 export type AnalysisWriteInput = Partial<Record<'operatingProfit' | 'controllingProfit' | 'issuedShares' | 'treasuryShares' | 'assets' | 'liabilities' | 'equity' | 'previousEquity' | 'dividend' | 'memo', string | null>>;
 export const updateSecurityAnalysis = (securityId: string, body: AnalysisWriteInput) =>
   apiRequest<{ updated: true }>(`/securities/${encodeURIComponent(securityId)}/analysis`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -282,3 +282,4 @@ export const getBuyLots = (accountId: string, securityId?: string, remainingOnly
   if (securityId) params.set('securityId', securityId);
   return apiRequest<BuyLotDto[]>(`/accounts/${encodeURIComponent(accountId)}/buy-lots?${params}`);
 };
+
