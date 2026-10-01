@@ -69,9 +69,9 @@ export function evaluateTargetLots(lots: TargetLotInput[], conditions: TargetCon
   });
   return { asOfDate: today, unavailable, quoteTimes, data: matches.map(m => ({
     lotId: m.lot.id, securityId: m.lot.securityId, symbol: m.lot.symbol, name: m.lot.name,
-    buyDate: m.buyDate, holdingDays: m.holdingDays, remainingQuantity: m.remaining.toString(),
-    unitPrice: m.lot.unitPrice, currentPrice: m.price.toString(), returnRate: m.rate.toString(),
-    profitLoss: m.profit.toString(), representativeCondition: m.condition,
+    buyDate: m.buyDate, holdingDays: m.holdingDays, remainingQuantity: m.remaining.toFixed(),
+    unitPrice: new Decimal(m.lot.unitPrice).toFixed(), currentPrice: m.price.toFixed(), returnRate: m.rate.toFixed(),
+    profitLoss: m.profit.toFixed(), representativeCondition: m.condition,
     priceUpdatedAt: m.lot.priceUpdatedAt!.toISOString(),
   })) };
 }
