@@ -42,7 +42,7 @@ export function mapHolding(holding: HoldingDto): StockItem {
     currentPrice: currentPrice ?? Number.NaN,
     priceChangeRate: decimal(holding.priceChangeRate) ?? Number.NaN,
     quantity: Number(holding.quantity), averagePrice: Number(holding.averagePurchasePrice),
-    marketValue: decimal(holding.marketValue), profitAmount: decimal(holding.unrealizedProfitLoss),
+    purchaseAmount: decimal(holding.purchaseAmount), marketValue: decimal(holding.marketValue), profitAmount: decimal(holding.unrealizedProfitLoss),
     profitRate: decimal(holding.unrealizedReturnRate),
     priceAvailable: currentPrice !== undefined,
     priceChangeAvailable: decimal(holding.priceChangeRate) !== undefined,
@@ -91,3 +91,4 @@ export async function fetchLiveBuyLots(stockId?: string, accountId?: string): Pr
     soldQuantity: Number(lot.soldQuantity), remainingQuantity: Number(lot.remainingQuantity),
   }));
 }
+

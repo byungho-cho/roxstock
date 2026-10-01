@@ -21,11 +21,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  integration:
-    uses: ./.github/workflows/frontend-api-integration.yml
+  validate:
+    uses: ./.github/workflows/frontend-check.yml
 
   publish:
-    needs: integration
+    needs: validate
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.image.outputs.tag }}
@@ -112,3 +112,4 @@ jobs:
             -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd /opt/roxstock && ./scripts/deploy.sh '${{ needs.publish.outputs.image_tag }}'"
+
