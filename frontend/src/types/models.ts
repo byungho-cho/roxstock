@@ -1,4 +1,4 @@
-export type StockListType = 'watchlist' | 'holding' | 'recommended';
+export type StockListType = 'watchlist' | 'holding' | 'recommended' | 'traded';
 export type CollectionStatus = 'success' | 'partial' | 'failed';
 export type TradeType = 'buy' | 'sell';
 export type CashEntryType = 'deposit' | 'withdrawal' | 'dividend' | 'buy' | 'sell';
@@ -36,6 +36,8 @@ export interface StockItem {
   /** 영업이익, 억원 단위. 값이 없으면 —로 표시한다. */
   operatingProfit?: number;
   previousOperatingProfit?: number;
+  lastSoldAt?: string;
+  realizedProfit?: number;
   note?: string;
   collectionStatus: CollectionStatus;
 }

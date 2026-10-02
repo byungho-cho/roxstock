@@ -1,107 +1,24 @@
-import { SearchRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardContent, Chip, InputBase, Stack, Typography } from '@mui/material';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FormTextField } from '../../components/forms/Fields';
-import { PageHeader } from '../../components/navigation/Navigation';
-import { stockItems } from '../../data/mockData';
-import { liveApiEnabled, mapSecurity } from '../../data/liveData';
-import { createSecurity, createWatchlistItem, listSecurities, type MarketType } from '../../data/roxstockApi';
-import { colors } from '../../styles/tokens';
-import type { StockItem, StockListType } from '../../types/models';
-
-const categories: Array<{ value: StockListType; label: string }> = [
-  { value: 'watchlist', label: '관심종목' }, { value: 'holding', label: '보유종목' }, { value: 'recommended', label: '추천종목' },
-];
-const isListType = (value: string | null): value is StockListType => value === 'watchlist' || value === 'holding' || value === 'recommended';
-
-export function StockAddPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [params] = useSearchParams();
-  const requestedType = params.get('type');
-  const [category, setCategory] = useState<StockListType>(isListType(requestedType) ? requestedType : 'watchlist');
-  const [query, setQuery] = useState('');
-  const [market, setMarket] = useState('전체');
-  const [direct, setDirect] = useState(false);
-  const [name, setName] = useState('');
-  const [symbol, setSymbol] = useState('');
-  const symbolRef = useRef<HTMLInputElement>(null);
-  const [message, setMessage] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [query]);
-  const { data: remoteResults = [], isError: searchError, isPending: searchPending, refetch: retrySearch } = useQuery({
-    queryKey: ['securitySearch', debouncedQuery, market],
-    enabled: liveApiEnabled && debouncedQuery.length > 0,
-    queryFn: async () => (await listSecurities({
-      query: debouncedQuery,
-      marketType: ({ '코스피': 'KOSPI', '코스닥': 'KOSDAQ' } as Record<string, MarketType>)[market],
-      excludeRegistered: true, limit: 20, offset: 0,
-    })).map(mapSecurity),
-  });
-
-  const results = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    if (!keyword) return [];
-    if (liveApiEnabled) return debouncedQuery === query.trim() ? remoteResults : [];
-    const unique = new Map<string, StockItem>();
-    stockItems.forEach((stock) => {
-      if ((stock.name.toLowerCase().includes(keyword) || stock.symbol.includes(keyword)) && !unique.has(stock.symbol)) unique.set(stock.symbol, stock);
-    });
-    return [...unique.values()].slice(0, 6);
-  }, [query, remoteResults, debouncedQuery]);
-
-  const finish = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['stocks'] });
-    navigate(`/stocks?tab=${category}`);
-  };
-  const addExisting = async (source: StockItem) => {
-    if (liveApiEnabled) {
-      if (category === 'holding') { setMessage('보유종목은 매수 거래를 등록하면 자동으로 추가됩니다.'); return; }
-      try {
-        await createWatchlistItem({ securityId: source.id, listType: category === 'watchlist' ? 'WATCHLIST' : 'RECOMMENDED' });
-        await finish();
-      } catch (error) { setMessage(error instanceof Error ? error.message : '종목 등록에 실패했습니다.'); }
-      return;
-    }
-    if (stockItems.some((stock) => stock.symbol === source.symbol && stock.listType === category)) {
-      setMessage(`이미 ${categories.find((item) => item.value === category)?.label}에 등록된 종목입니다.`);
-      return;
-    }
-    stockItems.push({ ...source, id: `${source.symbol}-${category}-${Date.now()}`, listType: category });
-    await finish();
-  };
-  const addDirect = async () => {
-    const normalizedName = name.trim();
-    const normalizedSymbol = symbol.replace(/[^0-9]/g, '').slice(0, 6);
-    if (!normalizedName || normalizedSymbol.length !== 6) { setMessage('종목명과 6자리 종목코드를 입력해 주세요.'); return; }
-    if (liveApiEnabled) {
-      if (category === 'holding') { setMessage('보유종목은 매수 거래를 등록하면 자동으로 추가됩니다. 관심종목으로 등록한 뒤 매수해 주세요.'); return; }
-      try {
-        await createSecurity({ symbol: normalizedSymbol, name: normalizedName, marketType: ({ '코스피': 'KOSPI', '코스닥': 'KOSDAQ' } as Record<string, MarketType>)[market] ?? 'OTHER', listType: category === 'watchlist' ? 'WATCHLIST' : 'RECOMMENDED' });
-        await finish();
-      } catch (error) { setMessage(error instanceof Error ? error.message : '종목 등록에 실패했습니다.'); }
-      return;
-    }
-    if (stockItems.some((stock) => stock.symbol === normalizedSymbol && stock.listType === category)) { setMessage('선택한 분류에 같은 종목코드가 이미 등록되어 있습니다.'); return; }
-    stockItems.push({ id: `${normalizedSymbol}-${category}-${Date.now()}`, symbol: normalizedSymbol, name: normalizedName, listType: category, currentPrice: 0, priceChangeRate: 0, collectionStatus: 'partial' });
-    await finish();
-  };
-
-  return <Stack spacing="12px">
-    <PageHeader title="종목 추가" onBack={() => navigate(-1)} showBackTablet showAdd={false} embedded />
-    <Stack direction="row" spacing={1}>{categories.map((item) => <Chip key={item.value} label={item.label} onClick={() => { setCategory(item.value); setMessage(''); }} sx={{ flex: 1, height: 32, bgcolor: category === item.value ? colors.buttonPrimary : colors.surface, color: category === item.value ? '#fff' : colors.textMuted }} />)}</Stack>
-    {!direct ? <>
-      <Box sx={{ height: 48, display: 'flex', alignItems: 'center', gap: 1, px: 1.75, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, borderRadius: '12px' }}><SearchRounded sx={{ fontSize: 17, color: colors.textMuted }} /><InputBase autoFocus inputProps={{ 'data-initial-focus': 'true', enterKeyHint: 'done' }} value={query} onChange={(event) => { setQuery(event.target.value); setMessage(''); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); (event.target as HTMLElement).blur(); } }} placeholder="종목명·종목코드 검색" sx={{ flex: 1, fontSize: 13 }} /></Box>
-      <Stack direction="row" spacing={1}>{['전체', '코스피', '코스닥'].map((value) => <Chip key={value} label={value} onClick={() => setMarket(value)} sx={{ height: 30, minWidth: value === '전체' ? 68 : 78, bgcolor: market === value ? colors.buttonPrimary : '#0F172A', color: market === value ? '#fff' : colors.textMuted }} />)}</Stack>
-      {results.length === 0 ? <Card sx={{ height: 180, borderRadius: '14px' }}><CardContent sx={{ height: '100%', display: 'grid', placeItems: 'center', textAlign: 'center' }}><Box><SearchRounded sx={{ fontSize: 30, color: colors.textMuted }} /><Typography sx={{ mt: 1, fontSize: 15, fontWeight: 600 }}>{query.trim() ? searchError ? '검색에 실패했습니다' : searchPending || debouncedQuery !== query.trim() ? '검색 중' : '검색 결과가 없습니다' : '코스피·코스닥 전체 종목 검색'}</Typography><Typography sx={{ mt: 1, fontSize: 12, color: colors.textMuted }}>{query.trim() ? searchError ? '잠시 후 다시 시도해 주세요.' : searchPending ? '종목을 찾고 있습니다.' : '다른 종목명 또는 종목코드를 입력해 주세요.' : '종목명 또는 종목코드를 입력해 주세요.'}</Typography>{searchError && <Button onClick={() => void retrySearch()}>다시 시도</Button>}</Box></CardContent></Card> : <Stack spacing={1}>{results.map((stock) => <Card key={stock.symbol}><CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, '&:last-child': { pb: 1.25 } }}><Box><Typography sx={{ fontWeight: 600 }}>{stock.name}</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted }}>A{stock.symbol} · 코스피</Typography></Box><Button variant="outlined" onClick={() => void addExisting(stock)}>+ 추가</Button></CardContent></Card>)}</Stack>}
-      <Card sx={{ height: 46, borderRadius: '12px' }}><CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0, px: 1.5, '&:last-child': { pb: 0 } }}><Typography sx={{ fontSize: 12, color: colors.textMuted }}>검색되지 않는 종목인가요?</Typography><Button onClick={() => { flushSync(() => { setDirect(true); setMessage(''); }); document.querySelector<HTMLInputElement>('[data-initial-focus="true"]')?.focus({ preventScroll: true }); }} sx={{ fontSize: 12 }}>직접 추가 ›</Button></CardContent></Card>
-    </> : <Card sx={{ borderRadius: '12px' }}><CardContent><Stack spacing={1.5}><Typography sx={{ fontSize: 15, fontWeight: 700 }}>종목 직접 추가</Typography><FormTextField label="종목명" value={name} onChange={setName} autoFocus enterKeyHint="next" onEnter={() => symbolRef.current?.focus()} /><FormTextField label="종목코드" value={symbol} onChange={(value) => setSymbol(value.replace(/[^0-9]/g, '').slice(0, 6))} inputRef={symbolRef} enterKeyHint="done" onEnter={() => void addDirect()} /><Stack direction="row" spacing={1}><Button fullWidth onClick={() => setDirect(false)}>취소</Button><Button fullWidth variant="contained" onClick={() => void addDirect()}>추가</Button></Stack></Stack></CardContent></Card>}
-    {message && <Typography role="alert" sx={{ fontSize: 12, color: colors.marketRise }}>{message}</Typography>}
-  </Stack>;
+import {Box,Button,Card,Chip,Dialog,DialogActions,DialogContent,DialogTitle,IconButton,InputBase,Stack,Typography} from '@mui/material';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {useEffect,useRef,useState} from 'react';
+import {useLocation,useNavigate,useSearchParams} from 'react-router-dom';
+import {FormTextField} from '../../components/forms/Fields';
+import {PageHeader} from '../../components/navigation/Navigation';
+import {mapSecurity} from '../../data/liveData';
+import {createSecurity,createWatchlistItem,listSecurities,type MarketType} from '../../data/roxstockApi';
+import {useStocks} from '../../hooks/useMockData';
+import {colors} from '../../styles/tokens';
+import type {StockItem,StockListType} from '../../types/models';
+export function StockAddPage(){
+ const navigate=useNavigate(),location=useLocation(),client=useQueryClient();const[params]=useSearchParams();const[type,setType]=useState<StockListType>(params.get('type')==='holding'?'holding':params.get('type')==='recommended'?'recommended':'watchlist');
+ const[query,setQuery]=useState(''),[search,setSearch]=useState(''),[market,setMarket]=useState('전체'),[direct,setDirect]=useState(false),[name,setName]=useState(''),[symbol,setSymbol]=useState(''),[selected,setSelected]=useState<StockItem|null>(null),[categoryOpen,setCategoryOpen]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);const lock=useRef(false),searchRef=useRef<HTMLInputElement>(null),symbolRef=useRef<HTMLInputElement>(null);
+ const {data:registered}=useStocks();
+ useEffect(()=>{const t=setTimeout(()=>setSearch(query.trim()),300);return()=>clearTimeout(t);},[query]);
+ const result=useQuery({queryKey:['securitySearch',search,market],enabled:search.length>0,queryFn:async()=> (await listSecurities({query:search,marketType:({'코스피':'KOSPI','코스닥':'KOSDAQ'} as Record<string,MarketType>)[market],limit:20,offset:0})).map(mapSecurity)});
+ const rows=search===query.trim()?result.data??[]:[];
+ const finish=async()=>{await client.invalidateQueries({queryKey:['stocks']});navigate(`/stocks?tab=${type}`,{replace:true});};
+ const save=async()=>{if(lock.current||type==='holding'||(!selected&&!direct)||direct&&(!name.trim()||!/^\d{6}$/.test(symbol)))return;lock.current=true;setBusy(true);setError('');try{if(direct)await createSecurity({name:name.trim(),symbol,marketType:({'코스피':'KOSPI','코스닥':'KOSDAQ'} as Record<string,MarketType>)[market]??'OTHER',listType:type==='recommended'?'RECOMMENDED':'WATCHLIST'});else await createWatchlistItem({securityId:selected!.id,listType:type==='recommended'?'RECOMMENDED':'WATCHLIST'});await finish();}catch(e){setError(e instanceof Error?e.message:'등록에 실패했습니다.');}finally{lock.current=false;setBusy(false);}};
+ const category=<Stack spacing={1}><Button aria-pressed={type==='watchlist'} variant={type==='watchlist'?'contained':'outlined'} onClick={()=>setType('watchlist')}>관심종목</Button><Button aria-pressed={type==='holding'} disabled>보유종목 · 매수로 관리</Button><Button aria-pressed={type==='recommended'} variant={type==='recommended'?'contained':'outlined'} onClick={()=>setType('recommended')}>추천종목</Button></Stack>;
+ return <Stack spacing="8px" data-testid="stock-add-content"><PageHeader embedded variant="more" backIcon={<Box component="img" src="/stocks-v03/back.svg" alt=""/>} showAdd={false} title="종목 추가" onBack={()=>navigate(-1)} showBackTablet/>{!direct?<><Box sx={{height:48,display:'flex',alignItems:'center',gap:1,px:'8px',bgcolor:colors.raised,border:`1px solid ${colors.borderStrong}`,borderRadius:'8px'}}><Box component="img" src="/stocks-v03/search.svg" alt=""/><InputBase inputRef={searchRef} autoFocus value={query} onFocus={e=>e.target.select()} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();setSearch(query.trim());if(search===query.trim())void result.refetch();}}} inputProps={{'aria-label':'전체 종목 검색',enterKeyHint:'search'}} placeholder="종목명·종목코드 검색" sx={{flex:1,minWidth:0,fontSize:13}}/>{query&&<IconButton aria-label="검색어 지우기" onClick={()=>{setQuery('');searchRef.current?.focus();}} sx={{p:0}}><Box component="img" src="/stocks-v03/search-clear.svg" alt=""/></IconButton>}</Box><Stack direction="row" spacing={1}>{['전체','코스피','코스닥'].map(v=><Chip key={v} label={v} onClick={()=>setMarket(v)} sx={{height:30,borderRadius:'8px',minWidth:v==='전체'?68:78,bgcolor:market===v?colors.buttonPrimary:colors.surface,fontSize:12}}/>)}</Stack>{query&&<Typography sx={{fontSize:13,fontWeight:600,py:0.5}}>‘{query}’ 검색 결과 {rows.length}개</Typography>}{result.isError?<Button role="alert" onClick={()=>void result.refetch()}>검색 실패 · 다시 시도</Button>:query&&result.isFetching&&!rows.length?<Typography role="status">검색 중입니다.</Typography>:query&&!rows.length?<Typography sx={{textAlign:'center',py:4,fontSize:13}}>내용이 없습니다.</Typography>:rows.map(s=>{const existing=registered?.find(item=>item.id===s.id),disabled=!!existing;return <Card key={s.id} data-testid="security-search-result" sx={{height:52,px:'14px',display:'flex',alignItems:'center',justifyContent:'space-between',borderRadius:'8px',bgcolor:colors.surface,border:`1px solid ${colors.border}`}}><Box sx={{minWidth:0}}><Typography noWrap sx={{fontSize:14,fontWeight:600}}><Highlight text={s.name} query={query}/></Typography><Typography sx={{fontSize:10,color:colors.textMuted}}><Highlight text={s.symbol} query={query}/></Typography></Box><Button disabled={disabled} variant="outlined" sx={{height:34,minWidth:68,borderRadius:'8px',fontSize:10}} onClick={()=>{setSelected(s);setCategoryOpen(true);setError('');}}>{existing?existing.listType==='holding'?'보유종목':existing.listType==='traded'?'거래종목':existing.listType==='recommended'?'추천종목':'관심종목':'+ 추가'}</Button></Card>;})}<Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11}} onClick={()=>{setDirect(true);setError('');}}>직접 추가 ›</Button></Stack></>:<Stack spacing={1}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목명" value={name} onChange={setName} autoFocus onEnter={()=>symbolRef.current?.focus()} disabled={busy}/><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목코드" value={symbol} onChange={s=>setSymbol(s.replace(/\D/g,'').slice(0,6))} inputRef={symbolRef} onEnter={()=>void save()} disabled={busy}/>{category}<Stack direction="row" spacing={1}><Button disabled={busy} onClick={()=>setDirect(false)}>취소</Button><Button variant="contained" disabled={busy||type==='holding'||!name.trim()||!/^\d{6}$/.test(symbol)} onClick={()=>void save()}>추가</Button></Stack></Stack>}{error&&<Typography role="alert" sx={{fontSize:12,color:colors.marketRise}}>{error}</Typography>}<Dialog open={categoryOpen} onClose={()=>!busy&&setCategoryOpen(false)} slotProps={{paper:{sx:{width:'calc(100% - 32px)',maxWidth:354,m:'16px',borderRadius:'8px'}}}}><DialogTitle>종목 분류 선택</DialogTitle><DialogContent><Typography sx={{mb:1,fontSize:13}}>{selected?.name}</Typography>{category}{error&&<Typography role="alert">{error}</Typography>}</DialogContent><DialogActions><Button disabled={busy} onClick={()=>setCategoryOpen(false)}>취소</Button><Button disabled={busy||type==='holding'} onClick={()=>void save()}>등록</Button></DialogActions></Dialog>{!location.state?.backgroundLocation&&<Box sx={{height:80}}/>}</Stack>;
 }
+function Highlight({text,query}:{text:string;query:string}){const index=text.toLocaleLowerCase().indexOf(query.trim().toLocaleLowerCase());return index<0?<>{text}</>:<>{text.slice(0,index)}<Box component="span" sx={{color:'#FA6170'}}>{text.slice(index,index+query.trim().length)}</Box>{text.slice(index+query.trim().length)}</>;}
