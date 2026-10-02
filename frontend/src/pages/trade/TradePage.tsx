@@ -15,7 +15,7 @@ import {LegacyTradePage} from './LegacyTradePage';
 const kst=(s:string)=>new Date(s).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
 const dateTime=(s:string)=>new Date(s+'T12:00:00+09:00').toISOString();
 export function TradePage(){return liveApiEnabled?<StockTradeForm/>:<LegacyTradePage/>;}
-export function StockTradeForm(){const {accountId}=useActiveAccount();return <AccountTradeForm key={accountId}/>;}
+export function StockTradeForm(){const {accountId}=useActiveAccount();const [params]=useSearchParams();return <AccountTradeForm key={`${accountId}:${params.get('type')}:${params.get('edit')}:${params.get('stock')}:${params.get('lot')}`}/>;}
 function AccountTradeForm(){
  const [params]=useSearchParams(),location=useLocation(),navigate=useNavigate(),client=useQueryClient();const {accountId}=useActiveAccount();
  const type=params.get('type')==='sell'?'sell':'buy',editId=params.get('edit'),stockId=params.get('stock')??'';
