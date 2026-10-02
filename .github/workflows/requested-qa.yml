@@ -1,0 +1,45 @@
+name: Requested Comprehensive QA
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/requested-qa.yml, frontend/playwright.requested*.ts, frontend/tests/targets/stocks-v03.spec.ts]
+permissions:
+  contents: read
+jobs:
+  qa:
+    if: github.head_ref == 'qa/stocks-v03-20261002'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts backend/src/domain/trade.test.ts backend/src/domain/lot-valuation.test.ts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Current API fixture regression
+        id: target
+        continue-on-error: true
+        run: npx playwright test --config=playwright.requested-targets.config.ts
+        working-directory: frontend
+      - name: Legacy mock regression
+        id: mock
+        continue-on-error: true
+        run: npx playwright test --config=playwright.requested-mock.config.ts
+        working-directory: frontend
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: requested-qa-evidence
+          path: |
+            frontend/test-results/**
+            frontend/qa-targets-report/**
+            frontend/qa-mock-report/**
+          retention-days: 14
+      - name: Report regression failures
+        if: steps.target.outcome == 'failure' || steps.mock.outcome == 'failure'
+        run: exit 1

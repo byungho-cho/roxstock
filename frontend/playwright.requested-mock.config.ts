@@ -1,0 +1,3 @@
+import base from './playwright.config';
+import {defineConfig} from '@playwright/test';
+export default defineConfig({...base,workers:2,timeout:25000,outputDir:'test-results/mock',reporter:[['list'],['json',{outputFile:'qa-mock-report/results.json'}],['html',{outputFolder:'qa-mock-report',open:'never'}]],use:{...base.use,video:'on',trace:'on',screenshot:'on'},projects:[{name:'cover-370x465',use:{viewport:{width:370,height:465}}},{name:'cover-400x640',use:{viewport:{width:400,height:640}}},{name:'tablet-725x396',use:{viewport:{width:725,height:396}}},{name:'tablet-816x616',use:{viewport:{width:816,height:616}}}], });
