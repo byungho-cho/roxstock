@@ -60,7 +60,7 @@ export const getSecurityAnalysis = async (securityId: string, fiscalYear?: numbe
 export type AnalysisWriteInput = Partial<Record<'operatingProfit' | 'controllingProfit' | 'issuedShares' | 'treasuryShares' | 'assets' | 'liabilities' | 'equity' | 'previousEquity' | 'dividend' | 'memo', string | null>>;
 export const updateSecurityAnalysis = async (securityId: string, body: AnalysisWriteInput, accountId?: string) =>
   apiRequest<{ updated: true }>(`/securities/${encodeURIComponent(securityId)}/analysis`, { method: 'PATCH', body: JSON.stringify({ ...body, accountId: accountId ?? await currentAccountId() }) });
-export const createSecurity = (body: { symbol: string; name: string; marketType: MarketType; listType: ServerListType; accountId?: string }) => scopedSecurityCreate(body);
+export const createSecurity = (body: { symbol: string; name: string; marketType: MarketType; listType: ServerListType; accountId?: string; listingYear?: number }) => scopedSecurityCreate(body);
 export const updateSecurityPrice = (securityId: string, currentPrice: string) =>
   apiRequest<{ currentPrice: string; previousClosePrice: string | null; priceUpdatedAt: string }>(`/securities/${encodeURIComponent(securityId)}/price`, { method: 'PATCH', body: JSON.stringify({ currentPrice }) });
 

@@ -104,6 +104,7 @@ model Security {
   symbol                 String                  @db.VarChar(20)
   name                   String                  @db.VarChar(100)
   marketType             MarketType              @map("market_type")
+  listingYear            Int?                    @map("listing_year") @db.UnsignedSmallInt
   securityType           SecurityType            @default(STOCK) @map("security_type")
   isActive               Boolean                 @default(true) @map("is_active")
   createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)

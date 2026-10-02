@@ -16,7 +16,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
   const roe = decimal(stock.valuation?.roe);
   const fair = bps !== undefined && roe !== undefined ? bps * (1 + (roe / 100 - 0.08) * 0.8 / 0.08) : undefined;
   return {
-    id: stock.id, symbol: stock.symbol, name: stock.name,
+    id: stock.id, symbol: stock.symbol, name: stock.name, marketType: stock.marketType,
     listType: (stock.listType?.toLowerCase() ?? 'watchlist') as StockListType,
     currentPrice: currentPrice ?? Number.NaN,
     priceChangeRate: priceChange(currentPrice, decimal(stock.previousClosePrice)),
