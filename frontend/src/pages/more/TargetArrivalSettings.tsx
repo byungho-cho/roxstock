@@ -60,32 +60,33 @@ function AccountTargetSettings({ accountId }: { accountId: string }) {
     } catch { setError('최신 설정 조회에 실패했습니다. 입력 내용은 유지됩니다.'); }
   };
   if (!draft) return query.isError ? <Alert severity="error">설정 조회에 실패했습니다.<Button onClick={() => void query.refetch()}>다시 시도</Button></Alert> : <Skeleton variant="rounded" height={220} />;
-  return <AppCard sx={{ p: '14px', borderRadius: '8px', maxWidth: 680, mx: 'auto' }}>
-    <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600 }}>목표가 도래 조건</Typography>
-    <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 1 }}>선택 계좌에 저장됩니다. 보유기간별 목표수익률 달성</Typography>
-    <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>각 조건의 기간과 수익률을 모두 만족하면 포함합니다. 기간은 달력일입니다.</Typography>
-    <Stack spacing={1}>
-      {draft.conditions.map((c, i) => <Box key={c.days} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, py: '6px', borderBottom: `1px solid ${colors.border}` }}>
-        <Typography sx={{ fontSize: 13, minWidth: 0, overflowWrap: 'anywhere' }}>{c.days.toLocaleString('ko-KR')}일 이내 / {c.rate}% 이상</Typography>
-        <Stack direction="row" sx={{ flexShrink: 0 }}><Button size="small" disabled={busy} onClick={() => { setEditor({ index: i, days: String(c.days), rate: c.rate }); setFormError(''); }}>수정</Button><Button size="small" disabled={busy} onClick={() => setDeleteIndex(i)}>삭제</Button></Stack>
-      </Box>)}
-    </Stack>
-    {draft.conditions.length === 0 && <Alert severity="info" sx={{ my: 1 }}>조건이 없어 기능이 비활성화되었습니다.</Alert>}
-    <Button disabled={busy || draft.conditions.length >= 5} onClick={() => { setEditor({ index: null, days: '', rate: '' }); setFormError(''); }}>조건 추가</Button>
-    {draft.conditions.length >= 5 && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>조건은 최대 5개까지 등록할 수 있습니다.</Typography>}
-    {error && <Alert severity="error" sx={{ my: 1 }}>{error}{conflict ? <Button onClick={() => void loadVersion()}>최신 버전 확인</Button> : <Button disabled={busy} onClick={() => void save()}>다시 시도</Button>}</Alert>}
-    {saved && <Alert severity="success" sx={{ my: 1 }}>저장했습니다. 홈 목록을 갱신했습니다.</Alert>}
-    <Button variant="contained" disabled={busy || conflict} onClick={() => void save()} sx={{ display: 'block', ml: 'auto', mt: 2 }}>{busy ? '저장 중' : '저장'}</Button>
-    <Dialog open={!!editor} onClose={() => setEditor(null)} fullWidth maxWidth="xs" slotProps={{ paper: { sx: { borderRadius: '8px', m: 2 } } }}>
-      <DialogTitle>{editor?.index === null ? '조건 추가' : '조건 수정'}</DialogTitle>
-      <DialogContent><Stack spacing={1} sx={{ pt: 1 }}>
-        <NumberField label="보유기간 상한" required autoFocus value={editor?.days ?? ''} onChange={days => setEditor(current => current && { ...current, days })} suffix="일" enterKeyHint="next" onEnter={() => rateInput.current?.focus()} />
-        <NumberField label="목표수익률" required inputRef={rateInput} value={editor?.rate ?? ''} onChange={rate => setEditor(current => current && { ...current, rate })} suffix="%" enterKeyHint="done" onEnter={confirmEditor} />
+  return <Box>
+    {editor ? <AppCard sx={{ p: '14px', borderRadius: '8px' }}>
+      <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600 }}>{editor?.index === null ? '조건 추가' : '조건 수정'}</Typography>
+      <Box><Stack spacing={1} sx={{ pt: 1 }}>
+        <NumberField clearIconSrc="/settings-v03/clear.svg" label="보유기간 상한" required autoFocus value={editor?.days ?? ''} onChange={days => setEditor(current => current && { ...current, days })} suffix="일" enterKeyHint="next" onEnter={() => rateInput.current?.focus()} />
+        <NumberField clearIconSrc="/settings-v03/clear.svg" label="목표수익률" required inputRef={rateInput} value={editor?.rate ?? ''} onChange={rate => setEditor(current => current && { ...current, rate })} suffix="%" enterKeyHint="done" onEnter={confirmEditor} />
         <Typography sx={{ fontSize: 11, color: colors.textMuted }}>기간은 1 이상의 정수, 목표수익률은 0 초과(소수 4자리, 최대 99,999.9999%). 같은 기간을 중복 등록할 수 없습니다.</Typography>
         {formError && <Alert severity="error">{formError}</Alert>}
-      </Stack></DialogContent>
-      <DialogActions><Button onClick={() => setEditor(null)}>취소</Button><Button disabled={!editorValid} onClick={confirmEditor}>{editor?.index === null ? '등록' : '수정'}</Button></DialogActions>
-    </Dialog>
+      </Stack></Box>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: 2 }}><Button onClick={() => setEditor(null)}>취소</Button><Button disabled={!editorValid} onClick={confirmEditor}>{editor?.index === null ? '등록' : '수정'}</Button></Stack>
+    </AppCard> : <>
+    <AppCard sx={{ p: '14px', borderRadius: '8px', bgcolor: '#111827' }}>
+      <Typography sx={{ fontSize: 12 }}>선택 계좌에 저장됩니다.</Typography>
+      <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>최대 5개 등록됨 · 조건을 삭제하면 추가할 수 있습니다.</Typography>
+      <Button fullWidth variant="outlined" disabled={busy || draft.conditions.length >= 5} onClick={() => { setEditor({ index: null, days: '', rate: '' }); setFormError(''); }}>조건 추가</Button>
+    </AppCard>
+    <Stack spacing="8px" sx={{ mt: '8px' }}>
+      {draft.conditions.map((c, i) => <AppCard key={c.days} sx={{ p: '14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Button disabled={busy} onClick={() => { setEditor({ index: i, days: String(c.days), rate: c.rate }); setFormError(''); }} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', p: 0, color: colors.textPrimary }}><Typography sx={{ fontSize: 14 }}>{c.days.toLocaleString('ko-KR')}일 이내</Typography><Typography sx={{ fontSize: 12, color: colors.textMuted, mt: '4px' }}>수익률 {c.rate}% 이상일 경우</Typography></Button>
+        <Button variant="contained" color="error" size="small" disabled={busy} onClick={() => setDeleteIndex(i)}>삭제</Button>
+      </AppCard>)}
+    </Stack>
+    {draft.conditions.length === 0 && <Alert severity="info" sx={{ my: 1 }}>조건이 없어 기능이 비활성화되었습니다.</Alert>}
+    {error && <Alert severity="error" sx={{ my: 1 }}>{error}{conflict ? <Button onClick={() => void loadVersion()}>최신 버전 확인</Button> : <Button disabled={busy} onClick={() => void save()}>다시 시도</Button>}</Alert>}
+    {saved && <Alert severity="success" sx={{ my: 1 }}>저장했습니다. 홈 목록을 갱신했습니다.</Alert>}
+    <Button fullWidth variant="contained" disabled={busy || conflict} onClick={() => void save()} sx={{ mt: 2 }}>{busy ? '저장 중' : '저장'}</Button>
+    </>}
     <Dialog open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} slotProps={{ paper: { sx: { borderRadius: '8px' } } }}><DialogTitle>조건 삭제</DialogTitle><DialogContent>선택한 조건을 삭제할까요? 목록의 저장 버튼을 누르면 적용됩니다.</DialogContent><DialogActions><Button onClick={() => setDeleteIndex(null)}>취소</Button><Button color="error" onClick={() => { setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== deleteIndex) }); setDeleteIndex(null); setSaved(false); }}>삭제</Button></DialogActions></Dialog>
-  </AppCard>;
+  </Box>;
 }
