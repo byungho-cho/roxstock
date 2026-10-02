@@ -9,9 +9,10 @@ import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
 export type MoreView = 'target-arrival' | 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
-const panel = { bgcolor: '#090F1C', border: '1px solid #21304A', borderRadius: '8px', p: '16px', minWidth: 0 } as const;
-const row = { bgcolor: '#090F1C', border: '1px solid #21304A', borderRadius: '8px' } as const;
+const panel = { bgcolor: '#0E1420', border: '1px solid #1F2B42', borderRadius: '8px', p: '16px', minWidth: 0 } as const;
+const row = { bgcolor: '#111825', border: '1px solid #25344D', borderRadius: '8px' } as const;
 const fmt = (value: string | number) => `${Number(value).toLocaleString('ko-KR')}원`;
+const settingsPanel = { ...panel, bgcolor: '#090F1C', border: '1px solid #21304A' } as const;
 const hint = { fontSize: 11, color: '#7A859E' } as const;
 const heading = { fontSize: 18, fontWeight: 600, lineHeight: '26px' } as const;
 
@@ -41,7 +42,7 @@ export function useMoreAccounts() {
 }
 
 function LabelledCard({ title, description, children, sx }: { title?: string; description?: string; children: ReactNode; sx?: object }) {
-  return <Box sx={{ ...panel, ...sx }}>
+  return <Box sx={{ ...settingsPanel, ...sx }}>
     {title && <Typography sx={{ ...heading, fontSize: 16 }}>{title}</Typography>}
     {description && <Typography sx={{ ...hint, mt: '3px' }}>{description}</Typography>}
     {children}
@@ -67,7 +68,7 @@ export function SettingsMenu({ active }: { active?: MoreView }) {
     { view: 'collection', title: '시세 수집', caption: '수집 주기와 최근 수집 상태를 확인합니다.', value: status.isError ? '조회 실패' : status.data?.latestRun?.status === 'SUCCESS' ? '정상' : '상태 조회' },
     { view: 'theme', title: '테마 설정', caption: '앱 화면의 테마를 선택합니다.', value: '' },
   ];
-  return <Stack component="nav" aria-label="설정 메뉴" spacing={{ xs: '12px', sm: '8px' }}>{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(`/detail/settings?view=${item.view}`)} sx={{ ...row, borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 68 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
+  return <Stack component="nav" aria-label="설정 메뉴" spacing={{ xs: '12px', sm: '8px' }}>{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(`/detail/settings?view=${item.view}`)} sx={{ ...row, bgcolor: '#090F1C', borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 68 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
     <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 15, fontWeight: 400, color: '#F8FAFC' }}>{item.title}</Typography><Typography sx={{ fontSize: 11, fontWeight: 400, color: '#7385A1', mt: '5px' }}>{item.caption}</Typography></Box>
     {item.value && <Typography sx={{ flexShrink: 0, fontSize: 11, color: item.view === 'target-arrival' ? '#33D48C' : '#7385A1' }}>{item.value}</Typography>}<Typography sx={{ flexShrink: 0, fontSize: 22, color: '#7385A1' }}>›</Typography>
   </ButtonBase>)}</Stack>;
@@ -102,7 +103,7 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
   if (liveApiEnabled && query.isPending) return <LabelledCard title="등록 계좌"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌 목록을 불러오는 중입니다.</Typography></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;
   return <Stack spacing="12px">
-    {accounts.length === 0 ? <Typography sx={hint}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> : accounts.map(item => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...panel, width: '100%', textAlign: 'left', display: 'block', p: '15px' }}>
+    {accounts.length === 0 ? <Typography sx={hint}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> : accounts.map(item => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...settingsPanel, width: '100%', textAlign: 'left', display: 'block', p: '15px' }}>
       <Stack direction="row" spacing="8px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16 }}>{item.name}</Typography><Typography sx={{ color: '#33D48C', fontSize: 11 }}>{selected?.id === item.id ? '사용 중' : item.isDefault ? '기본 계좌' : '선택'}</Typography><Typography sx={hint}>›</Typography></Stack>
       <Typography sx={{ ...hint, mt: '12px' }}>현재 예수금</Typography><Typography sx={{ fontSize: 24, mt: '6px', overflowWrap: 'anywhere' }}>{fmt(item.cashBalance)}</Typography>
       <Typography sx={{ ...hint, mt: '12px' }}>최근 수정 {item.updatedAt ? new Date(item.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—'}</Typography>
