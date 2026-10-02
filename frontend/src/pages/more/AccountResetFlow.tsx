@@ -51,11 +51,9 @@ export function AccountResetFlow({ tablet = false, onClose }: { tablet?: boolean
     }
     finally { lock.current = false; }
   };
-  const content = <Box sx={{ p: '16px', bgcolor: '#0E1420', border: '1px solid #25344D', borderRadius: '8px', minWidth: 0 }}>
-    <Typography sx={{ fontSize: 17, fontWeight: 700 }}>계좌 데이터 초기화</Typography>
-    <Typography sx={{ color: '#94A3B8', fontSize: 12, mt: 1 }}>선택 계좌　{selected?.name ?? '계좌 없음'}</Typography>
-    <Typography sx={{ color: '#94A3B8', fontSize: 12, mt: 1 }}>초기화 범위　매수·매도 거래, 보유종목, 예수금 내역 및 계산 결과</Typography>
-    <Typography sx={{ color: '#94A3B8', fontSize: 12, mt: 1 }}>계좌 ID와 계좌 정보는 유지됩니다.</Typography>
+  const content = <Box sx={{ p: 0, minWidth: 0 }}>
+    <Box sx={{ p: '13px', border: '1px solid #21304A', borderRadius: '8px', bgcolor: '#0B1220' }}><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ color: '#94A3B8', fontSize: 11 }}>현재 선택 계좌</Typography><Typography sx={{ color: '#33D48C', fontSize: 11 }}>사용 중</Typography></Stack><Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mt: '6px', gap: 1 }}><Typography sx={{ fontSize: 17, fontWeight: 600 }}>{selected?.name ?? '계좌 없음'}</Typography><Typography sx={{ color: '#94A3B8', fontSize: 11 }}>현재 예수금 {selected ? `${Number(selected.cashBalance).toLocaleString('ko-KR')}원` : '—'}</Typography></Stack></Box>
+    {state !== 'success' && <><Box sx={{ p: '12px', mt: '12px', bgcolor: '#241215', border: '1px solid #6B2932', borderRadius: '8px' }}><Typography sx={{ color: '#FA636E', fontSize: 13, fontWeight: 600 }}>되돌릴 수 없는 작업입니다.</Typography></Box><Typography sx={{ color: '#FA636E', fontSize: 14, mt: '16px', mb: '8px' }}>초기화하면 삭제됩니다</Typography><Box sx={{ p: '13px', border: '1px solid #21304A', borderRadius: '8px', bgcolor: '#0B1220' }}><Typography sx={{ color: '#CBD5E1', fontSize: 12, lineHeight: '24px' }}>• 매수·매도 거래 및 Lot 연결<br />• 입금·출금·배당 내역<br />• 보유종목·계좌별 스냅샷·복리계획</Typography><Typography sx={{ color: '#FA636E', fontSize: 12, lineHeight: '24px' }}>• 현재 예수금은 0원이 됩니다</Typography></Box><Typography sx={{ color: '#94A3B8', fontSize: 11, mt: '12px' }}>계좌와 기본 계좌 설정, 공통 관심·추천종목은 유지됩니다.</Typography></>}
     {state === 'success' ? <Typography role="status" sx={{ mt: 3, color: '#34D399' }}>초기화 완료 · 거래와 보유종목 0건, 예수금 0원을 서버에서 확인했습니다.</Typography> :
       <Stack spacing={1.5} sx={{ mt: 3 }}>
         <Typography sx={{ fontSize: 13, color: '#F87171' }}>삭제된 데이터는 복구할 수 없습니다.</Typography>

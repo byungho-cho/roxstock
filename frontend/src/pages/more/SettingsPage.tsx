@@ -21,8 +21,8 @@ export function SettingsPage() {
   return <>
     <PageHeader embedded title={tablet ? '설정' : labels[view]} backPath={tablet ? '/more' : backPath} showBackTablet showAdd={false} variant="more" compact />
     <Box className="rox-home" data-testid="settings-layout" sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px', height: { sm: '100%' }, minHeight: 0 }}>
-      <Box data-testid="settings-menu" sx={{ display: { xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0 }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
-      {detailView !== 'settings' && <Box ref={detailRef} data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0 }}>
+      <Box data-testid="settings-menu" sx={{ display: { xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0, pb: { xs: view === 'settings' ? '80px' : 0, sm: 0 } }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
+      {detailView !== 'settings' && <Box ref={detailRef} data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0, '& .MuiButton-root': { borderRadius: '8px' }, '& .settings-condition-delete': { borderRadius: '2px' } }}>
         <Box sx={{ px: { xs: '16px', sm: 0 }, pt: { xs: '14px', sm: 0 }, pb: '80px' }}>
           {detailView === 'target-arrival' && <TargetArrivalSettings />}
           {detailView === 'account' && <AccountManagement openReset={() => navigate('/detail/settings?view=reset')} />}

@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Dialog, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../data/apiClient';
@@ -11,10 +11,10 @@ import { colors } from '../../styles/tokens';
 export function TargetArrivalSettings() {
   const { accountId, accounts } = useActiveAccount();
   if (!accountId) return <Alert severity={accounts.isError ? 'error' : 'info'}>{accounts.isError ? '계좌 조회에 실패했습니다.' : '계좌를 선택해 주세요.'}{accounts.isError && <Button onClick={() => void accounts.refetch()}>다시 시도</Button>}</Alert>;
-  return <AccountTargetSettings key={accountId} accountId={accountId} />;
+  return <AccountTargetSettings key={accountId} accountId={accountId} accountName={accounts.data?.find(a => a.id === accountId)?.name ?? accountId} />;
 }
 
-function AccountTargetSettings({ accountId }: { accountId: string }) {
+function AccountTargetSettings({ accountId, accountName }: { accountId: string; accountName: string }) {
   const client = useQueryClient();
   const query = useQuery({ queryKey: ['targetSettings', accountId], queryFn: () => getTargetSettings(accountId) });
   const [draft, setDraft] = useState<{ conditions: TargetCondition[]; version: number } | null>(null);
@@ -69,17 +69,17 @@ function AccountTargetSettings({ accountId }: { accountId: string }) {
         <Typography sx={{ fontSize: 11, color: colors.textMuted }}>기간은 1 이상의 정수, 목표수익률은 0 초과(소수 4자리, 최대 99,999.9999%). 같은 기간을 중복 등록할 수 없습니다.</Typography>
         {formError && <Alert severity="error">{formError}</Alert>}
       </Stack></Box>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: 2 }}><Button onClick={() => setEditor(null)}>취소</Button><Button disabled={!editorValid} onClick={confirmEditor}>{editor?.index === null ? '등록' : '수정'}</Button></Stack>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', gap: '20px', mt: 2 }}><Button variant="outlined" sx={{ flex: 1, height: 44 }} onClick={() => setEditor(null)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 44 }} disabled={!editorValid} onClick={confirmEditor}>{editor?.index === null ? '등록' : '수정'}</Button></Stack>
     </AppCard> : <>
     <AppCard sx={{ p: '14px', borderRadius: '8px', bgcolor: '#111827' }}>
-      <Typography sx={{ fontSize: 12 }}>선택 계좌에 저장됩니다.</Typography>
-      <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>최대 5개 등록됨 · 조건을 삭제하면 추가할 수 있습니다.</Typography>
+      <Typography sx={{ fontSize: 12 }}>선택 계좌: {accountName} · 계좌별 저장</Typography>
+      <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>조건은 최대 5개입니다. 조건을 삭제하면 추가할 수 있습니다.</Typography>
       <Button fullWidth variant="outlined" disabled={busy || draft.conditions.length >= 5} onClick={() => { setEditor({ index: null, days: '', rate: '' }); setFormError(''); }}>조건 추가</Button>
     </AppCard>
     <Stack spacing="8px" sx={{ mt: '8px' }}>
-      {draft.conditions.map((c, i) => <AppCard key={c.days} sx={{ p: '14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: 1 }}>
+      {draft.conditions.map((c, i) => <AppCard key={c.days} sx={{ p: '14px', minHeight: 72, borderRadius: '8px', bgcolor: '#090F1C', border: '1px solid #21304A', display: 'flex', alignItems: 'center', gap: 1 }}>
         <Button disabled={busy} onClick={() => { setEditor({ index: i, days: String(c.days), rate: c.rate }); setFormError(''); }} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', p: 0, color: colors.textPrimary }}><Typography sx={{ fontSize: 14 }}>{c.days.toLocaleString('ko-KR')}일 이내</Typography><Typography sx={{ fontSize: 12, color: colors.textMuted, mt: '4px' }}>수익률 {c.rate}% 이상일 경우</Typography></Button>
-        <Button variant="contained" color="error" size="small" disabled={busy} onClick={() => setDeleteIndex(i)}>삭제</Button>
+        <Button className="settings-condition-delete" sx={{ width: 61, minWidth: 61, height: 26, fontSize: 10, p: 0 }} variant="contained" color="error" size="small" disabled={busy} onClick={() => setDeleteIndex(i)}>삭제</Button>
       </AppCard>)}
     </Stack>
     {draft.conditions.length === 0 && <Alert severity="info" sx={{ my: 1 }}>조건이 없어 기능이 비활성화되었습니다.</Alert>}
@@ -87,6 +87,14 @@ function AccountTargetSettings({ accountId }: { accountId: string }) {
     {saved && <Alert severity="success" sx={{ my: 1 }}>저장했습니다. 홈 목록을 갱신했습니다.</Alert>}
     <Button fullWidth variant="contained" disabled={busy || conflict} onClick={() => void save()} sx={{ mt: 2 }}>{busy ? '저장 중' : '저장'}</Button>
     </>}
-    <Dialog open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} slotProps={{ paper: { sx: { borderRadius: '8px' } } }}><DialogTitle>조건 삭제</DialogTitle><DialogContent>선택한 조건을 삭제할까요? 목록의 저장 버튼을 누르면 적용됩니다.</DialogContent><DialogActions><Button onClick={() => setDeleteIndex(null)}>취소</Button><Button color="error" onClick={() => { setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== deleteIndex) }); setDeleteIndex(null); setSaved(false); }}>삭제</Button></DialogActions></Dialog>
+    <Dialog open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} aria-labelledby="condition-delete-title" slotProps={{ backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.65)' } }, paper: { sx: { borderRadius: '8px', width: 330.5, maxWidth: 'calc(100vw - 32px)', m: 2, bgcolor: '#111827', backgroundImage: 'none' } } }}>
+      <Stack spacing="12px" sx={{ p: '14px' }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 600, lineHeight: '22px' }}>목표가 도래 조건</Typography>
+        <Typography sx={{ fontSize: 12, lineHeight: '18px', color: colors.textSecondary }}>선택 계좌: {accountName} · 계좌별 저장</Typography>
+        <Typography id="condition-delete-title" sx={{ fontSize: 16, fontWeight: 600, lineHeight: '22px' }}>조건 삭제</Typography>
+        <Typography sx={{ fontSize: 13, lineHeight: '19px' }}>{deleteIndex !== null && draft.conditions[deleteIndex] ? `${draft.conditions[deleteIndex].days}일 이내 · ${draft.conditions[deleteIndex].rate}% 이상 조건을 삭제할까요?` : ''}<br />목록의 저장 버튼을 누르면 적용됩니다.</Typography>
+        <Stack direction="row" spacing="16px"><Button variant="outlined" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => setDeleteIndex(null)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => { setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== deleteIndex) }); setDeleteIndex(null); setSaved(false); }}>삭제</Button></Stack>
+      </Stack>
+    </Dialog>
   </Box>;
 }
