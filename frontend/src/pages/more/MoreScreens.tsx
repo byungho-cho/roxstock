@@ -68,7 +68,7 @@ export function SettingsMenu({ active }: { active?: MoreView }) {
     { view: 'theme', title: '테마 설정', caption: '앱 화면의 테마를 선택합니다.', value: '' },
   ];
   return <Stack component="nav" aria-label="설정 메뉴" spacing={{ xs: '12px', sm: '8px' }}>{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(`/detail/settings?view=${item.view}`)} sx={{ ...row, borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 68 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
-    <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 15, color: '#F8FAFC' }}>{item.title}</Typography><Typography sx={{ fontSize: 11, color: '#7385A1', mt: '5px' }}>{item.caption}</Typography></Box>
+    <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 15, fontWeight: 400, color: '#F8FAFC' }}>{item.title}</Typography><Typography sx={{ fontSize: 11, fontWeight: 400, color: '#7385A1', mt: '5px' }}>{item.caption}</Typography></Box>
     {item.value && <Typography sx={{ flexShrink: 0, fontSize: 11, color: item.view === 'target-arrival' ? '#33D48C' : '#7385A1' }}>{item.value}</Typography>}<Typography sx={{ flexShrink: 0, fontSize: 22, color: '#7385A1' }}>›</Typography>
   </ButtonBase>)}</Stack>;
 }
