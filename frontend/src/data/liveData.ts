@@ -1,13 +1,10 @@
 import type { DashboardData, StockItem, StockListType } from '../types/models';
-import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getTrades, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { deriveAccountStocks } from '../pages/stocks/stockMath';
 import type { BuyLot } from '../types/models';
 
 /** Enable only after the backend and same-origin /api proxy have been deployed. */
 export const liveApiEnabled = import.meta.env.VITE_DATA_SOURCE === 'api';
-
-const listTypeMap: Record<StockListType, ServerListType> = {
-  watchlist: 'WATCHLIST', holding: 'HOLDING', recommended: 'RECOMMENDED',
-};
 
 const decimal = (value: string | null | undefined) => value === null || value === undefined ? undefined : Number(value);
 const priceChange = (current: number | undefined, previous: number | undefined) =>
@@ -51,11 +48,10 @@ export function mapHolding(holding: HoldingDto): StockItem {
 }
 
 export async function fetchLiveStocks(listType?: StockListType, accountId?: string): Promise<StockItem[]> {
-  if (listType === 'holding') return (await getAccountHoldings(accountId ?? await currentAccountId())).map(mapHolding);
-  if (listType) return (await listSecurities({ listType: listTypeMap[listType] })).map(mapSecurity);
-  const [catalog, holdings] = await Promise.all([listSecurities(), getAccountHoldings(accountId ?? await currentAccountId())]);
-  const holdingById = new Map(holdings.map((item) => [item.securityId, item]));
-  return catalog.map((item) => holdingById.has(item.id) ? mapHolding(holdingById.get(item.id)!) : mapSecurity(item));
+  const selected = accountId ?? await currentAccountId();
+  const [catalog, holdings, trades] = await Promise.all([listSecurities(), getAccountHoldings(selected), getTrades(selected)]);
+  const all = deriveAccountStocks(catalog.map(mapSecurity), holdings.map(mapHolding), trades.data);
+  return listType ? all.filter(stock => stock.listType === listType) : all;
 }
 
 export async function fetchLiveDashboard(selectedAccountId?: string): Promise<DashboardData> {

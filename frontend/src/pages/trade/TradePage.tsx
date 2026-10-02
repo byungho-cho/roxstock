@@ -1,232 +1,48 @@
-import { CheckCircleRounded, KeyboardArrowDownRounded } from '@mui/icons-material';
-import {
-  Alert, Box, Button, CardContent, CircularProgress, FormControl,
-  FormHelperText, Grid, MenuItem, Select, Snackbar, Stack, Typography,
-} from '@mui/material';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createTrade } from '../../data/mockApi';
-import { getBuyTrade, updateBuyTrade } from '../../data/mockBuyTrades';
-import { getAvailableLots, getSellTrade, updateSellTrade } from '../../data/mockSellTrades';
-import { currentCashBalance, stockItems } from '../../data/mockData';
-import { liveApiEnabled } from '../../data/liveData';
-import { useBuyLots, useDashboard, useStocks } from '../../hooks/useMockData';
-import type { StockItem, TradeDraft, TradeEstimate, TradeType } from '../../types/models';
-import { formatDate, formatRate, getMarketColor } from '../../utils/format';
-import { ActionButton, AppCard, StockIdentity, SummaryRows } from '../../components/common/Common';
-import { DateField, FormTextField, NumberField, FormTextarea } from '../../components/forms/Fields';
-import { PageHeader } from '../../components/navigation/Navigation';
-import { colors, pageGutter } from '../../styles/tokens';
-import { LiveTradeEditPage } from './LiveTradeEditPage';
-
-type FieldErrors = Partial<Record<'stockId' | 'lotId' | 'quantity' | 'price', string>>;
-const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
-const formatWon = (value: number) => Number.isFinite(value) ? `${Math.round(value).toLocaleString('ko-KR')}원` : '—';
-const formatSignedWon = (value: number) => `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
-
-export function TradePage() {
-  const [params] = useSearchParams();
-  return liveApiEnabled && params.has('edit') ? <LiveTradeEditPage key={`${params.get('type')}:${params.get('edit')}`} /> : <TradeEntry key={`${params.get('type')}:${params.get('stock')}:${params.get('lot')}`} />;
+import {Alert,Box,Button,Card,Stack,Typography} from '@mui/material';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {useEffect,useRef,useState} from 'react';
+import {useLocation,useNavigate,useSearchParams} from 'react-router-dom';
+import {DateField,FormTextField,NumberField} from '../../components/forms/Fields';
+import {PageHeader} from '../../components/navigation/Navigation';
+import {useDashboard,useStocks} from '../../hooks/useMockData';
+import {useActiveAccount} from '../../hooks/useActiveAccount';
+import {createBuyTrade,createSellTrade,getBuyLots,getTradeDetail,updateTrade} from '../../data/roxstockApi';
+import {liveApiEnabled} from '../../data/liveData';
+import {colors} from '../../styles/tokens';
+import {dayChange,averageAfter,won} from '../stocks/stockMath';
+import {formatRate,getMarketColor} from '../../utils/format';
+import {LegacyTradePage} from './LegacyTradePage';
+const kst=(s:string)=>new Date(s).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+const dateTime=(s:string)=>new Date(s+'T12:00:00+09:00').toISOString();
+export function TradePage(){return liveApiEnabled?<StockTradeForm/>:<LegacyTradePage/>;}
+export function StockTradeForm(){
+ const [params]=useSearchParams(),location=useLocation(),navigate=useNavigate(),client=useQueryClient();const {accountId}=useActiveAccount();
+ const type=params.get('type')==='sell'?'sell':'buy',editId=params.get('edit'),stockId=params.get('stock')??'';
+ const {data:stocks,isError:stocksError}=useStocks(),{data:dashboard,isError:cashError}=useDashboard();
+ const detail=useQuery({queryKey:['tradeDetail',type,editId],enabled:!!editId,queryFn:()=>getTradeDetail(type,editId!)});
+ const stock=stocks?.find(s=>s.id===(detail.data?.security.id??stockId));
+ const lots=useQuery({queryKey:['allBuyLots',accountId,stock?.id],enabled:!!accountId&&!!stock,queryFn:()=>getBuyLots(accountId!,stock!.id,false)});
+ const lot=lots.data?.find(l=>l.id===(type==='sell'?detail.data?.buyTradeId??params.get('lot'):editId));
+ const[form,setForm]=useState<{key:string;date:string;quantity:string;price:string;memo:string;fee:string}|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);const lock=useRef(false),saved=useRef(false),quantityRef=useRef<HTMLInputElement>(null),priceRef=useRef<HTMLInputElement>(null),memoRef=useRef<HTMLInputElement>(null),feeRef=useRef<HTMLInputElement>(null);
+ const key=`${accountId}:${type}:${editId??stockId}:${params.get('lot')??''}`;
+ useEffect(()=>{if(!stock||!accountId||editId&&!detail.data||type==='sell'&&!lot)return;if(form?.key===key)return;const t=detail.data;setForm({key,date:t?kst((type==='sell'?t.soldAt:t.boughtAt)!):new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}),quantity:t?t.quantity:type==='sell'?lot!.remainingQuantity:'',price:t?t.unitPrice:Number.isFinite(stock.currentPrice)?String(stock.currentPrice):'',memo:t?.memo??'',fee:t?.cashTransaction?.feeTaxAmount??'0'});},[accountId,stock,detail.data,lot,key,editId,type,form?.key]);
+ const update=(field:'date'|'quantity'|'price'|'memo'|'fee',value:string)=>{if(form)setForm({...form,[field]:value});};
+ const q=Number(form?.quantity),p=Number(form?.price),fee=Number(form?.fee??0),amount=q*p;
+ const maximum=type==='sell'&&lot?Number(lot.remainingQuantity)+(editId?Number(detail.data?.quantity??0):0):undefined;
+ const sold=Number(lot?.soldQuantity??detail.data?.soldQuantity??0);
+ const valid=!!form&&form.key===key&&!!accountId&&!!stock&&(!editId||detail.data?.account.id===accountId)&&/^\d{4}-\d{2}-\d{2}$/.test(form.date)&&Number.isFinite(Date.parse(form.date))&&Number.isInteger(q)&&q>0&&Number.isFinite(p)&&p>0&&Number.isFinite(fee)&&fee>=0&&(type!=='sell'||!!lot&&q<=maximum!&&form.date>=kst(lot.boughtAt))&&(type!=='buy'||!editId||!!lot&&q>=sold&&!(lot.sellTrades.some(t=>form.date>kst(t.soldAt))));
+ const previous=stock?.averagePrice??0;const after=stock&&form?averageAfter(stock.quantity??0,previous,q,p,editId&&type==='buy'&&lot?{remaining:Number(lot.remainingQuantity),price:Number(lot.unitPrice),sold}:undefined):Number.NaN;
+ const cash=dashboard?.summary.cashBalance??Number.NaN,afterCash=editId?cash:cash+(type==='buy'?-amount:amount)-fee,profit=type==='sell'&&lot?q*(p-Number(lot.unitPrice)):Number.NaN;
+ const close=()=>location.state?.backgroundLocation?navigate(-1):navigate(params.get('return')==='journal'?`/journal?date=${form?.date??''}`:`/stocks/${stock?.id??stockId}${editId?'?tab=trades':''}`);
+ const save=async()=>{if(!valid||!form||!stock||lock.current||saved.current)return;lock.current=true;setBusy(true);setError('');try{if(editId){const original=(type==='buy'?detail.data!.boughtAt:detail.data!.soldAt)!;await updateTrade(type,editId,{quantity:form.quantity,unitPrice:form.price,memo:form.memo||null,[type==='buy'?'boughtAt':'soldAt']:form.date===kst(original)?original:dateTime(form.date)});}else if(type==='buy')await createBuyTrade({accountId:accountId!,securityId:stock.id,boughtAt:dateTime(form.date),quantity:form.quantity,unitPrice:form.price,feeTaxAmount:form.fee||'0',memo:form.memo||null});else await createSellTrade({buyTradeId:lot!.id,soldAt:dateTime(form.date),quantity:form.quantity,unitPrice:form.price,feeTaxAmount:form.fee||'0',memo:form.memo||null});saved.current=true;await Promise.all(['stocks','dashboard','buyLots','allBuyLots','stockTrades','journalTrades','targetArrivals','recentBuys','tradeDetail','cashOverview','cashTransactions'].map(key=>client.invalidateQueries({queryKey:[key]})));close();}catch(e){setError(e instanceof Error?e.message:'거래 저장에 실패했습니다.');}finally{setBusy(false);lock.current=false;}};
+ if(stocksError&&!stocks||cashError&&!dashboard||detail.isError||lots.isError)return <Alert role="alert" severity="error">거래 정보 조회에 실패했습니다. <Button onClick={()=>{void client.invalidateQueries({queryKey:['stocks']});void client.invalidateQueries({queryKey:['dashboard']});void detail.refetch();void lots.refetch();}}>다시 시도</Button></Alert>;
+ if(editId&&detail.data?.account.id!==undefined&&detail.data.account.id!==accountId)return <Alert severity="error">현재 계좌의 거래가 아닙니다.</Alert>;
+ if(!form||form.key!==key||!stock)return <Typography role="status">거래 정보를 불러오는 중입니다.</Typography>;
+ const field={size:'small' as const,disabled:busy,clearIconSrc:'/stocks-v03/clear.svg',selectOnFocus:true};
+ const date=<DateField {...field} calendarIconSrc="/stocks-v03/calendar.svg" label={type==='buy'?'매수일자':'매도일자'} value={form.date} onChange={v=>update('date',v)} onEnter={()=>quantityRef.current?.focus()}/>;
+ const quantity=<NumberField {...field} label={type==='buy'?'매수수량':'매도수량'} value={form.quantity} onChange={v=>update('quantity',v)} suffix="주" inputRef={quantityRef} autoFocus onEnter={()=>priceRef.current?.focus()}/>;
+ const price=<NumberField {...field} label={type==='buy'?'매수가격':'매도가격'} value={form.price} onChange={v=>update('price',v)} suffix="원" inputRef={priceRef} onEnter={()=>memoRef.current?.focus()}/>;
+ return <Stack spacing="8px" data-testid="trade-form" sx={{maxWidth:370,mx:'auto',pb:location.state?.backgroundLocation?0:'80px'}}><PageHeader embedded title={`${type==='buy'?'매수':'매도'} ${editId?'수정':'등록'}`} variant="more" showAdd={false} onBack={close}/><Card sx={{height:41,p:'4px 8px',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'space-between',bgcolor:colors.surface,border:`1px solid ${colors.border}`}}><Box><Typography sx={{fontSize:10,fontWeight:600}}>{stock.name}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>{stock.symbol}</Typography></Box><Box sx={{textAlign:'right',color:getMarketColor(stock.priceChangeRate)}}><Typography sx={{fontSize:10}}>{won(stock.currentPrice)}</Typography><Typography sx={{fontSize:10}}>{won(dayChange(stock))} ({Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate):'—'})</Typography></Box></Card>
+ <Stack spacing="6px">{type==='buy'?<>{date}{quantity}{price}</>:<><Box sx={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}><DateField {...field} label="매수일자" value={lot?kst(lot.boughtAt):''} onChange={()=>{}} readOnly disabled/>{date}</Box><Box sx={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}><NumberField {...field} label="매수수량" value={lot?.quantity??''} onChange={()=>{}} suffix="주" readOnly/>{quantity}</Box><Box sx={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}><NumberField {...field} label="매수가격" value={lot?.unitPrice??''} onChange={()=>{}} suffix="원" readOnly/>{price}</Box></>}<FormTextField {...field} label="메모" value={form.memo} onChange={v=>update('memo',v)} inputRef={memoRef} onEnter={()=>void save()}/>{!editId&&<Box component="details" sx={{fontSize:10,color:colors.textMuted}}><Box component="summary">거래비용 입력</Box><NumberField {...field} label="거래비용" value={form.fee} onChange={v=>update('fee',v)} suffix="원" inputRef={feeRef} onEnter={()=>void save()}/></Box>}</Stack><Typography sx={{fontSize:14,fontWeight:700}}>거래 정보</Typography><Card sx={{p:'5px 14px',borderRadius:'8px',bgcolor:colors.surface,border:`1px solid ${colors.border}`}}><Summary label={type==='buy'?'매수금액':'매도금액'} value={won(Number.isFinite(amount)?amount:undefined)} color={type==='buy'?colors.marketFall:colors.marketRise}/>{type==='sell'&&<Summary label="예상 실현손익" value={won(profit)} color={getMarketColor(profit)}/>}<Summary label={editId?'현재 예수금':'거래 후 예수금'} value={won(afterCash)}/>{type==='buy'&&<Box data-testid="average-comparison" sx={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:1,alignItems:'center',height:18}}><Typography sx={{fontSize:10,color:colors.textMuted}}>매수 평균단가</Typography><Typography sx={{fontSize:10,textAlign:'right'}}>변경 전 {won(previous)}</Typography><Typography sx={{fontSize:10,textAlign:'right',color:Number.isFinite(after)?after>previous?colors.marketFall:after<previous?colors.marketRise:colors.textPrimary:colors.textMuted}}>변경 후 {won(after)}</Typography></Box>}</Card>{editId&&<Typography sx={{fontSize:10,color:colors.textMuted}}>거래 수정 시 예수금과 과거 스냅샷은 자동 변경되지 않습니다.</Typography>}{!valid&&type==='sell'&&maximum!==undefined&&<Typography sx={{fontSize:10,color:colors.textMuted}}>매도 가능 {maximum.toLocaleString('ko-KR')}주 · 매수일 이후 날짜를 선택하세요.</Typography>}{error&&<Alert role="alert" severity="error">{error}</Alert>}<Stack direction="row" spacing="8px" data-testid="trade-actions" sx={{pt:'4px'}}><Button disabled={busy} onClick={close} variant="outlined" sx={{width:104,height:36,borderRadius:'8px'}}>취소</Button><Button disabled={!valid||busy||saved.current} onClick={()=>void save()} variant="contained" sx={{flex:1,height:36,borderRadius:'8px'}}>{busy?'저장 중':editId?'변경':type==='buy'?'매수':'매도'}</Button></Stack></Stack>;
 }
-
-function TradeEntry() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  const [type] = useState<TradeType>(searchParams.get('type') === 'sell' ? 'sell' : 'buy');
-  const editId = searchParams.get('edit');
-  const editing = editId && !liveApiEnabled ? type === 'sell' ? getSellTrade(editId) : getBuyTrade(editId) : undefined;
-  const returnToJournal = searchParams.get('return') === 'journal';
-  const [stockId, setStockId] = useState(editing?.stockId ?? searchParams.get('stock') ?? 'hyundai');
-  const lotId = type === 'sell' ? searchParams.get('lot') ?? '' : '';
-  const [tradeDate, setTradeDate] = useState(editing?.tradeDate ?? today);
-  const [quantity, setQuantity] = useState(editing ? String(editing.quantity) : '');
-  const [price, setPrice] = useState(editing ? String(editing.price) : '');
-  const [feeTaxAmount, setFeeTaxAmount] = useState(editing ? String(editing.feeTaxAmount) : '0');
-  const [memo, setMemo] = useState(editing?.memo ?? '');
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const submitting = useRef(false);
-  const prefilledLotId = useRef<string | null>(null);
-  const selectPrefilledQuantity = useRef(false);
-  const quantityRef = useRef<HTMLInputElement>(null);
-  const priceRef = useRef<HTMLInputElement>(null);
-  const feeRef = useRef<HTMLInputElement>(null);
-  const mobileMemoRef = useRef<HTMLInputElement>(null);
-  const tabletMemoRef = useRef<HTMLTextAreaElement>(null);
-  const { data: fetchedStocks, isPending: stocksPending, isError: stocksError, refetch: reloadStocks } = useStocks();
-  const { data: dashboard, isPending: dashboardPending, isError: dashboardError, refetch: reloadDashboard } = useDashboard();
-  const stocks = fetchedStocks ?? (liveApiEnabled ? [] : stockItems);
-  const { data: lots = [], isPending: lotsLoading, isError: lotsError, refetch: reloadLots } = useBuyLots(type === 'sell' ? stockId : undefined);
-  const selectedLot = lots.find((lot) => lot.id === lotId);
-  const selectedStock = stocks.find((stock) => stock.id === stockId);
-
-  useEffect(() => {
-    if (liveApiEnabled && !editId && type === 'buy' && fetchedStocks?.length && !fetchedStocks.some((stock) => stock.id === stockId)) {
-      setStockId(fetchedStocks[0].id);
-    }
-  }, [editId, fetchedStocks, stockId, type]);
-
-  useEffect(() => {
-    if (selectedStock && !editId) setPrice(String(selectedStock.currentPrice));
-  }, [stockId]);
-
-  useEffect(() => {
-    if (!editId) setQuantity('');
-    setErrors({});
-  }, [stockId, type]);
-
-  useEffect(() => {
-    if (type !== 'sell' || editId || !selectedLot || prefilledLotId.current === selectedLot.id) return;
-    prefilledLotId.current = selectedLot.id;
-    selectPrefilledQuantity.current = true;
-    setQuantity(String(selectedLot.remainingQuantity));
-  }, [type, editId, selectedLot]);
-
-  useLayoutEffect(() => {
-    if (!selectPrefilledQuantity.current || !selectedLot || quantity !== String(selectedLot.remainingQuantity)) return;
-    quantityRef.current?.focus({ preventScroll: true });
-    quantityRef.current?.select();
-    selectPrefilledQuantity.current = false;
-  }, [quantity, selectedLot]);
-
-  useEffect(() => {
-    if ((!liveApiEnabled && editId && (!editing || editing.stockId !== stockId || (type === 'sell' && editing.type === 'sell' && editing.lotId !== lotId))) || (type === 'sell' && !lotsError && (!lotId || (!lotsLoading && !selectedLot)))) {
-      navigate(returnToJournal ? '/journal' : `/stocks/${stockId}`, { replace: true });
-    }
-  }, [type, editId, editing, lotId, lotsLoading, lotsError, selectedLot, stockId, navigate, returnToJournal]);
-
-  const estimate = useMemo<TradeEstimate>(() => {
-    const numericQuantity = Number(quantity) || 0;
-    const numericPrice = Number(price) || 0;
-    const numericFee = Number(feeTaxAmount) || 0;
-    const tradeAmount = numericQuantity * numericPrice;
-    const cashChange = type === 'buy' ? -(tradeAmount + numericFee) : tradeAmount - numericFee;
-    return {
-      tradeAmount,
-      realizedProfit: type === 'sell' && selectedLot ? numericQuantity * (numericPrice - selectedLot.buyPrice) - numericFee : undefined,
-      cashChange,
-      expectedCashBalance: (liveApiEnabled ? dashboard?.summary.cashBalance ?? Number.NaN : currentCashBalance) + cashChange,
-    };
-  }, [dashboard?.summary.cashBalance, feeTaxAmount, price, quantity, selectedLot, type]);
-
-  const averagePriceAfterBuy = useMemo(() => {
-    if (type !== 'buy' || !selectedStock) return undefined;
-    const currentQuantity = selectedStock.quantity ?? 0;
-    const currentAveragePrice = selectedStock.averagePrice ?? 0;
-    const buyQuantity = Number(quantity) || 0;
-    const buyPrice = Number(price) || 0;
-    if (buyQuantity <= 0 || buyPrice <= 0) return currentAveragePrice;
-    return Math.round(((currentQuantity * currentAveragePrice) + (buyQuantity * buyPrice)) / (currentQuantity + buyQuantity));
-  }, [price, quantity, selectedStock, type]);
-
-  const validate = (): FieldErrors => {
-    const next: FieldErrors = {};
-    const numericQuantity = Number(quantity);
-    if (!selectedStock) next.stockId = '종목을 선택해 주세요.';
-    if (type === 'sell' && !selectedLot) next.lotId = '연결된 매수 항목을 확인할 수 없습니다.';
-    if (!Number.isInteger(numericQuantity) || numericQuantity <= 0) next.quantity = '수량은 1주 이상 정수로 입력해 주세요.';
-    if (type === 'sell' && selectedLot && numericQuantity > selectedLot.remainingQuantity + (editing?.quantity ?? 0)) next.quantity = `잔여수량 ${selectedLot.remainingQuantity}주를 넘길 수 없습니다.`;
-    if (!Number.isFinite(Number(price)) || Number(price) <= 0) next.price = '단가는 1원 이상 입력해 주세요.';
-    return next;
-  };
-
-  const handleSubmit = async () => {
-    if (submitting.current || saved) return;
-    const nextErrors = validate();
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
-    const draft: TradeDraft = {
-      type, stockId, lotId: type === 'sell' ? lotId : undefined, tradeDate,
-      quantity: Number(quantity), price: Number(price), feeTaxAmount: Number(feeTaxAmount) || 0, memo,
-    };
-    submitting.current = true;
-    setIsSaving(true);
-    try {
-      if (liveApiEnabled && editId) throw new Error('거래 상세와 수정 화면이 아직 연결되지 않았습니다.');
-      if (editId && type === 'sell') updateSellTrade(editId, draft);
-      else if (editId) updateBuyTrade(editId, draft, getAvailableLots(stockId).find((lot) => lot.id === editId)?.soldQuantity ?? 0);
-      else await createTrade(draft);
-      await queryClient.invalidateQueries({ queryKey: ['buyLots', stockId] });
-      if (liveApiEnabled) {
-        await Promise.all([queryClient.invalidateQueries({ queryKey: ['stocks'] }), queryClient.invalidateQueries({ queryKey: ['dashboard'] }), queryClient.invalidateQueries({ queryKey: ['journalTrades'] }), queryClient.invalidateQueries({ queryKey: ['targetArrivals'] }), queryClient.invalidateQueries({ queryKey: ['recentBuys'] })]);
-      }
-      setSaved(true);
-      navigate(returnToJournal ? `/journal?date=${tradeDate}` : liveApiEnabled ? '/stocks?tab=holding' : `/stocks/${stockId}${editing ? '?tab=trades' : ''}`, { replace: true, state: { savedTrade: type } });
-    } catch (error) {
-      setErrors((current) => ({ ...current, quantity: error instanceof Error ? error.message : '거래를 저장하지 못했습니다.' }));
-    } finally {
-      submitting.current = false;
-      setIsSaving(false);
-    }
-  };
-  const focusAfterPrice = () => {
-    if (window.matchMedia('(min-width: 600px)').matches) feeRef.current?.focus();
-    else mobileMemoRef.current?.focus();
-  };
-
-  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert></Stack>;
-  if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Box role="status" sx={{ bgcolor: colors.surface, borderRadius: 2, p: 2, color: colors.textMuted }}>거래 정보를 불러오는 중입니다.</Box></Stack>;
-  if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
-  if ((!liveApiEnabled && editId && !editing) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) return null;
-
-  return (
-    <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
-      <Snackbar open={(stocksError && !!fetchedStocks) || (dashboardError && !!dashboard)} message="최신 시세 조회에 실패했습니다. 이전 값을 표시합니다." />
-      <PageHeader embedded compact showAdd={false} title={editing ? `${type === 'buy' ? '매수' : '매도'} 수정` : type === 'buy' ? '매수' : '매도'} />
-      <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
-        <Grid size={{ xs: 12, sm: 7 }}>
-          <Stack spacing={1.25}>
-            <StockSelector stocks={stocks} stockId={stockId} selectedStock={selectedStock} error={errors.stockId} onChange={setStockId} locked={type === 'sell' || Boolean(editing)} />
-            {type === 'sell' && selectedLot && <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>연결된 매수 · {formatDate(selectedLot.tradeDate)} · {formatWon(selectedLot.buyPrice)} · 매수 {selectedLot.quantity}주 · 잔여 {selectedLot.remainingQuantity}주</Alert>}
-            {editing && selectedLot && <NumberField label="매수수량" value={String(selectedLot.quantity)} onChange={() => {}} suffix="주" readOnly />}
-            <Stack spacing={1}>
-              <DateField label="거래일자" value={tradeDate} onChange={setTradeDate} required enterKeyHint="next" onEnter={() => editing && type === 'sell' ? priceRef.current?.focus() : quantityRef.current?.focus()} />
-              <NumberField label={type === 'buy' ? '매수수량' : '매도수량'} value={quantity} onChange={(value) => { setQuantity(value); setErrors((current) => ({ ...current, quantity: undefined })); }} suffix="주" error={errors.quantity} description={editing && type === 'sell' ? '수량이 잘못됐다면 매도 거래를 삭제하고 다시 등록해 주세요.' : selectedLot ? `매도 가능 ${selectedLot.remainingQuantity}주` : undefined} min={1} max={selectedLot?.remainingQuantity} required autoFocus={!editing || type === 'buy'} readOnly={Boolean(editing && type === 'sell')} inputRef={quantityRef} selectOnFocus={!(editing && type === 'sell')} enterKeyHint="next" onEnter={() => priceRef.current?.focus()} />
-              <NumberField label={type === 'buy' ? '매수가격' : '매도가격'} value={price} onChange={(value) => { setPrice(value); setErrors((current) => ({ ...current, price: undefined })); }} suffix="원" error={errors.price} min={1} required autoFocus={Boolean(editing && type === 'sell')} inputRef={priceRef} selectOnFocus enterKeyHint="next" onEnter={focusAfterPrice} />
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><NumberField label="수수료·세금" value={feeTaxAmount} onChange={setFeeTaxAmount} suffix="원" min={0} inputRef={feeRef} selectOnFocus enterKeyHint="next" onEnter={() => tabletMemoRef.current?.focus()} /></Box>
-              <Box sx={{ display: { xs: 'block', sm: 'none' } }}><FormTextField label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" inputRef={mobileMemoRef} selectOnFocus enterKeyHint="done" onEnter={handleSubmit} /></Box>
-              <Box sx={{ display: { xs: 'none', sm: 'block' } }}><FormTextarea label="메모" value={memo} onChange={setMemo} placeholder="선택 입력" rows={1} textareaRef={tabletMemoRef} selectOnFocus onEnter={handleSubmit} /></Box>
-            </Stack>
-
-            {errors.lotId && <Alert severity="error">{errors.lotId}</Alert>}
-          </Stack>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 5 }}>
-          <Box sx={{ position: { sm: 'sticky' }, top: { sm: 92 } }}>
-            <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 750 }}>거래 정보</Typography>
-            <AppCard><CardContent sx={{ px: 1.75, py: 1.25, '&:last-child': { pb: 1.25 } }}><SummaryRows rows={[{ label: `${type === 'buy' ? '매수' : '매도'}금액`, value: formatWon(estimate.tradeAmount), color: type === 'buy' ? colors.marketFall : colors.marketRise }, ...(type === 'sell' ? [{ label: '예상 실현손익', value: formatSignedWon(estimate.realizedProfit ?? 0), color: estimate.realizedProfit && estimate.realizedProfit < 0 ? colors.marketFall : colors.marketRise }] : []), { label: '거래 후 예수금', value: formatWon(estimate.expectedCashBalance), emphasis: true }, ...(type === 'buy' && averagePriceAfterBuy !== undefined ? [{ label: '매수 후 평균단가', value: formatWon(averagePriceAfterBuy), emphasis: true }] : [])]} /></CardContent></AppCard>
-            <Alert severity="info" sx={{ mt: 1.25, display: { xs: 'none', sm: 'flex' }, '& .MuiAlert-message': { fontSize: 11, lineHeight: 1.55 } }}>예상 예수금은 최초 등록할 때만 반영됩니다. 수정·삭제 시 자동 재계산되지 않습니다.</Alert>
-          </Box>
-        </Grid>
-      </Grid>
-
-      <Box sx={{ position: 'fixed', inset: 'auto 0 0', zIndex: 10, bgcolor: 'rgba(8,13,24,0.96)', backdropFilter: 'blur(20px)', borderTop: '1px solid', borderColor: 'divider', px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` }, py: 1.5 }}>
-        <Stack direction="row" spacing={1.5} sx={{ maxWidth: 880 - pageGutter.sm * 2, mx: 'auto' }}>
-          <ActionButton tone="muted" sx={{ width: 112 }} onClick={() => editing ? navigate(returnToJournal ? `/journal?date=${searchParams.get('fromDate') ?? tradeDate}` : `/stocks/${stockId}?tab=trades`, { replace: true }) : navigate(-1)}>취소</ActionButton>
-          <ActionButton tone={type === 'buy' ? 'primary' : 'danger'} sx={{ flex: 1 }} disabled={isSaving} onClick={handleSubmit}>{isSaving ? <CircularProgress size={22} color="inherit" /> : editing ? '수정' : type === 'buy' ? '매수' : '매도'}</ActionButton>
-        </Stack>
-      </Box>
-      <Snackbar open={saved} autoHideDuration={2500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}><Alert icon={<CheckCircleRounded />} severity="success" variant="filled" onClose={() => setSaved(false)}>{liveApiEnabled ? `${type === 'buy' ? '매수' : '매도'} 거래가 등록되었습니다.` : '목 거래가 등록됐어요. 실제 데이터는 변경하지 않았습니다.'}</Alert></Snackbar>
-    </Stack>
-  );
-}
-
-function StockSelector({ stocks, stockId, selectedStock, error, onChange, locked = false }: { stocks: StockItem[]; stockId: string; selectedStock?: StockItem; error?: string; onChange: (value: string) => void; locked?: boolean }) {
-  const dailyChange = selectedStock ? Math.round(selectedStock.currentPrice * selectedStock.priceChangeRate / 100) : 0;
-  return <FormControl fullWidth error={Boolean(error)}>
-    <AppCard sx={{ height: { xs: 74, sm: 68 } }}>
-      <Stack direction="row" sx={{ height: '100%', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 1.75 }, gap: 1 }}>
-        <Select value={stockId} disabled={locked} onChange={(event) => onChange(event.target.value)} variant="standard" disableUnderline IconComponent={KeyboardArrowDownRounded} renderValue={() => selectedStock ? <StockIdentity name={selectedStock.name} symbol={selectedStock.symbol} /> : '종목 선택'} sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0 }, '&.Mui-disabled': { color: colors.textPrimary }, '& .MuiSelect-icon': { display: { xs: 'none', sm: 'block' }, color: colors.disabled, right: -2 } }}>
-          {stocks.map((stock) => <MenuItem key={stock.id} value={stock.id}>{stock.name} · {stock.symbol}</MenuItem>)}
-        </Select>
-        {selectedStock && <Box sx={{ textAlign: 'right' }}><Typography sx={{ fontSize: 15, lineHeight: '22px', fontWeight: 700, color: getMarketColor(selectedStock.priceChangeRate) }}>{selectedStock.currentPrice.toLocaleString('ko-KR')}원</Typography><Typography sx={{ mt: 0.25, color: getMarketColor(selectedStock.priceChangeRate), fontSize: 11 }}>{dailyChange > 0 ? '+' : ''}{dailyChange.toLocaleString('ko-KR')}원&nbsp; ({formatRate(selectedStock.priceChangeRate)})</Typography></Box>}
-      </Stack>
-    </AppCard>
-    {error && <FormHelperText>{error}</FormHelperText>}
-  </FormControl>;
-}
-
+function Summary({label,value,color=colors.textPrimary}:{label:string;value:string;color?:string}){return <Stack direction="row" sx={{height:18,justifyContent:'space-between',alignItems:'center'}}><Typography sx={{fontSize:10,color:colors.textMuted}}>{label}</Typography><Typography sx={{fontSize:11,color,fontWeight:600}}>{value}</Typography></Stack>;}
