@@ -54,8 +54,19 @@ jobs:
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
+      - name: Seed legacy data before classification migration
+        shell: bash
+        run: |
+          mv database/prisma/migrations/20261002220000_account_classifications "$RUNNER_TEMP/account_classifications"
+          npm run prisma:migrate:deploy
+          node --import tsx backend/tests/classification-migration-seed.ts
+          mv "$RUNNER_TEMP/account_classifications" database/prisma/migrations/20261002220000_account_classifications
+
       - name: Apply migrations to MariaDB
         run: npm run prisma:migrate:deploy
+
+      - name: Account classification and trade consistency (real MariaDB API)
+        run: node --import tsx --test backend/tests/account-classification.integration.ts
 
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma

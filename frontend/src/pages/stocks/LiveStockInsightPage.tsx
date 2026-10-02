@@ -1,3 +1,4 @@
+import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { FinancialRefreshControls } from './FinancialRefreshControls';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -17,11 +18,12 @@ const metricValue = (item: FinancialStatementDto, key: keyof FinancialStatementD
 };
 
 export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' }) {
+  const {accountId}=useActiveAccount();
   const navigate = useNavigate();
   const { stockId = '' } = useParams();
   const [annual, setAnnual] = useState(true);
   const [selection, setSelection] = useState<{ year: number; period: string } | null>(null);
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId, selection?.year ?? null], queryFn: () => getSecurityAnalysis(stockId, selection?.year), placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === stockId ? previous : undefined });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId, accountId, selection?.year ?? null], queryFn: () => getSecurityAnalysis(stockId, selection?.year,accountId), placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === stockId && previousQuery?.queryKey[2] === accountId ? previous : undefined });
   const price = number(data?.security.currentPrice);
   const prior = number(data?.security.previousClosePrice);
   const bps = number(data?.valuation?.bps);

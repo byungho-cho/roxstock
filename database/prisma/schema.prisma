@@ -86,6 +86,8 @@ model Account {
   targetArrivalConditions Json?                   @map("target_arrival_conditions")
   targetArrivalVersion    Int                     @default(0) @map("target_arrival_version") @db.UnsignedInt
   buyTrades               BuyTrade[]
+  watchlistItems          AccountWatchlistItem[]
+  tradeRequests           TradeRequest[]
   cashTransactions        CashTransaction[]
   dividends               Dividend[]
   dailyAccountSnapshots   DailyAccountSnapshot[]
@@ -107,6 +109,7 @@ model Security {
   createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt              DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
   watchlistItem          WatchlistItem?
+  accountWatchlistItems  AccountWatchlistItem[]
   buyTrades              BuyTrade[]
   dividends              Dividend[]
   marketPrice            MarketPrice?
@@ -374,6 +377,41 @@ model WatchlistItem {
   @@map("watchlist_items")
 }
 
+// User classifications are account scoped. Legacy WatchlistItem is retained as a migration backup.
+model AccountWatchlistItem {
+  id             BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId      BigInt        @map("account_id") @db.UnsignedBigInt
+  securityId     BigInt        @map("security_id") @db.UnsignedBigInt
+  listType       WatchlistType @default(WATCHLIST) @map("list_type")
+  targetBuyPrice Decimal?      @map("target_buy_price") @db.Decimal(19, 4)
+  priority       Int           @default(0) @db.UnsignedSmallInt
+  memo           String?       @db.VarChar(500)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
+  account        Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  security       Security      @relation(fields: [securityId], references: [id], onDelete: Restrict)
+
+  @@unique([accountId, securityId])
+  @@index([securityId])
+  @@index([accountId, listType, priority])
+  @@map("account_watchlist_items")
+}
+
+// A committed request can be replayed without creating a second trade or cash entry.
+model TradeRequest {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  accountId    BigInt   @map("account_id") @db.UnsignedBigInt
+  requestId    String   @map("request_id") @db.VarChar(64)
+  operation    String   @db.VarChar(8)
+  requestHash  String   @map("request_hash") @db.Char(64)
+  response     Json
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@unique([accountId, requestId])
+  @@map("trade_requests")
+}
+
 model BuyTrade {
   id              BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
   accountId       BigInt           @map("account_id") @db.UnsignedBigInt
@@ -593,4 +631,3 @@ model CompoundGrowthGoal {
   @@index([planId, isVisible, displayOrder])
   @@map("compound_growth_goals")
 }
-
