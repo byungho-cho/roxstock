@@ -30,7 +30,7 @@ test('settings layout: fixed menu, padding, shared forms and detail scrolling',a
   const main=await page.locator('main').evaluate(n=>{const s=getComputedStyle(n);return [s.paddingTop,s.paddingLeft,s.paddingRight];});expect(main).toEqual(['0px','8px','8px']);
   expect((await page.locator('header').boundingBox())!.height).toBe(44);
   if(tablet){const detail=page.getByTestId('settings-detail');const m=await menu.boundingBox(),d=await detail.boundingBox();expect(d!.x-m!.x-m!.width).toBe(16);expect(d!.y).toBe(44);expect(await detail.evaluate(n=>{const s=getComputedStyle(n);return [s.paddingTop,s.paddingLeft,s.paddingRight];})).toEqual(['0px','0px','0px']);await expect(menu.getByRole('button').first()).toHaveAttribute('aria-current','page');await detail.evaluate(n=>n.scrollTop=100);expect((await menu.boundingBox())!.y).toBe(44);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(0);await detail.evaluate(n=>n.scrollTop=0);}
-  await expect(page.locator('.MuiBottomNavigation-root:visible .Mui-selected')).toHaveText('더보기');
+  await expect(page.locator('.MuiBottomNavigation-root:visible button.Mui-selected')).toHaveText('더보기');
   await page.screenshot({path:`test-results/targets/settings-layout-${info.project.name}.png`});
   await menu.getByRole('button',{name:/^계좌 관리/}).click();await page.getByRole('button',{name:'계좌 정보 수정',exact:true}).click();
   await expect(page.getByRole('textbox',{name:'계좌명',exact:true})).toBeVisible();if(tablet)await expect(menu.getByRole('button').first()).toHaveAttribute('aria-current','page');else await expect(menu).toBeHidden();
@@ -46,7 +46,8 @@ test('account edits: empty disabled, Enter focus, failure preserves and success 
   f.succeed();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page).toHaveURL(/view=account$/);await expect(page.getByText('변경 계좌',{exact:true})).toBeVisible();expect(f.writes[1].body.name).toBe('변경 계좌');
 });
 test('cash correction: empty cannot become zero; failure preserves and valid amount saves',async({page})=>{
-  const f=await fixture(page);await page.goto('/detail/settings?view=cash');const field=page.getByRole('textbox',{name:'변경 예수금',exact:true});await expect(field).toHaveValue('203,200,000');await field.fill('');await field.press('Enter');await expect(page.getByRole('button',{name:'변경',exact:true})).toBeDisabled();expect(f.writes).toHaveLength(0);
+  const f=await fixture(page);await page.goto('/detail/settings?view=cash');const field=page.getByRole('textbox',{name:'변경 예수금',exact:true});await expect(field).toHaveValue('203,200,000');
+  const currency=await field.evaluate(n=>{const shell=n.closest('.MuiInputBase-root')!.parentElement!;const input=n.getBoundingClientRect(),clear=shell.querySelector('button')!.getBoundingClientRect(),unit=shell.querySelector('button')!.parentElement!.querySelector('p')!.getBoundingClientRect();return {inputRight:input.right,unitLeft:unit.left,unitRight:unit.right,clearLeft:clear.left};});expect(currency.inputRight).toBeLessThanOrEqual(currency.unitLeft);expect(currency.unitRight).toBeLessThanOrEqual(currency.clearLeft);await field.fill('');await field.press('Enter');await expect(page.getByRole('button',{name:'변경',exact:true})).toBeDisabled();expect(f.writes).toHaveLength(0);
   await field.fill('205000000');f.fail();await field.press('Enter');await expect(page.getByRole('alert')).toContainText('테스트 저장 실패');await expect(field).toHaveValue('205,000,000');f.succeed();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page).toHaveURL(/view=account$/);expect(f.writes[1].body.amount).toBe('205000000');
 });
 test('target conditions: centered delete, cancel keeps list, draft only then save; inline validation',async({page},info)=>{
