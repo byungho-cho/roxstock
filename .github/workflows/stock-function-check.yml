@@ -22,6 +22,9 @@ jobs:
         working-directory: frontend
       - run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts --project=cover-370x465 --project=tablet-725x396
         working-directory: frontend
+      - name: Connected Lot sell and trade edit save/failure flows
+        run: npx playwright test --config=playwright.targets.config.ts stocks-v03.spec.ts --project=cover-370x465 --project=tablet-725x396 --grep "Lot price evaluation|buy edit replaces"
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -36,7 +36,7 @@ test('account classifications, migration preservation, trade replay and connecte
   await classify(aid,'TRADED',400);
   const buy={accountId:aid,securityId:sid,boughtAt:'2026-01-02T03:00:00Z',quantity:'10',unitPrice:'100',feeTaxAmount:'0',requestId:randomUUID()};
   const first=(await call('POST','/buy-trades',buy,201)).data;
-  assert.deepEqual((await call('POST','/buy-trades',buy,201)).data,first);assert.equal(await prisma.buyTrade.count({where:{accountId:a.id,securityId:s.id}}),1);
+  assert.deepEqual((await call('POST','/buy-trades',buy,201)).data,first);assert.equal(await prisma.buyTrade.count({where:{accountId:a.id,securityId:s.id}}),1);assert.equal(await prisma.cashTransaction.count({where:{buyTradeId:BigInt(first.id)}}),1);assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),'999000');
   await call('POST','/buy-trades',{...buy,quantity:'11'},409);assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'RECOMMENDED');
   const blocked=await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'},409);assert.equal(blocked.error.code,'HOLDING_HAS_TRADE_HISTORY');
   await call('DELETE',`/watchlist-items/${manual.watchlistItemId}?accountId=${aid}`,undefined,409);
@@ -44,7 +44,7 @@ test('account classifications, migration preservation, trade replay and connecte
   const partial=(await call('POST','/sell-trades',sell,201)).data;assert.equal(partial.remainingQuantity,'6');assert.equal(partial.realizedProfitLoss,'400');
   assert.deepEqual((await call('POST','/sell-trades',sell,201)).data,partial);
   const lot= (await call('GET',`/accounts/${aid}/buy-lots?securityId=${sid}`)).data[0];assert.equal(lot.remainingQuantity,'6');assert.equal(lot.profitLoss,'600');assert.equal(lot.returnRate,'100');
-  const before=await prisma.account.findUniqueOrThrow({where:{id:a.id}});const cash=await prisma.cashTransaction.findMany({where:{accountId:a.id}});const snapshot=await prisma.dailyAccountSnapshot.findMany({where:{accountId:a.id}});
+  const before=await prisma.account.findUniqueOrThrow({where:{id:a.id}});const cashFields={id:true,accountId:true,transactionType:true,transactionDate:true,amount:true,feeTaxAmount:true,balanceAfter:true,memo:true,createdAt:true,updatedAt:true} as const;const cash=await prisma.cashTransaction.findMany({where:{accountId:a.id},select:cashFields});const snapshot=await prisma.dailyAccountSnapshot.findMany({where:{accountId:a.id}});const positions=await prisma.dailyPositionSnapshot.findMany();
   await call('PATCH',`/sell-trades/${partial.id}`,{accountId:bid,quantity:'1'},404);
   await call('PATCH',`/sell-trades/${partial.id}`,{accountId:aid,quantity:'11'},409);
   await call('PATCH',`/sell-trades/${partial.id}`,{accountId:aid,quantity:'10'});assert.equal(await type(aid),'TRADED');
@@ -56,8 +56,8 @@ test('account classifications, migration preservation, trade replay and connecte
   assert.equal(await type(aid),'HOLDING');assert.equal((await call('GET',`/buy-trades/${first.id}?accountId=${aid}`)).data.remainingQuantity,'10');
   await call('GET',`/buy-trades/${first.id}?accountId=${bid}`,undefined,404);
   await call('PATCH',`/buy-trades/${first.id}`,{accountId:aid,unitPrice:'120'});
-  assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),before.cashBalance.toString());assert.deepEqual(await prisma.cashTransaction.findMany({where:{accountId:a.id}}),cash);assert.deepEqual(await prisma.dailyAccountSnapshot.findMany({where:{accountId:a.id}}),snapshot);
-  const next={...buy,quantity:'2',unitPrice:'300',requestId:randomUUID()};const concurrent=await Promise.all([call('POST','/buy-trades',next,201),call('POST','/buy-trades',next,201)]);assert.deepEqual(concurrent[0].data,concurrent[1].data);
+  assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),before.cashBalance.toString());assert.deepEqual(await prisma.cashTransaction.findMany({where:{accountId:a.id},select:cashFields}),cash);assert.deepEqual(await prisma.dailyAccountSnapshot.findMany({where:{accountId:a.id}}),snapshot);assert.deepEqual(await prisma.dailyPositionSnapshot.findMany(),positions);
+  const next={...buy,quantity:'2',unitPrice:'300',requestId:randomUUID()};const concurrent=await Promise.all([call('POST','/buy-trades',next,201),call('POST','/buy-trades',next,201)]);assert.deepEqual(concurrent[0].data,concurrent[1].data);assert.equal(await prisma.cashTransaction.count({where:{buyTradeId:BigInt(concurrent[0].data.id)}}),1);
   const sellOwn=(await call('POST','/sell-trades',{...sell,buyTradeId:concurrent[0].data.id,quantity:'2',unitPrice:'350',requestId:randomUUID()},201)).data;assert.equal(sellOwn.realizedProfitLoss,'100');
   await call('DELETE',`/buy-trades/${concurrent[0].data.id}?accountId=${aid}&cascadeSells=true`);await call('DELETE',`/buy-trades/${first.id}?accountId=${aid}`);assert.equal(await type(aid),'RECOMMENDED');
   const denied={...buy,quantity:'99999999',requestId:randomUUID()};await call('POST','/buy-trades',denied,409);assert.equal(await prisma.tradeRequest.count({where:{requestId:denied.requestId}}),0);

@@ -20,3 +20,12 @@ test('account change resets pending category form and search queries use the new
  await fixture(page);const row=await search(page);await row.getByRole('button').click();await expect(page.getByRole('dialog')).toBeVisible();await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByRole('dialog')).toHaveCount(0);await page.getByRole('textbox',{name:'전체 종목 검색'}).fill('분류검증');await expect(page.getByTestId('security-search-result').getByRole('button')).toHaveText('추천종목');
 });
+
+test('late successful save from previous account does not navigate or replace the current form',async({page})=>{
+ const f=await fixture(page);const row=await search(page);await row.getByRole('button').click();const dialog=page.getByRole('dialog').last();await dialog.getByRole('button',{name:'추천종목',exact:true}).click();
+ const response=page.waitForResponse(r=>r.request().method()==='PATCH'&&r.url().includes('/api/watchlist-items/'));
+ await dialog.getByRole('button',{name:'등록',exact:true}).click();
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await response;await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page).toHaveURL(/stocks\/add/);expect(f.writes[0]).toMatchObject({accountId:'1',listType:'RECOMMENDED'});
+ await page.getByRole('textbox',{name:'전체 종목 검색'}).fill('분류검증');await expect(page.getByTestId('security-search-result').getByRole('button')).toHaveText('추천종목');
+});
