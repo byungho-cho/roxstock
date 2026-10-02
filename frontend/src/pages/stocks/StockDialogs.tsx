@@ -1,3 +1,4 @@
+import { useActiveAccount } from '../../hooks/useActiveAccount';
 import {Box,Button,Dialog,IconButton,Stack,Typography} from '@mui/material';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useRef,useState} from 'react';
@@ -10,7 +11,7 @@ import {won} from './stockMath';
 import {useNavigate} from 'react-router-dom';
 export const stockDialogPaper={m:'16px',width:'calc(100% - 32px)',maxWidth:354,maxHeight:'calc(100dvh - 32px)',p:'16px',borderRadius:'8px',bgcolor:'#0B1322',border:'1px solid #2E4263',backgroundImage:'none'};
 export function ValueIndicatorDialog({stock,onClose}:{stock:StockItem|null;onClose:()=>void}) {
- const navigate=useNavigate();const data=useQuery({queryKey:['securityAnalysis',stock?.id],enabled:!!stock,queryFn:()=>getSecurityAnalysis(stock!.id)});
+ const {accountId}=useActiveAccount();const navigate=useNavigate();const data=useQuery({queryKey:['securityAnalysis',stock?.id,accountId],enabled:!!stock,queryFn:()=>getSecurityAnalysis(stock!.id,undefined,accountId)});
  const analysis=data.data,latest=analysis?.statements.filter(s=>s.periodType==='ANNUAL').sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
  const amount=(v:string|null|undefined)=>v==null?'—':won(Number(v));
  const rows=[['주요지표',`PER ${analysis?.valuation?.per??stock?.per??'—'} · PBR ${analysis?.valuation?.pbr??stock?.pbr??'—'} · ROE ${analysis?.valuation?.roe??stock?.roe??'—'}%`],['지배순이익',amount(analysis?.fundamentals?.controllingProfit)],['발행주식수 (자기주식수)',`${analysis?.fundamentals?.issuedShares==null?'—':Number(analysis.fundamentals.issuedShares).toLocaleString('ko-KR')} (${analysis?.fundamentals?.treasuryShares==null?'—':Number(analysis.fundamentals.treasuryShares).toLocaleString('ko-KR')})`],['자산',amount(latest?.totalAssets)],['부채',amount(latest?.totalLiabilities)],['자본 (전년도)',`${amount(latest?.totalEquity)} (${amount(analysis?.fundamentals?.previousEquity)})`],['주당배당금',amount(analysis?.valuation?.dividendPerShare)],['배당수익률',analysis?.valuation?.dividendYield==null?'—':`${analysis.valuation.dividendYield}%`]];

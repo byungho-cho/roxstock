@@ -7,8 +7,11 @@ import { realtimePriceCache } from '../realtime/price-cache.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, nonNegativeDecimal, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
+import { serializable } from '../lib/transaction.js';
+import { registerTrade, requestId } from '../domain/trade-request.js';
 
 type BuyBody = {
+  requestId?: unknown;
   accountId?: unknown;
   securityId?: unknown;
   boughtAt?: unknown;
@@ -19,6 +22,8 @@ type BuyBody = {
 };
 
 type SellBody = {
+  accountId?: unknown;
+  requestId?: unknown;
   buyTradeId?: unknown;
   soldAt?: unknown;
   quantity?: unknown;
@@ -31,8 +36,10 @@ type AccountParams = { accountId: string };
 type TradeQuery = { from?: string; to?: string; securityId?: string };
 type LotQuery = { securityId?: string; remainingOnly?: string };
 type TradeParams = { tradeId: string };
-type DeleteBuyQuery = { cascadeSells?: string };
+type AccountQuery = { accountId?: string };
+type DeleteBuyQuery = AccountQuery & { cascadeSells?: string };
 type EditBuyBody = {
+  accountId?: unknown;
   securityId?: unknown;
   boughtAt?: unknown;
   quantity?: unknown;
@@ -40,6 +47,7 @@ type EditBuyBody = {
   memo?: unknown;
 };
 type EditSellBody = {
+  accountId?: unknown;
   soldAt?: unknown;
   quantity?: unknown;
   unitPrice?: unknown;
@@ -65,30 +73,6 @@ const kstDate = (value: Date) => new Intl.DateTimeFormat('en-CA', {
 const optionalId = (value: string | undefined, fieldName: string) => (
   value === undefined ? undefined : id(value, fieldName)
 );
-
-const transactionOptions = {
-  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-  maxWait: 5_000,
-  timeout: 10_000,
-} as const;
-
-const syncHoldingStatus = async (tx: Prisma.TransactionClient, securityId: bigint) => {
-  const lots = await tx.buyTrade.findMany({
-    where: { securityId },
-    select: { quantity: true, sellTrades: { select: { quantity: true } } },
-  });
-  const remaining = lots.reduce(
-    (total, lot) => total.plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map((sell) => sell.quantity))),
-    new Prisma.Decimal(0),
-  );
-  if (remaining.greaterThan(0)) {
-    await tx.watchlistItem.upsert({
-      where: { securityId }, create: { securityId, listType: 'HOLDING' }, update: { listType: 'HOLDING' },
-    });
-  } else {
-    await tx.watchlistItem.updateMany({ where: { securityId, listType: 'HOLDING' }, data: { listType: 'WATCHLIST' } });
-  }
-};
 
 const mapLinkedCashTransaction = (cashTransaction: {
   id: bigint; feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal;
@@ -169,7 +153,7 @@ export async function tradeRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get<{ Params: TradeParams }>('/buy-trades/:tradeId', async (request) => {
+  app.get<{ Params: TradeParams; Querystring: AccountQuery }>('/buy-trades/:tradeId', async (request) => {
     const tradeId = id(request.params.tradeId, 'tradeId');
     const trade = await prisma.buyTrade.findUnique({
       where: { id: tradeId },
@@ -183,7 +167,7 @@ export async function tradeRoutes(app: FastifyInstance) {
         },
       },
     });
-    if (!trade) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
+    if (!trade || request.query.accountId !== undefined && trade.accountId !== id(request.query.accountId, 'accountId')) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
     const soldQuantity = trade.sellTrades.reduce((sum, sell) => sum.plus(sell.quantity), new Prisma.Decimal(0));
     const remainingQuantity = trade.quantity.minus(soldQuantity);
     const realizedProfitLoss = trade.sellTrades.reduce(
@@ -212,7 +196,7 @@ export async function tradeRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get<{ Params: TradeParams }>('/sell-trades/:tradeId', async (request) => {
+  app.get<{ Params: TradeParams; Querystring: AccountQuery }>('/sell-trades/:tradeId', async (request) => {
     const tradeId = id(request.params.tradeId, 'tradeId');
     const trade = await prisma.sellTrade.findUnique({
       where: { id: tradeId },
@@ -226,7 +210,7 @@ export async function tradeRoutes(app: FastifyInstance) {
         },
       },
     });
-    if (!trade) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
+    if (!trade || request.query.accountId !== undefined && trade.buyTrade.accountId !== id(request.query.accountId, 'accountId')) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
     return {
       data: {
         id: trade.id.toString(), type: 'SELL', buyTradeId: trade.buyTradeId.toString(),
@@ -275,6 +259,7 @@ export async function tradeRoutes(app: FastifyInstance) {
         useLive ? new Date(live.observedAt) : stored?.priceUpdatedAt ?? null, now);
       return {
         ...valuation,
+        profitLoss: valuation.currentPrice === null ? null : new Prisma.Decimal(valuation.currentPrice).minus(lot.unitPrice).mul(remainingQuantity).toString(),
         id: lot.id.toString(), boughtAt: lot.boughtAt.toISOString(),
         security: { id: lot.security.id.toString(), symbol: lot.security.symbol, name: lot.security.name, marketType: lot.security.marketType },
         quantity: lot.quantity.toString(), soldQuantity: soldQuantity.toString(), remainingQuantity: remainingQuantity.toString(),
@@ -288,12 +273,12 @@ export async function tradeRoutes(app: FastifyInstance) {
   app.patch<{ Params: TradeParams; Body: EditBuyBody }>('/buy-trades/:tradeId', async (request) => {
     const tradeId = id(request.params.tradeId, 'tradeId');
     const body = request.body ?? {};
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
       const current = await tx.buyTrade.findUnique({
         where: { id: tradeId },
         include: { sellTrades: { select: { soldAt: true, quantity: true } } },
       });
-      if (!current) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
+      if (!current || body.accountId !== undefined && current.accountId !== id(body.accountId, 'accountId')) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
       const securityId = body.securityId === undefined ? current.securityId : id(body.securityId, 'securityId');
       const boughtAt = body.boughtAt === undefined ? current.boughtAt : dateTime(body.boughtAt, 'boughtAt');
       const quantity = body.quantity === undefined ? current.quantity : positiveDecimal(body.quantity, 'quantity');
@@ -314,10 +299,8 @@ export async function tradeRoutes(app: FastifyInstance) {
         if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
       }
       const trade = await tx.buyTrade.update({ where: { id: tradeId }, data: { securityId, boughtAt, quantity, unitPrice, memo } });
-      await syncHoldingStatus(tx, current.securityId);
-      if (securityId !== current.securityId) await syncHoldingStatus(tx, securityId);
       return { trade, remainingQuantity: quantity.minus(soldQuantity) };
-    }, transactionOptions);
+    });
     return {
       data: {
         id: result.trade.id.toString(), remainingQuantity: result.remainingQuantity.toString(),
@@ -329,12 +312,12 @@ export async function tradeRoutes(app: FastifyInstance) {
   app.patch<{ Params: TradeParams; Body: EditSellBody }>('/sell-trades/:tradeId', async (request) => {
     const tradeId = id(request.params.tradeId, 'tradeId');
     const body = request.body ?? {};
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
       const current = await tx.sellTrade.findUnique({
         where: { id: tradeId },
         include: { buyTrade: { include: { sellTrades: { select: { id: true, quantity: true } } } } },
       });
-      if (!current) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
+      if (!current || body.accountId !== undefined && current.buyTrade.accountId !== id(body.accountId, 'accountId')) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
       const soldAt = body.soldAt === undefined ? current.soldAt : dateTime(body.soldAt, 'soldAt');
       const quantity = body.quantity === undefined ? current.quantity : positiveDecimal(body.quantity, 'quantity');
       const unitPrice = body.unitPrice === undefined ? current.unitPrice : positiveDecimal(body.unitPrice, 'unitPrice');
@@ -349,9 +332,8 @@ export async function tradeRoutes(app: FastifyInstance) {
         throw new ApiError(409, 'QUANTITY_EXCEEDS_REMAINING', 'Sell quantity exceeds the selected lot remaining quantity.');
       }
       const trade = await tx.sellTrade.update({ where: { id: tradeId }, data: { soldAt, quantity, unitPrice, memo } });
-      await syncHoldingStatus(tx, current.buyTrade.securityId);
       return { trade, remainingQuantity: current.buyTrade.quantity.minus(otherSold).minus(quantity) };
-    }, transactionOptions);
+    });
     return {
       data: {
         id: result.trade.id.toString(), remainingQuantity: result.remainingQuantity.toString(),
@@ -366,17 +348,16 @@ export async function tradeRoutes(app: FastifyInstance) {
       throw new ApiError(400, 'INVALID_INPUT', 'cascadeSells must be true or false.');
     }
     const cascadeSells = request.query.cascadeSells === 'true';
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
       const current = await tx.buyTrade.findUnique({ where: { id: tradeId }, include: { sellTrades: { select: { id: true } } } });
-      if (!current) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
+      if (!current || request.query.accountId !== undefined && current.accountId !== id(request.query.accountId, 'accountId')) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
       if (current.sellTrades.length > 0 && !cascadeSells) {
         throw new ApiError(409, 'CONNECTED_SELLS_EXIST', 'Connected sell trades exist. Retry with cascadeSells=true after confirmation.');
       }
       if (cascadeSells) await tx.sellTrade.deleteMany({ where: { buyTradeId: tradeId } });
       await tx.buyTrade.delete({ where: { id: tradeId } });
-      await syncHoldingStatus(tx, current.securityId);
       return { deletedSellCount: current.sellTrades.length };
-    }, transactionOptions);
+    });
     return {
       data: {
         id: tradeId.toString(), deleted: true, deletedSellCount: result.deletedSellCount,
@@ -385,14 +366,13 @@ export async function tradeRoutes(app: FastifyInstance) {
     };
   });
 
-  app.delete<{ Params: TradeParams }>('/sell-trades/:tradeId', async (request) => {
+  app.delete<{ Params: TradeParams; Querystring: AccountQuery }>('/sell-trades/:tradeId', async (request) => {
     const tradeId = id(request.params.tradeId, 'tradeId');
-    await prisma.$transaction(async (tx) => {
-      const current = await tx.sellTrade.findUnique({ where: { id: tradeId }, include: { buyTrade: { select: { securityId: true } } } });
-      if (!current) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
+    await serializable(async (tx) => {
+      const current = await tx.sellTrade.findUnique({ where: { id: tradeId }, include: { buyTrade: { select: { securityId: true, accountId: true } } } });
+      if (!current || request.query.accountId !== undefined && current.buyTrade.accountId !== id(request.query.accountId, 'accountId')) throw new ApiError(404, 'SELL_TRADE_NOT_FOUND', 'Sell trade not found.');
       await tx.sellTrade.delete({ where: { id: tradeId } });
-      await syncHoldingStatus(tx, current.buyTrade.securityId);
-    }, transactionOptions);
+    });
     return {
       data: {
         id: tradeId.toString(), deleted: true,
@@ -411,7 +391,9 @@ export async function tradeRoutes(app: FastifyInstance) {
     const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount');
     const memo = optionalMemo(body.memo);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await registerTrade(accountId, 'BUY', requestId(body.requestId), {
+      securityId: securityId.toString(), boughtAt: boughtAt.toISOString(), quantity: quantity.toString(), unitPrice: unitPrice.toString(), feeTaxAmount: feeTaxAmount.toString(), memo,
+    }, async (tx) => {
       const [account, security] = await Promise.all([
         tx.account.findUnique({ where: { id: accountId } }),
         tx.security.findUnique({ where: { id: securityId } }),
@@ -440,23 +422,10 @@ export async function tradeRoutes(app: FastifyInstance) {
           memo,
         },
       });
-      await tx.watchlistItem.upsert({
-        where: { securityId },
-        create: { securityId, listType: 'HOLDING' },
-        update: { listType: 'HOLDING' },
-      });
-      return { trade, cashTransaction, amount, balanceAfter };
-    }, transactionOptions);
-
-    return reply.code(201).send({
-      data: {
-        id: result.trade.id.toString(),
-        cashTransactionId: result.cashTransaction.id.toString(),
-        amount: result.amount.toString(),
-        feeTaxAmount: feeTaxAmount.toString(),
-        balanceAfter: result.balanceAfter.toString(),
-      },
+      return { id: trade.id.toString(), cashTransactionId: cashTransaction.id.toString(), amount: amount.toString(), feeTaxAmount: feeTaxAmount.toString(), balanceAfter: balanceAfter.toString() };
     });
+
+    return reply.code(201).send({ data: result });
   });
 
   app.post<{ Body: SellBody }>('/sell-trades', async (request, reply) => {
@@ -468,7 +437,13 @@ export async function tradeRoutes(app: FastifyInstance) {
     const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount');
     const memo = optionalMemo(body.memo);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const owner = await prisma.buyTrade.findUnique({ where: { id: buyTradeId }, select: { accountId: true } });
+    if (!owner) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found.');
+    const accountId = body.accountId === undefined ? owner.accountId : id(body.accountId, 'accountId');
+    if (accountId !== owner.accountId) throw new ApiError(404, 'BUY_TRADE_NOT_FOUND', 'Buy trade not found in this account.');
+    const result = await registerTrade(accountId, 'SELL', requestId(body.requestId), {
+      buyTradeId: buyTradeId.toString(), soldAt: soldAt.toISOString(), quantity: quantity.toString(), unitPrice: unitPrice.toString(), feeTaxAmount: feeTaxAmount.toString(), memo,
+    }, async (tx) => {
       const buyTrade = await tx.buyTrade.findUnique({
         where: { id: buyTradeId },
         include: { account: true, sellTrades: { select: { quantity: true } } },
@@ -513,29 +488,13 @@ export async function tradeRoutes(app: FastifyInstance) {
         },
       });
 
-      await syncHoldingStatus(tx, buyTrade.securityId);
 
       return {
-        trade,
-        cashTransaction,
-        amount,
-        balanceAfter,
-        remainingQuantity: remainingBefore.minus(quantity),
-        realizedProfitLoss: quantity.mul(unitPrice.minus(buyTrade.unitPrice)),
+        id: trade.id.toString(), cashTransactionId: cashTransaction.id.toString(), amount: amount.toString(), feeTaxAmount: feeTaxAmount.toString(), balanceAfter: balanceAfter.toString(),
+        remainingQuantity: remainingBefore.minus(quantity).toString(), realizedProfitLoss: quantity.mul(unitPrice.minus(buyTrade.unitPrice)).toString(),
       };
-    }, transactionOptions);
-
-    return reply.code(201).send({
-      data: {
-        id: result.trade.id.toString(),
-        cashTransactionId: result.cashTransaction.id.toString(),
-        amount: result.amount.toString(),
-        feeTaxAmount: feeTaxAmount.toString(),
-        balanceAfter: result.balanceAfter.toString(),
-        remainingQuantity: result.remainingQuantity.toString(),
-        realizedProfitLoss: result.realizedProfitLoss.toString(),
-      },
     });
+
+    return reply.code(201).send({ data: result });
   });
 }
-

@@ -5,17 +5,20 @@ import { ApiError } from '../lib/api-error.js';
 import { parseManualRefresh } from '../collector/dart-manual-refresh.js';
 import { id, optionalMemo } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
+import { serializable } from '../lib/transaction.js';
+import { assertClassificationChange, manualClassification, requireActiveAccount } from '../domain/classification.js';
+import { calculateRemainingQuantity } from '../domain/trade.js';
 
-type SecurityQuery = { query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
-type WatchlistBody = { securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
+type SecurityQuery = { accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
+type WatchlistBody = { accountId?: unknown; securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
 type WatchlistParams = { id: string };
 type SecurityParams = { id: string };
-type DirectSecurityBody = { symbol?: unknown; name?: unknown; marketType?: unknown; listType?: unknown };
+type DirectSecurityBody = { accountId?: unknown; symbol?: unknown; name?: unknown; marketType?: unknown; listType?: unknown };
 type PriceBody = { currentPrice?: unknown };
-type AnalysisBody = { operatingProfit?: unknown; controllingProfit?: unknown; issuedShares?: unknown; treasuryShares?: unknown; assets?: unknown; liabilities?: unknown; equity?: unknown; previousEquity?: unknown; dividend?: unknown; memo?: unknown };
+type AnalysisBody = { accountId?: unknown; operatingProfit?: unknown; controllingProfit?: unknown; issuedShares?: unknown; treasuryShares?: unknown; assets?: unknown; liabilities?: unknown; equity?: unknown; previousEquity?: unknown; dividend?: unknown; memo?: unknown };
 
 const marketTypes = new Set<MarketType>(['KOSPI', 'KOSDAQ', 'KONEX', 'OTHER']);
-const editableListTypes = new Set<WatchlistType>(['WATCHLIST', 'RECOMMENDED']);
+
 
 const queryText = (value: string | undefined) => {
   const result = value?.trim() ?? '';
@@ -35,12 +38,6 @@ const listTypeFilter = (value: string | undefined): WatchlistType | undefined =>
   return value as WatchlistType;
 };
 
-const editableListType = (value: unknown): WatchlistType => {
-  if (typeof value !== 'string' || !editableListTypes.has(value as WatchlistType)) {
-    throw new ApiError(400, 'INVALID_LIST_TYPE', 'listType must be WATCHLIST or RECOMMENDED.');
-  }
-  return value as WatchlistType;
-};
 
 const optionalPrice = (value: unknown) => {
   if (value === undefined || value === null || value === '') return null;
@@ -101,7 +98,7 @@ const serializeMetrics = (metric: {
 export async function securityRoutes(app: FastifyInstance) {
   app.patch<{ Params: SecurityParams; Body: AnalysisBody }>('/securities/:id/analysis', async (request) => {
     const securityId = id(request.params.id, 'id');
-    const security = await prisma.security.findUnique({ where: { id: securityId }, include: { watchlistItem: true } });
+    const security = await prisma.security.findUnique({ where: { id: securityId } });
     if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
     const body = request.body ?? {};
     const decimal = (key: keyof AnalysisBody) => {
@@ -121,8 +118,10 @@ export async function securityRoutes(app: FastifyInstance) {
     const treasuryShares = decimal('treasuryShares');
     const previousEquity = decimal('previousEquity');
     await prisma.$transaction(async (tx) => {
-      if (security.watchlistItem && security.watchlistItem.listType !== 'HOLDING' && body.memo !== undefined) {
-        await tx.watchlistItem.update({ where: { id: security.watchlistItem.id }, data: { memo: optionalMemo(body.memo) } });
+      if (body.memo !== undefined) {
+        const accountId = id(body.accountId, 'accountId');
+        await requireActiveAccount(tx, accountId);
+        await tx.accountWatchlistItem.updateMany({ where: { accountId, securityId }, data: { memo: optionalMemo(body.memo) } });
       }
       if ([operatingProfit, assets, liabilities, equity].some((value) => value !== undefined)) {
         const year = new Date().getUTCFullYear();
@@ -179,10 +178,13 @@ export async function securityRoutes(app: FastifyInstance) {
     return { data: { updated: true } };
   });
 
-  app.get<{ Params: SecurityParams; Querystring: { fiscalYear?: string } }>('/securities/:id/analysis', async (request) => {
+  app.get<{ Params: SecurityParams; Querystring: { fiscalYear?: string; accountId?: string } }>('/securities/:id/analysis', async (request) => {
     const securityId = id(request.params.id, 'id');
     const security = await prisma.security.findUnique({ where: { id: securityId }, include: { marketPrice: true, watchlistItem: true } });
     if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
+    const accountId = request.query.accountId === undefined ? undefined : id(request.query.accountId, 'accountId');
+    if (accountId !== undefined) await requireActiveAccount(prisma, accountId);
+    const manual = accountId === undefined ? null : await prisma.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
     const fiscalYear = request.query.fiscalYear === undefined ? undefined : parseManualRefresh({ fiscalYear: Number(request.query.fiscalYear), period: 'ANNUAL' }).fiscalYear;
     const [metrics, manualStatements, dartFilings, fundamentals] = await Promise.all([
       prisma.valuationMetric.findMany({ where: { securityId }, orderBy: { metricDate: 'desc' }, take: 2 }),
@@ -234,7 +236,7 @@ export async function securityRoutes(app: FastifyInstance) {
         dartSource: filing ? { receiptNo: filing.receiptNo, reportName: filing.reportName, fsDivision: filing.fsDivision, collectedAt: filing.collectedAt.toISOString(), source: filing.source } : annual && q3 ? { receiptNo: annual.receiptNo, reportName: annual.reportName, fsDivision: annual.fsDivision, collectedAt: annual.collectedAt.toISOString(), source: 'OPEN_DART_Q4_DERIVED_FROM_YTD' } : null };
     }).sort((a, b) => b.fiscalYear - a.fiscalYear || String(b.periodType).localeCompare(String(a.periodType))).slice(0, 24);
     return { data: {
-      security: serializeSecurity(security),
+      security: serializeSecurity({ ...security, watchlistItem: manual }),
       valuation: serializeMetrics(metrics[0] ?? null),
       previousValuation: serializeMetrics(metrics[1] ?? null),
       fundamentals: fundamentals && {
@@ -249,18 +251,21 @@ export async function securityRoutes(app: FastifyInstance) {
 
   app.post<{ Body: DirectSecurityBody }>('/securities', async (request, reply) => {
     const body = request.body ?? {};
+    const accountId = id(body.accountId, 'accountId');
     const symbol = typeof body.symbol === 'string' ? body.symbol.trim() : '';
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!/^\d{6}$/.test(symbol) || !name || name.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'A six-digit symbol and name are required.');
     const selectedMarket = marketType(body.marketType as string) ?? 'OTHER';
-    const selectedList = editableListType(body.listType);
-    const existing = await prisma.security.findUnique({ where: { marketType_symbol: { marketType: selectedMarket, symbol } } });
-    if (existing) throw new ApiError(409, 'SECURITY_ALREADY_EXISTS', 'Security already exists. Search and add it instead.');
-    const security = await prisma.security.create({
-      data: { symbol, name, marketType: selectedMarket, watchlistItem: { create: { listType: selectedList } } },
-      include: { watchlistItem: true, marketPrice: true },
+    const selectedList = manualClassification(body.listType);
+    const result = await serializable(async tx => {
+      await requireActiveAccount(tx, accountId);
+      const existing = await tx.security.findUnique({ where: { marketType_symbol: { marketType: selectedMarket, symbol } } });
+      if (existing) throw new ApiError(409, 'SECURITY_ALREADY_EXISTS', '이미 등록된 종목입니다. 검색에서 분류를 선택하세요.');
+      const security = await tx.security.create({ data: { symbol, name, marketType: selectedMarket } });
+      const item = await tx.accountWatchlistItem.create({ data: { accountId, securityId: security.id, listType: selectedList } });
+      return serializeSecurity({ ...security, marketPrice: null, watchlistItem: item });
     });
-    return reply.code(201).send({ data: serializeSecurity(security) });
+    return reply.code(201).send({ data: result });
   });
 
   app.patch<{ Params: SecurityParams; Body: PriceBody }>('/securities/:id/price', async (request) => {
@@ -289,105 +294,103 @@ export async function securityRoutes(app: FastifyInstance) {
   app.get<{ Querystring: SecurityQuery }>('/securities', async (request) => {
     const search = queryText(request.query.query);
     const selectedMarket = marketType(request.query.marketType);
-    const selectedList = listTypeFilter(request.query.listType);
+    const accountId = request.query.accountId ? id(request.query.accountId, 'accountId') : undefined;
+    const selectedList = request.query.listType === 'TRADED' ? 'TRADED' : listTypeFilter(request.query.listType);
     const excludeRegistered = request.query.excludeRegistered === 'true';
-    if (request.query.excludeRegistered && !['true', 'false'].includes(request.query.excludeRegistered)) {
-      throw new ApiError(400, 'INVALID_INPUT', 'excludeRegistered must be true or false.');
+    const registeredOnly = request.query.registeredOnly === 'true';
+    for (const key of ['excludeRegistered', 'registeredOnly'] as const) {
+      if (request.query[key] && !['true', 'false'].includes(request.query[key]!)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be true or false.`);
     }
-    if (selectedList && excludeRegistered) {
-      throw new ApiError(400, 'INVALID_INPUT', 'listType and excludeRegistered=true cannot be used together.');
+    if (selectedList && excludeRegistered) throw new ApiError(400, 'INVALID_INPUT', 'listType and excludeRegistered cannot be combined.');
+    if ((selectedList || excludeRegistered || registeredOnly) && !accountId) throw new ApiError(400, 'ACCOUNT_REQUIRED', '계좌를 선택하세요.');
+    if (accountId) await requireActiveAccount(prisma, accountId);
+    const lots = accountId ? await prisma.buyTrade.findMany({
+      where: { accountId }, select: { securityId: true, quantity: true, sellTrades: { select: { quantity: true } } },
+    }) : [];
+    const remainingById = new Map<string, Prisma.Decimal>();
+    for (const lot of lots) {
+      const key = lot.securityId.toString();
+      remainingById.set(key, (remainingById.get(key) ?? new Prisma.Decimal(0)).plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map(s => s.quantity))));
     }
-    const hasPagination = request.query.limit !== undefined || request.query.offset !== undefined;
-    const limit = pageNumber(request.query.limit, 'limit', 50, 100);
-    const offset = pageNumber(request.query.offset, 'offset', 0, 100_000);
     const where: Prisma.SecurityWhereInput = {
       isActive: true,
       ...(selectedMarket && { marketType: selectedMarket }),
-      ...(selectedList && { watchlistItem: { is: { listType: selectedList } } }),
-      ...(excludeRegistered && { watchlistItem: { is: null } }),
-      ...(search && { OR: [
-        { symbol: { contains: search.replace(/^A(?=\d{6}$)/i, '') } },
-        { name: { contains: search } },
-      ] }),
+      ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),
+      ...(search && { AND: [{ OR: [{ symbol: { contains: search.replace(/^A(?=\d{6}$)/i, '') } }, { name: { contains: search } }] }] }),
     };
-    const [securities, total] = await Promise.all([
-      prisma.security.findMany({
-        where,
-        include: { watchlistItem: true, marketPrice: true },
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        ...(hasPagination && { take: limit, skip: offset }),
-      }),
-      prisma.security.count({ where }),
-    ]);
-    const securityIds = securities.map((item) => item.id);
+    const securities = await prisma.security.findMany({
+      where, include: { marketPrice: true, accountWatchlistItems: { where: { accountId: accountId ?? 0n } } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+    const classified = securities.map(security => {
+      const manual = security.accountWatchlistItems[0] ?? null;
+      const remaining = remainingById.get(security.id.toString());
+      const effective = remaining !== undefined ? remaining.gt(0) ? 'HOLDING' : 'TRADED' : manual?.listType ?? null;
+      return { security, manual, effective, hasTradeHistory: remaining !== undefined };
+    }).filter(item => (!selectedList || item.effective === selectedList) && (!excludeRegistered || !item.effective));
+    const hasPagination = request.query.limit !== undefined || request.query.offset !== undefined;
+    const limit = pageNumber(request.query.limit, 'limit', 50, 100);
+    const offset = pageNumber(request.query.offset, 'offset', 0, 100_000);
+    const page = hasPagination ? classified.slice(offset, offset + limit) : classified;
+    const securityIds = page.map(item => item.security.id);
     const [metrics, financials] = await Promise.all([
       prisma.valuationMetric.findMany({ where: { securityId: { in: securityIds } }, orderBy: { metricDate: 'desc' }, distinct: ['securityId'] }),
       prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' } }),
     ]);
-    const metricById = new Map(metrics.map((item) => [item.securityId.toString(), item]));
-    const financialById = new Map<string, typeof financials>();
-    for (const item of financials) {
-      const key = item.securityId.toString();
-      const entries = financialById.get(key) ?? [];
-      if (entries.length < 2) entries.push(item);
-      financialById.set(key, entries);
-    }
-    return { data: securities.map((item) => {
-      const years = financialById.get(item.id.toString()) ?? [];
-      return { ...serializeSecurity(item), valuation: serializeMetrics(metricById.get(item.id.toString()) ?? null),
-        operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
+    const metricById = new Map(metrics.map(item => [item.securityId.toString(), item]));
+    return { data: page.map(({ security, manual, effective, hasTradeHistory }) => {
+      const years = financials.filter(item => item.securityId === security.id).slice(0, 2);
+      return { ...serializeSecurity({ ...security, watchlistItem: manual }), listType: effective, manualListType: manual?.listType ?? null, hasTradeHistory,
+        valuation: serializeMetrics(metricById.get(security.id.toString()) ?? null), operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
         previousOperatingProfit: years[1]?.operatingProfit?.toString() ?? null };
-    }), meta: { total, limit: hasPagination ? limit : total, offset: hasPagination ? offset : 0 } };
+    }), meta: { total: classified.length, limit: hasPagination ? limit : classified.length, offset: hasPagination ? offset : 0 } };
   });
 
   app.post<{ Body: WatchlistBody }>('/watchlist-items', async (request, reply) => {
     const body = request.body ?? {};
-    const securityId = id(body.securityId, 'securityId');
-    const selectedListType = editableListType(body.listType);
-    const targetBuyPrice = optionalPrice(body.targetBuyPrice);
-    const priority = optionalPriority(body.priority);
-    const memo = optionalMemo(body.memo);
-    const existing = await prisma.watchlistItem.findUnique({ where: { securityId } });
-    if (existing) {
-      const code = existing.listType === 'HOLDING' ? 'HOLDING_MANAGED_BY_TRADES' : 'WATCHLIST_ITEM_ALREADY_EXISTS';
-      throw new ApiError(409, code, 'The security is already registered.');
-    }
-    const security = await prisma.security.findUnique({ where: { id: securityId } });
-    if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
-    const item = await prisma.watchlistItem.create({
-      data: { securityId, listType: selectedListType, targetBuyPrice, priority, memo },
-      include: { security: { include: { watchlistItem: true, marketPrice: true } } },
+    const accountId = id(body.accountId, 'accountId'), securityId = id(body.securityId, 'securityId');
+    const listType = manualClassification(body.listType);
+    const targetBuyPrice = optionalPrice(body.targetBuyPrice), priority = optionalPriority(body.priority), memo = optionalMemo(body.memo);
+    const result = await serializable(async tx => {
+      await requireActiveAccount(tx, accountId);
+      await assertClassificationChange(tx, accountId, securityId, listType);
+      const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
+      if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', '종목을 찾을 수 없습니다.');
+      const existing = await tx.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
+      if (existing && existing.listType !== listType) throw new ApiError(409, 'WATCHLIST_ITEM_ALREADY_EXISTS', '이미 등록된 종목입니다. 분류 변경을 사용하세요.');
+      const item = existing ?? await tx.accountWatchlistItem.create({ data: { accountId, securityId, listType, targetBuyPrice, priority, memo } });
+      return serializeSecurity({ ...security, watchlistItem: item });
     });
-    return reply.code(201).send({ data: serializeSecurity(item.security) });
+    return reply.code(201).send({ data: result });
   });
 
   app.patch<{ Params: WatchlistParams; Body: WatchlistBody }>('/watchlist-items/:id', async (request) => {
-    const itemId = id(request.params.id, 'id');
-    const body = request.body ?? {};
-    const existing = await prisma.watchlistItem.findUnique({ where: { id: itemId } });
-    if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', 'Watchlist item not found.');
-    if (existing.listType === 'HOLDING') throw new ApiError(409, 'HOLDING_MANAGED_BY_TRADES', 'Holding classification is managed by buy and sell trades.');
+    const body = request.body ?? {}, accountId = id(body.accountId, 'accountId'), itemId = id(request.params.id, 'id');
     if (body.securityId !== undefined) throw new ApiError(400, 'IMMUTABLE_FIELD', 'securityId cannot be changed.');
-    const item = await prisma.watchlistItem.update({
-      where: { id: itemId },
-      data: {
-        ...(body.listType !== undefined && { listType: editableListType(body.listType) }),
-        ...(body.targetBuyPrice !== undefined && { targetBuyPrice: optionalPrice(body.targetBuyPrice) }),
-        ...(body.priority !== undefined && { priority: optionalPriority(body.priority) }),
-        ...(body.memo !== undefined && { memo: optionalMemo(body.memo) }),
-      },
-      include: { security: { include: { watchlistItem: true, marketPrice: true } } },
+    const listType = body.listType === undefined ? undefined : manualClassification(body.listType);
+    const result = await serializable(async tx => {
+      await requireActiveAccount(tx, accountId);
+      const existing = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
+      if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
+      if (listType) await assertClassificationChange(tx, accountId, existing.securityId, listType);
+      const item = await tx.accountWatchlistItem.update({ where: { id: itemId }, data: {
+        ...(listType && { listType }), ...(body.targetBuyPrice !== undefined && { targetBuyPrice: optionalPrice(body.targetBuyPrice) }),
+        ...(body.priority !== undefined && { priority: optionalPriority(body.priority) }), ...(body.memo !== undefined && { memo: optionalMemo(body.memo) }),
+      }, include: { security: { include: { marketPrice: true } } } });
+      return serializeSecurity({ ...item.security, watchlistItem: item });
     });
-    return { data: serializeSecurity(item.security) };
+    return { data: result };
   });
 
-  app.delete<{ Params: WatchlistParams }>('/watchlist-items/:id', async (request, reply) => {
-    const itemId = id(request.params.id, 'id');
-    const existing = await prisma.watchlistItem.findUnique({ where: { id: itemId } });
-    if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', 'Watchlist item not found.');
-    if (existing.listType === 'HOLDING') throw new ApiError(409, 'HOLDING_MANAGED_BY_TRADES', 'Holding classification is managed by buy and sell trades.');
-    await prisma.watchlistItem.delete({ where: { id: itemId } });
-    return reply.code(204).send();
+  app.delete<{ Params: WatchlistParams; Querystring: { accountId?: string } }>('/watchlist-items/:id', async (request) => {
+    const accountId = id(request.query.accountId, 'accountId'), itemId = id(request.params.id, 'id');
+    await serializable(async tx => {
+      await requireActiveAccount(tx, accountId);
+      const item = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
+      if (!item) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
+      await assertClassificationChange(tx, accountId, item.securityId, null);
+      await tx.accountWatchlistItem.delete({ where: { id: itemId } });
+    });
+    return { data: { id: itemId.toString(), deleted: true } };
   });
 }
-

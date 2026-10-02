@@ -28,7 +28,7 @@ export function deriveAccountStocks(catalog:StockItem[],holdings:StockItem[],tra
   const result=new Map(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s}]));
   for(const trade of trades){if(!result.has(trade.security.id))result.set(trade.security.id,{id:trade.security.id,symbol:trade.security.symbol,name:trade.security.name,listType:'traded',currentPrice:Number.NaN,priceChangeRate:Number.NaN,collectionStatus:'failed',...catalog.find(s=>s.id===trade.security.id)});}
   const holdingIds=new Set(holdings.filter(s=>(s.quantity??0)>0).map(s=>s.id));
-  for(const trade of trades){const s=result.get(trade.security.id)!;if(!holdingIds.has(s.id))s.listType='traded';if(trade.type==='SELL'){s.realizedProfit=(s.realizedProfit??0)+Number(trade.realizedProfitLoss??0);s.lastSoldAt=!s.lastSoldAt||trade.tradedAt>s.lastSoldAt?trade.tradedAt:s.lastSoldAt;}}
-  for(const s of holdings)result.set(s.id,{...result.get(s.id),...s});
+  for(const trade of trades){const s=result.get(trade.security.id)!;s.hasTradeHistory=true;if(!holdingIds.has(s.id))s.listType='traded';if(trade.type==='SELL'){s.realizedProfit=(s.realizedProfit??0)+Number(trade.realizedProfitLoss??0);s.lastSoldAt=!s.lastSoldAt||trade.tradedAt>s.lastSoldAt?trade.tradedAt:s.lastSoldAt;}}
+  for(const s of holdings)result.set(s.id,{...result.get(s.id),...s,hasTradeHistory:true});
   return [...result.values()];
 }
