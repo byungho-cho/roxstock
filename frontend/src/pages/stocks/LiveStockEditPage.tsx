@@ -1,6 +1,7 @@
+import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { Button, Skeleton, Stack, TextField, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { getSecurityAnalysis, updateSecurityAnalysis, type AnalysisWriteInput } from '../../data/roxstockApi';
@@ -15,14 +16,21 @@ const fields: Array<[keyof AnalysisWriteInput, string, string]> = [
 ];
 
 export function LiveStockEditPage() {
+  const {accountId}=useActiveAccount(); const {stockId}=useParams();
+  return <AccountStockEdit key={`${accountId}:${stockId}`}/>;
+}
+function AccountStockEdit() {
+  const {accountId}=useActiveAccount();
   const { stockId = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId], queryFn: () => getSecurityAnalysis(stockId) });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId, accountId], enabled: !!accountId, queryFn: () => getSecurityAnalysis(stockId,undefined,accountId) });
   const [values, setValues] = useState<AnalysisWriteInput>({});
   const [valuesFor, setValuesFor] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const lock=useRef(false),alive=useRef(true);
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
   useEffect(() => {
     if (!data) return;
     const annual = data.statements.find((item) => item.periodType === 'ANNUAL');
@@ -36,13 +44,14 @@ export function LiveStockEditPage() {
     setValuesFor(stockId);
   }, [data, stockId]);
   const save = async () => {
+    if(!accountId||lock.current)return;lock.current=true;
     setSaving(true); setError('');
     try {
-      await updateSecurityAnalysis(stockId, Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value || null])));
-      await Promise.all([queryClient.invalidateQueries({ queryKey: ['securityAnalysis', stockId] }), queryClient.invalidateQueries({ queryKey: ['stocks'] })]);
-      navigate(`/stocks/${stockId}`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : '저장에 실패했습니다.'); }
-    finally { setSaving(false); }
+      await updateSecurityAnalysis(stockId, Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value || null])), accountId);
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ['securityAnalysis', stockId, accountId] }), queryClient.invalidateQueries({ queryKey: ['stocks'] })]);
+      if(alive.current)navigate(`/stocks/${stockId}`);
+    } catch (cause) { if(alive.current)setError(cause instanceof Error ? cause.message : '저장에 실패했습니다.'); }
+    finally { lock.current=false;if(alive.current)setSaving(false); }
   };
   return <Stack spacing={1.5} sx={{ pb: 2 }}>
     <PageHeader embedded showAdd={false} title="종목 정보 수정" subtitle={data?.security.name} onBack={() => navigate(-1)} />
@@ -55,3 +64,4 @@ export function LiveStockEditPage() {
     </>}
   </Stack>;
 }
+

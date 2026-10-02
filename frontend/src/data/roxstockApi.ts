@@ -20,7 +20,9 @@ export interface SecurityDto {
   name: string;
   marketType: MarketType;
   securityType: string;
-  listType: ServerListType | null;
+  listType: ServerListType | 'TRADED' | null;
+  manualListType?: ServerListType | null;
+  hasTradeHistory?: boolean;
   watchlistItemId: string | null;
   targetBuyPrice: string | null;
   priority: number | null;
@@ -50,12 +52,15 @@ export interface SecurityAnalysisDto {
   fundamentals: { controllingProfit: string | null; issuedShares: string | null; treasuryShares: string | null; previousEquity: string | null } | null;
   statements: FinancialStatementDto[];
 }
-export const getSecurityAnalysis = (securityId: string, fiscalYear?: number) => apiRequest<SecurityAnalysisDto>(`/securities/${encodeURIComponent(securityId)}/analysis${fiscalYear === undefined ? '' : `?fiscalYear=${fiscalYear}`}`);
+export const getSecurityAnalysis = async (securityId: string, fiscalYear?: number, accountId?: string) => {
+  const params = new URLSearchParams({ accountId: accountId ?? await currentAccountId() });
+  if (fiscalYear !== undefined) params.set('fiscalYear', String(fiscalYear));
+  return apiRequest<SecurityAnalysisDto>(`/securities/${encodeURIComponent(securityId)}/analysis?${params}`);
+};
 export type AnalysisWriteInput = Partial<Record<'operatingProfit' | 'controllingProfit' | 'issuedShares' | 'treasuryShares' | 'assets' | 'liabilities' | 'equity' | 'previousEquity' | 'dividend' | 'memo', string | null>>;
-export const updateSecurityAnalysis = (securityId: string, body: AnalysisWriteInput) =>
-  apiRequest<{ updated: true }>(`/securities/${encodeURIComponent(securityId)}/analysis`, { method: 'PATCH', body: JSON.stringify(body) });
-export const createSecurity = (body: { symbol: string; name: string; marketType: MarketType; listType: 'WATCHLIST' | 'RECOMMENDED' }) =>
-  apiRequest<SecurityDto>('/securities', { method: 'POST', body: JSON.stringify(body) });
+export const updateSecurityAnalysis = async (securityId: string, body: AnalysisWriteInput, accountId?: string) =>
+  apiRequest<{ updated: true }>(`/securities/${encodeURIComponent(securityId)}/analysis`, { method: 'PATCH', body: JSON.stringify({ ...body, accountId: accountId ?? await currentAccountId() }) });
+export const createSecurity = (body: { symbol: string; name: string; marketType: MarketType; listType: ServerListType; accountId?: string }) => scopedSecurityCreate(body);
 export const updateSecurityPrice = (securityId: string, currentPrice: string) =>
   apiRequest<{ currentPrice: string; previousClosePrice: string | null; priceUpdatedAt: string }>(`/securities/${encodeURIComponent(securityId)}/price`, { method: 'PATCH', body: JSON.stringify({ currentPrice }) });
 
@@ -106,6 +111,8 @@ export interface AccountDashboardDto {
 }
 
 export interface SecuritySearch {
+  accountId?: string;
+  registeredOnly?: boolean;
   query?: string;
   marketType?: MarketType;
   listType?: ServerListType;
@@ -179,18 +186,20 @@ export function listSecurities(search: SecuritySearch = {}) {
 }
 
 export interface WatchlistInput {
+  accountId?: string;
   securityId: string;
-  listType: 'WATCHLIST' | 'RECOMMENDED';
+  listType: ServerListType;
   targetBuyPrice?: string | null;
   priority?: number;
   memo?: string | null;
 }
 
-export const createWatchlistItem = (body: WatchlistInput) => apiRequest<SecurityDto>('/watchlist-items', { method: 'POST', body: JSON.stringify(body) });
-export const updateWatchlistItem = (watchlistItemId: string, body: Partial<Omit<WatchlistInput, 'securityId'>>) => apiRequest<SecurityDto>(`/watchlist-items/${encodeURIComponent(watchlistItemId)}`, { method: 'PATCH', body: JSON.stringify(body) });
-export const deleteWatchlistItem = (watchlistItemId: string) => apiRequest<void>(`/watchlist-items/${encodeURIComponent(watchlistItemId)}`, { method: 'DELETE' });
+export const createWatchlistItem = async (body: WatchlistInput) => apiRequest<SecurityDto>('/watchlist-items', { method: 'POST', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
+export const updateWatchlistItem = async (watchlistItemId: string, body: Partial<Omit<WatchlistInput, 'securityId'>>) => apiRequest<SecurityDto>(`/watchlist-items/${encodeURIComponent(watchlistItemId)}`, { method: 'PATCH', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
+export const deleteWatchlistItem = async (watchlistItemId: string, accountId?: string) => apiRequest<void>(`/watchlist-items/${encodeURIComponent(watchlistItemId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}`, { method: 'DELETE' });
 
 export interface BuyTradeInput {
+  requestId?: string;
   accountId: string;
   securityId: string;
   boughtAt: string;
@@ -200,6 +209,8 @@ export interface BuyTradeInput {
   memo: string | null;
 }
 export interface SellTradeInput {
+  accountId?: string;
+  requestId?: string;
   buyTradeId: string;
   soldAt: string;
   quantity: string;
@@ -209,7 +220,7 @@ export interface SellTradeInput {
 }
 export interface TradeResult { id: string; cashTransactionId: string; amount: string; feeTaxAmount: string; balanceAfter: string; remainingQuantity?: string; realizedProfitLoss?: string }
 export const createBuyTrade = (body: BuyTradeInput) => apiRequest<TradeResult>('/buy-trades', { method: 'POST', body: JSON.stringify(body) });
-export const createSellTrade = (body: SellTradeInput) => apiRequest<TradeResult>('/sell-trades', { method: 'POST', body: JSON.stringify(body) });
+export const createSellTrade = async (body: SellTradeInput) => apiRequest<TradeResult>('/sell-trades', { method: 'POST', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
 export interface TradeDetailDto {
   id: string; type: 'BUY' | 'SELL';
   account: { id: string; name: string };
@@ -221,11 +232,11 @@ export interface TradeDetailDto {
   sellTrades?: { id: string; soldAt: string; quantity: string }[];
 }
 const tradePath = (type: 'buy' | 'sell', tradeId: string) => `/${type}-trades/${encodeURIComponent(tradeId)}`;
-export const getTradeDetail = (type: 'buy' | 'sell', tradeId: string) => apiRequest<TradeDetailDto>(tradePath(type, tradeId));
-export const updateTrade = (type: 'buy' | 'sell', tradeId: string, body: { quantity: string; unitPrice: string; memo: string | null; boughtAt?: string; soldAt?: string }) =>
-  apiRequest<{ id: string; remainingQuantity: string; cashBalanceAdjusted: false }>(tradePath(type, tradeId), { method: 'PATCH', body: JSON.stringify(body) });
-export const deleteTrade = (type: 'buy' | 'sell', tradeId: string, cascadeSells = false) =>
-  apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}${cascadeSells ? '?cascadeSells=true' : ''}`, { method: 'DELETE' });
+export const getTradeDetail = async (type: 'buy' | 'sell', tradeId: string, accountId?: string) => apiRequest<TradeDetailDto>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}`);
+export const updateTrade = async (type: 'buy' | 'sell', tradeId: string, body: { quantity: string; unitPrice: string; memo: string | null; boughtAt?: string; soldAt?: string }, accountId?: string) =>
+  apiRequest<{ id: string; remainingQuantity: string; cashBalanceAdjusted: false }>(tradePath(type, tradeId), { method: 'PATCH', body: JSON.stringify({ ...body, accountId: accountId ?? await currentAccountId() }) });
+export const deleteTrade = async (type: 'buy' | 'sell', tradeId: string, cascadeSells = false, accountId?: string) =>
+  apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}${cascadeSells ? '&cascadeSells=true' : ''}`, { method: 'DELETE' });
 export const createCashTransaction = (body: { accountId: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; transactionDate: string; amount: string; memo: string | null }) => apiRequest<{ id: string; balanceAfter: string }>('/cash-transactions', { method: 'POST', body: JSON.stringify(body) });
 export const createDividend = (body: { accountId: string; securityId: string; receivedDate: string; grossAmount: string; netAmount: string; memo: string | null }) => apiRequest<{ id: string; cashTransactionId: string; balanceAfter: string }>('/dividends', { method: 'POST', body: JSON.stringify(body) });
 export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string }) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -292,3 +303,7 @@ export const getBuyLots = (accountId: string, securityId?: string, remainingOnly
   return apiRequest<BuyLotDto[]>(`/accounts/${encodeURIComponent(accountId)}/buy-lots?${params}`);
 };
 
+
+async function scopedSecurityCreate(body: { symbol: string; name: string; marketType: MarketType; listType: ServerListType; accountId?: string }) {
+  return apiRequest<SecurityDto>('/securities', { method: 'POST', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
+}

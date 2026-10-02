@@ -27,6 +27,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     valuationW: fair !== undefined && currentPrice ? fair / currentPrice : undefined,
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
+    hasTradeHistory: stock.hasTradeHistory,
     priceAvailable: currentPrice !== undefined,
     priceChangeAvailable: currentPrice !== undefined && decimal(stock.previousClosePrice) !== undefined,
   };
@@ -49,7 +50,7 @@ export function mapHolding(holding: HoldingDto): StockItem {
 
 export async function fetchLiveStocks(listType?: StockListType, accountId?: string): Promise<StockItem[]> {
   const selected = accountId ?? await currentAccountId();
-  const [catalog, holdings, trades] = await Promise.all([listSecurities(), getAccountHoldings(selected), getTrades(selected)]);
+  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), getTrades(selected)]);
   const all = deriveAccountStocks(catalog.map(mapSecurity), holdings.map(mapHolding), trades.data);
   return listType ? all.filter(stock => stock.listType === listType) : all;
 }

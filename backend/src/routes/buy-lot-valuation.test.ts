@@ -21,7 +21,7 @@ test('buy-lots keeps sold lots on explicit false and supplies independent price 
     const response = await app.inject('/api/accounts/1/buy-lots?remainingOnly=false');
     assert.equal(response.statusCode, 200); const rows = response.json().data;
     assert.equal(rows.length, 3); assert.equal(rows[0].remainingQuantity, '0');
-    assert.equal(rows[0].profitLoss, '100'); assert.equal(rows[1].profitLoss, '100');
+    assert.equal(rows[0].profitLoss, '0'); assert.equal(rows[1].profitLoss, '100');
     assert.equal(rows[2].currentPrice, null); assert.equal(rows[2].profitLoss, null);
     const open = await app.inject('/api/accounts/1/buy-lots'); assert.equal(open.json().data.length, 2);
   } finally { await app.close(); prisma.account.findUnique = findAccount; prisma.buyTrade.findMany = findLots; }

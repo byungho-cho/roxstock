@@ -32,7 +32,7 @@ const databasePrices = async (symbols?: Set<string>): Promise<RealtimePriceDto[]
   const securities = await prisma.security.findMany({
     where: {
       isActive: true,
-      ...(symbols ? { symbol: { in: [...symbols] } } : { watchlistItem: { isNot: null } }),
+      ...(symbols ? { symbol: { in: [...symbols] } } : { OR: [{ accountWatchlistItems: { some: { account: { isActive: true } } } }, { buyTrades: { some: { account: { isActive: true } } } }] }),
     },
     select: { id: true, symbol: true, name: true, marketPrice: true },
     take: 100,
@@ -116,3 +116,4 @@ export async function internalPriceRoutes(app: FastifyInstance) {
     return { data: { accepted: accepted.length } };
   });
 }
+

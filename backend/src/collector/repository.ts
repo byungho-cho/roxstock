@@ -85,13 +85,20 @@ export class PrismaCollectorRepository implements CollectorRepository {
   }
 
   async listRealtimeSecurities(limit: number): Promise<SecurityTarget[]> {
-    const items = await this.prisma.watchlistItem.findMany({
-      where: { security: { isActive: true } },
-      select: { security: { select: { id: true, symbol: true, name: true } } },
-      orderBy: [{ priority: 'desc' }, { id: 'asc' }],
-      take: limit,
-    });
-    return items.map((item) => item.security);
+    return this.prisma.$queryRaw<SecurityTarget[]>`
+      SELECT s.id, s.symbol, s.name FROM securities s
+      JOIN (
+        SELECT security_id, MAX(priority) AS priority FROM (
+          SELECT w.security_id, w.priority FROM account_watchlist_items w
+          JOIN accounts a ON a.id=w.account_id AND a.is_active=TRUE
+          UNION ALL
+          SELECT b.security_id, 0 AS priority FROM buy_trades b
+          JOIN accounts a ON a.id=b.account_id AND a.is_active=TRUE
+          WHERE b.quantity > COALESCE((SELECT SUM(t.quantity) FROM sell_trades t WHERE t.buy_trade_id=b.id), 0)
+        ) targets GROUP BY security_id
+      ) selected ON selected.security_id=s.id
+      WHERE s.is_active=TRUE ORDER BY selected.priority DESC, s.id ASC LIMIT ${limit}
+    `;
   }
 
   async upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void> {
@@ -193,3 +200,4 @@ export class PrismaCollectorRepository implements CollectorRepository {
     });
   }
 }
+
