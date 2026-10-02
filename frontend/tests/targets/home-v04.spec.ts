@@ -70,9 +70,10 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
 
 test('home plus opens a normal holding-add page and back restores body scroll',async({page})=>{
  await homeFixture(page,8);await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
- await page.locator('main').evaluate(n=>n.scrollTop=180);await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(180);
+ const savedTop=await page.locator('main').evaluate(n=>{const top=Math.min(180,n.scrollHeight-n.clientHeight);n.scrollTop=top;return top;});
+ await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(savedTop);
  await page.getByRole('button',{name:'종목 추가',exact:true}).click();await expect(page).toHaveURL(/stocks\/add\?type=holding&from=home/);
  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'종목추가(보유종목)'})).toBeVisible();
  await page.getByRole('button',{name:'뒤로가기'}).click();await expect(page).toHaveURL('/');
- await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(180);
+ await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(savedTop);
 });
