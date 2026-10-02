@@ -16,15 +16,6 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-      - name: Fetch confirmed Figma icons for visual comparison
-        run: |
-          python - <<'PY'
-          import json, urllib.request, pathlib
-          for name, asset in zip(["stocks","journal","home","assets","more"],json.loads(pathlib.Path("frontend/design-v04-assets.json").read_text())):
-            data=urllib.request.urlopen(asset["url"],timeout=30).read()
-            assert len(data)==asset["sizeBytes"] and b"<svg" in data
-            pathlib.Path("frontend/public/home-v04/"+name+".svg").write_bytes(data)
-          PY
       - run: npm ci
       - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts
       - run: npx playwright install --with-deps chromium
