@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
-import { calculateRemainingQuantity } from '../domain/trade.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
@@ -167,9 +166,6 @@ export async function accountRoutes(app: FastifyInstance) {
       const result = await prisma.$transaction(async (tx) => {
         const account = await tx.account.findUnique({ where: { id: accountId }, select: { id: true, isActive: true } });
         if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
-        const affectedSecurities = await tx.buyTrade.findMany({
-          where: { accountId }, distinct: ['securityId'], select: { securityId: true },
-        });
         const compoundGoals = await tx.compoundGrowthGoal.deleteMany({ where: { plan: { accountId } } });
         const compoundPlans = await tx.compoundGrowthPlan.deleteMany({ where: { accountId } });
         const positionSnapshots = await tx.dailyPositionSnapshot.deleteMany({ where: { accountId } });
@@ -180,18 +176,6 @@ export async function accountRoutes(app: FastifyInstance) {
         const cashTransactions = await tx.cashTransaction.deleteMany({ where: { accountId } });
         await tx.account.update({ where: { id: accountId }, data: { cashBalance: new Prisma.Decimal(0) } });
 
-        for (const { securityId } of affectedSecurities) {
-          const lots = await tx.buyTrade.findMany({
-            where: { securityId }, select: { quantity: true, sellTrades: { select: { quantity: true } } },
-          });
-          const remaining = lots.reduce(
-            (sum, lot) => sum.plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map((sell) => sell.quantity))),
-            new Prisma.Decimal(0),
-          );
-          if (remaining.isZero()) {
-            await tx.watchlistItem.updateMany({ where: { securityId, listType: 'HOLDING' }, data: { listType: 'WATCHLIST' } });
-          }
-        }
         return {
           compoundGoals: compoundGoals.count, compoundPlans: compoundPlans.count,
           positionSnapshots: positionSnapshots.count, accountSnapshots: accountSnapshots.count,
@@ -232,3 +216,4 @@ export async function accountRoutes(app: FastifyInstance) {
     });
   });
 }
+

@@ -350,14 +350,16 @@ export class PrismaDartRepository {
   async listPhase2Securities(phase: 'PRIORITY' | 'UNIVERSE', limit: number, now = new Date()): Promise<DartSecurityRecord[]> {
     const today = toDatabaseDate(getSeoulClock(now).dateKey);
     let priorityIds: bigint[] = [];
+    const priorities = new Map<bigint, number>();
     if (phase === 'PRIORITY') {
       const openHoldings = await this.prisma.$queryRaw<Array<{ security_id: bigint }>>`
         SELECT DISTINCT bt.security_id FROM buy_trades bt
         JOIN accounts a ON a.id=bt.account_id AND a.is_active=TRUE
         WHERE bt.quantity > COALESCE((SELECT SUM(st.quantity) FROM sell_trades st WHERE st.buy_trade_id=bt.id), 0)
       `;
-      const listed = await this.prisma.security.findMany({ where: { isActive: true, securityType: 'STOCK', watchlistItem: { is: { listType: { in: ['WATCHLIST', 'RECOMMENDED'] } } } }, select: { id: true } });
-      priorityIds = [...new Set([...openHoldings.map((item) => item.security_id), ...listed.map((item) => item.id)])];
+      const listed = await this.prisma.accountWatchlistItem.findMany({ where: { account: { isActive: true }, security: { isActive: true, securityType: 'STOCK' }, listType: { in: ['WATCHLIST', 'RECOMMENDED'] } }, select: { securityId: true, priority: true } });
+      for (const item of listed) priorities.set(item.securityId, Math.max(priorities.get(item.securityId) ?? 0, item.priority));
+      priorityIds = [...new Set([...openHoldings.map((item) => item.security_id), ...listed.map((item) => item.securityId)])];
       if (!priorityIds.length) return [];
     }
     const filterTime = phase === 'PRIORITY'
@@ -369,10 +371,11 @@ export class PrismaDartRepository {
         ...(phase === 'UNIVERSE' ? { dartDailyCompanyChecks: { none: { usageDate: today } } } : {}),
         dartSecurityState: { is: filterTime } },
       select: { id: true, symbol: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
-      orderBy: phase === 'PRIORITY' ? [{ watchlistItem: { priority: 'desc' } }, { id: 'asc' }] : [{ id: 'asc' }],
-      take: limit,
+      orderBy: [{ id: 'asc' }],
+      ...(phase === 'UNIVERSE' ? { take: limit } : {}),
     });
-    return items.map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
+    if (phase === 'PRIORITY') items.sort((a, b) => (priorities.get(b.id) ?? 0) - (priorities.get(a.id) ?? 0) || (a.id < b.id ? -1 : 1));
+    return items.slice(0, limit).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
   }
 
   async updateStateError(error: string | null): Promise<void> {

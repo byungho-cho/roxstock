@@ -1,0 +1,30 @@
+name: Stock Function Check
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, .github/workflows/stock-function-check.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts --project=cover-370x465 --project=tablet-725x396
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: stock-function-failures
+          path: frontend/test-results/targets/
+          retention-days: 3

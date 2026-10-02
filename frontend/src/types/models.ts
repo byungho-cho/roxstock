@@ -16,6 +16,7 @@ export interface CashEntry {
 export interface StockItem {
   id: string;
   watchlistItemId?: string;
+  hasTradeHistory?: boolean;
   priceAvailable?: boolean;
   priceChangeAvailable?: boolean;
   symbol: string;

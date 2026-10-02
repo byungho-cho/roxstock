@@ -25,13 +25,13 @@ export function TabletStockMasterDetail({ stocks, stock, favoriteIds, onSelect, 
   const holding = stock.listType === 'holding';
   const { data: lots, isPending: lotsPending, isError: lotsError, refetch: reloadLots } = useBuyLots(stock.id);
   const trades = useQuery({ queryKey: ['stockTrades', accountId, stock.id], enabled: !!accountId, queryFn: () => getTrades(accountId ?? '', { securityId: stock.id }) });
-  const analysis = useQuery({ queryKey: ['securityAnalysis', stock.id], queryFn: () => getSecurityAnalysis(stock.id) });
+  const analysis = useQuery({ queryKey: ['securityAnalysis', stock.id, accountId], queryFn: () => getSecurityAnalysis(stock.id,undefined,accountId) });
   useEffect(() => {
     if (!accountId) return;
     const index = stocks.findIndex((item) => item.id === stock.id);
     for (const neighbor of [stocks[index - 1], stocks[index + 1]]) {
       if (!neighbor) continue;
-      void queryClient.prefetchQuery({ queryKey: ['securityAnalysis', neighbor.id], queryFn: () => getSecurityAnalysis(neighbor.id), staleTime: 60_000 });
+      void queryClient.prefetchQuery({ queryKey: ['securityAnalysis', neighbor.id, accountId], queryFn: () => getSecurityAnalysis(neighbor.id,undefined,accountId), staleTime: 60_000 });
       if (neighbor.listType === 'holding') {
         void queryClient.prefetchQuery({ queryKey: ['buyLots', neighbor.id, 'api', accountId], queryFn: () => fetchLiveBuyLots(neighbor.id, accountId), staleTime: 60_000 });
         void queryClient.prefetchQuery({ queryKey: ['stockTrades', accountId, neighbor.id], queryFn: () => getTrades(accountId, { securityId: neighbor.id }), staleTime: 60_000 });
@@ -78,3 +78,4 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Line({ label, value }: { label: string; value: string }) {
   return <Stack direction="row" sx={{ py: 0.5, justifyContent: 'space-between', gap: 1, borderBottom: `1px solid ${colors.border}` }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{label}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right' }}>{value}</Typography></Stack>;
 }
+
