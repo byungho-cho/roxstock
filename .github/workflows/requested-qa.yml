@@ -18,6 +18,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck:frontend && npm run build:frontend
+      - run: npm run prisma:generate
       - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts backend/src/domain/trade.test.ts backend/src/domain/lot-valuation.test.ts
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
