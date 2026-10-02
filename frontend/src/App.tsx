@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import {Box,Dialog,DialogContent,DialogTitle,IconButton} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
 import { TargetArrivalPage } from './pages/dashboard/TargetArrivalCard';
@@ -24,7 +25,7 @@ import { SettingsPage } from './pages/more/SettingsPage';
 import { CollectionMonitoringPage } from './pages/more/CollectionMonitoringPage';
 
 export function App() {
-  const location=useLocation(),navigate=useNavigate();
+  const location=useLocation(),navigate=useNavigate(),modalContent=useRef<HTMLDivElement>(null);
   const background=(location.state as {backgroundLocation?:Location}|null)?.backgroundLocation;
   const modal=!!background&&(location.pathname==='/stocks/add'||location.pathname==='/trade');
   const params=new URLSearchParams(location.search),title=location.pathname==='/stocks/add'?'종목 추가':`${params.get('type')==='sell'?'매도':'매수'} ${params.has('edit')?'수정':'등록'}`;
@@ -52,7 +53,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
-    {modal&&<Dialog open onClose={()=>navigate(-1)} slotProps={{paper:{sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:location.pathname==='/trade'?386:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle sx={{height:44,p:'8px 16px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={()=>navigate(-1)} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></DialogTitle><DialogContent data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></DialogContent></Dialog>}
+    {modal&&<Dialog open onClose={()=>navigate(-1)} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}},paper:{sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:location.pathname==='/trade'?386:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle sx={{height:44,p:'8px 16px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={()=>navigate(-1)} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></DialogContent></Dialog>}
   </>);
 }
 

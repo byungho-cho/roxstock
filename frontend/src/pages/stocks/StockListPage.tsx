@@ -1,7 +1,8 @@
 import {AddRounded,CloseRounded,FavoriteBorderRounded,FavoriteRounded} from '@mui/icons-material';
 import {Box,Button,Card,Dialog,IconButton,InputBase,MenuItem,Select,Skeleton,Stack,Tab,Tabs,Typography,useMediaQuery} from '@mui/material';
-import {useMemo,useRef,useState,type Ref,type ReactNode} from 'react';
+import {useEffect,useMemo,useRef,useState,type Ref,type ReactNode} from 'react';
 import {useLocation,useNavigate,useSearchParams} from 'react-router-dom';
+import {useActiveAccount} from '../../hooks/useActiveAccount';
 import {useStocks} from '../../hooks/useMockData';
 import {useFavoriteStocks} from '../../hooks/useFavoriteStocks';
 import {PageHeader} from '../../components/navigation/Navigation';
@@ -16,6 +17,7 @@ import {dayChange,defaultSort,sortOptions,sortStocks,stockTabs,won,type StockSor
 export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?:string;initialTab?:StockListType}={}) {
  const navigate=useNavigate(),location=useLocation(),tablet=useMediaQuery('(min-width:600px)');const[params,setParams]=useSearchParams();
  const active=stockTabs.find(t=>t.value===params.get('tab'))?.value??initialTab??'holding';
+ const {accountId}=useActiveAccount();const previousAccount=useRef(accountId);
  const {data,isPending,isError,refetch}=useStocks();const {favoriteIds,toggleFavorite}=useFavoriteStocks();
  const [query,setQuery]=useState(''),[sorting,setSorting]=useState<Partial<Record<StockListType,{key:StockSort;descending:boolean}>>>({});
  const [selected,setSelected]=useState<string|null>(initialSelectedId??null),[valueStock,setValueStock]=useState<StockItem|null>(null),[priceStock,setPriceStock]=useState<StockItem|null>(null);const touch=useRef<number|null>(null),right=useRef<HTMLDivElement>(null);
@@ -24,7 +26,8 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const chosen=items.find(s=>s.id===selected),split=tablet&&!!chosen;
  const total=items.filter(s=>(s.quantity??0)>0).reduce((sum,s)=>sum+(s.marketValue??Number.NaN),0);
  const changeTab=(tab:StockListType)=>{setSelected(null);setParams({tab},{replace:true});};
- const select=(s:StockItem)=>{if(tablet){setSelected(s.id);right.current?.scrollTo({top:0});}else navigate(`/stocks/${s.id}${s.listType==='traded'?'?tab=trades':''}`);};
+ useEffect(()=>{if(previousAccount.current&&previousAccount.current!==accountId){setSelected(null);setValueStock(null);setPriceStock(null);}previousAccount.current=accountId;},[accountId]);
+ const select=(s:StockItem)=>{if(s.listType==='watchlist'||s.listType==='recommended'){navigate(`/stocks/${s.id}/value`);return;}if(tablet){setSelected(s.id);right.current?.scrollTo({top:0});}else navigate(`/stocks/${s.id}${s.listType==='traded'?'?tab=trades':''}`);};
  const add=()=>navigate(`/stocks/add?type=${active==='traded'?'watchlist':active}`,{state:{backgroundLocation:location}});
  const toolbar=<StockToolbar query={query} onQuery={setQuery} sort={sort.key} descending={sort.descending} tab={active} onSort={key=>setSorting({...sorting,[active]:{...sort,key}})} onDirection={()=>setSorting({...sorting,[active]:{...sort,descending:!sort.descending}})} compact={tablet&&!split}/>;
  const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>총 {items.length}개</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{isPending?'—':won(total)}</Typography>}</Stack>;

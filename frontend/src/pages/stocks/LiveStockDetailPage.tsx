@@ -31,7 +31,7 @@ export function StockDetailContent({stock,initialTab='holding'}:{stock:StockItem
  const allLots=useQuery({queryKey:['allBuyLots',accountId,stock.id],enabled:!!accountId&&tab==='trades',queryFn:()=>getBuyLots(accountId!,stock.id,false)});
  const deletion=useQuery({queryKey:['tradeDetail',remove?.type,remove?.id],enabled:!!remove,queryFn:()=>getTradeDetail(remove!.type,remove!.id)});
  const holding=stock.listType==='holding',traded=stock.listType==='traded';
- useEffect(()=>{setError('');},[stock.id]);
+ useEffect(()=>{setError('');setRemove(null);setPriceOpen(false);setCategoryOpen(false);setListDeleteOpen(false);},[stock.id,accountId]);
  const refresh=()=>Promise.all(['stocks','buyLots','allBuyLots','stockTrades','dashboard','targetArrivals','recentBuys','journalTrades','tradeDetail'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
  const removeTrade=async()=>{if(!remove||lock.current||!deletion.data||deletion.data.account.id!==accountId)return;lock.current=true;setBusy(true);setError('');try{await deleteTrade(remove.type,remove.id,remove.type==='buy'&&!!deletion.data.sellTrades?.length);await refresh();setRemove(null);}catch(e){setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;setBusy(false);}};
  const saveCategory=async()=>{if(!stock.watchlistItemId||lock.current||holding||traded)return;lock.current=true;setBusy(true);try{await updateWatchlistItem(stock.watchlistItemId,{listType:category});await refresh();setCategoryOpen(false);navigate(`/stocks?tab=${category==='WATCHLIST'?'watchlist':'recommended'}`);}catch(e){setError(e instanceof Error?e.message:'분류 변경 실패');}finally{setBusy(false);lock.current=false;}};
