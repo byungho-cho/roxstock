@@ -54,7 +54,7 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   await page.evaluate(()=>document.fonts.ready);expect(await page.evaluate(()=>document.fonts.check('16px RoxHomeInter'))).toBe(true);
   await page.screenshot({path:info.outputPath('home-v04-top.png')});
   for(const [card,name] of [[held,'holdings'],[targets,'targets'],[recent,'recent']] as const){await card.scrollIntoViewIfNeeded();await card.screenshot({path:info.outputPath(`home-v04-${name}.png`)});}
-  await page.locator('main').evaluate(n=>n.scrollTop=n.scrollHeight);await page.screenshot({path:info.outputPath('home-v04-bottom.png')});
+  await page.locator('main').evaluate(n=>n.scrollTop=n.scrollHeight);await page.clock.runFor(300);await page.screenshot({path:info.outputPath('home-v04-bottom.png')});
   const safety=await recent.evaluate(n=>({bottom:n.getBoundingClientRect().bottom,mainBottom:document.querySelector('main')!.getBoundingClientRect().bottom}));expect(safety.mainBottom-safety.bottom).toBeGreaterThanOrEqual(79);
   const before=await recent.getByTestId('home-card-footer').boundingBox();await recent.getByRole('button',{name:'더보기',exact:true}).click();await expect(page).toHaveURL(/journal\?filter=buy/);expect(before).not.toBeNull();
 });
@@ -66,4 +66,13 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   f.unavailable();await page.clock.fastForward(60_000);await expect(card.getByText(/판정 불가 1건/)).toBeVisible();await expect(card.getByText('내용이 없습니다.')).toHaveCount(0);
   f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(card.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
+});
+
+test('home plus opens a normal holding-add page and back restores body scroll',async({page})=>{
+ await homeFixture(page,8);await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
+ await page.locator('main').evaluate(n=>n.scrollTop=180);await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(180);
+ await page.getByRole('button',{name:'종목 추가',exact:true}).click();await expect(page).toHaveURL(/stocks\/add\?type=holding&from=home/);
+ await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'종목추가(보유종목)'})).toBeVisible();
+ await page.getByRole('button',{name:'뒤로가기'}).click();await expect(page).toHaveURL('/');
+ await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(180);
 });
