@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: frontend-production
@@ -90,6 +91,23 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Automatic deployment skipped because deploy secrets are incomplete."
           fi
+
+      - name: Wait for backend deployment when the same commit changes its API
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          changed_paths="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --paginate --jq '.files[].filename')"
+          if ! grep -Eq '^(backend/|database/prisma/)' <<< "$changed_paths"; then exit 0; fi
+          for attempt in {1..150}; do
+            backend_result="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/backend-deploy.yml/runs?head_sha=$GITHUB_SHA&event=push&per_page=10" --jq '.workflow_runs | sort_by(.id) | last | if . == null then "pending" elif .status != "completed" then "pending" else .conclusion end')"
+            if [[ "$backend_result" == success ]]; then exit 0; fi
+            if [[ "$backend_result" != pending ]]; then echo "Backend deployment did not succeed: $backend_result"; exit 1; fi
+            sleep 5
+          done
+          echo "Timed out waiting for the matching backend deployment."
+          exit 1
 
       - name: Configure SSH
         if: steps.config.outputs.enabled == 'true'
