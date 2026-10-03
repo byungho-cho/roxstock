@@ -67,7 +67,7 @@ export function BottomNav() {
   const value = location.pathname === '/trade' ? (location.state?.backgroundLocation?.pathname.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks') : [...tabletItems].sort((a, b) => b.path.length - a.path.length).find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/';
   const isSettings = location.pathname === '/detail/settings';
   const isStocks = location.pathname.startsWith('/stocks');
-  const isV04 = location.pathname === '/' || location.pathname === '/stocks/add';
+  const isV04 = location.pathname === '/' || location.pathname === '/stocks/add' || location.pathname === '/journal';
   const isTabletV04 = isV04 || isStocks || location.pathname === '/detail/assets';
   const isMore = location.pathname === '/more' || location.pathname === '/detail/settings';
   const iconFor = (item: typeof coverItems[number], tabletMore = false) => {
