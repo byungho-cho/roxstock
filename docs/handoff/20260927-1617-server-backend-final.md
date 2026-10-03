@@ -143,3 +143,18 @@ docker exec roxstock-backend npx --no-install prisma migrate status --schema dat
 ## 다음 담당
 
 GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검증이 완료됐다. 이후 backend 관련 변경은 기존 Backend Test Build Deploy workflow와 immutable sha 이미지 배포 절차를 사용한다. 운영 Caddyfile은 여전히 서버의 미추적 설정이므로 배포 시 보존한다.
+
+## 2026-10-03 · 개발 복구 및 검사 단계 인수인계 (KST)
+
+이 절은 위의 2026-09-27 백엔드 기록을 변경하지 않고 프론트 개발 복구 상태를 추가한다.
+
+- 복구 확인: 열린 PR 0, 실행 중인 Actions 0. 로컬은 Git 메타데이터 없는 소스 작업 사본이며 186개 텍스트 파일은 줄바꿈/파일 끝 개행 차이를 제외하면 원격 main과 일치한다. 미반영 제품 소스 없음.
+- 완료된 작업 브랜치: `codex/stocks-v04-refactor-20261003`, 최종 앱 커밋 `2ddd4dfcc33ae158d22fddb8fc960ed50f070009`.
+- PR #77 병합 main: `3c8cbd30eb30c631828a80a2734af0d53d4dd695`.
+- 보존하는 통과 기록: Frontend Check Run `37123554472` (TypeScript/빌드), Stock Function Check `37123554581` (단위 8, 입력/분류 32, 홈 복귀 4), Stocks Update Check `37123554521` (42 통과, 펼침 전용 2건 커버에서 제외).
+- 운영 증거: Frontend Docker Image `37123959184`, 2026-10-03 21:48:54 KST 완료, `newrox/roxstock-frontend:sha-3c8cbd3`, frontend healthy 및 서버 HTTP health 성공.
+- 신규 작업 브랜치: `codex/checkpoint-scoped-checks-20261003`, 시작점 `3c8cbd3`.
+- 이번 범위: 검사 선택·분리·성공 결과 재사용 및 데이터가 충분한 세 분류 복원 검사. 앱/API/DB 변경 없음. 운영 이미지 재배포 불필요; 기존 운영 성공 SHA를 보존한다.
+- 구현 완료 체크포인트: 이 절을 추가한 커밋이 초기 구현 커밋이다. 실제 검사 시작 후 소스 SHA와 실행 ID를 아래에 추가한다.
+- 남은 문제: 관심/거래 목록의 충분한 데이터 스크롤 복원 증거 부족. 새 검사에서 각 분류 30건, 실제 스크롤 범위 >420px를 먼저 검증한다.
+- 다음 실행: PR에서 Stock Scroll Restoration Check 한 번 실행 → 실패 시 로그/측정 자료 확인 → 필요 수정만 수행 → 종료 결과 커밋/푸시 → PR 병합 → 기존 운영 SHA 정상 여부 확인 후 보고. 전체 시각 QA/전체 회귀 미실시.

@@ -6,11 +6,12 @@ on:
       - main
     paths:
       - frontend/**
+      - '!frontend/tests/**'
+      - '!frontend/**/*.md'
       - backend/package.json
       - package.json
       - package-lock.json
       - .dockerignore
-      - .github/workflows/frontend-image.yml
   workflow_dispatch:
 
 permissions:
