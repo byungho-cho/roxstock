@@ -6,6 +6,7 @@ import { BottomNav, HeaderSlotContext, PageHeader } from '../components/navigati
 import { OverlayPageScrollbar } from '../components/navigation/OverlayPageScrollbar';
 import { ViewportMetricsPanel } from '../components/navigation/ViewportMetricsPanel';
 import { colors, pageMetrics } from '../styles/tokens';
+import { usePageScrollRestoration } from '../hooks/navigation/usePageScrollRestoration';
 import { PageLayout } from './PageLayout';
 
 function getHeaderTitle(pathname: string): string {
@@ -17,9 +18,10 @@ function getHeaderTitle(pathname: string): string {
 }
 
 export function AppLayout() {
-  const location = useLocation(); const navigate = useNavigate(); const homeScroll = useRef(0); const previousPath = useRef(location.pathname); const [showScrollTop, setShowScrollTop] = useState(false);
+  const location = useLocation(); const navigate = useNavigate(); const [showScrollTop, setShowScrollTop] = useState(false);
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   const scrollRef = useRef<HTMLElement>(null);
+  usePageScrollRestoration(scrollRef);
   const isTargetPage = location.pathname === '/detail/target-arrivals';
   const isTargetSettings = location.pathname === '/detail/settings' && new URLSearchParams(location.search).get('view') === 'target-arrival';
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
@@ -28,16 +30,10 @@ export function AppLayout() {
   useEffect(() => {
     const content = scrollRef.current;
     if (!content) return;
-    const handle = () => { if (location.pathname === '/') homeScroll.current = content.scrollTop; setShowScrollTop(content.scrollTop > content.clientHeight * 0.4); };
+    const handle = () => { setShowScrollTop(content.scrollTop > content.clientHeight * 0.4); };
     content.addEventListener('scroll', handle, { passive: true });
     setShowScrollTop(content.scrollTop > content.clientHeight * 0.4);
     return () => content.removeEventListener('scroll', handle);
-  }, [location.pathname]);
-  useEffect(() => {
-    const content = scrollRef.current;
-    if (content) content.scrollTop = location.pathname === '/' && previousPath.current === '/stocks/add' ? homeScroll.current : 0;
-    previousPath.current = location.pathname;
-    setShowScrollTop(false);
   }, [location.pathname]);
   const isMoreMenu = location.pathname === '/more';
   const isMoreSettings = location.pathname === '/detail/settings'; const isCollectionMonitoring = location.pathname.startsWith('/detail/collection-monitoring');

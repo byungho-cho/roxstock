@@ -1,3 +1,4 @@
+import {usePageMemory,useReturnNavigation} from '../../hooks/navigation/usePageMemory';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { FinancialRefreshControls } from './FinancialRefreshControls';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
@@ -19,10 +20,10 @@ const metricValue = (item: FinancialStatementDto, key: keyof FinancialStatementD
 
 export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' }) {
   const {accountId}=useActiveAccount();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); const back=useReturnNavigation();
   const { stockId = '' } = useParams();
-  const [annual, setAnnual] = useState(true);
-  const [selection, setSelection] = useState<{ year: number; period: string } | null>(null);
+  const [annual, setAnnual] = usePageMemory('insightAnnual',true);
+  const [selection, setSelection] = usePageMemory<{ year: number; period: string } | null>('insightSelection',null);
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ['securityAnalysis', stockId, accountId, selection?.year ?? null], queryFn: () => getSecurityAnalysis(stockId, selection?.year,accountId), placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === stockId && previousQuery?.queryKey[2] === accountId ? previous : undefined });
   const price = number(data?.security.currentPrice);
   const prior = number(data?.security.previousClosePrice);
@@ -41,7 +42,7 @@ export function LiveStockInsightPage({ mode }: { mode: 'value' | 'financials' })
     { title: '현금흐름', entries: [['영업현금흐름', 'operatingCashFlow'], ['설비투자', 'capitalExpenditure']] },
   ];
   return <Stack spacing={1.5} sx={{ pb: 2 }}>
-    <PageHeader embedded showAdd={false} title={data?.security.name ?? (mode === 'value' ? '종목 가치분석' : '종목 재무지표')} subtitle={data?.security.symbol} onBack={() => navigate(-1)} />
+    <PageHeader embedded showBackTablet showAdd={false} title={data?.security.name ?? (mode === 'value' ? '종목 가치분석' : '종목 재무지표')} subtitle={data?.security.symbol} onBack={back} />
     {isPending ? <DetailCard title={mode === 'value' ? '현재 가치 요약' : '전체 재무지표'}><Stack role="status" aria-label="데이터를 불러오는 중"><Skeleton /><Skeleton /><Skeleton /></Stack></DetailCard> : isError && !data ? <DetailCard title="조회 결과"><Button role="alert" onClick={() => void refetch()}>조회 실패 · 다시 시도</Button></DetailCard> : mode === 'value' ? <>
       <DetailCard title="현재 가치 요약"><DetailRow label="현재가" value={money(price)} /><DetailRow label="전일대비" value={price !== null && prior ? money(price - prior) : '—'} /><DetailRow label="W (적정가 ÷ 현재가)" value={w === null ? '—' : w.toFixed(2)} /><DetailRow label="상승여력 (W 0.8 기준)" value={rate(upside)} /></DetailCard>
       <DetailCard title="적정주가 · RIM">{[0.7, 0.8, 0.9, 1].map((weight) => <DetailRow key={weight} label={`W ${weight.toFixed(1)}`} value={money(fair(weight))} />)}</DetailCard>
