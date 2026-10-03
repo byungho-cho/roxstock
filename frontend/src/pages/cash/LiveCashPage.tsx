@@ -1,3 +1,4 @@
+import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded, EditRounded } from '@mui/icons-material';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, CircularProgress, IconButton, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,10 +33,10 @@ export function LiveCashPage() {
   const queryClient = useQueryClient();
   const { accountId, accounts } = useActiveAccount();
   const dividendStocks = useStocks();
-  const [mode, setMode] = useState<'month' | 'year'>('month');
-  const [month, setMonth] = useState(initialMonth);
-  const [year, setYear] = useState(Number(initialMonth.slice(0, 4)));
-  const [olderMonths, setOlderMonths] = useState(0);
+  const [mode, setMode] = usePageMemory<'month' | 'year'>('cashMode','month');
+  const [month, setMonth] = usePageMemory('cashMonth',initialMonth);
+  const [year, setYear] = usePageMemory('cashYear',Number(initialMonth.slice(0, 4)));
+  const [olderMonths, setOlderMonths] = usePageMemory('cashRange',0);
   const [periodPicker, setPeriodPicker] = useState(false);
   const [chosenYear, setChosenYear] = useState(year);
   const [chosenMonth, setChosenMonth] = useState(Number(initialMonth.slice(5)));
@@ -165,7 +166,7 @@ export function LiveCashPage() {
   const dividend = Number(period?.dividend ?? 0);
   const net = Number(period?.netChange ?? 0);
   const entries = history.data?.data ?? [];
-  return <Box>
+  return <Box data-list-condition={JSON.stringify([mode,month,year,olderMonths])} data-restoration-ready={!history.isPending||history.isError}>
     <Snackbar open={balance.isError && !!balance.data} message="최신 예수금 조회에 실패했습니다. 이전 값을 표시합니다." />
     <PageHeader title="예수금" backPath="/" variant="home" addLabel="예수금 등록" onAdd={openCreate} embedded />
     {accounts.isError ? <Button role="alert" onClick={() => void accounts.refetch()}>계좌 조회 실패 · 다시 시도</Button> :
@@ -194,8 +195,8 @@ export function LiveCashPage() {
         <AppCard sx={{ borderRadius: '8px', p: { xs: '12px 15px', sm: '10px 17px' }, minWidth: 0, height: { sm: '100%' }, minHeight: { sm: 327 }, display: 'flex', flexDirection: 'column' }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}><Typography sx={{ fontSize: 16, fontWeight: 700 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>최근 {entries.length}개</Typography></Stack>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, mt: 1, color: colors.textMuted, fontSize: 10 }}><Box sx={{ display: { xs: 'none', sm: 'block' } }}>날짜</Box><Box>구분</Box><Box sx={{ display: { xs: 'block', sm: 'none' } }}>날짜</Box><Box sx={{ textAlign: 'right' }}>금액</Box><Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>잔액</Box></Box>
-          <Box sx={{ minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', flex: 1 }}>
-            {entries.map((entry) => <Box key={entry.id} component={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? 'div' : 'button'} type={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? undefined : 'button'} onClick={() => openEdit(entry)} aria-label={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? undefined : `${labels[entry.transactionType]} 내역 수정`} sx={{ width: '100%', color: 'inherit', bgcolor: 'transparent', border: 0, p: 0, textAlign: 'left', cursor: entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? 'default' : 'pointer', display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, alignItems: 'center', height: { xs: 30, sm: 32 }, borderBottom: { sm: `1px solid ${colors.border}` } }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, color: amountColor(Number(entry.signedAmount)) }}>{labels[entry.transactionType]}</Typography><Typography sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: amountColor(Number(entry.signedAmount)) }}>{signed(Number(entry.signedAmount))}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, textAlign: 'right' }}>{formatWon(Number(entry.balanceAfter))}</Typography></Box>)}
+          <Box data-scroll-region="cash-history" data-list-condition={JSON.stringify([mode,month,year,olderMonths])} data-restoration-ready={!history.isPending||history.isError} sx={{ minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', flex: 1 }}>
+            {entries.map((entry) => <Box data-scroll-item={entry.id} key={entry.id} component={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? 'div' : 'button'} type={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? undefined : 'button'} onClick={() => openEdit(entry)} aria-label={entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? undefined : `${labels[entry.transactionType]} 내역 수정`} sx={{ width: '100%', color: 'inherit', bgcolor: 'transparent', border: 0, p: 0, textAlign: 'left', cursor: entry.transactionType === 'BUY' || entry.transactionType === 'SELL' ? 'default' : 'pointer', display: 'grid', gridTemplateColumns: { xs: '1fr 64px 1.4fr', sm: '58px 44px 1fr 1fr' }, gap: 1, alignItems: 'center', height: { xs: 30, sm: 32 }, borderBottom: { sm: `1px solid ${colors.border}` } }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, color: amountColor(Number(entry.signedAmount)) }}>{labels[entry.transactionType]}</Typography><Typography sx={{ display: { xs: 'block', sm: 'none' }, fontSize: 10, color: colors.textMuted }}>{shortDate(entry.transactionDate)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: amountColor(Number(entry.signedAmount)) }}>{signed(Number(entry.signedAmount))}</Typography><Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 11, textAlign: 'right' }}>{formatWon(Number(entry.balanceAfter))}</Typography></Box>)}
             {history.isPending && <Stack spacing={1} role="status" aria-label="예수금 내역을 불러오는 중"><Skeleton variant="text" /><Skeleton variant="text" /><Skeleton variant="text" /></Stack>}
             {history.isError && !history.data && <Button role="alert" onClick={() => void history.refetch()}>내역 조회 실패 · 다시 시도</Button>}
             {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ mt: 2, color: colors.textMuted, fontSize: 12 }}>예수금 내역이 없습니다.</Typography>}
@@ -226,3 +227,4 @@ export function LiveCashPage() {
     <Dialog open={confirmDelete} onClose={() => !saving && setConfirmDelete(false)}><DialogTitle>예수금 내역 삭제</DialogTitle><DialogContent><Typography>이 내역을 삭제하시겠습니까? 현재 계좌 잔액은 자동으로 변경되지 않습니다.</Typography></DialogContent><DialogActions><Button disabled={saving} onClick={() => setConfirmDelete(false)}>취소</Button><Button color="error" disabled={saving} onClick={() => void remove()}>삭제</Button></DialogActions></Dialog>
   </Box>;
 }
+

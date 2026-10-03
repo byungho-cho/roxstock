@@ -24,6 +24,9 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         shell: bash
         run: |
+          if [ -n "$BASE_SHA" ] && git diff --name-only "$BASE_SHA" HEAD | grep -q '^frontend/tests/targets/user-test-fixes-v04.spec.ts$'; then
+            echo "user_fixes=true" >> "$GITHUB_OUTPUT"
+          fi
           if [ -n "$BASE_SHA" ] && git diff --name-only "$BASE_SHA" HEAD | grep -q '^frontend/src/pages/assets/AssetOverviewPage.tsx$'; then
             echo "assets=true" >> "$GITHUB_OUTPUT"
           fi
@@ -34,24 +37,28 @@ jobs:
       - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - if: steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
+      - if: steps.scope.outputs.user_fixes != 'true' && steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
         run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts home-v04.spec.ts
         working-directory: frontend
       - name: Home, assets, overlay scrollbar and connected tablet menus
-        if: steps.scope.outputs.assets == 'true'
+        if: steps.scope.outputs.user_fixes != 'true' && steps.scope.outputs.assets == 'true'
         run: npx playwright test --config=playwright.targets.config.ts assets-v03.spec.ts home-v04.spec.ts --grep "four-size layout|v0.4 example|v0.4 navigation|overlay scrollbar"
         working-directory: frontend
       - name: Connected Lot sell and trade edit save/failure flows
-        if: steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
+        if: steps.scope.outputs.user_fixes != 'true' && steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
         run: npx playwright test --config=playwright.targets.config.ts stock-inputs-v04.spec.ts --project=cover-370x465 --project=tablet-725x396 --output=test-results/stock-trade
         working-directory: frontend
       - name: Input, addition and Lot registration checks at four viewport sizes
-        if: steps.scope.outputs.inputs == 'true'
+        if: steps.scope.outputs.user_fixes != 'true' && steps.scope.outputs.inputs == 'true'
         run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts stock-inputs-v04.spec.ts --workers=2
         working-directory: frontend
       - name: Home entry and return preserve the source scroll position
-        if: steps.scope.outputs.inputs == 'true'
+        if: steps.scope.outputs.user_fixes != 'true' && steps.scope.outputs.inputs == 'true'
         run: npx playwright test --config=playwright.targets.config.ts home-v04.spec.ts --grep "home plus" --output=test-results/home-entry
+        working-directory: frontend
+      - name: v0.4 user-test fixes (click, favorites, restoration and automatic search)
+        if: steps.scope.outputs.user_fixes == 'true'
+        run: npx playwright test --config=playwright.targets.config.ts user-test-fixes-v04.spec.ts --workers=2
         working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()

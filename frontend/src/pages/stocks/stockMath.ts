@@ -20,9 +20,9 @@ export function averageAfter(quantity:number,average:number,buyQuantity:number,b
   const newRemaining=buyQuantity-(replace?.sold??0), total=quantity-(replace?.remaining??0)+newRemaining;
   return total>0 ? (quantity*average-(replace?(replace.remaining*replace.price):0)+newRemaining*buyPrice)/total : Number.NaN;
 }
-export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean) {
+export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean,favorites:ReadonlySet<string>=new Set()) {
   const value=(s:StockItem):string|number|undefined=> key==='purchaseAmount'?s.purchaseAmount??(s.quantity!==undefined&&s.averagePrice!==undefined?s.quantity*s.averagePrice:undefined):s[key];
-  return [...stocks].sort((a,b)=>{const av=value(a),bv=value(b),missing=(v:typeof av)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv));const delta=typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko');});
+  return [...stocks].sort((a,b)=>{const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;const av=value(a),bv=value(b),missing=(v:typeof av)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv));const delta=typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko');});
 }
 export function deriveAccountStocks(catalog:StockItem[],holdings:StockItem[],trades:TradeDto[]) {
   const result=new Map(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s}]));
