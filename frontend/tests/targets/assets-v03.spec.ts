@@ -34,7 +34,7 @@ test('1001: four-size layout, distinct profit, donut units, chart toggle and hol
     const rect=(node:Element)=>node.getBoundingClientRect().toJSON();
     return {padding:[getComputedStyle(main).paddingTop,getComputedStyle(main).paddingLeft,getComputedStyle(main).paddingRight,getComputedStyle(main).paddingBottom],overflow:document.documentElement.scrollWidth>innerWidth,header:rect(document.querySelector('header')!),title:rect(document.querySelector('h1')!),nav:rect([...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!),main:rect(main),grid:rect(grid),left:rect(left),right:rect(right),internalScrolls:[...main.querySelectorAll('*')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY)).length};
   });
-  expect(layout.padding).toEqual(['0px','16px','16px','80px']);expect(layout.overflow).toBe(false);expect(layout.internalScrolls).toBe(0);expect(layout.header.height).toBe(44);expect(layout.nav.height).toBe(44);expect(layout.title.x).toBe(52);expect(layout.grid.x).toBe(16);expect(layout.grid.y).toBe(44);expect(layout.right.height).toBe(info.project.name.startsWith('tablet')?564:552);
+  expect(layout.padding).toEqual(['0px','8px','8px','80px']);expect(layout.overflow).toBe(false);expect(layout.internalScrolls).toBe(0);expect(layout.header.height).toBe(44);expect(layout.nav.height).toBe(44);expect(layout.title.x).toBe(52);expect(layout.grid.x).toBe(8);expect(layout.grid.y).toBe(44);expect(layout.right.height).toBe(info.project.name.startsWith('tablet')?564:552);
   await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button')).toHaveCount(info.project.name.startsWith('tablet') ? 9 : 5);
   if(info.project.name.startsWith('tablet')) {
     expect(layout.left.height).toBe(564);expect(layout.right.y).toBe(layout.left.y);expect(layout.right.x-layout.left.right).toBe(8);expect((await pnl.boundingBox())!.height).toBe(174);
@@ -46,14 +46,60 @@ test('1001: four-size layout, distinct profit, donut units, chart toggle and hol
   await page.screenshot({path:info.outputPath('assets-v04-top.png')});
   await composition.scrollIntoViewIfNeeded();
   await composition.screenshot({path:info.outputPath('assets-v04-composition.png')});
-  const legend = await page.getByTestId('asset-legend').evaluate(n=>{const donut=document.querySelector('[data-testid="asset-donut"]')!.getBoundingClientRect();const rows=[...n.children];return {gap:n.getBoundingClientRect().left-(donut.left+142),clipped:rows.flatMap(row=>[...row.children].slice(2).filter(c=>c.scrollWidth>c.clientWidth+1).map(c=>c.textContent)),overlap:rows.some(row=>row.children[1].getBoundingClientRect().right>row.children[2].getBoundingClientRect().left)};});
-  expect(legend.gap).toBeCloseTo(40,0);expect(legend.clipped).toEqual([]);expect(legend.overlap).toBe(false);
+  const legend = await page.getByTestId('asset-legend').evaluate(n=>{const donut=document.querySelector('[data-testid="asset-donut"]')!.getBoundingClientRect();const rows=[...n.children];return {gap:n.getBoundingClientRect().left-(donut.left+donut.width*142/156),clipped:rows.flatMap(row=>[...row.children].slice(2).filter(c=>c.scrollWidth>c.clientWidth+1).map(c=>c.textContent)),overlap:rows.some(row=>row.children[1].getBoundingClientRect().right>row.children[2].getBoundingClientRect().left)};});
+  expect(legend.gap).toBeCloseTo(20,1);expect(legend.clipped).toEqual([]);expect(legend.overlap).toBe(false);
+  expect((await page.getByTestId('asset-donut').boundingBox())!.width).toBeCloseTo(124.8, 1);
+  const alignment = await page.evaluate(() => {
+    const card = document.querySelector('[data-testid="asset-composition-card"]')!;
+    const bar = card.querySelector('[aria-label^="주식 "]')!;
+    const ratio = document.querySelector('[data-testid="asset-legend-row"]')!.lastElementChild!;
+    const performance = document.querySelector('[data-testid="asset-performance-card"]')!;
+    const values = [...performance.children].slice(0, 4).map(row => row.lastElementChild!.getBoundingClientRect().right);
+    const previous = document.querySelector('[data-testid="asset-previous-day"]')!.lastElementChild!;
+    return { barRight: bar.getBoundingClientRect().right, ratioRight: ratio.getBoundingClientRect().right, values, previous: [...previous.children].map(n => n.getBoundingClientRect().right) };
+  });
+  expect(alignment.barRight).toBeCloseTo(alignment.ratioRight, 1);
+  for (const right of [...alignment.values, ...alignment.previous]) expect(right).toBeCloseTo(alignment.values[0], 1);
   const toggle=composition.getByRole('button',{name:'종목별 비중 차트 방식 변경'});await toggle.scrollIntoViewIfNeeded();expect((await toggle.boundingBox())!.height).toBe(22);await expect(toggle).toHaveText('순위형');
   const second=page.getByTestId('asset-weight-fill').nth(1);expect(await second.evaluate(n=>getComputedStyle(n).left)).toBe('0px');await toggle.click();await expect(toggle).toHaveText('누적형');expect(parseFloat(await second.evaluate(n=>getComputedStyle(n).left))).toBeGreaterThan(0);await toggle.click();await expect(toggle).toHaveText('순위형');
   await page.locator('main').evaluate(n=>n.scrollTop=n.scrollHeight);const bottom=await composition.evaluate(n=>({card:n.getBoundingClientRect().bottom,main:document.querySelector('main')!.getBoundingClientRect().bottom}));expect(bottom.main-bottom.card).toBeGreaterThanOrEqual(79);
   await page.clock.runFor(300);await page.screenshot({path:info.outputPath('assets-v04-bottom.png')});
   const clipped=await composition.locator('.MuiTypography-root').evaluateAll(nodes=>nodes.filter(n=>getComputedStyle(n).whiteSpace==='nowrap' && n.scrollWidth>n.clientWidth+1 && !n.classList.contains('MuiTypography-noWrap')).map(n=>n.textContent));expect(clipped).toEqual([]);
   if(info.project.name.startsWith('tablet')) {await page.getByTestId('asset-holdings-card').getByRole('button',{name:'더보기',exact:true}).click();await expect(page).toHaveURL(/stocks\?tab=holding/);}
+});
+
+test('overlay scrollbar: initial display, one-second fade, timer reset, hidden scrolling and no layout shift', async ({page}, info) => {
+  await fixture(page);
+  await page.goto('/detail/assets');
+  await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');
+  // Native scroll events and CSS fades use real browser time.
+  await page.waitForTimeout(50);
+  const scrollbar = page.getByRole('scrollbar', {name:'콘텐츠 스크롤'}), main = page.locator('main');
+  await expect(scrollbar).toHaveCSS('opacity', '1');
+  const geometry = await scrollbar.boundingBox();
+  expect(geometry!.width).toBe(4);expect(geometry!.x + geometry!.width).toBe(info.project.use.viewport!.width);
+  expect(geometry!.y).toBeGreaterThanOrEqual(44);expect(geometry!.y+geometry!.height).toBeLessThanOrEqual(info.project.use.viewport!.height-44);
+  const before = await page.getByTestId('asset-overview').evaluate(n=>({x:n.getBoundingClientRect().x,width:n.getBoundingClientRect().width}));
+  await page.screenshot({path:info.outputPath('scrollbar-initial.png')});
+  await page.waitForTimeout(1250);await expect(scrollbar).toHaveCSS('opacity', '0');
+  await page.screenshot({path:info.outputPath('scrollbar-hidden.png')});
+  expect(await page.getByTestId('asset-overview').evaluate(n=>({x:n.getBoundingClientRect().x,width:n.getBoundingClientRect().width}))).toEqual(before);
+  const firstTop=await main.evaluate(n=>{n.scrollTop=(n.scrollHeight-n.clientHeight)*0.25;return Math.round(n.scrollTop);});
+  await expect(scrollbar).toHaveAttribute('aria-valuenow',String(firstTop));await expect(scrollbar).toHaveCSS('opacity','1');
+  await page.waitForTimeout(600);
+  const secondTop=await main.evaluate(n=>{n.scrollTop=(n.scrollHeight-n.clientHeight)*0.5;return Math.round(n.scrollTop);});
+  await expect(scrollbar).toHaveAttribute('aria-valuenow',String(secondTop));
+  await page.waitForTimeout(650);await expect(scrollbar).toHaveCSS('opacity','1');
+  await page.waitForTimeout(650);await expect(scrollbar).toHaveCSS('opacity','0');
+  const previousTop=await main.evaluate(n=>n.scrollTop);
+  await page.mouse.move(100,100);await page.mouse.wheel(0,80);await page.waitForTimeout(100);
+  await expect.poll(()=>main.evaluate(n=>n.scrollTop)).toBeGreaterThan(previousTop);await expect(scrollbar).toHaveCSS('opacity','1');
+  await page.screenshot({path:info.outputPath('scrollbar-rescroll.png')});
+  await scrollbar.focus();await page.keyboard.press('End');await page.waitForTimeout(50);
+  await expect.poll(()=>main.evaluate(n=>n.scrollTop)).toBe(await main.evaluate(n=>n.scrollHeight-n.clientHeight));
+  await page.setViewportSize({width:info.project.use.viewport!.width,height:1400});await page.waitForTimeout(100);
+  await expect(scrollbar).toHaveCount(0);
+  await page.goto('/');await expect(page.getByTestId('home-summary-area')).toBeVisible();await expect(scrollbar).toHaveCount(0);
 });
 
 test('1001: refresh retains values and account switch shows only selected account',async({page},info)=>{
