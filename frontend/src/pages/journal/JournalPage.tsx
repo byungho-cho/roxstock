@@ -1,3 +1,4 @@
+import { usePageMemory, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
@@ -59,17 +60,17 @@ const journalQuery = (accountId: string, month: string) => ({
 export function JournalPage() {
   const { accountId } = useActiveAccount();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const navigate = useListNavigation();
   const tablet = useMediaQuery('(min-width:600px)');
   const [searchParams] = useSearchParams();
   const requested = searchParams.get('date');
   const initialDate = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : getTodayDate();
-  const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [month, setMonth] = useState(monthOf(initialDate));
+  const [selectedDate, setSelectedDate] = usePageMemory('journalDate',initialDate);
+  const [month, setMonth] = usePageMemory('journalMonth',monthOf(initialDate));
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
-  const [detailMode, setDetailMode] = useState<'trades' | 'profit' | 'trade'>('trades');
-  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [detailMode, setDetailMode] = usePageMemory<'trades' | 'profit' | 'trade'>('journalMode','trades');
+  const [selectedTradeId, setSelectedTradeId] = usePageMemory<string | null>('journalTrade',null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
   const { data: remoteReport, isPending: tradesPending, isError: tradesError, refetch: reloadTrades } = useQuery({
@@ -169,7 +170,7 @@ export function JournalPage() {
 
   return <>
     <PageHeader embedded title="매매일지" variant="home" showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 56, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 12, fontWeight: 700 }}>오늘</Button>} />
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
+    <Box data-list-condition={JSON.stringify([month,selectedDate,detailMode])} data-restoration-ready={!liveApiEnabled||!tradesPending||tradesError} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, min(400px, calc((100% - 16px) / 2))) minmax(0, 1fr)' }, height: { sm: '100%' }, minHeight: 0, gap: { xs: '12px', sm: '16px' }, px: { xs: 0, sm: '6px' } }}>
     <Stack spacing={{ xs: '12px', sm: 0 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={(event) => {
       if (Date.now() < suppressClickUntil.current) {
         event.preventDefault();
@@ -185,7 +186,7 @@ export function JournalPage() {
         {liveApiEnabled && tradesError && !remoteReport && <Button role="alert" size="small" onClick={() => void reloadTrades()}>거래내역 조회 실패 · 다시 시도</Button>}
         {liveApiEnabled && tradesError && !!remoteReport && <Button role="alert" size="small" onClick={() => void reloadTrades()}>최신 거래 조회 실패 · 다시 시도</Button>}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 25, alignItems: 'center' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 9, fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
-        <Box sx={{ flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', borderTop: `1px solid ${colors.borderStrong}` }}>
+        <Box data-scroll-region="journal-calendar" sx={{ flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin', borderTop: `1px solid ${colors.borderStrong}` }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: { sm: `repeat(${rows}, minmax(42px, 1fr))` }, minHeight: { sm: '100%' } }}>{calendar.map(({ date, day, adjacent }, index) => {
           const count = counts.get(date);
           const selected = selectedDate === date;
@@ -212,7 +213,7 @@ export function JournalPage() {
           <Stack direction="row" sx={{ mt: '14px', mb: '5px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 13, fontWeight: 700 }}>거래현황</Typography><Typography sx={{ color: colors.textMuted, fontSize: 10 }}>총 {dayEntries.length}건</Typography></Stack>
         </>}
       </> : <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>{selectedDate.slice(5).replace('-', '.')} 거래 {dayEntries.length}건</Typography><Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.marketRise }}>{won(dayAmount)}</Typography></Stack>}
-      <Box sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
+      <Box data-scroll-region="journal-detail" sx={{ borderTop: { xs: `1px solid ${colors.borderStrong}`, sm: 0 }, pt: { xs: '5px', sm: 0 }, flex: { sm: 1 }, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'thin' }}>
         {!tablet && detailMode !== 'trades' && <Stack direction="row" sx={{ alignItems: 'center', mb: 1 }}><IconButton aria-label="거래현황으로 돌아가기" onClick={() => setDetailMode('trades')} sx={{ width: 28, height: 28, mr: 0.5 }}><ArrowBackRounded sx={{ fontSize: 18 }} /></IconButton><Typography sx={{ fontSize: 13, fontWeight: 700 }}>{detailMode === 'profit' ? '일별 손익' : '거래 상세'}</Typography></Stack>}
         {detailMode === 'profit' ? <Stack spacing={1.5}>
           <Box sx={{ p: 1.5, bgcolor: colors.raised, borderRadius: '6px' }}><Typography sx={{ fontSize: 11 }}>전체 손익</Typography><Typography sx={{ textAlign: 'right', fontSize: 19, fontWeight: 700, color: getProfitColor(dayProfit) }}>{liveApiEnabled && tradesPending ? '—' : signedWon(dayProfit)}</Typography></Box>
@@ -229,7 +230,7 @@ export function JournalPage() {
           <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>거래 단가</span><span>{won(selectedTrade.price)}</span></Stack>
           {selectedTrade.profit !== undefined && <Stack direction="row" sx={{ justifyContent: 'space-between', fontSize: 11 }}><span>실현손익</span><span>{signedWon(selectedTrade.profit)}</span></Stack>}
           <Button onClick={() => { const entry = selectedTrade; const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate }); if (entry.lotId) params.set('lot', entry.lotId); navigate(entry.sample ? `/stocks/${entry.stockId}?tab=trades` : `/trade?${params}`); }} sx={{ alignSelf: 'flex-end' }}>거래 수정·삭제 ›</Button>
-        </Stack> : liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28} /><Skeleton variant="rounded" height={28} /></Stack> : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : dayEntries.length ? dayEntries.map((entry) => <ButtonBase key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 45 }, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 102px 110px', sm: 'minmax(0, 1fr) minmax(112px, auto)' }, gridTemplateAreas: { xs: '"stock expression amount"', sm: '"stock values"' }, alignItems: 'center', textAlign: 'left', color: colors.textPrimary, '@media (max-width:599px)': { '@container (max-width: 300px)': { gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateAreas: '"stock amount" "expression amount"', rowGap: '2px' } }, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
+        </Stack> : liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28} /><Skeleton variant="rounded" height={28} /></Stack> : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : dayEntries.length ? dayEntries.map((entry) => <ButtonBase data-scroll-item={`${entry.type}-${entry.id}`} key={`${entry.type}-${entry.id}`} component="button" onClick={() => openEntry(entry)} aria-label={`${entry.type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`} sx={{ width: '100%', minHeight: { xs: 24, sm: 45 }, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr) 102px 110px', sm: 'minmax(0, 1fr) minmax(112px, auto)' }, gridTemplateAreas: { xs: '"stock expression amount"', sm: '"stock values"' }, alignItems: 'center', textAlign: 'left', color: colors.textPrimary, '@media (max-width:599px)': { '@container (max-width: 300px)': { gridTemplateColumns: 'minmax(0, 1fr) auto', gridTemplateAreas: '"stock amount" "expression amount"', rowGap: '2px' } }, '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}>
           <Box sx={{ gridArea: 'stock', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
             <Typography component="span" sx={{ flexShrink: 0, width: 'fit-content', border: `1px solid ${entry.type === 'buy' ? colors.marketFall : colors.marketRise}`, color: entry.type === 'buy' ? colors.marketFall : colors.marketRise, borderRadius: '3px', px: '3px', fontSize: 9, lineHeight: '15px' }}>{entry.type === 'buy' ? '매수' : '매도'}</Typography>
             <Typography sx={{ minWidth: 0, fontSize: { xs: 10.5, sm: 11.5 }, fontWeight: 600, lineHeight: '16px', overflowWrap: 'anywhere' }}>{entry.stockName}</Typography>
