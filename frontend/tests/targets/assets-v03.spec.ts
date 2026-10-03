@@ -72,9 +72,8 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
   await fixture(page);
   await page.goto('/detail/assets');
   await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');
-  // Let query notifications render before freezing time for scrollbar timers.
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100));
-  await page.clock.runFor(50);
+  // Native scroll events and CSS fades use real browser time.
+  await page.waitForTimeout(50);
   const scrollbar = page.getByRole('scrollbar', {name:'콘텐츠 스크롤'}), main = page.locator('main');
   await expect(scrollbar).toHaveCSS('opacity', '1');
   const geometry = await scrollbar.boundingBox();
@@ -82,23 +81,25 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
   expect(geometry!.y).toBeGreaterThanOrEqual(44);expect(geometry!.y+geometry!.height).toBeLessThanOrEqual(info.project.use.viewport!.height-44);
   const before = await page.getByTestId('asset-overview').evaluate(n=>({x:n.getBoundingClientRect().x,width:n.getBoundingClientRect().width}));
   await page.screenshot({path:info.outputPath('scrollbar-initial.png')});
-  await page.clock.runFor(1250);await expect(scrollbar).toHaveCSS('opacity', '0');
+  await page.waitForTimeout(1250);await expect(scrollbar).toHaveCSS('opacity', '0');
   await page.screenshot({path:info.outputPath('scrollbar-hidden.png')});
   expect(await page.getByTestId('asset-overview').evaluate(n=>({x:n.getBoundingClientRect().x,width:n.getBoundingClientRect().width}))).toEqual(before);
-  await main.evaluate(n=>n.scrollTop=(n.scrollHeight-n.clientHeight)*0.25);await page.clock.runFor(50);await expect(scrollbar).toHaveCSS('opacity','1');
-  await page.clock.runFor(600);
-  await main.evaluate(n=>n.scrollTop=(n.scrollHeight-n.clientHeight)*0.5);await page.clock.runFor(50);
-  await page.clock.runFor(650);await expect(scrollbar).toHaveCSS('opacity','1');
-  await page.clock.runFor(650);await expect(scrollbar).toHaveCSS('opacity','0');
+  const firstTop=await main.evaluate(n=>{n.scrollTop=(n.scrollHeight-n.clientHeight)*0.25;return Math.round(n.scrollTop);});
+  await expect(scrollbar).toHaveAttribute('aria-valuenow',String(firstTop));await expect(scrollbar).toHaveCSS('opacity','1');
+  await page.waitForTimeout(600);
+  const secondTop=await main.evaluate(n=>{n.scrollTop=(n.scrollHeight-n.clientHeight)*0.5;return Math.round(n.scrollTop);});
+  await expect(scrollbar).toHaveAttribute('aria-valuenow',String(secondTop));
+  await page.waitForTimeout(650);await expect(scrollbar).toHaveCSS('opacity','1');
+  await page.waitForTimeout(650);await expect(scrollbar).toHaveCSS('opacity','0');
   const previousTop=await main.evaluate(n=>n.scrollTop);
-  await page.mouse.move(100,100);await page.mouse.wheel(0,80);await page.clock.runFor(100);
+  await page.mouse.move(100,100);await page.mouse.wheel(0,80);await page.waitForTimeout(100);
   await expect.poll(()=>main.evaluate(n=>n.scrollTop)).toBeGreaterThan(previousTop);await expect(scrollbar).toHaveCSS('opacity','1');
   await page.screenshot({path:info.outputPath('scrollbar-rescroll.png')});
-  await scrollbar.focus();await page.keyboard.press('End');await page.clock.runFor(50);
+  await scrollbar.focus();await page.keyboard.press('End');await page.waitForTimeout(50);
   await expect.poll(()=>main.evaluate(n=>n.scrollTop)).toBe(await main.evaluate(n=>n.scrollHeight-n.clientHeight));
-  await page.setViewportSize({width:info.project.use.viewport!.width,height:1400});await page.clock.runFor(100);
+  await page.setViewportSize({width:info.project.use.viewport!.width,height:1400});await page.waitForTimeout(100);
   await expect(scrollbar).toHaveCount(0);
-  await page.clock.resume();await page.goto('/');await expect(page.getByTestId('home-summary-area')).toBeVisible();await expect(scrollbar).toHaveCount(0);
+  await page.goto('/');await expect(page.getByTestId('home-summary-area')).toBeVisible();await expect(scrollbar).toHaveCount(0);
 });
 
 test('1001: refresh retains values and account switch shows only selected account',async({page},info)=>{
