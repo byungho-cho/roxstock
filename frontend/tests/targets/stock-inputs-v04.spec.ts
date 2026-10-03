@@ -8,7 +8,7 @@ test('price editor is a cover screen or 338px tablet popup; failed Enter preserv
  const f=await fixture(page);await selected(page);await page.getByRole('button',{name:/65,000원/}).last().click();
  const editor=page.getByTestId('stock-price-form');await expect(editor).toBeVisible();const input=editor.getByRole('textbox',{name:'금액',exact:true});await expect(input).toBeFocused();
  if(tablet(page))await center(page,page.getByRole('dialog'),338);else{await expect(page).toHaveURL(/stocks\/1\/price/);await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'현재가 수정'})).toBeVisible();expect(await page.locator('main').evaluate(n=>getComputedStyle(n).paddingLeft)).toBe('8px');}
- await input.fill('518000');f.fail();await input.press('Enter');await expect(editor.getByRole('alert')).toContainText('테스트 저장 실패');await expect(input).toHaveValue('518,000');await evidence(page,info.outputPath('price-input.png'));
+ await evidence(page,info.outputPath('price-initial.png'));await input.fill('518000');f.fail();await input.press('Enter');await expect(editor.getByRole('alert')).toContainText('테스트 저장 실패');await expect(input).toHaveValue('518,000');await evidence(page,info.outputPath('price-input.png'));
  f.success();await editor.getByRole('button',{name:'변경',exact:true}).dblclick();await expect(editor).toHaveCount(0);expect(f.writes).toHaveLength(2);expect(f.writes[1]).toMatchObject({method:'PATCH',path:'/api/securities/1/price',body:{currentPrice:'518000'}});await expect(page.getByTestId('lot-lot1')).toContainText('36,260,000원');expect(f.reads.filter(p=>p.endsWith('/holdings')).length).toBeGreaterThan(1);
 });
 for(const type of ['buy','sell'] as const)for(const edit of [false,true])test(`${type} ${edit?'edit':'registration'} form: centered fixed header, body-only scroll, accessible final action and preserved background`,async({page},info)=>{
@@ -26,7 +26,7 @@ for(const type of ['buy','sell'] as const)for(const edit of [false,true])test(`$
  const quantity=root.getByRole('textbox',{name:type==='buy'?'매수수량':'매도수량',exact:true}),price=root.getByRole('textbox',{name:type==='buy'?'매수가격':'매도가격',exact:true});
  if(type==='buy'&&!edit){await quantity.fill('10');await price.fill('515000');}
  if(type==='buy'&&edit){await price.fill('240000');await expect(root.getByTestId('average-comparison')).toContainText('변경 후 231,000원');await expect(root).toContainText('203,300,000원');}
- if(type==='sell'){await expect(root.getByRole('textbox',{name:'매수가격',exact:true})).toHaveValue('230,000');if(!edit)await expect(root).toContainText('20,230,000원');}
+ if(type==='sell'){await expect(root.getByLabel('매수일자',{exact:true})).toHaveCSS('-webkit-text-fill-color','rgba(0, 0, 0, 0)');await expect(root.getByRole('textbox',{name:'매수가격',exact:true})).toHaveValue('230,000');if(!edit)await expect(root).toContainText('20,230,000원');}
  await evidence(page,info.outputPath(`${type}-${edit?'edit':'add'}-top.png`));
  const body=tablet(page)?page.getByTestId('stock-flow-modal-body'):page.locator('main');const header=tablet(page)?page.getByTestId('stock-flow-modal-title'):page.locator('header');const headerBefore=(await header.boundingBox())!.y;
  const confirm=root.getByRole('button',{name:edit?'변경':type==='buy'?'매수':'매도',exact:true});await confirm.scrollIntoViewIfNeeded();await expect(confirm).toBeInViewport();expect((await header.boundingBox())!.y).toBe(headerBefore);expect(await body.evaluate(n=>n.scrollHeight>=n.clientHeight)).toBe(true);await evidence(page,info.outputPath(`${type}-${edit?'edit':'add'}-bottom.png`));

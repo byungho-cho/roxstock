@@ -33,15 +33,15 @@ export function PriceEditor({stock,onClose,dialog=false,onBusyChange}:{stock:Sto
   catch(cause){if(alive.current)setError(cause instanceof Error?cause.message:'현재가 저장 실패 · 다시 시도해 주세요.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  };
- const row=(label:string,value:string)=><Stack direction="row" sx={{height:22,justifyContent:'space-between',gap:1}}><Typography sx={{fontSize:11,fontWeight:600,color:colors.textMuted}}>{label}</Typography><Typography noWrap sx={{fontSize:13,textAlign:'right',color:getMarketColor(stock.priceChangeRate)}}>{value}</Typography></Stack>;
- return <Stack data-testid="stock-price-form" spacing="8px" sx={{fontFamily:'RoxHomeInter, sans-serif'}}>
+ const row=(label:string,value:string)=><Stack direction="row" sx={{height:22,justifyContent:'space-between',gap:1}}><Typography sx={{fontSize:11,lineHeight:'13px',fontWeight:600,color:colors.textMuted}}>{label}</Typography><Typography noWrap sx={{fontSize:13,textAlign:'right',color:getMarketColor(stock.priceChangeRate)}}>{value}</Typography></Stack>;
+ return <Stack data-testid="stock-price-form" className="rox-home" spacing="8px" sx={{fontFamily:'RoxHomeInter, sans-serif','& .MuiFormControl-root > .MuiStack-root > .MuiBox-root':{bgcolor:colors.surface,borderColor:colors.border}}}>
   <Stack direction="row" sx={{height:28,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:17}}>{stock.name}</Typography>{dialog&&<IconButton aria-label="현재가 수정 닫기" disabled={busy} onClick={onClose} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton>}</Stack>
-  <Typography sx={{fontSize:10,fontWeight:600,color:colors.textMuted}}>A{stock.symbol}</Typography>
+  <Typography sx={{fontSize:10,lineHeight:'12px',fontWeight:600,color:colors.textMuted}}>A{stock.symbol}</Typography>
   {row('자동 수집 현재가',won(stock.currentPrice))}
-  <Typography sx={{fontSize:11,fontWeight:600,color:colors.textMuted}}>변경할 현재가</Typography>
+  <Typography sx={{fontSize:11,lineHeight:'13px',fontWeight:600,color:colors.textMuted}}>변경할 현재가</Typography>
   <NumberField label="금액" value={value} onChange={setValue} suffix="원" size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus inputRef={input} onEnter={()=>void save()} disabled={busy}/>
-  {row('전일 대비',`${won(dayChange(stock))}  ${Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate):'—'}`)}
+  {row('전일 대비',`${won(dayChange(stock))}  ${Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate,2):'—'}`)}
   {error&&<Typography role="alert" sx={{fontSize:12,color:colors.marketRise}}>{error}</Typography>}
-  <Stack direction="row" spacing="10px"><Button fullWidth variant="outlined" disabled={busy} onClick={onClose} sx={{height:40,borderRadius:'8px',fontSize:13}}>취소</Button><Button fullWidth variant="contained" disabled={!valid||busy} onClick={()=>void save()} sx={{height:40,borderRadius:'8px',fontSize:13}}>변경</Button></Stack>
+  <Stack direction="row" spacing="10px"><Button fullWidth variant="outlined" disabled={busy} onClick={onClose} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textSecondary,bgcolor:colors.surface,borderColor:colors.border}}>취소</Button><Button fullWidth variant="contained" disabled={!valid||busy} onClick={()=>void save()} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textPrimary,bgcolor:colors.buttonPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>변경</Button></Stack>
  </Stack>;
 }
