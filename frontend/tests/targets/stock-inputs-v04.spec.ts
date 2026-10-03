@@ -21,7 +21,7 @@ for(const type of ['buy','sell'] as const)for(const edit of [false,true])test(`$
  else if(type==='buy')await page.getByRole('button',{name:'lot1 매수 수정'}).click();
  else if(!edit)await page.getByTestId('lot-lot1').getByRole('button',{name:'2026-09-10 Lot 매도'}).click();
  else{await page.getByRole('tab',{name:'거래내역',exact:true}).click();await page.getByRole('button',{name:'s1 매도 수정'}).click();}
- const root=flow(page);await expect(page.getByTestId('trade-form')).toBeVisible();
+ const root=flow(page);await expect(page.getByTestId('trade-form')).toBeVisible();if(!tablet(page))await expect(page.locator('.MuiBottomNavigation-root:visible .Mui-selected')).toContainText('종목목록');
  if(tablet(page)){await center(page,root,370);expect((await page.getByTestId('stock-flow-modal-title').boundingBox())!.height).toBe(44);}else{await expect(page.getByRole('dialog')).toHaveCount(0);expect((await page.locator('header').boundingBox())!.height).toBe(44);}
  const quantity=root.getByRole('textbox',{name:type==='buy'?'매수수량':'매도수량',exact:true}),price=root.getByRole('textbox',{name:type==='buy'?'매수가격':'매도가격',exact:true});
  if(type==='buy'&&!edit){await quantity.fill('10');await price.fill('515000');}
