@@ -44,7 +44,7 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   for(const id of ['home-holding','recent-buy-lot'])expect(await page.getByTestId(id).first().evaluate(n=>getComputedStyle(n).paddingRight)).toBe('8px');
   const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
   expect(await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(251, 191, 36)');
-  expect(assets).toHaveLength(5);for(const asset of assets){expect(asset.width).toBe(18);expect(asset.height).toBe(18);expect(asset.render.width).toBe(18);expect(asset.render.height).toBe(18);}
+  const tablet=info.project.name.startsWith('tablet');expect(assets).toHaveLength(tablet?9:5);for(const asset of assets){expect(asset.width).toBe(tablet?16:18);expect(asset.height).toBe(tablet?16:18);expect(asset.render.width).toBe(tablet?16:18);expect(asset.render.height).toBe(tablet?16:18);}
   for(const p of layout.panels.filter(p=>p.id!=='home-summary-area' && p.id!=='home-trend-card')){if(info.project.name.startsWith('tablet'))expect(p.rect.height).toBe(290);else expect(p.rect.height).toBeLessThan(290);}
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;

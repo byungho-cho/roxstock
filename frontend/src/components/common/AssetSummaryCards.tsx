@@ -16,11 +16,11 @@ export function TotalAssetCard({ summary, tabletHeight = 116, home = false }: { 
   </CardActionArea></AppCard>;
 }
 
-export function AssetQuickCards({ summary, tabletHeight = 88, home = false }: { summary: DashboardSummary; tabletHeight?: number; home?: boolean }) {
+export function AssetQuickCards({ summary, tabletHeight = 88, home = false, gap }: { summary: DashboardSummary; tabletHeight?: number; home?: boolean; gap?: string }) {
   const navigate = useNavigate();
   const stockRate = Number.isFinite(summary.totalAssets) && summary.totalAssets > 0 ? summary.stockValue / summary.totalAssets * 100 : Number.NaN;
   const cashRate = Number.isFinite(summary.totalAssets) && summary.totalAssets > 0 ? summary.cashBalance / summary.totalAssets * 100 : Number.NaN;
-  return <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: { xs: home ? '10px' : '10px', sm: home ? '14px' : `${pageMetrics.gap}px` }, height: home ? 68 : { xs: 82, sm: tabletHeight } }}>
+  return <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: gap ?? { xs: home ? '10px' : '10px', sm: home ? '14px' : `${pageMetrics.gap}px` }, height: home ? 68 : { xs: 82, sm: tabletHeight } }}>
     <QuickCard title="주식평가액" value={formatWon(summary.stockValue)} rate={formatPercent(stockRate)} monthly={formatSignedWon(summary.stockMonthlyProfit)} color="#34D399" monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate('/detail/stock-value')} tabletHeight={tabletHeight} home={home} />
     <QuickCard title="예수금" value={formatWon(summary.cashBalance)} rate={formatPercent(cashRate)} monthly={formatSignedWon(summary.cashMonthlyProfit)} color="#FBBF24" monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} tabletHeight={tabletHeight} home={home} />
   </Box>;
