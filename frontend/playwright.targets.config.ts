@@ -10,5 +10,5 @@ export default defineConfig({
     { name: 'cover-400x640', use: { viewport: { width: 400, height: 640 } } },
     { name: 'tablet-816x616', use: { viewport: { width: 816, height: 616 } } },
   ],
-  webServer: { command: 'VITE_DATA_SOURCE=api npm run dev -- --port 3001', url: 'http://127.0.0.1:3001', reuseExistingServer: !process.env.CI },
+  webServer: { command: 'VITE_DATA_SOURCE=api npm run dev -- --host 127.0.0.1 --port 3001', url: 'http://127.0.0.1:3001', reuseExistingServer: !process.env.CI },
 });

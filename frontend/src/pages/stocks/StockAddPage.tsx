@@ -65,7 +65,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
      <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={search}/></Typography>
      <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={search}/> · {s.marketType}</Typography>
     </ButtonBase>)}</Box>:
-    <Box sx={{height:search?210:180,mt:search?'4px !important':'6px !important',p:'24px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
+    <Box sx={{height:search?210:180,mt:search?'4px !important':'14px !important',p:search?'24px 16px':'30px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
      {!search&&<Typography aria-hidden sx={{fontSize:30,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
      <Typography sx={{fontSize:search?16:15,fontWeight:600,mt:search?'12px':'6px'}}>{search?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
      <Typography sx={{fontSize:search?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{search?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>

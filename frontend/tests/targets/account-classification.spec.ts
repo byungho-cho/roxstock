@@ -42,5 +42,5 @@ test('account switch clears confirmation and late previous-account save cannot n
  await page.getByTestId('stock-add-confirm').getByRole('button',{name:'추가',exact:true}).click();
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await response;await expect(page.getByTestId('stock-add-confirm')).toHaveCount(0);await expect(page).toHaveURL(/stocks\/add/);
- const input=page.getByRole('textbox',{name:'전체 종목 검색'});await input.fill('삼성');await input.press('Enter');await expect(page.getByText('내용이 없습니다.')).toBeVisible();expect(f.reads).toContain('2');expect(f.writes[0]).toMatchObject({accountId:'1'});
+ const input=page.getByRole('textbox',{name:'전체 종목 검색'});await input.fill('삼성');await input.press('Enter');await expect(page.getByTestId('stock-add-content').getByText('내용이 없습니다.')).toBeVisible();expect(f.reads).toContain('2');expect(f.writes[0]).toMatchObject({accountId:'1'});
 });
