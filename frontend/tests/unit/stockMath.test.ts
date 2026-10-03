@@ -1,7 +1,7 @@
 import {nearestSavedItem} from '../../src/hooks/navigation/pageMemory.ts';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {averageAfter,lotValue,sortStocks,deriveAccountStocks,dayChange} from '../../src/pages/stocks/stockMath.ts';
+import {averageAfter,lotValue,sortStocks,deriveAccountStocks,dayChange,stockValuation} from '../../src/pages/stocks/stockMath.ts';
 import type {StockItem} from '../../src/types/models.ts';
 const stock=(id:string,per?:number):StockItem=>({id,symbol:id,name:id,listType:'watchlist',currentPrice:519000,priceChangeRate:65000/454000*100,collectionStatus:'success',watchlistItemId:id,per});
 test('Lot valuation uses remaining quantity and its own price; missing quote stays unavailable',()=>{assert.deepEqual(lotValue({remainingQuantity:70,buyPrice:230000},519000),{amount:36330000,profit:20230000,rate:(519000/230000-1)*100});assert.ok(Number.isNaN(lotValue({remainingQuantity:70,buyPrice:230000},Number.NaN).amount));assert.equal(Math.round(dayChange(stock('1'))),65000);});
@@ -11,3 +11,13 @@ test('selected account holdings override manual category; zero remaining with hi
 test('favorites are the primary ordering and each group keeps user order with missing last',()=>{const data=[stock('null'),stock('0',0),stock('2',2),stock('3',3)];const favorites=new Set(['null','2']);assert.deepEqual(sortStocks(data,'per',false,favorites).map(s=>s.id),['2','null','0','3']);assert.deepEqual(sortStocks(data,'per',true,favorites).map(s=>s.id),['2','null','3','0']);assert.deepEqual(sortStocks(data,'name',true,favorites).map(s=>s.id),['null','2','3','0']);});
 
 test('removed scroll anchors restore to the next surviving item, then the previous or numeric fallback',()=>{const order=['a','b','c','d'];assert.equal(nearestSavedItem('b',order,['a','b','d']),'b');assert.equal(nearestSavedItem('b',order,['a','d']),'d');assert.equal(nearestSavedItem('d',order,['a','b']),'b');assert.equal(nearestSavedItem('b',order,[]),undefined);});
+
+test('unavailable prices hide stale valuation without losing purchase data or sort position',()=>{
+ const missing={...stock('missing'),listType:'holding' as const,priceAvailable:false,quantity:70,averagePrice:230000,purchaseAmount:16100000,marketValue:36330000,profitAmount:20230000,profitRate:125.7};
+ const value=stockValuation(missing);assert.equal(value.purchase,16100000);assert.ok(Number.isNaN(value.amount));assert.ok(Number.isNaN(value.profit));assert.ok(Number.isNaN(value.rate));
+ assert.ok(Number.isNaN(dayChange(missing)));
+ const available={...missing,id:'available',priceAvailable:true};
+ for(const descending of [true,false])assert.deepEqual(sortStocks([missing,available],'marketValue',descending).map(s=>s.id),['available','missing']);
+});
+
+test('legacy recommended registrations stay visible as watchlist and manual holdings do not create quantity',()=>{const result=deriveAccountStocks([{...stock('rec'),listType:'recommended'},{...stock('manual'),listType:'holding'}],[],[]);assert.equal(result.find(s=>s.id==='rec')?.listType,'watchlist');assert.equal(result.find(s=>s.id==='manual')?.listType,'holding');assert.equal(result.find(s=>s.id==='manual')?.quantity,undefined);});
