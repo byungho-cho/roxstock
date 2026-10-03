@@ -8,10 +8,10 @@ import {NumberField} from '../../components/forms/Fields';
 import {formatRate,getMarketColor} from '../../utils/format';
 import {colors} from '../../styles/tokens';
 import {dayChange,won} from './stockMath';
-import {useNavigate} from 'react-router-dom';
+import {useListNavigation} from '../../hooks/navigation/usePageMemory';
 export const stockDialogPaper={m:'16px',width:'calc(100% - 32px)',maxWidth:354,maxHeight:'calc(100dvh - 32px)',p:'16px',borderRadius:'8px',bgcolor:'#0B1322',border:'1px solid #2E4263',backgroundImage:'none'};
 export function ValueIndicatorDialog({stock,onClose}:{stock:StockItem|null;onClose:()=>void}) {
- const {accountId}=useActiveAccount();const navigate=useNavigate();const data=useQuery({queryKey:['securityAnalysis',stock?.id,accountId],enabled:!!stock,queryFn:()=>getSecurityAnalysis(stock!.id,undefined,accountId)});
+ const {accountId}=useActiveAccount();const navigate=useListNavigation();const data=useQuery({queryKey:['securityAnalysis',stock?.id,accountId],enabled:!!stock,queryFn:()=>getSecurityAnalysis(stock!.id,undefined,accountId)});
  const analysis=data.data,latest=analysis?.statements.filter(s=>s.periodType==='ANNUAL').sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
  const amount=(v:string|null|undefined)=>v==null?'—':won(Number(v));
  const rows=[['주요지표',`PER ${analysis?.valuation?.per??stock?.per??'—'} · PBR ${analysis?.valuation?.pbr??stock?.pbr??'—'} · ROE ${analysis?.valuation?.roe??stock?.roe??'—'}%`],['지배순이익',amount(analysis?.fundamentals?.controllingProfit)],['발행주식수 (자기주식수)',`${analysis?.fundamentals?.issuedShares==null?'—':Number(analysis.fundamentals.issuedShares).toLocaleString('ko-KR')} (${analysis?.fundamentals?.treasuryShares==null?'—':Number(analysis.fundamentals.treasuryShares).toLocaleString('ko-KR')})`],['자산',amount(latest?.totalAssets)],['부채',amount(latest?.totalLiabilities)],['자본 (전년도)',`${amount(latest?.totalEquity)} (${amount(analysis?.fundamentals?.previousEquity)})`],['주당배당금',amount(analysis?.valuation?.dividendPerShare)],['배당수익률',analysis?.valuation?.dividendYield==null?'—':`${analysis.valuation.dividendYield}%`]];
@@ -37,10 +37,10 @@ export function PriceEditor({stock,onClose,dialog=false,onBusyChange}:{stock:Sto
  return <Stack data-testid="stock-price-form" className="rox-home" spacing="8px" sx={{fontFamily:'RoxHomeInter, sans-serif','& .MuiFormControl-root > .MuiStack-root > .MuiBox-root':{bgcolor:colors.surface,borderColor:colors.border}}}>
   <Stack direction="row" sx={{height:28,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:17}}>{stock.name}</Typography>{dialog&&<IconButton aria-label="현재가 수정 닫기" disabled={busy} onClick={onClose} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton>}</Stack>
   <Typography sx={{fontSize:10,lineHeight:'12px',fontWeight:600,color:colors.textMuted}}>A{stock.symbol}</Typography>
-  {row('자동 수집 현재가',won(stock.currentPrice))}
+  {row('자동 수집 현재가',won(stock.priceAvailable===false?Number.NaN:stock.currentPrice))}
   <Typography sx={{fontSize:11,lineHeight:'13px',fontWeight:600,color:colors.textMuted}}>변경할 현재가</Typography>
   <NumberField label="금액" value={value} onChange={setValue} suffix="원" size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus inputRef={input} onEnter={()=>void save()} disabled={busy}/>
-  {row('전일 대비',`${won(dayChange(stock))}  ${Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate,2):'—'}`)}
+  {row('전일 대비',`${won(dayChange(stock))}  ${stock.priceAvailable!==false&&stock.priceChangeAvailable!==false&&Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate,2):'—'}`)}
   {error&&<Typography role="alert" sx={{fontSize:12,color:colors.marketRise}}>{error}</Typography>}
   <Stack direction="row" spacing="10px"><Button fullWidth variant="outlined" disabled={busy} onClick={onClose} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textSecondary,bgcolor:colors.surface,borderColor:colors.border}}>취소</Button><Button fullWidth variant="contained" disabled={!valid||busy} onClick={()=>void save()} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textPrimary,bgcolor:colors.buttonPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>변경</Button></Stack>
  </Stack>;

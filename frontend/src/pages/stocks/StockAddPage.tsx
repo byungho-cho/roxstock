@@ -56,7 +56,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  return <Box data-testid="stock-add-content" className="rox-home" sx={{fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded variant="more" backIcon={<Box component="span" aria-hidden sx={{width:28,fontSize:36,lineHeight:"36px",textAlign:"left"}}>‹</Box>} showAdd={false} title={title} onBack={()=>direct?setDirect(false):navigate(-1)} showBackTablet/>
   {!direct?<Stack spacing="8px">
-   <Box sx={{height:48,display:'flex',alignItems:'center',gap:'8px',px:'8px',bgcolor:colors.raised,border:'1px solid '+colors.borderStrong,borderRadius:'8px'}}>
+   <Box sx={{height:36,display:'flex',alignItems:'center',gap:'8px',pl:'8px',pr:'4px',bgcolor:colors.raised,border:'1px solid '+colors.borderStrong,borderRadius:'8px'}}>
     <IconButton aria-label="검색 실행" onClick={runSearch} sx={{p:0,width:17,height:16}}><Box component="img" src="/stocks-v03/search.svg" alt="" sx={{width:17,height:16}}/></IconButton>
     <InputBase inputRef={searchRef} autoFocus value={query} onFocus={e=>e.target.select()} onChange={e=>setQuery(e.target.value)} onCompositionStart={()=>setComposing(true)} onCompositionEnd={e=>{setQuery((e.target as HTMLInputElement).value);setComposing(false);}} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();runSearch();}}} inputProps={{'aria-label':'전체 종목 검색',enterKeyHint:'search'}} placeholder="종목명·종목코드 검색" sx={{flex:1,minWidth:0,fontSize:13}}/>
     {query&&<IconButton aria-label="검색어 지우기" onClick={()=>{setQuery('');setSearch('');searchRef.current?.focus();}} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/search-clear.svg" alt="" sx={{width:16,height:16}}/></IconButton>}
