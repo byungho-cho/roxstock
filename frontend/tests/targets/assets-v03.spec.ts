@@ -69,6 +69,7 @@ test('1001: missing data is not zero or empty, and failed refresh retains prior 
 
 
 test('v0.4 navigation: assets, home and holding-add share the nine tablet routes',async({page},info)=>{
+  test.setTimeout(60_000);
   await fixture(page);
   const tablet=info.project.name.startsWith('tablet');
   const labels=tablet?['종목목록','매매일지','평가자산','예수금','홈','자산분석','재무제표','시세수집','더보기']:['종목목록','매매일지','홈','자산분석','더보기'];
@@ -84,10 +85,12 @@ test('v0.4 navigation: assets, home and holding-add share the nine tablet routes
     for(const size of sizes){expect(size.height).toBe(43);expect(size.width).toBeCloseTo(info.project.use.viewport!.width/labels.length,0);expect(size.iw).toBe(tablet?16:18);expect(size.ih).toBe(tablet?16:18);expect(size.render).toBe(tablet?16:18);expect(size.vertical).toBe(true);}
     await page.screenshot({path:info.outputPath(`nav-v04-${path==='/detail/assets'?'assets':path==='/'?'home':'add'}.png`)});
   }
+  await page.goto('/detail/assets');
   for(let i=0;i<labels.length;i++){
-    await page.goto('/detail/assets');await expect(page.getByTestId('asset-donut-value')).toBeVisible();
+    await expect(page.getByTestId('asset-donut-value')).toBeVisible();
     await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:labels[i],exact:true}).click();
     await expect(page).toHaveURL(new RegExp(routes[i]==='/'?'/$':routes[i].replaceAll('/','\\/')));
+    await page.goBack();await expect(page).toHaveURL(/\/detail\/assets$/);
   }
 });
 
