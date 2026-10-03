@@ -37,10 +37,10 @@ export function PriceEditor({stock,onClose,dialog=false,onBusyChange}:{stock:Sto
  return <Stack data-testid="stock-price-form" className="rox-home" spacing="8px" sx={{fontFamily:'RoxHomeInter, sans-serif','& .MuiFormControl-root > .MuiStack-root > .MuiBox-root':{bgcolor:colors.surface,borderColor:colors.border}}}>
   <Stack direction="row" sx={{height:28,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:17}}>{stock.name}</Typography>{dialog&&<IconButton aria-label="현재가 수정 닫기" disabled={busy} onClick={onClose} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton>}</Stack>
   <Typography sx={{fontSize:10,lineHeight:'12px',fontWeight:600,color:colors.textMuted}}>A{stock.symbol}</Typography>
-  {row('자동 수집 현재가',won(stock.currentPrice))}
+  {row('자동 수집 현재가',won(stock.priceAvailable===false?Number.NaN:stock.currentPrice))}
   <Typography sx={{fontSize:11,lineHeight:'13px',fontWeight:600,color:colors.textMuted}}>변경할 현재가</Typography>
   <NumberField label="금액" value={value} onChange={setValue} suffix="원" size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus inputRef={input} onEnter={()=>void save()} disabled={busy}/>
-  {row('전일 대비',`${won(dayChange(stock))}  ${Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate,2):'—'}`)}
+  {row('전일 대비',`${won(dayChange(stock))}  ${stock.priceAvailable!==false&&stock.priceChangeAvailable!==false&&Number.isFinite(stock.priceChangeRate)?formatRate(stock.priceChangeRate,2):'—'}`)}
   {error&&<Typography role="alert" sx={{fontSize:12,color:colors.marketRise}}>{error}</Typography>}
   <Stack direction="row" spacing="10px"><Button fullWidth variant="outlined" disabled={busy} onClick={onClose} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textSecondary,bgcolor:colors.surface,borderColor:colors.border}}>취소</Button><Button fullWidth variant="contained" disabled={!valid||busy} onClick={()=>void save()} sx={{height:40,borderRadius:'8px',fontSize:13,color:colors.textPrimary,bgcolor:colors.buttonPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>변경</Button></Stack>
  </Stack>;
