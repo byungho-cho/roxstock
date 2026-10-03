@@ -6,14 +6,14 @@ import { parseManualRefresh } from '../collector/dart-manual-refresh.js';
 import { id, optionalMemo } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
 import { serializable } from '../lib/transaction.js';
-import { assertClassificationChange, manualClassification, requireActiveAccount } from '../domain/classification.js';
+import { manualClassification, requireActiveAccount } from '../domain/classification.js';
 import { calculateRemainingQuantity } from '../domain/trade.js';
 
 type SecurityQuery = { accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
 type WatchlistBody = { accountId?: unknown; securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
 type WatchlistParams = { id: string };
 type SecurityParams = { id: string };
-type DirectSecurityBody = { accountId?: unknown; symbol?: unknown; name?: unknown; marketType?: unknown; listType?: unknown };
+type DirectSecurityBody = { accountId?: unknown; symbol?: unknown; name?: unknown; marketType?: unknown; listType?: unknown; listingYear?: unknown };
 type PriceBody = { currentPrice?: unknown };
 type AnalysisBody = { accountId?: unknown; operatingProfit?: unknown; controllingProfit?: unknown; issuedShares?: unknown; treasuryShares?: unknown; assets?: unknown; liabilities?: unknown; equity?: unknown; previousEquity?: unknown; dividend?: unknown; memo?: unknown };
 
@@ -64,13 +64,14 @@ const pageNumber = (value: string | undefined, name: string, fallback: number, m
 };
 
 const serializeSecurity = (security: {
-  id: bigint; symbol: string; name: string; marketType: MarketType; securityType: string;
+  id: bigint; listingYear?: number | null; symbol: string; name: string; marketType: MarketType; securityType: string;
   watchlistItem: { id: bigint; listType: WatchlistType; targetBuyPrice: Prisma.Decimal | null; priority: number; memo: string | null } | null;
   marketPrice: { currentPrice: Prisma.Decimal; previousClosePrice: Prisma.Decimal | null; priceUpdatedAt: Date } | null;
 }) => ({
   id: security.id.toString(),
   symbol: security.symbol,
   name: security.name,
+  listingYear: security.listingYear ?? null,
   marketType: security.marketType,
   securityType: security.securityType,
   listType: security.watchlistItem?.listType ?? null,
@@ -257,11 +258,13 @@ export async function securityRoutes(app: FastifyInstance) {
     if (!/^\d{6}$/.test(symbol) || !name || name.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'A six-digit symbol and name are required.');
     const selectedMarket = marketType(body.marketType as string) ?? 'OTHER';
     const selectedList = manualClassification(body.listType);
+    const listingYear = body.listingYear === undefined ? undefined : Number(body.listingYear);
+    if (listingYear !== undefined && (!Number.isInteger(listingYear) || listingYear < 1900 || listingYear > new Date().getFullYear())) throw new ApiError(400, 'INVALID_LISTING_YEAR', '상장연도는 1900년부터 올해까지 입력하세요.');
     const result = await serializable(async tx => {
       await requireActiveAccount(tx, accountId);
-      const existing = await tx.security.findUnique({ where: { marketType_symbol: { marketType: selectedMarket, symbol } } });
+      const existing = await tx.security.findFirst({ where: { symbol } });
       if (existing) throw new ApiError(409, 'SECURITY_ALREADY_EXISTS', '이미 등록된 종목입니다. 검색에서 분류를 선택하세요.');
-      const security = await tx.security.create({ data: { symbol, name, marketType: selectedMarket } });
+      const security = await tx.security.create({ data: { symbol, name, marketType: selectedMarket, listingYear } });
       const item = await tx.accountWatchlistItem.create({ data: { accountId, securityId: security.id, listType: selectedList } });
       return serializeSecurity({ ...security, marketPrice: null, watchlistItem: item });
     });
@@ -327,7 +330,7 @@ export async function securityRoutes(app: FastifyInstance) {
       const remaining = remainingById.get(security.id.toString());
       const effective = remaining !== undefined ? remaining.gt(0) ? 'HOLDING' : 'TRADED' : manual?.listType ?? null;
       return { security, manual, effective, hasTradeHistory: remaining !== undefined };
-    }).filter(item => (!selectedList || item.effective === selectedList) && (!excludeRegistered || !item.effective));
+    }).filter(item => (!selectedList || item.effective === selectedList) && (!excludeRegistered || !['WATCHLIST', 'HOLDING'].includes(item.effective ?? '')));
     const hasPagination = request.query.limit !== undefined || request.query.offset !== undefined;
     const limit = pageNumber(request.query.limit, 'limit', 50, 100);
     const offset = pageNumber(request.query.offset, 'offset', 0, 100_000);
@@ -353,7 +356,6 @@ export async function securityRoutes(app: FastifyInstance) {
     const targetBuyPrice = optionalPrice(body.targetBuyPrice), priority = optionalPriority(body.priority), memo = optionalMemo(body.memo);
     const result = await serializable(async tx => {
       await requireActiveAccount(tx, accountId);
-      await assertClassificationChange(tx, accountId, securityId, listType);
       const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
       if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', '종목을 찾을 수 없습니다.');
       const existing = await tx.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
@@ -372,7 +374,6 @@ export async function securityRoutes(app: FastifyInstance) {
       await requireActiveAccount(tx, accountId);
       const existing = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
       if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
-      if (listType) await assertClassificationChange(tx, accountId, existing.securityId, listType);
       const item = await tx.accountWatchlistItem.update({ where: { id: itemId }, data: {
         ...(listType && { listType }), ...(body.targetBuyPrice !== undefined && { targetBuyPrice: optionalPrice(body.targetBuyPrice) }),
         ...(body.priority !== undefined && { priority: optionalPriority(body.priority) }), ...(body.memo !== undefined && { memo: optionalMemo(body.memo) }),
@@ -388,7 +389,6 @@ export async function securityRoutes(app: FastifyInstance) {
       await requireActiveAccount(tx, accountId);
       const item = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
       if (!item) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
-      await assertClassificationChange(tx, accountId, item.securityId, null);
       await tx.accountWatchlistItem.delete({ where: { id: itemId } });
     });
     return { data: { id: itemId.toString(), deleted: true } };

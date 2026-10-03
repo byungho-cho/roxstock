@@ -27,7 +27,7 @@ import { CollectionMonitoringPage } from './pages/more/CollectionMonitoringPage'
 export function App() {
   const location=useLocation(),navigate=useNavigate(),modalContent=useRef<HTMLDivElement>(null);
   const background=(location.state as {backgroundLocation?:Location}|null)?.backgroundLocation;
-  const modal=!!background&&(location.pathname==='/stocks/add'||location.pathname==='/trade');
+  const modal=!!background&&location.pathname==='/trade';
   const params=new URLSearchParams(location.search),title=location.pathname==='/stocks/add'?'종목 추가':`${params.get('type')==='sell'?'매도':'매수'} ${params.has('edit')?'수정':'등록'}`;
   return (<>
     <Routes location={modal?background:location}>

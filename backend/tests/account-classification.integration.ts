@@ -23,23 +23,23 @@ test('account classifications, migration preservation, trade replay and connecte
   const s=await prisma.security.create({data:{symbol:'990004',name:'Functional isolation',marketType:'OTHER'}});const sid=s.id.toString();
   await prisma.marketPrice.create({data:{securityId:s.id,currentPrice:'200',priceUpdatedAt:new Date('2026-01-01')}});
   const classify=async(accountId:string,listType:string,expected=201)=>call('POST','/watchlist-items',{accountId,securityId:sid,listType},expected);
-  const manual=(await classify(aid,'HOLDING')).data;await classify(bid,'RECOMMENDED');
+  const manual=(await classify(aid,'HOLDING')).data;await classify(bid,'WATCHLIST');
   assert.equal(await prisma.buyTrade.count({where:{accountId:a.id,securityId:s.id}}),0);
   assert.ok(!(await call('GET',`/accounts/${aid}/holdings`)).data.some((x:{securityId:string})=>x.securityId===sid));
   const listing=async(accountId:string)=> (await call('GET',`/securities?accountId=${accountId}&registeredOnly=true`)).data;
   const type=async(accountId:string)=>(await listing(accountId)).find((x:{id:string})=>x.id===sid).listType;
-  assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'RECOMMENDED');
+  assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'WATCHLIST');
   await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'});assert.equal(await type(aid),'WATCHLIST');
   await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:bid,listType:'WATCHLIST'},404);
-  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'RECOMMENDED'});assert.equal(await type(aid),'RECOMMENDED');
-  await classify(aid,'RECOMMENDED');assert.equal(await prisma.accountWatchlistItem.count({where:{accountId:a.id,securityId:s.id}}),1);
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'HOLDING'});assert.equal(await type(aid),'HOLDING');
+  await classify(aid,'HOLDING');await classify(aid,'RECOMMENDED',400);assert.equal(await prisma.accountWatchlistItem.count({where:{accountId:a.id,securityId:s.id}}),1);
   await classify(aid,'TRADED',400);
   const buy={accountId:aid,securityId:sid,boughtAt:'2026-01-02T03:00:00Z',quantity:'10',unitPrice:'100',feeTaxAmount:'0',requestId:randomUUID()};
   const first=(await call('POST','/buy-trades',buy,201)).data;
   assert.deepEqual((await call('POST','/buy-trades',buy,201)).data,first);assert.equal(await prisma.buyTrade.count({where:{accountId:a.id,securityId:s.id}}),1);assert.equal(await prisma.cashTransaction.count({where:{buyTradeId:BigInt(first.id)}}),1);assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),'999000');
-  await call('POST','/buy-trades',{...buy,quantity:'11'},409);assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'RECOMMENDED');
-  const blocked=await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'},409);assert.equal(blocked.error.code,'HOLDING_HAS_TRADE_HISTORY');
-  await call('DELETE',`/watchlist-items/${manual.watchlistItemId}?accountId=${aid}`,undefined,409);
+  await call('POST','/buy-trades',{...buy,quantity:'11'},409);assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'WATCHLIST');
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'});assert.equal(await type(aid),'HOLDING');
+
   const sell={accountId:aid,buyTradeId:first.id,soldAt:'2026-01-03T03:00:00Z',quantity:'4',unitPrice:'200',feeTaxAmount:'0',requestId:randomUUID()};
   const partial=(await call('POST','/sell-trades',sell,201)).data;assert.equal(partial.remainingQuantity,'6');assert.equal(partial.realizedProfitLoss,'400');
   assert.deepEqual((await call('POST','/sell-trades',sell,201)).data,partial);
@@ -50,7 +50,9 @@ test('account classifications, migration preservation, trade replay and connecte
   await call('PATCH',`/sell-trades/${partial.id}`,{accountId:aid,quantity:'10'});assert.equal(await type(aid),'TRADED');
   assert.ok(!(await call('GET',`/accounts/${aid}/holdings`)).data.some((x:{securityId:string})=>x.securityId===sid));
   assert.equal((await call('GET',`/accounts/${aid}/trades?securityId=${sid}`)).summary.realizedProfitLoss,'1000');
-  const readonly=await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'HOLDING'},409);assert.equal(readonly.error.code,'TRADED_CLASSIFICATION_READ_ONLY');
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'HOLDING'});assert.equal(await type(aid),'TRADED');
+  const candidates=await call('GET',`/securities?accountId=${aid}&excludeRegistered=true`);assert.ok(candidates.data.some((x:{id:string})=>x.id===sid));
+  assert.ok(!(await call('GET',`/securities?accountId=${bid}&excludeRegistered=true`)).data.some((x:{id:string})=>x.id===sid));
   await call('DELETE',`/sell-trades/${partial.id}?accountId=${bid}`,undefined,404);
   await call('DELETE',`/sell-trades/${partial.id}?accountId=${aid}`);await call('DELETE',`/sell-trades/${partial.id}?accountId=${aid}`,undefined,404);
   assert.equal(await type(aid),'HOLDING');assert.equal((await call('GET',`/buy-trades/${first.id}?accountId=${aid}`)).data.remainingQuantity,'10');
@@ -59,10 +61,14 @@ test('account classifications, migration preservation, trade replay and connecte
   assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),before.cashBalance.toString());assert.deepEqual(await prisma.cashTransaction.findMany({where:{accountId:a.id},select:cashFields}),cash);assert.deepEqual(await prisma.dailyAccountSnapshot.findMany({where:{accountId:a.id}}),snapshot);assert.deepEqual(await prisma.dailyPositionSnapshot.findMany(),positions);
   const next={...buy,quantity:'2',unitPrice:'300',requestId:randomUUID()};const concurrent=await Promise.all([call('POST','/buy-trades',next,201),call('POST','/buy-trades',next,201)]);assert.deepEqual(concurrent[0].data,concurrent[1].data);assert.equal(await prisma.cashTransaction.count({where:{buyTradeId:BigInt(concurrent[0].data.id)}}),1);
   const sellOwn=(await call('POST','/sell-trades',{...sell,buyTradeId:concurrent[0].data.id,quantity:'2',unitPrice:'350',requestId:randomUUID()},201)).data;assert.equal(sellOwn.realizedProfitLoss,'100');
-  await call('DELETE',`/buy-trades/${concurrent[0].data.id}?accountId=${aid}&cascadeSells=true`);await call('DELETE',`/buy-trades/${first.id}?accountId=${aid}`);assert.equal(await type(aid),'RECOMMENDED');
+  await call('DELETE',`/buy-trades/${concurrent[0].data.id}?accountId=${aid}&cascadeSells=true`);await call('DELETE',`/buy-trades/${first.id}?accountId=${aid}`);assert.equal(await type(aid),'HOLDING');
   const denied={...buy,quantity:'99999999',requestId:randomUUID()};await call('POST','/buy-trades',denied,409);assert.equal(await prisma.tradeRequest.count({where:{requestId:denied.requestId}}),0);
   // A new connection/HTTP app reads the persisted account categories.
-  const other=buildApp();const reload=await other.inject(`/api/securities?accountId=${bid}&registeredOnly=true`);assert.equal(reload.json().data.find((x:{id:string})=>x.id===sid).listType,'RECOMMENDED');await other.close();
+  const other=buildApp();const reload=await other.inject(`/api/securities?accountId=${bid}&registeredOnly=true`);assert.equal(reload.json().data.find((x:{id:string})=>x.id===sid).listType,'WATCHLIST');await other.close();
+  const direct=(await call('POST','/securities',{accountId:aid,symbol:'990005',name:'Manual listing',marketType:'KOSPI',listType:'HOLDING',listingYear:new Date().getFullYear()},201)).data;assert.equal(direct.listingYear,new Date().getFullYear());assert.equal(await prisma.buyTrade.count({where:{securityId:BigInt(direct.id)}}),0);
+  await call('POST','/securities',{accountId:aid,symbol:'990005',name:'Duplicate',marketType:'KOSDAQ',listType:'HOLDING'},409);
+  await call('POST','/securities',{accountId:aid,symbol:'990006',name:'Bad year',marketType:'KOSPI',listType:'HOLDING',listingYear:new Date().getFullYear()+1},400);
+  assert.equal(await prisma.watchlistItem.count({where:{listType:'RECOMMENDED'}}),1);assert.equal(await prisma.accountWatchlistItem.count({where:{listType:'RECOMMENDED'}}),1);
   const targets=await new PrismaCollectorRepository(prisma).listRealtimeSecurities(100);assert.equal(targets.filter(x=>x.id===s.id).length,1);
  } finally {await app.close();await prisma.$disconnect();}
 });
