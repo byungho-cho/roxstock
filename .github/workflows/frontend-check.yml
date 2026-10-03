@@ -1,30 +1,99 @@
 name: Frontend Check
-
 on:
   pull_request:
     branches: [main]
     paths:
       - frontend/**
+      - '!frontend/tests/**'
+      - '!frontend/**/*.md'
       - package.json
       - package-lock.json
       - .github/workflows/frontend-check.yml
       - .github/workflows/frontend-image.yml
   workflow_call:
-
 permissions:
   contents: read
-
+concurrency:
+  group: frontend-check-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
 jobs:
-  validate:
-    name: Frontend Basic Check
+  scope:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    outputs:
+      run_checks: ${{ steps.scope.outputs.run_checks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(frontend/(src/|public/|tsconfig|vite\.config|index\.html|package\.json|Dockerfile|nginx\.conf)|package(-lock)?\.json$)'; then
+            echo "run_checks=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_checks=false" >> "$GITHUB_OUTPUT"
+            echo "Application inputs unchanged. Preserve earlier successful TypeScript/build results." >> "$GITHUB_STEP_SUMMARY"
+          fi
+  typecheck:
+    name: Frontend TypeScript
+    needs: scope
+    if: needs.scope.outputs.run_checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-      - run: npm ci --workspace frontend --include-workspace-root=false
-      - run: npm run typecheck:frontend
-      - run: npm run build:frontend
+      - uses: actions/cache/restore@v4
+        id: passed
+        with:
+          path: ${{ runner.temp }}/roxstock-typecheck
+          key: frontend-typecheck-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/public/**', 'frontend/tsconfig*.json', 'frontend/vite.config.ts', 'frontend/index.html', 'frontend/package.json', 'package.json', 'package-lock.json') }}
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npm run typecheck:frontend
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: mkdir -p "${{ runner.temp }}/roxstock-typecheck" && git rev-parse HEAD > "${{ runner.temp }}/roxstock-typecheck/passed"
+      - if: steps.passed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/roxstock-typecheck
+          key: frontend-typecheck-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/public/**', 'frontend/tsconfig*.json', 'frontend/vite.config.ts', 'frontend/index.html', 'frontend/package.json', 'package.json', 'package-lock.json') }}
+      - name: Record result
+        run: |
+          echo "### Frontend TypeScript" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $(git rev-parse HEAD); reused: ${{ steps.passed.outputs.cache-hit }}" >> "$GITHUB_STEP_SUMMARY"
+  build:
+    name: Frontend Build
+    needs: scope
+    if: needs.scope.outputs.run_checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/cache/restore@v4
+        id: passed
+        with:
+          path: ${{ runner.temp }}/roxstock-build
+          key: frontend-build-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/public/**', 'frontend/tsconfig*.json', 'frontend/vite.config.ts', 'frontend/index.html', 'frontend/package.json', 'package.json', 'package-lock.json') }}
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npm run build:frontend
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: mkdir -p "${{ runner.temp }}/roxstock-build" && git rev-parse HEAD > "${{ runner.temp }}/roxstock-build/passed"
+      - if: steps.passed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/roxstock-build
+          key: frontend-build-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/public/**', 'frontend/tsconfig*.json', 'frontend/vite.config.ts', 'frontend/index.html', 'frontend/package.json', 'package.json', 'package-lock.json') }}
+      - name: Record result
+        run: |
+          echo "### Frontend Build" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $(git rev-parse HEAD); reused: ${{ steps.passed.outputs.cache-hit }}" >> "$GITHUB_STEP_SUMMARY"
