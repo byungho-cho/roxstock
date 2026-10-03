@@ -57,5 +57,7 @@ jobs:
         if: always() && steps.passed.outputs.cache-hit != 'true'
         with:
           name: stock-scroll-evidence
-          path: frontend/test-results/targets/
+          path: |
+            frontend/test-results/targets/
+            frontend/playwright-targets-report/
           retention-days: 7
