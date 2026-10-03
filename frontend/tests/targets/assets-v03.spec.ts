@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 const stamp = '2026-10-01T03:10:00Z';
 const holdings = Array.from({length:8}, (_, index) => ({securityId:String(index+1),symbol:'005380',name:['현대자동차','기아','삼성전자','SK하이닉스','NAVER','LG화학','POSCO','기타종목'][index],quantity:'1000',averagePurchasePrice:'96400',purchaseAmount:'96400000',currentPrice:'100000',marketValue:String([180000000,128500000,96400000,85000000,75000000,45000000,25000000,16100000][index]),unrealizedProfitLoss:index===1?'-4250000':index===2?'0':'49459200',unrealizedReturnRate:index===1?'-3.2':index===2?'0':'15.8',priceChangeRate:'0',priceUpdatedAt:stamp}));
-async function fixture(page: Page, initial: 'normal'|'missing'|'error' = 'normal') {
+async function fixture(page: Page, initial: 'normal'|'missing'|'error'|'single' = 'normal') {
   let state = initial; let hold = false; let release: (()=>void)|undefined;
   await page.clock.install({time:new Date(stamp)});
   await page.route('**/api/**', async route => {
@@ -11,7 +11,7 @@ async function fixture(page: Page, initial: 'normal'|'missing'|'error' = 'normal
     if(path.endsWith('/dashboard')) {
       if(hold) await new Promise<void>(resolve=>{release=resolve;});
       if(state==='error') return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});
-      return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:second?'0':'203200000',purchaseAmount:second?'0':'542990800',stockValue:state==='missing'?null:second?'0':'651000000',totalAssetValue:state==='missing'?null:second?'0':'854200000',unrealizedProfitLoss:state==='missing'?null:'108009200',unrealizedReturnRate:state==='missing'?null:'19.89',dailyProfit:state==='missing'?null:'12840000',dailyProfitRate:state==='missing'?null:'1.5',previousDayChange:state==='missing'?null:'22840000',previousDayChangeRate:state==='missing'?null:'2.75',stockMonthlyProfit:'20000000',cashMonthlyProfit:'20000000',pricingComplete:state!=='missing',latestPriceUpdatedAt:state==='missing'?null:stamp,holdings:second?[]:holdings.map(h=>state==='missing'?{...h,currentPrice:null,marketValue:null,unrealizedProfitLoss:null,unrealizedReturnRate:null}:h)}}});
+      return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:second?'0':'203200000',purchaseAmount:second?'0':'542990800',stockValue:state==='missing'?null:second?'0':'651000000',totalAssetValue:state==='missing'?null:second?'0':'854200000',unrealizedProfitLoss:state==='missing'?null:'108009200',unrealizedReturnRate:state==='missing'?null:'19.89',dailyProfit:state==='missing'?null:'12840000',dailyProfitRate:state==='missing'?null:'1.5',previousDayChange:state==='missing'?null:'22840000',previousDayChangeRate:state==='missing'?null:'2.75',stockMonthlyProfit:'20000000',cashMonthlyProfit:'20000000',pricingComplete:state!=='missing',latestPriceUpdatedAt:state==='missing'?null:stamp,holdings:second?[]:(state==='single'?[{...holdings[0],marketValue:'651000000'}]:holdings).map(h=>state==='missing'?{...h,currentPrice:null,marketValue:null,unrealizedProfitLoss:null,unrealizedReturnRate:null}:h)}}});
     }
     return route.fulfill({json:{data:[],summary:{}}});
   });
@@ -78,8 +78,9 @@ test('v0.4 navigation: assets, home and holding-add share the nine tablet routes
     await expect(nav.getByRole('button')).toHaveText(labels);
     const selected=path==='/detail/assets'&&tablet?'평가자산':'홈';
     await expect(nav.getByRole('button',{name:selected,exact:true})).toHaveClass(/Mui-selected/);
+    await expect.poll(()=>nav.locator('img').evaluateAll(nodes=>nodes.every(n=>(n as HTMLImageElement).complete&&(n as HTMLImageElement).naturalWidth>0))).toBe(true);
     const sizes=await nav.getByRole('button').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();const img=n.querySelector('img') as HTMLImageElement;const label=n.querySelector('.MuiBottomNavigationAction-label')!.getBoundingClientRect();return {width:r.width,height:r.height,iw:img.naturalWidth,ih:img.naturalHeight,render:img.getBoundingClientRect().width,vertical:img.getBoundingClientRect().bottom<=label.top};}));
-    for(const size of sizes){expect(size.height).toBe(44);expect(size.width).toBeCloseTo(info.project.use.viewport!.width/labels.length,0);expect(size.iw).toBe(tablet?16:18);expect(size.ih).toBe(tablet?16:18);expect(size.render).toBe(tablet?16:18);expect(size.vertical).toBe(true);}
+    for(const size of sizes){expect(size.height).toBe(43);expect(size.width).toBeCloseTo(info.project.use.viewport!.width/labels.length,0);expect(size.iw).toBe(tablet?16:18);expect(size.ih).toBe(tablet?16:18);expect(size.render).toBe(tablet?16:18);expect(size.vertical).toBe(true);}
     await page.screenshot({path:info.outputPath(`nav-v04-${path==='/detail/assets'?'assets':path==='/'?'home':'add'}.png`)});
   }
   for(let i=0;i<labels.length;i++){
@@ -87,4 +88,12 @@ test('v0.4 navigation: assets, home and holding-add share the nine tablet routes
     await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:labels[i],exact:true}).click();
     await expect(page).toHaveURL(new RegExp(routes[i]==='/'?'/$':routes[i].replaceAll('/','\\/')));
   }
+});
+
+
+test('1001: a single holding keeps its 100 percent label inside the legend',async({page})=>{
+ await fixture(page,'single');await page.goto('/detail/assets');
+ const percent=page.getByTestId('asset-legend').getByText('100.0%',{exact:true});await expect(percent).toBeVisible();
+ expect(await percent.evaluate(n=>n.scrollWidth<=n.clientWidth+1)).toBe(true);
+ const row=page.getByTestId('asset-legend-row');expect(await row.evaluate(n=>n.children[1].getBoundingClientRect().right<=n.children[2].getBoundingClientRect().left)).toBe(true);
 });
