@@ -47,7 +47,7 @@ jobs:
         working-directory: frontend
       - name: Input, addition and Lot registration checks at four viewport sizes
         if: steps.scope.outputs.inputs == 'true'
-        run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts stock-inputs-v04.spec.ts
+        run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts stock-inputs-v04.spec.ts --workers=2
         working-directory: frontend
       - name: Home entry and return preserve the source scroll position
         if: steps.scope.outputs.inputs == 'true'
