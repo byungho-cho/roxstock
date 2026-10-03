@@ -14,7 +14,7 @@ const holdingColumns = 'minmax(0, 147fr) minmax(0, 48.3fr) minmax(0, 63fr) minma
 const watchColumns = 'minmax(0, 245fr) minmax(0, 54fr) minmax(0, 78fr) minmax(0, 78fr) minmax(0, 78fr) minmax(0, 52fr) minmax(0, 48fr) minmax(0, 48fr) minmax(0, 57fr)';
 const mockW: Record<string, number> = { '005380': 1.35, '005930': 1.2, '000660': 0.92, '000270': 2.3, '035420': 0.8, '012330': 1.9, '006400': 0.76, '051910': 0.88 };
 
-export function TabletStockTable({ stocks, activeTab, loading, favoriteIds, onSelect, onValue, onFavorite }: { stocks: StockItem[]; activeTab: StockListType; loading: boolean; favoriteIds: Set<string>; onSelect: (stock: StockItem) => void; onValue?: (stock: StockItem) => void; onFavorite?: (stock: StockItem) => void }) {
+export function TabletStockTable({ stocks, activeTab, loading, error=false, favoriteIds, onSelect, onValue, onFavorite }: { stocks: StockItem[]; activeTab: StockListType; loading: boolean; error?: boolean; favoriteIds: Set<string>; onSelect: (stock: StockItem) => void; onValue?: (stock: StockItem) => void; onFavorite?: (stock: StockItem) => void }) {
   const rowsRef=useRef<HTMLDivElement>(null);
   const holding = activeTab === 'holding';
   const traded = activeTab === 'traded';
@@ -29,7 +29,7 @@ export function TabletStockTable({ stocks, activeTab, loading, favoriteIds, onSe
         {loading ? Array.from({ length: 8 }, (_, index) => <Skeleton key={index} variant="text" height={33} />) : stocks.map((stock) => <StockTableRow key={stock.id} stock={stock} columns={columns} favorite={favoriteIds.has(stock.id)} onSelect={onSelect}>
           {traded ? <><StockName stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/><Typography sx={cell}>{stock.lastSoldAt?new Date(stock.lastSoldAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}):'—'}</Typography><Typography sx={{...cell,color:getMarketColor(stock.realizedProfit??Number.NaN)}}>{won(stock.realizedProfit??Number.NaN)}</Typography></> : holding ? <HoldingRow stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/> : <WatchRow stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/>}
         </StockTableRow>)}
-        {!loading && stocks.length === 0 && <Typography sx={{ py: 6, textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>내용이 없습니다.</Typography>}
+        {!loading && !error && stocks.length === 0 && <Typography sx={{ py: 6, textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>내용이 없습니다.</Typography>}
         </Box>
       </Box>
       <OverlayRegionScrollbar scrollRef={rowsRef} label="종목 데이터 행 스크롤" offset={12}/>

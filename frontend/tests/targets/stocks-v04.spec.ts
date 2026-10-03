@@ -12,7 +12,7 @@ test('v0.4 layout, 36px toolbar, correct menus and data-only table scrolling',as
  expect((await nav.boundingBox())!.height).toBe(44);
  await expect(nav.getByRole('button')).toHaveCount(wide?9:5);
  if(wide)await expect(nav.getByRole('button',{name:'시세수집'})).toBeVisible();
- expect((await page.getByRole('combobox',{name:'정렬 기준'}).boundingBox())!.height).toBe(36);
+ expect((await page.getByRole('combobox',{name:'정렬 기준'}).locator('..').boundingBox())!.height).toBe(36);
  const input=page.getByRole('textbox',{name:'목록 종목 검색'});await input.fill('보유');await input.blur();await input.focus();expect(await input.evaluate((el:HTMLInputElement)=>el.selectionEnd!-el.selectionStart!)).toBe(2);await input.fill('');
  if(wide){const rows=page.locator('[data-scroll-region="stock-table"]'),header=page.getByRole('columnheader',{name:'종목',exact:true}),before=(await header.boundingBox())!.y;await rows.evaluate(el=>el.scrollTop=100);expect((await header.boundingBox())!.y).toBe(before);expect(await page.locator('main').evaluate(el=>el.scrollTop)).toBe(0);await rows.evaluate(el=>el.scrollTop=0);}
  await screenshot(page,'v04-list',info.project.name);
@@ -59,4 +59,12 @@ test('previous-year expansion preserves entries and year titles stick inside the
  await page.getByRole('button',{name:'이전 연도 더보기'}).click();await expect(page.getByTestId('trade-year-2025')).toHaveCount(1);expect(await scroll.evaluate(el=>el.scrollTop)).toBe(before);await expect(page.getByTestId('sell-s1')).toHaveCount(1);
  await scroll.evaluate(el=>el.scrollTop=130);expect((await page.getByTestId('trade-year-2026').getByTestId('trade-year-title').boundingBox())!.y).toBeCloseTo((await scroll.boundingBox())!.y,0);
  await screenshot(page,'v04-years',info.project.name);
+});
+
+test('failed lookup is distinct from a normal empty list and popup detail returns to its original classification',async({page})=>{
+ await fixture(page);await page.goto('/stocks?tab=watchlist');await expect(page.getByTestId('stock-list')).toHaveAttribute('data-restoration-ready','true');
+ await page.getByRole('button',{name:'삼성전자 가치지표',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'상세보기 ›'}).click();await expect(page).toHaveURL(/stocks\/2\/value/);
+ await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/tab=watchlist/);
+ await page.route('**/api/accounts/a/holdings',route=>route.fulfill({status:500,json:{error:{message:'종목 조회 실패'}}}));
+ await page.goto('/stocks?tab=holding');await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(0);
 });
