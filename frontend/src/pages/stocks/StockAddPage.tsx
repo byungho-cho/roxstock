@@ -1,7 +1,8 @@
 import {Box,Button,ButtonBase,Dialog,IconButton,InputBase,Stack,Typography} from '@mui/material';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {useEffect,useRef,useState} from 'react';
+import {useContext,useEffect,useRef,useState} from 'react';
 import {useNavigate,useSearchParams} from 'react-router-dom';
+import {StockInputContext} from './StockInputContext';
 import {FormTextField} from '../../components/forms/Fields';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {mapSecurity} from '../../data/liveData';
@@ -15,7 +16,8 @@ export function StockAddPage(){const {accountId}=useActiveAccount();return <Stoc
 function StockAddContent({accountId}:{accountId:string|undefined}){
  const navigate=useNavigate(),client=useQueryClient();const[params]=useSearchParams();
  const fromHome=params.get('from')==='home';
- const[type,setType]=useState<'holding'|'watchlist'>(fromHome||params.get('type')==='holding'?'holding':'watchlist');
+ const inputHost=useContext(StockInputContext);
+ const[type]=useState<'holding'|'watchlist'>(fromHome||params.get('type')==='holding'?'holding':'watchlist');
  const[query,setQuery]=useState(''),[search,setSearch]=useState(''),[direct,setDirect]=useState(false);
  const[name,setName]=useState(''),[symbol,setSymbol]=useState(''),[market,setMarket]=useState<MarketType>('KOSPI'),[year,setYear]=useState(String(new Date().getFullYear()));
  const[selected,setSelected]=useState<StockItem|null>(null),[confirm,setConfirm]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -45,41 +47,42 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const button={height:44,minHeight:44,borderRadius:'8px',fontSize:12,fontWeight:600,boxShadow:'none'};
  const primaryButton={...button,bgcolor:colors.buttonPrimary,color:colors.textPrimary,border:'1px solid '+colors.focus,'&:hover':{bgcolor:colors.buttonPrimary}};
  const clearField=(label:string,value:string,change:(s:string)=>void)=><IconButton aria-label={label+' 지우기'} disabled={!value||busy} onClick={()=>change('')} sx={{width:16,height:16,p:0}}><Box component="img" src="/stocks-v03/clear.svg" alt="" sx={{width:16,height:16,opacity:value?1:.4}}/></IconButton>;
+ useEffect(()=>{inputHost?.setTitle(`${direct?'종목 직접추가':'종목추가'}(${type==='holding'?'보유종목':'관심종목'})`);},[direct,type,inputHost?.setTitle]);
+ useEffect(()=>{inputHost?.setBusy(busy);return()=>inputHost?.setBusy(false);},[busy,inputHost?.setBusy]);
  const chosenName=direct?name.trim():selected?.name,chosenSymbol=direct?symbol:selected?.symbol;
  const chosenMarket=direct?market:selected?.marketType;
  return <Box data-testid="stock-add-content" className="rox-home" sx={{fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded variant="more" backIcon={<Box component="span" aria-hidden sx={{width:28,fontSize:36,lineHeight:"36px",textAlign:"left"}}>‹</Box>} showAdd={false} title={title} onBack={()=>direct?setDirect(false):navigate(-1)} showBackTablet/>
-  {!fromHome&&<Stack direction="row" spacing="8px" sx={{mb:'8px'}}>{(['holding','watchlist'] as const).map(value=><Button key={value} aria-pressed={value===type} variant={value===type?'contained':'outlined'} onClick={()=>setType(value)} sx={{...button,flex:1}}>{value==='holding'?'보유종목':'관심종목'}</Button>)}</Stack>}
   {!direct?<Stack spacing="8px">
    <Box sx={{height:48,display:'flex',alignItems:'center',gap:'8px',px:'8px',bgcolor:colors.raised,border:'1px solid '+colors.borderStrong,borderRadius:'8px'}}>
-    <Box component="img" src="/stocks-v03/search.svg" alt="" sx={{width:16,height:16}}/>
+    <Box component="img" src="/stocks-v03/search.svg" alt="" sx={{width:17,height:16}}/>
     <InputBase inputRef={searchRef} autoFocus value={query} onFocus={e=>e.target.select()} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();runSearch();}}} inputProps={{'aria-label':'전체 종목 검색',enterKeyHint:'search'}} placeholder="종목명·종목코드 검색" sx={{flex:1,minWidth:0,fontSize:13}}/>
     {query&&<IconButton aria-label="검색어 지우기" onClick={()=>{setQuery('');setSearch('');searchRef.current?.focus();}} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/search-clear.svg" alt="" sx={{width:16,height:16}}/></IconButton>}
    </Box>
    {search&&<Typography sx={{fontSize:13,lineHeight:'19px',fontWeight:600}}>‘{search}’ 검색 결과 {rows.length}개{result.isFetching&&rows.length>0?' · 갱신 중':''}</Typography>}
    {result.isError?<Box role="alert" sx={{p:'20px',fontSize:13}}>검색에 실패했습니다. 기존 검색 상태를 유지합니다.<Button onClick={()=>void result.refetch()}>다시 시도</Button></Box>:result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:search&&rows.length?
-    <Box data-testid="stock-search-results" sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,1fr))'},gap:'8px'}}>{rows.map(s=><ButtonBase key={s.id} data-testid="security-search-result" onClick={()=>{setSelected(s);showConfirm();}} sx={{height:52,p:'8px 14px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',borderRadius:'8px',bgcolor:colors.surface,border:'1px solid #25344d',minWidth:0,textAlign:'left'}}>
+    <Box data-testid="stock-search-results" sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:'8px'}}>{rows.map(s=><ButtonBase key={s.id} data-testid="security-search-result" onClick={()=>{setSelected(s);showConfirm();}} sx={{height:52,p:'8px 14px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',borderRadius:'8px',bgcolor:colors.surface,border:'1px solid #25344d',minWidth:0,textAlign:'left'}}>
      <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={search}/></Typography>
      <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={search}/> · {s.marketType}</Typography>
     </ButtonBase>)}</Box>:
     <Box sx={{height:search?210:180,mt:search?'4px !important':'6px !important',p:'24px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
-     {!search&&<Typography aria-hidden sx={{fontSize:36,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
-     <Typography sx={{fontSize:search?16:14,fontWeight:600,mt:search?'12px':'6px'}}>{search?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
-     <Typography sx={{fontSize:search?11:10,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{search?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
+     {!search&&<Typography aria-hidden sx={{fontSize:30,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
+     <Typography sx={{fontSize:search?16:15,fontWeight:600,mt:search?'12px':'6px'}}>{search?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
+     <Typography sx={{fontSize:search?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{search?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
      {search&&<Button variant="contained" onClick={enterDirect} sx={{...primaryButton,mt:'24px',px:'20px'}}>종목 직접 추가</Button>}
     </Box>}
-   {!search&&<Stack direction="row" sx={{height:46,mt:'16px !important',alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11,p:0,minWidth:0,color:colors.focus}} onClick={enterDirect}>직접 추가 ›</Button></Stack>}
+   {!search&&<Stack direction="row" sx={{height:46,mt:'16px !important',px:'14px',border:'1px solid #25344d',borderRadius:'8px',bgcolor:'#0f172a',alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11,p:0,minWidth:0,color:colors.focus}} onClick={enterDirect}>직접 추가 ›</Button></Stack>}
    {search&&rows.length>0&&<Button onClick={enterDirect} sx={{fontSize:11,alignSelf:'flex-end'}}>직접 추가 ›</Button>}
   </Stack>:<Box data-testid="stock-direct-add" sx={{'& .MuiInputBase-input':{fontSize:'13px !important'},'& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root':{flex:'0 0 60px',mr:'8px'}}}>
    <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목명" endAdornment={clearField('종목명',name,setName)} value={name} placeholder="예: 신규테크" onChange={setName} autoFocus onEnter={()=>symbolRef.current?.focus()} disabled={busy}/>
    <Box sx={{mt:'12px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목코드" endAdornment={clearField('종목코드',symbol,setSymbol)} value={symbol} placeholder="예: 123456" onChange={s=>setSymbol(s.replace(/\D/g,'').slice(0,6))} inputRef={symbolRef} onEnter={()=>yearRef.current?.focus()} disabled={busy}/></Box>
-   <Typography sx={{mt:{xs:'16px',sm:'6px'},fontSize:10,lineHeight:'15px',color:colors.textMuted,textAlign:{xs:'right',sm:'left'},px:{sm:'8px'}}}>6자리 숫자 · 기존 전체종목과 직접 추가 종목의 코드 중복 확인</Typography>
-   <Typography sx={{mt:{xs:'33px',sm:'11px'},mb:'8px',fontSize:11,lineHeight:'14px',color:colors.textMuted}}>시장 구분</Typography>
+   <Typography sx={{mt:'16px',fontSize:10,lineHeight:'15px',color:colors.textMuted,textAlign:'right',px:'8px'}}>6자리 숫자 · 기존 전체종목과 직접 추가 종목의 코드 중복 확인</Typography>
+   <Typography sx={{mt:'33px',mb:'8px',fontSize:11,lineHeight:'14px',color:colors.textMuted}}>시장 구분</Typography>
    <Stack direction="row" spacing="8px">{(['KOSPI','KOSDAQ'] as const).map(value=><Button key={value} aria-pressed={market===value} disabled={busy} onClick={()=>setMarket(value)} variant={market===value?'contained':'outlined'} sx={{...button,flex:1,border:'1px solid '+(market===value?colors.focus:'#25344d'),bgcolor:market===value?colors.buttonPrimary:'#0f172a',color:market===value?colors.textPrimary:colors.textMuted}}>{value==='KOSPI'?'코스피':'코스닥'}</Button>)}</Stack>
    <Box sx={{mt:'14px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="상장 연도" endAdornment={clearField('상장 연도',year,setYear)} value={year} onChange={s=>setYear(s.replace(/\D/g,'').slice(0,4))} inputRef={yearRef} onEnter={showConfirm} disabled={busy}/></Box>
    <Button fullWidth variant="contained" disabled={busy||!valid||!accountId} onClick={showConfirm} sx={{...primaryButton,mt:'16px'}}>종목 추가</Button>
   </Box>}
-  <Dialog open={confirm} onClose={()=>!busy&&setConfirm(false)} slotProps={{backdrop:{sx:{bgcolor:'rgba(0,0,0,.6)'}},paper:{sx:{width:{xs:'calc(100% - 64px)',sm:306},maxWidth:368,m:'32px',p:'19px',borderRadius:'8px',border:'1px solid #25344d',bgcolor:colors.surface,backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif'}}}}>
+  <Dialog data-testid="stock-add-confirm" open={confirm} onClose={()=>!busy&&setConfirm(false)} slotProps={{backdrop:{sx:{bgcolor:'rgba(0,0,0,.6)'}},paper:{sx:{width:{xs:'calc(100% - 64px)',sm:306},maxWidth:368,m:'32px',p:'19px',borderRadius:'8px',border:'1px solid #25344d',bgcolor:colors.surface,backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif'}}}}>
    <Typography component="h2" sx={{fontSize:18,lineHeight:'22px',fontWeight:700}}>{chosenName}</Typography>
    <Typography sx={{mt:'6px',fontSize:11,lineHeight:'15px',color:colors.textMuted}}>{chosenSymbol} · {chosenMarket}</Typography>
    <Typography sx={{mt:'20px',fontSize:12,lineHeight:'18px',color:colors.textMuted}}>{type==='holding'?'보유종목':'관심종목'}에 추가하시겠습니까?</Typography>

@@ -1,6 +1,8 @@
-import {useRef} from 'react';
-import {Box,Dialog,DialogContent,DialogTitle,IconButton} from '@mui/material';
+import {useCallback,useRef,useState} from 'react';
+import {Box,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
+import {StockInputContext} from './pages/stocks/StockInputContext';
+import {StockPricePage} from './pages/stocks/StockPricePage';
 import { TargetArrivalPage } from './pages/dashboard/TargetArrivalCard';
 import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
@@ -26,15 +28,22 @@ import { CollectionMonitoringPage } from './pages/more/CollectionMonitoringPage'
 
 export function App() {
   const location=useLocation(),navigate=useNavigate(),modalContent=useRef<HTMLDivElement>(null);
-  const background=(location.state as {backgroundLocation?:Location}|null)?.backgroundLocation;
-  const modal=!!background&&location.pathname==='/trade';
-  const params=new URLSearchParams(location.search),title=location.pathname==='/stocks/add'?'종목 추가':`${params.get('type')==='sell'?'매도':'매수'} ${params.has('edit')?'수정':'등록'}`;
+  const tablet=useMediaQuery('(min-width:600px)'),[inputTitle,setInputTitle]=useState(''),inputBusy=useRef(false);
+  const setInputBusy=useCallback((busy:boolean)=>{inputBusy.current=busy;},[]);
+  const suppliedBackground=(location.state as {backgroundLocation?:Location}|null)?.backgroundLocation;
+  const params=new URLSearchParams(location.search),adding=location.pathname==='/stocks/add';
+  const fallback={...location,pathname:adding?'/stocks':params.get('stock')?`/stocks/${params.get('stock')}`:'/stocks',search:adding?`?tab=${params.get('from')==='home'||params.get('type')==='holding'?'holding':'watchlist'}`:'',state:null};
+  const background=suppliedBackground??fallback;
+  const modal=tablet&&(adding||location.pathname==='/trade');
+  const close=()=>{if(!inputBusy.current){if(suppliedBackground)navigate(-1);else navigate(background.pathname+background.search,{replace:true});}};
+  const title=adding?inputTitle||`종목추가(${params.get('from')==='home'||params.get('type')==='holding'?'보유종목':'관심종목'})`:`${params.get('type')==='sell'?'매도':'매수'} ${params.has('edit')?'수정':'등록'}`;
   return (<>
     <Routes location={modal?background:location}>
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="stocks" element={<StockListPage />} />
         <Route path="stocks/add" element={<StockAddPage />} />
+        <Route path="stocks/:stockId/price" element={<StockPricePage />} />
         <Route path="stocks/:stockId/edit" element={liveApiEnabled ? <LiveStockEditPage /> : <StockEditPage />} />
         <Route path="stocks/:stockId/value" element={liveApiEnabled ? <LiveStockInsightPage mode="value" /> : <StockInsightPage mode="value" />} />
         <Route path="stocks/:stockId/financials" element={liveApiEnabled ? <LiveStockInsightPage mode="financials" /> : <StockInsightPage mode="financials" />} />
@@ -53,7 +62,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
-    {modal&&<Dialog open onClose={()=>navigate(-1)} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}},paper:{sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:location.pathname==='/trade'?386:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle sx={{height:44,p:'8px 16px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={()=>navigate(-1)} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></DialogContent></Dialog>}
+    {modal&&<Dialog open onClose={close} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}},paper:{sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',fontFamily:'RoxHomeInter, sans-serif',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle data-testid="stock-flow-modal-title" sx={{height:44,minHeight:44,flexShrink:0,boxSizing:'border-box',p:'8px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={close} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><StockInputContext.Provider value={{inDialog:true,setTitle:setInputTitle,setBusy:setInputBusy}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></StockInputContext.Provider></DialogContent></Dialog>}
   </>);
 }
 

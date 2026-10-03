@@ -27,11 +27,14 @@ jobs:
           if [ -n "$BASE_SHA" ] && git diff --name-only "$BASE_SHA" HEAD | grep -q '^frontend/src/pages/assets/AssetOverviewPage.tsx$'; then
             echo "assets=true" >> "$GITHUB_OUTPUT"
           fi
+          if [ -n "$BASE_SHA" ] && git diff --name-only "$BASE_SHA" HEAD | grep -q '^frontend/src/pages/stocks/StockInputContext.ts$'; then
+            echo "inputs=true" >> "$GITHUB_OUTPUT"
+          fi
       - run: npm ci
       - run: node --import tsx --test frontend/tests/unit/stockMath.test.ts
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - if: steps.scope.outputs.assets != 'true'
+      - if: steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
         run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts home-v04.spec.ts
         working-directory: frontend
       - name: Home, assets, overlay scrollbar and connected tablet menus
@@ -39,8 +42,12 @@ jobs:
         run: npx playwright test --config=playwright.targets.config.ts assets-v03.spec.ts home-v04.spec.ts --grep "four-size layout|v0.4 example|v0.4 navigation|overlay scrollbar"
         working-directory: frontend
       - name: Connected Lot sell and trade edit save/failure flows
-        if: steps.scope.outputs.assets != 'true'
+        if: steps.scope.outputs.assets != 'true' && steps.scope.outputs.inputs != 'true'
         run: npx playwright test --config=playwright.targets.config.ts stocks-v03.spec.ts --project=cover-370x465 --project=tablet-725x396 --grep "Lot price evaluation|buy edit replaces" --output=test-results/stock-trade
+        working-directory: frontend
+      - name: Input, addition and Lot registration checks at four viewport sizes
+        if: steps.scope.outputs.inputs == 'true'
+        run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts stock-inputs-v04.spec.ts
         working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
