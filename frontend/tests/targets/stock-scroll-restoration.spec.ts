@@ -1,3 +1,4 @@
+import {mkdir,writeFile} from 'node:fs/promises';
 import {test,expect,type Page} from '@playwright/test';
 import {fixture} from './stock-input-fixture';
 
@@ -56,5 +57,5 @@ for(const category of categories)test(category+' restores actual scroll after in
   await choose();await page.goBack();await restored('browser-back');
   await choose();await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await restored('header-back');
   expect(f.writes).toHaveLength(0);
- }finally{await info.attach('scroll-metrics',{body:Buffer.from(JSON.stringify(metrics,null,2)),contentType:'application/json'});}
+ }finally{await mkdir(info.outputDir,{recursive:true});const path=info.outputPath('scroll-metrics.json');await writeFile(path,JSON.stringify(metrics,null,2));await info.attach('scroll-metrics',{path,contentType:'application/json'});}
 });
