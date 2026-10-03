@@ -13,6 +13,9 @@ async function fixture(page: Page, initial: 'normal'|'missing'|'error'|'single' 
       if(state==='error') return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});
       return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:second?'0':'203200000',purchaseAmount:second?'0':'542990800',stockValue:state==='missing'?null:second?'0':'651000000',totalAssetValue:state==='missing'?null:second?'0':'854200000',unrealizedProfitLoss:state==='missing'?null:'108009200',unrealizedReturnRate:state==='missing'?null:'19.89',dailyProfit:state==='missing'?null:'12840000',dailyProfitRate:state==='missing'?null:'1.5',previousDayChange:state==='missing'?null:'22840000',previousDayChangeRate:state==='missing'?null:'2.75',stockMonthlyProfit:'20000000',cashMonthlyProfit:'20000000',pricingComplete:state!=='missing',latestPriceUpdatedAt:state==='missing'?null:stamp,holdings:second?[]:(state==='single'?[{...holdings[0],marketValue:'651000000'}]:holdings).map(h=>state==='missing'?{...h,currentPrice:null,marketValue:null,unrealizedProfitLoss:null,unrealizedReturnRate:null}:h)}}});
     }
+    if(path.endsWith('/cash-overview')) return route.fulfill({json:{data:{account:{id:second?'2':'1',name:'기본',currentBalance:'203200000',updatedAt:stamp},monthly:{deposit:'0',withdrawal:'0',dividend:'0',netChange:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0',netChange:'0'},recentTransactions:[]}}});
+    if(path.endsWith('/cash-transactions')) return route.fulfill({json:{data:[],meta:{total:0,limit:10,offset:0}}});
+    if(path==='/api/collection/monitoring') return route.fulfill({json:{data:{generatedAt:stamp,timezone:'Asia/Seoul',features:[]}}});
     if(path.endsWith('/target-arrivals')) return route.fulfill({json:{data:[],meta:{accountId:second?'2':'1',total:0,enabled:true,conditionsVersion:0,unavailableCount:0,calculatedAt:stamp,priceAsOf:stamp}}});
     return route.fulfill({json:{data:[],summary:{}}});
   });
