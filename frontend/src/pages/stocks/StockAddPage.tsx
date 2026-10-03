@@ -18,14 +18,16 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const fromHome=params.get('from')==='home';
  const inputHost=useContext(StockInputContext);
  const[type]=useState<'holding'|'watchlist'>(fromHome||params.get('type')==='holding'?'holding':'watchlist');
- const[query,setQuery]=useState(''),[search,setSearch]=useState(''),[direct,setDirect]=useState(false);
+ const[query,setQuery]=useState(''),[search,setSearch]=useState(''),[direct,setDirect]=useState(false),[composing,setComposing]=useState(false);
  const[name,setName]=useState(''),[symbol,setSymbol]=useState(''),[market,setMarket]=useState<MarketType>('KOSPI'),[year,setYear]=useState(String(new Date().getFullYear()));
  const[selected,setSelected]=useState<StockItem|null>(null),[confirm,setConfirm]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const lock=useRef(false),alive=useRef(true),searchRef=useRef<HTMLInputElement>(null),symbolRef=useRef<HTMLInputElement>(null),yearRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
- const result=useQuery({queryKey:['securitySearch',accountId,search],enabled:!!accountId&&!!search,
-  queryFn:async()=> (await listSecurities({accountId,query:search,excludeRegistered:true})).map(mapSecurity)});
- const rows=result.data??[];
+ const result=useQuery({queryKey:['securitySearch',accountId,search],enabled:!!accountId&&!direct&&!composing&&search.length>=2&&search===query.trim(),
+  queryFn:async({signal})=> (await listSecurities({accountId,query:search,excludeRegistered:true},signal)).map(mapSecurity)});
+ const currentSearch=!composing&&query.trim().length>=2&&search===query.trim()?search:'';
+ const rows=currentSearch?(result.data??[]):[];
+ useEffect(()=>{if(composing||direct)return;const value=query.trim();if(value.length<2){setSearch('');return;}const timer=window.setTimeout(()=>setSearch(value),250);return()=>window.clearTimeout(timer);},[query,composing,direct]);
  const valid=!!name.trim()&&name.trim().length<=100&&/^\d{6}$/.test(symbol)&&/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=new Date().getFullYear();
  const showConfirm=()=>{if(!busy&&accountId&&(!direct||valid)){setError('');setConfirm(true);}};
  const finish=async()=>{await Promise.all(['stocks','dashboard','targetArrivals','recentBuys'].map(key=>client.invalidateQueries({queryKey:[key]})));if(alive.current)navigate('/stocks?tab='+type,{replace:true});};
@@ -41,7 +43,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:'등록에 실패했습니다.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  };
- const runSearch=()=>{const value=query.trim();setSearch(value);if(value&&value===search)void result.refetch();};
+ const runSearch=()=>{if(composing)return;const value=query.trim();setSearch(value.length>=2?value:'');};
  const enterDirect=()=>{setDirect(true);setSelected(null);setError('');};
  const title='종목추가('+(type==='holding'?'보유종목':'관심종목')+')';
  const button={height:44,minHeight:44,borderRadius:'8px',fontSize:12,fontWeight:600,boxShadow:'none'};
@@ -55,24 +57,24 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
   <PageHeader embedded variant="more" backIcon={<Box component="span" aria-hidden sx={{width:28,fontSize:36,lineHeight:"36px",textAlign:"left"}}>‹</Box>} showAdd={false} title={title} onBack={()=>direct?setDirect(false):navigate(-1)} showBackTablet/>
   {!direct?<Stack spacing="8px">
    <Box sx={{height:48,display:'flex',alignItems:'center',gap:'8px',px:'8px',bgcolor:colors.raised,border:'1px solid '+colors.borderStrong,borderRadius:'8px'}}>
-    <Box component="img" src="/stocks-v03/search.svg" alt="" sx={{width:17,height:16}}/>
-    <InputBase inputRef={searchRef} autoFocus value={query} onFocus={e=>e.target.select()} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();runSearch();}}} inputProps={{'aria-label':'전체 종목 검색',enterKeyHint:'search'}} placeholder="종목명·종목코드 검색" sx={{flex:1,minWidth:0,fontSize:13}}/>
+    <IconButton aria-label="검색 실행" onClick={runSearch} sx={{p:0,width:17,height:16}}><Box component="img" src="/stocks-v03/search.svg" alt="" sx={{width:17,height:16}}/></IconButton>
+    <InputBase inputRef={searchRef} autoFocus value={query} onFocus={e=>e.target.select()} onChange={e=>setQuery(e.target.value)} onCompositionStart={()=>setComposing(true)} onCompositionEnd={e=>{setQuery((e.target as HTMLInputElement).value);setComposing(false);}} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();runSearch();}}} inputProps={{'aria-label':'전체 종목 검색',enterKeyHint:'search'}} placeholder="종목명·종목코드 검색" sx={{flex:1,minWidth:0,fontSize:13}}/>
     {query&&<IconButton aria-label="검색어 지우기" onClick={()=>{setQuery('');setSearch('');searchRef.current?.focus();}} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/search-clear.svg" alt="" sx={{width:16,height:16}}/></IconButton>}
    </Box>
-   {search&&<Typography sx={{fontSize:13,lineHeight:'19px',fontWeight:600}}>‘{search}’ 검색 결과 {rows.length}개{result.isFetching&&rows.length>0?' · 갱신 중':''}</Typography>}
-   {result.isError?<Box role="alert" sx={{p:'20px',fontSize:13}}>검색에 실패했습니다. 기존 검색 상태를 유지합니다.<Button onClick={()=>void result.refetch()}>다시 시도</Button></Box>:result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:search&&rows.length?
+   {currentSearch&&<Typography sx={{fontSize:13,lineHeight:'19px',fontWeight:600}}>‘{currentSearch}’ 검색 결과 {rows.length}개{result.isFetching&&rows.length>0?' · 갱신 중':''}</Typography>}
+   {currentSearch&&result.isError?<Box role="alert" sx={{p:'20px',fontSize:13}}>검색에 실패했습니다. 기존 검색 상태를 유지합니다.<Button onClick={()=>void result.refetch()}>다시 시도</Button></Box>:currentSearch&&result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:currentSearch&&rows.length?
     <Box data-testid="stock-search-results" sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:'8px'}}>{rows.map(s=><ButtonBase key={s.id} data-testid="security-search-result" onClick={()=>{setSelected(s);showConfirm();}} sx={{height:52,p:'8px 14px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',borderRadius:'8px',bgcolor:colors.surface,border:'1px solid #25344d',minWidth:0,textAlign:'left'}}>
-     <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={search}/></Typography>
-     <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={search}/> · {s.marketType}</Typography>
+     <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={currentSearch}/></Typography>
+     <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={currentSearch}/> · {s.marketType}</Typography>
     </ButtonBase>)}</Box>:
-    <Box sx={{height:search?210:180,mt:search?'4px !important':'14px !important',p:search?'24px 16px':'30px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
-     {!search&&<Typography aria-hidden sx={{fontSize:30,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
-     <Typography sx={{fontSize:search?16:15,fontWeight:600,mt:search?'12px':'6px'}}>{search?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
-     <Typography sx={{fontSize:search?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{search?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
-     {search&&<Button variant="contained" onClick={enterDirect} sx={{...primaryButton,mt:'24px',px:'20px'}}>종목 직접 추가</Button>}
+    <Box sx={{height:currentSearch?210:180,mt:currentSearch?'4px !important':'14px !important',p:currentSearch?'24px 16px':'30px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
+     {!currentSearch&&<Typography aria-hidden sx={{fontSize:30,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
+     <Typography sx={{fontSize:currentSearch?16:15,fontWeight:600,mt:currentSearch?'12px':'6px'}}>{currentSearch?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
+     <Typography sx={{fontSize:currentSearch?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{currentSearch?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
+     {currentSearch&&<Button variant="contained" onClick={enterDirect} sx={{...primaryButton,mt:'24px',px:'20px'}}>종목 직접 추가</Button>}
     </Box>}
-   {!search&&<Stack direction="row" sx={{height:46,mt:'16px !important',px:'14px',border:'1px solid #25344d',borderRadius:'8px',bgcolor:'#0f172a',alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11,p:0,minWidth:0,color:colors.focus}} onClick={enterDirect}>직접 추가 ›</Button></Stack>}
-   {search&&rows.length>0&&<Button onClick={enterDirect} sx={{fontSize:11,alignSelf:'flex-end'}}>직접 추가 ›</Button>}
+   {!currentSearch&&<Stack direction="row" sx={{height:46,mt:'16px !important',px:'14px',border:'1px solid #25344d',borderRadius:'8px',bgcolor:'#0f172a',alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11,p:0,minWidth:0,color:colors.focus}} onClick={enterDirect}>직접 추가 ›</Button></Stack>}
+   {currentSearch&&rows.length>0&&<Button onClick={enterDirect} sx={{fontSize:11,alignSelf:'flex-end'}}>직접 추가 ›</Button>}
   </Stack>:<Box data-testid="stock-direct-add" sx={{'& .MuiInputBase-input':{fontSize:'13px !important'},'& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root':{flex:'0 0 60px',mr:'8px'}}}>
    <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목명" endAdornment={clearField('종목명',name,setName)} value={name} placeholder="예: 신규테크" onChange={setName} autoFocus onEnter={()=>symbolRef.current?.focus()} disabled={busy}/>
    <Box sx={{mt:'12px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목코드" endAdornment={clearField('종목코드',symbol,setSymbol)} value={symbol} placeholder="예: 123456" onChange={s=>setSymbol(s.replace(/\D/g,'').slice(0,6))} inputRef={symbolRef} onEnter={()=>yearRef.current?.focus()} disabled={busy}/></Box>

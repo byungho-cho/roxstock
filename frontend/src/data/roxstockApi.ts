@@ -179,10 +179,10 @@ export const getCashOverview = (accountId: string, year?: number, month?: number
   return apiRequest<CashOverviewDto>(`/accounts/${encodeURIComponent(accountId)}/cash-overview${params.size ? `?${params}` : ''}`);
 };
 
-export function listSecurities(search: SecuritySearch = {}) {
+export function listSecurities(search: SecuritySearch = {}, signal?: AbortSignal) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(search)) if (value !== undefined && value !== '') params.set(key, String(value));
-  return apiRequest<SecurityDto[]>(`/securities${params.size ? `?${params}` : ''}`);
+  return apiRequest<SecurityDto[]>(`/securities${params.size ? `?${params}` : ''}`, { signal });
 }
 
 export interface WatchlistInput {
