@@ -19,3 +19,5 @@ test('unavailable prices hide stale valuation without losing purchase data or so
  const available={...missing,id:'available',priceAvailable:true};
  for(const descending of [true,false])assert.deepEqual(sortStocks([missing,available],'marketValue',descending).map(s=>s.id),['available','missing']);
 });
+
+test('legacy recommended registrations stay visible as watchlist and manual holdings do not create quantity',()=>{const result=deriveAccountStocks([{...stock('rec'),listType:'recommended'},{...stock('manual'),listType:'holding'}],[],[]);assert.equal(result.find(s=>s.id==='rec')?.listType,'watchlist');assert.equal(result.find(s=>s.id==='manual')?.listType,'holding');assert.equal(result.find(s=>s.id==='manual')?.quantity,undefined);});

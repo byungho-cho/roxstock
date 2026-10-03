@@ -34,7 +34,7 @@ export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean,f
   return [...stocks].sort((a,b)=>{const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;const av=value(a),bv=value(b),missing=(v:typeof av)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv));const delta=typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko');});
 }
 export function deriveAccountStocks(catalog:StockItem[],holdings:StockItem[],trades:TradeDto[]) {
-  const result=new Map(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s}]));
+  const result=new Map(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s,listType:s.listType==='recommended'?'watchlist':s.listType}]));
   for(const trade of trades){if(!result.has(trade.security.id))result.set(trade.security.id,{id:trade.security.id,symbol:trade.security.symbol,name:trade.security.name,listType:'traded',currentPrice:Number.NaN,priceChangeRate:Number.NaN,collectionStatus:'failed',...catalog.find(s=>s.id===trade.security.id)});}
   const holdingIds=new Set(holdings.filter(s=>(s.quantity??0)>0).map(s=>s.id));
   for(const trade of trades){const s=result.get(trade.security.id)!;s.hasTradeHistory=true;if(!holdingIds.has(s.id))s.listType='traded';if(trade.type==='SELL'){s.realizedProfit=(s.realizedProfit??0)+Number(trade.realizedProfitLoss??0);s.lastSoldAt=!s.lastSoldAt||trade.tradedAt>s.lastSoldAt?trade.tradedAt:s.lastSoldAt;}}
