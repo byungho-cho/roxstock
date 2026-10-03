@@ -22,7 +22,7 @@ export function DashboardPage() {
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`); monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
   const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
-  return <Box className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start' }}>
+  return <Box className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, height: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       <TotalAssetCard summary={summary} home />
@@ -63,4 +63,3 @@ function ChartLine({ points }: { points: string }) {
 function DashboardLoading() {
   return <Stack spacing="8px"><Skeleton variant="rounded" height={76} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /></Stack><Skeleton variant="rounded" height={88} sx={{ borderRadius: '8px' }} /><Skeleton variant="rounded" height={156} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
 }
-

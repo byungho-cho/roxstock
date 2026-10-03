@@ -41,6 +41,7 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   });
   expect(spacing).toMatchObject({ paddingTop: '0px', paddingLeft: '16px', paddingRight: '16px', titleLeft: 8, cardLeft: 16, cardTop: 44, clipped: [] });
   expect(layout.overflow).toBe(false);expect(layout.header).toBe(44);expect(layout.nav).toBe(44);expect(layout.scrolls).toHaveLength(0);
+  for(const id of ['home-holding','recent-buy-lot'])expect(await page.getByTestId(id).first().evaluate(n=>getComputedStyle(n).paddingRight)).toBe('8px');
   const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
   expect(await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(251, 191, 36)');
   expect(assets).toHaveLength(5);for(const asset of assets){expect(asset.width).toBe(18);expect(asset.height).toBe(18);expect(asset.render.width).toBe(18);expect(asset.render.height).toBe(18);}
