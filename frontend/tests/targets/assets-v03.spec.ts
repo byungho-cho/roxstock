@@ -70,9 +70,10 @@ test('1001: four-size layout, distinct profit, donut units, chart toggle and hol
 
 test('overlay scrollbar: initial display, one-second fade, timer reset, hidden scrolling and no layout shift', async ({page}, info) => {
   await fixture(page);
-  await page.clock.pauseAt(new Date(Date.parse(stamp) + 1000));
   await page.goto('/detail/assets');
   await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');
+  // Let query notifications render before freezing time for scrollbar timers.
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100));
   await page.clock.runFor(50);
   const scrollbar = page.getByRole('scrollbar', {name:'콘텐츠 스크롤'}), main = page.locator('main');
   await expect(scrollbar).toHaveCSS('opacity', '1');
@@ -97,7 +98,7 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
   await expect.poll(()=>main.evaluate(n=>n.scrollTop)).toBe(await main.evaluate(n=>n.scrollHeight-n.clientHeight));
   await page.setViewportSize({width:info.project.use.viewport!.width,height:1400});await page.clock.runFor(100);
   await expect(scrollbar).toHaveCount(0);
-  await page.goto('/');await page.clock.runFor(100);await expect(scrollbar).toHaveCount(0);
+  await page.clock.resume();await page.goto('/');await expect(page.getByTestId('home-summary-area')).toBeVisible();await expect(scrollbar).toHaveCount(0);
 });
 
 test('1001: refresh retains values and account switch shows only selected account',async({page},info)=>{
