@@ -9,3 +9,10 @@ export function writePageMemory<T>(key: string, value: T) {
   memory.set(key, value);
   try { sessionStorage.setItem(prefix + key, JSON.stringify(value)); } catch { /* Storage may be unavailable. */ }
 }
+export function nearestSavedItem(anchor: string | undefined, order: string[], available: string[]) {
+  if (!anchor) return undefined;
+  if (available.includes(anchor)) return anchor;
+  const index = order.indexOf(anchor);
+  if (index < 0) return undefined;
+  return order.slice(index).find(id => available.includes(id)) ?? order.slice(0, index).reverse().find(id => available.includes(id));
+}

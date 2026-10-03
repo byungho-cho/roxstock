@@ -25,7 +25,7 @@ export function usePageMemory<T>(name: string, initial: T | (() => T)): [T, Disp
 export function useListNavigation(inheritReturn = false) {
   const location = useLocation(), navigate = useNavigate();
   return (to: To, options: NavigateOptions = {}) => navigate(to, { ...options, state: {
-    ...options.state, returnTo: (inheritReturn ? location.state?.returnTo : undefined) ?? { pathname: location.pathname, search: location.search, index: window.history.state?.idx },
+    backgroundLocation: location, ...options.state, returnTo: (inheritReturn ? location.state?.returnTo : undefined) ?? { pathname: location.pathname, search: location.search, index: window.history.state?.idx },
   } });
 }
 export function useReturnNavigation(fallback = '/stocks') {

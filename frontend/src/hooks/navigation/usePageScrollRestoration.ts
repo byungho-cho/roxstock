@@ -1,6 +1,6 @@
 import { useLayoutEffect, type RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
-import { readPageMemory, writePageMemory } from './pageMemory';
+import { readPageMemory, writePageMemory, nearestSavedItem } from './pageMemory';
 import { usePageMemoryKey } from './usePageMemory';
 
 type Position = { top: number; left: number; anchor?: string; offset?: number; order: string[] };
@@ -37,12 +37,8 @@ export function usePageScrollRestoration(ref: RefObject<HTMLElement | null>) {
         const waiting = main.querySelector('[data-restoration-ready="false"]');
         if (waiting && saved && saved.top > 0) { element.style.visibility = 'hidden'; continue; }
         const rows = items(element), ids = rows.map(row => row.dataset.scrollItem);
-        let anchor = rows.find(row => row.dataset.scrollItem === saved?.anchor);
-        if (!anchor && saved?.anchor) {
-          const index = saved.order.indexOf(saved.anchor);
-          const nearest = saved.order.slice(index).find(id => ids.includes(id)) ?? saved.order.slice(0, index).reverse().find(id => ids.includes(id));
-          anchor = rows.find(row => row.dataset.scrollItem === nearest);
-        }
+        const nearest = nearestSavedItem(saved?.anchor, saved?.order ?? [], ids.filter((id): id is string => !!id));
+        const anchor = rows.find(row => row.dataset.scrollItem === nearest);
         const top = saved && anchor && saved.offset !== undefined
           ? element.scrollTop + anchor.getBoundingClientRect().top - element.getBoundingClientRect().top - saved.offset : saved?.top ?? 0;
         element.scrollTop = Math.max(0, Math.min(top, element.scrollHeight - element.clientHeight));
