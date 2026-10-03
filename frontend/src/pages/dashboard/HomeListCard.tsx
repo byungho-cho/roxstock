@@ -7,7 +7,7 @@ export function HomeListCard({ title, count, testId, action, children, timestamp
   title: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
   timestamp?: string | null; updating?: boolean; more?: () => void; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean;
 }) {
-  return <AppCard data-testid={testId} sx={{ minWidth: 0, height, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
+  return <AppCard data-testid={testId} sx={{ minWidth: 0, height: compactFooter ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
       <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={`${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit' }}>{title}</ButtonBase> : title}</Typography>
       <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{count ?? '—'}</Typography>{action}</Box>
@@ -29,7 +29,7 @@ export function homeTimestamp(value?: string | null) {
 }
 
 export function HomeEmpty({ children = '내용이 없습니다.' }: { children?: ReactNode }) {
-  return <Typography role="status" sx={{ height: '100%', pb: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, lineHeight: '16px', color: colors.textMuted }}>{children}</Typography>;
+  return <Typography role="status" sx={{ minHeight: 40, height: '100%', pb: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, lineHeight: '16px', color: colors.textMuted }}>{children}</Typography>;
 }
 
 // Both lines end at the same middle/right column edges in every home list.

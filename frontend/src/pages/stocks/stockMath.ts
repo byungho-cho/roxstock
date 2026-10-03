@@ -1,7 +1,7 @@
 import type { StockItem, StockListType, BuyLot } from '../../types/models';
 import type { TradeDto } from '../../data/roxstockApi';
 export const stockTabs: Array<{value: StockListType; label: string}> = [
-  {value:'holding',label:'보유종목'},{value:'watchlist',label:'관심종목'},{value:'recommended',label:'추천종목'},{value:'traded',label:'거래종목'},
+  {value:'holding',label:'보유종목'},{value:'watchlist',label:'관심종목'},{value:'traded',label:'거래종목'},
 ];
 export const sortOptions = {
   holding: [['marketValue','평가금액'],['profitAmount','평가손익'],['purchaseAmount','보유금액'],['name','종목명']],
