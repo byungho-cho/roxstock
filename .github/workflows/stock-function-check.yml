@@ -34,9 +34,9 @@ jobs:
       - if: steps.scope.outputs.assets != 'true'
         run: npx playwright test --config=playwright.targets.config.ts account-classification.spec.ts home-v04.spec.ts
         working-directory: frontend
-      - name: Evaluation assets and connected tablet menus
+      - name: Home, assets, overlay scrollbar and connected tablet menus
         if: steps.scope.outputs.assets == 'true'
-        run: npx playwright test --config=playwright.targets.config.ts assets-v03.spec.ts
+        run: npx playwright test --config=playwright.targets.config.ts assets-v03.spec.ts home-v04.spec.ts --grep "four-size layout|v0.4 example|v0.4 navigation|overlay scrollbar"
         working-directory: frontend
       - name: Connected Lot sell and trade edit save/failure flows
         if: steps.scope.outputs.assets != 'true'
