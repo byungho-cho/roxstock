@@ -13,6 +13,7 @@ async function fixture(page: Page, initial: 'normal'|'missing'|'error'|'single' 
       if(state==='error') return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});
       return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:second?'0':'203200000',purchaseAmount:second?'0':'542990800',stockValue:state==='missing'?null:second?'0':'651000000',totalAssetValue:state==='missing'?null:second?'0':'854200000',unrealizedProfitLoss:state==='missing'?null:'108009200',unrealizedReturnRate:state==='missing'?null:'19.89',dailyProfit:state==='missing'?null:'12840000',dailyProfitRate:state==='missing'?null:'1.5',previousDayChange:state==='missing'?null:'22840000',previousDayChangeRate:state==='missing'?null:'2.75',stockMonthlyProfit:'20000000',cashMonthlyProfit:'20000000',pricingComplete:state!=='missing',latestPriceUpdatedAt:state==='missing'?null:stamp,holdings:second?[]:(state==='single'?[{...holdings[0],marketValue:'651000000'}]:holdings).map(h=>state==='missing'?{...h,currentPrice:null,marketValue:null,unrealizedProfitLoss:null,unrealizedReturnRate:null}:h)}}});
     }
+    if(path.endsWith('/target-arrivals')) return route.fulfill({json:{data:[],meta:{accountId:second?'2':'1',total:0,enabled:true,conditionsVersion:0,unavailableCount:0,calculatedAt:stamp,priceAsOf:stamp}}});
     return route.fulfill({json:{data:[],summary:{}}});
   });
   return {hold:()=>{hold=true;}, release:()=>{hold=false;release?.();}, missing:()=>{state='missing';}, error:()=>{state='error';}};
@@ -71,7 +72,7 @@ test('v0.4 navigation: assets, home and holding-add share the nine tablet routes
   await fixture(page);
   const tablet=info.project.name.startsWith('tablet');
   const labels=tablet?['종목목록','매매일지','평가자산','예수금','홈','자산분석','재무제표','시세수집','더보기']:['종목목록','매매일지','홈','자산분석','더보기'];
-  const routes=tablet?['/stocks','/journal','/detail/assets','/detail/cash','/','/assets','/financials','/detail/collection-monitoring','/more']:['/stocks','/journal','/','/assets','/more'];
+  const routes=tablet?['/stocks','/journal','/detail/assets','/detail/cash','/','/assets','/detail/financials','/detail/collection-monitoring','/more']:['/stocks','/journal','/','/assets','/more'];
   for(const path of ['/detail/assets','/','/stocks/add?type=holding&from=home']){
     await page.goto(path);await expect(page.locator('header h1')).toBeVisible();
     const nav=page.locator('.MuiBottomNavigation-root:visible');
