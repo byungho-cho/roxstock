@@ -13,6 +13,7 @@ on:
       - frontend/tests/targets/account-classification.spec.ts
       - frontend/tests/targets/stock-inputs-v04.spec.ts
       - frontend/tests/targets/user-test-fixes-v04.spec.ts
+      - frontend/tests/targets/stocks-v04.spec.ts
       - frontend/tests/targets/stock-input-fixture.ts
       - .github/workflows/stock-function-check.yml
   workflow_dispatch:
@@ -50,6 +51,8 @@ jobs:
               specs.append(("stock-inputs-v04", ""))
           if changed(r"(useCardNavigation\.ts|useFavoriteStocks\.ts|StockListPage\.tsx|hooks/navigation/.+|user-test-fixes-v04\.spec\.ts|stock-input-fixture\.ts)$"):
               specs.append(("user-test-fixes-v04", ' --grep-invert "journal period|cash period"'))
+          if changed(r"(LiveStockDetailPage\.tsx|stocks-v04\.spec\.ts)$"):
+              specs.append(("stocks-v04", ' --grep "linked buy deletion|missing quote|previous-year"'))
           if changed(r"(DashboardPage\.tsx|navigation/Navigation\.tsx)$"):
               specs.append(("home-v04", ' --grep "home plus"'))
           for file, grep in specs:
