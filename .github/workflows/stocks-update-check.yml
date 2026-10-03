@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   stocks:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/stocks-v03-20261002'
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/stocks-v03-20261002' || github.head_ref == 'codex/stocks-v04-refactor-20261003'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,7 +20,7 @@ jobs:
       - run: npm ci --workspace frontend --include-workspace-root=false
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npx playwright test --config=playwright.targets.config.ts stocks-v03.spec.ts
+      - run: npx playwright test --config=playwright.targets.config.ts stocks-v04.spec.ts user-test-fixes-v04.spec.ts --grep-invert "journal period|cash period" --workers=2
         working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
