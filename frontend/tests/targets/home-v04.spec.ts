@@ -69,12 +69,12 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
 });
 
-test('home plus opens a normal holding-add page and back restores body scroll',async({page})=>{
+test('home plus opens the confirmed holding-add screen and back restores body scroll',async({page})=>{
  await homeFixture(page,8);await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
  const savedTop=await page.locator('main').evaluate(n=>{const top=Math.min(180,n.scrollHeight-n.clientHeight);n.scrollTop=top;return top;});
  await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(savedTop);
  await page.getByRole('button',{name:'종목 추가',exact:true}).click();await expect(page).toHaveURL(/stocks\/add\?type=holding&from=home/);
- await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'종목추가(보유종목)'})).toBeVisible();
- await page.getByRole('button',{name:'뒤로가기'}).click();await expect(page).toHaveURL('/');
+ const tablet=page.viewportSize()!.width>=600;await expect(page.getByRole('dialog')).toHaveCount(tablet?1:0);await expect(page.getByRole('heading',{name:'종목추가(보유종목)'})).toBeVisible();
+ await page.getByRole('button',{name:tablet?'입력 팝업 닫기':'뒤로가기'}).click();await expect(page).toHaveURL('/');
  await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(savedTop);
 });
