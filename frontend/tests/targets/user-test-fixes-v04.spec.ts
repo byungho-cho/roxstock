@@ -73,7 +73,7 @@ test('journal period and selected trade survive header/browser return; its month
  if(tablet(page))await page.getByRole('button',{name:'거래 수정·삭제 ›'}).click();await expect(page.getByTestId('trade-form')).toBeVisible();
  if(tablet(page))await page.getByRole('button',{name:'입력 팝업 닫기'}).click();else await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/journal\?date=2026-09-18/);await expect(cell).toHaveAttribute('aria-pressed','true');
  if(tablet(page)){await page.getByRole('button',{name:'거래 수정·삭제 ›'}).click();await page.goBack();await expect(page.getByRole('button',{name:'거래 수정·삭제 ›'})).toBeVisible();}
- const calendar=page.getByRole('button',{name:/^2026-09-18.*매수/}).locator('..').locator('..').locator('..');await calendar.dispatchEvent('touchstart',{touches:[{identifier:1,clientX:300,clientY:100}]});await calendar.dispatchEvent('touchend',{changedTouches:[{identifier:1,clientX:30,clientY:105}]});await expect(page.getByRole('button',{name:/^2026-10-01.*매수/})).toHaveAttribute('aria-pressed','true');
+ const calendar=page.getByRole('button',{name:/^2026-09-18.*매수/}).locator('..').locator('..').locator('..');await calendar.dispatchEvent('touchstart',{touches:[{identifier:1,clientX:300,clientY:100}]});await calendar.dispatchEvent('touchend',{changedTouches:[{identifier:1,clientX:30,clientY:105}]});await expect(page.getByRole('button',{name:/^2026-10-18.*매수/})).toHaveAttribute('aria-pressed','true');
 });
 
 test('cash period and loaded history range survive browser return',async({page})=>{
