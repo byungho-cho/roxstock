@@ -85,9 +85,9 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
   await page.clock.runFor(1250);await expect(scrollbar).toHaveCSS('opacity', '0');
   await page.screenshot({path:info.outputPath('scrollbar-hidden.png')});
   expect(await page.getByTestId('asset-overview').evaluate(n=>({x:n.getBoundingClientRect().x,width:n.getBoundingClientRect().width}))).toEqual(before);
-  await main.evaluate(n=>n.scrollTop=80);await page.clock.runFor(50);await expect(scrollbar).toHaveCSS('opacity','1');
+  await main.evaluate(n=>n.scrollTop=(n.scrollHeight-n.clientHeight)*0.25);await page.clock.runFor(50);await expect(scrollbar).toHaveCSS('opacity','1');
   await page.clock.runFor(600);
-  await main.evaluate(n=>n.scrollTop=160);await page.clock.runFor(50);
+  await main.evaluate(n=>n.scrollTop=(n.scrollHeight-n.clientHeight)*0.5);await page.clock.runFor(50);
   await page.clock.runFor(650);await expect(scrollbar).toHaveCSS('opacity','1');
   await page.clock.runFor(650);await expect(scrollbar).toHaveCSS('opacity','0');
   const previousTop=await main.evaluate(n=>n.scrollTop);
