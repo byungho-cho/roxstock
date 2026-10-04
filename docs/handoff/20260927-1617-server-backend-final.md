@@ -254,3 +254,13 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - 제품 미해결 문제: 없음. 처음816×616 달력의 무스크롤 조건 실패는 별도 기록한 조건 교정으로 해결되었고, 실제 스크롤 복원 실패는 없었다.
 - 현재 결과 기록 커밋은 문서만 변경한다. 앱/검사 입력이 동일하므로 이미 통과한TypeScript/빌드/기능 결과를 재사용하고 실검사를 반복하지 않는다.
 - 다음 실행: 체크포인트 CI 재사용 확인 → PR #79 main 병합 → Frontend Docker Image 자동배포·healthy/HTTP 성공 확인 → 배포SHA/완료시각 기록·보고·종료. 사용자 운영 검증 대기 없음.
+
+### 병합·자동 배포 완료 · 2026-10-04 09:21 KST
+
+- [PR #79](https://github.com/byungho-cho/roxstock/pull/79) main 병합 완료. 배포/병합 SHA: `c34734b739d5d0ce406cf037d4fdca2157010418`.
+- [Frontend Docker Image 37164615516](https://github.com/byungho-cho/roxstock/actions/runs/37164615516) **success**. publish `111324910690`, deploy `111325078858` 모두 성공.
+- 운영 이미지: `newrox/roxstock-frontend:sha-c34734b`. 실제 배포 완료 로그시각 **2026-10-04 09:21:34 KST**. frontend/proxy 모두 healthy 확인. 배포의 health 검증 성공.
+- 중복 검사 방지 실증: 최종 문서 체크포인트 `c125c9b7ee453153395f7879dcd04b06aecc7d03`에서 Frontend `37164567144`와 Journal `37164567185`는 성공 캐시를 읽어 npm/TypeScript/Build/28건 기능 명령을 재실행하지 않았다.
+- main 배포 validate/scope `111324886147`는 성공한PR검사와HEAD^2 대비 앱 입력 동일성을 확인했다. 배포 validate/Frontend TypeScript·Build는 skipped, 실제 이미지 빌드와 배포/health만 수행했다.
+- 종료: 요청 UI 리팩토링·필요 기능 검사28건·별도TS/Build·4건 기존 메뉴연결·요청 화면 렌더·PR병합·자동배포 확인 완료. 열린PR0. 제품 미해결 문제/다음 실행 작업 없음. 사용자 운영 화면 확인 대기 없음.
+- 이 배포 완료 기록은 병합 이후 작업 브랜치에 별도 문서 체크포인트로 커밋·푸시한다. main 앱은 배포 SHA로 유지하며 중복 배포하지 않는다. PR 본문에도 실제 배포 결과를 기록한다.
