@@ -6,13 +6,14 @@ const scroll = (page: Page) => isTablet(page) ? page.locator('[data-scroll-regio
 const left = (page: Page) => page.locator('[data-scroll-region="journal-calendar"]');
 const name = '긴종목명 검증용 우선주';
 const entries: JournalEntry[] = [
-  ...Array.from({length: 12}, (_, i) => ({ id: 'b'+i, type: 'buy' as const, date: '2026-09-18', stockId: '1', stockName: i ? '매수종목'+i : name, quantity: 10+i, price: 70000+i*1000 })),
+  ...Array.from({length: 12}, (_, i) => ({ id: i===0?'linked0':'b'+i, type: 'buy' as const, date: '2026-09-18', stockId: '1', stockName: i ? '매수종목'+i : name, quantity: 10+i, price: 70000+i*1000 })),
   ...Array.from({length: 12}, (_, i) => ({ id: 's'+i, type: 'sell' as const, date: '2026-09-18', stockId: '1', stockName: i ? '매도종목'+i : name+' 긴 이름을 여러 줄로 표시해도 원가와 금액 열을 침범하지 않습니다', quantity: 2+i, price: i===1 ? 90000 : 110000+i*1000, buyPrice: i===1 ? 100000 : 70000+i*2000, lotId: 'linked'+i })),
 ];
 const totals = journalTotals(entries);
 const format = (n: number) => Math.round(n).toLocaleString('ko-KR')+'원';
 async function setup(page: Page) {
  await fixture(page);
+ let linkedPrice=70000;
  await page.route('**/api/accounts',route=>route.fulfill({json:{data:[{id:'a',name:'계좌 A',brokerName:'검사',cashBalance:'1',isActive:true,isDefault:true},{id:'b',name:'계좌 B',brokerName:'검사',cashBalance:'1',isActive:true}]}}));
  await page.route('**/api/accounts/*/trades**', route => {
   const url = new URL(route.request().url());
@@ -26,7 +27,11 @@ async function setup(page: Page) {
  });
  await page.route('**/api/accounts/*/buy-lots**', route => {
   expect(new URL(route.request().url()).searchParams.get('remainingOnly')).toBe('false');
-  return route.fulfill({json:{data:entries.filter(entry=>entry.type==='sell').map(entry=>({id:entry.lotId,boughtAt:'2026-08-01T03:00:00Z',buyDate:'2026-08-01',unitPrice:String(entry.buyPrice),quantity:'30',remainingQuantity:'0',soldQuantity:'30',security:{id:'1',symbol:'005380',name:entry.stockName,marketType:'KOSPI'},sellTrades:[]}))}});
+  return route.fulfill({json:{data:entries.filter(entry=>entry.type==='sell').map(entry=>({id:entry.lotId,boughtAt:'2026-08-01T03:00:00Z',buyDate:'2026-08-01',unitPrice:String(entry.lotId==='linked0'?linkedPrice:entry.buyPrice),quantity:'30',remainingQuantity:'0',soldQuantity:'30',security:{id:'1',symbol:'005380',name:entry.stockName,marketType:'KOSPI'},sellTrades:[]}))}});
+ });
+ await page.route('**/api/buy-trades/linked0**',route=>{
+  if(route.request().method()==='PATCH'){linkedPrice=Number(route.request().postDataJSON().unitPrice);return route.fulfill({json:{data:{id:'linked0',remainingQuantity:'0',cashBalanceAdjusted:false}}});}
+  return route.fulfill({json:{data:{id:'linked0',type:'BUY',account:{id:'a',name:'계좌 A'},security:{id:'1',name:name,symbol:'005380',marketType:'KOSPI'},boughtAt:'2026-08-01T03:00:00Z',quantity:'30',soldQuantity:'30',remainingQuantity:'0',unitPrice:String(linkedPrice),memo:null,cashTransaction:null,sellTrades:[]}}});
  });
  await page.goto('/journal?date=2026-09-18');
  await expect(page.getByTestId('journal-entry-s0')).toContainText('140,000원');
@@ -119,10 +124,14 @@ test('cover body or tablet columns scroll independently, date stays pinned, clea
  await expect(page.getByTestId('journal-date-selector')).toBeVisible();
  const before=(await page.getByTestId('journal-date-selector').boundingBox())!;
  expect(before.y).toBe(44);
+ expect(before.height).toBe(52);
+ expect((await page.getByTestId('journal-date-card').boundingBox())!.height).toBe(44);
  expect(await right.evaluate(el=>el.scrollHeight-el.clientHeight)).toBeGreaterThan(420);
  await right.evaluate(el=>el.scrollTop=420);
  await expect.poll(()=>right.evaluate(el=>el.scrollTop)).toBe(420);
  expect((await page.getByTestId('journal-date-selector').boundingBox())!.y).toBe(44);
+ const pinned=await page.getByTestId('journal-date-selector').boundingBox();
+ expect(await page.evaluate(({x,y})=>!!document.elementFromPoint(x,y)?.closest('[data-testid="journal-date-selector"]'),{x:pinned!.x+20,y:pinned!.y+48})).toBe(true);
  expect((await page.getByTestId('journal-bottom-clearance').boundingBox())!.height).toBe(80);
  const geometry=await main.boundingBox();
  await page.waitForTimeout(1300);
@@ -193,4 +202,19 @@ test('raw decimals are evaluated before display rounding and unknown profits do 
  expect(result.profit).toBeCloseTo(31.14,8);
  expect(journalTotals([{...partial,buyPrice:undefined,profit:undefined}]).profit).toBeUndefined();
  expect(journalTotals([]).profit).toBe(0);
+});
+
+test('existing buy edit refreshes matched Lot costs on return and keeps the selected journal day',async({page})=>{
+ await setup(page);
+ await page.getByTestId('journal-entry-linked0').click();
+ if(isTablet(page))await page.getByRole('button',{name:'거래 수정·삭제 ›'}).click();
+ await expect(page.getByTestId('trade-form')).toBeVisible();
+ const price=page.getByRole('textbox',{name:'매수가격',exact:true});
+ await price.fill('80000');await price.press('Tab');
+ await page.getByRole('button',{name:'변경',exact:true}).click();
+ await expect(page).toHaveURL(/journal\?date=2026-09-18/);
+ if(isTablet(page))await page.getByRole('button',{name:'거래현황으로 돌아가기',exact:true}).click();
+ await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-cost')).toHaveText('160,000원');
+ await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-profit')).toHaveText('+60,000원');
+ await expect(page.getByRole('button',{name:/^2026-09-18 /})).toHaveAttribute('aria-pressed','true');
 });

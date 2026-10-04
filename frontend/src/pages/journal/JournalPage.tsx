@@ -65,7 +65,7 @@ export function JournalPage() {
     ...journalQuery(accountId ?? '', month), enabled: liveApiEnabled && !!accountId,
   });
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
-  const lotsQuery = useQuery({ queryKey: ['journalLots', accountId], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, staleTime: 60_000 });
+  const lotsQuery = useQuery({ queryKey: ['buyLots', accountId, 'journal-all'], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, staleTime: 60_000 });
   const remoteLots = lotsQuery.data;
   useEffect(() => {
     if (!liveApiEnabled || !accountId || !remoteReport || tradesError) return;
@@ -182,11 +182,11 @@ export function JournalPage() {
     </Box>
     <Box sx={{ ...panel, p: '8px 16px' }}>{titleRow}{transactions}</Box>
   </Stack>;
-  const dateSelector = <Box data-testid="journal-date-selector" sx={{ ...panel, position: 'sticky', top: 0, zIndex: 2, flexShrink: 0, height: 44, display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', px: '8px', mb: '8px' }}>
+  const dateSelector = <Box data-testid="journal-date-selector" sx={{ bgcolor: colors.canvas, pb: '8px', position: 'sticky', top: 0, zIndex: 2, flexShrink: 0 }}><Box data-testid="journal-date-card" sx={{ ...panel, height: 44, display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', px: '8px' }}>
     <IconButton aria-label="이전 날짜" onClick={() => moveDay(-1)} sx={{ width: 36, height: 36 }}><ChevronLeftRounded sx={{ fontSize: 20 }}/></IconButton>
     <Typography sx={{ textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{selectedDate.slice(0, 4)}년 {Number(selectedDate.slice(5, 7))}월 {Number(selectedDate.slice(8))}일 ({weekdays[dayWeekday]})</Typography>
     <IconButton aria-label="다음 날짜" onClick={() => moveDay(1)} sx={{ width: 36, height: 36 }}><ChevronRightRounded sx={{ fontSize: 20 }}/></IconButton>
-  </Box>;
+  </Box></Box>;
   const detail = selectedTrade && <Stack spacing="8px">
     <Box sx={{ ...panel, p: '12px 16px' }}><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{selectedTrade.type === 'buy' ? '매수' : '매도'} · {selectedTrade.date}</Typography><Typography sx={{ fontSize: 16, fontWeight: 600, overflowWrap: 'anywhere' }}>{selectedTrade.stockName}</Typography><Typography sx={{ textAlign: 'right', fontSize: 18, fontWeight: 700, overflowWrap: 'anywhere', color: getProfitColor(selectedTrade.type === 'sell' ? sellEvaluation(selectedTrade).profit : undefined) }}>{selectedTrade.type === 'sell' ? signedWon(sellEvaluation(selectedTrade).profit) : won(selectedTrade.quantity * selectedTrade.price)}</Typography></Box>
     <Box sx={{ ...panel, p: '8px 16px' }}><Typography sx={{ fontSize: 14, fontWeight: 700, mb: '6px' }}>거래 정보</Typography>
