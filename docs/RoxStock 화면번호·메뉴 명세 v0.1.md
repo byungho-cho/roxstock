@@ -72,10 +72,10 @@
 | T1101. 거래등록 · v0.1 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=940-2) |
 | C1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-5) |
 | T1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=774-2) |
-| C1400. 자산분석 · v0.4 작업중 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-6) |
-| T1400. 자산분석 · v0.1 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=921-2) |
 | C1300. 예수금 · v0.2 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-4) |
 | T1300. 예수금 · v0.2 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=740-2) |
+| C1400. 자산분석 · v0.4 작업중 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-6) |
+| T1400. 자산분석 · v0.1 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=921-2) |
 | C1500. 투자금 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-4) |
 | T1500. 투자금 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-5) |
 | C1600. 투자손익 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-6) |
