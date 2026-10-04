@@ -284,3 +284,11 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - TypeScript와 빌드: Run37171304538 각각 성공. 이후 문서 체크포인트는 앱 입력 동일하여 통과 캐시를 재사용하며 재실행하지 않는다.
 - 미해결: 기간 평가/실현/배당/비용 세부 집계 API 부재로 기초 평가손익 차감 차이 확인 불가. 복리계획 조회 API와 기준 자산 정의 부재. 해당 값은 — 및 원인 안내. 투자금/투자손익 상세의 기존 미구현 상태는 이번 범위 밖. API·Lot·계산·DB 변경 없음. 정식 QA 미실시.
 - 다음: 최종 문서 체크포인트 → 필수 CI 상태 확인 → PR81 main 병합 → 자동 배포 완료 확인·결과 기록.
+
+
+### PR81 배포 완료 — 작업 종료
+- main 병합 커밋 dd97401cabe3cb620fdf3cb30d45dae05bb5d290, PR https://github.com/byungho-cho/roxstock/pull/81.
+- 자동 배포 Run37171777905 성공: https://github.com/byungho-cho/roxstock/actions/runs/37171777905. 이미지 newrox/roxstock-frontend:sha-dd97401. 2026-10-04T02:42:50Z deploy 완료, 컨테이너 healthy 확인.
+- 문서 체크포인트86f7097 최종 CI 성공, 분석·타입·빌드는 동일 입력의 기존 통과 결과 재사용. 원본 기능16/16 및 4크기 화면 대조 기록 보존.
+- 수정 화면 https://newrox.cafe24.com/assets 및 https://newrox.cafe24.com/more.
+- 남은 항목: 기간 세부 손익 API/기초 평가손익 차감 기준 확인, 복리계획 API/기준 자산 연결. 투자금·투자손익 상세 구현은 범위 밖. 정식 QA 미실시. 사용자의 운영 확인을 기다리지 않고 개발 작업 종료.
