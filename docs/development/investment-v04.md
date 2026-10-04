@@ -42,4 +42,12 @@ The next workflow will repeat those four related cases only if application input
 
 Production API smoke read: accounts, asset-history and filtered cash-transactions all returned HTTP 200; snapshot updatedAt and cash createdAt exist. No operating financial values were logged.
 
-Next: record four-case result, then merge PR #84 and verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.
+Validation completed:
+- Final application inputs: 91c326cfa2b31ec77ce4790bb2bc575ce07667a6.
+- Test metadata/scope checkpoint: dafc91e3b8ec4d09d635b93c79e2f2b7f562236d.
+- Investment run 37243523037, job 111556796014: only the four changed journeys ran; 4 passed (1.4m). Combined with the unchanged 24 core cases from 37243070077, all 28 requested-scope cases pass on the same application input.
+- Frontend Check 37243523131: TypeScript/build success via verified cache; npm/typecheck/build steps were skipped, confirming no duplicate execution.
+- Existing automatic stock check passed; journal check status is tracked through the PR. No formal whole-app QA was dispatched.
+- No unresolved failure in the requested feature scope. Known data limits above remain explicit.
+
+Next: merge PR #84 and verify automatic frontend deployment. Final deployment SHA/run/result will be recorded in the PR body, linked at https://github.com/byungho-cho/roxstock/pull/84. No further app changes or user screen confirmation are required.
