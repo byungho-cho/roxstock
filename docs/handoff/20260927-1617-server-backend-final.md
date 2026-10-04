@@ -269,3 +269,7 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - 검증 SHA 248db3f. 분석 기능 Run37170700883: 8통과/8실패. 4건은 홈 fixture의 lot1/lot2 ID를 BigInt로 읽을 수 없어 RecentBuysCard가 중단(trace pageError 확인). 실제 API는 숫자 ID이므로 새 검사에서 불필요한 매수 fixture를 빈 목록으로 교정. 3건은 선택 action/label 둘 모두 잡는 selector, 1건은816의 최대14px 도달 후 +1px 이동을 요구한 검사조건 오류. 실패 기록·artifact11290324958 보존. 스크롤을 반대로1px 이동하도록 교정하여 실제 표시를 계속 검사.
 - TypeScript/Build Run37170700876 실패: MUI div ref에 HTMLElement를 지정한 TS2769. HTMLDivElement로 수정. 카드12px 구성 행, 최소10px 메뉴 및 중립0/양수부호 표시도 교정.
 - 함수8건 통과 증거 및 첫 화면 PNG7개 확인. 앱 변경이 해당 레이아웃/금액/복귀 검사에 영향을 주므로 변경범위 검사를 다시 수행한다. 전체 QA 없음.
+
+### 5275862 검사 종료
+- 분석16/16 통과 Run37171040856, artifact11291018136. TypeScript/Build 각각 성공 Run37171040852. 관련stock 기능 Run37171040889 성공. 네 크기 최초/최하단PNG8개 직접 확인.
+- 화면 대조 후 Sticky 제목·기간의 간격을 grid열로 명시하여 보장. 큰 금액(854,300,000원 등)의 잘림 및 카드 끝 Sticky 해제 조건을 추가 검사. API·계산 변경 없음. 해당 변경과 관련된 검사만 재실행.

@@ -55,7 +55,9 @@ test('period changes chart and performance together; title and buttons have inde
 });
 
 test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hiding and bottom clearance', async ({ page }, info) => {
-  await setup(page); await page.goto('/assets'); await expect(page.getByTestId('analysis-chart')).toBeVisible();
+  await setup(page);
+  await page.route('**/api/accounts/*/dashboard', route => route.fulfill({json:{data:{account:{id:'a',name:'계좌',brokerName:'검사'},cashBalance:'203300000',stockValue:'651000000',totalAssetValue:'854300000',purchaseAmount:'600000000',pricingComplete:true,latestPriceUpdatedAt:null,holdings:[]}}}));
+  await page.goto('/assets'); await expect(page.getByTestId('analysis-chart')).toBeVisible();
   const total = (await page.getByTestId('analysis-total').boundingBox())!;
   expect(total.x).toBe(8);
   const overflow = await page.getByTestId('asset-analysis').locator('p').evaluateAll(els => els.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent)); expect(overflow).toEqual([]);
@@ -69,6 +71,8 @@ test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hidin
       await right.evaluate(el => { el.scrollTop = 40; });
       expect(await region(page).evaluate(el => el.scrollTop)).toBe(leftPosition);
       expect((await page.getByTestId('analysis-sticky').boundingBox())!.y).toBeGreaterThanOrEqual(43);
+      const heading=(await page.getByTestId('analysis-performance-title').boundingBox())!, period=(await page.getByTestId('analysis-performance-period').boundingBox())!;
+      expect(period.x-heading.x-heading.width).toBeGreaterThanOrEqual(7.9);
       const bar = page.getByRole('scrollbar', { name: '자산분석 오른쪽 스크롤' }); await expect(bar).toHaveCSS('width', '4px');
       await expect(bar).toHaveCSS('opacity', '0', { timeout: 2500 });
       await right.evaluate(el => { el.scrollTop = el.scrollTop > 0 ? el.scrollTop - 1 : 1; }); await expect(bar).toHaveCSS('opacity', '1');
@@ -80,6 +84,11 @@ test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hidin
     expect(clearance.padding).toBe('80px');
   }
   console.log('ROX_ANALYSIS_IMAGE '+JSON.stringify({tag:'bottom',project:info.project.name,image:(await page.screenshot({path:`test-results/targets/analysis-bottom-${info.project.name}.png`})).toString('base64')}));
+  const body=region(page,'analysis-right');
+  await body.evaluate(el=>{ const spacer=document.createElement('div');spacer.id='sticky-bound-test';spacer.style.cssText='height:500px;flex-shrink:0';el.append(spacer);el.scrollTop=el.scrollHeight; });
+  const sticky=(await page.getByTestId('analysis-sticky').boundingBox())!, card=(await page.getByTestId('analysis-performance').boundingBox())!;
+  expect(sticky.y+sticky.height).toBeLessThanOrEqual(card.y+card.height+1);
+  await body.evaluate(()=>document.getElementById('sticky-bound-test')?.remove());
   const selected = page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root.Mui-selected'); await expect(selected).toContainText('자산분석');
 });
 
