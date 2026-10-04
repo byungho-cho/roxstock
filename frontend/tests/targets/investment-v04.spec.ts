@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 const now = '2026-06-15T03:00:00Z';
 const stamp = (date: string) => `${date}T14:00:00Z`;
-async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'error' = 'normal') {
+async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'error' | 'large' | 'zero' | 'edited' | 'pagination-error' = 'normal') {
   let mode = initial, held = false;
   const releases: (() => void)[] = [];
   await page.clock.install({ time: new Date(now) });
@@ -9,7 +9,7 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
     { id: '1', transactionType: 'DEPOSIT', transactionDate: '2025-01-01T00:00:00Z', amount: '100000000.1234', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
     { id: '2', transactionType: 'DEPOSIT', transactionDate: '2026-04-01T00:00:00Z', amount: '20000000.1234', createdAt: '2026-04-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z' },
     { id: '3', transactionType: 'DIVIDEND', transactionDate: '2026-06-01T00:00:00Z', amount: '1000000', dividend: { grossAmount: '1200000', netAmount: '1000000' }, createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-01T00:00:00Z' },
-    ...Array.from({ length: 99 }, (_, i) => ({ id: String(i + 4), transactionType: 'BUY', transactionDate: '2026-01-01T00:00:00Z', amount: '100', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' })),
+    ...Array.from({ length: 99 }, (_, i) => ({ id: String(i + 4), transactionType: 'WITHDRAWAL', transactionDate: '2026-01-01T00:00:00Z', amount: '0.0001', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' })),
   ];
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url()), path = url.pathname;
@@ -21,13 +21,14 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
       const start = new Date(`${year}-01-01T00:00:00Z`);
       const snapshots = Array.from({ length: year === 2026 ? 181 : 365 }, (_, i) => {
         const date = new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10);
-        return { date, totalAssetValue: mode === 'missing' ? null : String(130000000 + i * 1000), updatedAt: stamp(date) };
+        return { date, totalAssetValue: mode === 'missing' ? null : mode === 'large' ? '999999999999999.4999' : String(130000000 + i * 1000), updatedAt: stamp(date) };
       });
       return route.fulfill({ json: { data: mode === 'empty' || path.includes('/2/') ? [] : snapshots, summary: {} } });
     }
     if (path.endsWith('/cash-transactions')) {
       const offset = Number(url.searchParams.get('offset'));
-      return route.fulfill({ json: { data: transfers.slice(offset, offset + 100), meta: { total: transfers.length, limit: 100, offset } } });
+      const entries = transfers.slice(offset, offset + 100).map(row => ({ ...row, amount: mode === 'zero' ? '0' : mode === 'large' && row.id === '1' ? '400000000000000.1234' : row.amount, updatedAt: mode === 'edited' && row.id === '1' ? '2026-06-16T00:00:00Z' : row.updatedAt }));
+      return route.fulfill({ json: { data: entries, meta: { total: transfers.length + (mode === 'pagination-error' && offset ? 1 : 0), limit: 100, offset } } });
     }
     return route.fulfill({ json: { data: [] } });
   });
@@ -126,4 +127,19 @@ test('empty, missing and failed results remain distinct', async ({ page }) => {
   await expect(page.getByTestId('investment-value')).toHaveText('—'); await expect(page.getByTestId('investment-history')).not.toContainText('내용이 없습니다.');
   f.setMode('error'); await page.reload(); await expect(page.getByRole('alert')).toContainText('조회에 실패했습니다.');
   await expect(page.getByTestId('investment-history')).not.toContainText('내용이 없습니다.'); await expect(page.getByTestId('investment-value')).toHaveText('—');
+});
+test('large amounts, zero denominator, edited historical principal and changing pagination', async ({ page }) => {
+  const f = await fixture(page, 'large'); await page.goto('/detail/investment');
+  await expect(page.getByTestId('investment-value')).toHaveText('999,999,999,999,999원');
+  const clipped = await page.locator('[data-testid="investment-page"] .MuiTypography-root').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));
+  expect(clipped).toEqual([]);
+  f.setMode('zero'); await page.reload(); await expect(page.getByTestId('investment-metric-1')).toHaveText('0원');
+  await expect(page.getByTestId('investment-current')).toContainText('투자금 대비 —');
+  f.setMode('edited'); await page.reload(); await expect(page.getByTestId('investment-value')).toHaveText('130,165,000원');
+  await expect(page.getByTestId('investment-metric-1')).toHaveText('—');
+  await expect(page.getByTestId('investment-metric-2')).toHaveText('1,000,000원');
+  f.setMode('normal'); await page.reload(); await expect(page.getByTestId('investment-metric-1')).toHaveText('120,000,000원');
+  f.setMode('pagination-error'); await page.clock.fastForward(300_000);
+  await expect(page.getByRole('alert')).toContainText('이전 데이터를 표시합니다.');
+  await expect(page.getByTestId('investment-metric-1')).toHaveText('120,000,000원');
 });

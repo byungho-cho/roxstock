@@ -50,23 +50,27 @@ export type InvestmentData = {
 
 export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number): InvestmentData {
   const ordered = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
-  const relevant = transactions.filter(row => ['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'].includes(row.transactionType));
+  const formatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' });
+  const relevant = transactions.filter(row => ['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'].includes(row.transactionType)).map(row => ({
+    type: row.transactionType,
+    date: formatter.format(new Date(row.transactionDate)),
+    created: row.createdAt ? Date.parse(row.createdAt) : Number.NaN,
+    modified: row.updatedAt ? Date.parse(row.updatedAt) : row.createdAt ? Date.parse(row.createdAt) : Number.NaN,
+    amount: money(row.transactionType === 'DIVIDEND' ? row.dividend?.netAmount : row.amount),
+  }));
   let historicalUnavailable = false;
   const totals = (snapshot: Snapshot) => {
     const cutoff = snapshot.updatedAt ? Date.parse(snapshot.updatedAt) : Number.NaN;
     let investment: bigint | null = 0n, dividend: bigint | null = 0n;
     for (const row of relevant) {
-      const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(row.transactionDate));
+      const { date, created, modified, amount } = row;
       if (date > snapshot.date) continue;
       // Older servers without collection/creation timestamps cannot reconstruct a snapshot cutoff.
-      const created = row.createdAt ? Date.parse(row.createdAt) : Number.NaN;
-      const modified = row.updatedAt ? Date.parse(row.updatedAt) : created;
       if (Number.isFinite(created) && Number.isFinite(cutoff) && created > cutoff) continue;
       const uncertain = !Number.isFinite(cutoff) || !Number.isFinite(created) || !Number.isFinite(modified) || modified > cutoff;
-      const amount = money(row.transactionType === 'DIVIDEND' ? row.dividend?.netAmount : row.amount);
-      if (row.transactionType === 'DIVIDEND') {
+      if (row.type === 'DIVIDEND') {
         if (date.startsWith(`${year}-`)) dividend = uncertain || amount === null ? null : dividend === null ? null : dividend + amount;
-      } else investment = uncertain || amount === null ? null : investment === null ? null : investment + (row.transactionType === 'WITHDRAWAL' ? -amount : amount);
+      } else investment = uncertain || amount === null ? null : investment === null ? null : investment + (row.type === 'WITHDRAWAL' ? -amount : amount);
       if (uncertain) historicalUnavailable = true;
     }
     return { investment, dividend };
@@ -86,7 +90,7 @@ export async function loadInvestment(accountId: string, year: number, today: str
     let total = Infinity;
     const seen = new Set<string>();
     while (transactions.length < total) {
-      const result = await apiEnvelope<CashHistoryDto>(`/accounts/${account}/cash-transactions?limit=100&offset=${transactions.length}`, { signal });
+      const result = await apiEnvelope<CashHistoryDto>(`/accounts/${account}/cash-transactions?limit=100&types=DEPOSIT,WITHDRAWAL,DIVIDEND&offset=${transactions.length}`, { signal });
       if (!Number.isSafeInteger(result.meta.total) || result.meta.total < 0 || (Number.isFinite(total) && result.meta.total !== total)) throw new Error('조회 중 투자금 내역이 변경되었습니다. 다시 시도해 주세요.');
       total = result.meta.total;
       if (!result.data.length && transactions.length < total) throw new Error('투자금 내역 조회가 완료되지 않았습니다.');
