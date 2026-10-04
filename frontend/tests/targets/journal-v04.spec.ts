@@ -101,6 +101,7 @@ test('cover body or tablet columns scroll independently, date stays pinned, clea
  const main=page.locator('main'), right=scroll(page);
  const header=page.locator('header'), nav=page.locator('.MuiBottomNavigation-root:visible');
  expect((await header.boundingBox())!.height).toBe(44);
+ expect((await page.getByRole('button',{name:'오늘 날짜로 이동'}).boundingBox())!.height).toBe(32);
  expect((await nav.boundingBox())!.height).toBe(44);
  expect(await main.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
  const calendar=page.getByTestId('journal-calendar-card');
