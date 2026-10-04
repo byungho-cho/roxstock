@@ -34,7 +34,7 @@ async function setup(page: Page) {
 }
 const tablet = (page: Page) => page.viewportSize()!.width >= 600;
 const region = (page: Page, side = 'right') => page.locator(`[data-scroll-region="cash-${tablet(page) ? side : 'body'}"]`);
-async function ready(page: Page) { await page.goto('/detail/cash'); await expect(page.getByTestId('cash-history-total')).toHaveText('총 123개'); }
+async function ready(page: Page) { await page.goto('/detail/cash'); await expect(page.getByTestId('cash-history-total')).toHaveText('총 123개'); await expect(page.getByTestId('cash-summary')).toContainText('+20,000,000원'); }
 async function closeInput(page: Page) { await page.getByRole('button', { name: tablet(page) ? '입력 팝업 뒤로가기' : '뒤로가기', exact: true }).click(); }
 
 test('account and period scope synchronizes history total and stored trend; calendar expansion has no missing rows', async ({ page }) => {
@@ -66,6 +66,10 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   expect((await page.getByTestId('cash-balance').boundingBox())!.y).toBe(44);
   expect((await page.getByTestId('cash-balance').boundingBox())!.height).toBe(96);
   expect((await page.getByTestId('cash-trend').boundingBox())!.height).toBeGreaterThanOrEqual(82);
+  await expect(page.getByRole('button', { name: '월간 연간 전환' })).toHaveCSS('height', '22px');
+  expect((await page.getByTestId('cash-summary').boundingBox())!.height).toBe(102);
+  const summaryBounds = (await page.getByTestId('cash-summary').boundingBox())!;
+  for (const value of ['출금', '입금', '배당', '−2,000,000원', '+20,000,000원', '+100,000원']) { const bounds = (await page.getByTestId('cash-summary').getByText(value, { exact: true }).boundingBox())!; expect(bounds.y + bounds.height).toBeLessThanOrEqual(summaryBounds.y + summaryBounds.height - 8); }
   const heading = (await page.getByTestId('cash-amount-heading').boundingBox())!, amount = (await page.getByTestId('cash-row-amount').first().boundingBox())!;
   expect(heading.x + heading.width).toBeCloseTo(amount.x + amount.width, 1);
   await expect(page.getByTestId('cash-history-row').first()).toHaveCSS('height', '20px');
