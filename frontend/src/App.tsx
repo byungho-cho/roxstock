@@ -17,6 +17,7 @@ import { StockInsightPage } from './pages/stocks/StockInsightPage';
 import { StockAddPage } from './pages/stocks/StockAddPage';
 import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
+import { InvestmentPage } from './pages/investment/InvestmentPage';
 import { AssetAnalysisPage } from './pages/assets/AssetAnalysisPage';
 import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
 import { CashPage } from './pages/cash/CashPage';
@@ -58,7 +59,7 @@ export function App() {
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
-        <Route path="detail/investment" element={<PlaceholderPage title="투자금" description="투자금 상세는 후속 개발 범위입니다." />} />
+        <Route path="detail/investment" element={<InvestmentPage />} />
         <Route path="detail/investment-profit" element={<PlaceholderPage title="투자손익" description="투자손익 상세는 후속 개발 범위입니다." />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="trade" element={<TradePage />} />
