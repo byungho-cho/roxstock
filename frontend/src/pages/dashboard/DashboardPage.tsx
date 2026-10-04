@@ -2,7 +2,7 @@ import './home-font.css';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
 import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { useDashboard } from '../../hooks/useMockData';
 import type { StockItem } from '../../types/models';
 import { formatRate, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
@@ -13,7 +13,7 @@ import { colors } from '../../styles/tokens';
 
 
 export function DashboardPage() {
-  const navigate = useNavigate();
+  const navigate = useListNavigation();
   const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true });
   if (isPending) return <DashboardLoading />;
   if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
@@ -63,3 +63,4 @@ function ChartLine({ points }: { points: string }) {
 function DashboardLoading() {
   return <Stack spacing="8px"><Skeleton variant="rounded" height={76} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /></Stack><Skeleton variant="rounded" height={88} sx={{ borderRadius: '8px' }} /><Skeleton variant="rounded" height={156} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
 }
+

@@ -17,6 +17,7 @@ import { StockInsightPage } from './pages/stocks/StockInsightPage';
 import { StockAddPage } from './pages/stocks/StockAddPage';
 import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
+import { AssetAnalysisPage } from './pages/assets/AssetAnalysisPage';
 import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
 import { CashPage } from './pages/cash/CashPage';
 import { LiveCashPage } from './pages/cash/LiveCashPage';
@@ -49,7 +50,7 @@ export function App() {
         <Route path="stocks/:stockId/financials" element={liveApiEnabled ? <LiveStockInsightPage mode="financials" /> : <StockInsightPage mode="financials" />} />
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
         <Route path="journal" element={<JournalPage />} />
-        <Route path="assets" element={<PlaceholderPage title="자산분석" description="자산 추이와 기간 성과 화면은 다음 구현 단계에서 연결합니다." />} />
+        <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
@@ -57,6 +58,8 @@ export function App() {
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
+        <Route path="detail/investment" element={<PlaceholderPage title="투자금" description="투자금 상세는 후속 개발 범위입니다." />} />
+        <Route path="detail/investment-profit" element={<PlaceholderPage title="투자손익" description="투자손익 상세는 후속 개발 범위입니다." />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="trade" element={<TradePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -65,4 +68,5 @@ export function App() {
     {modal&&<Dialog open onClose={close} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');if(!modalContent.current?.contains(document.activeElement)){input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}}},paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',fontFamily:'RoxHomeInter, sans-serif',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle data-testid="stock-flow-modal-title" sx={{height:44,minHeight:44,flexShrink:0,boxSizing:'border-box',p:'8px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={close} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><StockInputContext.Provider value={{inDialog:true,setTitle:setInputTitle,setBusy:setInputBusy}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></StockInputContext.Provider></DialogContent></Dialog>}
   </>);
 }
+
 
