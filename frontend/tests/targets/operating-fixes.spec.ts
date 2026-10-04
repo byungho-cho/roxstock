@@ -1,16 +1,18 @@
 import {test,expect,type Locator} from '@playwright/test';
 import {fixture} from './stock-input-fixture';
 async function gesture(target:Locator, dx=0,dy=160) {
-  await target.dispatchEvent('touchstart',{touches:[{clientX:180,clientY:100}]});
-  await target.dispatchEvent('touchmove',{touches:[{clientX:180+dx,clientY:100+dy}]});
-  await target.dispatchEvent('touchend',{changedTouches:[{clientX:180+dx,clientY:100+dy}]});
+  await target.evaluate((el,{dx,dy})=>{
+    const point=(x:number,y:number)=>new Touch({identifier:1,target:el,clientX:x,clientY:y});
+    const emit=(type:string,x:number,y:number)=>el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[point(x,y)],changedTouches:[point(x,y)]}));
+    emit('touchstart',180,100);emit('touchmove',180+dx,100+dy);emit('touchend',180+dx,100+dy);
+  },{dx,dy});
 }
 
 test('stock quote time survives pending and failure; top pull preserves conditions and blocks duplicate refresh',async({page})=>{
   await fixture(page);let fail=false,delay=false,time='2026-10-02T00:00:00Z',reads=0,release:()=>void=()=>{};
   await page.route('**/api/securities?**',async route=>{
     reads++;if(delay)await new Promise<void>(r=>{release=r;});
-    return route.fulfill({status:fail?500:200,json:fail?{error:{message:'조회 실패'}}:{data:[{id:'2',symbol:'005930',name:'삼성전자',marketType:'KOSPI',listType:'WATCHLIST',watchlistItemId:'2',currentPrice:'70000',previousClosePrice:'69000',priceUpdatedAt:time}]}});
+    return route.fulfill({status:fail?500:200,json:fail?{error:{message:'조회 실패'}}:{data:Array.from({length:6},(_,i)=>({id:String(2+i),symbol:String(2+i).padStart(6,'0'),name:'삼성전자'+i,marketType:'KOSPI',listType:'WATCHLIST',watchlistItemId:String(2+i),currentPrice:'70000',previousClosePrice:'69000',priceUpdatedAt:time}))}});
   });
   await page.goto('/stocks?tab=watchlist');await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('09:00');
   await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('삼성');
@@ -18,19 +20,19 @@ test('stock quote time survives pending and failure; top pull preserves conditio
   await main.evaluate(el=>el.scrollTop=40);const count=reads;await gesture(page.getByTestId('stock-list'));expect(reads).toBe(count);
   await main.evaluate(el=>el.scrollTop=0);delay=true;
   await gesture(page.getByTestId('stock-list'));await expect(page.getByTestId('pull-refresh')).toHaveText('새로고침 중');
-  await expect(page.getByTestId('price-timestamp')).toHaveText('09:00');
+  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('09:00');
   await gesture(page.getByTestId('stock-list'));expect(reads).toBe(count+1);
   time='2026-10-02T01:00:00Z';delay=false;release();
-  await expect(page.getByTestId('price-timestamp')).toHaveText('10:00');await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
+  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
   expect(await page.getByTestId('stock-list').getAttribute('data-list-condition')).toBe(condition);
   fail=true;await gesture(page.getByTestId('stock-list'));await expect(page.getByRole('alert')).toContainText('최신 조회 실패',{timeout:15000});
-  await expect(page.getByTestId('price-timestamp')).toHaveText('10:00');await expect(page).toHaveURL(/tab=watchlist/);
+  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page).toHaveURL(/tab=watchlist/);
 });
 
 test('home pull refreshes current cards and gestures on other screens never refresh',async({page})=>{
   const state=await fixture(page);await page.goto('/');await expect(page.getByTestId('home-trend-card')).toBeVisible();
   const before=state.reads.filter(path=>path.endsWith('/dashboard')).length;
-  await gesture(page.getByTestId('home-summary-area'));await expect.poll(()=>state.reads.filter(path=>path.endsWith('/dashboard')).length).toBe(before+1);
+  await gesture(page.locator('main'));await expect.poll(()=>state.reads.filter(path=>path.endsWith('/dashboard')).length).toBe(before+1);
   await page.goto('/assets');await expect(page.getByTestId('asset-analysis')).toBeVisible();const count=state.reads.length;
   await gesture(page.getByTestId('asset-analysis'));expect(state.reads.length).toBe(count);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
 });

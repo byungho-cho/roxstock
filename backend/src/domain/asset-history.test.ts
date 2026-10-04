@@ -38,7 +38,7 @@ test('period breakdown subtracts opening gains and reports reconciliation withou
   assert.equal(missing.unrealizedChange,null);assert.equal(missing.detailedProfitLoss,null);assert.equal(missing.dividendIncome,null);
 });
 
-test('compound target uses plan initial asset and year-end contributions', async () => {
+test('compound target uses plan initial asset and year-start contributions', async () => {
   const {compoundYearTarget} = await import('./asset-history.js');
-  assert.equal(compoundYearTarget(d(1000),d(100),d(10),2025,2026),'1420');
+  assert.equal(compoundYearTarget(d(1000),d(100),d(10),2025,2026),'1441');
 });
