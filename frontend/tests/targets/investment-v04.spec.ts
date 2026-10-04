@@ -64,8 +64,12 @@ test('past-year quarters enabled, unavailable quarter resets, year wrap and swip
   await expect(periods.getByRole('button', { name: '전체', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '다음 연도' }).click();
   await expect(page.getByTestId('investment-year')).toContainText('2010년');
-  await page.getByTestId('investment-year').dispatchEvent('touchstart', { touches: [{ clientX: 50, clientY: 50 }] });
-  await page.getByTestId('investment-year').dispatchEvent('touchend', { changedTouches: [{ clientX: 150, clientY: 55 }] });
+  await page.getByTestId('investment-year').evaluate(node => {
+    const start = new Touch({ identifier: 1, target: node, clientX: 50, clientY: 50 });
+    const end = new Touch({ identifier: 1, target: node, clientX: 150, clientY: 55 });
+    node.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [start], changedTouches: [start] }));
+    node.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [end] }));
+  });
   await expect(page.getByTestId('investment-year')).toContainText('2026년');
 });
 test('requested layout, independent scrolling, row spacing, safe clearance and no clipped values', async ({ page }, info) => {
@@ -83,7 +87,7 @@ test('requested layout, independent scrolling, row spacing, safe clearance and n
   expect(geometry.padding).toEqual(['0px', '8px']); expect(geometry.header).toBe(44); expect(geometry.nav).toBe(44);
   expect(geometry.row).toBe(20); expect(geometry.rowGap).toBe(8); expect(geometry.clipped).toEqual([]); expect(geometry.overflow).toBe(false);
   expect(geometry.outerScroll).toBe(!tablet); expect(geometry.rightScroll).toBe(tablet);
-  if (tablet) { expect(geometry.gap).toBe(8); expect(geometry.leftScroll).toBe(true); }
+  if (tablet) { expect(geometry.gap).toBe(8); if (info.project.use.viewport!.height === 396) expect(geometry.leftScroll).toBe(true); }
   const region = tablet ? page.locator('[data-scroll-region="investment-right"]') : page.locator('main');
   await region.evaluate(node => { node.scrollTop = node.scrollHeight; });
   const clearance = await page.getByTestId('investment-history').evaluate((node, tablet) => {

@@ -84,10 +84,16 @@ export async function loadInvestment(accountId: string, year: number, today: str
   // Read every page: a latest-20 list cannot supply cumulative principal.
   if (history.data.length) {
     let total = Infinity;
+    const seen = new Set<string>();
     while (transactions.length < total) {
       const result = await apiEnvelope<CashHistoryDto>(`/accounts/${account}/cash-transactions?limit=100&offset=${transactions.length}`, { signal });
+      if (!Number.isSafeInteger(result.meta.total) || result.meta.total < 0 || (Number.isFinite(total) && result.meta.total !== total)) throw new Error('조회 중 투자금 내역이 변경되었습니다. 다시 시도해 주세요.');
       total = result.meta.total;
       if (!result.data.length && transactions.length < total) throw new Error('투자금 내역 조회가 완료되지 않았습니다.');
+      for (const row of result.data) {
+        if (seen.has(row.id)) throw new Error('조회 중 투자금 내역 순서가 변경되었습니다. 다시 시도해 주세요.');
+        seen.add(row.id);
+      }
       transactions.push(...result.data);
     }
   }

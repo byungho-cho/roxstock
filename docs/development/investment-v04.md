@@ -24,6 +24,11 @@ Evaluation minus cumulative investment gives the card difference; rate is unavai
 
 ## Validation / restart checkpoint
 
-Implementation completed; TypeScript, build and 24 targeted browser cases pending. Broad regression/Figma comparison QA intentionally not run. Tests cover pagination, quarter/year boundaries, Seoul current quarter, summary invariance, row geometry/clipping/clearance, independent scrolling, delayed account requests, refresh/error retention, retry and missing/empty states at 370×465, 400×640, 725×396, 816×616.
+Implementation checkpoint: ae255eb20bc3670e467b5dca18fe426f884d414d, PR #84.
+Frontend Check run 37242532687: TypeScript job 111553955231 and Build job 111553955247 both passed.
+Investment run 37242532696: 18 passed, 6 failed. Four synthetic swipe checks omitted TouchInit identifier; one tablet nav selection was a product defect (cover value applied, tablet value missed); tall tablet left column has no overflow and should not expect scrolling. Fixed event construction, tablet active item and conditional scroll expectation, retaining the short-tablet and all long-list scroll checks. Also checked pure monetary cases: exact flow precision, separate net dividend, zero denominator, large amount rounding and unavailable edited historical principal.
+Cash pagination rejects changing total counts and repeated IDs rather than silently double-counting during a concurrent update. Chart card adjusted to 230px. Re-run only after these related source/test changes.
+
+Broad regression/Figma comparison QA intentionally not launched. Existing stock/journal workflows also start automatically because common navigation changed; their executions are preserved. Tests cover pagination, quarter/year boundaries, Seoul current quarter, summary invariance, row geometry/clipping/clearance, independent scrolling, delayed account requests, refresh/error retention, retry and missing/empty states at 370×465, 400×640, 725×396, 816×616.
 
 Next: push implementation checkpoint, open PR, record individual TypeScript/build/function run IDs/results. Merge only after required checks, then verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.
