@@ -1,9 +1,4 @@
-<html>
-    <head><title>Site Unavailable</title></head>
-    <body>
-      <center>
-        <h1>Site Unavailable</h1>
-        <p>Unable to access this site.</p>
-      </center>
-    </body>
-</html>
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.9 2.1C11.1652 1.83479 11.5249 1.68579 11.9 1.68579C12.2751 1.68579 12.6348 1.83479 12.9 2.1C13.1652 2.36522 13.3142 2.72493 13.3142 3.1C13.3142 3.47508 13.1652 3.83479 12.9 4.1L5.19999 11.8L2.39999 12.5L3.09999 9.7L10.9 2.1Z" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M9.79999 3.19995L11.8 5.19995" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
