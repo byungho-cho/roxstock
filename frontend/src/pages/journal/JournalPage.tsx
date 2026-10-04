@@ -155,7 +155,7 @@ export function JournalPage() {
     const next = new Date(`${selectedDate}T12:00:00`);
     next.setDate(next.getDate() + offset);
     const date = dateOf(next.getFullYear(), next.getMonth() + 1, next.getDate());
-    setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null); setDetailMode('trades');
+    setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null);
   };
   const dayTouch = useRef<{x: number; y: number} | null>(null);
   const dayClickUntil = useRef(0);
