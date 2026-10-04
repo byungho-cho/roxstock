@@ -129,6 +129,7 @@ test('empty, missing and failed results remain distinct', async ({ page }) => {
   await expect(page.getByTestId('investment-history')).not.toContainText('내용이 없습니다.'); await expect(page.getByTestId('investment-value')).toHaveText('—');
 });
 test('large amounts, zero denominator, edited historical principal and changing pagination', async ({ page }) => {
+  test.setTimeout(60_000);
   const f = await fixture(page, 'large'); await page.goto('/detail/investment');
   await expect(page.getByTestId('investment-value')).toHaveText('999,999,999,999,999원');
   const clipped = await page.locator('[data-testid="investment-page"] .MuiTypography-root').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));

@@ -35,4 +35,11 @@ Correction checkpoint: 8563acc4793b70e560f97b02e878f1b1e2731af5. Investment run 
 
 Final refinement: query key keeps the same account/year on a Seoul date rollover, retaining the last successful snapshot during refresh. Historical flow dates/amounts are parsed once per transaction, not once per snapshot; cash-history uses the existing DEPOSIT/WITHDRAWAL/DIVIDEND type filter to avoid paging irrelevant trades. Final 28-case scope adds the largest Decimal(19,4) value, zero principal, modified historical deposits and changing pagination totals. Previous successful results remain recorded; only these related changes need validation.
 
-Next: commit/push final refinement, record individual TypeScript/build/function run IDs/results. Merge only after required checks, then verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.
+Final application SHA: 91c326cfa2b31ec77ce4790bb2bc575ce07667a6. Frontend Check 37243070165: TypeScript and build both passed.
+Investment run 37243070077: 25 passed, 3 failed. All 24 core tests passed on the final application. The extra scenario passed on 816×616 in 25.5s; three smaller-size copies ran out of their overall 30s budget after multiple reloads, rather than failing a function assertion. Increase only that journey's overall test budget to 60s; preserve each assertion's 5s wait and every check.
+
+The next workflow will repeat those four related cases only if application inputs/configuration are identical to 91c326c and the entire test diff is solely the added timeout metadata. This explicit, recorded reuse preserves the 24 passing cases without masking any failed scenario; all other source/test differences run the whole requested-scope suite. TypeScript/build inputs are unchanged and their prior success is reused.
+
+Production API smoke read: accounts, asset-history and filtered cash-transactions all returned HTTP 200; snapshot updatedAt and cash createdAt exist. No operating financial values were logged.
+
+Next: record four-case result, then merge PR #84 and verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.
