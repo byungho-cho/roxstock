@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
 import { calculateDashboard, calculateHoldings, type PortfolioLotInput } from '../domain/portfolio.js';
-import { calculateAssetPeriod, calculatePointChange } from '../domain/asset-history.js';
+import { calculateAssetPeriod, calculatePointChange, calculatePeriodBreakdown, compoundYearTarget } from '../domain/asset-history.js';
 import { calculateDashboardPerformance } from '../domain/dashboard-performance.js';
 import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
@@ -209,7 +209,42 @@ export async function portfolioRoutes(app: FastifyInstance) {
     const depositAmount = amountFor('DEPOSIT');
     const withdrawalAmount = amountFor('WITHDRAWAL');
     const period = calculateAssetPeriod(snapshots, depositAmount, withdrawalAmount);
+    const ledger = first && last && snapshots.length >= 2 ? await prisma.cashTransaction.findMany({
+      where: { accountId, createdAt: {gt: first.updatedAt, lte: last.updatedAt} },
+      include: { sellTrade: {include: {buyTrade: true}}, dividend: true },
+    }) : [];
+    const positionValue = async (snapshot: typeof first) => {
+      if (!snapshot) return null;
+      const positions = await prisma.dailyPositionSnapshot.findMany({where: {accountId, snapshotDate: snapshot.snapshotDate}});
+      const market = positions.reduce((sum, row) => sum.plus(row.marketValue), new Prisma.Decimal(0));
+      if (!market.equals(snapshot.stockValue)) return null;
+      return positions.reduce((sum, row) => sum.plus(row.unrealizedProfitLoss), new Prisma.Decimal(0));
+    };
+    const [openingUnrealized, closingUnrealized, plan] = await Promise.all([
+      positionValue(first), positionValue(last),
+      prisma.compoundGrowthPlan.findFirst({where: {accountId, isActive: true}, orderBy: [{displayOrder: 'asc'}, {id:'asc'}],
+        include: {goals: {where: {isVisible:true}, orderBy:[{isDefault:'desc'},{displayOrder:'asc'},{id:'asc'}]}}}),
+    ]);
+    const sum = (values: Prisma.Decimal[]) => values.reduce((total, value) => total.plus(value), new Prisma.Decimal(0));
+    const dividends = ledger.filter(row => row.transactionType === 'DIVIDEND');
+    const breakdown = calculatePeriodBreakdown({
+      openingUnrealized, closingUnrealized,
+      realized: ledger.some(row => row.transactionType === 'SELL' && !row.sellTrade) ? null : sum(ledger.filter(row => row.sellTrade).map(row => row.sellTrade!.unitPrice.minus(row.sellTrade!.buyTrade.unitPrice).mul(row.sellTrade!.quantity))),
+      dividend: dividends.some(row => !row.dividend) ? null : sum(dividends.map(row => row.dividend!.grossAmount)),
+      fees: sum(ledger.filter(row => row.transactionType === 'BUY' || row.transactionType === 'SELL').map(row => row.feeTaxAmount))
+        .plus(sum(dividends.filter(row => row.dividend).map(row => row.dividend!.grossAmount.minus(row.dividend!.netAmount)))),
+      profitLoss: period.profitLoss,
+    });
+    const goal = plan?.goals[0], currentYear = Number(new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
+    const compoundPlan = plan ? {
+      id: plan.id.toString(), name: plan.planName, assetBasis: 'PLAN_INITIAL_ASSET',
+      initialAssetValue: plan.initialAssetValue.toString(),
+      yearTarget: goal && currentYear >= plan.startDate.getUTCFullYear() && currentYear <= plan.endDate.getUTCFullYear()
+        ? compoundYearTarget(plan.initialAssetValue, plan.annualContributionAmount, goal.annualTargetRate, plan.startDate.getUTCFullYear(), currentYear) : null,
+      goalName: goal?.goalName ?? null, targetYear: currentYear,
+    } : null;
     return {
+      compoundPlan,
       data: snapshots.map((snapshot, index) => ({
         date: snapshot.snapshotDate.toISOString().slice(0, 10),
         cashBalance: snapshot.cashBalance.toString(),
@@ -226,6 +261,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
         depositAmount: depositAmount.toString(),
         withdrawalAmount: withdrawalAmount.toString(),
         ...period,
+        ...(snapshots.length >= 2 ? breakdown : {unrealizedChange:null,realizedProfitLoss:null,dividendIncome:null,feeTaxAmount:null,detailedProfitLoss:null,reconciliationDifference:null}),
+        ledgerFrom: first?.updatedAt.toISOString() ?? null, ledgerTo: last?.updatedAt.toISOString() ?? null,
         calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE',
       },
       meta: { accountId: accountId.toString(), count: snapshots.length, timezone: 'Asia/Seoul' },
