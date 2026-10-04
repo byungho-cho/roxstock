@@ -193,7 +193,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
     });
     const first = snapshots.at(0);
     const last = snapshots.at(-1);
-    const cashGroups = first && last && snapshots.length >= 2
+    const validInterval = !!first && !!last && snapshots.length >= 2 && last.updatedAt > first.updatedAt;
+    const cashGroups = validInterval
       ? await prisma.cashTransaction.groupBy({
         by: ['transactionType'],
         where: {
@@ -208,8 +209,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
       .find((group) => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
     const depositAmount = amountFor('DEPOSIT');
     const withdrawalAmount = amountFor('WITHDRAWAL');
-    const period = calculateAssetPeriod(snapshots, depositAmount, withdrawalAmount);
-    const ledger = first && last && snapshots.length >= 2 ? await prisma.cashTransaction.findMany({
+    const period = calculateAssetPeriod(validInterval ? snapshots : [], depositAmount, withdrawalAmount);
+    const ledger = validInterval ? await prisma.cashTransaction.findMany({
       where: { accountId, createdAt: {gt: first.updatedAt, lte: last.updatedAt} },
       include: { sellTrade: {include: {buyTrade: true}}, dividend: true },
     }) : [];
@@ -235,7 +236,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
         .plus(sum(dividends.filter(row => row.dividend).map(row => row.dividend!.grossAmount.minus(row.dividend!.netAmount)))),
       profitLoss: period.profitLoss,
     });
-    const goal = plan?.goals[0], currentYear = Number(new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
+    const goal = plan?.goals.find(goal => goal.isDefault), currentYear = Number(new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
     const compoundPlan = plan ? {
       id: plan.id.toString(), name: plan.planName, assetBasis: 'PLAN_INITIAL_ASSET',
       initialAssetValue: plan.initialAssetValue.toString(),
@@ -258,10 +259,12 @@ export async function portfolioRoutes(app: FastifyInstance) {
         to: last?.snapshotDate.toISOString().slice(0, 10) ?? null,
         openingAssetValue: first?.totalAssetValue.toString() ?? null,
         closingAssetValue: last?.totalAssetValue.toString() ?? null,
-        depositAmount: depositAmount.toString(),
-        withdrawalAmount: withdrawalAmount.toString(),
+        depositAmount: validInterval ? depositAmount.toString() : null,
+        withdrawalAmount: validInterval ? withdrawalAmount.toString() : null,
         ...period,
-        ...(snapshots.length >= 2 ? breakdown : {unrealizedChange:null,realizedProfitLoss:null,dividendIncome:null,feeTaxAmount:null,detailedProfitLoss:null,reconciliationDifference:null}),
+        netContribution: validInterval ? period.netContribution : null,
+        calculationUnavailableReason: validInterval ? null : snapshots.length < 2 ? 'INSUFFICIENT_SNAPSHOTS' : 'SNAPSHOT_CAPTURE_ORDER_INVALID',
+        ...(validInterval ? breakdown : {unrealizedChange:null,realizedProfitLoss:null,dividendIncome:null,feeTaxAmount:null,detailedProfitLoss:null,reconciliationDifference:null}),
         ledgerFrom: first?.updatedAt.toISOString() ?? null, ledgerTo: last?.updatedAt.toISOString() ?? null,
         calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE',
       },

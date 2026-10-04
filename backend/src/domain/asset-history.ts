@@ -64,6 +64,6 @@ export function calculatePeriodBreakdown(input: {
 
 export function compoundYearTarget(initial: Prisma.Decimal, contribution: Prisma.Decimal, rate: Prisma.Decimal, startYear: number, targetYear: number) {
   let value = initial;
-  for (let year = startYear; year <= targetYear; year++) value = value.mul(rate.div(100).plus(1)).plus(contribution);
+  for (let year = startYear; year <= targetYear; year++) value = value.plus(contribution).mul(rate.div(100).plus(1));
   return value.toString();
 }

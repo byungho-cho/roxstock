@@ -33,7 +33,7 @@ test('asset analysis response joins real stored snapshots, ledger and plan with 
     assert.equal(result.summary.dividendIncome,'100');assert.equal(result.summary.feeTaxAmount,'30');
     assert.equal(result.summary.detailedProfitLoss,'320');assert.equal(result.summary.reconciliationDifference,'-20');
     assert.equal(result.summary.ledgerFrom,firstTime.toISOString());assert.equal(result.summary.ledgerTo,lastTime.toISOString());
-    assert.equal(result.compoundPlan.initialAssetValue,'1000');assert.equal(result.compoundPlan.assetBasis,'PLAN_INITIAL_ASSET');
+    assert.equal(result.compoundPlan.initialAssetValue,'1000');assert.equal(result.compoundPlan.assetBasis,'PLAN_INITIAL_ASSET');assert.equal(result.compoundPlan.yearTarget,'1210');
     await prisma.dailyPositionSnapshot.deleteMany({where:{accountId:account.id,snapshotDate:new Date('2026-09-01')}});
     assert.equal((await read()).summary.unrealizedChange,null);
     const one=await read('2026-09-03');assert.equal(one.summary.profitLoss,null);assert.equal(one.summary.realizedProfitLoss,null);

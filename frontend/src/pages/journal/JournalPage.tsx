@@ -174,7 +174,7 @@ export function JournalPage() {
       moveDay(dx < 0 ? 1 : -1);
     },
     onTouchCancel: () => { dayTouch.current = null; },
-    onClickCapture: (event: React.MouseEvent) => { if (Date.now() < dayClickUntil.current) { event.preventDefault(); event.stopPropagation(); } },
+    onClickCapture: (event: React.MouseEvent) => { if (Date.now() < dayClickUntil.current && !(event.target as HTMLElement).closest('button, input, a, [role="button"]')) { event.preventDefault(); event.stopPropagation(); dayClickUntil.current = 0; } },
   };
   const dayHeading = <Box data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
     <IconButton aria-label="거래내역 이전 날짜" onClick={() => moveDay(-1)} sx={{width:28,height:28}}><ChevronLeftRounded sx={{fontSize:18}}/></IconButton>
