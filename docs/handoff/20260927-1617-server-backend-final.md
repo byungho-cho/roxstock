@@ -275,3 +275,5 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - 화면 대조 후 Sticky 제목·기간의 간격을 grid열로 명시하여 보장. 큰 금액(854,300,000원 등)의 잘림 및 카드 끝 Sticky 해제 조건을 추가 검사. API·계산 변경 없음. 해당 변경과 관련된 검사만 재실행.
 
 - TypeScript 종료 체크포인트: 앱 검증 SHA2286f921c0beecee6c10c2ebd154f879fd984255, Frontend Check Run37171304538 / Frontend TypeScript 성공. 원본 검사 결과를 보존하며 문서 기록만 변경.
+
+- 빌드 종료 체크포인트: 같은 앱 SHA2286f921c0beecee6c10c2ebd154f879fd984255, Frontend Check Run37171304538 / Frontend Build 성공. 앱 입력 동일한 문서 체크포인트는 타입/빌드를 재실행하지 않음.
