@@ -242,3 +242,15 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - FINAL 헤더 마감: MUI 기본 min-height42px를 명시적으로32px로 제한해 오늘 버튼32px 유지. 일별손익 헤더 제목을 명세의 좌정렬로 지정. 관련 높이 assertion 추가.
 - 배포 중복 검사 방지: Frontend Check workflow의 push/merge에서는 HEAD^2의 성공한 PR Frontend Check를 읽고 앱 입력(src/public/컴파일설정/패키지/Docker 입력)이 merge와 동일한 경우에만 타입/빌드를 재사용한다. 조회/동일성/성공 조건이 충족되지 않으면 기존 검사 경로 유지. 실제 이미지 빌드·배포·health 검증은 계속 수행한다.
 - 다음 실행: 헤더/검사 마감 커밋 → 최종28건/TS/Build → 결과 문서 체크포인트(성공 캐시 재사용) → PR 병합 → 자동 이미지 배포와 성공 검증 재사용 로그 확인.
+
+### 최종 구현·검사 종료 체크포인트 · 2026-10-04 09:16 KST
+
+- 최종 앱 검증 SHA: `106201154a71312d62bce5a2495c6883226d0545`.
+- [Frontend Check 37164328771](https://github.com/byungho-cho/roxstock/actions/runs/37164328771): TypeScript job `111324068493` 통과, Build job `111324068414` 통과.
+- [Journal Function Check 37164328799](https://github.com/byungho-cho/roxstock/actions/runs/37164328799): job `111324045289`, **28/28 통과** (1.6분). 370×465·400×640·725×396·816×616 각각7건, 생략/skip0.
+- 최종 테스트 범위: 6주302px/7열/칩/선택/기간·스와이프, 실제 연결Lot·분할원가·합계·소수 계산, 매수/매도 공통 형식 및 긴 텍스트, 계좌 변경/미수집/조회 실패, 본문/열 독립 스크롤·420px복원, 날짜44px+고정8px, 80px여백, scrollbar4px 표시/숨김, 오늘 버튼32px, 매수단가 수정 후 원가/손익 갱신.
+- artifact `11288951956` (journal-v04-evidence): 성공12개 화면PNG·HTML보고서. CI 로그에서 네 크기의 메인/일별손익/최하단 실제 PNG를 직접 확인했다. 별도 전체 QA/전체 회귀 없음.
+- 보존한 관련 메뉴 연결4건: Run `37163408766`. 후속 Stock Function `37164328783`는 관련 코드가 다시 변경되지 않아 기존 성공을 보존.
+- 제품 미해결 문제: 없음. 처음816×616 달력의 무스크롤 조건 실패는 별도 기록한 조건 교정으로 해결되었고, 실제 스크롤 복원 실패는 없었다.
+- 현재 결과 기록 커밋은 문서만 변경한다. 앱/검사 입력이 동일하므로 이미 통과한TypeScript/빌드/기능 결과를 재사용하고 실검사를 반복하지 않는다.
+- 다음 실행: 체크포인트 CI 재사용 확인 → PR #79 main 병합 → Frontend Docker Image 자동배포·healthy/HTTP 성공 확인 → 배포SHA/완료시각 기록·보고·종료. 사용자 운영 검증 대기 없음.
