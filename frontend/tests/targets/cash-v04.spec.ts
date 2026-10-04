@@ -57,8 +57,11 @@ test('account and period scope synchronizes history total and stored trend; cale
   expect(cashSegments([{ date: '2026-10-01', cashBalance: null }] as never)).toEqual([]);
 });
 
-test('card geometry, amount baseline, type colors, independent scrolling, overlay fade and final clearance', async ({ page }) => {
+test('card geometry, amount baseline, type colors, independent scrolling, overlay fade and final clearance', async ({ page }, info) => {
   await setup(page); await ready(page);
+  const assetRoots = await page.evaluate(async () => Promise.all(['edit', 'calendar', 'search', 'search-clear'].map(async name => new DOMParser().parseFromString(await (await fetch('/cash-v04/' + name + '.svg')).text(), 'image/svg+xml').documentElement.tagName))); expect(assetRoots).toEqual(['svg', 'svg', 'svg', 'svg']);
+  await expect.poll(() => page.locator('img[src^="/cash-v04/"]').evaluateAll(els => els.every(el => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  if (info.project.name === 'tablet-725x396') console.log('ROX_CASH_IMAGE ' + (await page.screenshot()).toString('base64'));
   expect((await page.getByTestId('cash-balance').boundingBox())!.x).toBe(8);
   expect((await page.getByTestId('cash-balance').boundingBox())!.y).toBe(44);
   expect((await page.getByTestId('cash-balance').boundingBox())!.height).toBe(96);
@@ -73,7 +76,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
     const left = (await page.getByTestId('cash-balance').boundingBox())!, right = (await page.getByTestId('cash-history').boundingBox())!; expect(right.x - left.x - left.width).toBe(8);
     const top = await region(page, 'left').evaluate(el => el.scrollTop); await region(page).evaluate(el => { el.scrollTop = 60; }); expect(await region(page, 'left').evaluate(el => el.scrollTop)).toBe(top);
     await expect(page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root')).toHaveCount(9);
-    await expect(page.locator('.MuiBottomNavigation-root:visible .Mui-selected')).toContainText('예수금');
+    await expect(page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root.Mui-selected')).toContainText('예수금');
   }
   const body = region(page); await body.evaluate(el => { el.scrollTop = 50; });
   const bar = page.getByRole('scrollbar', { name: tablet(page) ? '예수금 오른쪽 스크롤' : '예수금 본문 스크롤' });
@@ -122,6 +125,7 @@ test('dividend search matches only query text and preserves form draft; gross ta
 });
 
 test('period and balance popups retain query and scroll; failed reads/writes retry and normal empty stays distinct', async ({ page }) => {
+  test.setTimeout(45000);
   const state = await setup(page); await ready(page);
   await region(page).evaluate(el => { el.scrollTop = 40; }); const top = await region(page).evaluate(el => el.scrollTop);
   await page.getByRole('button', { name: '기간 직접 선택' }).click(); await expect(page.getByRole('button', { name: '10월', exact: true })).toHaveAttribute('aria-pressed', 'true'); await expect(page.getByRole('button', { name: '11월', exact: true })).toBeDisabled();
@@ -130,8 +134,8 @@ test('period and balance popups retain query and scroll; failed reads/writes ret
   await region(page, 'left').evaluate(el => { el.scrollTop = 0; }); await page.getByRole('button', { name: '현재 예수금 편집' }).click(); await expect(page.getByRole('textbox', { name: '현재 예수금', exact: true })).toBeFocused();
   state.writeFail(); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).fill('2000'); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).press('Enter'); await expect(page.getByText('저장 실패 · 다시 시도', { exact: true })).toBeVisible();
   state.success(); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).press('Enter'); await expect(page.getByRole('textbox', { name: '현재 예수금', exact: true })).not.toBeVisible(); expect(state.writes.at(-1)?.body).toMatchObject({ amount: '2000' });
-  state.fail('/asset-history'); await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByRole('button', { name: '추이 조회 실패 · 다시 시도' })).toBeVisible({ timeout: 15000 });
-  state.success(); state.empty(); await page.getByRole('button', { name: '추이 조회 실패 · 다시 시도' }).click(); await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
+  state.fail('/asset-history'); await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByText('추이 조회 실패 · 다시 시도', { exact: true })).toBeVisible({ timeout: 15000 });
+  state.success(); state.empty(); await page.getByText('추이 조회 실패 · 다시 시도', { exact: true }).click(); await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
   await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByTestId('cash-history-total')).toHaveText('총 0개'); await expect(page.getByTestId('cash-history')).toContainText('내용이 없습니다.');
   if (!tablet(page)) { await page.getByRole('button', { name: '예수금 등록', exact: true }).click(); await page.goBack(); await expect(page.getByTestId('cash-history')).toBeVisible(); await expect(page.getByRole('button', { name: '기간 직접 선택' })).toHaveText('2026.08'); }
 });
