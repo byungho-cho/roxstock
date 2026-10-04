@@ -55,11 +55,10 @@ test('period changes chart and performance together; title and buttons have inde
 
 test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hiding and bottom clearance', async ({ page }, info) => {
   await setup(page); await page.goto('/assets'); await expect(page.getByTestId('analysis-chart')).toBeVisible();
-  expect((await page.locator('header').count()) >= 0).toBeTruthy();
   const total = (await page.getByTestId('analysis-total').boundingBox())!;
   expect(total.x).toBe(8);
   const overflow = await page.getByTestId('asset-analysis').locator('p').evaluateAll(els => els.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent)); expect(overflow).toEqual([]);
-  await page.screenshot({ path: `test-results/targets/analysis-initial-${info.project.name}.png` });
+  console.log('ROX_ANALYSIS_IMAGE '+JSON.stringify({tag:'initial',project:info.project.name,image:(await page.screenshot({path:`test-results/targets/analysis-initial-${info.project.name}.png`})).toString('base64')}));
   if (page.viewportSize()!.width >= 600) {
     expect((await page.getByTestId('analysis-performance').boundingBox())!.x - total.x - total.width).toBe(8);
     await expect(page.locator('main')).toHaveCSS('overflow-y', 'hidden');
@@ -79,7 +78,7 @@ test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hidin
     const clearance = await body.evaluate(el => { const last = el.lastElementChild; return { padding: getComputedStyle(el).paddingBottom, bottom: last?.getBoundingClientRect().bottom, viewport: el.getBoundingClientRect().bottom }; });
     expect(clearance.padding).toBe('80px');
   }
-  await page.screenshot({ path: `test-results/targets/analysis-bottom-${info.project.name}.png` });
+  console.log('ROX_ANALYSIS_IMAGE '+JSON.stringify({tag:'bottom',project:info.project.name,image:(await page.screenshot({path:`test-results/targets/analysis-bottom-${info.project.name}.png`})).toString('base64')}));
   const selected = page.locator('.MuiBottomNavigation-root:visible .Mui-selected'); await expect(selected).toContainText('자산분석');
 });
 

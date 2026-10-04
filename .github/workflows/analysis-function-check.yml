@@ -1,0 +1,59 @@
+name: Asset Analysis v0.4 Function Check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/assets/AssetAnalysisPage.tsx
+      - frontend/src/pages/assets/analysisPeriod.ts
+      - frontend/tests/targets/analysis-v04.spec.ts
+      - .github/workflows/analysis-function-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: analysis-v04-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/cache/restore@v4
+        id: passed
+        with:
+          path: ${{ runner.temp }}/analysis-v04-passed
+          key: analysis-v04-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/analysis-v04.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.targets.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/analysis-function-check.yml') }}
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Check changed analysis at four requested sizes
+        if: steps.passed.outputs.cache-hit != 'true'
+        run: npx playwright test --config=playwright.targets.config.ts analysis-v04.spec.ts --workers=2
+        working-directory: frontend
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: mkdir -p "${{ runner.temp }}/analysis-v04-passed" && git rev-parse HEAD > "${{ runner.temp }}/analysis-v04-passed/passed"
+      - if: steps.passed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/analysis-v04-passed
+          key: analysis-v04-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/analysis-v04.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.targets.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/analysis-function-check.yml') }}
+      - name: Record execution
+        if: always()
+        run: |
+          echo "SHA: $(git rev-parse HEAD); Run: $GITHUB_RUN_ID; reused: ${{ steps.passed.outputs.cache-hit }}; status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.passed.outputs.cache-hit != 'true'
+        with:
+          name: analysis-v04-evidence
+          path: |
+            frontend/test-results/targets/
+            frontend/playwright-targets-report/
+          retention-days: 7
