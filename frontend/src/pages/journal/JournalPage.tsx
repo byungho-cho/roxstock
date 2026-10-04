@@ -196,7 +196,7 @@ export function JournalPage() {
     <Button onClick={() => editEntry(selectedTrade)} sx={{ alignSelf: 'flex-end', fontSize: 12 }}>거래 수정·삭제 ›</Button>
   </Stack>;
   return <>
-    <PageHeader embedded title={!tablet && detailMode === 'profit' ? '일별손익' : '매매일지'} variant="home" onBack={!tablet && detailMode === 'profit' ? () => setDetailMode('trades') : undefined} showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 40, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 10 }}>오늘</Button>}/>
+    <PageHeader embedded title={!tablet && detailMode === 'profit' ? '일별손익' : '매매일지'} variant="home" onBack={!tablet && detailMode === 'profit' ? () => setDetailMode('trades') : undefined} showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 40, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 10 }}>오늘</Button>}/>
     <Box data-testid="journal-layout" data-list-condition={JSON.stringify([month, selectedDate, detailMode])} data-restoration-ready={!liveApiEnabled || !tradesPending || tradesError}
       sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
       {(tablet || detailMode !== 'profit') && <Box ref={leftRef} data-scroll-region={tablet ? 'journal-calendar' : undefined} data-list-condition={JSON.stringify([month, selectedDate])}
