@@ -30,7 +30,7 @@ test('stock quote time survives pending and failure; top pull preserves conditio
 });
 
 test('home pull refreshes current cards and gestures on other screens never refresh',async({page})=>{
-  const state=await fixture(page);await page.goto('/');await expect(page.getByTestId('home-trend-card')).toBeVisible();
+  const state=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');await expect(page.getByTestId('home-trend-card')).toBeVisible();
   const before=state.reads.filter(path=>path.endsWith('/dashboard')).length;
   await gesture(page.locator('main'));await expect.poll(()=>state.reads.filter(path=>path.endsWith('/dashboard')).length).toBe(before+1);
   await page.goto('/assets');await expect(page.getByTestId('asset-analysis')).toBeVisible();const count=state.reads.length;
