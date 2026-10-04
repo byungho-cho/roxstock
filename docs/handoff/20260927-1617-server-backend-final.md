@@ -264,3 +264,8 @@ GitHub/CI·CD 담당. 최초 backend 운영 배포 및 Caddy JSON API 연결 검
 - 다음: 기능 검사 결과/원인 확인 → 필요한 수정만 → TypeScript → 빌드 각 종료 시 커밋·푸시 → PR 병합 및 자동 배포 확인. 광범위 QA 미실시.
 
 - 로컬 기능 검사 종료: 16건은 브라우저 미설치(`chromium_headless_shell-1243` 없음)로 실행 전에 실패. 제품 동작 실패로 집계하지 않으며 통과로 처리하지 않음. 전용 GitHub Actions 검사로 전환. 새 workflow는 변경 화면 16건만 실행하고 결과 캐시·8개 화면 PNG·보고서를 보존.
+
+### 첫 CI 종료 및 원인 교정
+- 검증 SHA 248db3f. 분석 기능 Run37170700883: 8통과/8실패. 4건은 홈 fixture의 lot1/lot2 ID를 BigInt로 읽을 수 없어 RecentBuysCard가 중단(trace pageError 확인). 실제 API는 숫자 ID이므로 새 검사에서 불필요한 매수 fixture를 빈 목록으로 교정. 3건은 선택 action/label 둘 모두 잡는 selector, 1건은816의 최대14px 도달 후 +1px 이동을 요구한 검사조건 오류. 실패 기록·artifact11290324958 보존. 스크롤을 반대로1px 이동하도록 교정하여 실제 표시를 계속 검사.
+- TypeScript/Build Run37170700876 실패: MUI div ref에 HTMLElement를 지정한 TS2769. HTMLDivElement로 수정. 카드12px 구성 행, 최소10px 메뉴 및 중립0/양수부호 표시도 교정.
+- 함수8건 통과 증거 및 첫 화면 PNG7개 확인. 앱 변경이 해당 레이아웃/금액/복귀 검사에 영향을 주므로 변경범위 검사를 다시 수행한다. 전체 QA 없음.

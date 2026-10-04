@@ -11,9 +11,10 @@ async function setup(page: Page) {
   await page.route('**/api/accounts/*/asset-history**', route => {
     const url = new URL(route.request().url()); reads.push(url);
     if (error) return route.fulfill({ status: 500, json: { error: { message: '조회 검사 실패' } } });
-    const from = url.searchParams.get('from') ?? '2020-01-01', to = url.searchParams.get('to')!;
+    const from = url.searchParams.get('from') ?? '2020-01-01', to = url.searchParams.get('to') ?? new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
     return route.fulfill({ json: { data: empty ? [] : [{ date: from, totalAssetValue: '800000', cashBalance: '200000', stockValue: '600000', change: null, changeRate: null }, { date: to, totalAssetValue: '1000000', cashBalance: '200000', stockValue: '800000', change: '200000', changeRate: '25' }], summary: { from: empty ? null : from, to: empty ? null : to, openingAssetValue: empty ? null : '800000', closingAssetValue: empty ? null : '1000000', depositAmount: '100000', withdrawalAmount: '0', profitLoss: empty ? null : '100000', returnRate: empty ? null : '12.5' } } });
   });
+  await page.route('**/api/accounts/*/buy-lots**', route => route.fulfill({json:{data:[]}}));
   return { reads, error: () => { error = true; }, success: () => { error = false; }, empty: () => { empty = true; }, missing: () => { missing = true; } };
 }
 const region = (page: Page, name = 'analysis-left') => page.viewportSize()!.width >= 600 ? page.locator(`[data-scroll-region="${name}"]`) : page.locator('main');
@@ -70,7 +71,7 @@ test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hidin
       expect((await page.getByTestId('analysis-sticky').boundingBox())!.y).toBeGreaterThanOrEqual(43);
       const bar = page.getByRole('scrollbar', { name: '자산분석 오른쪽 스크롤' }); await expect(bar).toHaveCSS('width', '4px');
       await expect(bar).toHaveCSS('opacity', '0', { timeout: 2500 });
-      await right.evaluate(el => { el.scrollTop += 1; }); await expect(bar).toHaveCSS('opacity', '1');
+      await right.evaluate(el => { el.scrollTop = el.scrollTop > 0 ? el.scrollTop - 1 : 1; }); await expect(bar).toHaveCSS('opacity', '1');
     }
   }
   for (const body of page.viewportSize()!.width >= 600 ? [region(page), region(page, 'analysis-right')] : [region(page)]) {
@@ -79,7 +80,7 @@ test('four sizes keep geometry, separate scrolling, sticky bounds, overlay hidin
     expect(clearance.padding).toBe('80px');
   }
   console.log('ROX_ANALYSIS_IMAGE '+JSON.stringify({tag:'bottom',project:info.project.name,image:(await page.screenshot({path:`test-results/targets/analysis-bottom-${info.project.name}.png`})).toString('base64')}));
-  const selected = page.locator('.MuiBottomNavigation-root:visible .Mui-selected'); await expect(selected).toContainText('자산분석');
+  const selected = page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root.Mui-selected'); await expect(selected).toContainText('자산분석');
 });
 
 test('real server period result is preserved, unknown breakdown and plan are not zero; empty/error/missing/account states differ', async ({ page }) => {
