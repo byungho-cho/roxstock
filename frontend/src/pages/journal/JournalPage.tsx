@@ -155,8 +155,32 @@ export function JournalPage() {
     const next = new Date(`${selectedDate}T12:00:00`);
     next.setDate(next.getDate() + offset);
     const date = dateOf(next.getFullYear(), next.getMonth() + 1, next.getDate());
-    setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null);
+    setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null); setDetailMode('trades');
   };
+  const dayTouch = useRef<{x: number; y: number} | null>(null);
+  const dayClickUntil = useRef(0);
+  const dayGesture = {
+    onTouchStart: (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      const touch = event.touches.length === 1 ? event.touches[0] : undefined;
+      dayTouch.current = touch && !target.closest('button, input, a, [role="button"]') ? {x: touch.clientX, y: touch.clientY} : null;
+    },
+    onTouchEnd: (event: TouchEvent) => {
+      const start = dayTouch.current, touch = event.changedTouches[0]; dayTouch.current = null;
+      if (!start || !touch) return;
+      const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      dayClickUntil.current = Date.now() + 350;
+      moveDay(dx < 0 ? 1 : -1);
+    },
+    onTouchCancel: () => { dayTouch.current = null; },
+    onClickCapture: (event: React.MouseEvent) => { if (Date.now() < dayClickUntil.current) { event.preventDefault(); event.stopPropagation(); } },
+  };
+  const dayHeading = <Box data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
+    <IconButton aria-label="거래내역 이전 날짜" onClick={() => moveDay(-1)} sx={{width:28,height:28}}><ChevronLeftRounded sx={{fontSize:18}}/></IconButton>
+    <Typography sx={{textAlign:'center',fontSize:14,fontWeight:600}}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>
+    <IconButton aria-label="거래내역 다음 날짜" onClick={() => moveDay(1)} sx={{width:28,height:28}}><ChevronRightRounded sx={{fontSize:18}}/></IconButton>
+  </Box>;
   const monthControls = <Box sx={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', width: tablet ? 250 : '100%', height: tablet ? 44 : 46, alignItems: 'center' }}>
     <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronLeftRounded sx={{ fontSize: 18 }}/></IconButton>
     <Box sx={{ textAlign: 'center', minWidth: 0 }}>
@@ -222,8 +246,8 @@ export function JournalPage() {
         {liveApiEnabled && lotsQuery.isError && <Button role="alert" onClick={() => void lotsQuery.refetch()}>연결 Lot 조회 실패 · 다시 시도</Button>}
         {detailMode === 'profit' ? <>{dateSelector}{profitCards}</> : detailMode === 'trade' && selectedTrade ? <>
           <Button onClick={() => setDetailMode('trades')} startIcon={<ArrowBackRounded/>} sx={{ minHeight: 32, fontSize: 12, mb: '8px' }}>거래현황으로 돌아가기</Button>{detail}
-        </> : <Box sx={{ ...calendarPanel, p: '8px 14px' }}>
-          <Typography sx={{ fontSize: 14, lineHeight: '20px', fontWeight: 600, color: colors.textSecondary, mb: '8px' }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>
+        </> : <Box data-testid="journal-day-card" {...dayGesture} sx={{ ...calendarPanel, p: '8px 14px', touchAction: 'pan-y' }}>
+          {dayHeading}
           {summary}<Box sx={{ mt: '8px' }}>{titleRow}{transactions}</Box>
           <ButtonBase onClick={() => setDetailMode('profit')} sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%', minHeight: 28, mt: '4px', color: colors.focus, fontSize: 10 }}>일별손익 보기 <ChevronRightRounded sx={{ fontSize: 16 }}/></ButtonBase>
         </Box>}
@@ -251,4 +275,5 @@ export function JournalPage() {
     </Dialog>
   </>;
 }
+
 

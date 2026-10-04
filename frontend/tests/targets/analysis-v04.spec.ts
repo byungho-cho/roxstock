@@ -96,13 +96,13 @@ test('real server period result is preserved, unknown breakdown and plan are not
   const state = await setup(page); await page.goto('/assets');
   await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('100,000원');
   await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
-  await expect(page.getByTestId('analysis-compound')).toContainText('기준 자산 연결이 필요');
+  await expect(page.getByTestId('analysis-compound')).toContainText('내용이 없습니다.');
   await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('analysis-total-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.at(-1)?.pathname).toContain('/b/');
-  state.empty(); await page.getByRole('button', { name: '전체', exact: true }).click(); await expect(page.getByText('내용이 없습니다.', { exact: true })).toBeVisible();
+  state.empty(); await page.getByRole('button', { name: '전체', exact: true }).click(); await expect(page.getByTestId('analysis-trend').getByText('내용이 없습니다.', { exact: true })).toBeVisible();
   state.error(); await page.getByRole('button', { name: '6개월', exact: true }).click(); await expect(page.getByText('자산 이력 조회에 실패했습니다.', { exact: true })).toBeVisible({ timeout: 15000 });
-  state.success(); await page.getByRole('button', { name: '다시 시도', exact: true }).click(); await expect(page.getByText('내용이 없습니다.', { exact: true })).toBeVisible();
+  state.success(); await page.getByRole('button', { name: '다시 시도', exact: true }).click(); await expect(page.getByTestId('analysis-trend').getByText('내용이 없습니다.', { exact: true })).toBeVisible();
   state.missing(); await page.reload(); await expect(page.getByTestId('analysis-total-value')).toHaveText('—'); await expect(page.getByText('시세 미수집 · 구성 계산 불가')).toBeVisible();
   expect(decimalValue(null)).toBeNaN(); expect(analysisRange('1m', '2026-03-31').from).toBe('2026-02-28');
 });

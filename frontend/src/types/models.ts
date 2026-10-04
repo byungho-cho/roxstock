@@ -18,6 +18,7 @@ export interface StockItem {
   watchlistItemId?: string;
   hasTradeHistory?: boolean;
   marketType?: string;
+  priceUpdatedAt?: string;
   priceAvailable?: boolean;
   priceChangeAvailable?: boolean;
   symbol: string;
@@ -100,4 +101,5 @@ export interface TradeEstimate {
   cashChange: number;
   expectedCashBalance: number;
 }
+
 
