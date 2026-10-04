@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
       - id: scope
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.before || github.event.pull_request.base.sha }}
         run: |
           python3 - <<'PY'
           import json, os, re, subprocess

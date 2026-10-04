@@ -13,9 +13,10 @@ const totals = journalTotals(entries);
 const format = (n: number) => Math.round(n).toLocaleString('ko-KR')+'원';
 async function setup(page: Page) {
  await fixture(page);
+ await page.route('**/api/accounts',route=>route.fulfill({json:{data:[{id:'a',name:'계좌 A',brokerName:'검사',cashBalance:'1',isActive:true,isDefault:true},{id:'b',name:'계좌 B',brokerName:'검사',cashBalance:'1',isActive:true}]}}));
  await page.route('**/api/accounts/*/trades**', route => {
   const url = new URL(route.request().url());
-  const data = entries.filter(entry => entry.date >= (url.searchParams.get('from')??'') && entry.date <= (url.searchParams.get('to')??'9999')).map(entry => ({
+  const data = (url.pathname.includes('/accounts/a/')?entries:[]).filter(entry => entry.date >= (url.searchParams.get('from')??'') && entry.date <= (url.searchParams.get('to')??'9999')).map(entry => ({
    id: entry.id, type: entry.type.toUpperCase(), buyTradeId: entry.lotId??entry.id, tradedAt: entry.date+'T03:00:00Z',
    security: {id: '1', symbol: '005380', name: entry.stockName, marketType: 'KOSPI'},
    quantity: String(entry.quantity), unitPrice: String(entry.price), amount: String(entry.quantity*entry.price),
@@ -31,7 +32,8 @@ async function setup(page: Page) {
  await expect(page.getByTestId('journal-entry-s0')).toContainText('140,000원');
 }
 async function shot(page: Page, tag: string, project: string) {
- await page.screenshot({path:'test-results/targets/journal-'+tag+'-'+project+'.png'});
+ const buffer=await page.screenshot({path:'test-results/targets/journal-'+tag+'-'+project+'.png'});
+ console.log('ROX_JOURNAL_SCREENSHOT '+JSON.stringify({tag,project,image:buffer.toString('base64')}));
 }
 
 test('calendar keeps six rows, equal columns, opaque chip text and existing period/swipe/date navigation', async({page}, info)=>{
@@ -102,12 +104,16 @@ test('cover body or tablet columns scroll independently, date stays pinned, clea
   const r=page.locator('[data-scroll-region="journal-detail"]');
   const l=left(page);
   expect((await r.boundingBox())!.x-((await l.boundingBox())!.x+(await l.boundingBox())!.width)).toBe(8);
-  await l.evaluate(el=>el.scrollTop=40);
-  await expect.poll(()=>l.evaluate(el=>el.scrollTop)).toBe(40);
+  const maximum=await l.evaluate(el=>Math.max(0,el.scrollHeight-el.clientHeight));
+  const expected=Math.min(40,maximum);
+  if(page.viewportSize()!.height===396)expect(maximum).toBeGreaterThan(40);
+  else {expect(maximum).toBe(0);await expect(page.getByRole('scrollbar',{name:'매매일지 달력 스크롤'})).toHaveCount(0);}
+  await l.evaluate((el, top)=>el.scrollTop=top,expected);
+  await expect.poll(()=>l.evaluate(el=>el.scrollTop)).toBe(expected);
   expect(await main.evaluate(el=>el.scrollTop)).toBe(0);
   await r.evaluate(el=>el.scrollTop=420);
   await expect.poll(()=>r.evaluate(el=>el.scrollTop)).toBe(420);
-  expect(await l.evaluate(el=>el.scrollTop)).toBe(40);
+  expect(await l.evaluate(el=>el.scrollTop)).toBe(expected);
  }
  await page.getByRole('button',{name:'일별손익 보기'}).click();
  await expect(page.getByTestId('journal-date-selector')).toBeVisible();
@@ -138,8 +144,8 @@ test('month date and real scrolling survive daily return and external browser re
  const target=scroll(page);
  await target.evaluate(el=>el.scrollTop=420);
  await expect.poll(()=>target.evaluate(el=>el.scrollTop)).toBe(420);
- const leftBefore=isTablet(page)?40:0;
- if(isTablet(page))await left(page).evaluate(el=>el.scrollTop=40);
+ const leftBefore=isTablet(page)?Math.min(40,await left(page).evaluate(el=>Math.max(0,el.scrollHeight-el.clientHeight))):0;
+ if(isTablet(page))await left(page).evaluate((el, top)=>el.scrollTop=top,leftBefore);
  // Keyboard activation leaves the saved list position intact.
  await page.getByRole('button',{name:'일별손익 보기'}).evaluate(el=>(el as HTMLElement).click());
  await expect(page.getByTestId('journal-date-selector')).toBeVisible();
@@ -167,6 +173,11 @@ test('query failure and missing matched Lot stay distinct from valid empty and z
  await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));
  await page.reload();
  await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-cost')).toHaveText('—');
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
+ await expect(page.getByTestId('journal-entry-s0')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await expect(page.getByTestId('journal-entry-s0')).toBeAttached();
  await page.route('**/api/accounts/*/trades**',route=>route.fulfill({status:500,json:{error:{message:'검사 조회 실패'}}}));
  await page.reload();
  await expect(page.getByRole('alert')).toContainText('거래 조회 실패',{timeout:20000});

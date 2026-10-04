@@ -26,7 +26,8 @@ function shiftMonth(month: string, offset: number) {
   const next = new Date(year, value - 1 + offset, 1);
   return dateOf(next.getFullYear(), next.getMonth() + 1, 1).slice(0, 7);
 }
-const panel = { bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px' } as const;
+const panel = { bgcolor: colors.surface, border: 0, borderRadius: '8px' } as const;
+const calendarPanel = { ...panel, bgcolor: '#0E1420', border: '1px solid #1F2B42' } as const;
 const journalQuery = (accountId: string, month: string) => ({
   queryKey: ['journalTrades', accountId, month] as const,
   staleTime: 60_000,
@@ -201,8 +202,8 @@ export function JournalPage() {
       {(tablet || detailMode !== 'profit') && <Box ref={leftRef} data-scroll-region={tablet ? 'journal-calendar' : undefined} data-list-condition={JSON.stringify([month, selectedDate])}
         onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onClickCapture={event => { if (Date.now() < suppressClickUntil.current) { event.preventDefault(); event.stopPropagation(); suppressClickUntil.current = 0; } }}
         sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, touchAction: 'pan-y' }}>
-        {!tablet && <Box sx={{ ...panel, px: '8px', height: 46, mb: '8px' }}>{monthControls}</Box>}
-        <Box data-testid="journal-calendar-card" aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...panel, height: 302, p: '4px 7px 10px', boxSizing: 'border-box', userSelect: 'none', flexShrink: 0 }}>
+        {!tablet && <Box sx={{ ...calendarPanel, px: '8px', height: 46, mb: '8px' }}>{monthControls}</Box>}
+        <Box data-testid="journal-calendar-card" aria-label={`${year}년 ${value}월 거래 달력`} sx={{ ...calendarPanel, height: 302, p: '4px 7px 10px', boxSizing: 'border-box', userSelect: 'none', flexShrink: 0 }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 22, alignItems: 'start' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 10, lineHeight: '14px', fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
           <Box data-testid="journal-calendar-grid" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: 'repeat(6, 44px)' }}>{calendar.map(({ date, day, adjacent }, index) => {
             const count = counts.get(date), selected = selectedDate === date, holiday = holidays.get(date);
@@ -221,7 +222,7 @@ export function JournalPage() {
         {liveApiEnabled && lotsQuery.isError && <Button role="alert" onClick={() => void lotsQuery.refetch()}>연결 Lot 조회 실패 · 다시 시도</Button>}
         {detailMode === 'profit' ? <>{dateSelector}{profitCards}</> : detailMode === 'trade' && selectedTrade ? <>
           <Button onClick={() => setDetailMode('trades')} startIcon={<ArrowBackRounded/>} sx={{ minHeight: 32, fontSize: 12, mb: '8px' }}>거래현황으로 돌아가기</Button>{detail}
-        </> : <Box sx={{ ...panel, p: '8px 14px' }}>
+        </> : <Box sx={{ ...calendarPanel, p: '8px 14px' }}>
           <Typography sx={{ fontSize: 14, lineHeight: '20px', fontWeight: 600, color: colors.textSecondary, mb: '8px' }}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>
           {summary}<Box sx={{ mt: '8px' }}>{titleRow}{transactions}</Box>
           <ButtonBase onClick={() => setDetailMode('profit')} sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%', minHeight: 28, mt: '4px', color: colors.focus, fontSize: 10 }}>일별손익 보기 <ChevronRightRounded sx={{ fontSize: 16 }}/></ButtonBase>
