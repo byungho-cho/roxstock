@@ -31,4 +31,8 @@ Cash pagination rejects changing total counts and repeated IDs rather than silen
 
 Broad regression/Figma comparison QA intentionally not launched. Existing stock/journal workflows also start automatically because common navigation changed; their executions are preserved. Tests cover pagination, quarter/year boundaries, Seoul current quarter, summary invariance, row geometry/clipping/clearance, independent scrolling, delayed account requests, refresh/error retention, retry and missing/empty states at 370×465, 400×640, 725×396, 816×616.
 
-Next: push implementation checkpoint, open PR, record individual TypeScript/build/function run IDs/results. Merge only after required checks, then verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.
+Correction checkpoint: 8563acc4793b70e560f97b02e878f1b1e2731af5. Investment run 37242844267: all 24 cases passed. Frontend Check 37242844349: TypeScript and build passed again after related source changes.
+
+Final refinement: query key keeps the same account/year on a Seoul date rollover, retaining the last successful snapshot during refresh. Historical flow dates/amounts are parsed once per transaction, not once per snapshot; cash-history uses the existing DEPOSIT/WITHDRAWAL/DIVIDEND type filter to avoid paging irrelevant trades. Final 28-case scope adds the largest Decimal(19,4) value, zero principal, modified historical deposits and changing pagination totals. Previous successful results remain recorded; only these related changes need validation.
+
+Next: commit/push final refinement, record individual TypeScript/build/function run IDs/results. Merge only after required checks, then verify automatic frontend deployment. Preserve passed checks unless corresponding input changes.

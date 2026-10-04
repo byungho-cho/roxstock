@@ -22,7 +22,7 @@ export function InvestmentPage() {
   const [storedQuarter, setQuarter] = usePageMemory<Quarter>('investment-quarter', 0);
   const quarter = quarterAvailable(year, storedQuarter, today) ? storedQuarter : 0;
   useEffect(() => { if (storedQuarter !== quarter) setQuarter(0); }, [storedQuarter, quarter, setQuarter]);
-  const query = useQuery({ queryKey: ['investment', accountId, year, today], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false, refetchInterval: 300_000 });
+  const query = useQuery({ queryKey: ['investment', accountId, year], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false, refetchInterval: 300_000 });
   const tablet = useMediaQuery('(min-width:600px)'), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const changeYear = (direction: number) => {
