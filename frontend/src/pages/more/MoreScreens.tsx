@@ -196,7 +196,7 @@ function CashAdjustmentContent() {
       <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1, mt: '9px' }}><Typography sx={hint}>변경 금액</Typography><Typography sx={{ fontSize: 14, color: delta > 0 ? colors.marketRise : delta < 0 ? colors.marketFall : colors.textPrimary }}>{amount.trim() && Number.isFinite(delta) ? fmt(delta) : '—'}</Typography></Stack>
     </Box>
     <Typography sx={hint}>입력한 금액으로 현재 예수금을 즉시 변경합니다. 과거 거래내역은 자동 재계산하지 않습니다.</Typography>
-    {error && <Typography role="alert" color="error">{error}</Typography>}
+    {error && <Typography role="alert" sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }} color="error">{error}</Typography>}
     <Button type="submit" variant="contained" disabled={saving || !amount.trim() || !Number.isFinite(value) || value < 0} sx={{ height: 42 }}>{saving ? '저장 중…' : '변경'}</Button>
   </Stack>;
 }
