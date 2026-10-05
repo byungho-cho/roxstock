@@ -1,7 +1,5 @@
 name: Compound and Value Cards v0.4 Function Check
 on:
-  push:
-    branches: [codex/compound-value-v04-20261005]
   pull_request:
     branches: [main]
     paths:
