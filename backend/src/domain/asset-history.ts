@@ -1,4 +1,5 @@
 import { Prisma } from '../generated/prisma/index.js';
+import { project } from './compound-growth.js';
 
 export type AssetSnapshotValue = {
   totalAssetValue: Prisma.Decimal;
@@ -63,7 +64,5 @@ export function calculatePeriodBreakdown(input: {
 }
 
 export function compoundYearTarget(initial: Prisma.Decimal, contribution: Prisma.Decimal, rate: Prisma.Decimal, startYear: number, targetYear: number) {
-  let value = initial;
-  for (let year = startYear; year <= targetYear; year++) value = value.plus(contribution).mul(rate.div(100).plus(1));
-  return value.toString();
+  return project(initial.toString(), contribution.toString(), rate.toString(), startYear, targetYear).at(-1)!.asset;
 }

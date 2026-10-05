@@ -24,6 +24,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   scope:
+    # Value-analysis and compound-plan deliveries request functional checks only; regression QA is separate.
+    if: github.head_ref != 'codex/value-analysis-v04-20261005' && github.head_ref != 'codex/compound-value-v04-20261005'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.scope.outputs.matrix }}

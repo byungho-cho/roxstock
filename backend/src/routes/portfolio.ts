@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
 import { calculateDashboard, calculateHoldings, type PortfolioLotInput } from '../domain/portfolio.js';
+import { seoulYear } from '../domain/compound-growth.js';
 import { calculateAssetPeriod, calculatePointChange, calculatePeriodBreakdown, compoundYearTarget } from '../domain/asset-history.js';
 import { calculateDashboardPerformance } from '../domain/dashboard-performance.js';
 import { ApiError } from '../lib/api-error.js';
@@ -57,8 +58,8 @@ const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number])
   marketStatus: holding.marketStatus,
 });
 
-const loadPortfolio = async (accountId: bigint) => {
-  const account = await prisma.account.findUnique({
+export const loadPortfolio = async (accountId: bigint, reader:Prisma.TransactionClient=prisma) => {
+  const account = await reader.account.findUnique({
     where: { id: accountId },
     include: {
       buyTrades: {
@@ -221,9 +222,10 @@ export async function portfolioRoutes(app: FastifyInstance) {
       if (!market.equals(snapshot.stockValue)) return null;
       return positions.reduce((sum, row) => sum.plus(row.unrealizedProfitLoss), new Prisma.Decimal(0));
     };
+    const currentYear = seoulYear();
     const [openingUnrealized, closingUnrealized, plan] = await Promise.all([
       positionValue(first), positionValue(last),
-      prisma.compoundGrowthPlan.findFirst({where: {accountId, isActive: true}, orderBy: [{displayOrder: 'asc'}, {id:'asc'}],
+      prisma.compoundGrowthPlan.findFirst({where: {accountId, isActive: true, startDate: {lte: new Date(Date.UTC(currentYear, 11, 31))}, endDate: {gte: new Date(Date.UTC(currentYear, 0, 1))}}, orderBy: [{displayOrder: 'asc'}, {id:'asc'}],
         include: {goals: {where: {isVisible:true}, orderBy:[{isDefault:'desc'},{displayOrder:'asc'},{id:'asc'}]}}}),
     ]);
     const sum = (values: Prisma.Decimal[]) => values.reduce((total, value) => total.plus(value), new Prisma.Decimal(0));
@@ -236,7 +238,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
         .plus(sum(dividends.filter(row => row.dividend).map(row => row.dividend!.grossAmount.minus(row.dividend!.netAmount)))),
       profitLoss: period.profitLoss,
     });
-    const goal = plan?.goals.find(goal => goal.isDefault), currentYear = Number(new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
+    const goal = plan?.goals.find(goal => goal.isDefault);
     const compoundPlan = plan ? {
       id: plan.id.toString(), name: plan.planName, assetBasis: 'PLAN_INITIAL_ASSET',
       initialAssetValue: plan.initialAssetValue.toString(),
@@ -272,4 +274,5 @@ export async function portfolioRoutes(app: FastifyInstance) {
     };
   });
 }
+
 

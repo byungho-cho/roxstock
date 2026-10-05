@@ -42,3 +42,12 @@ test('compound target uses plan initial asset and year-start contributions', asy
   const {compoundYearTarget} = await import('./asset-history.js');
   assert.equal(compoundYearTarget(d(1000),d(100),d(10),2025,2026),'1441');
 });
+
+test('analysis and compound plans share precision for multi-year targets', async () => {
+  const { compoundYearTarget } = await import('./asset-history.js');
+  const { project } = await import('./compound-growth.js');
+  const initial = new Prisma.Decimal('123456789.1234'), contribution = new Prisma.Decimal('765432.1234'), rate = new Prisma.Decimal('7.1234');
+  const expected = project(initial.toString(), contribution.toString(), rate.toString(), 2020, 2040).at(-1)!.asset;
+  assert.equal(compoundYearTarget(initial, contribution, rate, 2020, 2040), expected);
+  assert.ok(expected.length > 20);
+});
