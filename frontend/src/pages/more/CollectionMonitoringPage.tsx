@@ -62,7 +62,7 @@ function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: 
 function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { features: Feature[]; generatedAt: string; refreshing: boolean; onRefresh: () => void }) {
   const failed = features.filter((item) => item.status === 'FAILED' || item.status === 'PARTIAL').length;
   const delayed = features.filter((item) => item.status === 'DELAYED').length;
-  const unavailable = features.filter((item) => ['NOT_CONFIGURED', 'NOT_IMPLEMENTED', 'NO_DATA'].includes(item.status)).length;
+  const unavailable = features.filter((item) => !['OK', 'SUCCESS', 'RUNNING', 'FAILED', 'PARTIAL', 'DELAYED'].includes(item.status)).length;
   const needsAttention = failed + delayed + unavailable;
   const badge = needsAttention ? {
     label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
@@ -211,7 +211,7 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
 }
 
 function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, universeOver90Days, priorityPending, universePending, dailyApiCalls, dailyApiLimit, companyChecks }: {
-  phase: string; status: string; priorityCheckedWithinDay: number; universeOver90Days: number; priorityPending: number; universePending: number; dailyApiCalls: number; dailyApiLimit: number; companyChecks: number;
+  phase: string; status: string; priorityCheckedWithinDay: number | null; universeOver90Days: number | null; priorityPending: number | null; universePending: number | null; dailyApiCalls: number | null; dailyApiLimit: number | null; companyChecks: number | null;
 }) {
   const disabled = phase !== 'CURRENT';
   const statusInfo = statusStyle[status] ?? unknownStatus;
@@ -349,7 +349,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
             <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '12px' }}>대상 {numberText(planned)} · 성공 {numberText(success)} · 미공시 {numberText(noFiling)} · 실패 {numberText(failed)} · 대기 {numberText(pending)}</Typography>
           </Box>
         </Box>
-        <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={Number(dartCurrent.priorityCheckedWithinDay ?? 0)} universeOver90Days={Number(dartCurrent.universeOver90Days ?? 0)} priorityPending={Number(current.priorityPending ?? 0)} universePending={Number(current.universePending ?? 0)} dailyApiCalls={Number(current.dailyApiCalls ?? 0)} dailyApiLimit={Number(current.dailyApiLimit ?? 0)} companyChecks={Number(current.companyChecks ?? 0)} />
+        <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} />
         <Box sx={{ display: 'block' }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <RunHistory runs={runs} loading={detail.isFetching} feature={feature} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen((value) => !value)} showAllRuns={showAllRuns} onToggleRuns={() => setShowAllRuns((value) => !value)} filterControls={filterControls} />
       </Stack>
