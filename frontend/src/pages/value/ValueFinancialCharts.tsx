@@ -9,6 +9,12 @@ const groups:{title:string;unit:string;rightUnit?:string;metrics:Metric[]}[]=[
  {title:'안정성',unit:'%',metrics:[{key:'debtRatio',label:'부채비율',color:red},{key:'currentRatio',label:'유동비율',color:blue}]},
  {title:'성장성',unit:'%',metrics:[{key:'revenueGrowth',label:'매출 성장률',color:red},{key:'profitGrowth',label:'이익 성장률',color:blue}]},
 ];
+function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof groups[number] {
+ if(group.title!=='수익성')return group;
+ const maximum=Math.max(0,...group.metrics.flatMap(metric=>rows.map(row=>Math.abs(number(typeof row[metric.key]==='string'?row[metric.key] as string:null)??0))));
+ const [scale,unit]=maximum>=1e12?[1e12,'조원']:maximum>=1e8?[1e8,'억원']:maximum>=1e4?[1e4,'만원']:[1,'원'];
+ return {...group,unit:String(unit),metrics:group.metrics.map(metric=>({...metric,scale:Number(scale)}))};
+}
 function Chart({rows,group}:{rows:FinancialRow[];group:typeof groups[number]}) {
  const ref=useRef<HTMLDivElement>(null),[width,setWidth]=useState(320);
  useEffect(()=>{const el=ref.current;if(!el)return;const observer=new ResizeObserver(()=>setWidth(el.clientWidth));observer.observe(el);setWidth(el.clientWidth);return()=>observer.disconnect();},[]);
@@ -31,4 +37,4 @@ function Chart({rows,group}:{rows:FinancialRow[];group:typeof groups[number]}) {
   </Box>
  </Box>;
 }
-export function ValueFinancialCharts({rows}:{rows:FinancialRow[]}) {return <Box sx={{display:'grid',gap:'8px'}}>{groups.map(group=><Box key={group.title} sx={{bgcolor:'#111927',borderRadius:'8px',p:'8px'}}><Typography sx={{fontSize:12,fontWeight:600}}>{group.title}</Typography><Chart rows={rows} group={group}/></Box>)}</Box>;}
+export function ValueFinancialCharts({rows}:{rows:FinancialRow[]}) {return <Box sx={{display:'grid',gap:'8px'}}>{groups.map(group=><Box key={group.title} sx={{bgcolor:'#111927',borderRadius:'8px',p:'8px'}}><Typography sx={{fontSize:12,fontWeight:600}}>{group.title}</Typography><Chart rows={rows} group={currencyGroup(group,rows)}/></Box>)}</Box>;}
