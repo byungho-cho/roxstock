@@ -38,7 +38,9 @@ test('account classifications, migration preservation, trade replay and connecte
   const first=(await call('POST','/buy-trades',buy,201)).data;
   assert.deepEqual((await call('POST','/buy-trades',buy,201)).data,first);assert.equal(await prisma.buyTrade.count({where:{accountId:a.id,securityId:s.id}}),1);assert.equal(await prisma.cashTransaction.count({where:{buyTradeId:BigInt(first.id)}}),1);assert.equal((await prisma.account.findUniqueOrThrow({where:{id:a.id}})).cashBalance.toString(),'999000');
   await call('POST','/buy-trades',{...buy,quantity:'11'},409);assert.equal(await type(aid),'HOLDING');assert.equal(await type(bid),'WATCHLIST');
-  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'});assert.equal(await type(aid),'HOLDING');
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'WATCHLIST'},409);assert.equal(await type(aid),'HOLDING');
+  await classify(aid,'HOLDING',409);
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,memo:'거래 종목 메모 수정'});
 
   const sell={accountId:aid,buyTradeId:first.id,soldAt:'2026-01-03T03:00:00Z',quantity:'4',unitPrice:'200',feeTaxAmount:'0',requestId:randomUUID()};
   const partial=(await call('POST','/sell-trades',sell,201)).data;assert.equal(partial.remainingQuantity,'6');assert.equal(partial.realizedProfitLoss,'400');
@@ -50,7 +52,9 @@ test('account classifications, migration preservation, trade replay and connecte
   await call('PATCH',`/sell-trades/${partial.id}`,{accountId:aid,quantity:'10'});assert.equal(await type(aid),'TRADED');
   assert.ok(!(await call('GET',`/accounts/${aid}/holdings`)).data.some((x:{securityId:string})=>x.securityId===sid));
   assert.equal((await call('GET',`/accounts/${aid}/trades?securityId=${sid}`)).summary.realizedProfitLoss,'1000');
-  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'HOLDING'});assert.equal(await type(aid),'TRADED');
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:aid,listType:'HOLDING'},409);assert.equal(await type(aid),'TRADED');
+  await classify(aid,'WATCHLIST',409);
+  await call('PATCH',`/watchlist-items/${manual.watchlistItemId}`,{accountId:bid,listType:'HOLDING'},404);
   const candidates=await call('GET',`/securities?accountId=${aid}&excludeRegistered=true`);assert.ok(candidates.data.some((x:{id:string})=>x.id===sid));
   assert.ok(!(await call('GET',`/securities?accountId=${bid}&excludeRegistered=true`)).data.some((x:{id:string})=>x.id===sid));
   await call('DELETE',`/sell-trades/${partial.id}?accountId=${bid}`,undefined,404);
