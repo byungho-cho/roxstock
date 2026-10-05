@@ -116,6 +116,13 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
 }
 
 export function AccountForm({ add }: { add: boolean }) {
+  const { selected, query } = useMoreAccounts();
+  if (!add && query.isPending && liveApiEnabled) return <Typography role="status" sx={hint}>계좌 조회 중…</Typography>;
+  if (!add && query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (!add && !selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
+  return <AccountFormContent key={add ? 'add' : selected!.id} add={add} />;
+}
+function AccountFormContent({ add }: { add: boolean }) {
   const navigate = useNavigate(); const client = useQueryClient();
   const { selected, accounts, refresh } = useMoreAccounts();
   const [name, setName] = useState(add ? '' : selected?.name ?? '');
@@ -152,6 +159,13 @@ export function AccountForm({ add }: { add: boolean }) {
 }
 
 export function CashAdjustment() {
+  const { selected, query } = useMoreAccounts();
+  if (query.isPending && liveApiEnabled) return <Typography role="status" sx={hint}>계좌 조회 중…</Typography>;
+  if (query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (!selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
+  return <CashAdjustmentContent key={selected.id} />;
+}
+function CashAdjustmentContent() {
   const { selected, query } = useMoreAccounts(); const navigate = useNavigate();
   const client = useQueryClient();
   const [saving, setSaving] = useState(false); const [error, setError] = useState('');

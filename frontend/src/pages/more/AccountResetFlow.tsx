@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormTextField } from '../../components/forms/Fields';
 import { ApiError } from '../../data/apiClient';
-import { fetchLiveDashboard, fetchLiveStocks, liveApiEnabled } from '../../data/liveData';
+import { liveApiEnabled } from '../../data/liveData';
 import { getAccountDashboard, getAccountHoldings, getAssetHistory, getCashHistory, getCashOverview, getTrades, listAccounts, resetAccountData } from '../../data/roxstockApi';
 import { useMoreAccounts } from './MoreScreens';
 
@@ -49,8 +49,6 @@ function ResetAccountContent({ tablet = false, onClose }: { tablet?: boolean; on
       client.setQueryData(['cashTransactions', selected.id], cashHistory);
       client.setQueryData(['cashOverview', selected.id], cashOverview);
       client.setQueryData(['assetHistory', selected.id], assetHistory);
-      client.setQueryData(['dashboard', 'api'], await fetchLiveDashboard());
-      client.setQueryData(['stocks', 'holding', 'api'], await fetchLiveStocks('holding'));
       await client.invalidateQueries({ predicate: affected });
       setState('success');
     } catch (cause) {

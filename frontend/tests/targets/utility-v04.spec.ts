@@ -73,7 +73,7 @@ test('settings menu, small form, left title and Enter failure retention',async({
  if(info.project.name.startsWith('tablet')){
   const a=await page.getByTestId('settings-menu').boundingBox(),b=await page.getByTestId('settings-detail').boundingBox();expect(b!.x-a!.x-a!.width).toBeCloseTo(8,1);
  }
- await page.goto('/detail/settings?view=edit');const field=page.getByRole('textbox',{name:'계좌명',exact:true});await expect(field).toBeFocused();
+ await page.goto('/detail/settings?view=edit');const field=page.getByRole('textbox',{name:'계좌명',exact:true});await expect(field).toBeFocused();await expect.poll(()=>field.evaluate(n=>[(n as HTMLInputElement).selectionStart,(n as HTMLInputElement).selectionEnd])).toEqual([0,5]);
  const heights=await page.getByRole('textbox').evaluateAll(ns=>ns.map(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height));expect(heights).toEqual([36,36,36]);
  const title=await page.getByRole('heading').boundingBox();expect(title!.x).toBe(36);
  await field.fill('변경 계좌');await field.press('Enter');await expect(page.getByRole('textbox',{name:'증권사',exact:true})).toBeFocused();f.fail();
