@@ -7,6 +7,7 @@ import { TargetArrivalPage } from './pages/dashboard/TargetArrivalCard';
 import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { ValueAnalysisPage } from './pages/value/ValueAnalysisPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { StockListPage } from './pages/stocks/StockListPage';
 import { StockDetailPage } from './pages/stocks/StockDetailPage';
@@ -48,7 +49,7 @@ export function App() {
         <Route path="stocks/add" element={<StockAddPage />} />
         <Route path="stocks/:stockId/price" element={<StockPricePage />} />
         <Route path="stocks/:stockId/edit" element={liveApiEnabled ? <LiveStockEditPage /> : <StockEditPage />} />
-        <Route path="stocks/:stockId/value" element={liveApiEnabled ? <LiveStockInsightPage mode="value" /> : <StockInsightPage mode="value" />} />
+        <Route path="stocks/:stockId/value" element={<ValueAnalysisPage />} />
         <Route path="stocks/:stockId/financials" element={liveApiEnabled ? <LiveStockInsightPage mode="financials" /> : <StockInsightPage mode="financials" />} />
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
         <Route path="journal" element={<JournalPage />} />
@@ -60,6 +61,7 @@ export function App() {
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
+        <Route path="detail/value" element={<ValueAnalysisPage />} />
         <Route path="detail/investment" element={<InvestmentPage />} />
         <Route path="detail/investment-profit" element={<InvestmentProfitPage />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
