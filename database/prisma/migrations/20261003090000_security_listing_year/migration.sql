@@ -1,1 +1,0 @@
-ALTER TABLE `securities` ADD COLUMN `listing_year` SMALLINT UNSIGNED NULL;

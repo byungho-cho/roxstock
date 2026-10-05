@@ -33,7 +33,7 @@ function ResetAccountContent({ tablet = false, onClose }: { tablet?: boolean; on
         accepted.current = true;
       }
       setConfirmation(false);
-      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys', 'cashOverview', 'cashTransactions', 'assetHistory', 'cashBalance', 'compound-plans', 'targetSettings'].includes(String(query.queryKey[0]));
+      const affected = (query: { queryKey: readonly unknown[] }) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys', 'cashOverview', 'cashTransactions', 'assetHistory', 'cashBalance', 'compound-plans', 'targetSettings', 'investment', 'investment-profit', 'analysis-dashboard', 'analysis-history'].includes(String(query.queryKey[0]));
       await client.cancelQueries({ predicate: affected }); client.removeQueries({ predicate: affected });
       const [accounts, dashboard, holdings, trades, cashHistory, cashOverview, assetHistory] = await Promise.all([
         listAccounts(), getAccountDashboard(selected.id), getAccountHoldings(selected.id), getTrades(selected.id),

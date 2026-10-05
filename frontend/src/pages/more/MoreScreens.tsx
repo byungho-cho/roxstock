@@ -80,7 +80,7 @@ export function SettingsOverview({ compact = false }: { compact?: boolean }) {
   const [theme, setTheme] = useState(readDemoSettings().theme);
   const chooseTheme = (value: 'dark' | 'light' | 'system') => { setTheme(value); saveDemoSettings({ theme: value }); };
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
-  if (compact) return <Box data-testid="more-settings-panel" sx={{ ...panel, height: 300, p: '14px', boxSizing: 'border-box' }}>
+  if (compact) return <Box data-testid="more-settings-panel" sx={{ ...panel, height: 300, p: '13px', boxSizing: 'border-box' }}>
     <Typography sx={{ ...heading, lineHeight: '28px', mb: '6px' }}>설정</Typography>
     <Stack spacing="16px">
       <LinkRow title="계좌 관리" onClick={() => go('account')} />
