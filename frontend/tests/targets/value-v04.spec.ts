@@ -1,5 +1,5 @@
 import {expect,test,type Page} from '@playwright/test';
-const rows=Array.from({length:120},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'종목'+String(i+1).padStart(3,'0'),currentPrice:'10000',previousClosePrice:i===1?'11000':'9000',priceUpdatedAt:'2026-10-05T00:00:00Z',per:'12',pbr:'1.2',roe:'10',metricDate:'2026-10-05',w:i===119?null:'1.2'}));
+const rows=Array.from({length:120},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'종목'+String(i+1).padStart(3,'0'),currentPrice:'10000',previousClosePrice:i===1?'11000':'9000',priceUpdatedAt:'2026-10-05T00:00:00Z',per:'12',pbr:'1.2',roe:'10',metricDate:'2026-10-05',w:i===119?null:'1.2',issuedShares:'1000000',eps:'100',excessEarnings:null,shareholderValue:null,capital:'100000000',requiredReturn:'8.0',fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:'12000'}))}));
 async function fixture(page:Page,small=false){
  let failure=false,holdId:string|null=null,holdSearch:string|null=null;const releases:(()=>void)[]=[],requests:string[]=[];
  await page.route('**/api/**',async route=>{
@@ -26,7 +26,7 @@ async function fixture(page:Page,small=false){
 async function ready(page:Page){await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();}
 test('whole master searchable on Enter, current Seoul year, all 120 results accessible and price colors',async({page})=>{
  await fixture(page);await ready(page);await expect(page.getByRole('textbox',{name:'종목 검색'})).toBeFocused();await expect(page.getByLabel('기준연도')).toHaveValue('2026');await expect(page.getByText('120개',{exact:true})).toBeVisible();
- const loss=page.getByTestId('value-row-000002');expect(await loss.locator('span').last().evaluate(el=>getComputedStyle(el).color)).toBe('rgb(59, 130, 246)');
+ const loss=page.getByTestId('value-row-000002');expect(await loss.getByTestId('value-current-price').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(94, 161, 240)');
  await page.getByRole('button',{name:/더 보기/}).click();await expect(page.getByTestId('value-row-000120')).toContainText('W —');
  await page.getByLabel('종목 검색').fill('둘째');await page.getByLabel('종목 검색').press('Enter');await expect(page.getByTestId('value-row-000001')).toHaveCount(0);await expect(page.getByTestId('value-row-000002')).toBeVisible();await expect(page.getByText('1개',{exact:true})).toBeVisible();
 });
@@ -76,4 +76,11 @@ test('tablet chart back restores both scroll positions when the selected stock s
 test('small companies use a readable common monetary scale instead of rounded trillion zeros',async({page})=>{
  await fixture(page,true);await ready(page);await page.getByTestId('value-row-000001').click();await page.getByRole('button',{name:'재무지표 보기'}).click();
  await expect(page.getByRole('img',{name:'수익성 만원',exact:true})).toBeVisible();await expect(page.getByTestId('value-chart-수익성')).toContainText('100.0');await expect(page.getByTestId('value-chart-수익성')).toContainText('20.0');await expect(page.getByTestId('value-chart-수익성')).toContainText('10.0');
+});
+
+test('compact value cards use real API fields and missing amounts, with no edit delete star actions',async({page})=>{
+ await fixture(page);await ready(page);const row=page.getByTestId('value-row-000001');
+ await expect(row).toContainText('발행주식수 1,000,000주');await expect(row).toContainText('EPS');await expect(row).toContainText('100원');await expect(row).toContainText('초과이익');await expect(row).toContainText('주주가치');await expect(row).toContainText('기준평가율');await expect(row).toContainText('8.0%');
+ expect(await row.locator('span').allTextContents()).not.toContain('NaN');await expect(row).toContainText('지속계수 0.7');await expect(row).toContainText('12,000원');
+ await expect(row.getByRole('button')).toHaveCount(0);const text=await row.textContent();expect(text).not.toMatch(/Infinity|NaN/);
 });
