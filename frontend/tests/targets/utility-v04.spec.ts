@@ -36,6 +36,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
  return {writes,fail:()=>{fail=true;},succeed:()=>{fail=false;}};
 }
 async function geometry(page:Page){
+ await expect(page.locator('header')).toBeVisible();
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const v=await page.evaluate(()=>{const main=document.querySelector('main')!,s=getComputedStyle(main);const nav=[...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!;return {padding:[s.paddingTop,s.paddingLeft,s.paddingRight],header:document.querySelector('header')!.getBoundingClientRect().height,nav:nav.getBoundingClientRect().height,font:[...main.querySelectorAll('p')].filter(n=>n.getClientRects().length).every(n=>parseFloat(getComputedStyle(n).fontSize)>=10)};});
  expect(v.padding).toEqual(['0px','8px','8px']);expect(v.header).toBe(44);expect(v.nav).toBe(44);expect(v.font).toBe(true);
