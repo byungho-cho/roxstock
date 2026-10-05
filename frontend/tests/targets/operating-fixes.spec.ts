@@ -12,21 +12,22 @@ test('stock quote time survives pending and failure; top pull preserves conditio
   await fixture(page);let fail=false,delay=false,time='2026-10-02T00:00:00Z',reads=0,release:()=>void=()=>{};
   await page.route('**/api/securities?**',async route=>{
     reads++;if(delay)await new Promise<void>(r=>{release=r;});
-    return route.fulfill({status:fail?500:200,json:fail?{error:{message:'조회 실패'}}:{data:Array.from({length:6},(_,i)=>({id:String(2+i),symbol:String(2+i).padStart(6,'0'),name:'삼성전자'+i,marketType:'KOSPI',listType:'WATCHLIST',watchlistItemId:String(2+i),currentPrice:'70000',previousClosePrice:'69000',priceUpdatedAt:time}))}});
+    return route.fulfill({status:fail?500:200,json:fail?{error:{message:'조회 실패'}}:{data:Array.from({length:30},(_,i)=>({id:String(2+i),symbol:String(2+i).padStart(6,'0'),name:'삼성전자'+i,marketType:'KOSPI',listType:'WATCHLIST',watchlistItemId:String(2+i),currentPrice:'70000',previousClosePrice:'69000',priceUpdatedAt:time}))}});
   });
-  await page.goto('/stocks?tab=watchlist');await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('09:00');
+  await page.goto('/stocks?tab=watchlist');await expect(page.locator('[data-scroll-item="2"]').getByTestId('price-timestamp')).toHaveText('09:00');
   await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('삼성');
-  const condition=await page.getByTestId('stock-list').getAttribute('data-list-condition'), main=page.locator('main');
-  await main.evaluate(el=>el.scrollTop=40);const count=reads;await gesture(page.getByTestId('stock-list'));expect(reads).toBe(count);
+  const condition=await page.getByTestId('stock-list').getAttribute('data-list-condition'), main=page.viewportSize()!.width>=600?page.locator('[data-scroll-region="stock-table"]'):page.locator('main');
+  await main.evaluate(el=>el.scrollTop=40);const count=reads;await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));expect(reads).toBe(count);
   await main.evaluate(el=>el.scrollTop=0);delay=true;
-  await gesture(page.getByTestId('stock-list'));await expect(page.getByTestId('pull-refresh')).toHaveText('새로고침 중');
-  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('09:00');
-  await gesture(page.getByTestId('stock-list'));expect(reads).toBe(count+1);
+  await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));await expect(page.getByTestId('pull-refresh')).toHaveAttribute('data-refreshing','true');
+  await expect(page.getByTestId('pull-refresh')).toHaveText('');
+  await expect(page.locator('[data-scroll-item="2"]').getByTestId('price-timestamp')).toHaveText('09:00');
+  await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));expect(reads).toBe(count+1);
   time='2026-10-02T01:00:00Z';delay=false;release();
-  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
+  await expect(page.locator('[data-scroll-item="2"]').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
   expect(await page.getByTestId('stock-list').getAttribute('data-list-condition')).toBe(condition);
-  fail=true;await gesture(page.getByTestId('stock-list'));await expect(page.getByRole('alert')).toContainText('최신 조회 실패',{timeout:15000});
-  await expect(page.getByTestId('stock-card-2').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page).toHaveURL(/tab=watchlist/);
+  fail=true;await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));await expect(page.getByRole('alert').filter({hasText:'최신 조회 실패'})).toContainText('최신 조회 실패',{timeout:15000});
+  await expect(page.locator('[data-scroll-item="2"]').getByTestId('price-timestamp')).toHaveText('10:00');await expect(page).toHaveURL(/tab=watchlist/);
 });
 
 test('home pull refreshes current cards and gestures on other screens never refresh',async({page})=>{
