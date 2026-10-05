@@ -1,0 +1,27 @@
+name: Value Analysis Deployment Check
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/src/pages/value/**
+      - backend/src/domain/value-analysis*
+      - backend/src/routes/value-analysis*
+      - scripts/value-deployment-smoke.mjs
+      - .github/workflows/value-deployment-check.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  deployment-and-http-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Confirm automatic deploy jobs and affected production HTTP endpoints
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: node scripts/value-deployment-smoke.mjs
