@@ -9,7 +9,7 @@ jobs:
   inspect:
     if: github.head_ref == 'codex/deployment-storage-recovery-20261006'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -24,15 +24,39 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-      - name: Inspect deployment storage without changing files
+      - name: Recover space from unused historical application images
         shell: bash
         run: |
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          df -h / /var/lib/docker /var/lib/containerd
-          df -i / /var/lib/docker /var/lib/containerd
+          exec 8>/opt/roxstock/.deploy/worktree/.backend-deploy.lock
+          flock -n 8
+          exec 9>/opt/roxstock/.deploy/worktree/.deploy.lock
+          flock -n 9
+          before="$(docker ps -aq | sort | xargs -r docker inspect --format '{{.Id}} {{.Image}} {{.State.Status}}')"
+          protected="$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' | sort -u)"
+          df -h /var/lib/containerd
+          target_kb=3145728
+          for repo in newrox/roxstock-backend newrox/roxstock-frontend; do
+            mapfile -t images < <(docker image ls --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}' "$repo" | awk '$2 ~ /:sha-[0-9a-f]+$/')
+            count=0
+            for ((i=${#images[@]}-1; i>=5; i--)); do
+              available="$(df -Pk /var/lib/containerd | awk 'NR==2 {print $4}')"
+              if (( available >= target_kb )); then break; fi
+              read -r image_id tag <<< "${images[i]}"
+              [[ "$tag" =~ ^newrox/roxstock-(backend|frontend):sha-[0-9a-f]{7,40}$ ]] || continue
+              if printf '%s\n' "$protected" | grep -Fxq "$image_id"; then continue; fi
+              echo "Removing unused historical image tag: $tag"
+              docker image rm "$tag"
+              count=$((count+1))
+            done
+            echo "Removed $count historical tags for $repo"
+          done
+          after="$(docker ps -aq | sort | xargs -r docker inspect --format '{{.Id}} {{.Image}} {{.State.Status}}')"
+          test "$before" = "$after"
+          df -h /var/lib/containerd
           docker system df
-          docker image ls --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
           docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}'
-          docker builder du
+          available="$(df -Pk /var/lib/containerd | awk 'NR==2 {print $4}')"
+          test "$available" -ge "$target_kb"
           REMOTE
