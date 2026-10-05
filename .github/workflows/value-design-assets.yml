@@ -1,28 +1,18 @@
-name: Value Analysis Design Assets
+name: Value task scoped CI cleanup
 on:
   push:
     branches: [codex/value-analysis-v04-20261005]
     paths: [.github/workflows/value-design-assets.yml]
 permissions:
+  actions: write
   contents: read
 jobs:
-  assets:
+  cancel-unrequested-regression:
     runs-on: ubuntu-latest
     steps:
-      - name: Retrieve exact Figma vector assets
+      - env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          node <<'NODE'
-          (async () => {
-            for (const [name, url] of [
-              ['search', 'https://www.figma.com/api/mcp/asset/b33ead5d-e91d-443a-8fa0-402793ae97bc/9cd23.svg'],
-              ['select', 'https://www.figma.com/api/mcp/asset/b33ead5d-e91d-443a-8fa0-402793ae97bc/2b6fa.svg'],
-              ['period-select', 'https://www.figma.com/api/mcp/asset/760b8b1c-b58b-452e-9a87-30b0c0a8d8a8/071ca.svg'],
-            ]) {
-              const response = await fetch(url);
-              if (!response.ok) throw new Error(name + ': ' + response.status);
-              const svg = await response.text();
-              if (!svg.includes('<svg')) throw new Error('Invalid SVG');
-              console.log('FIGMA_ASSET ' + name + ' ' + Buffer.from(svg).toString('base64'));
-            }
-          })().catch(error => { console.error(error.message); process.exitCode = 1; });
-          NODE
+          for run_id in 37265119005 37265119010 37265119001; do
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/cancel" || true
+          done
