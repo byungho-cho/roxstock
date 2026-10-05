@@ -1,0 +1,21 @@
+name: Download compound Figma assets
+on:
+  push:
+    branches: [codex/compound-value-v04-20261005]
+    paths: [.github/workflows/compound-assets.yml]
+permissions:
+  contents: read
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact provided design icons
+        run: |
+          node --input-type=module <<'JS'
+          const base='https://www.figma.com/api/mcp/asset/46dba6d4-2be0-4586-aeb0-d2d2c68fb10f';
+          for(const [file,url]of [['radio-selected.svg',base+'/f92e2.svg'],['radio.svg',base+'/cdfd7.svg']]){
+            const response=await fetch(url);if(!response.ok)throw new Error(response.status+' '+file);
+            const svg=await response.text();if(!svg.includes('<svg'))throw new Error('Not SVG');
+            console.log('FIGMA_ASSET '+JSON.stringify({file,svg}));
+          }
+          JS

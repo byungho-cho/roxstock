@@ -8,6 +8,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ValueAnalysisPage } from './pages/value/ValueAnalysisPage';
+import { CompoundPage } from './pages/compound/CompoundPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { StockListPage } from './pages/stocks/StockListPage';
 import { StockDetailPage } from './pages/stocks/StockDetailPage';
@@ -61,6 +62,7 @@ export function App() {
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
+        <Route path="detail/compound" element={<CompoundPage />} />
         <Route path="detail/value" element={<ValueAnalysisPage />} />
         <Route path="detail/investment" element={<InvestmentPage />} />
         <Route path="detail/investment-profit" element={<InvestmentProfitPage />} />

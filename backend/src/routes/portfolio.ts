@@ -57,7 +57,7 @@ const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number])
   marketStatus: holding.marketStatus,
 });
 
-const loadPortfolio = async (accountId: bigint) => {
+export const loadPortfolio = async (accountId: bigint) => {
   const account = await prisma.account.findUnique({
     where: { id: accountId },
     include: {
