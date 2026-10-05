@@ -55,7 +55,7 @@ test('menu order, equal theme widths and fixed geometry',async({page},info)=>{
  await capture(page,'menu',info.project.name);
 });
 test('monitoring selection resets detail only, states and failed refresh preserve results',async({page},info)=>{
- await fixture(page);await page.goto('/detail/collection-monitoring');await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toBeVisible();await geometry(page);
+ await fixture(page);await page.goto('/detail/collection-monitoring');await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toBeVisible();await geometry(page);await capture(page,'monitoring-main',info.project.name);
  if(info.project.name.startsWith('tablet')){
   const left=page.locator('[data-scroll-region="monitoring-list"]'),right=page.locator('[data-scroll-region="monitoring-detail"]');
   await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toHaveAttribute('aria-current','true');await expect(right).toContainText('실제 실패');
@@ -94,7 +94,7 @@ test('reset confirmation, failure retry and duplicate guards',async({page})=>{
  await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(2);await expect(page.getByTestId('reset-result')).toBeVisible();f.succeed();await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('초기화가 완료되었습니다');await expect(page.getByTestId('reset-result')).toContainText('0원');expect(f.writes.filter(w=>w.path.endsWith('/reset'))).toHaveLength(3);
 });
 test('compound empty once, inherited goal form, title alignment and unchanged calculation basis',async({page},info)=>{
- await fixture(page);await page.goto('/detail/compound?plan=1&goal=1&view=goal');await geometry(page);await expect(page.locator('main')).toContainText('연초 추가금 반영');
+ await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();await capture(page,'compound-main',info.project.name);await page.goto('/detail/compound?plan=1&goal=1&view=goal');await geometry(page);await expect(page.locator('main')).toContainText('연초 추가금 반영');
  await capture(page,'compound',info.project.name);
  await page.goto('/detail/compound?plan=1&form=goal-add');await expect(page.getByLabel('목표명',{exact:true})).toBeFocused();
  if(!info.project.name.startsWith('tablet')){const h=await page.getByRole('heading').boundingBox();expect(h!.x).toBe(36);}else await expect(page.getByRole('dialog')).toBeVisible();
