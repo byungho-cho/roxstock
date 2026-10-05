@@ -64,7 +64,7 @@ function AccountPlans({accountId}:{accountId:string}){
  },[accountId,revision]);
  const plans=data?.plans??[],plan=plans.find(p=>p.id===selected)??plans[0],goal=plan?.goals.find(g=>g.id===selectedGoal);
  useEffect(()=>{if(!data)return;const next=data.plans.some(p=>p.id===selected)?selected:data.plans[0]?.id??null;if(next!==selected)setSelected(next);},[data,selected,setSelected]);
- const go=(updates:Record<string,string|null>,replace=false)=>{const next=new URLSearchParams(location.search);for(const [key,value]of Object.entries(updates)){if(value===null)next.delete(key);else next.set(key,value);}navigate(location.pathname+(next.size?'?'+next:''),{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
+ const go=(updates:Record<string,string|null>,replace=false)=>{[leftRef.current,rightRef.current].forEach(region=>region?.dispatchEvent(new Event('scroll',{bubbles:true})));const next=new URLSearchParams(location.search);for(const [key,value]of Object.entries(updates)){if(value===null)next.delete(key);else next.set(key,value);}navigate(location.pathname+(next.size?'?'+next:''),{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(p:Plan)=>{setSelected(p.id);setSelectedGoal(null);if(!tablet)go({view:'compare',plan:p.id,goal:null});};
  const chooseGoal=(g:Goal)=>{setSelectedGoal(g.id);go({view:'goal',plan:plan!.id,goal:g.id});};
  const back=()=>{if(formKind)go({form:null},true);else if(view==='goal'){setSelectedGoal(null);go({view:'compare',goal:null},true);}else if(view==='compare'&&!tablet)go({view:'list',goal:null},true);else navigate('/more');};

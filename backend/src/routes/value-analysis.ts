@@ -6,7 +6,7 @@ import { id } from '../lib/input.js';
 import { fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
 
 type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string };
-const currentYear = () => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()).slice(0, 4));
+const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));
 function integer(value: string | undefined, fallback: number, min: number, max: number, name: string) {
   if (value === undefined) return fallback;
   if (!/^\d+$/.test(value) || Number(value) < min || Number(value) > max) throw new ApiError(400, 'INVALID_INPUT', name + ' is invalid.');
@@ -31,7 +31,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
-      const issuedShares=fundamentals?.updatedAt.getUTCFullYear()===year?fundamentals.issuedShares?.toString()??null:null;
+      const issuedShares=fundamentals&&currentYear(fundamentals.updatedAt)===year?fundamentals.issuedShares?.toString()??null:null;
       return { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price,
         previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null,
         per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price),
