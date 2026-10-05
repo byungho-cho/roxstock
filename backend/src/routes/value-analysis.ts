@@ -35,7 +35,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 1900, currentYear(), 'year');
     const mode = request.query.mode ?? 'annual';
     if (mode !== 'annual' && mode !== 'quarter') throw new ApiError(400, 'INVALID_INPUT', 'mode is invalid.');
-    const startYear = integer(request.query.startYear, year - 2, 1900, currentYear(), 'startYear');
+    const startYear = integer(request.query.startYear, Math.max(1900, year - 2), 1900, currentYear(), 'startYear');
     const quarter = mode === 'annual' ? null : integer(request.query.startQuarter, 1, 1, 4, 'startQuarter');
     const count = integer(request.query.count, 3, 1, 10, 'count'), selected = periods(startYear, quarter, count);
     const last = selected[selected.length - 1]!.year;
