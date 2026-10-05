@@ -65,7 +65,7 @@ export function PageHeader({ backIcon, stockNavigation, title, variant = 'standa
 export function BottomNav() {
   const navigate = useNavigate(); const location = useLocation();
   const value = location.pathname === '/trade' ? (location.state?.backgroundLocation?.pathname.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks') : [...tabletItems].sort((a, b) => b.path.length - a.path.length).find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/';
-  const isInvestment = location.pathname === '/detail/investment';
+  const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
   const isAnalysis = location.pathname === '/assets' || isInvestment;
   const isSettings = location.pathname === '/detail/settings';
   const isStocks = location.pathname.startsWith('/stocks');

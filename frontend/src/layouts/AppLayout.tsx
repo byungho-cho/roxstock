@@ -27,7 +27,7 @@ export function AppLayout() {
   const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
   const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
   const isCash = location.pathname === '/detail/cash';
-  const isInvestment = location.pathname === '/detail/investment';
+  const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
   const isAnalysis = location.pathname === '/assets';
   const isJournal = location.pathname === '/journal';
   useEffect(() => {
