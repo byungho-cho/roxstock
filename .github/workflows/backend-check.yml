@@ -68,6 +68,9 @@ jobs:
       - name: Account classification and trade consistency (real MariaDB API)
         run: node --import tsx --test backend/tests/account-classification.integration.ts
 
+      - name: Changed compound-plan real database functions
+        run: node --import tsx --test backend/tests/compound-growth.integration.ts
+
       - name: Asset analysis stored-data integration
         run: node --import tsx --test backend/tests/asset-analysis.integration.ts
 
@@ -83,4 +86,3 @@ jobs:
 
       - name: Build backend
         run: npm run build:backend
-

@@ -12,7 +12,7 @@ export function usePageScrollRestoration(ref: RefObject<HTMLElement | null>) {
     const applied = new WeakMap<HTMLElement, string>();
     const regions = () => [main, ...main.querySelectorAll<HTMLElement>('[data-scroll-region]')];
     const keyFor = (element: HTMLElement) => pageKey + ':scroll:' + JSON.stringify([
-      element.dataset.scrollRegion==='stock-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>key!=='selected')).toString() : location.search, element === main ? 'body' : element.dataset.scrollRegion,
+      element.dataset.scrollRegion==='compound-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='compound-right' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='value-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>key!=='selected' && key!=='view')).toString() : element.dataset.scrollRegion==='stock-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>key!=='selected')).toString() : location.search, element === main ? 'body' : element.dataset.scrollRegion,
       element.dataset.listCondition ?? main.querySelector<HTMLElement>('[data-list-condition]')?.dataset.listCondition ?? '',
     ]);
     const items = (element: HTMLElement) => [...element.querySelectorAll<HTMLElement>('[data-scroll-item]')].filter(item => {
