@@ -25,12 +25,12 @@ function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:number;ass
  const points=goal.rows.map(row=>({year:row.year,value:number(row.asset),contributed:number(row.contributed)}));
  const all=points.flatMap(p=>[p.value,p.contributed]).filter((v):v is number=>v!==null),actual=number(assets);
  if(actual!==null)all.push(actual);
- const max=Math.max(1,...all),x=(index:number)=>32+(index/Math.max(1,points.length-1))*272,y=(value:number)=>118-value/max*100;
+ const max=Math.max(1,...all),scale=max>=1e12?1e12:max>=1e8?1e8:max>=1e4?1e4:1,unit=scale===1e12?'조':scale===1e8?'억':scale===1e4?'만':'원',x=(index:number)=>32+(index/Math.max(1,points.length-1))*272,y=(value:number)=>118-value/max*100;
  const path=(key:'value'|'contributed')=>{let started=false;return points.map((p,i)=>{const value=p[key];if(value===null){started=false;return '';}const command=(started?'L':'M')+x(i)+','+y(value);started=true;return command;}).join(' ');};
  const index=points.findIndex(p=>p.year===currentYear);
  return <Box sx={card}><Box sx={{fontSize:12,mb:'8px'}}>연도별 예상 자산</Box><Box sx={{fontSize:10,color:muted,display:'flex',gap:'12px',mb:'4px'}}><span style={{color:goal.displayColor}}>예상 자산</span><span style={{color:muted}}>누적 투입금</span><span style={{color:blue}}>현재 자산</span></Box>
   <svg role="img" aria-label="연도별 예상 자산과 누적 투입금 · 원" viewBox="0 0 320 150" width="100%" style={{display:'block',overflow:'visible'}}>
-   {[0,0.5,1].map(f=><g key={f}><line x1="32" x2="304" y1={y(max*f)} y2={y(max*f)} stroke="#26354A"/><text x="0" y={y(max*f)+3} fill={muted} fontSize="10">{format(max*f/1e4,0)}만</text></g>)}
+   {[0,0.5,1].map(f=><g key={f}><line x1="32" x2="304" y1={y(max*f)} y2={y(max*f)} stroke="#26354A"/><text x="0" y={y(max*f)+3} fill={muted} fontSize="10">{format(max*f/scale,1)}{unit}</text></g>)}
    <path d={path('contributed')} fill="none" stroke={muted} strokeWidth="1.5" strokeDasharray="3 3"/><path d={path('value')} fill="none" stroke={goal.displayColor} strokeWidth="2"/>
    {actual!==null&&index>=0&&<circle cx={x(index)} cy={y(actual)} r="3" fill={blue}/>}
    {points.filter((_,i)=>i===0||i===points.length-1||i===index).map(p=><text key={p.year} x={x(points.indexOf(p))} y="144" textAnchor="middle" fontSize="10" fill={muted}>{p.year}</text>)}
@@ -39,9 +39,10 @@ function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:number;ass
  </Box>;
 }
 function FormDialog({title,children,busy,close}:{title:string;children:ReactNode;busy:boolean;close:()=>void}){
+ const contentRef=useRef<HTMLDivElement>(null);
  return <Dialog open onClose={()=>{if(!busy)close();}} slotProps={{paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0F1728',border:'1px solid #203652',backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif',color:'#F8FAFC'}}}}>
   <DialogTitle sx={{p:'8px 16px',fontSize:14,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="팝업 닫기" disabled={busy} onClick={close} sx={{p:0}}><img src="/stocks-v03/close.svg" width="16" height="16" alt=""/></IconButton></DialogTitle>
-  <DialogContent sx={{p:'0 16px 16px !important',overflowY:'auto',scrollbarWidth:'thin',fontSize:12}}>{children}</DialogContent>
+  <DialogContent ref={contentRef} sx={{p:'0 16px 16px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},fontSize:12}}>{children}</DialogContent><OverlayRegionScrollbar scrollRef={contentRef} label="복리 입력 팝업 스크롤" offset={-8}/>
  </Dialog>;
 }
 export function CompoundPage(){
