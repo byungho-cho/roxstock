@@ -74,7 +74,7 @@ test('settings menu, small form, left title and Enter failure retention',async({
   const a=await page.getByTestId('settings-menu').boundingBox(),b=await page.getByTestId('settings-detail').boundingBox();expect(b!.x-a!.x-a!.width).toBeCloseTo(8,1);
  }
  await page.goto('/detail/settings?view=edit');const field=page.getByRole('textbox',{name:'계좌명',exact:true});await expect(field).toBeFocused();
- const h=await field.evaluate(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height);expect(h).toBe(36);
+ const heights=await page.getByRole('textbox').evaluateAll(ns=>ns.map(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height));expect(heights).toEqual([36,36,36]);
  const title=await page.getByRole('heading').boundingBox();expect(title!.x).toBe(36);
  await field.fill('변경 계좌');await field.press('Enter');await expect(page.getByRole('textbox',{name:'증권사',exact:true})).toBeFocused();f.fail();
  await page.getByRole('textbox',{name:'계좌번호',exact:true}).press('Enter');await expect(page.getByRole('alert')).toContainText('테스트 저장 실패');await expect(field).toHaveValue('변경 계좌');
@@ -90,7 +90,7 @@ test('target limit, duplicate validation, delete draft and save failure retry',a
 test('reset confirmation, failure retry and duplicate guards',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/settings?view=reset');const input=page.getByRole('textbox',{name:'계좌명 입력'});await input.fill('틀린 이름');await expect(page.getByRole('button',{name:'계좌 데이터 초기화',exact:true})).toBeDisabled();await input.fill('기본 계좌');await input.press('Enter');expect(f.writes).toHaveLength(0);f.fail();
  await page.getByRole('dialog').getByRole('button',{name:'초기화',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('테스트 저장 실패');expect(f.writes).toHaveLength(1);
- await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(2);await expect(page.getByTestId('reset-result')).toBeVisible();
+ await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(2);await expect(page.getByTestId('reset-result')).toBeVisible();f.succeed();await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('초기화가 완료되었습니다');await expect(page.getByTestId('reset-result')).toContainText('0원');expect(f.writes.filter(w=>w.path.endsWith('/reset'))).toHaveLength(3);
 });
 test('compound empty once, inherited goal form, title alignment and unchanged calculation basis',async({page},info)=>{
  await fixture(page);await page.goto('/detail/compound?plan=1&goal=1&view=goal');await geometry(page);await expect(page.locator('main')).toContainText('연초 추가금 반영');
