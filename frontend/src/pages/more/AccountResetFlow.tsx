@@ -64,7 +64,7 @@ function ResetAccountContent({ tablet = false, onClose }: { tablet?: boolean; on
   if (finished) return <Box data-testid="reset-result">
     <Typography sx={{ textAlign: 'center', fontSize: 22, fontWeight: 600, color: state === 'success' ? '#34D399' : '#FA636E' }}>{state === 'success' ? '초기화가 완료되었습니다' : '초기화하지 못했습니다'}</Typography>
     <Typography sx={{ textAlign: 'center', fontSize: 13, color: '#94A3B8', mt: '12px', mb: '24px' }}>{state === 'success' ? '선택 계좌의 데이터를 서버에서 확인했습니다.' : accepted.current ? '초기화 요청 완료 후 재조회에 실패했습니다.' : '입력한 계좌명을 유지했습니다.'}</Typography>
-    <Box sx={{ bgcolor: '#0B1220', border: '1px solid #21304A', borderRadius: '8px', p: '14px', minHeight: state === 'failure' ? 118 : undefined }}>
+    <Box sx={{ bgcolor: '#0B1220', border: '1px solid #21304A', borderRadius: '8px', p: '13px', minHeight: state === 'failure' ? 118 : undefined }}>
       <Typography sx={{ color: '#94A3B8', fontSize: 11 }}>{state === 'success' ? '현재 예수금' : '오류 안내'}</Typography>
       <Typography role={state === 'failure' ? 'alert' : 'status'} sx={{ textAlign: 'right', fontSize: 13, color: state === 'success' ? '#F8FAFC' : '#FA636E', overflowWrap: 'anywhere', mt: '12px' }}>{state === 'success' ? '0원' : message}</Typography>
     </Box>
