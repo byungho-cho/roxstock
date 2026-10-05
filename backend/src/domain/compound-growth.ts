@@ -29,15 +29,16 @@ export function project(initial:string,contribution:string,rate:string,start:num
  for(let year=start;year<=end;year++){asset=asset.plus(addition).mul(factor);rows.push({year,asset:asset.toString(),contributed:new D(initial).plus(addition.mul(year-start+1)).toString()});}
  return rows;
 }
-export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number) {
+export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number,endingAssets:string|null=null) {
  const startYear=plan.startDate.getUTCFullYear(),endYear=plan.endDate.getUTCFullYear();
  const goals=plan.goals.map(goal=>{
   const rows=project(plan.initialAssetValue.toString(),plan.annualContributionAmount.toString(),goal.annualTargetRate.toString(),startYear,endYear);
   const finalTarget=rows.at(-1)?.asset??null,yearTarget=rows.find(row=>row.year===currentYear)?.asset??null;
   const final=finalTarget===null?null:new D(finalTarget);
   return {id:goal.id.toString(),goalName:goal.goalName,annualTargetRate:goal.annualTargetRate.toString(),displayColor:goal.displayColor??colors[0]!,isDefault:goal.isDefault,isVisible:goal.isVisible,rows,yearTarget,finalTarget,
+   finalAchievementRate:endingAssets!==null&&final?.gt(0)?new D(endingAssets).div(final).mul(100).toString():null,
    progress:currentAssets!==null&&final?.gt(0)?new D(currentAssets).div(final).mul(100).toString():null};
  });
- return {id:plan.id.toString(),planName:plan.planName,startYear,endYear,duration:endYear-startYear+1,initialAssetValue:plan.initialAssetValue.toString(),annualContributionAmount:plan.annualContributionAmount.toString(),goals,
+ return {id:plan.id.toString(),planName:plan.planName,startYear,endYear,duration:endYear-startYear+1,initialAssetValue:plan.initialAssetValue.toString(),annualContributionAmount:plan.annualContributionAmount.toString(),goals,endingAssets,endingAsOf:endingAssets===null?null:endYear+'-12-31',
   status:currentYear<startYear?'UPCOMING':currentYear>endYear?'ENDED':'ACTIVE'};
 }
