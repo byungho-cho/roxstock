@@ -1,0 +1,39 @@
+name: Utility v0.4 Scoped Check
+on:
+  push:
+    branches: [codex/utility-v04-20261005]
+  pull_request:
+    branches: [main]
+    paths: [frontend/src/pages/more/**, frontend/src/pages/compound/**, frontend/tests/targets/utility-v04.spec.ts, .github/workflows/utility-v04-check.yml]
+permissions:
+  contents: read
+jobs:
+  utility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - name: Download exact Figma theme radio assets
+        run: |
+          mkdir -p frontend/public/utility-v04
+          curl --fail -L -o frontend/public/utility-v04/radio-selected.svg 'https://www.figma.com/api/mcp/asset/d9ed9eb8-9af2-4581-86c3-21292d4258fe.svg'
+          curl --fail -L -o frontend/public/utility-v04/radio.svg 'https://www.figma.com/api/mcp/asset/79caa1d4-736a-4a2a-9dc4-3de1900316d1.svg'
+      - run: npm --workspace frontend run typecheck
+      - run: npm --workspace frontend run build
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.utility.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: utility-v04-results
+          path: |
+            frontend/test-results/utility/
+            frontend/public/utility-v04/
+          retention-days: 3
