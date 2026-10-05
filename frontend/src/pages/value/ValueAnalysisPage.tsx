@@ -4,7 +4,7 @@ import { useEffect,useRef,useState,type ReactNode,type TouchEvent } from 'react'
 import { useLocation,useNavigate,useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
-import { usePageMemory } from '../../hooks/navigation/usePageMemory';
+import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePageMemory';
 import { ValueFinancialCharts } from './ValueFinancialCharts';
 import { detailValues,listValues,format,movement,number,seoulYear,type ValueDetail,type ValueList } from './valueApi';
 const muted='#94A3B8',cardStyle={bgcolor:'#111927',borderRadius:'8px',p:'8px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
@@ -38,6 +38,7 @@ function Detail({data,openCharts}:{data:ValueDetail;openCharts:()=>void}) {
 }
 export function ValueAnalysisPage(){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),params=new URLSearchParams(location.search),currentYear=seoulYear();
+ const returnToSource=useReturnNavigation('/more');
  const [year,setYear]=usePageMemory('value-year',currentYear),[draft,setDraft]=usePageMemory('value-draft',''),[query,setQuery]=usePageMemory('value-query','');
  const [selected,setSelected]=usePageMemory<string|null>('value-selected',()=>stockId??params.get('selected'));
  const [mode,setMode]=usePageMemory<'annual'|'quarter'>('value-mode','annual');
@@ -62,7 +63,7 @@ export function ValueAnalysisPage(){
  const goView=(target:string,id=selected)=>{const search=new URLSearchParams(location.search);search.set('view',target);if(id)search.set('selected',id);else search.delete('selected');navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(id:string)=>{setSelected(id);if(!tablet&&view==='list')goView('detail',id);};
  const move=(direction:number)=>{const target=direction<0?previous:next;if(target&&listCurrent){setSelected(target.id);}};
- const back=()=>{if(chart||coverDetail){if(Number(window.history.state?.idx)>0)navigate(-1);else goView('list');}else navigate('/more');};
+ const back=()=>{if(chart||coverDetail){if(Number(window.history.state?.idx)>0)navigate(-1);else goView('list');}else returnToSource();};
  const currentName=detail.data?.security.name??rows.find(row=>row.id===selected)?.name??(selected?'종목 조회 중':'가치분석');
  const currentSymbol=detail.data?.security.symbol??rows.find(row=>row.id===selected)?.symbol??'—';
  const navigation=(chart||coverDetail)?<Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)',gap:'8px',alignItems:'center',fontSize:10}}>
