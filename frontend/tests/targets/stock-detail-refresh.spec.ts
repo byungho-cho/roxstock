@@ -34,7 +34,7 @@ async function setup(page:Page){
  return {reads,delay:()=>{pending=true;},release:()=>{pending=false;releases.splice(0).forEach(fn=>fn());},fail:()=>{fail=true;}};
 }
 async function selectStock(page:Page,id:number,name:string){
- if(tablet(page)&&await page.getByRole('row',{name:name+' 상세보기',exact:true}).count())await page.getByRole('row',{name:name+' 상세보기',exact:true}).click();
+ if(tablet(page))await page.getByRole('row',{name:name+' 상세보기',exact:true}).click();
  else await page.getByTestId('stock-card-'+id).getByRole('button',{name:name+' 상세보기',exact:true}).click();
 }
 const detail=(page:Page)=>tablet(page)?page.getByTestId('stock-right'):page.locator('[data-detail-swipe]').first();

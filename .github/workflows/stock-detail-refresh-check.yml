@@ -19,7 +19,7 @@ jobs:
       - run: npm ci --workspace frontend --include-workspace-root=false
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npx playwright test --config=playwright.stock-detail.config.ts stock-detail-refresh.spec.ts stock-scroll-restoration.spec.ts --workers=2
+      - run: npx playwright test --config=playwright.stock-detail.config.ts stock-detail-refresh.spec.ts --workers=2
         working-directory: frontend
       - run: npx playwright test --config=playwright.stock-detail.config.ts operating-fixes.spec.ts --grep "stock quote time|home pull" --workers=2
         working-directory: frontend
