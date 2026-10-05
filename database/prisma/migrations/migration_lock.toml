@@ -1,3 +1,0 @@
-# Prisma Migrate가 자동으로 관리하는 파일입니다.
-# 수동으로 수정하지 않습니다.
-provider = "mysql"

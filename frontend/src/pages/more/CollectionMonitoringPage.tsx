@@ -1,6 +1,5 @@
 import '../dashboard/home-font.css';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
-import { PageHeader } from '../../components/navigation/Navigation';
 import { ArrowDropDownRounded, FilterListRounded, RefreshRounded } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -216,10 +215,10 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
 }) {
   const disabled = phase !== 'CURRENT';
   const statusInfo = statusStyle[status] ?? unknownStatus;
-  const label = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
+  const label = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo.label
     : disabled ? '1단계 후 대기' : status === 'RUNNING' ? '진행 중' : '상시 수집';
-  const badge = status === 'NOT_CONFIGURED' || status === 'NOT_IMPLEMENTED' || status === 'DELAYED' || status === 'FAILED' || status === 'PARTIAL'
+  const badge = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
   return <Box sx={{ ...cardSx, p: '4px 12px', minHeight: 39, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -381,7 +380,6 @@ export function CollectionMonitoringPage() {
   const choose = (id: string) => { setSelected(id); rightRef.current?.scrollTo({ top: 0 }); };
   if (!tablet) return <Box className="rox-home" data-testid="C2000"><MonitoringContent key={feature ?? 'summary'} feature={feature} /></Box>;
   return <Box className="rox-home" data-testid="T2000" sx={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: '100%', minHeight: 0 }}>
-    <PageHeader embedded title="수집 모니터링" variant="more" backPath="/more" backIcon={<img src="/stocks-v03/back.svg" alt="" />} showBackTablet showAdd={false} />
     <Box ref={leftRef} data-scroll-region="monitoring-list" sx={{ minWidth: 0, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}><MonitoringContent selected={selected} onOpen={choose} /></Box>
     <Box ref={rightRef} data-scroll-region="monitoring-detail" sx={{ minWidth: 0, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}><MonitoringContent key={selected} feature={selected} /></Box>
     <OverlayRegionScrollbar scrollRef={leftRef} label="수집 목록 스크롤" offset={0} />
