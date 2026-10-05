@@ -64,7 +64,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
     {editor ? <AppCard sx={{ p: '14px', borderRadius: '8px' }}>
       <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600 }}>{editor?.index === null ? '조건 추가' : '조건 수정'}</Typography>
       <Box><Stack spacing={1} sx={{ pt: 1 }}>
-        <NumberField clearIconSrc="/settings-v03/clear.svg" label="보유기간 상한" required autoFocus value={editor?.days ?? ''} onChange={days => setEditor(current => current && { ...current, days })} suffix="일" enterKeyHint="next" onEnter={() => rateInput.current?.focus()} />
+        <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="보유기간 상한" required autoFocus value={editor?.days ?? ''} onChange={days => setEditor(current => current && { ...current, days })} suffix="일" enterKeyHint="next" onEnter={() => rateInput.current?.focus()} />
         <NumberField clearIconSrc="/settings-v03/clear.svg" label="목표수익률" required inputRef={rateInput} value={editor?.rate ?? ''} onChange={rate => setEditor(current => current && { ...current, rate })} suffix="%" enterKeyHint="done" onEnter={confirmEditor} />
         <Typography sx={{ fontSize: 11, color: colors.textMuted }}>기간은 1 이상의 정수, 목표수익률은 0 초과(소수 4자리, 최대 99,999.9999%). 같은 기간을 중복 등록할 수 없습니다.</Typography>
         {formError && <Alert severity="error">{formError}</Alert>}
@@ -73,7 +73,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
     </AppCard> : <>
     <AppCard sx={{ p: '14px', borderRadius: '8px', bgcolor: '#111827' }}>
       <Typography sx={{ fontSize: 12 }}>선택 계좌: {accountName} · 계좌별 저장</Typography>
-      <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>조건은 최대 5개입니다. 조건을 삭제하면 추가할 수 있습니다.</Typography>
+      <Typography sx={{ fontSize: 11, color: colors.textMuted, my: 1 }}>{draft.conditions.length >= 5 ? '최대 5개 등록됨 · 조건을 삭제하면 추가할 수 있습니다.' : '조건은 최대 5개까지 등록할 수 있습니다.'}</Typography>
       <Button fullWidth variant="outlined" disabled={busy || draft.conditions.length >= 5} onClick={() => { setEditor({ index: null, days: '', rate: '' }); setFormError(''); }}>조건 추가</Button>
     </AppCard>
     <Stack spacing="8px" sx={{ mt: '8px' }}>
