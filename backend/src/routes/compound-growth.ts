@@ -11,8 +11,9 @@ import { parsePlan,parseGoal,serializePlan,seoulYear } from '../domain/compound-
 type Params={accountId:string;planId:string;goalId:string};
 const include={goals:{orderBy:[{displayOrder:'asc' as const},{id:'asc' as const}]}};
 async function locked(tx:Prisma.TransactionClient,accountId:bigint,planId?:bigint){
- await requireActiveAccount(tx,accountId);
+ // Acquire the account write lock before any snapshot reads (MariaDB SERIALIZABLE).
  await tx.$queryRawUnsafe('SELECT id FROM accounts WHERE id = ? FOR UPDATE',accountId);
+ await requireActiveAccount(tx,accountId);
  if(planId){const plan=await tx.compoundGrowthPlan.findFirst({where:{id:planId,accountId},include});
   if(!plan)throw new ApiError(404,'PLAN_NOT_FOUND','계획을 찾을 수 없습니다.');return plan;}
  return null;

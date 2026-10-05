@@ -53,6 +53,6 @@ test('tablet independent columns, modal cancel preserves list position and no-go
 test('refresh failure preserves contents and timestamp; account switch hides old account and ignores late response',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();f.saveFail(true);
  await page.getByTestId('compound-plan-1').getByRole('button').click();await page.getByRole('button',{name:'계획 삭제',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true}).click();await expect(page.getByRole('alert')).toContainText('기존 내용을 유지');await page.getByRole('button',{name:'취소',exact:true}).click();
- f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock.selectedAccountId','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock.selectedAccountId','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
+ f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
 });

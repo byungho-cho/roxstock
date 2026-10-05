@@ -56,7 +56,7 @@ function AccountPlans({accountId}:{accountId:string}){
  const [confirm,setConfirm]=useState<Confirm|null>(null),[mutationError,setMutationError]=useState('');
  const formKind=params.get('form') as FormKind|null,view=params.get('view')??'list';
  const leftRef=useRef<HTMLDivElement>(null),rightRef=useRef<HTMLDivElement>(null),active=useRef(true);
- useEffect(()=>()=>{active.current=false;},[]);
+ useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
  useEffect(()=>{const controller=new AbortController();let current=true;setPending(true);setError('');
   listPlans(accountId,controller.signal).then(value=>{if(current){setData(value);setPending(false);}}).catch((e:unknown)=>{if(current){setError(e instanceof Error?e.message:'조회에 실패했습니다.');setPending(false);}});
   return()=>{current=false;controller.abort();};
