@@ -38,7 +38,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const startYear = integer(request.query.startYear, year - 2, 1900, currentYear(), 'startYear');
     const quarter = mode === 'annual' ? null : integer(request.query.startQuarter, 1, 1, 4, 'startQuarter');
     const count = integer(request.query.count, 3, 1, 10, 'count'), selected = periods(startYear, quarter, count);
-    const last = selected[selected.length - 1].year;
+    const last = selected[selected.length - 1]!.year;
     return prisma.$transaction(async tx => {
       const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
       if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');

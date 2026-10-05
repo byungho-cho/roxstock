@@ -35,7 +35,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: DartFinan
     if (filingMap.get(row.fiscalYear + ':Q3')?.fsDivision === row.fsDivision) keys.add(row.fiscalYear + ':Q4');
   }
   return [...keys].map(key => {
-    const [year, periodType] = key.split(':'), fiscalYear = Number(year), m = manualMap.get(key), f = filingMap.get(key);
+    const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), m = manualMap.get(key), f = filingMap.get(key);
     const annual = filingMap.get(year + ':ANNUAL'), q3 = filingMap.get(year + ':Q3');
     const derived = periodType === 'Q4' && !f && !!annual && !!q3 && annual.fsDivision === q3.fsDivision;
     const flow = (name: 'revenue' | 'operatingProfit' | 'netIncome') => {

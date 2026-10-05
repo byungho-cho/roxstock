@@ -20,7 +20,7 @@ function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>) 
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
  return <>{pending&&<Typography role="status" sx={{fontSize:10,color:muted,py:'4px'}}>{hasData?'갱신 중 · 마지막 성공 데이터를 표시합니다.':'조회 중…'}</Typography>}{error&&<Box role="alert" sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}>조회에 실패했습니다. {error}<Button onClick={retry} sx={{fontSize:10,minWidth:0,p:'2px 8px'}}>재시도</Button></Box>}</>;
 }
-function Empty(){return <Box data-testid="value-empty" sx={{height:'100%',minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',color:muted,fontSize:12}}>내용이 없습니다.</Box>;}
+function Empty(){return <Box data-testid="value-empty" sx={{height:'100%',minHeight:160,flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:muted,fontSize:12}}>내용이 없습니다.</Box>;}
 function Line({label,children,color}:{label:string;children:ReactNode;color?:string}){return <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',minHeight:20,fontSize:12}}><span style={{color:muted}}>{label}</span><Box sx={{textAlign:'right',overflowWrap:'anywhere',color}}>{children}</Box></Box>;}
 function Detail({data,openCharts}:{data:ValueDetail;openCharts:()=>void}) {
  const price=number(data.security.currentPrice),previous=number(data.security.previousClosePrice),change=price!==null&&previous!==null?price-previous:null;
@@ -52,7 +52,7 @@ export function ValueAnalysisPage(){
  const detail=useStoredQuery<ValueDetail|null>(detailKey,signal=>selected?detailValues(selected,year,mode,startYear,startQuarter,count,signal):Promise.resolve(null));
  const leftRef=useRef<HTMLDivElement>(null),rightRef=useRef<HTMLDivElement>(null),searchRef=useRef<HTMLInputElement>(null),touch=useRef<{x:number;y:number}|null>(null);
  useEffect(()=>{if(view==='list')searchRef.current?.focus({preventScroll:true});},[view]);
- useEffect(()=>{if(!list.data)return;const rows=list.data.rows;if(rows.length&&!rows.some(row=>row.id===selected)&&!stockId)setSelected(rows[0].id);else if(!rows.length&&!stockId)setSelected(null);},[list.data,selected,setSelected,stockId]);
+ useEffect(()=>{if(!list.data)return;const rows=list.data.rows;if(rows.length&&!rows.some(row=>row.id===selected))setSelected(rows[0].id);else if(!rows.length&&!stockId)setSelected(null);},[list.data,selected,setSelected]);
  const rows=list.data?.rows??[],index=rows.findIndex(row=>row.id===selected),previous=index>0?rows[index-1]:null,next=index>=0&&index<rows.length-1?rows[index+1]:null;
  const goView=(target:string,id=selected)=>{const search=new URLSearchParams(location.search);search.set('view',target);if(id)search.set('selected',id);else search.delete('selected');navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(id:string)=>{setSelected(id);if(!tablet&&view==='list')goView('detail',id);};
@@ -80,7 +80,7 @@ export function ValueAnalysisPage(){
    <select aria-label="시작기간" value={mode==='annual'?String(annualStart):quarterStart} onChange={event=>mode==='annual'?setAnnualStart(Number(event.target.value)):setQuarterStart(event.target.value)} style={{...controlStyle,marginLeft:'auto'}}>{mode==='annual'?Array.from({length:currentYear-1990+1},(_,i)=>currentYear-i).map(y=><option key={y} value={y}>{y}년부터</option>):Array.from({length:(currentYear-1990+1)*4},(_,i)=>{const y=currentYear-Math.floor(i/4),q=4-i%4;return <option key={y+':'+q} value={y+':'+q}>{y}년 {q}분기부터</option>;})}</select></Box>
    <Status pending={detail.pending} error={detail.error} retry={detail.retry} hasData={!!detail.data}/>{detail.data&&<><ValueFinancialCharts rows={detail.data.rows}/><Box sx={{mt:'8px',...cardStyle}}>{detail.data.notices.map(notice=><Typography key={notice} sx={{fontSize:10,color:muted,lineHeight:'18px'}}>{notice}</Typography>)}</Box></>}
   </Box>:tablet?<Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'8px',height:'100%',minHeight:0}}>
-   <Box ref={leftRef} data-scroll-region="value-left" data-list-condition={listKey} sx={{overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0}}>{listContent}</Box><OverlayRegionScrollbar scrollRef={leftRef} label="가치분석 목록 스크롤" offset={0}/>
+   <Box ref={leftRef} data-scroll-region="value-left" data-list-condition={listKey} sx={{overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0,display:'flex',flexDirection:'column'}}>{listContent}</Box><OverlayRegionScrollbar scrollRef={leftRef} label="가치분석 목록 스크롤" offset={0}/>
    <Box ref={rightRef} data-scroll-region="value-right" data-list-condition={JSON.stringify([year,selected])} sx={{overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0}}>{detailContent}</Box><OverlayRegionScrollbar scrollRef={rightRef} label="가치분석 상세 스크롤" offset={0}/>
   </Box>:coverDetail?<Box {...swipe}>{detailContent}</Box>:listContent}
  </Box>;
