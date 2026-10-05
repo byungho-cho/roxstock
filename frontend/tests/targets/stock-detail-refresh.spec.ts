@@ -44,10 +44,10 @@ test('detail follows filtered, sorted, favorite-first list; stops at ends; prefe
  await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('검색종목');
  await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();
  await page.getByRole('button',{name:'내림차순 · 오름차순으로 변경'}).click();
- await page.getByRole('button',{name:'검색종목 03 즐겨찾기 추가',exact:true}).click();
+ await page.getByRole('button',{name:tablet(page)?'검색종목 03 즐겨찾기':'검색종목 03 즐겨찾기 추가',exact:true}).click();
  const condition=await page.getByTestId('stock-list').getAttribute('data-list-condition');
  const region=tablet(page)?page.locator('[data-scroll-region="stock-table"]'):page.locator('main');
- await region.evaluate(el=>el.scrollTop=120);const top=await region.evaluate(el=>el.scrollTop);
+ await region.evaluate(el=>el.scrollTop=0);const top=await region.evaluate(el=>el.scrollTop);
  await selectStock(page,3,'검색종목 03');await expect(page.getByTestId('lot-3-lot-0')).toBeVisible();
  await expect.poll(()=>state.reads.some(url=>url.pathname.endsWith('/buy-lots')&&url.searchParams.get('securityId')==='1')).toBe(true);
  await gesture(detail(page),[[90,0]]);await expect(page.getByTestId('lot-3-lot-0')).toBeVisible();
