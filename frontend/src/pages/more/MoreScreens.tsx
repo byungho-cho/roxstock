@@ -142,8 +142,8 @@ export function AccountForm({ add }: { add: boolean }) {
   const brokerInput = useRef<HTMLInputElement>(null); const numberInput = useRef<HTMLInputElement>(null);
   return <Stack spacing="12px" component="form" onSubmit={event => { event.preventDefault(); void submit(); }}>
     <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="계좌명" value={name} onChange={setName} autoFocus disabled={saving} enterKeyHint="next" onEnter={() => brokerInput.current?.focus()} />
-    <FormTextField clearIconSrc="/settings-v03/clear.svg" label="증권사" value={broker} onChange={setBroker} inputRef={brokerInput} disabled={saving} enterKeyHint="next" onEnter={() => numberInput.current?.focus()} />
-    <FormTextField clearIconSrc="/settings-v03/clear.svg" label="계좌번호" value={number} onChange={setNumber} inputRef={numberInput} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
+    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="증권사" value={broker} onChange={setBroker} inputRef={brokerInput} disabled={saving} enterKeyHint="next" onEnter={() => numberInput.current?.focus()} />
+    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="계좌번호" value={number} onChange={setNumber} inputRef={numberInput} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', py: '8px' }}><Typography sx={{ fontSize: 13 }}>기본 계좌로 사용</Typography><ButtonBase role="switch" aria-label="기본 계좌로 사용" aria-checked={isDefault} disabled={saving || (!add && selected?.isDefault)} onClick={() => setDefault(!isDefault)} sx={{ width: 42, height: 24, borderRadius: '12px', bgcolor: '#334054', flexShrink: 0 }}>{isDefault ? <Box component="img" src="/settings-v03/switch-on.svg" alt="" /> : <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'white', position: 'absolute', left: 2 }} />}</ButtonBase></Stack>
     <Typography sx={hint}>계좌번호는 목록에서 일부만 표시됩니다.</Typography>
     {error && <Typography role="alert" sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }} color="error">{error}</Typography>}
@@ -176,7 +176,7 @@ export function CashAdjustment() {
   if (liveApiEnabled && !selected) return <Typography role="status">선택된 계좌가 없습니다.</Typography>;
   return <Stack spacing="14px" component="form" onSubmit={event => { event.preventDefault(); void submit(); }}>
     <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="현재 예수금" value={base} onChange={() => {}} readOnly suffix="원" />
-    <NumberField clearIconSrc="/settings-v03/clear.svg" label="변경 예수금" value={amount} onChange={next => { if (/^\d*$/.test(next)) setAmount(next); }} autoFocus disabled={saving} suffix="원" enterKeyHint="done" onEnter={() => void submit()} />
+    <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="변경 예수금" value={amount} onChange={next => { if (/^\d*$/.test(next)) setAmount(next); }} autoFocus disabled={saving} suffix="원" enterKeyHint="done" onEnter={() => void submit()} />
     <Box sx={{ bgcolor: '#090F1C', p: '14px', borderRadius: '8px' }}>
       <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1 }}><Typography sx={hint}>변경 후 예수금</Typography><Typography sx={{ fontSize: 14 }}>{amount.trim() && Number.isFinite(value) ? fmt(value) : '—'}</Typography></Stack>
       <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1, mt: '9px' }}><Typography sx={hint}>변경 금액</Typography><Typography sx={{ fontSize: 14, color: delta > 0 ? colors.marketRise : delta < 0 ? colors.marketFall : colors.textPrimary }}>{amount.trim() && Number.isFinite(delta) ? fmt(delta) : '—'}</Typography></Stack>

@@ -65,7 +65,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
       <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600 }}>{editor?.index === null ? '조건 추가' : '조건 수정'}</Typography>
       <Box><Stack spacing={1} sx={{ pt: 1 }}>
         <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="보유기간 상한" required autoFocus value={editor?.days ?? ''} onChange={days => setEditor(current => current && { ...current, days })} suffix="일" enterKeyHint="next" onEnter={() => rateInput.current?.focus()} />
-        <NumberField clearIconSrc="/settings-v03/clear.svg" label="목표수익률" required inputRef={rateInput} value={editor?.rate ?? ''} onChange={rate => setEditor(current => current && { ...current, rate })} suffix="%" enterKeyHint="done" onEnter={confirmEditor} />
+        <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="목표수익률" required inputRef={rateInput} value={editor?.rate ?? ''} onChange={rate => setEditor(current => current && { ...current, rate })} suffix="%" enterKeyHint="done" onEnter={confirmEditor} />
         <Typography sx={{ fontSize: 11, color: colors.textMuted }}>기간은 1 이상의 정수, 목표수익률은 0 초과(소수 4자리, 최대 99,999.9999%). 같은 기간을 중복 등록할 수 없습니다.</Typography>
         {formError && <Alert severity="error">{formError}</Alert>}
       </Stack></Box>
