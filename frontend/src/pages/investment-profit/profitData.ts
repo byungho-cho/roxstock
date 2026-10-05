@@ -35,7 +35,9 @@ export function groups(events: ProfitEvent[], by: 'year' | 'stock' | 'month'): G
   const map = new Map<string, ProfitEvent[]>();
   for (const row of events) {
     const id = by === 'stock' ? row.securityId : row.date.slice(0, by === 'year' ? 4 : 7);
-    map.set(id, [...(map.get(id) ?? []), row]);
+    const rows = map.get(id) ?? [];
+    rows.push(row);
+    map.set(id, rows);
   }
   return [...map].map(([id, rows]) => ({ id, label: by === 'stock' ? rows[0].name : id, events: rows, totals: totals(rows) })).sort((a, b) => by === 'stock' ? a.label.localeCompare(b.label, 'ko') : b.id.localeCompare(a.id));
 }
