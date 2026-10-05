@@ -22,3 +22,9 @@ test('shared projections; unavailable year target, assets and zero denominator',
  plan.initialAssetValue=new Prisma.Decimal(0);plan.annualContributionAmount=new Prisma.Decimal(0);
  assert.equal(serializePlan(plan,'100',2026).goals[0]!.progress,null);
 });
+
+test('ended plans use collected closing assets for final achievement, never current assets as historical closing data',()=>{
+ const plan:any={id:1n,planName:'완료 계획',startDate:new Date('2025-01-01'),endDate:new Date('2026-12-31'),initialAssetValue:new Prisma.Decimal(100),annualContributionAmount:new Prisma.Decimal(20),goals:[{id:2n,goalName:'기준',annualTargetRate:new Prisma.Decimal(10),displayColor:'#5EA1F0',isDefault:true,isVisible:true}]};
+ const historical=serializePlan(plan,'500',2027,'83.6');assert.equal(historical.endingAssets,'83.6');assert.equal(historical.endingAsOf,'2026-12-31');assert.equal(historical.goals[0]!.finalAchievementRate,'50');
+ const missing=serializePlan(plan,'500',2027);assert.equal(missing.endingAssets,null);assert.equal(missing.goals[0]!.finalAchievementRate,null);assert.equal(missing.goals[0]!.yearTarget,null);
+});

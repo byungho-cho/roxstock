@@ -28,10 +28,13 @@ export async function compoundGrowthRoutes(app:FastifyInstance){
   const accountId=id(request.params.accountId,'accountId'),{account,holdings}=await loadPortfolio(accountId,tx);
   const dashboard=calculateDashboard(account.cashBalance,holdings),now=new Date(),currentYear=seoulYear(now);
   const plans=await tx.compoundGrowthPlan.findMany({where:{accountId},include,orderBy:[{startDate:'asc'},{displayOrder:'asc'},{id:'asc'}]});
+  const endedDates=plans.filter(p=>p.endDate.getUTCFullYear()<currentYear).map(p=>new Date(Date.UTC(p.endDate.getUTCFullYear(),11,31)));
+  const endingSnapshots=endedDates.length?await tx.dailyAccountSnapshot.findMany({where:{accountId,snapshotDate:{in:endedDates}}}):[];
+  const endingByYear=new Map(endingSnapshots.map(row=>[row.snapshotDate.getUTCFullYear(),row.totalAssetValue.toString()]));
   const assets=dashboard.totalAssetValue?.toString()??null;
   const asOf=new Date(Math.max(account.updatedAt.getTime(),dashboard.latestPriceUpdatedAt?.getTime()??0));
   return {data:{accountId:accountId.toString(),currentAssets:assets,asOf:asOf.toISOString(),calculatedAt:now.toISOString(),currentYear,
-   pricingComplete:dashboard.pricingComplete,plans:plans.map(plan=>serializePlan(plan,assets,currentYear)),
+   pricingComplete:dashboard.pricingComplete,plans:plans.map(plan=>serializePlan(plan,assets,currentYear,endingByYear.get(plan.endDate.getUTCFullYear())??null)),
    basis:{contributionTiming:'START_OF_YEAR',initialTiming:'START_OF_START_YEAR',inclusiveYears:true,yearTarget:'CALENDAR_YEAR_END_WITHIN_PLAN',progressDenominator:'FINAL_TARGET',timezone:'Asia/Seoul'}}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead}));
  for(const method of ['post','put'] as const){
