@@ -60,12 +60,12 @@ function LinkRow({ title, caption, value, onClick, active = false }: { title: st
 export function SettingsMenu({ active }: { active?: MoreView }) {
   const navigate = useNavigate();
   const { accounts, query } = useMoreAccounts();
-  const status = useQuery({ queryKey: ['collectionStatus'], queryFn: getCollectionStatus, enabled: liveApiEnabled, refetchInterval: 60_000 });
+  const status = useQuery({ queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, enabled: liveApiEnabled, refetchInterval: 60_000 });
   const selected = ['add','edit','cash','reset'].includes(active ?? '') ? 'account' : active;
   const items = [
     { view: 'account', title: '계좌 관리', caption: '계좌 정보와 현재 예수금을 관리합니다.', value: query.isError ? '조회 실패' : `${accounts.length}개 계좌` },
     { view: 'target-arrival', title: '목표가 도래 조건', caption: '보유기간별 목표수익률 조건을 편집합니다.', value: '계좌별' },
-    { view: 'collection', title: '시세 수집', caption: '수집 주기와 최근 수집 상태를 확인합니다.', value: status.isError ? '조회 실패' : status.data?.latestRun?.status === 'SUCCESS' ? '정상' : '상태 조회' },
+    { view: 'collection', title: '시세 수집', caption: '수집 주기와 최근 수집 상태를 확인합니다.', value: status.isError ? '조회 실패' : ({ OK: '정상', SUCCESS: '완료', RUNNING: '진행 중', PARTIAL: '일부 실패', FAILED: '실패', DELAYED: '지연', WAITING: '대기', NOT_IMPLEMENTED: '미구현', NO_DATA: '미수집', NOT_CONFIGURED: '설정 필요', NO_FILING: '미공시' } as Record<string,string>)[status.data?.features.find(item => item.id === 'realtime-prices')?.status ?? ''] ?? '상태 조회' },
     { view: 'theme', title: '테마 설정', caption: '앱 화면의 테마를 선택합니다.', value: '' },
   ];
   return <Stack component="nav" aria-label="설정 메뉴" spacing="12px">{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(`/detail/settings?view=${item.view}`)} sx={{ ...row, bgcolor: '#090F1C', borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 72 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
@@ -195,7 +195,7 @@ export function CollectionSettings() {
   const dateLabel = (value?: string | null) => value ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '기록 없음';
   return <Stack spacing="12px">
     <LabelledCard><Stack spacing="14px">
-      {[['수집 상태', feature ? labels[feature.status] ?? '상태 미확인' : monitor.isPending ? '조회 중' : '미수집'], ['마지막 시도', dateLabel(feature?.lastAttemptAt)], ['마지막 성공', dateLabel(feature?.lastSuccessAt)], ['다음 수집', dateLabel(feature?.nextAt)], ['수집 실패', feature ? feature.recent.failed + '건' : '—']].map(([label,value]) => <Stack key={label} direction="row" sx={{ justifyContent: 'space-between', gap: '8px' }}><Typography sx={hint}>{label}</Typography><Typography sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>{value}</Typography></Stack>)}
+      {[['수집 상태', feature ? labels[feature.status] ?? '상태 미확인' : monitor.isPending ? '조회 중' : '미수집'], ['마지막 시도', dateLabel(feature?.lastAttemptAt)], ['마지막 성공', dateLabel(feature?.lastSuccessAt)], ['다음 수집', dateLabel(feature?.nextAt)], ['수집 실패', feature?.recent.failed != null ? feature.recent.failed + '건' : '—']].map(([label,value]) => <Stack key={label} direction="row" sx={{ justifyContent: 'space-between', gap: '8px' }}><Typography sx={hint}>{label}</Typography><Typography sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>{value}</Typography></Stack>)}
     </Stack>
     {(monitor.isError || status.isError) && <Button role="alert" onClick={() => { void monitor.refetch(); void status.refetch(); }}>수집 상태 조회 실패 · 다시 시도</Button>}
     </LabelledCard>
