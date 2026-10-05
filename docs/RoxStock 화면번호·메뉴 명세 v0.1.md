@@ -1,9 +1,9 @@
 # RoxStock 화면번호·메뉴 명세
 
 **버전:** v0.1  
-**기준일:** 2026-10-06 (Asia/Seoul)  
+**기준일:** 2026-10-04 (Asia/Seoul)  
 **근거:** 사용자가 정리한 현재 Figma 페이지명·순서, A0000~A0003, C9900/T9900의 메뉴 구성  
-**상태:** 전체 커버·태블릿 v0.4 1차 디자인 확정 및 공통 명세 현행화. 실제 앱 코드·배포·운영 검증 결과를 의미하지 않음
+**상태:** 기획·문서 현행화. 실제 앱 코드·배포·운영 검증 결과를 의미하지 않음
 
 # 1. 기준과 우선순위
 
@@ -30,7 +30,7 @@
 | 6 | 1500 | 투자금 | C1500 | T1500 | 투자 원금·입출금·원금 변화 |
 | 7 | 1600 | 투자손익 | C1600 | T1600 | 연도·월·일·종목별 손익액·수익률 |
 | 8 | 1700 | 가치분석 | C1700 | T1700 | 종목 가치지표와 계산 근거 |
-| 9 | 1800 | 재무제표 | C1800 | T1800 | 독립 목록·상세 v0.4 디자인 확정; 개발 대기 |
+| 9 | 1800 | 재무제표 | C1800 | T1800 | 독립 조회 화면 설계 대기 |
 | 10 | 1900 | 복리계획 | C1900 | T1900 | 계획과 하위 목표·목표 대비 실제 성과 |
 | 11 | 2000 | 모니터링 | C2000 | T2000 | 수집 기능 전체의 요약·기능별 상세 |
 | 12 | 2100 | 설정 | C2100 | T2100 | 계좌·예수금·현재가·테마 등 관리 |
@@ -44,53 +44,56 @@
 - 대메뉴는 1000부터 2100까지 100 단위로 배정한다. 하위 화면은 해당 대메뉴 번호에 1부터 더한다.
 - 공유 기능은 대표 기능 아래 번호를 한 번만 배정한다. 진입 메뉴마다 페이지나 번호를 복제하지 않는다.
 - 평가자산은 홈 하위 `C1001 / T1001`이다. 예수금은 대메뉴 `C1300 / T1300`이며 홈 카드와 더보기에서 같은 화면으로 진입한다.
-- 거래등록·수정은 종목 상세와 매매일지에서 공통 호출한다. 커버 4개 거래 화면과 명세의 Figma 위치는 `C1100`이며 기존 `C1101` 페이지는 삭제됐다. 태블릿도 T1100 공통 거래폼을 참조하며 독립 T1101 페이지는 현재 목록에 없다.
+- 거래등록·수정은 종목 상세와 매매일지에서 공통 호출한다. 커버 4개 거래 화면과 명세의 Figma 위치는 `C1100`이며 기존 `C1101` 페이지는 삭제됐다. 태블릿 위치는 현재 디자인을 별도 확인한다.
 - 더보기는 공통 탐색 화면인 `C9900 / T9900`이다. 더보기 화면 자체는 12개 대메뉴 항목에 포함하지 않는다.
-- 페이지명은 `C1000. 홈 · v0.4 · 10.03` 형식이다. 날짜는 해당 수정일의 `MM.DD`이며 연도를 생략한다. 날짜가 없는 `v0.0` 페이지에 임의의 완료일을 추가하지 않는다.
+- 페이지명은 `C1000. 홈 · v0.2 · 09.28` 형식이다. 날짜는 해당 수정일의 `MM.DD`이며 연도를 생략한다. 날짜가 없는 `v0.0` 페이지에 임의의 완료일을 추가하지 않는다.
 - 업무 데이터의 거래일자·재무 사업연도와 문서 이력의 기준일은 실제 연도를 유지한다. 페이지명 날짜 규칙과 혼동하지 않는다.
 - 하단 메뉴의 기존 배치·순서는 유지한다. 더보기 순서와 강제로 맞추지 않는다.
 - 페이지 버전과 프레임의 `WORK/FINAL`은 별개다. `v0.2` 페이지라고 모든 프레임이나 실제 개발·배포가 완료된 것으로 판단하지 않는다.
 
-# 5. 현재 페이지
+# 5. 현재 페이지 전체 목록
 
-| 현재 페이지 | 디자인 상태 | 링크 |
-|---|---|---|
-| A0000. 정보구조 · v0.4 · 10.06 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=0-1) |
-| A0001. 화면흐름도 · v0.4 · 10.06 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1072-2) |
-| A0002. 입력폼 표준 · v0.4 · 10.06 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1304-2) |
-| A0003. 디자인 가이드 명세 · v0.4 · 10.06 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1705-2) |
-| C1000. 홈 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-2) |
-| T1000. 홈 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=721-2) |
-| C1001. 평가자산 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-3) |
-| T1001. 평가자산 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=735-2) |
-| C1100. 종목목록 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-7) |
-| T1100. 종목목록 · v0.4 · 10.03 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2978-2) |
-| C1200. 매매일지 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-5) |
-| T1200. 매매일지 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=774-2) |
-| C1300. 예수금 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-4) |
-| T1300. 예수금 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=740-2) |
-| C1400. 자산분석 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-6) |
-| T1400. 자산분석 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=921-2) |
-| C1500. 투자금 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-4) |
-| T1500. 투자금 · v0.4 · 10.04 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-5) |
-| C1600. 투자손익 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-6) |
-| T1600. 투자손익 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-7) |
-| C1700. 가치분석 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-8) |
-| T1700. 가치분석 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-9) |
-| C1800. 재무제표 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-10) |
-| T1800. 재무제표 · v0.4 · 10.06 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-11) |
-| C1900. 복리계획 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-2) |
-| T1900. 복리계획 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-3) |
-| C2000. 모니터링 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2398-2) |
-| T2000. 모니터링 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-12) |
-| C2100. 설정 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=646-2) |
-| T2100. 설정 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=977-2) |
-| C9900. 더보기 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-2) |
-| T9900. 더보기 · v0.4 · 10.05 | 1차 확정 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-3) |
+| 현재 Figma 페이지명 | 원본 링크 |
+|---|---|
+| A0000. 정보구조 · v0.4 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=0-1) |
+| A0001. 화면흐름도 · v0.4 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1072-2) |
+| A0002. 입력폼 표준 · v0.4 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1304-2) |
+| A0003. 디자인 가이드 명세 · v0.4 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=1705-2) |
+| C1000. 홈 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-2) |
+| T1000. 홈 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=721-2) |
+| C1001. 평가자산 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-3) |
+| T1001. 평가자산 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=735-2) |
+| C1003. 목표가 도래 전체 · v0.4 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2741-692) |
+| T1003. 목표가 도래 전체 · v0.4 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2741-219) |
+| C1100. 종목목록 · v0.3 · 10.02 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-7) |
+| T1100. 종목목록 · 리팩터링 작업본 · v0.3 · 10.02 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2978-2) |
+| ARCHIVE · T1100 · 과거 시안 | [이전 시안](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=747-2) |
+| 커버 거래등록·수정 4개 화면 · C1100 내 이동 | [현재 위치](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-7) |
+| T1101. 거래등록 · v0.1 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=940-2) |
+| C1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-5) |
+| T1200. 매매일지 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=774-2) |
+| C1300. 예수금 · v0.2 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-4) |
+| T1300. 예수금 · v0.2 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=740-2) |
+| C1400. 자산분석 · v0.4 작업중 · 10.04 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=305-6) |
+| T1400. 자산분석 · v0.1 · 10.03 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=921-2) |
+| C1500. 투자금 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-4) |
+| T1500. 투자금 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-5) |
+| C1600. 투자손익 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-6) |
+| T1600. 투자손익 · v0.0 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-7) |
+| C1700. 가치분석 · v0.2 · 09.28 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-8) |
+| T1700. 가치분석 · v0.2 · 09.29 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-9) |
+| C1800. 재무제표 · v0.1 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-10) |
+| T1800. 재무제표 · v0.1 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-11) |
+| C1900. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-2) |
+| T1900. 복리계획 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2615-3) |
+| C2000. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2398-2) |
+| T2000. 모니터링 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-12) |
+| C2100. 설정 · v0.3 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=646-2) |
+| T2100. 설정 · v0.2 · 09.30 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=977-2) |
+| C9900. 더보기 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-2) |
+| T9900. 더보기 · v0.2 · 10.01 | [보기](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=2637-3) |
 
-1101 독립 페이지와 과거 T1100 ARCHIVE 페이지는 현재 페이지 목록에 없다. 거래등록·수정은 C1100/T1100의 공통 거래폼을 참조한다. 1003 목표가 도래 전체는 홈 하위 기능이며 독립 대메뉴를 추가하지 않는다. 기존 하위 프레임 링크는 개별 페이지 안에서 확인한다.
-
-
+기존 노드 ID와 링크를 보존한다. 페이지의 버전·디자인 수정일은 번호 변경만으로 올리지 않는다.
 
 # 6. 대표 진입 흐름
 
@@ -102,7 +105,7 @@
 | 홈 오늘손익·거래 요약 | 1200 매매일지의 오늘 날짜·일별손익 |
 | 홈 자산추이 | 1400 자산분석 |
 | 홈 헤더 + | 종목 추가; 성공 후 1100의 해당 탭 |
-| 종목 상세 매수·매도 / 매매일지 거래 선택 | C1100/T1100 내 공통 거래등록·수정 |
+| 종목 상세 매수·매도 / 매매일지 거래 선택 | 1101 거래등록·수정 |
 | 자산분석 투자금·투자손익 진입 | 1500 투자금 / 1600 투자손익 |
 | 더보기 각 항목 | 1000~2100의 해당 메뉴 |
 | 복리계획 메뉴 | 1900 독립 페이지 |
@@ -120,17 +123,15 @@
 - 메뉴 아이콘은 더보기의 동일 기능 아이콘을 기준으로 화면별 활성·비활성 상태에서도 도형·선 굵기·비율을 일치시킨다.
 - 기간 스와이프 화면은 인접 데이터를 선조회하고 기존 화면·스크롤·필터를 유지한다. 캐시 미적중·조회 실패는 해당 영역의 상태로 처리하며 전체 화면을 로딩 문구로 교체해 깜빡이지 않게 한다. 이 항목은 개발 요구사항이며 이번 문서 작업에서 구현 완료를 검증하지 않았다.
 
-# 8. 디자인 확정·개발 후속 상태
+# 8. 설계 대기·검수 상태
 
-| 대상 | 디자인 상태 (2026-10-06) | 개발·후속 상태 |
+| 대상 | 이번 확인 상태 | 후속 작업 |
 |---|---|---|
-| C/T1000~1700 및 1001 | v0.4 1차 확정 | main 반영; 화면별 운영 검증·종합 QA는 별도 |
-| C/T1800 재무제표 | 목록·상세 v0.4 1차 확정 | 독립 메인 미반영; 기존 종목별 상세·수동 갱신 계약 재사용 및 보완 필요 |
-| C/T1900 복리계획 | 계획·목표·실제 비교 v0.4 확정 | PR #88·#89 main 반영 |
-| C/T2000 모니터링 | 수집 요약·기능별 상세 v0.4 확정 | 조회 화면 main 반영; 새 수집 실행 기능 구현과 구분 |
-| C/T2100 설정·9900 더보기 | v0.4 확정 | main 반영; 앱 내 수집 실행·일정 편집·전체 앱 테마 적용 미구현 |
-
-디자인 확정은 사용자 확정 및 Figma 최신 페이지·명세를 근거로 한다. 문서 버전, 디자인 확정, 개발 구현, 배포 성공, 운영 사용자 검증, 종합 QA를 각각 구분한다. 최신 구현·배포 근거는 [개발현황](./개발현황.md)을 따른다.
+| T1500. 투자금 · v0.0 | 참조 안내만 있으며 T1400의 투자금 추이 상세를 원본으로 안내 | 독립 태블릿 투자금 화면 설계 |
+| T1600. 투자손익 · v0.0 | 참조 안내만 있으며 T1400의 기간 투자손익 정보를 원본으로 안내 | 독립 태블릿 투자손익 화면 설계 |
+| C1800 / T1800. 재무제표 · v0.0 | 번호 예약 안내; 독립 조회 화면 없음 | 재무제표 조회 화면 설계 |
+| C1900 / T1900. 복리계획 | 독립 페이지로 분리됨 | 계획별 목표 대비 실제 성과 요약은 별도 요구사항으로 검수; 이번 번호 현행화로 완료 처리하지 않음 |
+| C2000 / T2000. 모니터링 | 요약·기능별 상세를 위한 페이지; WORK 프레임 포함 | 실제 프레임 상태와 디자인 검수·개발 상태를 따로 확인 |
 
 # 9. 원본 내부의 잔존 표기와 해석
 
@@ -152,7 +153,7 @@
 | 130 종목목록 | C1100 / T1100 |
 | 140 매매일지·일별손익 | C1200 / T1200 매매일지 |
 | 150 자산분석 | C1400 / T1400; 투자금 1500·투자손익 1600·복리계획 1900 분리 |
-| 160 거래등록 | C1100 / T1100 내 공통 거래폼 |
+| 160 거래등록 | C1101 / T1101 |
 | 170 더보기·설정 | C9900 / T9900 더보기, C2100 / T2100 설정 |
 | 180 복리계획 | C1900 / T1900 |
 | 199 통계·수집 모니터링 | C2000 / T2000 모니터링 |
@@ -244,34 +245,3 @@ C1101의 커버 매수·매도 등록/수정 4개 화면과 거래일자 명세�
 - 투자금↔투자손익 상호 이동은 후속 화면 기획 방향이다. 계좌·조회 기간을 이어받고 뒤로가기 시 원래 화면 조건·스크롤 위치를 복원한다. 이 문서만으로 해당 UI 구현 완료로 처리하지 않는다.
 - 변경 범위는 메뉴·페이지 식별자·명세다. 앱 route/API/데이터·계산 규칙은 이 문서 작업에서 변경하지 않는다. 앱 메뉴 반영은 개발 작업으로 별도 수행한다.
 - 2026-10-02 등 과거 변경 이력의 번호는 당시 기록이며 현행 번호는 본 항목과 본문 표를 우선한다.
-
-
-## 2026-10-06 · Figma v0.4 1차 확정·문서 현행화
-
-전체 C/T 페이지의 v0.4 1차 디자인을 사용자 확정 기준으로 기록한다. A0000~A0003은 v0.4·10.06으로 현행화했다. 과거 변경 이력의 v0.0·설계 대기·추천 분류·16px·1101 표기는 당시 기록이며 현행 본문 및 아래 최신 규칙을 우선한다. 기존 문서 파일의 v0.5/v0.7/v0.1은 문서 자체 버전으로 유지하고, 디자인 기준 v0.4와 혼동하지 않는다.
-
-## 재무제표 1800 · v0.4 확정 계약 (2026-10-06)
-
-- 커버 목록·상세: C1800 (2637:10), 태블릿 목록·상세: T1800 (2637:11). 태블릿은 전체 폭 목록→전체 폭 상세 이동이며 2열을 강제하지 않는다.
-- 목록은 검색·시장·기준연도와 다중 행 지표를 제공한다. 기준연도 선택 높이36px, 기본 Asia/Seoul 현재 연도. 조회·검색·기간 변경은 저장값만 조회하며 DART 자동 수집을 실행하지 않는다.
-- 밑줄 열 제목 전체가 정렬 영역이다. 재클릭 방향 전환, 원본 숫자·날짜로 정렬, 미수집 —는 양방향 마지막, 동률 종목코드 오름차순. 0/미수집/판정 불가 구분, Infinity 표시 금지.
-- 상세는 연도 선택→연간 버튼→분기 선택→분기 버튼 한 줄. 높이28px·라운드8px·간격8px·동일 폭·글자10px. 일반 입력36px의 명시적 예외다.
-- 연간은 시작연도부터3개 연도, 분기는 선택 시작기간부터 연속3개 분기(연도 경계 포함). 연간 모드 분기 선택은 표시하되 비활성·키보드 제외, 이전 값 보존.
-- 손익계산서→재무상태표→현금흐름표. 금액 우측, 금액/전년대비 별도 행. 전년대비=(현재−전년)÷|전년|×100, 소수점1자리; 전년0·미수집은 —. 부채 감소 적색/증가 청색, 재무활동 중립. 누적/당분기 기준과 연결/별도는 API 계약을 확인해 명시하며 혼합하지 않는다.
-- 전체 업데이트는 선택 종목·선택 시작연도의 전체 보고서(1분기·반기·3분기·사업보고서). 최신·정정·마지막 성공 이력 확인 후 최신이면 생략한다. 결과 확인 시각과 마지막 성공 수집 시각을 구분하고 실패 시 저장값을 유지한다.
-- 이전·다음 종목은 진입 목록의 검색·기준연도·정렬 순서를 이어받고 복귀 시 스크롤을 복원한다. 인접 선조회·요청 역전 방지 및 기존 화면 유지 규칙 적용.
-- W·주당순이익률·목표가 등 계산 정의와 지원연도·수집 데이터 범위는 개발 API 확인 후 확정한다. 디자인 예시값을 실제 계산식·운영 데이터로 사용하지 않는다.
-- 전용 독립 메인 화면은 기준 main9ba513d8에서 아직 구현되지 않았다. 기존 종목별 재무 상세가 있다는 이유로 1800 v0.4 개발을 완료 처리하지 않는다.
-
-## 2026-10-06 · v0.4 확정 후 사용자 테스트 수정 명세
-
-아래는 개발 반영 요구사항이다. 문서·Figma 현행화만으로 구현·배포 완료 처리하지 않는다.
-
-- 종목목록(1100)의 보유·관심·거래 카드는 기존 상세보기로 이동하며 목록의 좌우 스와이프는 사용하지 않는다.
-- 종목 상세는 왼쪽 스와이프=다음, 오른쪽=이전 종목. 진입 목록의 계좌·분류·검색·즐겨찾기 우선·선택 정렬 순서를 유지하며 처음·마지막에서 멈춘다. 인접 데이터 선조회, 세로·대각선 스크롤 우선, 입력·버튼·차트 조작과 충돌 방지.
-- 목록→상세/편집→뒤로가기는 탭·검색·필터·정렬·기간·조회 범위·실제 스크롤 위치를 복원한다. 이전 응답이 새 선택 데이터를 덮지 않도록 처리한다.
-- 일반 빈 상태는 ‘내용이 없습니다.’. 이 상태의 분류 변경 버튼은 렌더링에서 제거하고 공간도 남기지 않는다.
-- 데이터가 있는 상세·요약의 수동 분류 변경은 해당 계좌·종목에 거래내역이 한 건도 없을 때만 허용하며 서버도 검증한다. 10.03의 등록 허용과 별개로 기존 종목 편집에는 이 조건을 적용한다. 거래종목은 자동 분류이며 잔여수량0도 이력 보존; 재매수·매도 삭제로 수량 복원 시 보유로 이동한다.
-- 홈1000·종목목록1100만 최상단 당겨서 새로고침을 제공한다. 안내 텍스트 대신 본문 상단 중앙 원형 아이콘을 오버레이한다. 당김 정도에 따라 회전, 기준 충족 후 놓으면 갱신·로딩, 미달 시 요청 없이 해제, 완료 시 숨김. 실패만 짧은 안내, 접근성 상태 안내 유지.
-- 갱신 중 기존 데이터·마지막 성공 현재가 시각·계좌·탭·검색·정렬을 유지하며 레이아웃을 밀지 않는다. 중복 요청 및 브라우저 기본 당겨서 새로고침 중복 실행 방지.
-- 개발 종료 기준: 관련 기능 검사·TypeScript·빌드 → 작업 브랜치 PR → 최신 main 충돌 확인·병합 → 자동 배포 성공 보고. 별도 승인·사용자 운영 검증을 기다리지 않으며 전체 회귀·종합 Figma QA는 사용자 요청 시 별도 진행.
