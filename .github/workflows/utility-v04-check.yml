@@ -1,12 +1,13 @@
 name: Utility v0.4 Scoped Check
 on:
-  push:
-    branches: [codex/utility-v04-20261005]
   pull_request:
     branches: [main]
     paths: [frontend/src/pages/more/**, frontend/src/pages/compound/**, frontend/tests/targets/utility-v04.spec.ts, .github/workflows/utility-v04-check.yml]
 permissions:
   contents: read
+concurrency:
+  group: utility-v04-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   utility:
     runs-on: ubuntu-latest
