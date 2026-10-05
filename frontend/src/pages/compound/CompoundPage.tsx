@@ -38,9 +38,9 @@ function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:number;ass
   <Box sx={{display:'grid',gap:'8px',mt:'8px'}}>{goal.rows.map(row=><Line key={row.year} label={String(row.year)} value={format(row.asset,0,'원')} color={row.year===goal.rows.at(-1)?.year?'#FA616E':undefined}/>)}</Box>
  </Box>;
 }
-function FormDialog({title,children,busy,close}:{title:string;children:ReactNode;busy:boolean;close:()=>void}){
+function FormDialog({title,children,busy,close,compact=false}:{title:string;children:ReactNode;busy:boolean;close:()=>void;compact?:boolean}){
  const contentRef=useRef<HTMLDivElement>(null);
- return <Dialog open onClose={()=>{if(!busy)close();}} slotProps={{paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0F1728',border:'1px solid #203652',backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif',color:'#F8FAFC'}}}}>
+ return <Dialog open onClose={()=>{if(!busy)close();}} slotProps={{paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:compact?338:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0F1728',border:'1px solid #203652',backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif',color:'#F8FAFC'}}}}>
   <DialogTitle sx={{p:'8px 16px',fontSize:14,minHeight:36,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="팝업 닫기" disabled={busy} onClick={close} sx={{p:0}}><img src="/stocks-v03/close.svg" width="16" height="16" alt=""/></IconButton></DialogTitle>
   <DialogContent ref={contentRef} sx={{p:'0 16px 16px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},fontSize:12}}>{children}</DialogContent><OverlayRegionScrollbar scrollRef={contentRef} label="복리 입력 팝업 스크롤" offset={-8}/>
  </Dialog>;
@@ -119,7 +119,7 @@ function AccountPlans({accountId}:{accountId:string}){
    <Box ref={rightRef} data-scroll-region="compound-right" data-list-condition={JSON.stringify([plan?.id,view,goal?.id])} sx={{minWidth:0,overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px'}}>{comparison}</Box><OverlayRegionScrollbar scrollRef={rightRef} label="복리목표 스크롤" offset={0}/>
   </Box>:view==='list'?list:comparison}
   {tablet&&formKind&&<FormDialog title={formTitle} busy={busy} close={closeForm}>{content}</FormDialog>}
-  {confirm&&<FormDialog title={confirm.type==='default'?'기본 목표 변경':confirm.type==='goal-delete'?'복리목표 삭제':'복리계획 삭제'} busy={busy} close={()=>setConfirm(null)}>
+  {confirm&&<FormDialog compact title={confirm.type==='default'?'기본 목표 변경':confirm.type==='goal-delete'?'복리목표 삭제':'복리계획 삭제'} busy={busy} close={()=>setConfirm(null)}>
    <Box sx={{borderTop:'1px solid #203652',pt:'12px',lineHeight:'20px',fontSize:12}}>{confirm.type==='default'?confirm.goal!.goalName+'을 기본 목표로 변경할까요?':(confirm.type==='goal-delete'?confirm.goal!.goalName:confirm.plan.planName)+'을 삭제할까요?'}</Box>
    <Box sx={{fontSize:11,color:muted,lineHeight:'18px',my:'8px'}}>{confirm.plan.planName} · {confirm.plan.startYear}–{confirm.plan.endYear}<br/>{confirm.type==='plan-delete'?'계획과 연결된 목표 '+confirm.plan.goals.length+'개가 함께 삭제됩니다.':confirm.type==='default'?'계획 목록의 올해 목표·최종 목표·진행률이 이 목표 기준으로 변경됩니다.':'선택한 목표만 삭제됩니다. 기본 목표 삭제 시 남은 첫 목표가 기본 목표가 됩니다.'}</Box>
    {mutationError&&<Box role="alert" sx={{fontSize:11,color:'#FA616E',mb:'8px'}}>처리 실패 · {mutationError} 기존 내용을 유지했습니다.</Box>}
