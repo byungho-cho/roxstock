@@ -7,6 +7,7 @@ import { OverlayPageScrollbar } from '../components/navigation/OverlayPageScroll
 import { ViewportMetricsPanel } from '../components/navigation/ViewportMetricsPanel';
 import { colors, pageMetrics } from '../styles/tokens';
 import { usePageScrollRestoration } from '../hooks/navigation/usePageScrollRestoration';
+import { PullRefreshIndicator } from '../components/navigation/PullRefreshIndicator';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PageLayout } from './PageLayout';
 
@@ -51,7 +52,7 @@ export function AppLayout() {
       {isMoreMenu && <PageHeader title="메뉴" showAdd={false} />}
       {!hasPageHeader && !isMoreMenu && <PageHeader homeDashboard={isHomePage} variant={isCollectionMonitoring ? 'detail' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isCollectionMonitoring ? location.pathname === '/detail/collection-monitoring' ? '/more' : '/detail/collection-monitoring' : location.pathname === '/more' ? '/' : undefined} backIcon={isCollectionMonitoring ? <img src="/stocks-v03/back.svg" alt="" /> : undefined} showBackTablet={isCollectionMonitoring} showAddMobile={!isCollectionMonitoring} showAdd={isHomePage} addPath="/stocks/add?type=holding&from=home" addLabel="종목 추가" onAdd={isHomePage ? () => navigate("/stocks/add?type=holding&from=home",{state:{backgroundLocation:location}}) : undefined} maxWidth={816} />}
     </Box>
-    {(isHomePage || location.pathname === '/stocks') && (pull.refreshing || pull.distance > 0) && <Box role="status" aria-live="polite" data-testid="pull-refresh" sx={{position:'absolute',top:44,left:'50%',transform:'translateX(-50%)',zIndex:13,bgcolor:colors.surface,borderRadius:'8px',px:'12px',py:'4px',fontSize:11,pointerEvents:'none'}}>{pull.refreshing ? '새로고침 중' : pull.distance >= 55 ? '놓으면 새로고침' : '아래로 당겨 새로고침'}</Box>}
+    {(isHomePage || location.pathname === '/stocks') && <PullRefreshIndicator pull={pull}/> }
     <PageLayout valueChart={isValueChart} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><Outlet /></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}

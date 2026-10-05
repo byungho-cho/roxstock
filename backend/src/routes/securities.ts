@@ -358,6 +358,7 @@ export async function securityRoutes(app: FastifyInstance) {
       await requireActiveAccount(tx, accountId);
       const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
       if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', '종목을 찾을 수 없습니다.');
+      if (await tx.buyTrade.count({ where: { accountId, securityId } })) throw new ApiError(409, 'CLASSIFICATION_LOCKED', '거래내역이 있는 종목은 분류를 변경할 수 없습니다.');
       const existing = await tx.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
       if (existing && existing.listType !== listType) throw new ApiError(409, 'WATCHLIST_ITEM_ALREADY_EXISTS', '이미 등록된 종목입니다. 분류 변경을 사용하세요.');
       const item = existing ?? await tx.accountWatchlistItem.create({ data: { accountId, securityId, listType, targetBuyPrice, priority, memo } });
@@ -374,6 +375,7 @@ export async function securityRoutes(app: FastifyInstance) {
       await requireActiveAccount(tx, accountId);
       const existing = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
       if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
+      if (listType !== undefined && await tx.buyTrade.count({ where: { accountId, securityId: existing.securityId } })) throw new ApiError(409, 'CLASSIFICATION_LOCKED', '거래내역이 있는 종목은 분류를 변경할 수 없습니다.');
       const item = await tx.accountWatchlistItem.update({ where: { id: itemId }, data: {
         ...(listType && { listType }), ...(body.targetBuyPrice !== undefined && { targetBuyPrice: optionalPrice(body.targetBuyPrice) }),
         ...(body.priority !== undefined && { priority: optionalPriority(body.priority) }), ...(body.memo !== undefined && { memo: optionalMemo(body.memo) }),
