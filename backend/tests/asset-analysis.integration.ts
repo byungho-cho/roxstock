@@ -26,9 +26,9 @@ test('asset analysis response joins real stored snapshots, ledger and plan with 
     const divcash=await prisma.cashTransaction.create({data:{accountId:account.id,transactionType:'DIVIDEND',transactionDate:time,amount:'80',balanceAfter:'0',createdAt:time}});
     await prisma.dividend.create({data:{accountId:account.id,securityId:security.id,cashTransactionId:divcash.id,receivedDate:time,grossAmount:'100',netAmount:'80'}});
     const year = seoulYear();
-    await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Ended plan',startDate:new Date(Date.UTC(year-2,0,1)),endDate:new Date(Date.UTC(year-1,11,31)),initialAssetValue:'500',annualContributionAmount:'0',displayOrder:-1}});
-    await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Future plan',startDate:new Date(Date.UTC(year+2,0,1)),endDate:new Date(Date.UTC(year+3,11,31)),initialAssetValue:'500',annualContributionAmount:'0',displayOrder:-2}});
-    const plan=await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Stored plan',startDate:new Date(Date.UTC(year,0,1)),endDate:new Date(Date.UTC(year+1,11,31)),initialAssetValue:'1000',annualContributionAmount:'100'}});
+    await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Ended plan',startDate:new Date(Date.UTC(year-2,0,1)),endDate:new Date(Date.UTC(year-1,11,31)),initialAssetValue:'500',annualContributionAmount:'0',displayOrder:0}});
+    await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Future plan',startDate:new Date(Date.UTC(year+2,0,1)),endDate:new Date(Date.UTC(year+3,11,31)),initialAssetValue:'500',annualContributionAmount:'0',displayOrder:1}});
+    const plan=await prisma.compoundGrowthPlan.create({data:{accountId:account.id,planName:'Stored plan',startDate:new Date(Date.UTC(year,0,1)),endDate:new Date(Date.UTC(year+1,11,31)),initialAssetValue:'1000',annualContributionAmount:'100',displayOrder:2}});
     await prisma.compoundGrowthGoal.create({data:{planId:plan.id,goalName:'Default',annualTargetRate:'10',isDefault:true}});
     const read=async(from='2026-09-01')=>{const r=await app.inject({method:'GET',url:`/api/accounts/${account.id}/asset-history?from=${from}&to=2026-09-03`});assert.equal(r.statusCode,200,r.body);return r.json();};
     const result=await read();
