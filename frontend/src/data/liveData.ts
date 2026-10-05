@@ -28,6 +28,7 @@ export function mapSecurity(stock: SecurityDto): StockItem {
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
     watchlistItemId: stock.watchlistItemId ?? undefined,
     hasTradeHistory: stock.hasTradeHistory,
+    priceUpdatedAt: stock.priceUpdatedAt ?? undefined,
     priceAvailable: currentPrice !== undefined,
     priceChangeAvailable: currentPrice !== undefined && decimal(stock.previousClosePrice) !== undefined,
   };
@@ -42,6 +43,7 @@ export function mapHolding(holding: HoldingDto): StockItem {
     quantity: Number(holding.quantity), averagePrice: Number(holding.averagePurchasePrice),
     purchaseAmount: decimal(holding.purchaseAmount), marketValue: decimal(holding.marketValue), profitAmount: decimal(holding.unrealizedProfitLoss),
     profitRate: decimal(holding.unrealizedReturnRate),
+    priceUpdatedAt: holding.priceUpdatedAt ?? undefined,
     priceAvailable: currentPrice !== undefined,
     priceChangeAvailable: decimal(holding.priceChangeRate) !== undefined,
     collectionStatus: currentPrice === undefined ? 'failed' : 'success',
@@ -90,4 +92,5 @@ export async function fetchLiveBuyLots(stockId?: string, accountId?: string): Pr
     soldQuantity: Number(lot.soldQuantity), remainingQuantity: Number(lot.remainingQuantity),
   }));
 }
+
 

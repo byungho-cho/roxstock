@@ -27,3 +27,27 @@ test('point change is null for first point and handles a zero denominator', () =
   assert.deepEqual(calculatePointChange(d(100), d(0)), { change: '100', changeRate: null });
   assert.deepEqual(calculatePointChange(d(120), d(100)), { change: '20', changeRate: '20' });
 });
+
+
+test('period breakdown subtracts opening gains and reports reconciliation without inventing values', async () => {
+  const {calculatePeriodBreakdown} = await import('./asset-history.js');
+  assert.deepEqual(calculatePeriodBreakdown({openingUnrealized:d(500),closingUnrealized:d(650),realized:d(200),dividend:d(100),fees:d(30),profitLoss:'450'}), {
+    unrealizedChange:'150',realizedProfitLoss:'200',dividendIncome:'100',feeTaxAmount:'30',detailedProfitLoss:'420',reconciliationDifference:'30',
+  });
+  const missing = calculatePeriodBreakdown({openingUnrealized:null,closingUnrealized:d(650),realized:d(0),dividend:null,fees:d(0),profitLoss:'450'});
+  assert.equal(missing.unrealizedChange,null);assert.equal(missing.detailedProfitLoss,null);assert.equal(missing.dividendIncome,null);
+});
+
+test('compound target uses plan initial asset and year-start contributions', async () => {
+  const {compoundYearTarget} = await import('./asset-history.js');
+  assert.equal(compoundYearTarget(d(1000),d(100),d(10),2025,2026),'1441');
+});
+
+test('analysis and compound plans share precision for multi-year targets', async () => {
+  const { compoundYearTarget } = await import('./asset-history.js');
+  const { project } = await import('./compound-growth.js');
+  const initial = new Prisma.Decimal('123456789.1234'), contribution = new Prisma.Decimal('765432.1234'), rate = new Prisma.Decimal('7.1234');
+  const expected = project(initial.toString(), contribution.toString(), rate.toString(), 2020, 2040).at(-1)!.asset;
+  assert.equal(compoundYearTarget(initial, contribution, rate, 2020, 2040), expected);
+  assert.ok(expected.length > 20);
+});

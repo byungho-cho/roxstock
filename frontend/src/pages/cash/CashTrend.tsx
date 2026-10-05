@@ -12,7 +12,7 @@ export function CashTrend({ accountId, range }: { accountId?: string; range: { f
   const values = points.map(p => p.value), min = Math.min(...values), max = Math.max(...values);
   const from = Date.parse(range.from), duration = Math.max(86_400_000, Date.parse(range.to) - from);
   const position = (point: typeof points[number]) => `${(Date.parse(point.date) - from) / duration * 1000},${max === min ? 50 : 92 - (point.value - min) / (max - min) * 84}`;
-  return <AppCard data-testid="cash-trend" sx={{ p: '8px 16px', borderRadius: '8px', height: { xs: 82, sm: 'max(82px, calc(100dvh - 314px))' }, minHeight: 82, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+  return <AppCard data-testid="cash-trend" sx={{ p: '8px 16px', borderRadius: '8px', height: { xs: 123, sm: 'max(123px, calc((100dvh - 314px) * 1.5))' }, minHeight: 123, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
     <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: '19px' }}>예수금 변화 추이</Typography>
     <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
       {result.isError ? <Button role="alert" onClick={() => void result.refetch()} sx={{ fontSize: 10, p: 0 }}>추이 조회 실패 · 다시 시도</Button> : result.isPending ? <Skeleton height="100%" /> : !result.data?.data.length ? <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>내용이 없습니다.</Typography> : !points.length ? <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>— · 저장 잔액 미수집</Typography> :

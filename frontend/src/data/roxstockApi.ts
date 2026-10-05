@@ -152,7 +152,8 @@ export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]
 
 export interface AssetHistoryDto {
   data: { date: string; totalAssetValue: string; cashBalance: string; stockValue: string; change: string | null; changeRate: string | null }[];
-  summary: { profitLoss: string | null; returnRate: string | null; from?: string | null; to?: string | null; openingAssetValue?: string | null; closingAssetValue?: string | null; depositAmount?: string | null; withdrawalAmount?: string | null };
+  compoundPlan?: {id:string;name:string;assetBasis:string;initialAssetValue:string;yearTarget:string|null;goalName:string|null;targetYear:number} | null;
+  summary: { calculationUnavailableReason?:string|null;unrealizedChange?:string|null;realizedProfitLoss?:string|null;dividendIncome?:string|null;feeTaxAmount?:string|null;detailedProfitLoss?:string|null;reconciliationDifference?:string|null;ledgerFrom?:string|null;ledgerTo?:string|null;profitLoss: string | null; returnRate: string | null; from?: string | null; to?: string | null; openingAssetValue?: string | null; closingAssetValue?: string | null; depositAmount?: string | null; withdrawalAmount?: string | null };
 }
 export const getAssetHistory = (accountId: string, range?: { from?: string; to?: string }) => apiEnvelope<AssetHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/asset-history${range ? `?${new URLSearchParams(Object.entries(range).filter((entry): entry is [string, string] => entry[1] !== undefined))}` : ''}`);
 
