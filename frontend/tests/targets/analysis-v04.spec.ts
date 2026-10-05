@@ -47,7 +47,9 @@ test('period changes chart and performance together; title and buttons have inde
   const before = await body.evaluate(el => el.scrollTop);
   await title.click(); await expect(page).toHaveURL(/\/detail\/investment-profit\?/);
   const url = new URL(page.url()); expect(url.searchParams.get('period')).toBe('3m'); expect(url.searchParams.get('accountId')).toBe('a'); expect(url.searchParams.get('from')).toBeTruthy();
-  await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
+  // The implemented investment-profit header exposes Back on cover; tablet uses browser/system Back.
+  if (page.viewportSize()!.width < 600) await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
+  else await page.goBack();
   await expect(page.getByRole('button', { name: '3개월', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(before);
   await body.evaluate(el => { el.scrollTop = 0; }); await page.getByTestId('analysis-total').click(); await expect(page).toHaveURL(/\/detail\/investment\?/);
