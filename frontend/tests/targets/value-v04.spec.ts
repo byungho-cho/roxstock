@@ -1,6 +1,6 @@
 import {expect,test,type Page} from '@playwright/test';
 const rows=Array.from({length:120},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'종목'+String(i+1).padStart(3,'0'),currentPrice:'10000',previousClosePrice:i===1?'11000':'9000',priceUpdatedAt:'2026-10-05T00:00:00Z',per:'12',pbr:'1.2',roe:'10',metricDate:'2026-10-05',w:i===119?null:'1.2'}));
-async function fixture(page:Page){
+async function fixture(page:Page,small=false){
  let failure=false,holdId:string|null=null,holdSearch:string|null=null;const releases:(()=>void)[]=[],requests:string[]=[];
  await page.route('**/api/**',async route=>{
   const url=new URL(route.request().url());requests.push(route.request().method()+' '+url.pathname+url.search);
@@ -16,7 +16,7 @@ async function fixture(page:Page){
    if(holdId===id)await new Promise<void>(resolve=>releases.push(resolve));
    if(failure)return route.fulfill({status:503,json:{error:{message:'상세 조회 실패'}}});
    const mode=url.searchParams.get('mode'),startYear=Number(url.searchParams.get('startYear')),q=Number(url.searchParams.get('startQuarter')),count=Number(url.searchParams.get('count'));
-   const data={security:{...rows[Number(id)-1],name:rows[Number(id)-1]?.name??'외부 종목'},year:Number(url.searchParams.get('year')),valuation:{metricDate:'2026-10-05',bps:'10000',eps:'1000',roe:'10',per:'12',pbr:'1.2'},w:'1.2',fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:'12000'})),requiredReturn:'8',equity:'1000000000000',closingDate:'2025-12-31',mode,startYear,startQuarter:mode==='annual'?null:q,count,notices:['유동비율: 미수집입니다.'],rows:Array.from({length:count},(_,i)=>{const index=startYear*4+q-1+i,y=mode==='annual'?startYear+i:Math.floor(index/4),quarter=mode==='annual'?null:index%4+1;return {key:y+':'+(quarter===null?'ANNUAL':'Q'+quarter),label:String(y)+(quarter?' '+quarter+'Q':''),year:y,quarter,revenue:i===1?null:'1000000000000',operatingProfit:'200000000000',netIncome:'100000000000',per:'12',pbr:'1.2',roe:'10',debtRatio:'50',currentRatio:null,revenueGrowth:'10',profitGrowth:'20',metricDate:'2026-10-05',source:'CFS',collectedAt:'2026-10-05',isDerived:false};})};
+   const data={security:{...rows[Number(id)-1],name:rows[Number(id)-1]?.name??'외부 종목'},year:Number(url.searchParams.get('year')),valuation:{metricDate:'2026-10-05',bps:'10000',eps:'1000',roe:'10',per:'12',pbr:'1.2'},w:'1.2',fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:'12000'})),requiredReturn:'8',equity:'1000000000000',closingDate:'2025-12-31',mode,startYear,startQuarter:mode==='annual'?null:q,count,notices:['유동비율: 미수집입니다.'],rows:Array.from({length:count},(_,i)=>{const index=startYear*4+q-1+i,y=mode==='annual'?startYear+i:Math.floor(index/4),quarter=mode==='annual'?null:index%4+1;return {key:y+':'+(quarter===null?'ANNUAL':'Q'+quarter),label:String(y)+(quarter?' '+quarter+'Q':''),year:y,quarter,revenue:i===1?null:small?'1000000':'1000000000000',operatingProfit:small?'200000':'200000000000',netIncome:small?'100000':'100000000000',per:'12',pbr:'1.2',roe:'10',debtRatio:'50',currentRatio:null,revenueGrowth:'10',profitGrowth:'20',metricDate:'2026-10-05',source:'CFS',collectedAt:'2026-10-05',isDerived:false};})};
    return route.fulfill({json:{data}});
   }
   return route.fulfill({json:{data:[]}});
@@ -71,4 +71,9 @@ test('tablet chart back restores both scroll positions when the selected stock s
  await left.evaluate(el=>el.scrollTop=500);await right.evaluate(el=>el.scrollTop=250);const beforeLeft=await left.evaluate(el=>el.scrollTop),beforeRight=await right.evaluate(el=>el.scrollTop);
  await page.getByRole('button',{name:'재무지표 보기'}).click();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();await page.getByRole('button',{name:'뒤로가기'}).click();await expect(page.getByTestId('value-detail')).toBeVisible();
  expect(await left.evaluate(el=>el.scrollTop)).toBe(beforeLeft);expect(await right.evaluate(el=>el.scrollTop)).toBe(beforeRight);
+});
+
+test('small companies use a readable common monetary scale instead of rounded trillion zeros',async({page})=>{
+ await fixture(page,true);await ready(page);await page.getByTestId('value-row-000001').click();await page.getByRole('button',{name:'재무지표 보기'}).click();
+ await expect(page.getByRole('img',{name:'수익성 만원',exact:true})).toBeVisible();await expect(page.getByTestId('value-chart-수익성')).toContainText('100.0');await expect(page.getByTestId('value-chart-수익성')).toContainText('20.0');await expect(page.getByTestId('value-chart-수익성')).toContainText('10.0');
 });
