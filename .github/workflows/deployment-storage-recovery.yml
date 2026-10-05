@@ -1,0 +1,38 @@
+name: Deployment Storage Recovery
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/deployment-storage-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    if: github.head_ref == 'codex/deployment-storage-recovery-20261006'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+      - name: Inspect deployment storage without changing files
+        shell: bash
+        run: |
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          df -h / /var/lib/docker /var/lib/containerd
+          df -i / /var/lib/docker /var/lib/containerd
+          docker system df
+          docker image ls --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}'
+          docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}'
+          docker builder du
+          REMOTE
