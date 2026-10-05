@@ -1,0 +1,10 @@
+import {apiRequest} from '../../data/apiClient';
+export type Projection={year:number;asset:string;contributed:string};
+export type Goal={id:string;goalName:string;annualTargetRate:string;displayColor:string;isDefault:boolean;isVisible:boolean;rows:Projection[];yearTarget:string|null;finalTarget:string|null;progress:string|null;finalAchievementRate?:string|null};
+export type Plan={id:string;planName:string;startYear:number;endYear:number;duration:number;initialAssetValue:string;annualContributionAmount:string;goals:Goal[];endingAssets?:string|null;endingAsOf?:string|null;status:'UPCOMING'|'ACTIVE'|'ENDED'};
+export type Plans={accountId:string;currentAssets:string|null;asOf:string;calculatedAt:string;currentYear:number;pricingComplete:boolean;plans:Plan[];basis:{contributionTiming:string;initialTiming:string;inclusiveYears:boolean;yearTarget:string;progressDenominator:string;timezone:string}};
+export type FormValues={planName:string;goalName:string;startYear:number;endYear:number;initialAssetValue:string;annualContributionAmount:string;annualTargetRate:string;displayColor:string};
+export const colors=['#5EA1F0','#FFC21A','#2DCCA4','#FA616E','#A87AF4','#29BEC8','#CBD5E1'];
+export const root=(accountId:string)=>'/accounts/'+encodeURIComponent(accountId)+'/compound-plans';
+export const listPlans=(accountId:string,signal?:AbortSignal)=>apiRequest<Plans>(root(accountId),{signal});
+export const mutate=(path:string,method:string,body?:unknown)=>apiRequest<{id?:string;deleted?:boolean}>(path,{method,...(body?{body:JSON.stringify(body)}:{})});
