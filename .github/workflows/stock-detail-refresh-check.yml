@@ -1,0 +1,31 @@
+name: Stock Detail Refresh Check
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/**, .github/workflows/stock-detail-refresh-check.yml]
+permissions:
+  contents: read
+jobs:
+  gestures:
+    if: github.head_ref == 'codex/stock-detail-refresh-20261006'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.stock-detail.config.ts stock-detail-refresh.spec.ts stock-scroll-restoration.spec.ts --workers=2
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.stock-detail.config.ts operating-fixes.spec.ts --grep "stock quote time|home pull" --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stock-detail-refresh-check
+          path: frontend/test-results/stock-detail-refresh/
+          retention-days: 3
