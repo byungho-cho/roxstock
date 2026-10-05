@@ -1,0 +1,28 @@
+name: Value Analysis v0.4 Function Check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/value/**
+      - backend/src/domain/value-analysis*
+      - backend/src/routes/value-analysis*
+      - frontend/tests/targets/value-v04.spec.ts
+      - frontend/playwright.value.config.ts
+      - .github/workflows/value-function-check.yml
+permissions:
+  contents: read
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Changed value-analysis functions (no capture or visual QA)
+        run: npx playwright test --config=playwright.value.config.ts --workers=2
+        working-directory: frontend
