@@ -76,7 +76,7 @@ test('requested geometry percent alignment independent scrolling and safe cleara
   await page.getByRole('button', { name: '종목별', exact: true }).click();
   const geometry = await page.evaluate(() => {
     const main = document.querySelector('main')!, tabs = document.querySelector('[data-testid="profit-tabs"]')!, list = document.querySelector('[data-testid="profit-list"]')!;
-    const nav = document.querySelector('.MuiBottomNavigation-root')!;
+    const nav = [...document.querySelectorAll('.MuiBottomNavigation-root')].find(node => getComputedStyle(node).display !== 'none')!;
     const percent = document.querySelector('[data-testid="profit-cumulative-rate"]')!, rowPercent = document.querySelector('[data-testid="profit-list-rate"]')!;
     return { padding: [getComputedStyle(main).paddingTop, getComputedStyle(main).paddingLeft], header: document.querySelector('header')!.getBoundingClientRect().height,
       tabsLeft: tabs.getBoundingClientRect().left, listLeft: list.getBoundingClientRect().left, tabsRight: tabs.getBoundingClientRect().right, listRight: list.getBoundingClientRect().right,

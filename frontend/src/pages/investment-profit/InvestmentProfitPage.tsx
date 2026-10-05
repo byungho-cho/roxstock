@@ -15,16 +15,18 @@ import { groups, loadProfit, rate, totals, won, type Group, type Totals } from '
 const card = { border: 0, borderRadius: '8px', bgcolor: '#111927', p: '8px 15px', minWidth: 0, flexShrink: 0 };
 const muted = { fontSize: 10, lineHeight: '14px', color: colors.textMuted };
 const title = { fontSize: 12, fontWeight: 600, lineHeight: '24px' };
-const annualColumns = '40px minmax(0, 1fr) 64px minmax(0, 1.25fr)';
-const columns = 'minmax(0, 1fr) 64px minmax(0, 1.35fr)';
+// A shared amount column keeps the summary percentage edge identical across tabs and details.
+const annualColumns = '40px minmax(0, 1fr) 64px minmax(0, 40%)';
+const columns = 'minmax(0, 1fr) 64px minmax(0, 40%)';
 const color = (value: bigint | null) => value === null || value === 0n ? colors.textPrimary : value > 0n ? '#FF586D' : '#60A5FA';
+type CompactRow = { id: string; label: string; value: bigint | null; cost?: bigint | null; middle?: string };
 function Value({ value, signed = true }: { value: bigint | null; signed?: boolean }) {
   return <Typography sx={{ fontSize: 12, lineHeight: '20px', textAlign: 'right', color: color(value), overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{won(value, signed)}</Typography>;
 }
 function Metric({ label, value, denominator }: { label: string; value: bigint | null; denominator?: bigint | null }) {
   return <Box data-testid="profit-metric" sx={{ display: 'grid', gridTemplateColumns: columns, alignItems: 'center', gap: '4px', minHeight: 24 }}><Typography sx={{ fontSize: 12, lineHeight: '20px' }}>{label}</Typography><Typography data-testid="profit-percent" sx={{ ...muted, textAlign: 'right', color: color(value) }}>{denominator !== undefined ? rate(value, denominator) : ''}</Typography><Value value={value} /></Box>;
 }
-function Compact({ heading, rows }: { heading: string; rows: { id: string; label: string; value: bigint | null; cost?: bigint | null; middle?: string }[] }) {
+function Compact({ heading, rows }: { heading: string; rows: CompactRow[] }) {
   return <AppCard data-testid="profit-compact" sx={card}><Typography sx={title}>{heading}</Typography>{rows.map(row => <Box key={row.id} data-testid="profit-compact-row" sx={{ display: 'grid', gridTemplateColumns: columns, gap: '4px', alignItems: 'center', minHeight: 24 }}><Typography sx={{ fontSize: 12, overflowWrap: 'anywhere' }}>{row.label}</Typography><Typography data-testid="profit-percent" sx={{ ...muted, textAlign: 'right', color: row.middle ? colors.textMuted : color(row.value) }}>{row.middle ?? (row.cost !== undefined ? rate(row.value, row.cost) : '')}</Typography><Value value={row.value} /></Box>)}</AppCard>;
 }
 export function InvestmentProfitPage() {
@@ -76,7 +78,7 @@ export function InvestmentProfitPage() {
   const nav = <Box data-testid="profit-navigation" onTouchStart={event => { const t = event.touches[0]; touch.current = { x: t.clientX, y: t.clientY }; }} onTouchEnd={event => { const start = touch.current, end = event.changedTouches[0]; touch.current = null; if (start && Math.abs(end.clientX - start.x) >= 60 && Math.abs(end.clientX - start.x) > Math.abs(end.clientY - start.y) * 1.5) step(end.clientX < start.x ? 1 : -1); }} sx={{ display: 'grid', gridTemplateColumns: '74px minmax(0, 1fr) 74px', alignItems: 'center', minHeight: 32, flexShrink: 0 }}><ButtonBase aria-label="이전 상세" onClick={() => step(-1)} sx={{ ...muted, minHeight: 32, overflowWrap: 'anywhere' }}>{neighbor(-1)}</ButtonBase><Typography data-testid="profit-selected" sx={{ textAlign: 'center', fontSize: 20, fontWeight: 600, lineHeight: '24px', overflowWrap: 'anywhere' }}>{tab === 'year' ? `${selected}년` : group?.label ?? '—'}</Typography><ButtonBase aria-label="다음 상세" onClick={() => step(1)} sx={{ ...muted, minHeight: 32, overflowWrap: 'anywhere' }}>{neighbor(1)}</ButtonBase></Box>;
   const summary = (t: Totals) => <AppCard data-testid="profit-detail-summary" sx={card}>{tab === 'stock' && <Typography sx={title}>전체 거래 요약</Typography>}{tab === 'year' ? <><Metric label="투자금" value={t.cost} /><Metric label="손익총액" value={t.trading} denominator={t.cost} /><Metric label="배당" value={t.dividend} denominator={t.cost} /><Metric label="배당포함" value={t.total} denominator={t.cost} /></> : <><Metric label="매수총액" value={t.buy} /><Metric label="매도총액" value={t.sell} /><Metric label="매매손익" value={t.trading} denominator={t.cost} /><Metric label="배당포함 총손익" value={t.total} denominator={t.cost} /></>}</AppCard>;
   const detailContent = pending && !data ? loading : !data && failed ? error : !group?.events.length && tablet ? empty(true) : <>{!tablet && error}{!tablet && query.isFetching && data && <Typography role="status" sx={muted}>갱신 중…</Typography>}{nav}{!group?.events.length ? empty() : <>{summary(group.totals)}{tab === 'year' ? <Compact heading="종목별 손익" rows={groups(group.events, 'stock').map(row => ({ id: row.id, label: row.label, value: row.totals.total }))} /> : <Compact heading="연도별 손익" rows={groups(group.events, 'year').map(row => ({ id: row.id, label: row.label, value: row.totals.total, cost: row.totals.cost }))} />}
-    <Compact heading={tab === 'year' ? '월별 손익' : '월별 손익 · 배당 내역'} rows={groups(group.events, 'month').flatMap(row => tab === 'year' ? [{ id: row.id, label: `${Number(row.id.slice(5))}월`, value: row.totals.total, cost: row.totals.cost }] : [
+    <Compact heading={tab === 'year' ? '월별 손익' : '월별 손익 · 배당 내역'} rows={groups(group.events, 'month').flatMap<CompactRow>(row => tab === 'year' ? [{ id: row.id, label: `${Number(row.id.slice(5))}월`, value: row.totals.total, cost: row.totals.cost }] : [
       ...(row.events.some(event => event.kind === 'SELL') ? [{ id: row.id + '-trade', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'SELL')).trading, middle: '매매' }] : []),
       ...(row.events.some(event => event.kind === 'DIVIDEND') ? [{ id: row.id + '-dividend', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'DIVIDEND')).dividend, middle: '배당' }] : []),
     ])} /></>}</>;
