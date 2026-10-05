@@ -64,3 +64,11 @@ test('same-stock period refresh preserves last success through failure and recov
  f.holdStock('1');await page.getByRole('button',{name:'분기',exact:true}).click();await expect(page.getByText('갱신 중 · 마지막 성공 데이터를 표시합니다.')).toBeVisible();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();await expect(page.getByText(/이전 기간 결과 · 연간/)).toBeVisible();
  f.fail(true);f.release();await expect(page.getByRole('alert')).toContainText('조회에 실패했습니다.');await expect(page.getByTestId('value-chart-수익성')).toBeVisible();f.fail(false);await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByText(/이전 기간 결과/)).toHaveCount(0);
 });
+
+test('tablet chart back restores both scroll positions when the selected stock stays the same',async({page})=>{
+ await page.setViewportSize({width:725,height:396});await fixture(page);await ready(page);await expect(page.getByTestId('value-detail')).toBeVisible();
+ const left=page.locator('[data-scroll-region="value-left"]'),right=page.locator('[data-scroll-region="value-right"]');
+ await left.evaluate(el=>el.scrollTop=500);await right.evaluate(el=>el.scrollTop=250);const beforeLeft=await left.evaluate(el=>el.scrollTop),beforeRight=await right.evaluate(el=>el.scrollTop);
+ await page.getByRole('button',{name:'재무지표 보기'}).click();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();await page.getByRole('button',{name:'뒤로가기'}).click();await expect(page.getByTestId('value-detail')).toBeVisible();
+ expect(await left.evaluate(el=>el.scrollTop)).toBe(beforeLeft);expect(await right.evaluate(el=>el.scrollTop)).toBe(beforeRight);
+});
