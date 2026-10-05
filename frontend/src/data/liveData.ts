@@ -1,0 +1,96 @@
+import type { DashboardData, StockItem, StockListType } from '../types/models';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getTrades, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { deriveAccountStocks } from '../pages/stocks/stockMath';
+import type { BuyLot } from '../types/models';
+
+/** Enable only after the backend and same-origin /api proxy have been deployed. */
+export const liveApiEnabled = import.meta.env.VITE_DATA_SOURCE === 'api';
+
+const decimal = (value: string | null | undefined) => value === null || value === undefined ? undefined : Number(value);
+const priceChange = (current: number | undefined, previous: number | undefined) =>
+  current !== undefined && previous ? (current - previous) / previous * 100 : Number.NaN;
+
+export function mapSecurity(stock: SecurityDto): StockItem {
+  const currentPrice = decimal(stock.currentPrice);
+  const bps = decimal(stock.valuation?.bps);
+  const roe = decimal(stock.valuation?.roe);
+  const fair = bps !== undefined && roe !== undefined ? bps * (1 + (roe / 100 - 0.08) * 0.8 / 0.08) : undefined;
+  return {
+    id: stock.id, symbol: stock.symbol, name: stock.name, marketType: stock.marketType,
+    listType: (stock.listType?.toLowerCase() ?? 'watchlist') as StockListType,
+    currentPrice: currentPrice ?? Number.NaN,
+    priceChangeRate: priceChange(currentPrice, decimal(stock.previousClosePrice)),
+    note: stock.memo ?? undefined,
+    per: decimal(stock.valuation?.per), pbr: decimal(stock.valuation?.pbr), roe: decimal(stock.valuation?.roe),
+    operatingProfit: stock.operatingProfit == null ? undefined : Number(stock.operatingProfit) / 1e8,
+    previousOperatingProfit: stock.previousOperatingProfit == null ? undefined : Number(stock.previousOperatingProfit) / 1e8,
+    valuationW: fair !== undefined && currentPrice ? fair / currentPrice : undefined,
+    collectionStatus: currentPrice === undefined ? 'failed' : 'success',
+    watchlistItemId: stock.watchlistItemId ?? undefined,
+    hasTradeHistory: stock.hasTradeHistory,
+    priceUpdatedAt: stock.priceUpdatedAt ?? undefined,
+    priceAvailable: currentPrice !== undefined,
+    priceChangeAvailable: currentPrice !== undefined && decimal(stock.previousClosePrice) !== undefined,
+  };
+}
+
+export function mapHolding(holding: HoldingDto): StockItem {
+  const currentPrice = decimal(holding.currentPrice);
+  return {
+    id: holding.securityId, symbol: holding.symbol, name: holding.name, listType: 'holding',
+    currentPrice: currentPrice ?? Number.NaN,
+    priceChangeRate: decimal(holding.priceChangeRate) ?? Number.NaN,
+    quantity: Number(holding.quantity), averagePrice: Number(holding.averagePurchasePrice),
+    purchaseAmount: decimal(holding.purchaseAmount), marketValue: decimal(holding.marketValue), profitAmount: decimal(holding.unrealizedProfitLoss),
+    profitRate: decimal(holding.unrealizedReturnRate),
+    priceUpdatedAt: holding.priceUpdatedAt ?? undefined,
+    priceAvailable: currentPrice !== undefined,
+    priceChangeAvailable: decimal(holding.priceChangeRate) !== undefined,
+    collectionStatus: currentPrice === undefined ? 'failed' : 'success',
+  };
+}
+
+export async function fetchLiveStocks(listType?: StockListType, accountId?: string): Promise<StockItem[]> {
+  const selected = accountId ?? await currentAccountId();
+  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), getTrades(selected)]);
+  const all = deriveAccountStocks(catalog.map(mapSecurity), holdings.map(mapHolding), trades.data);
+  return listType ? all.filter(stock => stock.listType === listType) : all;
+}
+
+export async function fetchLiveDashboard(selectedAccountId?: string): Promise<DashboardData> {
+  const accountId = selectedAccountId ?? await currentAccountId();
+  const [response, history] = await Promise.all([getAccountDashboard(accountId), getAssetHistory(accountId)]);
+  const holdings = response.holdings.map(mapHolding);
+  const stockValue = decimal(response.stockValue);
+  const totalAssets = decimal(response.totalAssetValue);
+  return {
+    summary: {
+      totalAssets: totalAssets ?? Number.NaN, stockValue: stockValue ?? Number.NaN,
+      stockPurchaseAmount: Number(response.purchaseAmount), cashBalance: Number(response.cashBalance),
+      previousDayChange: decimal(response.previousDayChange) ?? Number.NaN,
+      previousDayChangeRate: decimal(response.previousDayChangeRate) ?? Number.NaN,
+      dailyProfit: decimal(response.dailyProfit) ?? Number.NaN,
+      dailyProfitRate: decimal(response.dailyProfitRate) ?? Number.NaN,
+      stockMonthlyProfit: decimal(response.stockMonthlyProfit) ?? Number.NaN,
+      cashMonthlyProfit: decimal(response.cashMonthlyProfit) ?? Number.NaN,
+      totalProfit: decimal(response.unrealizedProfitLoss) ?? Number.NaN,
+      totalProfitRate: decimal(response.unrealizedReturnRate) ?? Number.NaN,
+      collectedAt: response.latestPriceUpdatedAt ?? '',
+      pricingComplete: response.pricingComplete,
+    },
+    holdings,
+    trend: history.data.slice(-365).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
+  };
+}
+
+export async function fetchLiveBuyLots(stockId?: string, accountId?: string): Promise<BuyLot[]> {
+  const lots = await getBuyLots(accountId ?? await currentAccountId(), stockId);
+  return lots.map((lot) => ({
+    id: lot.id, stockId: lot.security.id, stockName: lot.security.name,
+    tradeDate: new Date(lot.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }),
+    buyPrice: Number(lot.unitPrice), quantity: Number(lot.quantity),
+    soldQuantity: Number(lot.soldQuantity), remainingQuantity: Number(lot.remainingQuantity),
+  }));
+}
+
+

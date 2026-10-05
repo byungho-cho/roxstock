@@ -1,0 +1,8 @@
+services:
+  frontend:
+    image: newrox/roxstock-frontend:${IMAGE_TAG:?Set IMAGE_TAG to a sha-commit tag}
+    container_name: roxstock-frontend
+    restart: unless-stopped
+    mem_limit: 96m
+    ports:
+      - "80:80"

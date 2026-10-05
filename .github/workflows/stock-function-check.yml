@@ -1,0 +1,113 @@
+name: Stock Function Check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/stocks/**
+      - frontend/src/pages/trade/**
+      - frontend/src/hooks/**
+      - frontend/src/components/forms/**
+      - frontend/src/components/navigation/Navigation.tsx
+      - frontend/src/data/**
+      - frontend/tests/unit/stockMath.test.ts
+      - frontend/tests/targets/account-classification.spec.ts
+      - frontend/tests/targets/stock-inputs-v04.spec.ts
+      - frontend/tests/targets/user-test-fixes-v04.spec.ts
+      - frontend/tests/targets/stocks-v04.spec.ts
+      - frontend/tests/targets/stock-input-fixture.ts
+      - .github/workflows/stock-function-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stock-function-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+jobs:
+  scope:
+    # Value-analysis and compound-plan deliveries request functional checks only; regression QA is separate.
+    if: github.head_ref != 'codex/value-analysis-v04-20261005' && github.head_ref != 'codex/compound-value-v04-20261005'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.scope.outputs.matrix }}
+      needed: ${{ steps.scope.outputs.needed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.before || github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          base = os.environ.get("BASE_SHA") or "HEAD^"
+          paths = subprocess.check_output(["git", "diff", "--name-only", base, "HEAD"], text=True)
+          entries = []
+          def changed(pattern): return re.search(pattern, paths, re.M) is not None
+          if changed(r"stockMath\.(ts|test\.ts)$"):
+              entries.append(dict(name="stock-math", kind="unit", root=".", command="node --import tsx --test frontend/tests/unit/stockMath.test.ts"))
+          specs = []
+          if changed(r"(StockAddPage\.tsx|useActiveAccount\.ts|account-classification\.spec\.ts|frontend/src/data/.+)$"):
+              specs.append(("account-classification", ""))
+          if changed(r"(StockDialogs\.tsx|StockPricePage\.tsx|StockInputContext\.ts|pages/trade/[^/]+\.tsx|forms/Fields\.tsx|useActiveAccount\.ts|stock-inputs-v04\.spec\.ts|stock-input-fixture\.ts|frontend/src/data/.+)$"):
+              specs.append(("stock-inputs-v04", ""))
+          if changed(r"(useCardNavigation\.ts|useFavoriteStocks\.ts|StockListPage\.tsx|hooks/navigation/.+|user-test-fixes-v04\.spec\.ts|stock-input-fixture\.ts)$"):
+              specs.append(("user-test-fixes-v04", ' --grep-invert "journal period|cash period"'))
+          if changed(r"(LiveStockDetailPage\.tsx|stocks-v04\.spec\.ts)$"):
+              specs.append(("stocks-v04", ' --grep "linked buy deletion|missing quote|previous-year"'))
+          if changed(r"(DashboardPage\.tsx|navigation/Navigation\.tsx)$"):
+              specs.append(("home-v04", ' --grep "home plus"'))
+          for file, grep in specs:
+              entries.append(dict(name=file, kind="browser", root="frontend", command="npx playwright test --config=playwright.targets.config.ts "+file+".spec.ts --project=cover-370x465 --project=tablet-725x396 --workers=2"+grep))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("needed="+str(bool(entries)).lower()+"\n")
+              out.write("matrix="+json.dumps({"include":entries or [dict(name="none",kind="unit",root=".",command="true")]})+"\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
+              out.write("Selected checks: "+", ".join(e["name"] for e in entries)+"\n")
+          PY
+  functions:
+    needs: scope
+    if: needs.scope.outputs.needed == 'true'
+    name: Function · ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/cache/restore@v4
+        id: passed
+        with:
+          path: ${{ runner.temp }}/stock-function-passed
+          key: stock-function-${{ matrix.name }}-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/**', 'frontend/tests/unit/stockMath.test.ts', 'frontend/playwright.targets.config.ts', 'package-lock.json', '.github/workflows/stock-function-check.yml') }}
+      - if: steps.passed.outputs.cache-hit != 'true' && matrix.kind == 'unit'
+        run: npm ci
+      - if: steps.passed.outputs.cache-hit != 'true' && matrix.kind == 'browser'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.passed.outputs.cache-hit != 'true' && matrix.kind == 'browser'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: ${{ matrix.command }}
+        working-directory: ${{ matrix.root }}
+      - if: steps.passed.outputs.cache-hit != 'true'
+        run: mkdir -p "${{ runner.temp }}/stock-function-passed" && git rev-parse HEAD > "${{ runner.temp }}/stock-function-passed/passed"
+      - if: steps.passed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/stock-function-passed
+          key: stock-function-${{ matrix.name }}-node20-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/**', 'frontend/tests/unit/stockMath.test.ts', 'frontend/playwright.targets.config.ts', 'package-lock.json', '.github/workflows/stock-function-check.yml') }}
+      - name: Record result
+        if: always()
+        run: |
+          echo "Check: ${{ matrix.name }}; SHA: $(git rev-parse HEAD); run: $GITHUB_RUN_ID; reused: ${{ steps.passed.outputs.cache-hit }}; status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.kind == 'browser' && steps.passed.outputs.cache-hit != 'true'
+        with:
+          name: function-${{ matrix.name }}
+          path: frontend/test-results/targets/
+          retention-days: 7
