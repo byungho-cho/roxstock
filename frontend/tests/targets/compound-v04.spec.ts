@@ -35,14 +35,14 @@ test('cover plan compare detail same targets, default change confirmation and de
 });
 test('cover full-page goal form skips inherited inputs, Enter last saves and failure retains input',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await page.getByTestId('compound-plan-1').getByRole('button').click();await page.getByRole('button',{name:'목표 추가',exact:true}).click();
- await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByLabel('목표명')).toBeFocused();await expect(page.getByLabel('시작 연도')).toHaveAttribute('readonly','');
- await page.getByLabel('목표명').fill('새 목표');await page.getByLabel('목표명').press('Enter');await expect(page.getByLabel('연 수익률')).toBeFocused();await page.getByLabel('연 수익률').fill('15');f.saveFail(true);await page.getByLabel('연 수익률').press('Enter');await expect(page.getByRole('alert')).toContainText('저장 실패');await expect(page.getByLabel('목표명')).toHaveValue('새 목표');
+ await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByLabel('목표명',{exact:true})).toBeFocused();await expect(page.getByLabel('시작 연도',{exact:true})).toHaveAttribute('readonly','');
+ await page.getByLabel('목표명',{exact:true}).fill('새 목표');await page.getByLabel('목표명',{exact:true}).press('Enter');await expect(page.getByLabel('연 수익률',{exact:true})).toBeFocused();await page.getByLabel('연 수익률',{exact:true}).fill('15');f.saveFail(true);await page.getByLabel('연 수익률',{exact:true}).press('Enter');await expect(page.getByRole('alert')).toContainText('저장 실패');await expect(page.getByLabel('목표명',{exact:true})).toHaveValue('새 목표');
  f.saveFail(false);await page.getByRole('button',{name:'재시도 · 저장'}).click();await expect(page.getByTestId('compound-goal-3')).toContainText('새 목표');expect(f.writes.at(-1)?.body).toEqual({goalName:'새 목표',annualTargetRate:'15',displayColor:'#5EA1F0'});
 });
 test('tablet empty once, first plan modal, inclusive duration and period validation',async({page})=>{
  await page.setViewportSize({width:725,height:396});await fixture(page,true);await page.goto('/detail/compound');await expect(page.getByTestId('compound-empty')).toHaveCount(1);await expect(page.locator('[data-scroll-region]')).toHaveCount(0);
- await page.getByRole('button',{name:'첫 계획 추가'}).click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await expect(page.getByLabel('계획명')).toBeFocused();
- await page.getByLabel('시작 연도').fill('2026');await page.getByLabel('종료 연도').fill('2025');await dialog.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByRole('alert')).toContainText('시작 연도');await page.getByLabel('종료 연도').fill('2027');await expect(page.getByTestId('compound-duration')).toHaveText('2년');await dialog.getByRole('button',{name:'취소'}).click();await expect(page.getByTestId('compound-empty')).toHaveCount(1);
+ await page.getByRole('button',{name:'첫 계획 추가'}).click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await expect(page.getByLabel('계획명',{exact:true})).toBeFocused();
+ await page.getByLabel('시작 연도',{exact:true}).fill('2026');await page.getByLabel('종료 연도',{exact:true}).fill('2025');await dialog.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByRole('alert')).toContainText('시작 연도');await page.getByLabel('종료 연도',{exact:true}).fill('2027');await expect(page.getByTestId('compound-duration')).toHaveText('2년');await dialog.getByRole('button',{name:'취소'}).click();await expect(page.getByTestId('compound-empty')).toHaveCount(1);
 });
 test('tablet independent columns, modal cancel preserves list position and no-goal right empty',async({page})=>{
  await page.setViewportSize({width:725,height:396});await fixture(page,false,true);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();await expect(page.getByTestId('compound-empty')).toHaveCount(1);
@@ -56,4 +56,12 @@ test('refresh failure preserves contents and timestamp; account switch hides old
  f.saveFail(false);f.fail(true);await page.getByRole('button',{name:'안정형 기본 목표로 변경'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
  f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
+});
+
+test('tablet input popup closing restores both column positions and selected plan',async({page})=>{
+ await page.setViewportSize({width:725,height:396});await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-goal-1')).toBeVisible();
+ const left=page.locator('[data-scroll-region="compound-left"]'),right=page.locator('[data-scroll-region="compound-right"]');
+ await left.evaluate(el=>el.scrollTop=250);await right.evaluate(el=>el.scrollTop=80);const beforeLeft=await left.evaluate(el=>el.scrollTop),beforeRight=await right.evaluate(el=>el.scrollTop);
+ await page.getByRole('button',{name:'계획 추가',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'팝업 닫기',exact:true}).click();
+ expect(await left.evaluate(el=>el.scrollTop)).toBe(beforeLeft);expect(await right.evaluate(el=>el.scrollTop)).toBe(beforeRight);await expect(page.getByTestId('compound-plan-1').getByRole('button')).toHaveAttribute('aria-pressed','true');
 });
