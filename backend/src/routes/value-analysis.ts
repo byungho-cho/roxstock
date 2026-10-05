@@ -21,13 +21,24 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     // Master securities, including unregistered companies. One result fixes the full navigation/order snapshot.
     const securities = await prisma.security.findMany({
       where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-      include: { marketPrice: true, valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
+      include: { marketPrice: true, fundamentals: true,
+        financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
+        dartFinancialFilings: {where:{fiscalYear:{lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},
+        valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
     });
     const rows = orderByWeight(securities.map(security => {
       const metric = valuation(security.valuationMetrics[0]), price = security.marketPrice?.currentPrice.toString() ?? null;
+      const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
+      const fundamentals=security.fundamentals;
+      // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
+      const issuedShares=fundamentals?.updatedAt.getUTCFullYear()===year?fundamentals.issuedShares?.toString()??null:null;
       return { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price,
         previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null,
-        per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price) };
+        per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price),
+        eps:metric?.eps??null,issuedShares,capital:annual?.totalEquity??null,capitalYear:annual?.fiscalYear??null,requiredReturn:'8.0',
+        excessEarnings:null,shareholderValue:null,fundamentalsUpdatedAt:fundamentals?.updatedAt.toISOString()??null,
+        fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:fairPrice(metric,persistence)})),
+        notices:['초과이익·주주가치: 총액 집계 기준이 미확정되어 —로 표시합니다.','발행주식수: 기준연도에 저장된 현재 필드만 표시하며 과거 버전은 보관되지 않습니다.'] };
     }));
     return { data: { rows, total: rows.length, year, query, timezone: 'Asia/Seoul', metricBasis: 'LATEST_STORED_DATE_WITHIN_YEAR' } };
   });

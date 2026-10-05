@@ -1,3 +1,4 @@
+import { compoundGrowthRoutes } from './routes/compound-growth.js';
 import Fastify from 'fastify';
 import { valueAnalysisRoutes } from './routes/value-analysis.js';
 import { financialRefreshRoutes } from './routes/financial-refresh.js';
@@ -39,6 +40,7 @@ export function buildApp() {
     });
   });
 
+  void app.register(compoundGrowthRoutes, { prefix: '/api' });
   void app.register(valueAnalysisRoutes, { prefix: '/api' });
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });

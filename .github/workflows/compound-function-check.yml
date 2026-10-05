@@ -1,0 +1,57 @@
+name: Compound and Value Cards v0.4 Function Check
+on:
+  push:
+    branches: [codex/compound-value-v04-20261005]
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/compound/**
+      - frontend/src/pages/value/**
+      - backend/src/domain/compound-growth*
+      - backend/src/routes/compound-growth*
+      - backend/tests/compound-growth.integration.ts
+      - frontend/tests/targets/compound-v04.spec.ts
+      - frontend/playwright.compound.config.ts
+      - .github/workflows/compound-function-check.yml
+permissions:
+  contents: read
+concurrency:
+  group: compound-functions-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: mysql://roxstock:roxstock@127.0.0.1:3306/roxstock
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: roxstock
+          MARIADB_USER: roxstock
+          MARIADB_PASSWORD: roxstock
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate && npm run prisma:migrate:deploy
+      - name: Changed calculator and value API checks
+        run: node --import tsx --test backend/src/domain/compound-growth.test.ts backend/src/domain/value-analysis.test.ts backend/src/routes/value-analysis.test.ts
+      - name: Real database compound operations
+        run: node --import tsx --test backend/tests/compound-growth.integration.ts
+      - name: TypeScript and builds
+        run: npm run typecheck:backend && npm run build:backend && npm run typecheck:frontend && npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Changed compound functions only (no screenshots, trace or visual QA)
+        run: npx playwright test --config=playwright.compound.config.ts --workers=2
+        working-directory: frontend
