@@ -1,0 +1,33 @@
+name: Operating Fixes Function Check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/**
+      - frontend/tests/targets/operating-fixes.spec.ts
+      - .github/workflows/operating-fixes-check.yml
+permissions:
+  contents: read
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Changed functions only; one cover viewport
+        run: npx playwright test --config=playwright.targets.config.ts operating-fixes.spec.ts --project=cover-370x465 --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: operating-fixes-failures
+          path: frontend/test-results/targets/
+          retention-days: 7

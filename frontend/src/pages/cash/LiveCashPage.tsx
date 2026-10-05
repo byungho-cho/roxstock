@@ -67,6 +67,33 @@ export function LiveCashPage() {
   const historyRange = cashRange(mode, month, year, olderMonths);
   const history = useQuery({ queryKey: ['cashTransactions', accountId, mode, month, year, olderMonths], queryFn: () => cashHistory(accountId!, historyRange), enabled: !!accountId,
     placeholderData: (previous, query) => query && query.queryKey[1] === accountId && query.queryKey[2] === mode && query.queryKey[3] === month && query.queryKey[4] === year ? previous : undefined });
+  const pendingBottom = useRef<string | null>(null);
+  const olderLock = useRef(false), [olderLoading, setOlderLoading] = useState(false), [olderError, setOlderError] = useState('');
+  const rangeContext = useRef(''); rangeContext.current = JSON.stringify([accountId, mode, month, year]);
+  useEffect(() => {
+    if (pendingBottom.current !== JSON.stringify([accountId, mode, month, year, olderMonths])) return;
+    if (history.isError) { pendingBottom.current = null; return; }
+    if (history.isFetching || history.isPlaceholderData || !history.data) return;
+    const frame = requestAnimationFrame(() => {
+      const region = tablet ? rightRef.current : bodyRef.current;
+      region?.scrollTo({ top: region.scrollHeight, behavior: 'auto' });
+      pendingBottom.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [accountId, mode, month, year, olderMonths, history.data, history.isError, history.isFetching, history.isPlaceholderData, tablet]);
+  const loadOlder = async () => {
+    if (!accountId || history.isFetching || olderLock.current || pendingBottom.current) return;
+    olderLock.current = true; setOlderLoading(true); setOlderError('');
+    const context = rangeContext.current, next = olderMonths + 1;
+    try {
+      await queryClient.fetchQuery({queryKey:['cashTransactions',accountId,mode,month,year,next], queryFn:()=>cashHistory(accountId,cashRange(mode,month,year,next)), staleTime:60_000});
+      if (context !== rangeContext.current) return;
+      pendingBottom.current = JSON.stringify([accountId,mode,month,year,next]);
+      setOlderMonths(next);
+    } catch {
+      if (context === rangeContext.current) setOlderError('추가 내역 조회 실패 · 다시 시도');
+    } finally { olderLock.current = false; setOlderLoading(false); }
+  };
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CashTransactionDto | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
@@ -173,7 +200,7 @@ export function LiveCashPage() {
 
   const period = mode === 'month' ? overview.data?.monthly : overview.data?.yearly;
   const entries = history.data?.data ?? [];
-  const condition = JSON.stringify([accountId, mode, month, year, olderMonths]);
+  const condition = JSON.stringify([accountId, mode, month, year]);
   const scrollStyle = { minWidth: 0, minHeight: 0, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, overscrollBehavior: 'contain' } as const;
   const primary = { height: 40, minWidth: 0, borderRadius: '8px', fontSize: 12, bgcolor: colors.buttonPrimary, color: '#fff' };
   const popupActions = (cancel: () => void, confirm: () => void, label: string, busy = false) => <Stack direction="row" spacing="8px" sx={{ mt: '24px' }}><Button disabled={busy} onClick={cancel} sx={{ ...primary, width: 88, bgcolor: '#0f1726', border: '1px solid ' + colors.border }}>취소</Button><Button disabled={busy} onClick={confirm} sx={{ ...primary, flex: 1 }}>{busy ? '저장 중…' : label}</Button></Stack>;
@@ -235,8 +262,9 @@ export function LiveCashPage() {
               {history.isPending && <Skeleton height={60} />}
               {history.isError && <Button role="alert" onClick={() => void history.refetch()} sx={{ fontSize: 11 }}>내역 조회 실패 · 다시 시도</Button>}
               {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ fontSize: 12, color: colors.textMuted }}>내용이 없습니다.</Typography>}
-              {history.isFetching && history.data && <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>내역 갱신 중</Typography>}
-              <Button disabled={history.isFetching || history.isError || !history.data} onClick={() => setOlderMonths(count => count + 1)} sx={{ height: 36, flexShrink: 0, minWidth: 0, p: 0, color: colors.focus, fontSize: 11 }}>이전 1개월 불러오기</Button>
+              {(history.isFetching || olderLoading) && history.data && <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>내역 갱신 중</Typography>}
+              {olderError && <Button role="alert" onClick={() => void loadOlder()} sx={{fontSize:11}}>{olderError}</Button>}
+              <Button disabled={history.isFetching || olderLoading || history.isError || !history.data} onClick={() => void loadOlder()} sx={{ height: 36, flexShrink: 0, minWidth: 0, p: 0, color: colors.focus, fontSize: 11 }}>이전 1개월 불러오기</Button>
             </AppCard>
           </Box>
         </Box>}

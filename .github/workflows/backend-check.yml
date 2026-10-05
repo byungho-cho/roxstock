@@ -71,6 +71,9 @@ jobs:
       - name: Changed compound-plan real database functions
         run: node --import tsx --test backend/tests/compound-growth.integration.ts
 
+      - name: Asset analysis stored-data integration
+        run: node --import tsx --test backend/tests/asset-analysis.integration.ts
+
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
 
