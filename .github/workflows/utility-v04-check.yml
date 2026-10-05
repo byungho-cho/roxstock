@@ -1,0 +1,35 @@
+name: Utility v0.4 Scoped Check
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/src/pages/more/**, frontend/src/pages/compound/**, frontend/tests/targets/utility-v04.spec.ts, .github/workflows/utility-v04-check.yml]
+permissions:
+  contents: read
+concurrency:
+  group: utility-v04-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  utility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm --workspace frontend run typecheck
+      - run: npm --workspace frontend run build
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.utility.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: utility-v04-results
+          path: |
+            frontend/test-results/utility/
+            frontend/public/utility-v04/
+          retention-days: 3
