@@ -63,7 +63,7 @@ function AccountPlans({accountId}:{accountId:string}){
   return()=>{current=false;controller.abort();};
  },[accountId,revision]);
  const plans=data?.plans??[],plan=plans.find(p=>p.id===selected)??plans[0],goal=plan?.goals.find(g=>g.id===selectedGoal);
- useEffect(()=>{if(!data)return;if(!data.plans.some(p=>p.id===selected))setSelected(data.plans[0]?.id??null);},[data,selected,setSelected]);
+ useEffect(()=>{if(!data)return;const next=data.plans.some(p=>p.id===selected)?selected:data.plans[0]?.id??null;if(next!==selected)setSelected(next);},[data,selected,setSelected]);
  const go=(updates:Record<string,string|null>,replace=false)=>{const next=new URLSearchParams(location.search);for(const [key,value]of Object.entries(updates)){if(value===null)next.delete(key);else next.set(key,value);}navigate(location.pathname+(next.size?'?'+next:''),{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(p:Plan)=>{setSelected(p.id);setSelectedGoal(null);if(!tablet)go({view:'compare',plan:p.id,goal:null});};
  const chooseGoal=(g:Goal)=>{setSelectedGoal(g.id);go({view:'goal',plan:plan!.id,goal:g.id});};
