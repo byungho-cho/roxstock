@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 const sha=process.env.DEPLOY_SHA,repository=process.env.GITHUB_REPOSITORY,token=process.env.GH_TOKEN;
 const github=async path=>{const r=await fetch('https://api.github.com/repos/'+repository+path,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'},signal:AbortSignal.timeout(30000)});assert.equal(r.status,200,'GitHub deployment status');return r.json();};
-const expected=['.github/workflows/frontend-image.yml','.github/workflows/backend-deploy.yml'],deadline=Date.now()+12*60*1000;
+const commit=await github('/commits/'+sha),changed=commit.files.map(file=>file.filename);
+const expected=[];
+if(changed.some(path=>/^frontend\//.test(path)||['package.json','package-lock.json','.dockerignore','backend/package.json'].includes(path)))expected.push('.github/workflows/frontend-image.yml');
+if(changed.some(path=>/^(backend\/|database\/prisma\/)/.test(path)||['package.json','package-lock.json','.dockerignore','scripts/deploy-backend.sh','infra/docker/compose.prod-backend.yml','.github/workflows/backend-deploy.yml'].includes(path)))expected.push('.github/workflows/backend-deploy.yml');
+const deadline=Date.now()+12*60*1000;
 let completed=false;
 while(Date.now()<deadline){
  const {workflow_runs:runs}=await github('/actions/runs?head_sha='+sha+'&event=push&per_page=50');
