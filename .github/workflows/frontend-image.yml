@@ -1,17 +1,7 @@
 name: Frontend Docker Image
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - frontend/**
-      - '!frontend/tests/**'
-      - '!frontend/**/*.md'
-      - backend/package.json
-      - package.json
-      - package-lock.json
-      - .dockerignore
+  # Deployment hold: explicit user request, 2026-10-06. No automatic main pushes.
   workflow_dispatch:
 
 permissions:

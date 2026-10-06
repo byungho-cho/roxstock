@@ -1,3 +1,4 @@
+import {pageMetrics} from '../../styles/tokens';
 import {largeMoney} from '../../utils/largeMoney';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
@@ -94,6 +95,6 @@ export function ValueAnalysisPage(){
   </Box>:tablet?<Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'8px',height:'100%',minHeight:0}}>
    <Box ref={leftRef} data-scroll-region="value-left" data-list-condition={listKey} sx={{overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0,display:'flex',flexDirection:'column'}}>{listContent}</Box><OverlayRegionScrollbar scrollRef={leftRef} label="가치분석 목록 스크롤" offset={0}/>
    <Box ref={rightRef} {...swipe} data-detail-swipe data-scroll-region="value-right" data-list-condition={JSON.stringify([year,selected])} sx={{touchAction:'pan-y',overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0}}>{!sourceItems&&list.data?.rows.length===0?<Empty/>:detailContent}</Box><OverlayRegionScrollbar scrollRef={rightRef} label="가치분석 상세 스크롤" offset={0}/>
-  </Box>:coverDetail?<Box {...swipe} data-detail-swipe sx={{touchAction:'pan-y'}}>{detailContent}</Box>:listContent}
+  </Box>:coverDetail?<Box {...swipe} data-detail-swipe sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}>{detailContent}</Box>:listContent}
  </Box>;
 }

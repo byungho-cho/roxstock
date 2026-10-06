@@ -1,17 +1,7 @@
 name: Backend Test Build Deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - backend/**
-      - database/prisma/**
-      - infra/docker/compose.prod-backend.yml
-      - scripts/deploy-backend.sh
-      - package.json
-      - package-lock.json
-      - .dockerignore
-      - .github/workflows/backend-deploy.yml
+  # Deployment hold: explicit user request, 2026-10-06. No automatic main pushes.
   workflow_dispatch:
 
 permissions:
