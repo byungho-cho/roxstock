@@ -6,7 +6,7 @@ import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import {useStocks} from '../../hooks/useMockData';
 import type {StockNavigation} from '../../hooks/useStockNeighbors';
 import { ValueStockCard } from './ValueStockCard';
-import { Box, Button, CircularProgress, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, CircularProgress, Skeleton, Typography, useMediaQuery } from '@mui/material';
 import { useEffect,useRef,useState,type ReactNode } from 'react';
 import { useLocation,useNavigate,useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
@@ -17,7 +17,7 @@ import { detailValues,listValues,format,movement,number,seoulYear,type ValueDeta
 const muted='#94A3B8',cardStyle={bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
 function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>) {
  const {accountId}=useActiveAccount(),latest=useRef(request);latest.current=request;
- const query=useQuery({queryKey:['valueStored',accountId,key],queryFn:({signal})=>latest.current(signal),staleTime:30_000});
+ const query=useQuery({queryKey:['valueStored',accountId,key],queryFn:({signal})=>latest.current(signal),staleTime:30_000,gcTime:30*60_000,refetchOnMount:'always'});
  return {data:query.data,pending:query.isFetching,error:query.error?.message,retry:()=>void query.refetch()};
 }
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
@@ -83,6 +83,7 @@ export function ValueAnalysisPage(){
    <input ref={searchRef} aria-label="종목 검색" placeholder="종목명 또는 코드 검색" value={draft} onChange={event=>setDraft(event.target.value)} style={{...controlStyle,border:0,width:'100%',padding:0}}/><button aria-label="검색 확인" type="submit" style={{border:0,padding:0,background:'transparent',height:28,display:'flex',alignItems:'center'}}><img src="/value-v04/search.svg" width="16" height="16" alt=""/></button>
   </Box><select aria-label="기준연도" value={year} onChange={event=>{setYear(Number(event.target.value));setVisibleCount(100);}} style={{...controlStyle,width:78,appearance:'none',paddingRight:24,backgroundImage:'url(/value-v04/select.svg)',backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center'}}>{Array.from({length:currentYear-1990+1},(_,i)=>currentYear-i).map(y=><option key={y} value={y}>{y}</option>)}</select></Box>
   <Status pending={list.pending} error={list.error} retry={list.retry} hasData={!!listData}/>
+  {list.pending&&!listData&&<Box aria-label="가치분석 목록 로딩" sx={{display:'grid',gap:'8px'}}>{[0,1,2].map(i=><Skeleton key={i} variant="rounded" height={148} sx={{borderRadius:'8px'}}/>)}</Box>}
   {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · W 내림차순{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.slice(0,visibleCount).map(row=><ValueStockCard key={row.id} row={row} selected={row.id===selected} disabled={!listCurrent} onClick={()=>choose(row.id)}/>)}{visibleCount<listData.total&&<Button sx={{fontSize:12}} onClick={()=>setVisibleCount(n=>n+100)}>더 보기 ({Math.min(visibleCount,listData.total)} / {listData.total})</Button>}</Box>}</>}
  </>;
  const detailContent=<>{tablet&&!chart&&selected&&<Box sx={{textAlign:'center',mb:'8px',fontSize:14,fontWeight:600}}>{currentName}<Typography sx={{fontSize:10,color:muted}}>{currentSymbol}</Typography></Box>}{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box sx={{p:'24px',textAlign:'center'}}><CircularProgress size={20}/></Box>:!detail.error?<Empty/>:null}</>;
