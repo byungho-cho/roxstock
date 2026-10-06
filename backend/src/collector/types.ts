@@ -64,6 +64,7 @@ export interface SnapshotLot {
   symbol: string;
   quantity: string;
   soldQuantity: string;
+  unitPrice: string;
   currentPrice: string | null;
 }
 
@@ -75,6 +76,7 @@ export interface SnapshotAccount {
 }
 
 export interface SnapshotValue {
+  investmentAmount: string;
   cashBalance: string;
   stockValue: string;
   totalAssetValue: string;

@@ -12,10 +12,12 @@ export interface SnapshotCalculation {
 
 export const calculateSnapshot = (account: SnapshotAccount): SnapshotCalculation => {
   let stockValue = new Prisma.Decimal(0);
+  let purchaseAmount = new Prisma.Decimal(0);
   const missing = new Set<string>();
   for (const lot of account.lots) {
     const remaining = new Prisma.Decimal(lot.quantity).sub(lot.soldQuantity);
     if (remaining.lte(0)) continue;
+    purchaseAmount = purchaseAmount.add(remaining.mul(lot.unitPrice));
     if (lot.currentPrice === null) {
       missing.add(lot.symbol);
       continue;
@@ -27,6 +29,7 @@ export const calculateSnapshot = (account: SnapshotAccount): SnapshotCalculation
   return {
     missingSymbols: [],
     value: {
+      investmentAmount: cash.add(purchaseAmount).toString(),
       cashBalance: cash.toString(),
       stockValue: stockValue.toString(),
       totalAssetValue: cash.add(stockValue).toString(),

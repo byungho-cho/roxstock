@@ -167,6 +167,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
         buyTrades: {
           select: {
             quantity: true,
+            unitPrice: true,
             sellTrades: { select: { quantity: true } },
             security: { select: { symbol: true, marketPrice: { select: { currentPrice: true } } } },
           },
@@ -181,6 +182,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
       lots: account.buyTrades.map((lot) => ({
         symbol: lot.security.symbol,
         quantity: lot.quantity.toString(),
+        unitPrice: lot.unitPrice.toString(),
         soldQuantity: lot.sellTrades.reduce((sum, sale) => sum.add(sale.quantity), new Prisma.Decimal(0)).toString(),
         currentPrice: lot.security.marketPrice?.currentPrice.toString() ?? null,
       })),
@@ -192,6 +194,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
       cashBalance: new Prisma.Decimal(value.cashBalance),
       stockValue: new Prisma.Decimal(value.stockValue),
       totalAssetValue: new Prisma.Decimal(value.totalAssetValue),
+      investmentAmount: new Prisma.Decimal(value.investmentAmount),
     };
     await this.prisma.dailyAccountSnapshot.upsert({
       where: { accountId_snapshotDate: { accountId, snapshotDate } },
