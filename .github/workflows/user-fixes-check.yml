@@ -1,0 +1,27 @@
+name: October 6 Scoped Screen Check
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/src/pages/financial/**, frontend/tests/targets/user-fixes-20261006.spec.ts, frontend/playwright.user-fixes.config.ts, .github/workflows/user-fixes-check.yml]
+permissions:
+  contents: read
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.user-fixes.config.ts --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: october6-changed-screens
+          path: frontend/test-results/user-fixes
+          retention-days: 7

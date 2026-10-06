@@ -328,6 +328,7 @@ model DartDailyCompanyCheck {
 }
 
 model DartFinancialFiling {
+  normalizationVersion Int @default(1) @map("normalization_version")
   id                     BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
   securityId             BigInt              @map("security_id") @db.UnsignedBigInt
   fiscalYear             Int                 @map("fiscal_year") @db.UnsignedSmallInt
@@ -597,6 +598,7 @@ model CompoundGrowthPlan {
   id                       BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
   accountId                BigInt               @map("account_id") @db.UnsignedBigInt
   planName                 String               @map("plan_name") @db.VarChar(100)
+  displayColor             String?              @map("display_color") @db.VarChar(20)
   startDate                DateTime             @map("start_date") @db.Date
   endDate                  DateTime             @map("end_date") @db.Date
   initialAssetValue        Decimal              @map("initial_asset_value") @db.Decimal(19, 4)

@@ -51,7 +51,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const count = integer(request.query.count, 3, 1, 10, 'count'), selected = periods(startYear, quarter, count);
     const last = selected[selected.length - 1]!.year;
     return prisma.$transaction(async tx => {
-      const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
+      const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true, fundamentals: true } });
       if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
       const fromYear = Math.min(startYear - 1, year - 1), toYear = Math.max(last, year);
       const [manual, filings, metrics] = await Promise.all([
@@ -63,6 +63,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const metric = valuation(metrics.find(row => row.metricDate.getUTCFullYear() === year)), price = security.marketPrice?.currentPrice.toString() ?? null;
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price, previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
+        issuedShares: security.fundamentals && currentYear(security.fundamentals.updatedAt)===year ? security.fundamentals.issuedShares?.toString()??null : null,
         year, valuation: metric, w: weight(metric, price), fairPrices: ['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null, closingDate: annual?.periodEndDate ?? null,
         rows: financialRows(selected, statements, metrics), mode, startYear, startQuarter: quarter, count,
