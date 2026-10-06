@@ -159,7 +159,7 @@ export const getAssetHistory = (accountId: string, range?: { from?: string; to?:
 
 export interface CashTransactionDto {
   id: string; transactionType: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAWAL' | 'DIVIDEND';
-  transactionDate: string; amount: string; signedAmount: string; balanceAfter: string; memo: string | null;
+  createdAt: string; feeTaxAmount: string; transactionDate: string; amount: string; signedAmount: string; balanceAfter: string; memo: string | null;
   dividend: { id: string; securityId: string; securityName: string; grossAmount: string; netAmount: string } | null;
 }
 export interface CashHistoryDto {
@@ -200,6 +200,7 @@ export const updateWatchlistItem = async (watchlistItemId: string, body: Partial
 export const deleteWatchlistItem = async (watchlistItemId: string, accountId?: string) => apiRequest<void>(`/watchlist-items/${encodeURIComponent(watchlistItemId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}`, { method: 'DELETE' });
 
 export interface BuyTradeInput {
+  allowNegativeCash?: boolean;
   requestId?: string;
   accountId: string;
   securityId: string;
@@ -240,8 +241,8 @@ export const deleteTrade = async (type: 'buy' | 'sell', tradeId: string, cascade
   apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}${cascadeSells ? '&cascadeSells=true' : ''}`, { method: 'DELETE' });
 export const createCashTransaction = (body: { accountId: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; transactionDate: string; amount: string; memo: string | null }) => apiRequest<{ id: string; balanceAfter: string }>('/cash-transactions', { method: 'POST', body: JSON.stringify(body) });
 export const createDividend = (body: { accountId: string; securityId: string; receivedDate: string; grossAmount: string; netAmount: string; memo: string | null }) => apiRequest<{ id: string; cashTransactionId: string; balanceAfter: string }>('/dividends', { method: 'POST', body: JSON.stringify(body) });
-export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string }) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
-export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
+export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string }) => apiRequest<{ id: string; cashBalanceAdjusted: true }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
+export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id: string; cashBalanceAdjusted: true }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
 export const correctCashBalance = (accountId: string, amount: string) => apiRequest<{ accountId: string; previousBalance: string; cashBalance: string }>(`/accounts/${encodeURIComponent(accountId)}/cash-balance`, { method: 'PATCH', body: JSON.stringify({ amount }) });
 export type CollectionStatusDto = { latestRun: { id: string; status: string; startedAt: string; finishedAt: string | null; successCount: number; failureCount: number; failureReason: string | null } | null; latestPriceAt: string | null; manualRunAvailable: false; settingsAvailable: false };
 export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/collection/status');
@@ -309,3 +310,5 @@ async function scopedSecurityCreate(body: { symbol: string; name: string; market
   return apiRequest<SecurityDto>('/securities', { method: 'POST', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
 }
 
+
+export const getDailyPositionProfit=(accountId:string,date:string)=>apiEnvelope<{data:{id:string;name:string;profit:string}[];meta:{date:string;available:boolean}}>(`/accounts/${encodeURIComponent(accountId)}/daily-position-profit?date=${encodeURIComponent(date)}`);
