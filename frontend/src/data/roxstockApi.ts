@@ -151,7 +151,7 @@ export const getAccountDashboard = (accountId: string) => apiRequest<AccountDash
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
 export interface AssetHistoryDto {
-  data: { date: string; totalAssetValue: string; cashBalance: string; stockValue: string; change: string | null; changeRate: string | null }[];
+  data: { date: string; investmentAmount?: string | null; totalAssetValue: string; cashBalance: string; stockValue: string; change: string | null; changeRate: string | null }[];
   compoundPlan?: {id:string;name:string;assetBasis:string;initialAssetValue:string;yearTarget:string|null;goalName:string|null;targetYear:number} | null;
   summary: { calculationUnavailableReason?:string|null;unrealizedChange?:string|null;realizedProfitLoss?:string|null;dividendIncome?:string|null;feeTaxAmount?:string|null;detailedProfitLoss?:string|null;reconciliationDifference?:string|null;ledgerFrom?:string|null;ledgerTo?:string|null;profitLoss: string | null; returnRate: string | null; from?: string | null; to?: string | null; openingAssetValue?: string | null; closingAssetValue?: string | null; depositAmount?: string | null; withdrawalAmount?: string | null };
 }

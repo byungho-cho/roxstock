@@ -513,6 +513,7 @@ model DailyAccountSnapshot {
   cashBalance     Decimal  @map("cash_balance") @db.Decimal(19, 4)
   stockValue      Decimal  @map("stock_value") @db.Decimal(19, 4)
   totalAssetValue Decimal  @map("total_asset_value") @db.Decimal(19, 4)
+  investmentAmount Decimal? @map("investment_amount") @db.Decimal(19, 4)
   createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.DateTime(3)
   account         Account  @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: Cascade)

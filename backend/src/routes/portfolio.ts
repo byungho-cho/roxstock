@@ -186,7 +186,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
     const end=new Date(`${year-1}-12-31T00:00:00Z`);
     const previous=await prisma.dailyAccountSnapshot.findUnique({where:{accountId_snapshotDate:{accountId,snapshotDate:end}}});
     const snapshot=previous??await prisma.dailyAccountSnapshot.findFirst({where:{accountId},orderBy:[{snapshotDate:'asc'},{id:'asc'}]});
-    return {data:snapshot?{date:snapshot.snapshotDate.toISOString().slice(0,10),totalAssetValue:snapshot.totalAssetValue.toString(),updatedAt:snapshot.updatedAt.toISOString(),source:previous?'PREVIOUS_YEAR_END':'FIRST_SNAPSHOT'}:null};
+    return {data:snapshot?{date:snapshot.snapshotDate.toISOString().slice(0,10),totalAssetValue:snapshot.totalAssetValue.toString(),investmentAmount:snapshot.investmentAmount?.toString()??null,updatedAt:snapshot.updatedAt.toISOString(),source:previous?'PREVIOUS_YEAR_END':'FIRST_SNAPSHOT'}:null};
   });
 
   app.get<{ Params: AccountParams; Querystring: AssetHistoryQuery }>('/accounts/:accountId/asset-history', async (request) => {
@@ -213,7 +213,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
       if(current.totalAssetValue!==null && current.stockValue!==null){
         liveClosing=true;
         liveUnrealized=portfolio.holdings.reduce((sum,h)=>sum.plus(h.unrealizedProfitLoss??0),new Prisma.Decimal(0));
-        const point={id:0n,accountId,snapshotDate:todayKey,cashBalance:portfolio.account.cashBalance,stockValue:current.stockValue,totalAssetValue:current.totalAssetValue,createdAt:calculatedAt,updatedAt:calculatedAt};
+        const point={id:0n,accountId,snapshotDate:todayKey,cashBalance:portfolio.account.cashBalance,stockValue:current.stockValue,totalAssetValue:current.totalAssetValue,investmentAmount:current.purchaseAmount.plus(portfolio.account.cashBalance),createdAt:calculatedAt,updatedAt:calculatedAt};
         if(snapshots.at(-1)?.snapshotDate.getTime()===todayKey.getTime())snapshots.pop();
         snapshots.push(point);
       }
@@ -281,6 +281,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
         cashBalance: snapshot.cashBalance.toString(),
         stockValue: snapshot.stockValue.toString(),
         totalAssetValue: snapshot.totalAssetValue.toString(),
+        investmentAmount: snapshot.investmentAmount?.toString() ?? null,
         ...calculatePointChange(snapshot.totalAssetValue, snapshots[index - 1]?.totalAssetValue),
         updatedAt: snapshot.updatedAt.toISOString(),
       })),
