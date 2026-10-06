@@ -46,7 +46,7 @@ const journalQuery = (accountId: string, month: string) => ({
 });
 
 export function JournalPage() {
-  const { accountId } = useActiveAccount();
+  const { accountId, accounts } = useActiveAccount();
   const queryClient = useQueryClient();
   const navigate = useListNavigation();
   const tablet = useMediaQuery('(min-width:600px)');
@@ -244,7 +244,16 @@ export function JournalPage() {
         sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {liveApiEnabled && tradesError && !!remoteReport && <Button role="alert" onClick={() => void reloadTrades()}>최신 거래 조회 실패 · 다시 시도</Button>}
         {liveApiEnabled && lotsQuery.isError && <Button role="alert" onClick={() => void lotsQuery.refetch()}>연결 Lot 조회 실패 · 다시 시도</Button>}
-        {detailMode === 'profit' ? <>{dateSelector}{profitCards}</> : detailMode === 'trade' && selectedTrade ? <>
+        {liveApiEnabled && !accountId ? <Stack spacing={2} sx={{ ...calendarPanel, p: 3, alignItems: 'center', textAlign: 'center' }}>
+          {accounts.isPending ? <Skeleton variant="rounded" width="100%" height={80}/> : accounts.isError ? <>
+            <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
+            <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
+          </> : <>
+            <Typography sx={{ fontWeight: 700 }}>등록된 계좌가 없습니다.</Typography>
+            <Typography color="text.secondary">계좌를 추가하면 매매일지를 확인할 수 있어요.</Typography>
+            <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
+          </>}
+        </Stack> : detailMode === 'profit' ? <>{dateSelector}{profitCards}</> : detailMode === 'trade' && selectedTrade ? <>
           <Button onClick={() => setDetailMode('trades')} startIcon={<ArrowBackRounded/>} sx={{ minHeight: 32, fontSize: 12, mb: '8px' }}>거래현황으로 돌아가기</Button>{detail}
         </> : <Box data-testid="journal-day-card" {...dayGesture} sx={{ ...calendarPanel, p: '8px 14px', touchAction: 'pan-y' }}>
           {dayHeading}
