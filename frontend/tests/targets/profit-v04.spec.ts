@@ -77,7 +77,7 @@ test('requested geometry percent alignment independent scrolling and safe cleara
   const geometry = await page.evaluate(() => {
     const main = document.querySelector('main')!, tabs = document.querySelector('[data-testid="profit-tabs"]')!, list = document.querySelector('[data-testid="profit-list"]')!;
     const nav = [...document.querySelectorAll('.MuiBottomNavigation-root')].find(node => getComputedStyle(node).display !== 'none')!;
-    const percent = document.querySelector('[data-testid="profit-cumulative-rate"]')!, rowPercent = document.querySelector('[data-testid="profit-list-rate"]')!;
+    const percent = document.querySelector('[data-testid="profit-cumulative-rate"]')!, rowPercent = document.querySelector('[data-testid="profit-total"]')!;
     return { padding: [getComputedStyle(main).paddingTop, getComputedStyle(main).paddingLeft], header: document.querySelector('header')!.getBoundingClientRect().height,
       tabsLeft: tabs.getBoundingClientRect().left, listLeft: list.getBoundingClientRect().left, tabsRight: tabs.getBoundingClientRect().right, listRight: list.getBoundingClientRect().right,
       rateRight: percent.getBoundingClientRect().right, rowRateRight: rowPercent.getBoundingClientRect().right,
@@ -106,7 +106,7 @@ test('refresh failure preserves data and retry recovers while account cancels st
 test('empty missing failed and changing-pagination results remain distinct', async ({ page }, info) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');
   if (info.project.name.startsWith('tablet')) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
-  f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('—');
+  f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
   f.mode('changing'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByRole('alert').first()).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveCount(0);
   f.mode('normal'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
