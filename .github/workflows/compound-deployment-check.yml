@@ -1,13 +1,8 @@
 name: Compound Plans and Value Cards Deployment Check
 on:
-  push:
-    branches: [main]
-    paths:
-      - frontend/src/pages/compound/**
-      - backend/src/domain/compound-growth*
-      - backend/src/routes/compound-growth*
-      - scripts/compound-deployment-smoke.mjs
-      - .github/workflows/compound-deployment-check.yml
+  # Deployment hold: explicit user request, 2026-10-06. No automatic main pushes.
+  workflow_dispatch:
+
 permissions:
   contents: read
   actions: read
