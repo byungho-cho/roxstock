@@ -139,7 +139,7 @@ test('snapshot is not written when any held position lacks a price', async () =>
   const repository = new MemoryRepository();
   repository.accounts = [{
     id: 1n, name: 'main', cashBalance: '1000',
-    lots: [{ symbol: '005930', quantity: '2', soldQuantity: '0', currentPrice: null }],
+    lots: [{ symbol: '005930', quantity: '2', soldQuantity: '0', unitPrice: '400', currentPrice: null }],
   }];
   const result = await collectDailyAccountSnapshots(repository, { lockTtlSeconds: 30, now: new Date('2026-09-27T14:00:00Z') });
   assert.equal(result.status, 'FAILED');
@@ -150,13 +150,13 @@ test('snapshot obeys cash plus current holdings value and UPSERTs same account/d
   const repository = new MemoryRepository();
   repository.accounts = [{
     id: 1n, name: 'main', cashBalance: '1000',
-    lots: [{ symbol: '005930', quantity: '3', soldQuantity: '1', currentPrice: '500' }],
+    lots: [{ symbol: '005930', quantity: '3', soldQuantity: '1', unitPrice: '400', currentPrice: '500' }],
   }];
   const now = new Date('2026-09-27T14:00:00Z');
   await collectDailyAccountSnapshots(repository, { lockTtlSeconds: 30, now });
   await collectDailyAccountSnapshots(repository, { lockTtlSeconds: 30, now });
   assert.equal(repository.snapshots.size, 1);
-  assert.deepEqual([...repository.snapshots.values()][0], { cashBalance: '1000', stockValue: '1000', totalAssetValue: '2000' });
+  assert.deepEqual([...repository.snapshots.values()][0], { cashBalance: '1000', stockValue: '1000', totalAssetValue: '2000', investmentAmount: '1800' });
 });
 
 test('Naver response maps current and previous close and marks old trading dates stale', () => {
