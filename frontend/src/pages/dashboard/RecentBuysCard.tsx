@@ -5,7 +5,7 @@ import { getBuyLots } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { colors } from '../../styles/tokens';
 import { HomeEmpty, HomeListCard, HomeTwoLineRow } from './HomeListCard';
-import { lotDetailPath, targetWon, lotMarketColor, lotRate } from './TargetArrivalCard';
+import { targetWon, lotMarketColor, lotRate } from './TargetArrivalCard';
 
 export function RecentBuysCard() {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export function RecentBuysCard() {
     {failed && !query.data && <HomeEmpty>최근 매수 조회 실패{query.data && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void query.refetch(); void accounts.refetch(); }}>재시도</Button></HomeEmpty>}
     {!query.data && !failed && (accountId || accounts.isPending ? <Skeleton height={70} /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {!failed && query.data && rows.length === 0 && <HomeEmpty />}
-    {rows.slice(0, 5).map(row => <HomeTwoLineRow key={row.id} testId="recent-buy-lot" onClick={() => navigate(lotDetailPath({ lotId: row.id, securityId: row.security.id }, 'home'))}
+    {rows.slice(0, 5).map(row => <HomeTwoLineRow key={row.id} testId="recent-buy-lot" onClick={() => navigate(`/stocks/${row.security.id}?detailTab=holding`)}
       first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
       second={[<Box component="span" sx={{ color: colors.textSecondary }}>{row.buyDate?.slice(2).replaceAll('-', '.') ?? new Date(row.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(2).replaceAll('-', '.')} ({row.holdingDays ?? '—'}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(row.returnRate) }}>{lotRate(row.returnRate)}</Box>, <Box component="span" aria-label="평가손익" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.profitLoss == null ? '—' : targetWon(row.profitLoss)}</Box>]} />)}
   </HomeListCard>;
