@@ -45,7 +45,7 @@ export async function compoundGrowthRoutes(app:FastifyInstance){
     const startDate=new Date(Date.UTC(input.startYear,0,1)),endDate=new Date(Date.UTC(input.endYear,11,31));
     const overlap=await tx.compoundGrowthPlan.findFirst({where:{accountId,...(planId?{id:{not:planId}}:{}),startDate:{lte:endDate},endDate:{gte:startDate}}});
     if(overlap)throw new ApiError(409,'PLAN_PERIOD_OVERLAP','같은 계좌의 계획 기간이 겹칩니다.');
-    const values={planName:input.planName,startDate,endDate,initialAssetValue:input.initialAssetValue,annualContributionAmount:input.annualContributionAmount};
+    const values={planName:input.planName,displayColor:input.displayColor,startDate,endDate,initialAssetValue:input.initialAssetValue,annualContributionAmount:input.annualContributionAmount};
     if(existing){
      await tx.compoundGrowthPlan.update({where:{id:existing.id},data:values});
      const goal=existing.goals.find(g=>g.isDefault);

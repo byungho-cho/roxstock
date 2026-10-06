@@ -14,13 +14,13 @@ const errorText = (code?: string) => {
   if (code === 'DART_CORP_CODE_NOT_MAPPED') return 'DART 기업코드가 연결되지 않았습니다.';
   return '업데이트에 실패했습니다. 잠시 후 다시 시도해 주세요.';
 };
-export function FinancialRefreshControls({ stockId, collectedAt, onSelection }: { stockId: string; collectedAt: string | null; onSelection: (year: number, period: Period) => void }) {
+export function FinancialRefreshControls({ stockId, collectedAt, onSelection, fixedYear, allReports=false }: { fixedYear?:number; allReports?:boolean; stockId: string; collectedAt: string | null; onSelection: (year: number, period: Period) => void }) {
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
-  const [year, setYear] = useState(currentYear - 1);
-  const [period, setPeriod] = useState<Period>('ANNUAL');
+  const [year, setYear] = useState(fixedYear??currentYear - 1);
+  const [period, setPeriod] = useState<Period>(allReports?'ALL':'ANNUAL');
   const [requestId, setRequestId] = useState<string | null>(() => sessionStorage.getItem(`financialRefresh:${stockId}`));
   const queryClient = useQueryClient();
-  const mutation = useMutation({ mutationFn: () => apiRequest<{ requestId: string }>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`, { method: 'POST', body: JSON.stringify({ fiscalYear: year, period }) }),
+  const mutation = useMutation({ mutationFn: () => apiRequest<{ requestId: string }>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`, { method: 'POST', body: JSON.stringify({ fiscalYear: fixedYear??year, period: allReports?'ALL':period }) }),
     onSuccess: (data) => { sessionStorage.setItem(`financialRefresh:${stockId}`, data.requestId); setRequestId(data.requestId); } });
   const status = useQuery({ queryKey: ['financialRefresh', stockId, requestId], queryFn: () => apiRequest<RefreshStatus>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/${requestId}`), enabled: Boolean(requestId),
     refetchInterval: (query) => query.state.data?.state === 'FINISHED' ? false : 2000, retry: 1 });
@@ -33,15 +33,18 @@ export function FinancialRefreshControls({ stockId, collectedAt, onSelection }: 
     if (status.data?.state === 'FINISHED') {
       sessionStorage.removeItem(`financialRefresh:${stockId}`);
       void queryClient.invalidateQueries({ queryKey: ['securityAnalysis', stockId] });
+      void queryClient.invalidateQueries({queryKey:['financialDetail',stockId]});
+      void queryClient.invalidateQueries({queryKey:['financialList']});
     }
   }, [status.data?.state, stockId, queryClient]);
+  useEffect(()=>{if(fixedYear!==undefined)setYear(fixedYear);},[fixedYear]);
   const busy = mutation.isPending || Boolean(requestId && status.data?.state !== 'FINISHED');
   const finished = status.data?.state === 'FINISHED' ? status.data : null;
   return <Stack spacing={1} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', p: 1.5 }}>
     <Typography sx={{ fontSize: 13, fontWeight: 600 }}>DART 재무제표 업데이트</Typography>
     <Stack direction="row" spacing={1}>
-      <TextField select label="사업연도" value={year} disabled={busy} size="small" onChange={(e) => { setYear(Number(e.target.value)); onSelection(Number(e.target.value), period); }} sx={{ flex: 1 }}>{Array.from({ length: currentYear - 2015 + 1 }, (_, i) => currentYear - i).map((y) => <MenuItem key={y} value={y}>{y}년</MenuItem>)}</TextField>
-      <TextField select label="갱신 범위" value={period} disabled={busy} size="small" onChange={(e) => { setPeriod(e.target.value as Period); onSelection(year, e.target.value as Period); }} sx={{ flex: 1.4 }}>{Object.entries(labels).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</TextField>
+      <TextField select label="사업연도" value={year} disabled={busy||fixedYear!==undefined} size="small" onChange={(e) => { setYear(Number(e.target.value)); onSelection(Number(e.target.value), period); }} sx={{ flex: 1 }}>{Array.from({ length: currentYear - 2015 + 1 }, (_, i) => currentYear - i).map((y) => <MenuItem key={y} value={y}>{y}년</MenuItem>)}</TextField>
+      <TextField select label="갱신 범위" value={period} disabled={busy||allReports} size="small" onChange={(e) => { setPeriod(e.target.value as Period); onSelection(year, e.target.value as Period); }} sx={{ flex: 1.4 }}>{Object.entries(labels).map(([key, label]) => <MenuItem key={key} value={key}>{label}</MenuItem>)}</TextField>
     </Stack>
     <Button variant="outlined" startIcon={<RefreshIcon />} disabled={busy} onClick={() => { onSelection(year, period); mutation.mutate(); }}>{busy ? status.data?.state === 'PROCESSING' ? '업데이트 중' : '요청 처리 대기 중' : `${year}년 ${labels[period]} 업데이트`}</Button>
     <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>버튼을 누를 때만 수집합니다. {period === 'ALL' ? '선택 연도의 보고서 4개를 조회합니다.' : '선택한 보고서만 조회합니다.'}</Typography>

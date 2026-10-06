@@ -200,8 +200,13 @@ export class PrismaDartRepository {
     securityId: bigint; fiscalYear: number; periodType: DartPeriodType; reportCode: DartReportCode; fsDivision: 'CFS' | 'OFS';
     receiptNo: string; reportName: string; receiptDate: Date; periodEndDate: Date; collectedAt: Date; values: DartFinancialValues;
   }): Promise<{ created: boolean; supersedesReceiptNo: string | null }> {
-    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true } });
-    if (current) return { created: false, supersedesReceiptNo: null };
+    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true, accountSources:true } });
+    if (current) {
+      const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
+      const additions=Object.fromEntries(Object.entries(input.values.accountSources).filter(([key])=>!(key in existing)));
+      if(Object.keys(additions).length)await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      return { created: false, supersedesReceiptNo: null };
+    }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
       where: { securityId: input.securityId, fiscalYear: input.fiscalYear, reportCode: input.reportCode, fsDivision: input.fsDivision },
       orderBy: [{ receiptDate: 'desc' }, { collectedAt: 'desc' }], select: { receiptNo: true },
