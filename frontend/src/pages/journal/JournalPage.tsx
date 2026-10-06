@@ -1,14 +1,15 @@
+import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import { usePageMemory, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { getBuyTrades } from '../../data/mockBuyTrades';
 import { buyLots, stockItems } from '../../data/mockData';
 import { getAvailableLots, getSellTrades } from '../../data/mockSellTrades';
 import { liveApiEnabled } from '../../data/liveData';
-import { getTrades, getBuyLots } from '../../data/roxstockApi';
+import { getDailyPositionProfit, getTrades, getBuyLots } from '../../data/roxstockApi';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
@@ -50,14 +51,17 @@ export function JournalPage() {
   const queryClient = useQueryClient();
   const navigate = useListNavigation();
   const tablet = useMediaQuery('(min-width:600px)');
-  const [searchParams] = useSearchParams();
+  const [searchParams,setSearchParams] = useSearchParams();
+  const location=useLocation();
   const requested = searchParams.get('date');
   const initialDate = requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : getTodayDate();
   const [selectedDate, setSelectedDate] = usePageMemory('journalDate',initialDate);
   const [month, setMonth] = usePageMemory('journalMonth',monthOf(initialDate));
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
-  const [detailMode, setDetailMode] = usePageMemory<'trades' | 'profit' | 'trade'>('journalMode','trades');
+  const detailMode: 'trades'|'profit'|'trade'=searchParams.get('view')==='profit'?'profit':searchParams.get('view')==='trade'?'trade':'trades';
+  const setDetailMode=(mode:'trades'|'profit'|'trade')=>{const next=new URLSearchParams(searchParams);if(mode==='trades')next.delete('view');else next.set('view',mode);setSearchParams(next,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
+  const positionProfit=useQuery({queryKey:['dailyPositionProfit',accountId,selectedDate],queryFn:()=>getDailyPositionProfit(accountId!,selectedDate),enabled:!!accountId&&detailMode==='profit'});
   const [selectedTradeId, setSelectedTradeId] = usePageMemory<string | null>('journalTrade',null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
@@ -114,6 +118,7 @@ export function JournalPage() {
     if (Math.abs(deltaX) <= 50 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
     suppressClickUntil.current = Date.now() + 350;
     changeMonth(deltaX < 0 ? 1 : -1);
+    alignScroll(false);
   };
   const [year, value] = month.split('-').map(Number);
   const holidays = useMemo(() => new Map([...getKoreanHolidays(year - 1), ...getKoreanHolidays(year), ...getKoreanHolidays(year + 1)]), [year]);
@@ -153,26 +158,10 @@ export function JournalPage() {
     const date = dateOf(next.getFullYear(), next.getMonth() + 1, next.getDate());
     setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null);
   };
-  const dayTouch = useRef<{x: number; y: number} | null>(null);
-  const dayClickUntil = useRef(0);
-  const dayGesture = {
-    onTouchStart: (event: TouchEvent) => {
-      const target = event.target as HTMLElement;
-      const touch = event.touches.length === 1 ? event.touches[0] : undefined;
-      dayTouch.current = touch && !target.closest('button, input, a, [role="button"]') ? {x: touch.clientX, y: touch.clientY} : null;
-    },
-    onTouchEnd: (event: TouchEvent) => {
-      const start = dayTouch.current, touch = event.changedTouches[0]; dayTouch.current = null;
-      if (!start || !touch) return;
-      const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
-      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      dayClickUntil.current = Date.now() + 350;
-      moveDay(dx < 0 ? 1 : -1);
-    },
-    onTouchCancel: () => { dayTouch.current = null; },
-    onClickCapture: (event: React.MouseEvent) => { if (Date.now() < dayClickUntil.current && !(event.target as HTMLElement).closest('button, input, a, [role="button"]')) { event.preventDefault(); event.stopPropagation(); dayClickUntil.current = 0; } },
-  };
-  const dayHeading = <Box data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
+  const dayHeadingRef=useRef<HTMLDivElement>(null);
+  const alignScroll=(heading:boolean)=>{requestAnimationFrame(()=>{const node=heading?dayHeadingRef.current:leftRef.current;if(!node)return;let parent=node.parentElement;while(parent&&getComputedStyle(parent).overflowY!=='auto'&&getComputedStyle(parent).overflowY!=='scroll')parent=parent.parentElement;if(parent)parent.scrollTo({top:heading?parent.scrollTop+node.getBoundingClientRect().top-parent.getBoundingClientRect().top:0,behavior:'auto'});});};
+  const dayGesture=useDetailSwipe(offset=>{moveDay(offset);alignScroll(true);});
+  const dayHeading = <Box ref={dayHeadingRef} data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
     <IconButton aria-label="거래내역 이전 날짜" onClick={() => moveDay(-1)} sx={{width:28,height:28}}><ChevronLeftRounded sx={{fontSize:18}}/></IconButton>
     <Typography sx={{textAlign:'center',fontSize:14,fontWeight:600}}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>
     <IconButton aria-label="거래내역 다음 날짜" onClick={() => moveDay(1)} sx={{width:28,height:28}}><ChevronRightRounded sx={{fontSize:18}}/></IconButton>
@@ -187,7 +176,7 @@ export function JournalPage() {
   </Box>;
   const status = liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28}/><Skeleton variant="rounded" height={28}/></Stack>
     : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : null;
-  const transactions = <>{status ?? <JournalTransactions entries={dayEntries} onOpen={openEntry}/>}</>;
+  const transactions = <>{status ?? <JournalTransactions entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
   const titleRow = <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: '4px' }}>
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{unavailable ? '—' : `총 ${dayEntries.length}건`}</Typography>
   </Stack>;
@@ -201,6 +190,8 @@ export function JournalPage() {
       {[['매수', unavailable ? undefined : dayBuy], ['매도', unavailable ? undefined : daySell], ['손익', dayProfit]].map(([label, amount], index) => <Box key={index} sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0, 1fr)', gap: '4px', alignItems: 'start', py: '3px', borderTop: index ? `1px solid ${colors.border}` : 0, fontSize: 12, color: index === 2 ? getProfitColor(dayProfit) : index === 0 ? colors.marketFall : colors.marketRise }}><span>{label}</span><Box sx={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{index === 2 ? <>{journalRate(dayTotals.cost && dayProfit !== undefined ? dayProfit / dayTotals.cost * 100 : undefined)}　{signedWon(amount as number | undefined)}</> : won(amount as number | undefined)}</Box></Box>)}
     </Box>
     <Box sx={{ ...panel, p: '8px 16px' }}>{titleRow}{transactions}</Box>
+    <Box data-testid="daily-position-profit" sx={{...panel,p:'12px 16px'}}><Stack direction="row" sx={{justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>보유 종목 평가손익</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>기여도</Typography></Stack>
+    {positionProfit.isPending?<Skeleton height={80}/>:positionProfit.isError?<Button onClick={()=>void positionProfit.refetch()}>조회 실패 · 다시 시도</Button>:!positionProfit.data?.meta.available?<Typography sx={{fontSize:12,color:colors.textMuted,py:2}}>해당 날짜의 평가손익 데이터가 없습니다.</Typography>:!positionProfit.data.data.length?<Typography sx={{fontSize:12,py:2}}>보유 종목이 없습니다.</Typography>:positionProfit.data.data.map(row=>{const total=positionProfit.data!.data.reduce((sum,r)=>sum+Math.abs(Number(r.profit)),0);const profit=Number(row.profit);return <Box key={row.id} sx={{display:'grid',gridTemplateColumns:'minmax(64px,1fr) 1fr minmax(90px,1.2fr)',gap:1,alignItems:'center',minHeight:24}}><Typography noWrap sx={{fontSize:11}}>{row.name}</Typography><Box sx={{height:7,bgcolor:colors.raised,borderRadius:4}}><Box sx={{height:'100%',width:`${total?Math.abs(profit)/total*100:0}%`,bgcolor:getProfitColor(profit),borderRadius:4}}/></Box><Typography sx={{fontSize:11,textAlign:'right',color:getProfitColor(profit)}}>{signedWon(profit)}</Typography></Box>;})}</Box>
   </Stack>;
   const dateSelector = <Box data-testid="journal-date-selector" sx={{ bgcolor: colors.canvas, pb: '8px', position: 'sticky', top: 0, zIndex: 2, flexShrink: 0 }}><Box data-testid="journal-date-card" sx={{ ...panel, height: 44, display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', px: '8px' }}>
     <IconButton aria-label="이전 날짜" onClick={() => moveDay(-1)} sx={{ width: 36, height: 36 }}><ChevronLeftRounded sx={{ fontSize: 20 }}/></IconButton>
@@ -216,7 +207,7 @@ export function JournalPage() {
     <Button onClick={() => editEntry(selectedTrade)} sx={{ alignSelf: 'flex-end', fontSize: 12 }}>거래 수정·삭제 ›</Button>
   </Stack>;
   return <>
-    <PageHeader embedded title={!tablet && detailMode === 'profit' ? '일별손익' : '매매일지'} variant="home" onBack={!tablet && detailMode === 'profit' ? () => setDetailMode('trades') : undefined} showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 40, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 10 }}>오늘</Button>}/>
+    <PageHeader embedded title={!tablet && detailMode === 'profit' ? '일별손익' : '매매일지'} variant="home" onBack={detailMode === 'profit' ? () => { if (window.history.state?.idx > 0) window.history.back(); else { const next = new URLSearchParams(searchParams); next.delete('view'); setSearchParams(next, {replace: true}); } } : undefined} showAdd={false} maxWidth={1100} center={monthControls} action={<Button onClick={() => selectDate(getTodayDate())} aria-label="오늘 날짜로 이동" sx={{ minWidth: 40, minHeight: 32, height: 32, p: 0, border: `1px solid ${colors.borderStrong}`, borderRadius: '8px', color: colors.textPrimary, fontSize: 10 }}>오늘</Button>}/>
     <Box data-testid="journal-layout" data-list-condition={JSON.stringify([month, selectedDate, detailMode])} data-restoration-ready={!liveApiEnabled || !tradesPending || tradesError}
       sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
       {(tablet || detailMode !== 'profit') && <Box ref={leftRef} data-scroll-region={tablet ? 'journal-calendar' : undefined} data-list-condition={JSON.stringify([month, selectedDate])}
