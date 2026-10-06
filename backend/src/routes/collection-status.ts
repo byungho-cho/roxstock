@@ -1,6 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { getSeoulClock } from '../collector/time.js';
+import { PrismaDartRepository } from '../collector/dart-repository.js';
+import { loadCollectorConfig } from '../collector/config.js';
+import { dartWindowOpen, publicHolidayDates, holidayCalendarStatus } from '../collector/dart-policy.js';
 
 interface CollectionJob { id: string; name: string; jobType: string; schedule: string; hour?: number; }
 const jobs: CollectionJob[] = [
@@ -8,7 +11,7 @@ const jobs: CollectionJob[] = [
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
   { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '매일 20:00', hour: 20 },
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
-  { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '과거 구축 18:00–06:00, 상시 우선종목 1일 1회' },
+  { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 상시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
 ];
 
 type Run = Awaited<ReturnType<typeof prisma.collectorRun.findFirst>>;
@@ -28,18 +31,8 @@ async function lastSuccessfulRun(jobType: string) {
   return prisma.collectorRun.findFirst({ where: { jobType, status: { in: ['SUCCESS', 'PARTIAL'] } }, orderBy: { startedAt: 'desc' } });
 }
 async function priorityOverdueCount(cutoff: Date): Promise<number> {
-  const rows = await prisma.$queryRaw<Array<{ count: bigint }>>`
-    SELECT COUNT(DISTINCT ds.security_id) AS count
-    FROM dart_security_state ds
-    JOIN securities s ON s.id=ds.security_id AND s.is_active=TRUE AND s.security_type='STOCK'
-    JOIN dart_corp_mappings cm ON cm.security_id=s.id
-    LEFT JOIN watchlist_items wi ON wi.security_id=s.id AND wi.list_type IN ('WATCHLIST','RECOMMENDED')
-    WHERE (wi.security_id IS NOT NULL OR EXISTS (
-      SELECT 1 FROM buy_trades bt JOIN accounts a ON a.id=bt.account_id AND a.is_active=TRUE
-      WHERE bt.security_id=s.id AND bt.quantity > COALESCE((SELECT SUM(st.quantity) FROM sell_trades st WHERE st.buy_trade_id=bt.id), 0)
-    )) AND (ds.priority_checked_at IS NULL OR ds.priority_checked_at < ${cutoff})
-  `;
-  return Number(rows[0]?.count ?? 0);
+  const ids = await new PrismaDartRepository(prisma).prioritySecurityIds();
+  return prisma.dartSecurityState.count({where:{securityId:{in:ids},OR:[{priorityCheckedAt:null},{priorityCheckedAt:{lt:cutoff}}]}});
 }
 
 async function statusFor(job: CollectionJob, run: NonNullable<Run>, now: Date, realtime?: Awaited<ReturnType<typeof prisma.realtimeWorkerState.findUnique>>) {
@@ -100,14 +93,17 @@ async function summary() {
       ]);
       const counts = Object.fromEntries(progress.map((item) => [item.status, item._count._all]));
       const phase = state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
-      const night = getSeoulClock(now).hour >= Number(process.env.DART_NIGHT_WINDOW_START_HOUR ?? 18) || getSeoulClock(now).hour < Number(process.env.DART_NIGHT_WINDOW_END_HOUR ?? 6);
-      const dartStatus = process.env.DART_COLLECTOR_ENABLED === 'false' || !process.env.DART_API_KEY?.trim() ? 'NOT_CONFIGURED' : !state ? 'NOT_IMPLEMENTED' : state.lastRunAt && now.getTime() - state.lastRunAt.getTime() > 120_000 ? 'DELAYED' : run?.status === 'FAILED' ? 'FAILED' : run?.status === 'PARTIAL' ? 'PARTIAL' : run?.status === 'RUNNING' || phase === 'BACKFILL' && night ? 'RUNNING' : phase === 'BACKFILL' ? 'WAITING' : 'OK';
+      const config = loadCollectorConfig();
+      const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
+      const night = dartWindowOpen(now,config.dartWindowStartHour,config.dartWindowEndHour,await publicHolidayDates(now),config.dartRestDayAllDay);
+      const quotaBlocked = (usage?.apiCallCount ?? 0) >= limit || Boolean(state?.lastRunAt && getSeoulClock(state.lastRunAt).dateKey===getSeoulClock(now).dateKey && state.lastError?.startsWith('020:'));
+      const dartStatus = process.env.DART_COLLECTOR_ENABLED === 'false' || !process.env.DART_API_KEY?.trim() ? 'NOT_CONFIGURED' : !state ? 'NOT_IMPLEMENTED' : quotaBlocked ? 'WAITING' : run?.status === 'RUNNING' && state.lastRunAt && now.getTime()-state.lastRunAt.getTime()<120000 ? 'RUNNING' : phase==='BACKFILL' && !night ? 'WAITING' : run?.status === 'FAILED' ? 'FAILED' : run?.status === 'PARTIAL' ? 'PARTIAL' : state.lastRunAt && now.getTime()-state.lastRunAt.getTime()>120000 ? 'DELAYED' : 'OK';
       return { id: job.id, name: job.name, schedule: job.schedule, status: dartStatus,
         lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
         lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: phase === 'BACKFILL' && !night ? iso(localSchedule(Number(process.env.DART_NIGHT_WINDOW_START_HOUR ?? 18), now)) : null,
         recent: { target: Number(counts.SUCCESS ?? 0) + Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0) + Number(counts.FAILED ?? 0), processed: Number(counts.SUCCESS ?? 0) + Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0), success: Number(counts.SUCCESS ?? 0), failed: Number(counts.FAILED ?? 0), skipped: Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0) },
         phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0) },
-        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: Number(process.env.DART_DAILY_CALL_LIMIT ?? 3000), companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
+        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !night && phase==='BACKFILL' ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
     const state = await statusFor(job, run ?? emptyRun(job.jobType, now), now, realtime);
     let nextAt: Date | null = job.hour === undefined ? null : localSchedule(job.hour, now);
@@ -177,9 +173,18 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
         priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
         prisma.dartSecurityState.count({ where: { security: { isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
       ]);
-      detail.dart = { phase: state?.phase ?? 'NOT_INITIALIZED', backfill: { planned: taskCounts.reduce((sum, row) => sum + row._count._all, 0), byStatus: Object.fromEntries(taskCounts.map((row) => [row.status, row._count._all])), completedAt: iso(state?.backfillCompletedAt) },
+      const repo = new PrismaDartRepository(prisma);
+      const ids = await repo.prioritySecurityIds();
+      const [priorityCounts,reviewRequired,errorGroups] = await Promise.all([
+        prisma.dartBackfillTask.groupBy({by:['status'],where:{securityId:{in:ids}},_count:{_all:true}}),
+        prisma.dartBackfillTask.count({where:{status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
+        prisma.dartBackfillTask.groupBy({by:['errorCode'],where:{status:'FAILED'},_count:{_all:true}}),
+      ]);
+      const priorityByStatus = Object.fromEntries(priorityCounts.map(row=>[row.status,row._count._all]));
+      detail.dart = { holidayCalendar: holidayCalendarStatus(now), priority: { securities:ids.length,planned:priorityCounts.reduce((n,row)=>n+row._count._all,0),byStatus:priorityByStatus }, reviewRequired, errors:errorGroups.map(row=>({code:row.errorCode??'UNKNOWN',count:row._count._all})), phase: state?.phase ?? 'NOT_INITIALIZED', backfill: { planned: taskCounts.reduce((sum, row) => sum + row._count._all, 0), byStatus: Object.fromEntries(taskCounts.map((row) => [row.status, row._count._all])), completedAt: iso(state?.backfillCompletedAt) },
         current: { priorityCheckedWithinDay: priorityDelayed, universeOver90Days: universeDelayed }, usage: usage.map((row) => ({ date: iso(row.usageDate), apiCalls: row.apiCallCount, companyChecks: row.companyCheckCount, noData: row.noDataCount, failures: row.errorCount })) };
     }
     return { data: detail };
   });
 }
+

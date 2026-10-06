@@ -634,3 +634,13 @@ model CompoundGrowthGoal {
   @@index([planId, isVisible, displayOrder])
   @@map("compound_growth_goals")
 }
+
+
+model DartReportCache {
+  corpCode String @map("corp_code") @db.Char(8)
+  fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
+  reports Json
+  expiresAt DateTime @map("expires_at") @db.DateTime(3)
+  @@id([corpCode, fiscalYear])
+  @@map("dart_report_cache")
+}
