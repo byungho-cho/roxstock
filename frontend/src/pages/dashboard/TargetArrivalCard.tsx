@@ -24,7 +24,7 @@ export const lotRate = (value?: string | null) => value == null ? '—' : `${Num
 
 export function TargetLotRow({ lot, full = false }: { lot: TargetLot; full?: boolean }) {
   const navigate = useNavigate();
-  return <HomeTwoLineRow testId="target-lot" large={full} onClick={() => navigate(lotDetailPath(lot, full ? 'targets' : 'home'))}
+  return <HomeTwoLineRow testId="target-lot" large={full} onClick={() => navigate(full ? lotDetailPath(lot, 'targets') : `/trade?type=sell&stock=${lot.securityId}&lot=${lot.lotId}`)}
     first={[lot.name, <Box component="span" aria-label="잔여수량과 매수단가" sx={{ color: colors.textSecondary }}>{Number(lot.remainingQuantity).toLocaleString('ko-KR')} × {targetWon(lot.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{targetWon(lot.currentPrice)}</Box>]}
     second={[<Box component="span" sx={{ color: colors.textSecondary }}>{lot.buyDate.slice(2).replaceAll('-', '.')} ({lot.holdingDays}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(lot.returnRate) }}>{lotRate(lot.returnRate)}</Box>, <Box component="span" aria-label="평가이익액" sx={{ color: lotMarketColor(lot.profitLoss) }}>{targetWon(lot.profitLoss)}</Box>]} />;
 }
