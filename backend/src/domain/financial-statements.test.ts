@@ -10,5 +10,5 @@ test('YOY compares the same basis and divides by absolute prior amount',()=>{
 });
 test('missing periods stay missing and real zero stays zero',()=>{
  const result=statementPeriods([{key:'2025:ANNUAL',label:'2025',year:2025,quarter:null},{key:'2026:ANNUAL',label:'2026',year:2026,quarter:null}],[row(2025,'0')]);
- assert.equal(result[0].values.revenue,'0');assert.equal(result[1].values.revenue,null);
+ assert.equal(result[0]!.values.revenue,'0');assert.equal(result[1]!.values.revenue,null);
 });

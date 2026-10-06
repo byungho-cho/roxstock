@@ -1,0 +1,10 @@
+import {expect,test} from '@playwright/test';
+test('stored financial list and three-period detail, no automatic collection, cover/tablet',async({page},info)=>{
+ let writes=0;const values={revenue:'100000000',operatingProfit:'20000000',netIncome:'10000000',parentNetIncome:null,totalAssets:'500000000',totalLiabilities:'0',totalEquity:'500000000',parentEquity:null,operatingCashFlow:'0',investingCashFlow:null,financingCashFlow:null,cashEquivalents:'10000000'};
+ await page.route('**/api/**',async route=>{const u=new URL(route.request().url());if(route.request().method()!=='GET')writes++;let data:any=[];
+ if(u.pathname==='/api/accounts')data=[{id:'1',name:'기본',isDefault:true,isActive:true}];
+ if(u.pathname==='/api/financial-statements')data={year:2026,market:'KOSPI',total:1,rows:[{id:'1',name:'삼성전자',symbol:'005930',market:'KOSPI',currentPrice:'70000',previousClosePrice:'69000',priceUpdatedAt:'2026-10-06T00:00:00Z',targetPrice:'90000',w:'1.28',value:'1.28',eps:'5000',epsYield:'7.14',roe:'12',issuedShares:'10000000',capital:'1000000000000',netIncome:'100000000000'}]};
+ if(u.pathname==='/api/financial-statements/1')data={security:{id:'1',name:'삼성전자',symbol:'005930'},collectedAt:null,notices:[],rows:[0,1,2].map(i=>({key:'2024:'+i,label:'202'+(4+i),year:2024+i,quarter:null,values,growth:Object.fromEntries(Object.keys(values).map(k=>[k,null])),basis:'CFS',collectedAt:null,isDerived:false}))};
+ await route.fulfill({json:{data}});});
+ await page.goto('/detail/financials');await expect(page.getByRole('button',{name:/삼성전자/})).toBeVisible();await page.screenshot({path:info.outputPath('financial-list.png')});await page.getByRole('button',{name:/삼성전자/}).click();await expect(page.getByRole('table')).toHaveCount(3);await expect(page.getByLabel('재무제표 시작분기')).toBeDisabled();await page.getByRole('button',{name:'분기',exact:true}).click();await expect(page.getByLabel('재무제표 시작분기')).toBeEnabled();await page.screenshot({path:info.outputPath('financial-detail.png')});expect(writes).toBe(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

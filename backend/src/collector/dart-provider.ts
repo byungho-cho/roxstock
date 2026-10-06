@@ -218,7 +218,7 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
     ['investingCashFlow','CF','ifrs-full_CashFlowsFromUsedInInvestingActivities'],
     ['financingCashFlow','CF','ifrs-full_CashFlowsFromUsedInFinancingActivities'],
     ['cashEquivalents','BS','ifrs-full_CashAndCashEquivalents'],
-  ]) {
+  ] as const) {
     const row=rows.find(r=>(r.statementDivision===statement||(statement==='IS'&&r.statementDivision==='CIS'))&&r.accountId===id);
     if(row)result.accountSources[field]={statementDivision:row.statementDivision,accountId:row.accountId,accountName:row.accountName,amount:numericText(row.currentAmount),ytdAmount:numericText(row.currentYtdAmount)};
   }
