@@ -9,6 +9,8 @@ import {useStockNeighbors} from '../../hooks/useStockNeighbors';
 import {useCardNavigation} from '../../hooks/useCardNavigation';
 import {usePageMemory,useListNavigation,useReturnNavigation} from '../../hooks/navigation/usePageMemory';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
+import {liveApiEnabled} from '../../data/liveData';
+import {AppCard} from '../../components/common/Common';
 import {useStocks} from '../../hooks/useMockData';
 import {useFavoriteStocks} from '../../hooks/useFavoriteStocks';
 import {PageHeader} from '../../components/navigation/Navigation';
@@ -24,7 +26,7 @@ import {dayChange,defaultSort,sortOptions,sortStocks,stockTabs,stockValuation,wo
 export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?:string;initialTab?:StockListType}={}) {
  const navigate=useListNavigation(),back=useReturnNavigation(),location=useLocation(),tablet=useMediaQuery('(min-width:600px)');const[params,setParams]=useSearchParams();
  const active=stockTabs.find(t=>t.value===params.get('tab'))?.value??initialTab??'holding';
- const {accountId}=useActiveAccount();const previousAccount=useRef(accountId);
+ const {accountId,accounts}=useActiveAccount();const previousAccount=useRef(accountId);
  const {data,isPending,isError,refetch}=useStocks();const {favoriteIds,toggleFavorite}=useFavoriteStocks();
  const [query,setQuery]=usePageMemory('stockQuery',''),[sorting,setSorting]=usePageMemory<Partial<Record<StockListType,{key:StockSort;descending:boolean}>>>('stockSorting',{});
  const selected=params.get('selected')??initialSelectedId??null;
@@ -45,6 +47,17 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const toolbar=<StockToolbar query={query} onQuery={setQuery} sort={sort.key} descending={sort.descending} tab={active} onSort={key=>setSorting({...sorting,[active]:{...sort,key}})} onDirection={()=>setSorting({...sorting,[active]:{...sort,descending:!sort.descending}})} compact={tablet&&!split}/>;
  const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>총 {items.length}개</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{isPending?'—':won(total)}</Typography>}</Stack>;
  const cards=<Stack spacing="8px" sx={{pb:tablet?'80px':0}}>{items.map(s=><StockCard key={s.id} stock={s} isFavorite={favoriteIds.has(s.id)} onToggleFavorite={()=>toggleFavorite(s.id)} onValue={()=>setValueStock(s)} onClick={()=>select(s)} onEditPrice={()=>tablet?setPriceStock(s):navigate(`/stocks/${s.id}/price`)}/>)}</Stack>;
+ if(liveApiEnabled&&!accountId) return <Stack spacing={1}>
+  <PageHeader embedded title="종목목록" showAdd={false}/>
+  {accounts.isPending?<Skeleton variant="rounded" height={160}/>:accounts.isError?<AppCard><Stack spacing={2} sx={{p:3}}>
+   <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
+   <Button variant="outlined" onClick={()=>void accounts.refetch()}>다시 시도</Button>
+  </Stack></AppCard>:<AppCard><Stack spacing={2} sx={{p:3,alignItems:'center',textAlign:'center'}}>
+   <Typography sx={{fontWeight:700}}>등록된 계좌가 없습니다.</Typography>
+   <Typography color="text.secondary">계좌를 추가하면 자산과 보유종목을 확인할 수 있어요.</Typography>
+   <Button variant="contained" onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button>
+  </Stack></AppCard>}
+ </Stack>;
  return <Stack spacing={split?0:1} data-testid="stock-list" data-restoration-ready={!isPending||isError} data-list-condition={JSON.stringify([active,query,sort])} sx={{height:tablet?'100%':undefined,minHeight:0,fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded title={split?`종목목록(${stockTabs.find(t=>t.value===active)!.label})`:'종목목록'} showAdd={false} onBack={split?back:undefined} showBackTablet action={<HeaderAddButton label="종목 추가" onClick={add}/>}/>
   {isError&&<Button role="alert" onClick={()=>void refetch()}>{data?'최신 조회 실패 · 기존 목록 표시':'종목 목록 조회 실패 · 다시 시도'}</Button>}

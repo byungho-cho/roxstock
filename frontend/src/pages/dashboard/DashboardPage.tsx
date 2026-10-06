@@ -4,6 +4,8 @@ import { RecentBuysCard } from './RecentBuysCard';
 import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { useDashboard } from '../../hooks/useMockData';
+import { useActiveAccount } from '../../hooks/useActiveAccount';
+import { liveApiEnabled } from '../../data/liveData';
 import type { StockItem } from '../../types/models';
 import { formatRate, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
 import { AppCard, SectionHeader } from '../../components/common/Common';
@@ -15,6 +17,19 @@ import { colors } from '../../styles/tokens';
 export function DashboardPage() {
   const navigate = useListNavigation();
   const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true });
+  const { accountId, accounts } = useActiveAccount();
+  if (liveApiEnabled && !accountId) {
+    if (accounts.isPending) return <DashboardLoading />;
+    if (accounts.isError) return <AppCard><Stack spacing={2} sx={{ p: 3 }}>
+      <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
+      <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
+    </Stack></AppCard>;
+    return <AppCard><Stack spacing={2} sx={{ p: 3, alignItems: 'center', textAlign: 'center' }}>
+      <Typography sx={{ fontWeight: 700 }}>등록된 계좌가 없습니다.</Typography>
+      <Typography color="text.secondary">계좌를 추가하면 자산과 보유종목을 확인할 수 있어요.</Typography>
+      <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
+    </Stack></AppCard>;
+  }
   if (isPending) return <DashboardLoading />;
   if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
 
