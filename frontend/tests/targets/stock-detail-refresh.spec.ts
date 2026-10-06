@@ -68,7 +68,7 @@ test('axis locks vertical and diagonal gestures; controls and list cards never n
  if(!tablet(page)){await gesture(page.getByTestId('stock-card-1'),[[-90,0]]);await expect(page).toHaveURL(/\/stocks\?tab=holding$/);}
  await selectStock(page,1,'검색종목 01');await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
  for(const points of [[[0,20],[-100,22]],[[-20,20],[-100,22]],[[10,120]],[[-50,35]]]){await gesture(detail(page),points);await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();}
- await gesture(page.getByRole('button',{name:'매수',exact:true}),[[-90,0]]);await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
+ await gesture(page.getByRole('tab',{name:'보유 현황',exact:true}),[[-90,0]]);await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
  await detail(page).evaluate(el=>{const touch=new Touch({identifier:1,target:el,clientX:200,clientY:100});el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[touch]}));el.dispatchEvent(new TouchEvent('touchcancel',{bubbles:true,touches:[]}));});
  await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
 });
@@ -103,16 +103,63 @@ test('classification button is absent for empty/history states and allowed only 
  await page.goto('/stocks?tab=traded');await selectStock(page,80,'전량매도');await page.getByRole('tab',{name:'요약',exact:true}).click();await expect(page.getByRole('button',{name:/분류 변경/})).toHaveCount(0);
 });
 
-test('pull icon rotates as an overlay; cancel, duplicate lock, errors and latest quote are preserved',async({page})=>{
+test('pull translates the active region and rotates the icon; cancel, duplicate lock, errors and latest quote are preserved',async({page})=>{
  const state=await setup(page);await page.goto('/stocks?tab=holding');await expect(page.getByTestId('stock-list')).toHaveAttribute('data-restoration-ready','true');
  const region=tablet(page)?page.locator('[data-scroll-region="stock-table"]'):page.locator('main'),target=tablet(page)?region:page.getByTestId('stock-list');
  const initial=state.reads.filter(url=>url.pathname==='/api/securities').length,condition=await page.getByTestId('stock-list').getAttribute('data-list-condition');
  await gesture(target,[[0,50]],false);await expect(page.getByTestId('pull-refresh')).toBeVisible();await expect(page.getByTestId('pull-refresh')).toHaveText('');
  expect(await page.getByTestId('pull-refresh-rotation').evaluate(el=>getComputedStyle(el).transform)).not.toBe('none');
  const box=(await region.boundingBox())!,icon=(await page.getByTestId('pull-refresh').boundingBox())!;expect(icon.x+icon.width/2).toBeCloseTo(box.x+box.width/2,0);
- expect(await region.evaluate(el=>el.scrollTop)).toBe(0);await end(target);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);expect(state.reads.filter(url=>url.pathname==='/api/securities').length).toBe(initial);
+ expect(await region.evaluate(el=>el.scrollTop)).toBe(0);expect(Number(await region.getAttribute('data-pull-distance'))).toBeGreaterThan(0);await end(target);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);expect(state.reads.filter(url=>url.pathname==='/api/securities').length).toBe(initial);
  state.delay();await gesture(target,[[0,160]]);await expect(page.getByTestId('pull-refresh')).toHaveAttribute('data-refreshing','true');await expect(page.getByRole('status').filter({hasText:'새로고침 중'})).toHaveCount(1);
  await gesture(target,[[0,160]]);await expect.poll(()=>state.reads.filter(url=>url.pathname==='/api/securities').length).toBe(initial+1);await expect(page.getByTestId('stock-list')).toHaveAttribute('data-list-condition',condition!);
  await expect(page.getByTestId('stock-list').getByTestId('price-timestamp').first()).toHaveText('09:00');state.release();await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
  state.fail();await gesture(target,[[0,160]]);await expect(page.getByRole('alert').filter({hasText:'새로고침에 실패했습니다.'})).toBeVisible({timeout:15000});await expect(page.getByTestId('stock-list').getByTestId('price-timestamp').first()).toHaveText('09:00');await expect(page.getByRole('alert').filter({hasText:'새로고침에 실패했습니다.'})).toHaveCount(0);
+});
+
+test('home card pull animates content, protects inputs, preserves taps and failed data',async({page})=>{
+ const state=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));
+ let blocked=false,failed=false;const releases:Array<()=>void>=[];
+ await page.route('**/api/accounts/*/dashboard',async route=>{if(blocked)await new Promise<void>(resolve=>releases.push(resolve));if(failed)return route.fulfill({status:500,json:{error:{message:'test failure'}}});return route.fallback();});
+ await page.goto('/');const card=page.getByTestId('home-trend-card').getByRole('button');await expect(card).toBeVisible();
+ const main=page.locator('main'),header=page.locator('.MuiToolbar-root').first();const top=(await header.boundingBox())!.y;
+ const count=()=>state.reads.filter(path=>path.endsWith('/dashboard')).length,before=count();
+ await gesture(card,[[0,60]],false);await expect(main).toHaveAttribute('data-pull-distance','24');expect((await header.boundingBox())!.y).toBe(top);
+ await end(card);await expect.poll(()=>main.getAttribute('data-pull-distance')).toBeNull();expect(count()).toBe(before);
+ blocked=true;await gesture(card,[[0,160]]);await expect(page.getByTestId('pull-refresh')).toHaveAttribute('data-refreshing','true');await expect(main).toHaveAttribute('data-pull-distance','55');
+ await expect(page.getByTestId('pull-refresh-rotation')).toHaveCSS('animation-name','pull-refresh-spin');
+ await card.evaluate(el=>el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,detail:1})));await expect(page).toHaveURL(/\/$/);
+ await gesture(card,[[0,160]]);blocked=false;releases.splice(0).forEach(resolve=>resolve());await expect.poll(count).toBe(before+1);await expect.poll(()=>main.getAttribute('data-pull-distance')).toBeNull();
+ await main.evaluate(el=>{const input=document.createElement('input');input.setAttribute('aria-label','protected-input');el.prepend(input);});
+ await gesture(page.getByRole('textbox',{name:'protected-input'}),[[0,160]]);expect(count()).toBe(before+1);
+ await main.evaluate(el=>{el.style.height='160px';el.style.flex='none';el.scrollTop=30;});expect(await main.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+ await gesture(card,[[0,160]]);expect(count()).toBe(before+1);await main.evaluate(el=>{el.style.height='';el.style.flex='';el.scrollTop=0;});
+ failed=true;await gesture(card,[[0,160]]);await expect(page.getByRole('alert').filter({hasText:'새로고침에 실패했습니다.'})).toBeVisible({timeout:15000});await expect(card).toBeVisible();await expect.poll(()=>main.getAttribute('data-pull-distance')).toBeNull();
+ await gesture(card,[[0,3]]);await card.click();await expect(page).toHaveURL(/\/assets$/);
+});
+
+test('detail blank body and button drags navigate without clicks; tablet left is isolated',async({page})=>{
+ await setup(page);await page.goto('/stocks?tab=holding');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('검색종목');await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();await page.getByRole('button',{name:'내림차순 · 오름차순으로 변경'}).click();await selectStock(page,1,'검색종목 01');await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
+ const area=detail(page);
+ if(tablet(page)){await gesture(page.getByTestId('stock-left'),[[-100,0]]);await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();await gesture(area,[[0,160]]);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);}
+ const button=page.getByRole('button',{name:'매수',exact:true});await gesture(button,[[-100,0]]);await button.evaluate(el=>el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,detail:1})));
+ await expect(page.getByTestId('lot-2-lot-0')).toBeVisible();await expect(page).not.toHaveURL(/\/trade/);
+ await page.getByTestId('stock-detail-content').evaluate(el=>el.style.display='none');
+ const rect=(await area.boundingBox())!,mainRect=(await page.locator('main').boundingBox())!;expect(rect.height).toBeGreaterThanOrEqual(mainRect.height-1);
+ await gesture(area,[[-100,0]]);await expect(page).toHaveURL(tablet(page)?/selected=3/:/\/stocks\/3/);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
+});
+
+test('native home card pull refreshes and tablet left pull leaves detail fixed',async({page})=>{
+ const home=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');
+ const card=page.getByTestId('home-trend-card');await expect(card).toBeVisible();await page.locator('main').evaluate(el=>el.scrollTop=0);
+ const box=(await card.boundingBox())!,x=box.x+20,y=box.y+12,before=home.reads.filter(p=>p.endsWith('/dashboard')).length;
+ const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+ for(let i=1;i<=8;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+i*18}]});await page.waitForTimeout(20);}
+ await expect(page.locator('main')).toHaveAttribute('data-pull-distance',/^[5-9][0-9]/);
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect.poll(()=>home.reads.filter(p=>p.endsWith('/dashboard')).length).toBe(before+1);await expect(page).toHaveURL(/\/$/);
+ if(tablet(page)){
+  const state=await setup(page);await page.goto('/stocks?tab=holding');await selectStock(page,1,'검색종목 01');await expect(page.getByTestId('lot-1-lot-0')).toBeVisible();
+  const left=page.getByTestId('stock-left'),right=page.getByTestId('stock-right');await left.evaluate(el=>el.scrollTop=0);const top=(await right.boundingBox())!.y;
+  state.delay();await gesture(left,[[0,160]]);await expect(left).toHaveAttribute('data-pull-distance','55');expect((await right.boundingBox())!.y).toBe(top);expect(await right.getAttribute('data-pull-distance')).toBeNull();state.release();await expect.poll(()=>left.getAttribute('data-pull-distance')).toBeNull();
+ }
 });

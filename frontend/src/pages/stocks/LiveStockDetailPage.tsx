@@ -1,3 +1,4 @@
+import {pageMetrics} from '../../styles/tokens';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import {useStockNeighbors} from '../../hooks/useStockNeighbors';
 import {FavoriteBorderRounded,FavoriteRounded} from '@mui/icons-material';
@@ -28,7 +29,7 @@ export function LiveStockDetailPage(){
  const move=(offset:number)=>{const target=offset<0?previous:next;if(target)navigate(`/stocks/${target.id}${location.search}`,{replace:true,state:location.state});};
  const swipe=useDetailSwipe(move,!!stock);
  if(tablet&&stock)return <StockListPage initialSelectedId={stockId} initialTab={stock.listType}/>;
- return <Stack spacing={1} {...swipe} data-detail-swipe sx={{touchAction:'pan-y'}}><PageHeader embedded stockNavigation={stock&&(previous||next)?<Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}>
+ return <Stack spacing={1} {...swipe} data-detail-swipe sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}><PageHeader embedded stockNavigation={stock&&(previous||next)?<Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}>
  <Button disabled={!previous} onClick={()=>move(-1)} sx={{fontSize:10,p:0,minWidth:0,minHeight:14,height:14,lineHeight:'14px',color:colors.textMuted}}>{previous?.name??''}</Button><Typography sx={{fontSize:10,color:colors.textMuted}}>{stock.symbol}</Typography>
  <Button disabled={!next} onClick={()=>move(1)} sx={{fontSize:10,p:0,minWidth:0,minHeight:14,height:14,lineHeight:'14px',color:colors.textMuted}}>{next?.name??''}</Button></Stack>:undefined}
  title={stock?.name??'종목 상세'} onBack={back} showAdd={false} action={stock&&<IconButton aria-label="즐겨찾기" onClick={()=>toggleFavorite(stock.id)} sx={{color:favoriteIds.has(stock.id)?colors.warning:colors.textMuted}}>{favoriteIds.has(stock.id)?<FavoriteRounded/>:<FavoriteBorderRounded/>}</IconButton>}/>

@@ -34,3 +34,9 @@
 - 구현 완료와 각 검사 종료 시점에 작업 브랜치에 커밋·푸시한다. 원래 코드 SHA 및 검사 Run ID, 상태, 남은 문제, 다음 실행을 기존 인수인계에 기록한다. 문서 커밋 때문에 검증 SHA를 새 문서 SHA로 바꾸지 않는다.
 - 같은 실패가 반복되면 로그·실측값·원인을 기록하고 조건 오류와 제품 오류를 구분해 수정한다. 관련 코드/조건을 고치지 않고 재실행하지 않는다.
 - 타입·빌드 및 필요한 기능 검사 통과 후 PR을 병합한다. 앱 변경이 있으면 자동 배포와 health를 확인하고 종료한다. 앱 코드가 동일한 테스트/문서/검사 설정 커밋은 기존 성공한 운영 SHA를 확인하며 중복 배포하지 않는다. CI 설정만 변경한 이미지는 필요할 때 workflow_dispatch로 명시적으로 배포할 수 있다.
+
+## 2026-10-06 · 사용자 요청에 따른 배포 보류 (이전 자동 배포 지침보다 우선)
+
+`frontend-image.yml`, `backend-deploy.yml`, `compound-deployment-check.yml`, `value-deployment-check.yml`은 main push를 제거하고 **workflow_dispatch만 허용**한다. 이 변경의 main 병합은 GitHub 코드 반영이며 운영 배포가 아니다. 후속 명시 요청 전까지 수동 dispatch, 과거 배포 run 재실행, 이미지 빌드/푸시, 서버 배포를 수행하지 않는다. Actions 한도·결제 설정은 변경하지 않는다.
+
+이번 제스처 작업은 로컬 TypeScript/빌드 및 격리된 변경 기능 검사로 확인하고 `[skip ci]` 커밋으로 반영한다. 기존 CI 미실행을 검사 통과로 간주하지 않는다. 로컬 실행 명령은 `frontend/playwright.gestures.config.ts`를 사용하며 종합 회귀/Figma QA는 범위 밖이다.
