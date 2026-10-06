@@ -140,11 +140,7 @@ export function JournalPage() {
   const dayWeekday = new Date(`${selectedDate}T12:00:00`).getDay();
   const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); setDetailMode('trades'); setSelectedTradeId(null); };
   const openEntry = (entry: Entry) => {
-    if (tablet) { setSelectedTradeId(entry.id); setDetailMode('trade'); return; }
-    if (entry.sample) { navigate(`/stocks/${entry.stockId}?tab=trades`); return; }
-    const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate });
-    if (entry.lotId) params.set('lot', entry.lotId);
-    navigate(`/trade?${params}`);
+    navigate(`/stocks/${entry.stockId}?detailTab=${entry.type === 'buy' ? 'holding' : 'trades'}`);
   };
   const editEntry = (entry: Entry) => {
     const params = new URLSearchParams({ type: entry.type, stock: entry.stockId, edit: entry.id, return: 'journal', fromDate: selectedDate });
