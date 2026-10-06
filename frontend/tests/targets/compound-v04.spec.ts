@@ -29,7 +29,7 @@ async function fixture(page:Page,empty=false,goalsEmpty=false){
 }
 test('cover plan compare detail same targets, default change confirmation and delete cancel',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await page.getByTestId('compound-plan-1').click();await expect(page.getByTestId('compound-goal-1')).toContainText('167원');
- await page.getByRole('button',{name:'안정형 기본 목표로 변경'}).click();await expect(page.getByRole('dialog')).toContainText('올해 목표·최종 목표·진행률');await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
+ await page.getByRole('radio',{name:'안정형 기본 목표로 선택'}).click();await expect(page.getByRole('dialog')).toContainText('올해 목표·최종 목표·진행률');await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
  await page.getByTestId('compound-goal-2').click();await expect(page.getByRole('img',{name:'연도별 예상 자산과 누적 투입금 · 원'})).toBeVisible();
  await page.getByRole('button',{name:'뒤로가기'}).click();await page.getByRole('button',{name:'계획 삭제',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('계획1 · 2025–2026');await expect(page.getByRole('dialog')).toContainText('목표 2개');await page.getByRole('button',{name:'취소',exact:true}).click();expect(f.writes.filter(w=>w.method==='DELETE')).toHaveLength(0);
 });
@@ -53,7 +53,7 @@ test('tablet independent columns, modal cancel preserves list position and no-go
 test('refresh failure preserves contents and timestamp; account switch hides old account and ignores late response',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();f.saveFail(true);
  await page.getByTestId('compound-plan-1').click();await page.getByRole('button',{name:'계획 삭제',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true}).click();await expect(page.getByRole('alert')).toContainText('기존 내용을 유지');await page.getByRole('button',{name:'취소',exact:true}).click();
- f.saveFail(false);f.fail(true);await page.getByRole('button',{name:'안정형 기본 목표로 변경'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
+ f.saveFail(false);f.fail(true);await page.getByRole('radio',{name:'안정형 기본 목표로 선택'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
  f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
 });
