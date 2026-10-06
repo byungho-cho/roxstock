@@ -391,6 +391,7 @@ export async function securityRoutes(app: FastifyInstance) {
       await requireActiveAccount(tx, accountId);
       const item = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
       if (!item) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
+      if (await tx.buyTrade.count({where:{accountId,securityId:item.securityId}})) throw new ApiError(409,'CLASSIFICATION_LOCKED','거래내역이 있는 종목은 삭제할 수 없습니다.');
       await tx.accountWatchlistItem.delete({ where: { id: itemId } });
     });
     return { data: { id: itemId.toString(), deleted: true } };

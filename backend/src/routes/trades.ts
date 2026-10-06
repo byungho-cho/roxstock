@@ -11,6 +11,7 @@ import { serializable } from '../lib/transaction.js';
 import { registerTrade, requestId } from '../domain/trade-request.js';
 
 type BuyBody = {
+  allowNegativeCash?: unknown;
   requestId?: unknown;
   accountId?: unknown;
   securityId?: unknown;
@@ -402,7 +403,7 @@ export async function tradeRoutes(app: FastifyInstance) {
       if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
 
       const { amount, balanceAfter } = calculateBuyBalance(account.cashBalance, quantity, unitPrice, feeTaxAmount);
-      if (balanceAfter.isNegative()) {
+      if (balanceAfter.isNegative() && body.allowNegativeCash !== true) {
         throw new ApiError(409, 'INSUFFICIENT_CASH', 'Cash balance is insufficient for this purchase.');
       }
 

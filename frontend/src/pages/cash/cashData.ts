@@ -21,7 +21,7 @@ export async function cashHistory(accountId: string, range: { from: string; to: 
     rows.push(...page.data); offset += page.data.length;
   }
   return { ...first, data: [...new Map(rows.map(row => [row.id, row])).values()].sort((a, b) =>
-    b.transactionDate.localeCompare(a.transactionDate) || b.id.localeCompare(a.id, undefined, { numeric: true })) };
+    (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || b.id.localeCompare(a.id, undefined, { numeric: true })) };
 }
 export function cashNumber(value: string | null | undefined) {
   return value == null || value.trim() === '' ? Number.NaN : Number(value);
