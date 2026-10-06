@@ -62,6 +62,9 @@ export interface CollectorConfig {
   realtimeInternalToken: string;
   dartEnabled: boolean;
   dartDailyCallLimit: number;
+  dartBackfillDailyCallLimit: number;
+  dartBackfillMinDelayMs: number;
+  dartRestDayAllDay: boolean;
   dartMinDelayMs: number;
   dartBackfillStartYear: number;
   dartBackfillCompanyLimit: number;
@@ -86,8 +89,8 @@ export const loadCollectorConfig = (): CollectorConfig => {
   if (dartDailyCallLimit > 3000) throw new Error('DART_DAILY_CALL_LIMIT cannot exceed 3000');
   const dartBackfillStartYear = positiveInteger(process.env.DART_BACKFILL_START_YEAR, 2015, 'DART_BACKFILL_START_YEAR');
   if (dartBackfillStartYear !== 2015) throw new Error('DART_BACKFILL_START_YEAR must remain 2015');
-  const dartBackfillCompanyLimit = positiveInteger(process.env.DART_BACKFILL_COMPANY_LIMIT, 100, 'DART_BACKFILL_COMPANY_LIMIT');
-  if (dartBackfillCompanyLimit > 100) throw new Error('DART_BACKFILL_COMPANY_LIMIT cannot exceed 100');
+  const dartBackfillCompanyLimit = positiveInteger(process.env.DART_BACKFILL_COMPANY_LIMIT, 250, 'DART_BACKFILL_COMPANY_LIMIT');
+  if (dartBackfillCompanyLimit > 500) throw new Error('DART_BACKFILL_COMPANY_LIMIT cannot exceed 500');
 
   return {
     provider,
@@ -123,6 +126,9 @@ export const loadCollectorConfig = (): CollectorConfig => {
     realtimeInternalToken: (process.env.COLLECTOR_INTERNAL_TOKEN ?? '').trim(),
     dartEnabled: boolean(process.env.DART_COLLECTOR_ENABLED, true, 'DART_COLLECTOR_ENABLED'),
     dartDailyCallLimit,
+    dartBackfillDailyCallLimit: Math.min(10000, positiveInteger(process.env.DART_BACKFILL_DAILY_CALL_LIMIT, 10000, 'DART_BACKFILL_DAILY_CALL_LIMIT')),
+    dartBackfillMinDelayMs: integerAtLeast(process.env.DART_BACKFILL_MIN_DELAY_MS, 2000, 2000, 'DART_BACKFILL_MIN_DELAY_MS'),
+    dartRestDayAllDay: boolean(process.env.DART_REST_DAY_ALL_DAY, true, 'DART_REST_DAY_ALL_DAY'),
     dartMinDelayMs: integerAtLeast(process.env.DART_MIN_DELAY_MS, 5000, 5000, 'DART_MIN_DELAY_MS'),
     dartBackfillStartYear,
     dartBackfillCompanyLimit,
@@ -132,3 +138,4 @@ export const loadCollectorConfig = (): CollectorConfig => {
     dartCorpRefreshHours: positiveInteger(process.env.DART_CORP_CODE_REFRESH_HOURS, 24, 'DART_CORP_CODE_REFRESH_HOURS'),
   };
 };
+

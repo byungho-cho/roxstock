@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { loadCollectorConfig } from './config.js';
 import { processManualRefresh } from './dart-manual-refresh.js';
 import { runDartCollectorCycle } from './dart-collector.js';
+import { publicHolidayDates } from './dart-policy.js';
 import { collectorLog as log } from './logger.js';
 
 const config = loadCollectorConfig();
@@ -12,12 +13,15 @@ const tick = async () => {
   if (running || stopping) return;
   running = true;
   try {
+    const state = await prisma.dartCollectorState.findUnique({where:{id:1}});
+    const backfill = !state?.backfillCompletedAt;
     const dartConfig = {
-      enabled: config.dartEnabled, apiKey: process.env.DART_API_KEY?.trim() ?? '', dailyCallLimit: config.dartDailyCallLimit,
-      minDelayMs: config.dartMinDelayMs, backfillStartYear: config.dartBackfillStartYear,
+      enabled: config.dartEnabled, apiKey: process.env.DART_API_KEY?.trim() ?? '', dailyCallLimit: backfill ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit,
+      minDelayMs: backfill ? config.dartBackfillMinDelayMs : config.dartMinDelayMs, backfillStartYear: config.dartBackfillStartYear,
       backfillCompanyLimit: config.dartBackfillCompanyLimit, universeBatchSize: config.dartUniverseBatchSize,
       windowStartHour: config.dartWindowStartHour, windowEndHour: config.dartWindowEndHour,
       corpRefreshHours: config.dartCorpRefreshHours,
+      restDayAllDay: config.dartRestDayAllDay, holidayDates: await publicHolidayDates(),
     };
     if (await processManualRefresh(prisma, dartConfig)) return;
     const result = await runDartCollectorCycle(prisma, dartConfig);
@@ -40,4 +44,5 @@ const stop = async () => {
 };
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());
+
 

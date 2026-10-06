@@ -3,19 +3,20 @@ import type { PrismaClient } from '../generated/prisma/index.js';
 import { collectorLog as log } from './logger.js';
 import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartFinancialRow, type DartPeriodType, type DartReportCode } from './dart-provider.js';
 import { PrismaDartRepository, type DartBackfillTaskRecord, type DartSecurityRecord } from './dart-repository.js';
-import { getSeoulClock, isHourInOvernightWindow } from './time.js';
+import { getSeoulClock } from './time.js';
+import { dartWindowOpen, dartFailure, retryDecision } from './dart-policy.js';
 
 export interface DartCollectorConfig {
   apiKey: string; dailyCallLimit: number; minDelayMs: number; backfillStartYear: number;
   backfillCompanyLimit: number; universeBatchSize: number; windowStartHour: number; windowEndHour: number;
-  corpRefreshHours: number; enabled: boolean;
+  corpRefreshHours: number; enabled: boolean; restDayAllDay?: boolean; holidayDates?: string[];
 }
 
 const reports: Record<string, { period: DartPeriodType; code: DartReportCode }> = {
   '11013': { period: 'Q1', code: '11013' }, '11012': { period: 'Q2', code: '11012' },
   '11014': { period: 'Q3', code: '11014' }, '11011': { period: 'ANNUAL', code: '11011' },
 };
-const activeWindow = (now: Date, config: DartCollectorConfig) => isHourInOvernightWindow(getSeoulClock(now).hour, config.windowStartHour, config.windowEndHour);
+const activeWindow = (now: Date, config: DartCollectorConfig) => dartWindowOpen(now, config.windowStartHour, config.windowEndHour, config.holidayDates, config.restDayAllDay ?? true);
 
 export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCollectorConfig, now = new Date()) {
   const repo = new PrismaDartRepository(prisma);
@@ -32,6 +33,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   let runId: bigint | undefined;
   let apiErrors = 0;
   let outsideWindowAllowed = false;
+  let stoppedCode: string | null = null;
   const dart = new OpenDartProvider({
     apiKey: config.apiKey, dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs,
     reserveCall: async (limit) => (outsideWindowAllowed || activeWindow(new Date(), config)) && repo.reserveApiCall(limit, new Date(), owner),
@@ -43,11 +45,13 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();
     runId = (await repo.createRun('dart-financial-statements', 'OPEN_DART', { phase: state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs })).id;
+    const priorityIds = await repo.prioritySecurityIds();
+    const prioritySet = new Set(priorityIds.map(String));
     const mappingUpdatedAt = await repo.corpCodeMappingsSyncedAt();
     const refreshAfter = mappingUpdatedAt ? now.getTime() - mappingUpdatedAt.getTime() >= config.corpRefreshHours * 3_600_000 : true;
     let corpSyncSucceeded = false;
-    const backfillInProgress = !state?.backfillCompletedAt;
-    if (refreshAfter && (!backfillInProgress || activeWindow(now, config))) {
+    if (refreshAfter && (activeWindow(now, config) || priorityIds.length)) {
+      outsideWindowAllowed = priorityIds.length > 0;
       try {
         const mappings = await dart.fetchCorporations();
         await repo.syncCorporations(mappings, now);
@@ -58,7 +62,6 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         throw error;
       }
     }
-    const refreshedState = await repo.getState();
     await repo.ensureBackfillPlan(config.backfillStartYear, priorBusinessYear, now);
     if (corpSyncSucceeded) await repo.markUnmappedTasksNotApplicable(now);
     await repo.resetInterruptedTasks();
@@ -70,64 +73,65 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     let companyChecks = 0;
     const latestState = await repo.getState();
     if (!latestState?.backfillCompletedAt) {
-      if (activeWindow(now, config)) await repo.startUpToDailyCompanyLimit(config.backfillCompanyLimit, now);
+      // Priority stocks are eligible throughout the day, including initial history collection.
+      if (activeWindow(now, config) || priorityIds.length) await repo.startUpToDailyCompanyLimit(config.backfillCompanyLimit, now, !activeWindow(now, config));
       const companies = await repo.listStartedBackfillSecurities();
+      const rank = new Map(priorityIds.map((id,index)=>[String(id),index]));
+      companies.sort((a,b)=>(rank.get(String(a.id)) ?? 1000000)-(rank.get(String(b.id)) ?? 1000000));
+      let stop = false;
       for (const security of companies) {
-        if (!activeWindow(new Date(), config)) break;
+        outsideWindowAllowed = prioritySet.has(String(security.id));
+        if (!outsideWindowAllowed && !activeWindow(new Date(), config)) continue;
         await repo.markCompanyChecked(security.id, 'BACKFILL', new Date());
         companyChecks += 1;
-        try {
-          if (!security.corpCode) {
-            await repo.markSecurityError(security.id, 'DART_CORP_CODE_NOT_MAPPED');
-            await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact listed stock code mapping was found in the DART corporation-code list.');
-            continue;
-          }
-          let reportListCache = new Map<number, Awaited<ReturnType<typeof dart.listPeriodicReports>>>();
-          for (const task of await repo.listTasksForSecurity(security.id)) {
-            if (!activeWindow(new Date(), config)) break;
-            const taskNow = new Date();
-            const taskRecord: DartBackfillTaskRecord = task;
-            const reportSpec = reports[taskRecord.reportCode];
-            if (!reportSpec) continue;
-            await repo.updateTask(taskRecord.id, { status: 'PROCESSING', attempts: taskRecord.attempts + 1, lastAttemptAt: taskNow, errorCode: null, errorMessage: null });
-            processed += 1;
-            let reportList = reportListCache.get(taskRecord.fiscalYear);
-            if (!reportList) {
-              reportList = await dart.listPeriodicReports(security.corpCode, taskRecord.fiscalYear);
-              reportListCache.set(taskRecord.fiscalYear, reportList);
-            }
-            const report = reportList.find((item) => item.reportCode === reportSpec.code && !item.withdrawn);
-            if (!report) {
-              await repo.updateTask(taskRecord.id, { status: 'NO_FILING', lastAttemptAt: taskNow, processedAt: new Date(), selectedReceiptNo: null, errorCode: 'NO_PERIODIC_FILING', errorMessage: null });
-              await repo.addRunItem(runId, security, taskRecord, 'NO_DATA', '공시 목록에서 대상 정기보고서를 찾지 못했습니다.'); noFiling += 1;
-              continue;
-            }
-            const filing = await getCfsThenOfs(dart, security.corpCode, taskRecord.fiscalYear, reportSpec.code);
-            if (filing.rows.some((row) => row.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', 'Financial statement response did not match the selected disclosure receipt number.');
-            if (!filing.rows.length) {
-              await repo.updateTask(taskRecord.id, { status: 'NO_FILING', selectedReceiptNo: report.receiptNo, lastAttemptAt: taskNow, processedAt: new Date(), errorCode: 'FINANCIAL_ROWS_NOT_PUBLISHED', errorMessage: null });
-              await repo.addRunItem(runId, security, taskRecord, 'NO_DATA', '보고서는 확인했지만 재무제표 자료가 아직 공개되지 않았습니다.'); noFiling += 1;
-              continue;
-            }
-            const values = normalizeDartFinancialRows(filing.rows);
-            const saved = await repo.saveFiling({ securityId: security.id, fiscalYear: taskRecord.fiscalYear, periodType: report.periodType, reportCode: reportSpec.code,
-              fsDivision: filing.division, receiptNo: report.receiptNo, reportName: report.reportName,
-              receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(taskRecord.fiscalYear, taskRecord.periodType), collectedAt: new Date(), values });
-            await repo.updateTask(taskRecord.id, { status: 'SUCCESS', selectedReceiptNo: report.receiptNo, lastAttemptAt: taskNow, processedAt: new Date(), errorCode: null, errorMessage: null });
-            await repo.addRunItem(runId, security, taskRecord, 'SUCCESS', saved.created ? undefined : '동일 접수번호가 이미 저장되어 중복 입력을 건너뛰었습니다.');
-            succeeded += 1;
-          }
-          await repo.completeSecurityIfDone(security.id);
-        } catch (error) {
-          const code = error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR';
-          const message = error instanceof DartApiError ? error.message : 'Unexpected collector failure; details were redacted.';
-          apiErrors += 1; failures += 1;
-          await repo.markSecurityError(security.id, `${code}: ${message}`);
-          const paused = code === 'DAILY_CALL_LIMIT' || code === 'SCHEDULE_WINDOW_ENDED' || (error instanceof DartApiError && error.quotaExceeded);
-          await repo.settleInterruptedTasks(runId, security, paused ? 'PENDING' : 'FAILED', code, message, new Date());
-          if (paused) break;
-          log('warn', 'DART company backfill failed', { symbol: security.symbol, code });
+        if (!security.corpCode) {
+          await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
+          continue;
         }
+        for (const task of await repo.listTasksForSecurity(security.id)) {
+          if (!outsideWindowAllowed && !activeWindow(new Date(), config)) break;
+          const taskNow = new Date();
+          const spec = reports[task.reportCode];
+          if (!spec) continue;
+          let stage = 'LIST';
+          await repo.updateTask(task.id, {status:'PROCESSING',attempts:task.attempts+1,lastAttemptAt:taskNow,errorCode:null,errorMessage:null});
+          processed += 1;
+          try {
+            const reportList = await repo.cachedReports(security.corpCode, task.fiscalYear, () => dart.listPeriodicReports(security.corpCode!, task.fiscalYear));
+            const report = reportList.find(item=>item.reportCode===spec.code&&!item.withdrawn);
+            if (!report) {
+              await repo.updateTask(task.id,{status:'NO_FILING',processedAt:new Date(),selectedReceiptNo:null,errorCode:'NO_PERIODIC_FILING',errorMessage:null,nextAttemptAt:null});
+              await repo.addRunItem(runId,security,task,'NO_DATA','공시 목록에 대상 보고서가 없습니다.'); noFiling += 1; continue;
+            }
+            stage = 'FETCH';
+            const filing = await getCfsThenOfs(dart,security.corpCode,task.fiscalYear,spec.code);
+            if (filing.rows.some(row=>row.receiptNo!==report.receiptNo)) {
+              await prisma.dartReportCache.deleteMany({where:{corpCode:security.corpCode,fiscalYear:task.fiscalYear}});
+              throw new DartApiError('RECEIPT_MISMATCH', `Selected ${report.receiptNo}; financial response ${filing.rows[0]?.receiptNo ?? 'empty'}.`);
+            }
+            if (!filing.rows.length) {
+              await repo.updateTask(task.id,{status:'NO_FILING',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:'ROWS_NOT_PUBLISHED',errorMessage:null,nextAttemptAt:null});
+              await repo.addRunItem(runId,security,task,'NO_DATA','보고서는 있으나 재무자료가 없습니다.'); noFiling += 1; continue;
+            }
+            stage = 'NORMALIZE';
+            const values = normalizeDartFinancialRows(filing.rows);
+            stage = 'SAVE';
+            const saved = await repo.saveFiling({securityId:security.id,fiscalYear:task.fiscalYear,periodType:report.periodType,reportCode:spec.code,fsDivision:filing.division,receiptNo:report.receiptNo,reportName:report.reportName,receiptDate:parseDartDate(report.receiptDate),periodEndDate:endOfFiscalPeriod(task.fiscalYear,task.periodType),collectedAt:new Date(),values});
+            await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
+            await repo.addRunItem(runId,security,task,'SUCCESS',saved.created?undefined:'동일 접수번호 저장됨'); succeeded += 1;
+          } catch(error) {
+            const failure = dartFailure(error,stage,config.apiKey);
+            const retry = retryDecision(failure.code,task.attempts+1,new Date());
+            await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
+            await repo.markSecurityError(security.id,`${failure.code}: ${failure.message}`);
+            if (retry.stop) { stoppedCode = failure.code; stop = true; skipped += 1; break; }
+            apiErrors += 1; failures += 1;
+            await repo.addRunItem(runId,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`);
+            log('warn','DART task failed',{symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
+          }
+        }
+        await repo.completeSecurityIfDone(security.id);
+        if (stop) break;
       }
       await repo.markBackfillCompleteIfReady();
     } else {
@@ -145,7 +149,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const businessYears = [...new Set([priorBusinessYear, Number(getSeoulClock(new Date()).dateKey.slice(0, 4))])];
             let updated = false;
             for (const fiscalYear of businessYears) {
-              const filings = await dart.listPeriodicReports(security.corpCode, fiscalYear);
+              const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
                 if (await repo.hasStoredReceipt(report.receiptNo)) continue;
                 const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
@@ -165,7 +169,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             failures += 1; apiErrors += 1;
             await repo.setPhase2Check(security.id, phase, new Date(), error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR');
             await repo.addPhase2RunItem(runId, security, 'FAILED', error instanceof DartApiError ? `${error.code}: ${error.message}` : 'Unexpected failure; details were redacted.');
-            if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { quotaReached = true; break; }
+            if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
           if (quotaReached || (phase === 'UNIVERSE' && !activeWindow(new Date(), config))) break;
         }
@@ -176,7 +180,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     const status = failures ? (succeeded || noFiling ? 'PARTIAL' : 'FAILED') : 'SUCCESS';
     await repo.finishRun(runId, status, { success: succeeded, failed: failures, skipped }, failures ? 'Some DART requests failed; pending tasks remain resumable.' : undefined,
       { phase: latestState?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', companyChecks, apiCalls: usage?.apiCallCount ?? 0, noFiling, apiErrors });
-    await repo.updateStateError(failures ? 'Some DART collection requests failed; failed tasks will retry.' : null);
+    await repo.updateStateError(stoppedCode ? `${stoppedCode}: collection paused` : failures ? 'Some DART tasks failed; see task errors and review queue.' : null);
     await repo.cleanupRealtimeRetention();
     return { status, processed, succeeded, noFiling, failures, apiCalls: usage?.apiCallCount ?? 0 };
   } catch (error) {
@@ -203,4 +207,5 @@ export function endOfFiscalPeriod(year: number, period: DartPeriodType): Date {
   const month = period === 'Q1' ? 3 : period === 'Q2' ? 6 : period === 'Q3' ? 9 : 12;
   return new Date(Date.UTC(year, month, 0, 12));
 }
+
 

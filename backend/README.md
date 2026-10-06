@@ -175,3 +175,13 @@ npm --workspace backend test
 npm --workspace backend run build
 docker compose -f infra/docker/compose.prod-backend.yml config
 \`\`\`
+
+
+
+## DART 백필 가속·우선순위 (2026-10-06)
+
+`dart-worker.ts`는 독립 프로세스다. 1차는 기본 하루 10,000회·응답 후 최소 2초·순차 실행, 신규 일반 종목 250개/일이며 우선종목은 먼저 시작한다. 2차는 하루 3,000회·5초를 유지한다. `DART_BACKFILL_DAILY_CALL_LIMIT`, `DART_BACKFILL_MIN_DELAY_MS`, `DART_BACKFILL_COMPANY_LIMIT`으로 조정한다. DART 실제 키 한도 020 응답 시 한국 날짜가 바뀔 때까지 중지한다.
+
+우선순위는 활성 계좌의 거래 이력 → 보유/추천 → 관심 → 일반이며 계좌 간 종목 중복을 제거한다. 우선종목은 시간대와 무관하게, 일반은 평일18–06시 및 주말 종일 처리한다. `DART_REST_DAY_ALL_DAY=false`로 주말/공휴일 종일을 끌 수 있다. 공휴일은 승인된 특일 정보 API와 `DART_PUBLIC_HOLIDAYS` 날짜 목록을 사용한다. 키에 특일 정보 활용 승인이 없으면 야간·주말·명시 날짜만 적용한다.
+
+회사·연도 목록24시간 DB 캐시, 작업별 제한 재시도 및 검토 필요 상태를 저장한다. 신규 `dart_report_cache` 마이그레이션은 기존 재무 데이터를 변경하지 않는다. 모니터링 상세의 전체·우선종목 진행률 및 API 예산으로 진행을 확인한다. [수집기 설계](../docs/RoxStock%20수집기%20설계%20v0.3.md)를 따른다.

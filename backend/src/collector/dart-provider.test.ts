@@ -138,3 +138,23 @@ test('Open DART does not reserve a request after a window closes or the daily qu
   await assert.rejects(closed.fetchFinancials('00126380', 2024, '11011', 'OFS'), (error: unknown) => error instanceof DartApiError && error.code === 'SCHEDULE_WINDOW_ENDED');
   assert.equal(fetches, 0);
 });
+
+
+test('financial no-data is empty but malformed successful lists remain diagnostic errors', async () => {
+  for (const [body, malformed] of [[{status:'013'},false],[{status:'000',list:{}},true]] as const) {
+    const provider = new OpenDartProvider({apiKey:'test',dailyCallLimit:10000,minDelayMs:2000,reserveCall:async()=>true,fetchFn:async()=>new Response(JSON.stringify(body))});
+    if (malformed) await assert.rejects(provider.fetchFinancials('00126380',2015,'11012','CFS'),(error:unknown)=>error instanceof DartApiError && error.code==='INVALID_JSON');
+    else assert.deepEqual(await provider.fetchFinancials('00126380',2015,'11012','CFS'),[]);
+  }
+});
+
+test('historical report search includes late amendments after the following June', async () => {
+  let end='';
+  const provider = new OpenDartProvider({apiKey:'test',dailyCallLimit:10000,minDelayMs:2000,reserveCall:async()=>true,fetchFn:async(url)=>{
+    end = new URL(String(url)).searchParams.get('end_de')??'';
+    return new Response(JSON.stringify({status:'000',total_page:1,list:[{rcept_no:'20260901000001',rcept_dt:'20260901',report_nm:'[기재정정] 사업보고서 (2015.12)'}]}));
+  }});
+  const reports = await provider.listPeriodicReports('00126380',2015);
+  assert.ok(end>'20160630');
+  assert.equal(reports[0]?.receiptNo,'20260901000001');
+});
