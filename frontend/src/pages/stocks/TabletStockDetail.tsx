@@ -1,4 +1,4 @@
-import { AddRounded } from '@mui/icons-material';
+import {HeaderAddButton} from '../../components/navigation/HeaderAddButton';
 import { Box, Button, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -40,7 +40,7 @@ export function TabletStockDetail({ stock, initialTab = 'holding' }: { stock: St
   const selectCategory = (category: StockListType) => navigate(`/stocks?tab=${category}`);
 
   return <Box sx={{ pb: 2 }}>
-    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" embedded scope="tablet" showAdd={false} action={<IconButton aria-label="종목 추가" onClick={() => navigateToForm(navigate, '/stocks/add?type=holding')} sx={{ width: 38, height: 38, bgcolor: colors.raised, border: `1px solid ${colors.borderStrong}`, color: colors.textPrimary }}><AddRounded /></IconButton>} />
+    <PageHeader title="종목목록" subtitle="관심·보유·추천 종목을 한 곳에서 관리합니다" embedded scope="tablet" showAdd={false} action={<HeaderAddButton label="종목 추가" onClick={() => navigateToForm(navigate, '/stocks/add?type=holding')}/>} />
     <Tabs value="holding" onChange={(_, category: StockListType) => selectCategory(category)} variant="fullWidth" sx={{ height: 46, minHeight: 46, p: '5px', border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', bgcolor: colors.surface, '& .MuiTab-root': { minHeight: 34, height: 34, p: 0, borderRadius: '10px', color: colors.textMuted, fontSize: 12 }, '& .Mui-selected': { bgcolor: colors.buttonPrimary, color: `${colors.textPrimary} !important`, fontWeight: 600 }, '& .MuiTabs-indicator': { display: 'none' } }}><Tab value="watchlist" label="관심종목" /><Tab value="holding" label="보유종목" /><Tab value="recommended" label="추천종목" /></Tabs>
     <Stack direction="row" sx={{ mt: '14px', mb: '8px', justifyContent: 'space-between', color: colors.textMuted }}><Stack direction="row" spacing="5px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 11 }}>보유중 {holdings.length}</Typography><Box role="img" aria-label="시세 수집 정상" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors.positive }} /></Stack><Typography sx={{ fontSize: 11 }}>목록에서 선택하면 우측 상세가 갱신됩니다</Typography></Stack>
     <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 304px) minmax(0, 1fr)', gap: '12px', alignItems: 'start' }}>
