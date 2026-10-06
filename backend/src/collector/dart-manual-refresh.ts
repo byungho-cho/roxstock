@@ -68,6 +68,8 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
       try {
         const report = reports.find((r) => r.reportCode === manualReports[period] && !r.withdrawn);
         if (!report) { results.push({ period, status: 'NO_DATA', code: 'NO_PERIODIC_FILING' }); continue; }
+        const stored=await db.dartFinancialFiling.findUnique({where:{receiptNo:report.receiptNo},select:{securityId:true,fiscalYear:true,periodType:true,isWithdrawn:true,normalizationVersion:true}});
+        if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=2&&stored.securityId===securityId&&stored.fiscalYear===metadata.fiscalYear&&stored.periodType===period){results.push({period,status:'SUCCESS',created:false});continue;}
         const filing = await getCfsThenOfs(provider, mapping.corpCode, metadata.fiscalYear, manualReports[period]);
         if (!filing.rows.length) { results.push({ period, status: 'NO_DATA', code: 'FINANCIAL_ROWS_NOT_PUBLISHED' }); continue; }
         if (filing.rows.some((r) => r.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', '공시 목록과 재무제표 접수번호가 일치하지 않습니다.');

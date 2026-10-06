@@ -39,6 +39,6 @@ export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoa
    finalAchievementRate:endingAssets!==null&&final?.gt(0)?new D(endingAssets).div(final).mul(100).toString():null,
    progress:currentAssets!==null&&final?.gt(0)?new D(currentAssets).div(final).mul(100).toString():null};
  });
- return {id:plan.id.toString(),planName:plan.planName,startYear,endYear,duration:endYear-startYear+1,initialAssetValue:plan.initialAssetValue.toString(),annualContributionAmount:plan.annualContributionAmount.toString(),goals,endingAssets,endingAsOf:endingAssets===null?null:endYear+'-12-31',
+ return {id:plan.id.toString(),planName:plan.planName,displayColor:plan.displayColor??plan.goals[0]?.displayColor??colors[0]!,startYear,endYear,duration:endYear-startYear+1,initialAssetValue:plan.initialAssetValue.toString(),annualContributionAmount:plan.annualContributionAmount.toString(),goals,endingAssets,endingAsOf:endingAssets===null?null:endYear+'-12-31',
   status:currentYear<startYear?'UPCOMING':currentYear>endYear?'ENDED':'ACTIVE'};
 }
