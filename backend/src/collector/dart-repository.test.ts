@@ -31,3 +31,9 @@ test('report cache survives repository instances and expired entries reload', as
   await new PrismaDartRepository(db).cachedReports('00126380',2015,load);
   assert.equal(calls,2);
 });
+
+test('extending first collection adds current year idempotently and preserves successful history',async()=>{
+ let state:any={backfillInitializedAt:new Date(),backfillEndYear:2025,backfillStartYear:2015,backfillCompletedAt:new Date()};const tasks:any[]=[];
+ const db={dartCollectorState:{findUnique:async()=>state,upsert:async(q:any)=>{state={...state,...q.update};return state;}},security:{findMany:async()=>[{id:1n},{id:2n}]},dartSecurityState:{findMany:async()=>[{securityId:1n},{securityId:2n}],updateMany:async()=>({count:2})},dartBackfillTask:{createMany:async(q:any)=>{assert.equal(q.skipDuplicates,true);tasks.push(...q.data);return {count:q.data.length};},updateMany:async(q:any)=>{assert.equal(q.where.status,'PENDING');return {count:0};}}} as unknown as PrismaClient;
+ const repo=new PrismaDartRepository(db);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);assert.ok(tasks.every(t=>t.fiscalYear===2026));assert.equal(state.backfillEndYear,2026);assert.equal(state.backfillCompletedAt,null);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);
+});

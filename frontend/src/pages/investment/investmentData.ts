@@ -44,11 +44,12 @@ export type InvestmentData = {
   evaluation: bigint | null;
   investment: bigint | null;
   dividend: bigint | null;
-  initialInvestment: null;
+  initialInvestment: bigint | null;
+  initialAsOf: string | null;
   historicalUnavailable: boolean;
 };
 
-export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number): InvestmentData {
+export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number, opening: Pick<Snapshot,'date'|'totalAssetValue'|'updatedAt'> | null = null): InvestmentData {
   const ordered = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
   const formatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' });
   const relevant = transactions.filter(row => ['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'].includes(row.transactionType)).map(row => ({
@@ -61,13 +62,14 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
   let historicalUnavailable = false;
   const totals = (snapshot: Snapshot) => {
     const cutoff = snapshot.updatedAt ? Date.parse(snapshot.updatedAt) : Number.NaN;
-    let investment: bigint | null = 0n, dividend: bigint | null = 0n;
+    let investment: bigint | null = money(opening?.totalAssetValue) ?? 0n, dividend: bigint | null = 0n;
     for (const row of relevant) {
       const { date, created, modified, amount } = row;
-      if (date > snapshot.date) continue;
+      if (date > snapshot.date || date < `${year}-01-01`) continue;
+      if(row.type!=='DIVIDEND' && opening && (Number.isFinite(created)&&opening.updatedAt ? created<=Date.parse(opening.updatedAt) : date<=opening.date))continue;
       // Older servers without collection/creation timestamps cannot reconstruct a snapshot cutoff.
       if (Number.isFinite(created) && Number.isFinite(cutoff) && created > cutoff) continue;
-      const uncertain = !Number.isFinite(cutoff) || !Number.isFinite(created) || !Number.isFinite(modified) || modified > cutoff;
+      const uncertain = !(snapshot as Snapshot & {isCurrent?:boolean}).isCurrent && (!Number.isFinite(cutoff) || !Number.isFinite(created) || !Number.isFinite(modified) || modified > cutoff);
       if (row.type === 'DIVIDEND') {
         if (date.startsWith(`${year}-`)) dividend = uncertain || amount === null ? null : dividend === null ? null : dividend + amount;
       } else investment = uncertain || amount === null ? null : investment === null ? null : investment + (row.type === 'WITHDRAWAL' ? -amount : amount);
@@ -78,12 +80,14 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
   const points = ordered.map(snapshot => ({ date: snapshot.date, evaluation: money(snapshot.totalAssetValue), investment: totals(snapshot).investment }));
   const latest = ordered.at(-1), point = points.at(-1);
   return { points, asOf: latest?.date ?? null, evaluation: point?.evaluation ?? null, investment: point?.investment ?? null,
-    dividend: latest ? totals(latest).dividend : null, initialInvestment: null, historicalUnavailable };
+    dividend: latest ? totals(latest).dividend : null, initialInvestment: money(opening?.totalAssetValue) ?? 0n, initialAsOf: opening?.date ?? null, historicalUnavailable };
 }
 
 export async function loadInvestment(accountId: string, year: number, today: string, signal: AbortSignal) {
   const range = periodRange(year, 0, today), account = encodeURIComponent(accountId);
   const history = await apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams(range)}`, { signal });
+  const baseline=await apiEnvelope<{data:{date:string;totalAssetValue:string;updatedAt:string}|null}>(`/accounts/${account}/investment-baseline?year=${year}`,{signal});
+  const opening=baseline.data;
   const transactions: Transaction[] = [];
   // Read every page: a latest-20 list cannot supply cumulative principal.
   if (history.data.length) {
@@ -101,5 +105,5 @@ export async function loadInvestment(accountId: string, year: number, today: str
       transactions.push(...result.data);
     }
   }
-  return calculateInvestment(history.data.filter(point => point.date >= range.from && point.date <= range.to), transactions, year);
+  return calculateInvestment(history.data.filter(point => point.date >= range.from && point.date <= range.to), transactions, year, opening);
 }
