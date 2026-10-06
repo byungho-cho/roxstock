@@ -6,6 +6,6 @@ export type ValueDetail = { security:Pick<ValueRow,'id'|'name'|'symbol'|'current
 export const seoulYear = () => Number(new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
 export const number = (value:string|number|null|undefined) => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 export const format = (value:string|number|null|undefined, digits=0, suffix='') => { const n=number(value); return n===null?'—':n.toLocaleString('ko-KR',{maximumFractionDigits:digits,minimumFractionDigits:digits})+suffix; };
-export const movement = (value:number|null) => value===null||value===0?'#94A3B8':value>0?'#EF4444':'#3B82F6';
+export const movement = (value:number|null) => value===null||value===0?'#94A3B8':value>0?'#FA616E':'#60A5FA';
 export const listValues = (year:number,query:string,signal:AbortSignal) => apiRequest<ValueList>('/value-analysis?'+new URLSearchParams({year:String(year),query}),{signal});
 export const detailValues = (id:string,year:number,mode:string,startYear:number,startQuarter:number,count:number,signal:AbortSignal) => apiRequest<ValueDetail>('/value-analysis/'+encodeURIComponent(id)+'?'+new URLSearchParams({year:String(year),mode,startYear:String(startYear),startQuarter:String(startQuarter),count:String(count)}),{signal});
