@@ -15,7 +15,8 @@ export function CompoundForm({initial,goalMode,busy,onSave,onCancel}:{initial:Fo
   submitting.current=true;try{setError('');await onSave(values);}catch(e){setError(e instanceof Error?e.message:'저장에 실패했습니다.');}finally{submitting.current=false;}
  };
  const enter=(e:KeyboardEvent<HTMLFormElement>)=>{if(e.key!=='Enter'||e.nativeEvent.isComposing||e.nativeEvent.keyCode===229||!(e.target instanceof HTMLInputElement))return;e.preventDefault();
-  const inputs=Array.from(ref.current?.querySelectorAll<HTMLInputElement>('input:not([readonly]):not([disabled])')??[]),index=inputs.indexOf(e.target),next=inputs[index+1];
+  if(!goalMode&&(e.target.id==='compound-startYear'||e.target.id==='compound-endYear')){setYearPicker(e.target.id==='compound-startYear'?'startYear':'endYear');return;}
+  const inputs=Array.from(ref.current?.querySelectorAll<HTMLInputElement>('input:not([disabled]):not([tabindex="-1"])')??[]),index=inputs.indexOf(e.target),next=inputs[index+1];
   if(next){next.focus();next.select();}else void submit();
  };
  const field=(label:string,key:keyof FormValues,unit='',readOnly=false)=>{
@@ -39,6 +40,6 @@ export function CompoundForm({initial,goalMode,busy,onSave,onCancel}:{initial:Fo
   {goalMode&&<Box sx={{fontSize:10,color:'#94A3B8'}}>기간·시작 금액·매년 추가금은 계획에서 상속합니다.</Box>}
   {error&&<Box role="alert" sx={{fontSize:11,color:'#FA616E',overflowWrap:'anywhere'}}>저장 실패 · {error} 입력을 유지했습니다. 다시 저장해 주세요.</Box>}
   <Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px'}}><Button type="button" disabled={busy} onClick={onCancel} sx={{height:36,borderRadius:'8px',fontSize:12,bgcolor:'#1E293B',color:'#F8FAFC'}}>취소</Button><Button type="submit" disabled={busy} sx={{height:36,borderRadius:'8px',fontSize:12,bgcolor:'#3B82F6',color:'#F8FAFC'}}>{busy?'저장 중…':error?'재시도 · 저장':'저장'}</Button></Box>
-  {yearPicker&&<YearCalendar label={yearPicker==='startYear'?'시작 연도':'종료 연도'} value={values[yearPicker]} min={yearPicker==='endYear'?values.startYear:1900} onChoose={year=>{setValues(v=>({...v,[yearPicker]:year}));setYearPicker(null);}} onClose={()=>setYearPicker(null)}/>}
+  {yearPicker&&<YearCalendar label={yearPicker==='startYear'?'시작 연도':'종료 연도'} value={values[yearPicker]} min={yearPicker==='endYear'?values.startYear:1900} onChoose={year=>{const chosen=yearPicker;setValues(v=>({...v,[chosen]:year}));setYearPicker(null);requestAnimationFrame(()=>{const input=ref.current?.querySelector<HTMLInputElement>(chosen==='startYear'?'#compound-endYear':'#compound-annualTargetRate');input?.focus();input?.select();});}} onClose={()=>setYearPicker(null)}/>}
  </Box>;
 }

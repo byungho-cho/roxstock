@@ -7,3 +7,5 @@ SET p.`display_color` = (
   WHERE g.`plan_id` = p.`id`
   ORDER BY g.`display_order` ASC, g.`id` ASC LIMIT 1
 );
+
+ALTER TABLE `dart_financial_filings` ADD COLUMN `normalization_version` INTEGER NOT NULL DEFAULT 1;
