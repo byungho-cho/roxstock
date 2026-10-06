@@ -18,3 +18,7 @@
 - 배포 보류: frontend-image/backend-deploy/compound-deployment-check/value-deployment-check의 main push 트리거를 제거해 workflow_dispatch 전용으로 변경. 자동 배포 재개 또는 수동 실행은 후속 사용자 요청 전까지 하지 않는다. Actions 한도/결제 변경·Docker 이미지 빌드/푸시·서버 배포/재실행 없음. GitHub CI는 이번 로컬 검증을 근거로 skip ci 커밋을 사용한다.
 - 기존 계좌 없음 안내4파일은 이번 PR에 포함하지 않고 stash에 보존했다가 main 병합 후 로컬에 복원한다. .env 및 서버 접속정보는 Git에 포함하지 않는다.
 - 제한: 실제 모바일 기기/Safari 검증 없음. Vite 기존500kB 청크 경고 유지. 운영 배포 버전은 갱신하지 않음.
+
+- PR: https://github.com/byungho-cho/roxstock/pull/95
+- 로컬 검증 코드 SHA: `0e3b71b35713d5443fa4d8a6e7983064fe5834c4`. 후속 커밋은 이 PR 식별 기록만 추가하며 앱 코드는 동일하다.
+- 상태: 로컬 검증 완료, PR 충돌 없음. 승인된 main 병합 후에도 운영 배포는 보류한다. 병합 SHA는 PR #95의 merge commit을 기준으로 확인한다.
