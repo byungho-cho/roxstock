@@ -10,8 +10,8 @@ test('confirmed annual beginning contribution, inclusive years, no extra end yea
 });
 test('invalid periods, nonfinite money/rate, missing name and readonly goal payload validation',()=>{
  const good={planName:'실제 계획',startYear:2025,endYear:2026,initialAssetValue:'100',annualContributionAmount:'20',annualTargetRate:'10',displayColor:'#5EA1F0'};
- assert.equal(parsePlan(good).startYear,2025);
- for(const patch of [{endYear:2024},{initialAssetValue:'NaN'},{initialAssetValue:'Infinity'},{initialAssetValue:'-1'},{annualTargetRate:'-101'},{planName:''},{startYear:2025.2}])assert.throws(()=>parsePlan({...good,...patch}));
+ assert.equal(parsePlan(good).startYear,2025);assert.equal(parsePlan({...good,annualContributionAmount:'0'}).annualContributionAmount,'0');
+ for(const patch of [{endYear:2024},{initialAssetValue:'NaN'},{initialAssetValue:'Infinity'},{initialAssetValue:'-1'},{initialAssetValue:'0'},{annualTargetRate:'0'},{annualContributionAmount:''},{annualTargetRate:'-101'},{planName:''},{startYear:2025.2}])assert.throws(()=>parsePlan({...good,...patch}));
  assert.throws(()=>parseGoal({goalName:'목표',annualTargetRate:'10',displayColor:'red'}));
 });
 test('shared projections; unavailable year target, assets and zero denominator',()=>{

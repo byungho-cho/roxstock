@@ -12,6 +12,7 @@ export function CompoundForm({initial,goalMode,busy,onSave,onCancel}:{initial:Fo
  const set=(key:keyof FormValues,value:string)=>setValues(v=>({...v,[key]:key==='startYear'||key==='endYear'?Number(value):value}));
  const submit=async(event?:FormEvent)=>{event?.preventDefault();if(busy||submitting.current)return;
   if(!Number.isInteger(values.startYear)||!Number.isInteger(values.endYear)||values.startYear>values.endYear){setError('시작 연도는 종료 연도보다 클 수 없습니다.');return;}
+  for(const [key,label,zero] of [['annualTargetRate','연 수익률',false],...(!goalMode?[['initialAssetValue','시작 금액',false],['annualContributionAmount','매년 추가',true]]:[])] as [keyof FormValues,string,boolean][]){const raw=String(values[key]).trim(),n=Number(raw);if(!raw||!Number.isFinite(n)||(zero?n<0:n<=0)){setError(label+'은 '+(zero?'0 이상':'0보다 큰')+' 값을 입력해 주세요.');ref.current?.querySelector<HTMLInputElement>('#compound-'+key)?.focus();return;}}
   submitting.current=true;try{setError('');await onSave(values);}catch(e){setError(e instanceof Error?e.message:'저장에 실패했습니다.');}finally{submitting.current=false;}
  };
  const enter=(e:KeyboardEvent<HTMLFormElement>)=>{if(e.key!=='Enter'||e.nativeEvent.isComposing||e.nativeEvent.keyCode===229||!(e.target instanceof HTMLInputElement))return;e.preventDefault();
