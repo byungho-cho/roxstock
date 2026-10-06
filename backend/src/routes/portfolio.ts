@@ -178,6 +178,17 @@ export async function portfolioRoutes(app: FastifyInstance) {
     };
   });
 
+  app.get<{Params:AccountParams;Querystring:{year?:string}}>('/accounts/:accountId/investment-baseline',async request=>{
+    const accountId=id(request.params.accountId,'accountId'),year=Number(request.query.year);
+    if(!Number.isInteger(year)||year<1900||year>2200)throw new ApiError(400,'INVALID_INPUT','Invalid year.');
+    const account=await prisma.account.findUnique({where:{id:accountId},select:{isActive:true}});
+    if(!account?.isActive)throw new ApiError(404,'ACCOUNT_NOT_FOUND','Account not found.');
+    const end=new Date(`${year-1}-12-31T00:00:00Z`);
+    const previous=await prisma.dailyAccountSnapshot.findUnique({where:{accountId_snapshotDate:{accountId,snapshotDate:end}}});
+    const snapshot=previous??await prisma.dailyAccountSnapshot.findFirst({where:{accountId},orderBy:[{snapshotDate:'asc'},{id:'asc'}]});
+    return {data:snapshot?{date:snapshot.snapshotDate.toISOString().slice(0,10),totalAssetValue:snapshot.totalAssetValue.toString(),updatedAt:snapshot.updatedAt.toISOString(),source:previous?'PREVIOUS_YEAR_END':'FIRST_SNAPSHOT'}:null};
+  });
+
   app.get<{ Params: AccountParams; Querystring: AssetHistoryQuery }>('/accounts/:accountId/asset-history', async (request) => {
     const accountId = id(request.params.accountId, 'accountId');
     const from = dateOnly(request.query.from, 'from');
@@ -192,6 +203,21 @@ export async function portfolioRoutes(app: FastifyInstance) {
       },
       orderBy: [{ snapshotDate: 'asc' }, { id: 'asc' }],
     });
+    // A live closing point is response-only; never overwrite historical snapshots.
+    const calculatedAt = new Date(), todayKey=dashboardPeriod(calculatedAt).todayKey;
+    let liveUnrealized: Prisma.Decimal | null = null;
+    let liveClosing = false;
+    if ((!to || to >= todayKey) && (!from || from <= todayKey)) {
+      const portfolio=await loadPortfolio(accountId);
+      const current=calculateDashboard(portfolio.account.cashBalance,portfolio.holdings);
+      if(current.totalAssetValue!==null && current.stockValue!==null){
+        liveClosing=true;
+        liveUnrealized=portfolio.holdings.reduce((sum,h)=>sum.plus(h.unrealizedProfitLoss??0),new Prisma.Decimal(0));
+        const point={id:0n,accountId,snapshotDate:todayKey,cashBalance:portfolio.account.cashBalance,stockValue:current.stockValue,totalAssetValue:current.totalAssetValue,createdAt:calculatedAt,updatedAt:calculatedAt};
+        if(snapshots.at(-1)?.snapshotDate.getTime()===todayKey.getTime())snapshots.pop();
+        snapshots.push(point);
+      }
+    }
     const first = snapshots.at(0);
     const last = snapshots.at(-1);
     const validInterval = !!first && !!last && snapshots.length >= 2 && last.updatedAt > first.updatedAt;
@@ -217,6 +243,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
     }) : [];
     const positionValue = async (snapshot: typeof first) => {
       if (!snapshot) return null;
+      if(liveClosing && snapshot.id===0n)return liveUnrealized;
       const positions = await prisma.dailyPositionSnapshot.findMany({where: {accountId, snapshotDate: snapshot.snapshotDate}});
       const market = positions.reduce((sum, row) => sum.plus(row.marketValue), new Prisma.Decimal(0));
       if (!market.equals(snapshot.stockValue)) return null;
@@ -250,6 +277,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
       compoundPlan,
       data: snapshots.map((snapshot, index) => ({
         date: snapshot.snapshotDate.toISOString().slice(0, 10),
+        isCurrent: liveClosing && snapshot.id===0n,
         cashBalance: snapshot.cashBalance.toString(),
         stockValue: snapshot.stockValue.toString(),
         totalAssetValue: snapshot.totalAssetValue.toString(),

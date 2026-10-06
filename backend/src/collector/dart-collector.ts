@@ -62,7 +62,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         throw error;
       }
     }
-    await repo.ensureBackfillPlan(config.backfillStartYear, priorBusinessYear, now);
+    await repo.ensureBackfillPlan(config.backfillStartYear, priorBusinessYear + 1, now);
     if (corpSyncSucceeded) await repo.markUnmappedTasksNotApplicable(now);
     await repo.resetInterruptedTasks();
     let processed = 0;
@@ -79,6 +79,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
       const rank = new Map(priorityIds.map((id,index)=>[String(id),index]));
       companies.sort((a,b)=>(rank.get(String(a.id)) ?? 1000000)-(rank.get(String(b.id)) ?? 1000000));
       let stop = false;
+      for (const currentYearPass of [true,false]) {
       for (const security of companies) {
         outsideWindowAllowed = prioritySet.has(String(security.id));
         if (!outsideWindowAllowed && !activeWindow(new Date(), config)) continue;
@@ -88,7 +89,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
           await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
           continue;
         }
-        for (const task of await repo.listTasksForSecurity(security.id)) {
+        for (const task of (await repo.listTasksForSecurity(security.id)).filter(t=>(t.fiscalYear===priorBusinessYear+1)===currentYearPass)) {
           if (!outsideWindowAllowed && !activeWindow(new Date(), config)) break;
           const taskNow = new Date();
           const spec = reports[task.reportCode];
@@ -132,6 +133,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         }
         await repo.completeSecurityIfDone(security.id);
         if (stop) break;
+      }
+      if(stop)break;
       }
       await repo.markBackfillCompleteIfReady();
     } else {
