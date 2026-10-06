@@ -67,7 +67,7 @@ function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { featu
   const badge = needsAttention ? {
     label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
   } : { label: '정상', background: '#3D8CF5', foreground: '#050A12' };
-  return <Box sx={{ ...cardSx, mx: 0, mt: 0, mb: '7px', px: '12px', py: '4px', height: 58, position: 'relative', boxSizing: 'border-box', borderRadius: '8px', '& > p:first-of-type': { mt: '3px' }, '& > p:last-of-type': { mt: '2px' } }}>
+  return <Box sx={{ ...cardSx, mx: 0, mt: 0, mb: '7px', px: '12px', py: '12px', minHeight: 74, position: 'relative', boxSizing: 'border-box', borderRadius: '8px', '& > p:first-of-type': { mt: '3px' }, '& > p:last-of-type': { mt: '2px' } }}>
     <Stack direction="row" spacing={0.5} sx={{ minHeight: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>전체 상태</Typography>
       <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, width: 82, height: 19, borderRadius: '999px', bgcolor: badge.background, color: badge.foreground, fontSize: 10, fontWeight: 600 }}>{badge.label}</Box>
@@ -102,7 +102,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
     aria-label={`${name} 상세 보기`}
     onClick={onOpen}
     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(); } }}
-    sx={{ ...cardSx, display: 'block', textAlign: 'left', cursor: 'pointer', textDecoration: 'none', p: '2px 12px', height: 55, boxSizing: 'border-box', borderColor: selected ? '#3B82F6' : '#26334A', '&:hover': { borderColor: '#456186' }, '&:focus-visible': { outline: '2px solid #3D8CF5', outlineOffset: 1 } }}
+    sx={{ ...cardSx, display: 'block', textAlign: 'left', cursor: 'pointer', textDecoration: 'none', p: '12px', minHeight: 75, boxSizing: 'border-box', borderColor: selected ? '#3B82F6' : '#26334A', '&:hover': { borderColor: '#456186' }, '&:focus-visible': { outline: '2px solid #3D8CF5', outlineOffset: 1 } }}
   >
     <Stack direction="row" spacing={0.5} sx={{ height: 19, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, lineHeight: 1.1, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
@@ -134,7 +134,7 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
 }
 
 function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
-  return <Box sx={{ ...cardSx, px: '12px', py: '3px', minHeight: feature.id === 'realtime-prices' ? 70 : 55, position: 'relative' }}>
+  return <Box sx={{ ...cardSx, px: '12px', py: '12px', minHeight: feature.id === 'realtime-prices' ? 70 : 55, position: 'relative' }}>
     <Stack direction="row" spacing={0.5} sx={{ height: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>현재 상태</Typography>
       <StatusPill feature={feature} />
@@ -200,8 +200,7 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
             <Typography sx={{ color: resultStyle.background, fontSize: 10, fontWeight: 500, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}</Typography>
             <Typography sx={{ color: resultStyle.background, fontSize: 10, flexShrink: 0 }}>{resultStyle.label}</Typography>
           </Stack>
-          <Box component="details"><Box component="summary" sx={{fontSize:10,color:'#7A8CA8',cursor:'pointer'}}>상세 내용</Box><Typography sx={{ color: '#7A8CA8', textAlign: 'right', fontSize: 10, lineHeight: '14px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{outcome}</Typography>
-          {item.occurredAt && <Typography sx={{ color: '#52627A', fontSize: 10, lineHeight: '11px' }}>{dateText(item.occurredAt)}</Typography>}</Box>
+          <Box sx={{pl:'8px',position:'relative',minHeight:20}}><Typography sx={{color:'#7A8CA8',fontSize:10,lineHeight:'20px'}}>실행시간 : {dateText(item.occurredAt)}</Typography>{item.reason&&item.reason!==resultStyle.label&&<Box component="details" sx={{mt:'-20px',fontSize:10,color:'#7A8CA8'}}><Box component="summary" sx={{cursor:'pointer',textAlign:'right',listStyle:'none',height:20,lineHeight:'20px'}}>상세내용 ›</Box><Typography sx={{fontSize:10,py:'4px',overflowWrap:'anywhere'}}>{outcome}</Typography></Box>}</Box>
         </Box>;
       })}
     </Stack> : <Box sx={{ flex: 1, display: 'grid', placeItems: 'center' }}><Typography sx={{ ...mutedText, fontSize: 10 }}>확인할 대상 결과가 없습니다.</Typography></Box>}
@@ -221,7 +220,7 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
     : disabled ? '1단계 후 대기' : status === 'RUNNING' ? '진행 중' : '상시 수집';
   const badge = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
-  return <Box sx={{ ...cardSx, p: '4px 12px', minHeight: 39, opacity: disabled ? 0.86 : 1 }}>
+  return <Box sx={{ ...cardSx, p: '12px', minHeight: 55, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
       <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, justifyContent: 'center', alignItems: 'center', fontSize: 12, fontWeight: 600 }}>{label}</Box>

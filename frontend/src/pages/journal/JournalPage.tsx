@@ -9,7 +9,7 @@ import { getBuyTrades } from '../../data/mockBuyTrades';
 import { buyLots, stockItems } from '../../data/mockData';
 import { getAvailableLots, getSellTrades } from '../../data/mockSellTrades';
 import { liveApiEnabled } from '../../data/liveData';
-import { getDailyPositionProfit, getTrades, getBuyLots } from '../../data/roxstockApi';
+import { getTrades, getBuyLots } from '../../data/roxstockApi';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { colors } from '../../styles/tokens';
 import { getKoreanHolidays } from './koreanHolidays';
@@ -61,7 +61,6 @@ export function JournalPage() {
   const [pickerYear, setPickerYear] = useState(Number(initialDate.slice(0, 4)));
   const detailMode: 'trades'|'profit'|'trade'=searchParams.get('view')==='profit'?'profit':searchParams.get('view')==='trade'?'trade':'trades';
   const setDetailMode=(mode:'trades'|'profit'|'trade')=>{const next=new URLSearchParams(searchParams);if(mode==='trades')next.delete('view');else next.set('view',mode);setSearchParams(next,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
-  const positionProfit=useQuery({queryKey:['dailyPositionProfit',accountId,selectedDate],queryFn:()=>getDailyPositionProfit(accountId!,selectedDate),enabled:!!accountId&&detailMode==='profit'});
   const [selectedTradeId, setSelectedTradeId] = usePageMemory<string | null>('journalTrade',null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
@@ -141,6 +140,8 @@ export function JournalPage() {
   const monthBuy = monthTotals.buy;
   const dayProfit = unavailable ? undefined : dayTotals.profit;
   const dayBuy = dayTotals.buy, daySell = dayTotals.sell;
+  const stockProfits=Array.from(dayEntries.reduce((map,entry)=>{const row=map.get(entry.stockId)??{id:entry.stockId,name:entry.stockName,profit:0,sells:0,complete:true};if(entry.type==='sell'){row.sells++;const profit=sellEvaluation(entry).profit;if(profit===undefined||!Number.isFinite(profit))row.complete=false;else row.profit+=profit;}map.set(entry.stockId,row);return map;},new Map<string,{id:string;name:string;profit:number;sells:number;complete:boolean}>()).values());
+  const contributionTotal=stockProfits.reduce((sum,r)=>sum+(r.complete?Math.abs(r.profit):0),0);
   const selectedTrade = dayEntries.find((entry) => entry.id === selectedTradeId);
   const dayWeekday = new Date(`${selectedDate}T12:00:00`).getDay();
   const selectDate = (date: string) => { setSelectedDate(date); setMonth(monthOf(date)); setDetailMode('trades'); setSelectedTradeId(null); };
@@ -190,8 +191,8 @@ export function JournalPage() {
       {[['매수', unavailable ? undefined : dayBuy], ['매도', unavailable ? undefined : daySell], ['손익', dayProfit]].map(([label, amount], index) => <Box key={index} sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0, 1fr)', gap: '4px', alignItems: 'start', py: '3px', borderTop: index ? `1px solid ${colors.border}` : 0, fontSize: 12, color: index === 2 ? getProfitColor(dayProfit) : index === 0 ? colors.marketFall : colors.marketRise }}><span>{label}</span><Box sx={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{index === 2 ? <>{journalRate(dayTotals.cost && dayProfit !== undefined ? dayProfit / dayTotals.cost * 100 : undefined)}　{signedWon(amount as number | undefined)}</> : won(amount as number | undefined)}</Box></Box>)}
     </Box>
     <Box sx={{ ...panel, p: '8px 16px' }}>{titleRow}{transactions}</Box>
-    <Box data-testid="daily-position-profit" sx={{...panel,p:'12px 16px'}}><Stack direction="row" sx={{justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>보유 종목 평가손익</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>기여도</Typography></Stack>
-    {positionProfit.isPending?<Skeleton height={80}/>:positionProfit.isError?<Button onClick={()=>void positionProfit.refetch()}>조회 실패 · 다시 시도</Button>:!positionProfit.data?.meta.available?<Typography sx={{fontSize:12,color:colors.textMuted,py:2}}>해당 날짜의 평가손익 데이터가 없습니다.</Typography>:!positionProfit.data.data.length?<Typography sx={{fontSize:12,py:2}}>보유 종목이 없습니다.</Typography>:positionProfit.data.data.map(row=>{const total=positionProfit.data!.data.reduce((sum,r)=>sum+Math.abs(Number(r.profit)),0);const profit=Number(row.profit);return <Box key={row.id} sx={{display:'grid',gridTemplateColumns:'minmax(64px,1fr) 1fr minmax(90px,1.2fr)',gap:1,alignItems:'center',minHeight:24}}><Typography noWrap sx={{fontSize:11}}>{row.name}</Typography><Box sx={{height:7,bgcolor:colors.raised,borderRadius:4}}><Box sx={{height:'100%',width:`${total?Math.abs(profit)/total*100:0}%`,bgcolor:getProfitColor(profit),borderRadius:4}}/></Box><Typography sx={{fontSize:11,textAlign:'right',color:getProfitColor(profit)}}>{signedWon(profit)}</Typography></Box>;})}</Box>
+    <Box data-testid="daily-position-profit" sx={{...panel,p:'12px 16px'}}><Stack direction="row" sx={{justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>종목별 손익</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>기여도</Typography></Stack>
+    {status??(!stockProfits.length?<Typography sx={{fontSize:12,py:2}}>해당 날짜의 거래가 없습니다.</Typography>:stockProfits.map(row=><Box key={row.id} sx={{display:'grid',gridTemplateColumns:'minmax(64px,1fr) 1fr minmax(90px,1.2fr)',gap:1,alignItems:'center',minHeight:24}}><Typography noWrap sx={{fontSize:11}}>{row.name}</Typography><Box sx={{height:7,bgcolor:colors.raised,borderRadius:4}}>{row.complete&&row.sells>0&&<Box sx={{height:'100%',width:`${contributionTotal?Math.abs(row.profit)/contributionTotal*100:0}%`,bgcolor:getProfitColor(row.profit),borderRadius:4}}/>}</Box><Typography sx={{fontSize:11,textAlign:'right',color:row.sells?getProfitColor(row.profit):colors.textMuted}}>{!row.sells?'실현손익 없음':!row.complete?'—':signedWon(row.profit)}</Typography></Box>))}</Box>
   </Stack>;
   const dateSelector = <Box data-testid="journal-date-selector" sx={{ bgcolor: colors.canvas, pb: '8px', position: 'sticky', top: 0, zIndex: 2, flexShrink: 0 }}><Box data-testid="journal-date-card" sx={{ ...panel, height: 44, display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', px: '8px' }}>
     <IconButton aria-label="이전 날짜" onClick={() => moveDay(-1)} sx={{ width: 36, height: 36 }}><ChevronLeftRounded sx={{ fontSize: 20 }}/></IconButton>

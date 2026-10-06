@@ -90,7 +90,8 @@ export class PrismaDartRepository {
 
   async ensureBackfillPlan(startYear: number, endYear: number, initializedAt = new Date()): Promise<void> {
     const existing = await this.getState();
-    const historicalPlanActive = !existing?.backfillCompletedAt;
+    const extendsPlan=!!existing?.backfillInitializedAt && (existing.backfillEndYear??endYear)<endYear;
+    const historicalPlanActive = !existing?.backfillCompletedAt || extendsPlan;
     if (!existing?.backfillInitializedAt) await this.setState({ phase: 'BACKFILL', backfillStartYear: startYear, backfillEndYear: endYear });
     const securities = await this.prisma.security.findMany({ where: { isActive: true }, select: { id: true } });
     const known = await this.prisma.dartSecurityState.findMany({ select: { securityId: true } });
@@ -109,6 +110,14 @@ export class PrismaDartRepository {
       for (let j = 0; j < tasks.length; j += 1000) {
         await this.prisma.dartBackfillTask.createMany({ data: tasks.slice(j, j + 1000), skipDuplicates: true });
       }
+    }
+    if(extendsPlan){
+      // Idempotent extension: never reset completed historical report tasks.
+      for(let i=0;i<securities.length;i+=200){const slice=securities.slice(i,i+200);const tasks=slice.flatMap(({id})=>Array.from({length:endYear-existing!.backfillEndYear!},(_,j)=>existing!.backfillEndYear!+1+j).flatMap(fiscalYear=>REPORTS.map(report=>({securityId:id,fiscalYear,...report}))));
+        await this.prisma.dartBackfillTask.createMany({data:tasks,skipDuplicates:true});
+        await this.prisma.dartSecurityState.updateMany({where:{securityId:{in:slice.map(s=>s.id)}},data:{backfillCompletedAt:null}});
+      }
+      await this.setState({phase:'BACKFILL',backfillEndYear:endYear,backfillCompletedAt:null});
     }
     if (!existing?.backfillInitializedAt) await this.setState({ phase: 'BACKFILL', backfillStartYear: startYear, backfillEndYear: endYear, backfillInitializedAt: initializedAt, lastError: null });
     if (historicalPlanActive) await this.prisma.dartBackfillTask.updateMany({ where: { status: 'PENDING', security: { isActive: false } }, data: { status: 'NOT_APPLICABLE', processedAt: initializedAt, errorCode: 'SECURITY_INACTIVE', errorMessage: 'Security became inactive before its backfill was started.' } });

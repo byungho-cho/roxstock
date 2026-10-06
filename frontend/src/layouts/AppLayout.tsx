@@ -26,7 +26,7 @@ export function AppLayout() {
   usePageScrollRestoration(scrollRef);
   const isTargetPage = location.pathname === '/detail/target-arrivals';
   const isTargetSettings = location.pathname === '/detail/settings' && new URLSearchParams(location.search).get('view') === 'target-arrival';
-  const isTradePage = location.pathname.startsWith('/trade'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
+  const isTradePage = location.pathname.startsWith('/trade') || location.pathname.startsWith('/journal/trade/'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
   const pull = usePullToRefresh(scrollRef, isHomePage ? 'home' : location.pathname === '/stocks' ? 'stocks' : null);
   const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
   const isCash = location.pathname === '/detail/cash';

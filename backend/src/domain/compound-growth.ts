@@ -11,7 +11,7 @@ function name(value:unknown,label:string) { if(typeof value!=='string'||!value.t
 function year(value:unknown) { if(typeof value!=='number'||!Number.isInteger(value)||value<1900||value>2200)invalid('연도는 1900~2200으로 입력해 주세요.');return value; }
 function amount(value:unknown,label:string,rate=false) {
  if(typeof value!=='string'||!new RegExp(rate?'^-?\\d{1,5}(\\.\\d{1,4})?$':'^\\d{1,15}(\\.\\d{1,4})?$').test(value))invalid(label+'을 숫자로 입력해 주세요. (소수점 최대 4자리)');
- const n=new D(value);if(!n.isFinite()||(rate?n.lt(-100)||n.gt(99999):n.lt(0)))invalid(label+'의 범위를 확인해 주세요.');return n.toString();
+ const n=new D(value);if(!n.isFinite()||(rate?n.lte(0)||n.gt(99999):label==='시작 금액'?n.lte(0):n.lt(0)))invalid(label+'의 범위를 확인해 주세요.');return n.toString();
 }
 export function parseGoal(value:unknown):GoalInput {
  const b=body(value);if(typeof b.displayColor!=='string'||!colors.includes(b.displayColor))invalid('목표 색상을 선택해 주세요.');
