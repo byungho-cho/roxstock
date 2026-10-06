@@ -1,12 +1,13 @@
+import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, ButtonBase, IconButton, Skeleton,  Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, MenuItem, Select, IconButton, Skeleton,  Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { correctCashBalance, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
+import { getBuyLots, correctCashBalance, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { flushSync } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -35,7 +36,7 @@ export function LiveCashPage() {
   const tablet = useMediaQuery('(min-width:600px)'), navigate = useNavigate(), location = useLocation();
   const [params] = useSearchParams();
   const bodyRef = useRef<HTMLDivElement>(null), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null), balanceRef = useRef<HTMLInputElement>(null), securityRef = useRef<HTMLButtonElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null), balanceRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false), [securityName, setSecurityName] = useState('');
   const [mode, setMode] = usePageMemory<'month' | 'year'>('cashMode','month');
   const [month, setMonth] = usePageMemory('cashMonth',initialMonth);
@@ -98,7 +99,7 @@ export function LiveCashPage() {
   const [editing, setEditing] = useState<CashTransactionDto | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL' | 'DIVIDEND'>('DEPOSIT');
+  const [type, setType] = useState<CashTransactionDto['transactionType']>('DEPOSIT');
   const [date, setDate] = useState(today);
   const [amount, setAmount] = useState('');
   const [gross, setGross] = useState('');
@@ -108,8 +109,11 @@ export function LiveCashPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const dividendLots = useQuery({queryKey:['allBuyLots',accountId,'dividend-options'],queryFn:()=>getBuyLots(accountId!,undefined,false),enabled:!!accountId});
+  const dividendOptions = [...new Map((dividendLots.data??[]).map(lot=>[lot.security.id,lot.security])).values()];
   const inputVisible = tablet ? open : params.has('cashInput');
   const searching = tablet ? searchOpen : params.get('cashInput') === 'search';
+  useEffect(()=>{if(inputVisible&&!searching){const frame=requestAnimationFrame(()=>(type==='DIVIDEND'?grossRef:amountRef).current?.focus({preventScroll:true}));return()=>cancelAnimationFrame(frame);}},[inputVisible,searching,type]);
   const enterInput = (search = false) => {
     if (tablet) { if (search) setSearchOpen(true); return; }
     const next = new URLSearchParams(location.search); next.set('cashInput', search ? 'search' : 'form');
@@ -131,7 +135,7 @@ export function LiveCashPage() {
   useEffect(() => { if (inputVisible && !editingAccountId && accountId) setEditingAccountId(accountId); }, [inputVisible, editingAccountId, accountId]);
   const openCreate = () => { setEditing(null); setEditingAccountId(accountId ?? null); setType('DEPOSIT'); setDate(today()); setAmount(''); setGross(''); setTax(''); setSecurityId(''); setSecurityName(''); setMemo(''); setError(''); setFieldErrors({}); setOpen(true); enterInput(); };
   const openEdit = (entry: CashTransactionDto) => {
-    if (entry.transactionType === 'BUY' || entry.transactionType === 'SELL') return;
+    if (entry.id !== balance.data?.recentTransactions[0]?.id) return;
     setEditing(entry); setEditingAccountId(accountId ?? null); setType(entry.transactionType);
     setDate(new Date(entry.transactionDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     setAmount(entry.amount); setGross(entry.dividend?.grossAmount ?? '');
@@ -183,7 +187,7 @@ export function LiveCashPage() {
       const transactionDate = new Date(`${date}T12:00:00+09:00`).toISOString();
       if (editing) await updateCashTransaction(editing.id, { transactionDate, amount, memo: memo || null, ...(type === 'DIVIDEND' ? { securityId, grossAmount: gross } : {}) });
       else if (type === 'DIVIDEND') await createDividend({ accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
-      else await createCashTransaction({ accountId, transactionType: type, transactionDate, amount, memo: memo || null });
+      else if(type==='DEPOSIT'||type==='WITHDRAWAL') await createCashTransaction({ accountId, transactionType: type, transactionDate, amount, memo: memo || null });
       await invalidateCash();
       closeInput(); setAmount(''); setMemo('');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 등록에 실패했습니다.'); }
@@ -208,23 +212,24 @@ export function LiveCashPage() {
   const inputContent = searching ? <CashSearch accountId={editingAccountId ?? undefined} onSelect={security => {
     setSecurityId(security.id); setSecurityName(security.name); backFromSearch();
     requestAnimationFrame(() => grossRef.current?.focus());
-  }} /> : <Stack spacing="8px" data-testid="cash-form" sx={{ '& input': { fontSize: '14px !important', fontWeight: '600 !important' }, '& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root': { fontSize: 12 } }}>
-    <Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>
-    <DateField size="small" calendarIconSrc="/cash-v04/calendar.svg" label="거래일자" value={date} onChange={setDate} inputRef={dateRef} autoFocus error={fieldErrors.date} disabled={saving} onEnter={() => type === 'DIVIDEND' ? securityRef.current?.focus() : amountRef.current?.focus()} enterKeyHint="next" />
+  }} /> : <Stack spacing="8px" data-testid="cash-form" sx={{ '& .MuiInputBase-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiTypography-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiInputBase-root + img': {ml:'8px'}, '& input': { fontSize: '14px !important', fontWeight: '600 !important' }, '& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root': { fontSize: 12 } }}>
+    {editing&&(type==='BUY'||type==='SELL')&&<Typography>{labels[type]} 예수금 내역 보정</Typography>}<Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>
+    <DateField size="small" calendarIconSrc="/cash-v04/calendar.svg" label="거래일자" value={date} onChange={setDate} inputRef={dateRef} error={fieldErrors.date} disabled={saving} onEnter={() => type === 'DIVIDEND' ? grossRef.current?.focus() : amountRef.current?.focus()} enterKeyHint="next" />
     {type === 'DIVIDEND' && <>
-      <ButtonBase ref={securityRef} aria-label="배당 종목 선택" onClick={() => enterInput(true)} disabled={saving} sx={{ height: 36, px: '8px', pr: '4px', bgcolor: colors.raised, border: '1px solid ' + (fieldErrors.security ? colors.error : colors.borderStrong), borderRadius: '8px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}><Typography sx={{ fontSize: 12, color: colors.textSecondary }}>종목</Typography><Typography sx={{ flex: 1, textAlign: 'right', fontSize: 14, fontWeight: 600 }}>{securityName || '종목 검색'}</Typography><ChevronRightRounded sx={{ fontSize: 16, color: colors.textMuted }} /></ButtonBase>
+      <Select size="small" displayEmpty value={securityId} disabled={saving||dividendLots.isPending} onChange={e=>{setSecurityId(e.target.value);setSecurityName(dividendOptions.find(s=>s.id===e.target.value)?.name??'');}} inputProps={{'aria-label':'배당 종목 선택',required:true}} sx={{height:36,bgcolor:colors.raised,fontSize:12}}><MenuItem value="" disabled>종목을 선택하세요.</MenuItem>{dividendOptions.map(stock=><MenuItem key={stock.id} value={stock.id}>{stock.name}</MenuItem>)}</Select>
+      {dividendLots.isError&&<Button onClick={()=>void dividendLots.refetch()}>종목 조회 실패 · 다시 시도</Button>}
       {fieldErrors.security && <Typography role="alert" sx={{ fontSize: 11, color: colors.error }}>{fieldErrors.security}</Typography>}
-      <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세전 배당" value={gross} onChange={value => { setGross(value); setAmount(String(Math.max(0, Number(value) - Number(tax)))); }} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => taxRef.current?.focus()} />
-      <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세금" value={tax} onChange={value => { setTax(value); setAmount(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
+      <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus label="세전 배당" value={gross} onChange={value => { setGross(value); setAmount(String(Math.max(0, Number(value) - Number(tax)))); }} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
     </>}
-    <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label={type === 'DIVIDEND' ? '세후 배당' : '금액'} value={amount} onChange={value => { setAmount(value); if (type === 'DIVIDEND' && gross) setTax(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />
+    <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={type!=='DIVIDEND'} label={type === 'DIVIDEND' ? '세후 배당' : '금액'} value={amount} onChange={value => { setAmount(value); if (type === 'DIVIDEND' && gross) setTax(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
+    {type === 'DIVIDEND' && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세금" value={tax} onChange={value => { setTax(value); setAmount(String(Math.max(0, Number(gross) - Number(value)))); }} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
     <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>변동 정보</Typography>
     <AppCard sx={{ p: '8px 14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>변동금액</Typography><Typography sx={{ fontSize: 11, color: type === 'WITHDRAWAL' ? colors.marketFall : colors.marketRise }}>{amount ? signed((type === 'WITHDRAWAL' ? -1 : 1) * Number(amount)) : '—'}</Typography></Stack>
-      <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{editing ? '현재 예수금' : '거래 후 예수금'}</Typography><Typography sx={{ fontSize: 12 }}>{balance.data && Number.isFinite(cashNumber(balance.data.account.currentBalance)) && amount ? formatWon(Number(balance.data.account.currentBalance) + (editing ? 0 : (type === 'WITHDRAWAL' ? -1 : 1) * Number(amount))) : '—'}</Typography></Stack>
+      <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>변동금액</Typography><Typography sx={{ fontSize: 11, color: (type === 'WITHDRAWAL'||type==='BUY') ? colors.marketFall : colors.marketRise }}>{amount ? signed(((type === 'WITHDRAWAL'||type==='BUY') ? -1 : 1) * Number(amount)) : '—'}</Typography></Stack>
+      <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{'거래 후 예수금'}</Typography><Typography sx={{ fontSize: 12 }}>{balance.data && Number.isFinite(cashNumber(balance.data.account.currentBalance)) && amount ? formatWon(Number(balance.data.account.currentBalance) + (((type === 'WITHDRAWAL'||type==='BUY') ? -1 : 1) * Number(amount) - (editing ? ((type === 'WITHDRAWAL'||type==='BUY') ? -1 : 1)*Number(editing.amount) : 0))) : '—'}</Typography></Stack>
     </AppCard>
-    {editing && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>과거 내역을 수정해도 현재 예수금은 변경되지 않습니다.</Typography>}
+    {editing && <Typography sx={{ fontSize: 11, color: colors.textMuted }}>최신 내역의 차액만 현재 예수금에 반영합니다. 원본 매수·매도 기록은 유지됩니다.</Typography>}
     {error && <Typography role="alert" sx={{ fontSize: 12, color: colors.error }}>{error}</Typography>}
     <Stack direction="row" spacing="12px" sx={{ pt: '4px' }}><Button disabled={saving} onClick={editing ? () => setConfirmDelete(true) : closeInput} sx={{ width: 96, height: 48, borderRadius: '12px', bgcolor: editing ? colors.marketRise : colors.surface, border: '1px solid ' + colors.border, color: editing ? '#fff' : colors.textSecondary }}>{editing ? '삭제' : '취소'}</Button><Button disabled={saving} variant="contained" onClick={() => void submit()} sx={{ flex: 1, height: 48, borderRadius: '12px' }}>{saving ? '저장 중…' : editing ? '변경' : '등록'}</Button></Stack>
   </Stack>;
@@ -258,7 +263,7 @@ export function LiveCashPage() {
             <AppCard data-testid="cash-history" sx={{ borderRadius: '8px', p: '13px 14px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <Stack direction="row" sx={{ height: 22, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>변경내역</Typography><Typography data-testid="cash-history-total" sx={{ fontSize: 10, color: colors.textMuted }}>{history.data ? `총 ${history.data.meta.total.toLocaleString('ko-KR')}개` : '총 —개'}</Typography></Stack>
               <Box sx={{ display: 'grid', gridTemplateColumns: '90px 64px minmax(0,1fr)', gap: '8px', height: 16, color: colors.textMuted, fontSize: 10 }}><Box>구분</Box><Box sx={{ textAlign: 'center' }}>날짜</Box><Box data-testid="cash-amount-heading" sx={{ textAlign: 'right' }}>금액</Box></Box>
-              {entries.map(entry => { const editable = entry.transactionType !== 'BUY' && entry.transactionType !== 'SELL'; const tone = entry.transactionType === 'BUY' || entry.transactionType === 'WITHDRAWAL' ? colors.marketFall : colors.marketRise; return <Box data-scroll-item={entry.id} data-testid="cash-history-row" key={entry.id} component={editable ? 'button' : 'div'} onClick={editable ? () => openEdit(entry) : undefined} aria-label={editable ? `${labels[entry.transactionType]} 내역 수정` : undefined} sx={{ width: '100%', display: 'grid', gridTemplateColumns: '90px 64px minmax(0,1fr)', gap: '8px', alignItems: 'center', height: 20, border: 0, p: 0, bgcolor: 'transparent', cursor: editable ? 'pointer' : 'default', textAlign: 'left' }}><Typography sx={{ fontSize: 12, color: tone }}>{labels[entry.transactionType]}</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted, textAlign: 'center' }}>{shortDate(entry.transactionDate)}</Typography><Typography data-testid="cash-row-amount" sx={{ fontSize: 12, fontWeight: 600, color: tone, textAlign: 'right', whiteSpace: 'nowrap' }}>{Number.isFinite(cashNumber(entry.signedAmount)) ? signed(Number(entry.signedAmount)) : '—'}</Typography></Box>; })}
+              {entries.map(entry => { const editable = entry.id === balance.data?.recentTransactions[0]?.id; const tone = entry.transactionType === 'BUY' || entry.transactionType === 'WITHDRAWAL' ? colors.marketFall : colors.marketRise; return <Box data-scroll-item={entry.id} data-testid="cash-history-row" key={entry.id} component={editable ? 'button' : 'div'} onClick={editable ? () => openEdit(entry) : undefined} aria-label={editable ? `${labels[entry.transactionType]} 내역 수정` : undefined} sx={{ width: '100%', display: 'grid', gridTemplateColumns: '90px 64px minmax(0,1fr)', gap: '8px', alignItems: 'center', height: 20, border: 0, p: 0, bgcolor: 'transparent', cursor: editable ? 'pointer' : 'default', textAlign: 'left' }}><Typography sx={{ fontSize: 12, color: tone }}>{labels[entry.transactionType]}</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted, textAlign: 'center' }}>{shortDate(entry.transactionDate)}</Typography><Typography data-testid="cash-row-amount" sx={{ fontSize: 12, fontWeight: 600, color: tone, textAlign: 'right', whiteSpace: 'nowrap' }}>{Number.isFinite(cashNumber(entry.signedAmount)) ? signed(Number(entry.signedAmount)) : '—'}</Typography></Box>; })}
               {history.isPending && <Skeleton height={60} />}
               {history.isError && <Button role="alert" onClick={() => void history.refetch()} sx={{ fontSize: 11 }}>내역 조회 실패 · 다시 시도</Button>}
               {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ fontSize: 12, color: colors.textMuted }}>내용이 없습니다.</Typography>}
@@ -285,6 +290,6 @@ export function LiveCashPage() {
       <Typography sx={{ fontSize: 10, color: colors.textMuted, mt: '8px' }}>미래 기간은 선택할 수 없습니다.</Typography>
       {popupActions(() => setPeriodPicker(false), selectPeriod, '선택')}
     </CashPopup>
-    <CashPopup open={confirmDelete} title="예수금 내역 삭제" onClose={() => !saving && setConfirmDelete(false)}><Typography sx={{ fontSize: 12 }}>이 내역을 삭제하시겠습니까?</Typography><Typography sx={{ fontSize: 11, color: colors.textMuted, mt: '12px' }}>현재·과거 예수금은 자동으로 재계산하지 않습니다.</Typography>{popupActions(() => setConfirmDelete(false), () => void remove(), '삭제', saving)}</CashPopup>
+    <ConfirmActionDialog open={confirmDelete} width={306} title={`${labels[type]} 내역을 삭제할까요?`} name={type==='DIVIDEND'?securityName:undefined} detail={date.replaceAll('-','.')} amount={editing?signed(Number(editing.signedAmount)):undefined} onClose={()=>setConfirmDelete(false)} onConfirm={()=>void remove()} busy={saving}>삭제한 내역만큼 현재 예수금을 보정합니다. 원본 매수·매도 기록은 유지됩니다.</ConfirmActionDialog>
   </Box>;
 }

@@ -1,3 +1,4 @@
+import {TradeDetailPage} from './pages/trade/TradeDetailPage';
 import {useCallback,useRef,useState} from 'react';
 import {Box,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
@@ -52,7 +53,7 @@ export function App() {
         <Route path="stocks/:stockId/value" element={<ValueAnalysisPage />} />
         <Route path="stocks/:stockId/financials" element={<FinancialPage />} />
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
-        <Route path="journal" element={<JournalPage />} />
+        <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />

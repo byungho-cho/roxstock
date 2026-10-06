@@ -134,7 +134,7 @@ export async function cashRoutes(app: FastifyInstance) {
       ...(typedTypes ? { transactionType: { in: typedTypes } } : {}),
     };
     const [transactions, total, groups] = await Promise.all([
-      prisma.cashTransaction.findMany({ where, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], skip: offset, take: limit }),
+      prisma.cashTransaction.findMany({ where, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: limit }),
       prisma.cashTransaction.count({ where }),
       groupedSummary(accountId, { gte: from, lt: to }, typedTypes),
     ]);
@@ -143,6 +143,15 @@ export async function cashRoutes(app: FastifyInstance) {
       summary: summarizeCashGroups(groups),
       meta: { accountId: accountId.toString(), count: transactions.length, total, limit, offset, timezone: 'Asia/Seoul' },
     };
+  });
+
+  app.get<{Params:AccountParams;Querystring:{date:string}}>('/accounts/:accountId/daily-position-profit', async request => {
+    const accountId=id(request.params.accountId,'accountId');await ensureAccount(accountId);
+    parseDateOnly(request.query.date??'', 'date');
+    const snapshotDate=new Date(`${request.query.date}T00:00:00.000Z`);
+    const rows=await prisma.dailyPositionSnapshot.findMany({where:{accountId,snapshotDate,quantity:{gt:0}},include:{security:{select:{name:true}}},orderBy:{unrealizedProfitLoss:'desc'}});
+    const snapshot=await prisma.dailyAccountSnapshot.findUnique({where:{accountId_snapshotDate:{accountId,snapshotDate}}});
+    return {data:rows.map(row=>({id:row.securityId.toString(),name:row.security.name,profit:row.unrealizedProfitLoss.toString()})),meta:{date:request.query.date,available:!!snapshot||rows.length>0}};
   });
 
   app.get<{ Params: AccountParams; Querystring: OverviewQuery }>('/accounts/:accountId/cash-overview', async (request) => {
@@ -155,7 +164,7 @@ export async function cashRoutes(app: FastifyInstance) {
     const [monthlyGroups, yearlyGroups, recent] = await Promise.all([
       groupedSummary(accountId, kstMonthRange(year, month), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
       groupedSummary(accountId, kstYearRange(year), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
-      prisma.cashTransaction.findMany({ where: { accountId }, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }], take: limit }),
+      prisma.cashTransaction.findMany({ where: { accountId }, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: limit }),
     ]);
     return {
       data: {
