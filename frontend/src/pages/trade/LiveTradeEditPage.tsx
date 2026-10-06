@@ -1,3 +1,4 @@
+import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { useTargetArrivals } from '../../hooks/useTargetArrivals';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,8 +43,7 @@ export function LiveTradeEditPage() {
     ? `/journal?date=${encodeURIComponent(params.get('fromDate') ?? form?.date ?? '')}`
     : `/stocks/${encodeURIComponent(trade?.security.id ?? params.get('stock') ?? '')}?tab=trades`;
   const refresh = async () => {
-    await Promise.all(['targetArrivals', 'recentBuys', 'tradeDetail', 'stockTrades', 'journalTrades', 'buyLots', 'stocks', 'dashboard', 'cashOverview', 'cashTransactions'].map((key) =>
-      queryClient.invalidateQueries({ queryKey: [key] })));
+    await invalidatePortfolio(queryClient);
   };
   const save = async () => {
     if (!form || !trade || busy) return;
