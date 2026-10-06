@@ -14,26 +14,47 @@ function integer(value: string | undefined, fallback: number, min: number, max: 
 }
 function yearRange(year: number) { return { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) }; }
 export async function valueAnalysisRoutes(app: FastifyInstance) {
+  // Cache slow financial joins briefly; never cache the live price used for W/order.
+  const loadFinancials = (year: number, query: string) => prisma.security.findMany({
+    where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
+    include: { fundamentals: true,
+      financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
+      dartFinancialFilings: {where:{fiscalYear:{lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},
+      valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
+  });
+  const cache = new Map<string, { expires: number; result: ReturnType<typeof loadFinancials> }>();
+  function financials(year: number, query: string) {
+    const key = JSON.stringify([year, query]), existing = cache.get(key);
+    if (existing && existing.expires > Date.now()) return existing.result;
+    if (cache.size >= 16) cache.delete(cache.keys().next().value!);
+    const entry = { expires: Infinity, result: loadFinancials(year, query) };
+    cache.set(key, entry);
+    void entry.result.then(() => { entry.expires = Date.now() + 60_000; }, () => { if (cache.get(key) === entry) cache.delete(key); });
+    return entry.result;
+  }
+  app.addHook('onClose', async () => { cache.clear(); });
   app.get<{ Querystring: Query }>('/value-analysis', async request => {
     const year = integer(request.query.year, currentYear(), 1900, currentYear(), 'year');
     const query = request.query.query?.trim() ?? '';
     if (query.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'query is too long.');
     // Master securities, including unregistered companies. One result fixes the full navigation/order snapshot.
-    const securities = await prisma.security.findMany({
-      where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-      include: { marketPrice: true, fundamentals: true,
-        financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
-        dartFinancialFilings: {where:{fiscalYear:{lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},
-        valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
-    });
-    const rows = orderByWeight(securities.map(security => {
-      const metric = valuation(security.valuationMetrics[0]), price = security.marketPrice?.currentPrice.toString() ?? null;
+    const [securities, live] = await Promise.all([
+      financials(year, query),
+      prisma.security.findMany({
+        where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
+        select: { id: true, marketPrice: true },
+      }),
+    ]);
+    const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));
+    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString())).map(security => {
+      const marketPrice = prices.get(security.id.toString());
+      const metric = valuation(security.valuationMetrics[0]), price = marketPrice?.currentPrice.toString() ?? null;
       const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
       const issuedShares=fundamentals&&currentYear(fundamentals.updatedAt)===year?fundamentals.issuedShares?.toString()??null:null;
       return { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price,
-        previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null,
+        previousClosePrice: marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice?.priceUpdatedAt.toISOString() ?? null,
         per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price),
         eps:metric?.eps??null,issuedShares,capital:annual?.totalEquity??null,capitalYear:annual?.fiscalYear??null,requiredReturn:'8.0',
         excessEarnings:null,shareholderValue:null,fundamentalsUpdatedAt:fundamentals?.updatedAt.toISOString()??null,
