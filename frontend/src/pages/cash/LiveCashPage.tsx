@@ -1,3 +1,4 @@
+import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
@@ -142,7 +143,7 @@ export function LiveCashPage() {
     setTax(entry.dividend ? String(Number(entry.dividend.grossAmount) - Number(entry.dividend.netAmount)) : '');
     setSecurityId(entry.dividend?.securityId ?? ''); setSecurityName(entry.dividend?.securityName ?? ''); setMemo(entry.memo ?? ''); setError(''); setFieldErrors({}); setOpen(true); enterInput();
   };
-  const invalidateCash = async () => Promise.all(['accounts', 'dashboard', 'cashBalance', 'cashOverview', 'cashTransactions', 'assetHistory', 'analysis-history', 'cashTrend'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+  const invalidateCash = async () => invalidatePortfolio(queryClient);
   const editBalance = () => { setBalanceAccountId(accountId ?? null); setNewBalance(balance.data?.account.currentBalance ?? ''); setBalanceError(''); setBalanceOpen(true); };
   const saveBalance = async () => {
     if (balanceLock.current || !accountId || accountId !== balanceAccountId) { if (accountId !== balanceAccountId) setBalanceError('계좌가 변경됐습니다. 다시 열어 주세요.'); return; }

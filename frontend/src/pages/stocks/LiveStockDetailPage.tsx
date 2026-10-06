@@ -1,3 +1,4 @@
+import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import {pageMetrics} from '../../styles/tokens';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
@@ -51,7 +52,7 @@ function AccountStockDetail({stock,initialTab='holding'}:{stock:StockItem;initia
  useEffect(()=>{if(!canChangeCategory)setCategoryOpen(false);},[canChangeCategory]);
  const [visibleYears,setVisibleYears]=usePageMemory('stockTradeYears:'+stock.id,1);
  useEffect(()=>{setError('');setRemove(null);setPriceOpen(false);setCategoryOpen(false);setListDeleteOpen(false);},[stock.id,accountId]);
- const refresh=()=>Promise.all(['stocks','buyLots','allBuyLots','stockTrades','dashboard','targetArrivals','recentBuys','journalTrades','tradeDetail','cashOverview','cashTransactions'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
+ const refresh=()=>invalidatePortfolio(queryClient);
  const removeTrade=async()=>{if(!remove||lock.current||!deletion.data||deletion.data.account.id!==accountId||remove.type==='buy'&&!!deletion.data.sellTrades?.length)return;lock.current=true;setBusy(true);setError('');try{await deleteTrade(remove.type,remove.id,false,accountId);await refresh();if(alive.current)setRemove(null);}catch(e){if(alive.current)setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;if(alive.current)setBusy(false);}};
  const saveCategory=async()=>{if(!stock.watchlistItemId||lock.current||!canChangeCategory)return;lock.current=true;setBusy(true);try{await updateWatchlistItem(stock.watchlistItemId,{accountId,listType:category});await refresh();if(alive.current){setCategoryOpen(false);navigate(`/stocks?tab=${category==='HOLDING'?'holding':category==='WATCHLIST'?'watchlist':'recommended'}`);}}catch(e){if(alive.current)setError(e instanceof Error?e.message:'분류 변경 실패');}finally{if(alive.current)setBusy(false);lock.current=false;}};
  const sellEntries=trades.data?.data.filter(t=>t.type==='SELL')??[];const years=[...new Set(sellEntries.map(t=>new Date(t.tradedAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,4)))].sort().reverse();
