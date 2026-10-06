@@ -8,14 +8,13 @@ import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from
 import { AppLayout } from './layouts/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ValueAnalysisPage } from './pages/value/ValueAnalysisPage';
+import { FinancialPage } from './pages/financial/FinancialPage';
 import { CompoundPage } from './pages/compound/CompoundPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { StockListPage } from './pages/stocks/StockListPage';
 import { StockDetailPage } from './pages/stocks/StockDetailPage';
 import { LiveStockDetailPage } from './pages/stocks/LiveStockDetailPage';
 import { LiveStockEditPage } from './pages/stocks/LiveStockEditPage';
-import { LiveStockInsightPage } from './pages/stocks/LiveStockInsightPage';
-import { StockInsightPage } from './pages/stocks/StockInsightPage';
 import { StockAddPage } from './pages/stocks/StockAddPage';
 import { StockEditPage } from './pages/stocks/StockEditPage';
 import { TradePage } from './pages/trade/TradePage';
@@ -51,7 +50,7 @@ export function App() {
         <Route path="stocks/:stockId/price" element={<StockPricePage />} />
         <Route path="stocks/:stockId/edit" element={liveApiEnabled ? <LiveStockEditPage /> : <StockEditPage />} />
         <Route path="stocks/:stockId/value" element={<ValueAnalysisPage />} />
-        <Route path="stocks/:stockId/financials" element={liveApiEnabled ? <LiveStockInsightPage mode="financials" /> : <StockInsightPage mode="financials" />} />
+        <Route path="stocks/:stockId/financials" element={<FinancialPage />} />
         <Route path="stocks/:stockId" element={liveApiEnabled ? <LiveStockDetailPage /> : <StockDetailPage />} />
         <Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
@@ -63,6 +62,7 @@ export function App() {
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
         <Route path="detail/compound" element={<CompoundPage />} />
+        <Route path="detail/financials" element={<FinancialPage />} />
         <Route path="detail/value" element={<ValueAnalysisPage />} />
         <Route path="detail/investment" element={<InvestmentPage />} />
         <Route path="detail/investment-profit" element={<InvestmentProfitPage />} />

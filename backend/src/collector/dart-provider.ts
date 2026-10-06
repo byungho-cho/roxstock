@@ -212,6 +212,16 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
       amount: numericText(source.currentAmount), ytdAmount: numericText(source.currentYtdAmount),
     };
   }
+  for(const [field,statement,id] of [
+    ['parentNetIncome','IS','ifrs-full_ProfitLossAttributableToOwnersOfParent'],
+    ['parentEquity','BS','ifrs-full_EquityAttributableToOwnersOfParent'],
+    ['investingCashFlow','CF','ifrs-full_CashFlowsFromUsedInInvestingActivities'],
+    ['financingCashFlow','CF','ifrs-full_CashFlowsFromUsedInFinancingActivities'],
+    ['cashEquivalents','BS','ifrs-full_CashAndCashEquivalents'],
+  ]) {
+    const row=rows.find(r=>(r.statementDivision===statement||(statement==='IS'&&r.statementDivision==='CIS'))&&r.accountId===id);
+    if(row)result.accountSources[field]={statementDivision:row.statementDivision,accountId:row.accountId,accountName:row.accountName,amount:numericText(row.currentAmount),ytdAmount:numericText(row.currentYtdAmount)};
+  }
   return result;
 };
 
