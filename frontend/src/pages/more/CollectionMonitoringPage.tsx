@@ -330,7 +330,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const stageOneComplete = Boolean(current.backfillCompletedAt) && current.phase === 'CURRENT';
   const stageOneBadge = stageOneComplete ? statusStyle.OK : statusStyle[current.status] ?? unknownStatus;
   const stageOneLabel = stageOneComplete ? '완료'
-    : current.status === 'WAITING' ? '야간 대기' : (statusStyle[current.status]?.label ?? '실행 전');
+    : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
 
   return <Box sx={{ px: 0, pt: 0, pb: '80px' }}>
     {detail.isError && !detail.data && <Typography role="alert" sx={{ color: '#F26A6F', fontSize: 10, mb: 0.5 }}>수집 상세를 불러오지 못했습니다.</Typography>}
@@ -344,11 +344,11 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
             <Box sx={{ display: { xs: 'none', sm: 'block' } }}><ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} /></Box>
           </Stack>
           <Typography sx={{ color: '#34D399', fontSize: 10, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}>{numberText(completed)} / {numberText(planned)}개 작업 완료</Typography>
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-            <Box sx={{ height: 3, bgcolor: '#26334A', borderRadius: 2, my: 0.5, overflow: 'hidden' }}><Box sx={{ height: '100%', width: planned && completed != null ? `${Math.min(100, completed * 100 / planned)}%` : 0, bgcolor: '#34D399' }} /></Box>
-            <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '12px' }}>대상 {numberText(planned)} · 성공 {numberText(success)} · 미공시 {numberText(noFiling)} · 실패 {numberText(failed)} · 대기 {numberText(pending)}</Typography>
-          </Box>
+          <CollectionProgress planned={planned} counts={byStatus} label="전체 과거 자료 진행률" review={Number(dart.reviewRequired??0)}/>
+          <CollectionProgress planned={dart.priority?.planned??null} counts={asRecord(dart.priority?.byStatus)} label={`우선종목 ${numberText(dart.priority?.securities)}개 진행률`}/>
+          <Typography sx={{...mutedText,fontSize:10,mt:'8px'}}>오늘 호출 {numberText(current.dailyApiCalls)} / {numberText(current.dailyApiLimit)}회 · {asRecord(current).collectionState==='DAILY_LIMIT'?'일일 한도 도달':'호출 예산 사용 중'}</Typography>
         </Box>
+        {dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' && <Typography sx={{...mutedText,fontSize:10}}>공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용</Typography>}
         <DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} />
         <Box sx={{ display: 'block' }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <RunHistory runs={runs} loading={detail.isFetching} feature={feature} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen((value) => !value)} showAllRuns={showAllRuns} onToggleRuns={() => setShowAllRuns((value) => !value)} filterControls={filterControls} />
@@ -372,6 +372,18 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   </Box>;
 }
 
+function CollectionProgress({planned,counts,label,review=0}:{planned:number|null;counts:DataRecord;label:string;review?:number}) {
+  const total=Math.max(0,planned??0),success=Number(counts.SUCCESS??0),missing=Number(counts.NO_FILING??0)+Number(counts.NOT_APPLICABLE??0),failed=Number(counts.FAILED??0),processing=Number(counts.PROCESSING??0),pending=Number(counts.PENDING??0);
+  const done=success+missing,percent=total?Math.min(100,done*100/total):0;
+  const segments=[{name:'성공',count:success,color:'#34D399'},{name:'미공시·대상 아님',count:missing,color:'#7A8CA8'},{name:'실패',count:failed,color:'#F26A6F'},{name:'처리 중',count:processing,color:'#FAB83B'}];
+  return <Box sx={{mt:'8px'}}><Box sx={{display:'flex',justifyContent:'space-between',gap:'8px',fontSize:11,fontWeight:700,mb:'4px'}}><span>{label}</span><span>{planned==null?'—':percent.toFixed(1)+'%'}</span></Box>
+    <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Number(percent.toFixed(1))} aria-valuetext={`${done.toLocaleString()} / ${total.toLocaleString()}개 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color,transition:'width 250ms ease'}}/>)}</Box>
+    <Typography sx={{fontSize:10,color:'#7A8CA8',mt:'4px'}}>완료 {done.toLocaleString()} / {planned==null?'—':total.toLocaleString()}개 · 대기 {pending.toLocaleString()}</Typography>
+    <Box sx={{display:'flex',flexWrap:'wrap',gap:'4px 10px',mt:'4px'}}>{segments.map(item=><Typography key={item.name} sx={{fontSize:10,color:item.color}}>{item.name} {item.count.toLocaleString()}</Typography>)}</Box>
+    {review>0&&<Typography sx={{fontSize:10,color:'#F26A6F',mt:'4px'}}>검토 필요 {review.toLocaleString()}건 · 자동 재시도 중단, 완료에 포함하지 않음</Typography>}
+  </Box>;
+}
+
 export function CollectionMonitoringPage() {
   const tablet = useMediaQuery('(min-width:600px)');
   const { feature } = useParams();
@@ -386,3 +398,4 @@ export function CollectionMonitoringPage() {
     <OverlayRegionScrollbar scrollRef={rightRef} label="수집 상세 스크롤" offset={0} />
   </Box>;
 }
+

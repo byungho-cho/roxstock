@@ -290,7 +290,7 @@ export class OpenDartProvider {
 
   async listPeriodicReports(corpCode: string, fiscalYear: number): Promise<DartReport[]> {
     const start = `${fiscalYear - 1}0101`;
-    const end = `${fiscalYear + 1}0630`;
+    const end = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-', '');
     const all: RawReport[] = [];
     let page = 1;
     let total = 1;
@@ -300,7 +300,8 @@ export class OpenDartProvider {
         sort: 'date', sort_mth: 'asc', page_no: String(page), page_count: '100',
       });
       if (body.status === '013') break;
-      all.push(...(body.list ?? []));
+      if (!Array.isArray(body.list)) throw new DartApiError('INVALID_JSON', 'Disclosure list is not an array.');
+      all.push(...body.list);
       total = Math.max(1, Number(body.total_page ?? 1));
       page += 1;
     }
@@ -311,7 +312,9 @@ export class OpenDartProvider {
     const body = await this.json<RawFinancial>('fnlttSinglAcntAll.json', {
       corp_code: corpCode, bsns_year: String(fiscalYear), reprt_code: reportCode, fs_div: fsDiv,
     });
-    return (body.list ?? []).flatMap((row) => {
+    if (body.status === '013') return [];
+    if (!Array.isArray(body.list)) throw new DartApiError('INVALID_JSON', 'Financial statement list is not an array.');
+    return body.list.flatMap((row) => {
       const receiptNo = String(row.rcept_no ?? '');
       const year = Number(row.bsns_year);
       const code = String(row.reprt_code ?? '') as DartReportCode;
