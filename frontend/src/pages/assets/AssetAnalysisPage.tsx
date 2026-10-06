@@ -38,7 +38,17 @@ export function AssetAnalysisPage() {
   const failed = accounts.isError || dashboard.isError || history.isError;
   const retry = () => { void accounts.refetch(); void dashboard.refetch(); void history.refetch(); };
   if (accounts.isPending || (accountId && dashboard.isPending)) return <>{header}<Skeleton variant="rounded" height={92} aria-label="자산분석 조회 중" /></>;
-  if (!accountId || !dashboard.data) return <>{header}<AppCard sx={cardStyle}><Typography>{failed ? '자산분석 조회에 실패했습니다.' : '선택할 계좌가 없습니다.'}</Typography>{failed && <Button onClick={retry}>다시 시도</Button>}</AppCard></>;
+  if (!accountId) return <>{header}<AppCard><Stack spacing={2} sx={{ p: 3, alignItems: 'center', textAlign: 'center' }}>
+    {accounts.isError ? <>
+      <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
+      <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
+    </> : <>
+      <Typography sx={{ fontWeight: 700 }}>등록된 계좌가 없습니다.</Typography>
+      <Typography color="text.secondary">계좌를 추가하면 자산분석을 확인할 수 있어요.</Typography>
+      <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
+    </>}
+  </Stack></AppCard></>;
+  if (!dashboard.data) return <>{header}<AppCard sx={cardStyle}><Typography>자산분석 조회에 실패했습니다.</Typography><Button onClick={retry}>다시 시도</Button></AppCard></>;
   const current = dashboard.data, total = decimalValue(current.totalAssetValue), stock = decimalValue(current.stockValue), cash = decimalValue(current.cashBalance);
   const rate = decimalValue(summary?.returnRate), profit = decimalValue(summary?.profitLoss);
   const available = current.pricingComplete && Number.isFinite(total) && total > 0;
