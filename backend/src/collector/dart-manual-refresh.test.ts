@@ -15,7 +15,7 @@ test('manual annual request uses shared quota/lock, CFS fallback, preserves no-d
   let released = false; let calls = 0; let saved = 0; let final: unknown[] = [];
   const metadata: ManualRefreshMetadata = { phase:'MANUAL', securityId:'1', fiscalYear:2024, period:'ALL', manualState:'QUEUED' };
   const run = {id:1n, status:'RUNNING',metadata};
-  const db = {collectorRun:{findFirst:async()=>run, findUnique:async()=>run, update:async()=>({})}, security:{findUnique:async()=>({id:1n,isActive:true,securityType:'STOCK',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
+  const db = { dartFinancialFiling:{findUnique:async()=>null},collectorRun:{findFirst:async()=>run, findUnique:async()=>run, update:async()=>({})}, security:{findUnique:async()=>({id:1n,isActive:true,securityType:'STOCK',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
   PrismaDartRepository.prototype.acquireLock = async () => true;
   PrismaDartRepository.prototype.releaseLock = async () => {released=true;};
   PrismaDartRepository.prototype.reserveApiCall = async () => {calls++;return true;};

@@ -328,6 +328,7 @@ model DartDailyCompanyCheck {
 }
 
 model DartFinancialFiling {
+  normalizationVersion Int @default(1) @map("normalization_version")
   id                     BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
   securityId             BigInt              @map("security_id") @db.UnsignedBigInt
   fiscalYear             Int                 @map("fiscal_year") @db.UnsignedSmallInt

@@ -204,7 +204,7 @@ export class PrismaDartRepository {
     if (current) {
       const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
       const additions=Object.fromEntries(Object.entries(input.values.accountSources).filter(([key])=>!(key in existing)));
-      if(Object.keys(additions).length)await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:2,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
@@ -217,7 +217,7 @@ export class PrismaDartRepository {
         securityId: input.securityId, fiscalYear: input.fiscalYear, periodType: input.periodType, reportCode: input.reportCode,
         fsDivision: input.fsDivision, receiptNo: input.receiptNo, supersedesReceiptNo: previous?.receiptNo ?? null,
         reportName: input.reportName.slice(0, 300), receiptDate: input.receiptDate, periodEndDate: input.periodEndDate,
-        collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false,
+        collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false, normalizationVersion:2,
         revenueQuarter: values.revenueQuarter === null ? null : new Prisma.Decimal(values.revenueQuarter),
         revenueYtd: values.revenueYtd === null ? null : new Prisma.Decimal(values.revenueYtd),
         operatingProfitQuarter: values.operatingProfitQuarter === null ? null : new Prisma.Decimal(values.operatingProfitQuarter),
