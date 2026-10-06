@@ -229,7 +229,7 @@ export interface TradeDetailDto {
   security: TradeDto['security'];
   boughtAt?: string; soldAt?: string; buyTradeId?: string;
   quantity: string; soldQuantity?: string; remainingQuantity?: string;
-  unitPrice: string; memo: string | null;
+  unitPrice: string; buyUnitPrice?: string | null; realizedProfitLoss?: string | null; memo: string | null;
   cashTransaction: { id: string; feeTaxAmount: string; balanceAfter: string } | null;
   sellTrades?: { id: string; soldAt: string; quantity: string }[];
 }

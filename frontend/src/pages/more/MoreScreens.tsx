@@ -1,3 +1,4 @@
+import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { Box, Button, ButtonBase, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -179,7 +180,7 @@ function CashAdjustmentContent() {
     try {
       if (liveApiEnabled) {
         await correctCashBalance(selected.id, String(value));
-        await Promise.all(['accounts', 'dashboard', 'cashBalance', 'cashOverview', 'assetHistory', 'compound-plans', 'targetArrivals'].map((key) => client.invalidateQueries({ queryKey: [key] })));
+        await invalidatePortfolio(client);
       } else changeDemoCash(selected.id, String(value));
       navigate('/detail/settings?view=account');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 수정에 실패했습니다.'); }
