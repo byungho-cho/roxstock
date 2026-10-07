@@ -409,7 +409,7 @@ export class PrismaDartRepository {
       ...(phase === 'UNIVERSE' ? { take: limit } : {}),
     });
     if (phase === 'PRIORITY') items.sort((a, b) => (priorities.get(b.id) ?? 0) - (priorities.get(a.id) ?? 0) || (a.id < b.id ? -1 : 1));
-    return items.slice(0, limit).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
+    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
   }
 
   async updateStateError(error: string | null): Promise<void> {
