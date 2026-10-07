@@ -134,7 +134,7 @@ test('large amounts, zero denominator, edited historical principal and changing 
   const clipped = await page.locator('[data-testid="investment-page"] .MuiTypography-root').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));
   expect(clipped).toEqual([]);
   f.setMode('zero'); await page.reload(); await expect(page.getByTestId('investment-metric-1')).toHaveText('0원');
-  await expect(page.getByTestId('investment-current')).toContainText('올해 누적 매매손익 —');
+  await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익 —');
   f.setMode('edited'); await page.reload(); await expect(page.getByTestId('investment-value')).toHaveText('130,165,000원');
   await expect(page.getByTestId('investment-metric-1')).toHaveText('—');
   await expect(page.getByTestId('investment-metric-2')).toHaveText('1,000,000원');

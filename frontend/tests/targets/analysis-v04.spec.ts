@@ -29,7 +29,7 @@ test('menu order, icons, screen references and home destinations stay distinct',
     await expect(button.locator('img')).toHaveAttribute('src', `/more-v03/${icon}.svg`);
   }
   await menu.getByRole('button', { name: '예수금', exact: true }).click(); await expect(page).toHaveURL(/\/detail\/cash/);
-  await page.goto('/'); await page.getByTestId('home-trend-card').click(); await expect(page).toHaveURL(/\/assets$/);
+  await page.goto('/'); await page.locator('.MuiBottomNavigation-root').getByRole('button', { name: '자산분석', exact: true }).click(); await expect(page).toHaveURL(/\/assets$/);
   await page.getByRole('button', { name: '뒤로가기', exact: true }).click(); await expect(page).toHaveURL(/\/$/);
   await page.getByText('예수금', { exact: true }).first().click(); await expect(page).toHaveURL(/\/detail\/cash/);
 });
@@ -45,13 +45,10 @@ test('period changes chart and performance together; title and buttons have inde
   await body.evaluate((el, top) => { el.scrollTop = top; }, Math.min(50, maximum));
   const title = page.getByTestId('analysis-trend-title'); await title.scrollIntoViewIfNeeded();
   const before = await body.evaluate(el => el.scrollTop);
-  await title.click(); await expect(page).toHaveURL(/\/detail\/investment-profit\?/);
-  const url = new URL(page.url()); expect(url.searchParams.get('period')).toBe('3m'); expect(url.searchParams.get('accountId')).toBe('a'); expect(url.searchParams.get('from')).toBeTruthy();
-  // The implemented investment-profit header exposes Back on cover; tablet uses browser/system Back.
-  if (page.viewportSize()!.width < 600) await page.getByRole('button', { name: '뒤로가기', exact: true }).click();
-  else await page.goBack();
+  await title.click(); await expect(page).toHaveURL(/\/assets$/);
+  await expect(title.getByText('상세보기 ›')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '3개월', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(before);
+  expect(await body.evaluate(el => el.scrollTop)).toBe(before);
   await body.evaluate(el => { el.scrollTop = 0; }); await page.getByTestId('analysis-total').click(); await expect(page).toHaveURL(/\/detail\/investment\?/);
   await page.goBack(); await expect(page.getByRole('button', { name: '3개월', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
@@ -98,7 +95,7 @@ test('real server period result is preserved, unknown breakdown and plan are not
   const state = await setup(page); await page.goto('/assets');
   await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('100,000원');
   await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
-  await expect(page.getByTestId('analysis-compound')).toContainText('내용이 없습니다.');
+  await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획을 추가하세요');
   await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('analysis-total-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.at(-1)?.pathname).toContain('/b/');

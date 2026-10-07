@@ -1,5 +1,5 @@
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
-import { Box, Button, ButtonBase, Stack, Typography } from '@mui/material';
+import { Box, Button, ButtonBase, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +101,7 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
   const { accounts, selected, query, select } = useMoreAccounts();
   const allowed = liveApiEnabled && !!selected?.isActive;
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
-  if (liveApiEnabled && query.isPending) return <LabelledCard title="등록 계좌"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌 목록을 불러오는 중입니다.</Typography></LabelledCard>;
+  if (liveApiEnabled && query.isPending) return <LabelledCard title="등록 계좌"><Skeleton height={80}/></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;
   return <Stack spacing="12px">
     {accounts.length === 0 ? <Typography sx={hint}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> : accounts.map(item => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...settingsPanel, width: '100%', textAlign: 'left', display: 'block', p: '15px' }}>
@@ -118,7 +118,7 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
 
 export function AccountForm({ add }: { add: boolean }) {
   const { selected, query } = useMoreAccounts();
-  if (!add && query.isPending && liveApiEnabled) return <Typography role="status" sx={hint}>계좌 조회 중…</Typography>;
+  if (!add && query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
   if (!add && query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (!add && !selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
   return <AccountFormContent key={add ? 'add' : selected!.id} add={add} />;
@@ -161,7 +161,7 @@ function AccountFormContent({ add }: { add: boolean }) {
 
 export function CashAdjustment() {
   const { selected, query } = useMoreAccounts();
-  if (query.isPending && liveApiEnabled) return <Typography role="status" sx={hint}>계좌 조회 중…</Typography>;
+  if (query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
   if (query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (!selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
   return <CashAdjustmentContent key={selected.id} />;
@@ -186,7 +186,7 @@ function CashAdjustmentContent() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 수정에 실패했습니다.'); }
     finally { setSaving(false); }
   };
-  if (liveApiEnabled && query.isPending) return <LabelledCard title="계좌 정보"><Typography role="status" sx={{ ...hint, mt: 2 }}>계좌를 불러오는 중입니다.</Typography></LabelledCard>;
+  if (liveApiEnabled && query.isPending) return <LabelledCard title="계좌 정보"><Skeleton height={80}/></LabelledCard>;
   if (liveApiEnabled && query.isError) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (liveApiEnabled && !selected) return <Typography role="status">선택된 계좌가 없습니다.</Typography>;
   return <Stack spacing="14px" component="form" onSubmit={event => { event.preventDefault(); void submit(); }}>

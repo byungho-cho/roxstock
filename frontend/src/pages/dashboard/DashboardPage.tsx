@@ -1,7 +1,7 @@
 import './home-font.css';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
-import { Box, Button, CardActionArea, CircularProgress, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button,  Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { useDashboard } from '../../hooks/useMockData';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
@@ -11,6 +11,7 @@ import { formatRate, formatSignedWon, formatWon, getMarketColor } from '../../ut
 import { AppCard, SectionHeader } from '../../components/common/Common';
 import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
 import { HomeEmpty, HomeListCard, HomeTwoLineRow } from './HomeListCard';
+import { AssetTrendChart } from '../../components/common/AssetTrendChart';
 import { colors } from '../../styles/tokens';
 
 
@@ -36,14 +37,14 @@ export function DashboardPage() {
   const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
   return <Box className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
-    <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, height: { sm: 290 }, gridArea: { sm: 'summary' } }}>
+    <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, minHeight: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       {summary ? <><TotalAssetCard summary={summary} home /><AssetQuickCards summary={summary} home /></> : isPending ? <><Skeleton variant="rounded" height={76}/><Skeleton variant="rounded" height={68}/></> : <AppCard><Button onClick={() => void refetch()}>대시보드 조회 실패 · 재시도</Button></AppCard>}
-      <AppCard data-testid="home-trend-card" sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 130 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+      <AppCard data-testid="home-trend-card" sx={{ minHeight: { xs: 120, sm: 204 }, flex: { sm: 1 }, borderRadius: '8px' }}><Box sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>} />
-        {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <TrendChart values={homeTrend.map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
-      </CardActionArea></AppCard>
+        {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <AssetTrendChart points={homeTrend.map(item => ({date: item.label, value: item.value}))} height={{xs:64,sm:148}} dateMode="day" /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
+      </Box></AppCard>
     </Stack>
-    <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목" timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching} more={holdings.length > 5 ? () => navigate('/stocks?tab=holding') : undefined}>
+    <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목 (상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching}>
       {holdings.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}
       {holdings.length === 0 && <HomeEmpty />}
     </HomeListCard> : <Skeleton variant="rounded" height={156}/>}</Box>
@@ -59,19 +60,7 @@ export function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () =
     second={[formatWon(cost), formatWon(stock.marketValue ?? Number.NaN), formatSignedWon(stock.profitAmount ?? Number.NaN)]} />;
 }
 
-function TrendChart({ values }: { values: number[] }) {
-  const finite = values.filter(Number.isFinite);
-  if (finite.length < 2) return <HomeEmpty />;
-  const min = Math.min(...finite); const max = Math.max(...finite); const range = Math.max(max - min, 1);
-  const points = values.map((value, index) => `${(index / (values.length - 1)) * 340},${72 - ((value - min) / range) * 58}`).join(' ');
-  return <Box sx={{ mt: '7px', width: '100%', height: { xs: 32, sm: 74 }, overflow: 'hidden' }}><ChartLine points={points} /></Box>;
-}
-
-function ChartLine({ points }: { points: string }) {
-  return <svg viewBox="0 0 340 80" preserveAspectRatio="none" width="100%" height="100%" role="img" aria-label="자산 추이"><defs><linearGradient id="homeTrendFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#60A5FA" stopOpacity="0.28" /><stop offset="100%" stopColor="#60A5FA" stopOpacity="0" /></linearGradient></defs><path d="M 0 16 H 340 M 0 42 H 340 M 0 68 H 340" stroke="#25344D" strokeWidth="0.7" /><polygon points={`0,80 ${points} 340,80`} fill="url(#homeTrendFill)" /><polyline points={points} fill="none" stroke="#60A5FA" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg>;
-}
-
 function DashboardLoading() {
-  return <Stack spacing="8px"><Skeleton variant="rounded" height={76} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /></Stack><Skeleton variant="rounded" height={88} sx={{ borderRadius: '8px' }} /><Skeleton variant="rounded" height={156} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing={1} sx={{ justifyContent: 'center', color: 'text.secondary' }}><CircularProgress size={16} /><Typography variant="body2">데이터를 불러오는 중이에요.</Typography></Stack></Stack>;
+  return <Stack spacing="8px"><Skeleton variant="rounded" height={76} sx={{ borderRadius: '8px' }} /><Stack direction="row" spacing="10px"><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /><Skeleton variant="rounded" height={68} sx={{ flex: 1, borderRadius: '8px' }} /></Stack><Skeleton variant="rounded" height={88} sx={{ borderRadius: '8px' }} /><Skeleton variant="rounded" height={156} sx={{ borderRadius: '8px' }} /></Stack>;
 }
 

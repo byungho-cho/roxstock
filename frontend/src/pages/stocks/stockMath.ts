@@ -4,7 +4,7 @@ export const stockTabs: Array<{value: StockListType; label: string}> = [
   {value:'holding',label:'보유종목'},{value:'watchlist',label:'관심종목'},{value:'traded',label:'거래종목'},
 ];
 export const sortOptions = {
-  holding: [['marketValue','평가금액'],['profitAmount','평가손익'],['purchaseAmount','보유금액'],['name','종목명']],
+  holding: [['marketValue','평가금액'],['profitRate','손익률'],['profitAmount','손익'],['purchaseAmount','보유금액'],['name','종목명']],
   watchlist: [['name','종목명'],['priceChangeRate','등락률'],['per','PER'],['pbr','PBR'],['roe','ROE'],['valuationW','W']],
   recommended: [['name','종목명'],['priceChangeRate','등락률'],['per','PER'],['pbr','PBR'],['roe','ROE'],['valuationW','W']],
   traded: [['lastSoldAt','마지막 매도일'],['realizedProfit','누적 실현손익'],['name','종목명']],
@@ -30,8 +30,18 @@ export function averageAfter(quantity:number,average:number,buyQuantity:number,b
   return total>0 ? (quantity*average-(replace?(replace.remaining*replace.price):0)+newRemaining*buyPrice)/total : Number.NaN;
 }
 export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean,favorites:ReadonlySet<string>=new Set()) {
-  const value=(s:StockItem):string|number|undefined=> key==='purchaseAmount'?stockValuation(s).purchase:key==='marketValue'?stockValuation(s).amount:key==='profitAmount'?stockValuation(s).profit:key==='priceChangeRate'&&(s.priceAvailable===false||s.priceChangeAvailable===false)?undefined:s[key];
-  return [...stocks].sort((a,b)=>{const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;const av=value(a),bv=value(b),missing=(v:typeof av)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv));const delta=typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko');});
+  const grouped = key === 'profitAmount' || key === 'profitRate';
+  const value=(s:StockItem):string|number|undefined=> key==='purchaseAmount'?stockValuation(s).purchase:key==='marketValue'?stockValuation(s).amount:key==='profitAmount'?stockValuation(s).profit:key==='profitRate'?stockValuation(s).rate:key==='priceChangeRate'&&(s.priceAvailable===false||s.priceChangeAvailable===false)?undefined:s[key];
+  const missing=(v:string|number|undefined)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';
+  const group=(v:number)=>v>0?0:v===0?1:2;
+  return [...stocks].sort((a,b)=>{
+    if(!grouped){const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;}
+    const av=value(a),bv=value(b);
+    if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv)) || a.name.localeCompare(b.name,'ko') || a.id.localeCompare(b.id);
+    if(grouped){const order=group(Number(av))-group(Number(bv));if(order)return order;}
+    const delta=grouped?Math.abs(Number(av))-Math.abs(Number(bv)):typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);
+    return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id);
+  });
 }
 export function deriveAccountStocks(catalog:StockItem[],holdings:StockItem[],trades:TradeDto[]) {
   const result=new Map<string,StockItem>(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s,listType:s.listType==='recommended'?'watchlist':s.listType}]));

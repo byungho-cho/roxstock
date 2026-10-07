@@ -22,7 +22,7 @@ export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = 
     refetchInterval: liveApiEnabled && pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
-  return { ...summary, historyPending: history.isPending, historyError: history.isError, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
+  return { ...summary, historyPending: history.isPending, historyError: history.isError, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: point.totalAssetValue == null ? Number.NaN : Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
 }
 
 export function useStocks(listType?: StockListType, options: { enabled?: boolean } = {}) {

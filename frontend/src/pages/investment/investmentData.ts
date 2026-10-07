@@ -1,6 +1,6 @@
 import { amount } from '../investment-profit/profitData';
 import { apiEnvelope } from '../../data/apiClient';
-import type { AssetHistoryDto, CashHistoryDto, CashTransactionDto, TradeReport } from '../../data/roxstockApi';
+import type { AssetHistoryDto, CashHistoryDto, CashTransactionDto, TradeReport, BuyLotDto } from '../../data/roxstockApi';
 
 export type Quarter = 0 | 1 | 2 | 3 | 4;
 export const quarters: Quarter[] = [0, 1, 2, 3, 4];
@@ -49,6 +49,7 @@ export type InvestmentData = {
   initialAsOf: string | null;
   historicalUnavailable: boolean;
   annualTradingProfit?: bigint | null;
+  currentYearProfit?: bigint | null;
 };
 
 export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number, opening: Pick<Snapshot,'date'|'investmentAmount'|'updatedAt'> | null = null): InvestmentData {
@@ -98,12 +99,28 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
     dividend: latest ? totals(latest).dividend : null, initialInvestment: opening ? money(opening.investmentAmount) : 0n, initialAsOf: opening?.date ?? null, historicalUnavailable };
 }
 
+/** 8-decimal trade precision: only remaining lots, excluding cash/dividends. */
+export function currentHoldingProfit(lots: BuyLotDto[]): bigint | null {
+  let total = 0n;
+  for (const lot of lots) {
+    const quantity = money(lot.remainingQuantity);
+    if (quantity === null || quantity < 0n) return null;
+    if (quantity === 0n) continue;
+    const price = money(lot.currentPrice), cost = money(lot.unitPrice);
+    if (price === null || price <= 0n || cost === null) return null;
+    total += (price - cost) * quantity;
+  }
+  return total;
+}
+
 export async function loadInvestment(accountId: string, year: number, today: string, signal: AbortSignal) {
   const range = periodRange(year, 0, today), account = encodeURIComponent(accountId);
-  const [history, baseline, trades] = await Promise.all([
+  const isCurrentYear = year === Number(today.slice(0, 4));
+  const [history, baseline, trades, lots] = await Promise.all([
     apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams({ ...range, from: `${year-1}-12-31`, storedOnly: 'true' })}`, { signal }),
     apiEnvelope<{data:{date:string;investmentAmount:string|null;updatedAt:string}|null}>(`/accounts/${account}/investment-baseline?year=${year}`,{signal}),
     apiEnvelope<TradeReport>(`/accounts/${account}/trades?${new URLSearchParams(range)}`, {signal}),
+    isCurrentYear ? apiEnvelope<{data:BuyLotDto[]}>(`/accounts/${account}/buy-lots?remainingOnly=true`, {signal}) : Promise.resolve(null),
   ]);
   const opening=baseline.data;
   const transactions: Transaction[] = [];
@@ -123,5 +140,6 @@ export async function loadInvestment(accountId: string, year: number, today: str
       transactions.push(...result.data);
     }
   }
-  return { ...calculateInvestment(history.data.filter(point => point.date >= `${year-1}-12-31` && point.date <= range.to), transactions, year, opening), annualTradingProfit: amount(trades.summary.realizedProfitLoss) };
+  const annualTradingProfit = amount(trades.summary.realizedProfitLoss), holdingProfit = lots ? currentHoldingProfit(lots.data) : null;
+  return { ...calculateInvestment(history.data.filter(point => point.date >= `${year-1}-12-31` && point.date <= range.to), transactions, year, opening), annualTradingProfit, currentYearProfit: isCurrentYear && annualTradingProfit !== null && holdingProfit !== null ? annualTradingProfit + holdingProfit : null };
 }

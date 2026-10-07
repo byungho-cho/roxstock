@@ -85,7 +85,7 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
 test('annual realized summary is independent of evaluation and quarterly chart filter',async({page},info)=>{
  await fixture(page);await page.goto('/detail/investment');await expect(page.getByTestId('investment-value')).toHaveText('81,845,732원');
  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+39,720,500원');
- await expect(page.getByTestId('investment-current')).toContainText('올해 누적 매매손익 +37.0%');
+ await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익 +37.0%');
  await page.getByRole('button',{name:'1분기',exact:true}).click();await expect(page.getByTestId('investment-row')).toHaveCount(0);
  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+39,720,500원');
  await page.screenshot({path:info.outputPath('investment.png')});
@@ -131,7 +131,7 @@ test('home shows ready cards while history loads, preserves account isolation an
  await expect(page.getByTestId('home-trend-loading')).toBeVisible();
  expect(reads.filter(p=>p.endsWith('/dashboard'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:info.outputPath('home-partial.png')});releaseHistory();await expect(page.getByRole('img',{name:'자산 추이'})).toBeVisible();
+ await page.screenshot({path:info.outputPath('home-partial.png')});releaseHistory();await expect(page.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('home-summary-area')).not.toContainText('4,000원');await expect.poll(()=>Boolean(releaseSecond)).toBe(true);releaseSecond();
  await expect(page.getByTestId('home-summary-area')).toContainText('9,000원');await page.screenshot({path:info.outputPath('home-ready.png')});
