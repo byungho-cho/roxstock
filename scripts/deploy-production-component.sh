@@ -20,6 +20,30 @@ if [[ ! -d "$DEPLOY_TREE" ]]; then
 fi
 [[ "$(git -C "$DEPLOY_TREE" rev-parse HEAD)" == "$SHA" ]] || exit 1
 IMAGE_TAG="sha-$SHA"
+
+# Registry-backed old RoxStock images can be pulled again. Never touch volumes,
+# backups, other repositories, or images referenced by any existing container.
+reclaim_old_images() {
+  local repository ref image_id container_id container_image keep_refs="" used_ids=""
+  while IFS= read -r container_id; do
+    [[ -n "$container_id" ]] || continue
+    container_image="$(docker inspect --format '{{.Image}}' "$container_id")"
+    used_ids+="$container_image"$'\n'
+  done < <(docker ps -aq)
+  for repository in newrox/roxstock-backend newrox/roxstock-frontend; do
+    # Retain the two most recently created immutable tags as rollback candidates.
+    keep_refs="$(docker image ls "$repository" --format '{{.Repository}}:{{.Tag}}' | awk '/:[s]ha-[0-9a-f]+$/ {if (++count <= 2) print}')"
+    while read -r ref image_id; do
+      [[ "$ref" =~ ^newrox/roxstock-(backend|frontend):sha-[0-9a-f]{7,40}$ ]] || continue
+      [[ "$ref" != "$repository:$IMAGE_TAG" ]] || continue
+      grep -Fxq "$image_id" <<< "$used_ids" && continue
+      grep -Fxq "$ref" <<< "$keep_refs" && continue
+      docker manifest inspect "$ref" >/dev/null 2>&1 || continue
+      echo "Removing unused registry-backed image tag: $ref"
+      docker image rm "$ref" || true
+    done < <(docker image ls "$repository" --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}}')
+  done
+}
 if [[ "$COMPONENT" == backend ]]; then
   already_current=true
   for container in roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector; do
@@ -31,6 +55,7 @@ if [[ "$COMPONENT" == backend ]]; then
     echo "Backend and collectors already healthy at $SHA; duplicate deployment skipped"
     exit 0
   fi
+  reclaim_old_images
   # Only copy the existing server environment. Never read a CI/development env.
   test -f "$SOURCE_TREE/backend/.env.production"
   install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
@@ -74,6 +99,7 @@ else
     echo "Frontend already healthy at $SHA; duplicate deployment skipped"
     exit 0
   fi
+  reclaim_old_images
   # Preserve Cafe24 HTTPS proxy and app network from server configuration.
   # Execute only the SHA-pinned deployment script.
   test -f "$SOURCE_TREE/compose.yml"
