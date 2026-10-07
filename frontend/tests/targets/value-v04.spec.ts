@@ -31,7 +31,7 @@ test('whole master searchable on Enter, current Seoul year, all 120 results acce
  await page.getByLabel('종목 검색').fill('둘째');await page.getByLabel('종목 검색').press('Enter');await expect(page.getByTestId('value-row-000001')).toHaveCount(0);await expect(page.getByTestId('value-row-000002')).toBeVisible();await expect(page.getByText('1개',{exact:true})).toBeVisible();
 });
 test('cover detail endpoint navigation, chart mode/start preserved and no circular wrap',async({page})=>{
- const f=await fixture(page);await ready(page);await page.getByTestId('value-row-000001').click();await expect(page.getByTestId('value-detail')).toContainText('12,000원');await page.getByRole('button',{name:'재무지표 보기'}).click();await expect(page.getByTestId('value-chart-가치지표')).toContainText('우측 %');await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('시작기간').selectOption('2025:4');await expect.poll(()=>f.requests.some(r=>r.includes('mode=quarter')&&r.includes('startYear=2025')&&r.includes('count=3'))).toBe(true);
+ const f=await fixture(page);await ready(page);await page.getByTestId('value-row-000001').click();await expect(page.getByTestId('value-detail')).toContainText('12,000원');await page.getByRole('button',{name:'재무지표 보기'}).click();await expect(page.getByTestId('value-chart-가치지표')).toContainText('우측 %');await page.getByRole('button',{name:'재무지표 연간 분기 전환',exact:true}).click();await page.getByLabel('시작기간').selectOption('2025:4');await expect.poll(()=>f.requests.some(r=>r.includes('mode=quarter')&&r.includes('startYear=2025')&&r.includes('count=3'))).toBe(true);
  await page.getByRole('button',{name:'종목002',exact:true}).click();await expect(page.getByRole('heading',{name:'종목002',exact:true})).toBeVisible();await expect(page.getByLabel('시작기간')).toHaveValue('2025:4');await page.getByRole('button',{name:'종목001',exact:true}).click();await expect(page.getByRole('heading',{name:'종목001',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'',exact:true}).filter({hasText:'종목120'})).toHaveCount(0);
  expect(f.requests.every(r=>r.startsWith('GET '))).toBe(true);
 });
@@ -61,7 +61,7 @@ test('swipe navigates horizontal intent only, chart and controls do not trigger 
 
 test('same-stock period refresh preserves last success through failure and recovers with retry',async({page})=>{
  const f=await fixture(page);await ready(page);await page.getByTestId('value-row-000001').click();await page.getByRole('button',{name:'재무지표 보기'}).click();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();
- f.holdStock('1');await page.getByRole('button',{name:'분기',exact:true}).click();await expect(page.getByText('갱신 중 · 마지막 성공 데이터를 표시합니다.')).toBeVisible();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();await expect(page.getByText(/이전 기간 결과 · 연간/)).toBeVisible();
+ f.holdStock('1');await page.getByRole('button',{name:'재무지표 연간 분기 전환',exact:true}).click();await expect(page.getByTestId('main-loading-bar')).toBeVisible();await expect(page.getByTestId('value-chart-수익성')).toBeVisible();await expect(page.getByText(/이전 기간 결과 · 연간/)).toBeVisible();
  f.fail(true);f.release();await expect(page.getByRole('alert')).toContainText('조회에 실패했습니다.');await expect(page.getByTestId('value-chart-수익성')).toBeVisible();f.fail(false);await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByText(/이전 기간 결과/)).toHaveCount(0);
 });
 

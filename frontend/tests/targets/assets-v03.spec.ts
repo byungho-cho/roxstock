@@ -104,7 +104,7 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
 
 test('1001: refresh retains values and account switch shows only selected account',async({page},info)=>{
   const f=await fixture(page);await page.goto('/detail/assets');await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');
-  f.hold();await page.clock.fastForward(300_000);await expect(page.getByTestId('asset-composition-card')).toContainText('갱신 중');await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');f.release();await expect(page.getByTestId('asset-composition-card')).not.toContainText('갱신 중');
+  f.hold();await page.clock.fastForward(300_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');f.release();await expect(page.getByTestId('asset-composition-card')).not.toContainText('갱신 중');
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
   await expect(page.getByTestId('asset-composition-card').getByText('내용이 없습니다.')).toBeVisible();await expect(page.getByTestId('asset-donut-value')).toHaveCount(0);await expect(page.getByTestId('asset-performance-card').locator('.MuiTypography-root').nth(1)).toHaveText('—');await expect(page.getByTestId('asset-holdings-card').getByTestId('home-holding')).toHaveCount(0);
   if(info.project.name.startsWith('tablet')) {expect((await page.getByTestId('asset-holdings-card').boundingBox())!.height).toBe(222);await expect(page.getByTestId('asset-holdings-card')).toContainText('0종목');}
