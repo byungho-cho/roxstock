@@ -42,12 +42,12 @@ test('manual annual request uses shared quota/lock, CFS fallback, preserves no-d
 
 test('range requests process every requested year/report, and no-data does not write financial records',async()=>{
  const original={acquire:PrismaDartRepository.prototype.acquireLock,release:PrismaDartRepository.prototype.releaseLock,reserve:PrismaDartRepository.prototype.reserveApiCall,record:PrismaDartRepository.prototype.recordApiResult,finish:PrismaDartRepository.prototype.finishRun,fetch:globalThis.fetch};
- const years:number[]=[];let final:unknown[]=[];
+ const years:number[]=[];let final:unknown[]=[];const snapshots:ManualRefreshMetadata[]=[];
  const metadata:ManualRefreshMetadata={phase:'MANUAL',securityId:'1',fiscalYear:2024,startYear:2024,endYear:2025,period:'ALL',manualState:'QUEUED'};
  const run={id:1n,status:'RUNNING',metadata};
- const db={collectorRun:{findFirst:async()=>run,findUnique:async()=>run,update:async()=>({})},security:{findUnique:async()=>({id:1n,isActive:true,securityType:'STOCK',symbol:'005930',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
+ const db={collectorRun:{findFirst:async()=>run,findUnique:async()=>run,update:async(args:{data:{metadata:ManualRefreshMetadata}})=>{snapshots.push(structuredClone(args.data.metadata));return {};}},security:{findUnique:async()=>({id:1n,isActive:true,securityType:'STOCK',symbol:'005930',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
  PrismaDartRepository.prototype.acquireLock=async()=>true;PrismaDartRepository.prototype.releaseLock=async()=>{};PrismaDartRepository.prototype.reserveApiCall=async()=>true;PrismaDartRepository.prototype.recordApiResult=async()=>{};PrismaDartRepository.prototype.finishRun=async(...args)=>{final=args;};
  globalThis.fetch=(async input=>{const url=new URL(String(input));assert.ok(url.pathname.endsWith('list.json'));years.push(Number(url.searchParams.get('bgn_de')?.slice(0,4)));return Response.json({status:'013'});}) as typeof fetch;
- try{await processManualRefresh(db,config);assert.deepEqual(years,[2023,2024]);const results=(final[4] as ManualRefreshMetadata).results!;assert.equal(results.length,8);assert.ok(results.every(r=>r.status==='NO_DATA'));assert.deepEqual([...new Set(results.map(r=>r.fiscalYear))],[2024,2025]);assert.equal(final[1],'SKIPPED');}
+ try{await processManualRefresh(db,config);assert.deepEqual(years,[2023,2024]);const results=(final[4] as ManualRefreshMetadata).results!;assert.equal(results.length,8);assert.ok(results.every(r=>r.status==='NO_DATA'));assert.deepEqual([...new Set(results.map(r=>r.fiscalYear))],[2024,2025]);assert.equal(final[1],'SKIPPED');assert.ok(snapshots.some(m=>m.progress?.currentYear===2025&&m.progress.completed===4));assert.equal(snapshots.at(-1)?.progress?.completed,8);assert.equal(snapshots.at(-1)?.results?.length,8);}
  finally{Object.assign(PrismaDartRepository.prototype,{acquireLock:original.acquire,releaseLock:original.release,reserveApiCall:original.reserve,recordApiResult:original.record,finishRun:original.finish});globalThis.fetch=original.fetch;}
 });
