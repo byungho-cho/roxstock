@@ -40,10 +40,10 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const chosen=items.find(s=>s.id===selected),split=tablet&&!!chosen;
  const navigationState={accountId,ids:items.map(s=>s.id),tab:active};
  const neighbors=useStockNeighbors(chosen?.id??'',all,split?items.map(s=>s.id):[]);
- const moveDetail=(offset:number)=>{const target=offset<0?neighbors.previous:neighbors.next;if(target)setParams({tab:active,selected:target.id},{replace:true,state:{...location.state,stockNavigation:navigationState,listEntryKey:location.state?.listEntryKey??location.key}});};
+ const moveDetail=(offset:number)=>{const target=offset<0?neighbors.previous:neighbors.next;if(target){const next=new URLSearchParams(params);next.set('tab',active);next.set('selected',target.id);setParams(next,{replace:true,state:{...location.state,stockNavigation:navigationState,listEntryKey:location.state?.listEntryKey??location.key}});}};
  const detailSwipe=useDetailSwipe(moveDetail,split);
  const total=items.filter(s=>(s.quantity??0)>0).reduce((sum,s)=>sum+stockValuation(s).amount,0);
- useEffect(()=>{if(right.current)right.current.scrollTop=0;},[chosen?.id]);
+
  const changeTab=(tab:StockListType)=>{setParams({tab},{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  useEffect(()=>{if(previousAccount.current&&previousAccount.current!==accountId){if(selected&&window.location.pathname===location.pathname)setParams({tab:active},{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});setValueStock(null);setPriceStock(null);}previousAccount.current=accountId;},[accountId]);
  const select=(s:StockItem)=>{if(s.listType==='watchlist'||s.listType==='recommended'){navigate(`/stocks/${s.id}/value`,{state:{stockNavigation:navigationState}});return;}if(tablet){setParams({tab:active,selected:s.id},{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,stockNavigation:navigationState,returnTo:location.state?.returnTo??{pathname:location.pathname,search:location.search,index:window.history.state?.idx}}});}else navigate(`/stocks/${s.id}${s.listType==='traded'?'?tab=trades':''}`,{state:{stockNavigation:navigationState}});};
