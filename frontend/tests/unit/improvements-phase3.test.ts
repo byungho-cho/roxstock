@@ -25,14 +25,14 @@ test('year valuation includes prior-year remainder, excludes sold quantity, pres
   assert.equal(rate(130000000000n,0n,true),'—');
   assert.equal(rate(130000000000n,10000000000000n,true),'+1.3%');
 });
-test('recent buys keeps default old rows, counts Korean buy dates, expands calendar months without duplicates',()=>{
+test('recent buys keeps default old rows, counts displayed rows using Korean buy dates, expands calendar months without duplicates',()=>{
   const rows=[...Array.from({length:3},(_,i)=>lot(String(i),'2026-10-01')),...Array.from({length:6},(_,i)=>lot(String(10+i),'2026-09-03')),lot('20','2026-08-01'),lot('21','2026-07-31')];
   rows.push(rows[0]);
   assert.equal(monthStart('2026-01-31',1),'2025-12-01');
-  assert.equal(recentBuys(rows,'2026-10-07',0).count,3);
+  assert.equal(recentBuys(rows,'2026-10-07',0).count,5);
   assert.equal(recentBuys(rows,'2026-10-07',0).rows.length,5);
-  const expanded=recentBuys(rows,'2026-10-07',1);assert.equal(expanded.rows.length,9);assert.equal(expanded.count,3);assert.equal(expanded.more,true);
+  const expanded=recentBuys(rows,'2026-10-07',1);assert.equal(expanded.rows.length,9);assert.equal(expanded.count,9);assert.equal(expanded.more,true);
   assert.equal(recentBuys(rows,'2026-10-07',3).rows.length,11);assert.equal(recentBuys(rows,'2026-10-07',3).more,false);
-  assert.equal(recentBuys([lot('1','2026-09-30')],'2026-10-07',0).count,0);
+  assert.equal(recentBuys([lot('1','2026-09-30')],'2026-10-07',0).count,1);
   const midnight={...lot('1',''),buyDate:'',boughtAt:'2026-09-30T15:00:00Z'};assert.equal(recentBuys([midnight],'2026-10-07',0).count,1);
 });

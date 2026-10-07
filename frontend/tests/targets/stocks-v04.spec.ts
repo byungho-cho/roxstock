@@ -47,7 +47,7 @@ test('linked buy deletion is restricted and sends no delete request',async({page
  const f=await fixture(page);await selected(page);
  await page.route('**/api/buy-trades/lot1**',route=>route.fulfill({json:{data:{id:'lot1',type:'BUY',account:{id:'a',name:'기본 계좌'},security:{id:'1',name:'현대자동차',symbol:'005380'},quantity:'70',unitPrice:'230000',remainingQuantity:'60',soldQuantity:'10',boughtAt:'2026-09-10T03:00:00Z',sellTrades:[{id:'linked',quantity:'10',unitPrice:'519000',soldAt:'2026-09-18T03:00:00Z'}]}}}));
  await page.getByRole('button',{name:'lot1 매수 삭제'}).click();const dialog=page.getByRole('dialog');
- await expect(dialog).toContainText('매수 Lot을 삭제할 수 없습니다.');await expect(dialog.getByRole('button',{name:'삭제',exact:true})).toBeDisabled();
+ await expect(dialog).toContainText('연결된 매도가 있으면 삭제할 수 없습니다.');await expect(dialog).toContainText('16,100,000원');await expect(dialog.getByRole('button',{name:'삭제',exact:true})).toBeDisabled();
  expect(f.writes.filter(w=>w.method==='DELETE')).toHaveLength(0);
 });
 

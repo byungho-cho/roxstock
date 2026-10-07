@@ -56,11 +56,11 @@ export function usePullToRefresh(root: RefObject<HTMLElement | null>, scope: str
       if (start.axis === 'vertical') {
         if (event.cancelable) event.preventDefault();
         pull = Math.max(0, dy - 12); element.dataset.pullDistance = String(pull);
-        suppressUntil = Date.now() + 700;
+        if (pull >= 100) suppressUntil = performance.now() + 700;
       }
     };
     const end = () => { const ready = !!start && atTop(start.region) && pull >= 100; reset(); if (ready) refresh(); };
-    const click = (event: MouseEvent) => { if (Date.now() < suppressUntil && event.detail !== 0) { event.preventDefault(); event.stopImmediatePropagation(); } };
+    const click = (event: MouseEvent) => { if (performance.now() < suppressUntil && event.detail !== 0) { event.preventDefault(); event.stopImmediatePropagation(); } };
     element.addEventListener('touchstart', begin, { passive: true });
     element.addEventListener('touchmove', move, { passive: false });
     element.addEventListener('touchend', end);

@@ -10,7 +10,7 @@ async function gesture(target: Locator, dx = 0, dy = 160) {
 }
 async function selectLast(page:Page, chart:Locator) {
   await chart.scrollIntoViewIfNeeded(); const r=(await chart.locator('svg').boundingBox())!;
-  await page.mouse.move(r.x+r.width*.98,r.y+r.height*.5);
+  await page.mouse.move(r.x+r.width*.999,r.y+r.height*.5);
   const tooltip=chart.getByTestId('asset-trend-tooltip'); await expect(tooltip).toBeVisible();
   const t=(await tooltip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await expect(chart.getByTestId('asset-trend-guide')).toHaveCount(1);
@@ -19,7 +19,7 @@ async function selectLast(page:Page, chart:Locator) {
 test('equal navigation columns, long name ellipsis, search variants and normal formulas',async({page},info)=>{
   const names=['한국타이어앤테크놀로지아주긴이름','삼성전자','현대차','아주긴이름다음종목한국타이어앤테크놀로지','SK하이닉스','깨끗한나라'];
   await fixture(page,{names});await page.goto('/stocks?tab=holding&selected=3');
-  const search=page.getByRole('textbox',{name:'목록 종목 검색'}), list=page.locator('[data-testid="stock-list"] [data-scroll-item]');
+  const search=page.getByRole('textbox',{name:'목록 종목 검색'}), list=page.locator('[data-testid="stock-list"] [data-scroll-item]:not([data-scroll-region="stock-right"] [data-scroll-item])');
   for(const query of ['ㅎㄷㅊ','ㅎㄷ','현대','000003']){await search.fill(query);await expect(list).toHaveCount(1);await expect(list).toContainText('현대차');}
   await search.fill('ㅅㅅㅈㅈ');await expect(list).toHaveCount(1);await expect(list).toContainText('삼성전자');
   await page.getByRole('button',{name:'검색어 지우기'}).click();await expect(list).toHaveCount(6);await expect(search).toHaveValue('');await expect(page.getByRole('combobox',{name:'정렬 기준'})).toContainText('평가금액');
@@ -87,7 +87,7 @@ test('top-only pull: one refresh, cached contents, failure cleanup, retry and ho
   const f=await fixture(page);const reads:string[]=[];page.on('request',request=>{if(request.url().includes('/api/'))reads.push(new URL(request.url()).pathname);});
   await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   const main=page.locator('main'),dash=()=>reads.filter(p=>p.endsWith('/dashboard')).length;
-  const before=dash();await main.evaluate(e=>e.scrollTop=40);await gesture(main);expect(dash()).toBe(before);await main.evaluate(e=>e.scrollTop=0);
+  const before=dash();const scrollRegion=main;await scrollRegion.evaluate(e=>{if(e.scrollHeight===e.clientHeight)e.style.maxHeight='200px';e.scrollTop=40;});expect(await scrollRegion.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);await gesture(scrollRegion);expect(dash()).toBe(before);await scrollRegion.evaluate(e=>{e.scrollTop=0;e.style.maxHeight='';});
   await gesture(main,130,5);expect(dash()).toBe(before);await gesture(page.getByTestId('asset-trend-chart'));expect(dash()).toBe(before);
   f.hold();await gesture(main);await expect.poll(dash).toBe(before+1);await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);await gesture(main);expect(dash()).toBe(before+1);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   f.release();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);
@@ -109,6 +109,6 @@ test('mobile Chromium trusted touch triggers one refresh and preserves fixed 44p
   await pull();await expect.poll(()=>reads).toBe(before+1);await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);
   await pull();expect(reads).toBe(before+1);f.release();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page).toHaveURL(/\/$/);
   expect((await page.locator('.MuiToolbar-root').first().boundingBox())!.height).toBe(44);
-  expect((await page.locator('.MuiBottomNavigation-root').boundingBox())!.height).toBe(44);
+  expect((await page.locator('.MuiBottomNavigation-root:visible').boundingBox())!.height).toBe(44);
   await page.screenshot({path:info.outputPath('mobile-refresh.png')});
 });
