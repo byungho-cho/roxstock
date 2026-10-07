@@ -30,7 +30,7 @@ Prisma migrate deploy/status는 기존 운영 절차로 수행한다.
 ## 필요한 권한과 비밀
 
 PR Auto Merge: contents/write, pull-requests/write, actions/write.
-다른 검사는 읽기 권한을 사용한다. 저장소 자동 병합과 Actions의 PR 작성·승인 허용이 필요하다.
+다른 검사는 읽기 권한을 사용한다. 저장소 자동 병합을 허용한다. 기본 토큰 권한은 읽기를 유지하고 자동 병합 워크플로에만 쓰기 권한을 지정한다.
 기존 DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, DEPLOY_HOST, DEPLOY_USER,
 DEPLOY_PORT(선택), DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS를 재사용한다.
 운영 backend/.env.production의 COLLECTOR_INTERNAL_TOKEN이 없으면 배포를 중단한다.
