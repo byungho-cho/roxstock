@@ -47,7 +47,7 @@ test('analysis order, full-year dates and month dates; chart exposes detail link
   const expected=['기간 시작자산','기간 종료자산','기간 투자손익','투자수익률','총입금','총출금','순입출금','평가손익','실현손익','배당수익','수수료·세금'];
   await expect.poll(()=>page.locator('[data-testid^="analysis-metric-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')?.replace('analysis-metric-','')))).toEqual(expected);
   expect(await page.getByTestId('analysis-performance-period').evaluate(e=>getComputedStyle(e).fontWeight)).toBe('700');
-  await expect(page.getByTestId('analysis-trend').getByText('상세보기 ›')).toHaveCount(1);
+  await expect(page.getByTestId('analysis-trend').getByRole('button',{name:'자산추이 상세보기'})).toHaveCount(1);
   await page.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('asset-trend-date')).toHaveText(['2024','2025','2026']);await selectChart(page);
   expect(await page.getByTestId('asset-trend-chart').locator('svg').evaluate(e=>e.getBoundingClientRect().height)).toBe(200);
   await page.screenshot({path:info.outputPath('analysis-all.png')});

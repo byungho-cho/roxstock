@@ -1,3 +1,4 @@
+import { stockProfitPath, yearProfitPath } from './profitNavigation';
 import { ProfitMetric as Metric, StockProfitMetrics } from './ProfitSummaryMetrics';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { useDetailSwipe } from '../../hooks/useDetailSwipe';
@@ -10,7 +11,7 @@ import { AppCard } from '../../components/common/Common';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
-import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePageMemory';
+import { usePageMemory, useReturnNavigation, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { colors } from '../../styles/tokens';
 import { seoulToday } from '../investment/investmentData';
 import { amount, groups, loadProfit, rate, sortProfit, totals, won, type Group, type Totals } from './profitData';
@@ -26,8 +27,18 @@ type CompactRow = { id: string; label: string; value: bigint | null; cost?: bigi
 function Value({ value, signed = true }: { value: bigint | null; signed?: boolean }) {
   return <Typography sx={{ fontSize: 13, fontWeight: 600, lineHeight: '20px', textAlign: 'right', color: signed ? color(value) : colors.textPrimary, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{won(value, signed)}</Typography>;
 }
-function Compact({ heading, rows, toggle }: { heading: string; rows: CompactRow[]; toggle?: React.ReactNode }) {
-  return <AppCard data-testid="profit-compact" sx={card}><Stack direction="row" sx={{alignItems:"center", justifyContent:"space-between"}}><Typography sx={title}>{heading}{toggle && <Box component="span" sx={muted}> · 총 {rows.length}개</Box>}</Typography>{toggle}</Stack>{rows.map(row => <Box key={row.id} data-testid="profit-compact-row" sx={{ display: 'grid', gridTemplateColumns: columns, gap: '4px', alignItems: 'center', minHeight: 24 }}><Typography sx={{ fontSize: 12, overflowWrap: 'anywhere' }}>{row.label}</Typography><Typography data-testid="profit-percent" sx={{ ...muted, fontSize: 12, textAlign: 'right', color: row.middle === '배당' ? '#FAC71F' : color(row.value) }}>{row.middle ?? (row.cost !== undefined ? rate(row.value, row.cost) : '')}</Typography><Value value={row.value} /></Box>)}</AppCard>;
+function Compact({ heading, rows, toggle, onHeading, onRow }: { heading: string; rows: CompactRow[]; toggle?: React.ReactNode; onHeading?:()=>void; onRow?:(id:string)=>void }) {
+  const headingText=<Typography sx={title}>{heading}{toggle && <Box component="span" sx={muted}> · 총 {rows.length}개</Box>}</Typography>;
+  return <AppCard data-testid="profit-compact" sx={card}>
+    <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between'}}>
+      {onHeading?<ButtonBase data-testid="profit-annual-heading" onClick={onHeading} sx={{flex:1,display:'flex',justifyContent:'space-between',minHeight:28,textAlign:'left'}}>{headingText}<Typography sx={{fontSize:10,fontWeight:400,color:'#9CA3AF'}}>(상세보기)</Typography></ButtonBase>:headingText}{toggle}
+    </Stack>
+    {rows.map(row=>{
+      const content=<><Typography sx={{fontSize:12,overflowWrap:'anywhere'}}>{row.label}</Typography><Typography data-testid="profit-percent" sx={{...muted,fontSize:12,textAlign:'right',color:row.middle==='배당'?'#FAC71F':color(row.value)}}>{row.middle??(row.cost!==undefined?rate(row.value,row.cost):'')}</Typography><Value value={row.value}/></>;
+      const sx={display:'grid',gridTemplateColumns:columns,gap:'4px',alignItems:'center',minHeight:24,width:'100%',textAlign:'left' as const};
+      return onRow?<ButtonBase key={row.id} data-testid="profit-compact-row" data-scroll-item={row.id} data-id={row.id} onClick={()=>onRow(row.id)} sx={sx}>{content}</ButtonBase>:<Box key={row.id} data-testid="profit-compact-row" sx={sx}>{content}</Box>;
+    })}
+  </AppCard>;
 }
 function NeighborName({name}: {name: string}) {
   const measure = useRef<HTMLSpanElement>(null), [short, setShort] = useState(false);
@@ -45,6 +56,8 @@ function NeighborName({name}: {name: string}) {
 export function InvestmentProfitPage() {
   const { accountId, accounts } = useActiveAccount(), tablet = useMediaQuery('(min-width:600px)');
   const navigate = useNavigate(), location = useLocation(), outerBack = useReturnNavigation('/assets');
+  const go=useListNavigation();
+  const openLinked=(path:string)=>go(path,{state:{profitLinkedEntry:true}});
   const entryParams=new URLSearchParams(location.search);
   const [tab, setTab] = usePageMemory<'year' | 'stock'>('profit-tab', entryParams.get('profitDetail')==='stock'?'stock':'year');
   const [selectedYear, setYear] = usePageMemory('profit-year', entryParams.get('year')??String(Number(seoulToday().slice(0, 4))));
@@ -65,9 +78,9 @@ export function InvestmentProfitPage() {
   const state = { ...location.state, listEntryKey: location.state?.listEntryKey ?? location.key };
   const choose = (id: string) => {
     if (tab === 'year') setYear(id); else setStock(id);
-    if (!tablet && !detailOpen) navigate(`${location.pathname}?profitDetail=${tab}`, { state });
+    if (!tablet && !detailOpen) navigate(`${location.pathname}?profitDetail=${tab}`, { state:{...state,profitLinkedEntry:true,returnTo:{pathname:location.pathname,search:location.search,index:window.history.state?.idx}} });
   };
-  const back = () => { if(location.state?.profitEntryFromStock){outerBack();return;} if (!tablet && detailOpen) {
+  const back = () => { if(location.state?.profitEntryFromStock||location.state?.profitLinkedEntry){outerBack();return;} if (!tablet && detailOpen) {
     if (location.state?.listEntryKey && Number(window.history.state?.idx) > 0) navigate(-1);
     else navigate(location.pathname, { replace: true, state });
   } else outerBack(); };
@@ -103,12 +116,12 @@ export function InvestmentProfitPage() {
   </>;
   const nav = <Box data-testid="profit-navigation" sx={{ display: 'grid', gridTemplateColumns: '74px minmax(0, 1fr) 74px', alignItems: 'center', minHeight: 32, flexShrink: 0 }}><ButtonBase aria-label={`이전 상세 ${neighbor(-1)}`} disabled={tab === 'stock' && !neighbor(-1)} onClick={() => step(-1)} sx={{ ...muted, fontSize: 12, minHeight: 32, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><NeighborName name={neighbor(-1)}/></ButtonBase><Typography data-testid="profit-selected" sx={{ textAlign: 'center', fontSize: 18, fontWeight: 700, lineHeight: '24px', overflowWrap: 'anywhere' }}>{tab === 'year' ? `${selected}년` : group?.label ?? '—'}</Typography><ButtonBase aria-label={`다음 상세 ${neighbor(1)}`} disabled={tab === 'stock' && !neighbor(1)} onClick={() => step(1)} sx={{ ...muted, fontSize: 12, minHeight: 32, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><NeighborName name={neighbor(1)}/></ButtonBase></Box>;
   const summary = (t: Totals) => <AppCard data-testid="profit-detail-summary" sx={{ ...card, py: tab === 'year' ? '2px' : '8px' }}>{tab === 'stock' && <Typography sx={title}>전체 거래 요약</Typography>}{tab === 'year' ? <><Metric label="투자금" value={capital} /><Typography data-testid="profit-capital-asof" sx={muted}>기준일: {capitalFor(selected)?.date ?? '미수집'}{capital === null ? ' · 연말/유효 투자금 스냅샷 미수집' : ''}</Typography><Metric label="손익총액" value={t.trading} denominator={tab === 'year' ? capital : t.buy} /><Metric label="배당" value={t.dividend} denominator={tab === 'year' ? capital : t.buy} /><Metric label="배당포함" value={t.total} denominator={tab === 'year' ? capital : t.buy} /></> : <StockProfitMetrics totals={t}/>}</AppCard>;
-  const detailContent = pending && !data ? loading : !data && failed ? error : !group?.events.length && tablet ? empty(true) : <>{!tablet && error}{nav}{!group?.events.length ? empty() : <>{summary(group.totals)}{tab === 'year' ? <Compact heading="종목별 손익" toggle={toggle} rows={sortProfit(groups(group.events, 'stock'), ascending).map(row => ({ id: row.id, label: row.label, value: row.totals.total }))} /> : <Compact heading="연도별 손익" rows={groups(group.events, 'year').map(row => ({ id: row.id, label: row.label, value: row.totals.total, cost: row.totals.cost }))} />}
+  const detailContent = pending && !data ? loading : !data && failed ? error : !group?.events.length && tablet ? empty(true) : <>{!tablet && error}{nav}{!group?.events.length ? empty() : <>{summary(group.totals)}{tab === 'year' ? <Compact heading="종목별 손익" onRow={id=>openLinked(stockProfitPath(id))} toggle={toggle} rows={sortProfit(groups(group.events, 'stock'), ascending).map(row => ({ id: row.id, label: row.label, value: row.totals.total }))} /> : <Compact heading="연도별 손익" onHeading={()=>openLinked(yearProfitPath())} onRow={year=>openLinked(yearProfitPath(year))} rows={groups(group.events, 'year').map(row => ({ id: row.id, label: row.label, value: row.totals.total, cost: row.totals.cost }))} />}
     <Compact heading={tab === 'year' ? '월별 손익' : '월별 손익 · 배당 내역'} rows={groups(group.events, 'month').flatMap<CompactRow>(row => tab === 'year' ? [{ id: row.id, label: `${Number(row.id.slice(5))}월`, value: row.totals.total, cost: row.totals.cost }] : [
       ...(row.events.some(event => event.kind === 'SELL') ? [{ id: row.id + '-trade', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'SELL')).trading, middle: '매매' }] : []),
       ...(row.events.some(event => event.kind === 'DIVIDEND') ? [{ id: row.id + '-dividend', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'DIVIDEND')).dividend, middle: '배당' }] : []),
     ])} /></>}</>;
-  return <><PageHeader title="투자손익" variant="detail" onBack={back} showBackTablet={!!location.state?.profitEntryFromStock} showAdd={false} embedded assetOverview backIcon={<Box component="span" sx={{ fontSize: 28 }}>‹</Box>} />
+  return <><PageHeader title="투자손익" variant="detail" onBack={back} showBackTablet={!!(location.state?.profitEntryFromStock||location.state?.profitLinkedEntry)} showAdd={false} embedded assetOverview backIcon={<Box component="span" sx={{ fontSize: 28 }}>‹</Box>} />
     <Box className="rox-home" data-testid="profit-page" data-screen-id={tablet ? 'T1600' : 'C1600'} data-restoration-ready={!pending} data-list-condition={tablet ? tab : detailOpen ? `${tab}:${selected}` : tab} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
       {(tablet || !detailOpen) && <Stack ref={left} data-scroll-region="profit-left" data-list-condition={tab} useFlexGap spacing="8px" sx={{ touchAction: 'pan-y', minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{listContent}</Stack>}
       {(tablet || detailOpen) && <Stack ref={right} data-testid="profit-detail" {...swipe} data-scroll-region="profit-right" data-list-condition={`${tab}:${selected}`} useFlexGap spacing="8px" sx={{ touchAction: 'pan-y', minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{detailContent}</Stack>}

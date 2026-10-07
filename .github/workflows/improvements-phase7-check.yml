@@ -1,0 +1,42 @@
+name: Improvements phase 7
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/components/common/SnapshotChart.tsx
+      - frontend/src/pages/investment/**
+      - frontend/src/pages/assets/**
+      - frontend/src/pages/investment-profit/**
+      - frontend/src/pages/stocks/StockProfitSummary.tsx
+      - frontend/tests/targets/improvements-phase7.spec.ts
+      - frontend/playwright.phase7.config.ts
+      - .github/workflows/improvements-phase7-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phase7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.phase7.config.ts
+        working-directory: frontend
+      - run: npx playwright test -c playwright.phase6.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase7-evidence
+          path: |
+            frontend/test-results/phase7/
+            frontend/test-results/phase6/
+          retention-days: 7
