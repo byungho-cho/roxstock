@@ -5,7 +5,7 @@ import { rate, won } from '../investment-profit/profitData';
 import '../dashboard/home-font.css';
 import { Box, Button, ButtonBase, Dialog, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
 import { PageHeader } from '../../components/navigation/Navigation';
@@ -30,6 +30,20 @@ export function InvestmentPage() {
   useEffect(() => { if (storedQuarter !== quarter) setQuarter(0); }, [storedQuarter, quarter, setQuarter]);
   const query = useQuery({ ...storedQueryOptions, queryKey: ['investment', accountId, year], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false });
   const tablet = useMediaQuery('(min-width:600px)'), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
+  const chartHeading=useRef<HTMLDivElement>(null), alignRequested=useRef(false);
+  const [alignmentRequest,requestAlignment]=useState(0);
+  const changeQuarter=(value:Quarter)=>{alignRequested.current=true;setQuarter(value);requestAlignment(n=>n+1);};
+  useLayoutEffect(()=>{
+    const heading=chartHeading.current;
+    if(!alignRequested.current||!heading)return;
+    for(let parent=heading.parentElement;parent;parent=parent.parentElement){
+      if(!/(auto|scroll)/.test(getComputedStyle(parent).overflowY))continue;
+      const offset=heading.getBoundingClientRect().top-parent.getBoundingClientRect().top-parent.clientTop;
+      if(Math.abs(offset)>1)parent.scrollTop+=offset;
+      if(parent.tagName==='MAIN')break;
+    }
+    if(!query.isPending&&!query.isFetching)alignRequested.current=false;
+  },[alignmentRequest,quarter,query.data,query.isPending,query.isFetching,tablet]);
   const location = useLocation(), navigate = useNavigate();
   const detail = new URLSearchParams(location.search).get('chart') === 'detail';
   const openDetail = () => {
@@ -70,10 +84,10 @@ export function InvestmentPage() {
     </AppCard>
     <AppCard data-testid="investment-summary" sx={card}><Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>{[{ label: '초기투자금', value: data?.initialInvestment ?? null }, { label: '누적투자금', value: data?.investment ?? null }, { label: '배당', value: data?.dividend ?? null }].map((item, index) => <Box key={item.label} sx={{ minWidth: 0, pl: index ? '8px' : 0, borderLeft: index ? `1px solid ${colors.border}` : undefined, color: index === 2 ? colors.marketRise : undefined }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>{item.label}</Typography><Typography data-testid={`investment-metric-${index}`} sx={{ mt: '3px', fontSize: 10, textAlign: 'right', overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(item.value)}</Typography></Box>)}</Box></AppCard>
     <AppCard data-testid="investment-trend" sx={{ ...card, bgcolor: '#111927', pt: '6px', pb: '8px' }}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>일별 평가금액 · 추이</Typography>{enableChartDetail && <Button onClick={openDetail} sx={{ fontSize: 10, minHeight: 28 }}>상세보기 ›</Button>}</Stack>
+      <Stack ref={chartHeading} data-testid="investment-chart-heading" direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>일별 평가금액 · 추이</Typography>{enableChartDetail && <Button onClick={openDetail} sx={{ fontSize: 10, minHeight: 28 }}>상세보기 ›</Button>}</Stack>
 
-      {pending && !data ? <Skeleton height={164} /> : !points.length ? <Typography role="status" sx={{ ...small, py: '40px', textAlign: 'center' }}>{status}</Typography> : <InvestmentChart points={points} from={range.from} to={range.to} />}
-      <Stack direction="row" spacing="4px" data-testid="investment-quarters" sx={{ mt: '8px' }}>{quarters.map(value => <Button key={value} aria-pressed={quarter === value} disabled={!quarterAvailable(year, value, today)} onClick={() => setQuarter(value)} sx={{ flex: 1, minWidth: 0, p: 0, height: 28, minHeight: 28, borderRadius: '8px', fontSize: 11, fontWeight: 600, bgcolor: quarter === value ? '#337DF5' : '#1A2433', color: quarter === value ? 'white' : '#A6B2C4' }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack>
+      {pending && !data ? <Skeleton height={200} /> : !points.length ? <Typography role="status" sx={{ ...small, minHeight:200, display:'grid', placeItems:'center', textAlign: 'center' }}>{status}</Typography> : <InvestmentChart points={points} from={range.from} to={range.to} />}
+      <Stack direction="row" spacing="4px" data-testid="investment-quarters" sx={{ mt: '8px' }}>{quarters.map(value => <Button key={value} aria-pressed={quarter === value} disabled={!quarterAvailable(year, value, today)} onClick={() => changeQuarter(value)} sx={{ flex: 1, minWidth: 0, p: 0, height: 28, minHeight: 28, borderRadius: '8px', fontSize: 11, fontWeight: 600, bgcolor: quarter === value ? '#337DF5' : '#1A2433', color: quarter === value ? 'white' : '#A6B2C4' }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack>
     </AppCard>
   </>;
   const table = <AppCard data-testid="investment-history" sx={card}><Typography sx={{ fontSize: 16, fontWeight: 600, mb: '8px' }}>투자내역</Typography><Stack spacing="8px"><Box sx={rowStyle}>{['날짜', '투자금', '평가금액', '일별손익'].map((title, index) => <Typography key={title} sx={{ ...small, textAlign: index ? 'right' : 'left' }}>{title}</Typography>)}</Box>
@@ -82,7 +96,7 @@ export function InvestmentPage() {
     </Stack><Typography sx={{ ...small, mt: '8px' }}>초기투자금 기준: {data?.initialAsOf??'스냅샷 없음 · 0원'} · 배당은 선택 연도 세후 금액</Typography>{data?.historicalUnavailable && <Typography sx={{ ...small, mt: '4px' }}>과거 기준금액을 확인할 수 없는 투자금은 —로 표시합니다.</Typography>}
   </AppCard>;
   return <><PageHeader title="투자금" variant="detail" onBack={back} showAdd={false} embedded assetOverview backIcon={<Box component="span" sx={{ fontSize: 28 }}>‹</Box>} />
-    <Box className="rox-home" data-testid="investment-page" data-screen-id={tablet ? 'T1500' : 'C1500'} data-restoration-ready={!pending} data-list-condition={`${year}:${quarter}`} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
+    <Box className="rox-home" data-testid="investment-page" data-screen-id={tablet ? 'T1500' : 'C1500'} data-restoration-ready={!pending} data-list-condition={String(year)} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
       <Stack ref={leftRef} data-scroll-region="investment-left" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{summary}</Stack>
       <Stack ref={rightRef} data-scroll-region="investment-right" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{failed && <AppCard sx={card}><Typography role="alert" sx={small}>조회에 실패했습니다.{data ? ' 이전 데이터를 표시합니다.' : ''}</Typography><Button onClick={retry} sx={{ fontSize: 11 }}>재시도</Button></AppCard>}{table}</Stack>
     </Box>{tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="투자금 왼쪽 스크롤" offset={0} /><OverlayRegionScrollbar scrollRef={rightRef} label="투자금 오른쪽 스크롤" offset={0} /></>}
