@@ -1,3 +1,4 @@
+import { Skeleton } from '@mui/material';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {useRef,useState} from 'react';
@@ -19,7 +20,7 @@ export function TradeDetailPage(){
  const blocked=type==='buy'&&!!t?.sellTrades?.length;
  const remove=async()=>{if(!t||t.account.id!==accountId||blocked||lock.current)return;lock.current=true;setBusy(true);try{await deleteTrade(type,tradeId,false,accountId);await invalidatePortfolio(client);back();}catch(e){setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;setBusy(false);}};
  const header=<PageHeader embedded showBackTablet title={type==='buy'?'매수 거래 상세':'매도 거래 상세'} showAdd={false} onBack={back}/>;
- if(!t)return <>{header}{detail.isError?<Box role="alert">거래 조회에 실패했습니다. <Button onClick={()=>void detail.refetch()}>다시 시도</Button></Box>:<Typography>거래 정보를 불러오는 중입니다.</Typography>}</>;
+ if(!t)return <>{header}{detail.isError?<Box role="alert">거래 조회에 실패했습니다. <Button onClick={()=>void detail.refetch()}>다시 시도</Button></Box>:<Skeleton height={100}/>}</>;
  const date=new Date((t.boughtAt??t.soldAt)!).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).replaceAll('-','.');
  const panel={border:`1px solid ${colors.border}`,borderRadius:'8px',bgcolor:colors.surface};
  const row=(label:string,value:string,middle?:string,color:string=colors.textPrimary)=><Box key={label} sx={{display:'flex',alignItems:'center',gap:'4px',minHeight:32,borderBottom:`1px solid ${colors.border}`,fontSize:12}}><Typography sx={{width:64,fontSize:11,color:colors.textMuted}}>{label}</Typography>{middle&&<Typography sx={{flex:1,textAlign:'right',fontSize:10,color:colors.textMuted}}>{middle}</Typography>}<Typography sx={{flex:1,fontSize:12,textAlign:'right',color}}>{value}</Typography></Box>;

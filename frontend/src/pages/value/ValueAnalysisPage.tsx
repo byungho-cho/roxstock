@@ -21,7 +21,7 @@ function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>) 
  return {data:query.data,pending:query.isFetching,error:query.error?.message,retry:()=>void query.refetch()};
 }
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
- return <>{pending&&<Typography role="status" sx={{fontSize:10,color:muted,py:'4px'}}>{hasData?'갱신 중 · 마지막 성공 데이터를 표시합니다.':'조회 중…'}</Typography>}{error&&<Box role="alert" sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}>조회에 실패했습니다. {error}<Button onClick={retry} sx={{fontSize:10,minWidth:0,p:'2px 8px'}}>재시도</Button></Box>}</>;
+ return <>{error&&<Box role="alert" sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}>조회에 실패했습니다. {error}<Button onClick={retry} sx={{fontSize:10,minWidth:0,p:'2px 8px'}}>재시도</Button></Box>}</>;
 }
 function Empty(){return <Box data-testid="value-empty" sx={{height:'100%',minHeight:160,flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:muted,fontSize:12}}>내용이 없습니다.</Box>;}
 function Line({label,children,color}:{label:string;children:ReactNode;color?:string}){return <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',minHeight:20,fontSize:12}}><span style={{color:muted}}>{label}</span><Box sx={{textAlign:'right',overflowWrap:'anywhere',fontWeight:600,color}}>{children}</Box></Box>;}
