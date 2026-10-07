@@ -1,5 +1,5 @@
 import { PrismaDartRepository } from './dart-repository.js';
-import { historicalClose } from './historical-close.js';
+import { historicalClose, HistoricalPriceError } from './historical-close.js';
 import { DartApiError, normalizeDartFinancialRows, type OpenDartProvider, type DartReportCode } from './dart-provider.js';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {calculatePeriod,preserveValues,metricKeys,type Supplemental} from '../domain/period-valuation.js';
@@ -47,7 +47,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   }
   const errors:Record<string,string>={};let shares=saved.shares,price=saved.price;
   try{if(!shares)shares=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';}
-  try{if(!price&&(process.env.DATA_GO_KR_STOCK_PRICE_KEY||process.env.DATA_GO_KR_SERVICE_KEY)){await beforePrice?.();price=await historicalClose(symbol,f.periodEndDate);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.price='기간 말 과거 종가 보충 조회 실패';}
+  try{if(!price){await beforePrice?.();price=await historicalClose(symbol,f.periodEndDate);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증·활용 권한 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음'};errors.price=descriptions[failure.category];errors.priceCode=failure.code; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
   return {...saved,...(shares?{shares}:{}),...(price?{price}:{}),errors};
  };
 }
