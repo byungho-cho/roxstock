@@ -59,6 +59,10 @@ else
     echo "Frontend already healthy at $SHA; duplicate deployment skipped"
     exit 0
   fi
+  # Preserve Cafe24 HTTPS proxy and app network from server configuration.
+  # Execute only the SHA-pinned deployment script.
+  test -f "$SOURCE_TREE/compose.yml"
+  export FRONTEND_COMPOSE_FILE="$SOURCE_TREE/compose.yml"
   bash "$DEPLOY_TREE/scripts/deploy.sh" "$IMAGE_TAG"
 fi
 echo "Verified deployment source: $SHA; component: $COMPONENT"
