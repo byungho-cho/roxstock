@@ -73,12 +73,15 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  expect(await monthly.filter({hasText:'배당'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(250, 199, 31)');
  const previous=page.getByRole('button',{name:/이전 상세/});expect(await previous.evaluate(n=>getComputedStyle(n).whiteSpace)).toBe('nowrap');
  const before=f.requests.length;await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(f.requests.length).toBe(before);
- await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();
- await expect(page).toHaveURL(/\/$/);
- await page.goBack();await expect(page.getByTestId('profit-selected')).toHaveText(names[0]);
- expect(f.requests.filter(r=>r.includes('investment-capital'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath('profit.png')});
+ await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();
+ await expect(page).toHaveURL(/\/$/);
+ // Remount through a SPA history entry: browser back after the accelerated clock
+ // can leave this synthetic navigation session for about:blank and destroy its cache.
+ await page.evaluate(()=>{window.history.pushState({idx:Number(window.history.state?.idx??0)+1,key:'profit-reentry'},'', '/detail/investment-profit');window.dispatchEvent(new PopStateEvent('popstate'));});
+ await expect(page.getByTestId('profit-total')).toHaveText('-650원');
+ expect(f.requests.filter(r=>r.includes('investment-capital'))).toHaveLength(1);
 });
 test('annual realized summary is independent of evaluation and quarterly chart filter',async({page},info)=>{
  await fixture(page);await page.goto('/detail/investment');await expect(page.getByTestId('investment-value')).toHaveText('81,845,732원');
