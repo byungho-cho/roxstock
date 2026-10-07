@@ -12,7 +12,7 @@ async function setup(page:Page){
   if(p.startsWith('/api/value-analysis/')||p.startsWith('/api/financial-statements/')){
    state.reads.push(u);const id=p.split('/').at(-1),custom=u.searchParams.get('period'),mode=u.searchParams.get('mode')??'annual';
    const end=Number(u.searchParams.get('endYear')??2026),start=Number(u.searchParams.get('startYear')??end-2),count=custom?Number(u.searchParams.get('endYear'))-start+1:p.includes('value-analysis')?Number(u.searchParams.get('count')):3;
-   const chartRows=Array.from({length:count},(_,i)=>({key:`${start+i}:ANNUAL`,label:String(start+i),year:start+i,quarter:null,revenue:'10000000000',operatingProfit:'100000000',netIncome:'10000000',roe:'10',per:null,pbr:null,metricStatus:'PARTIAL',metricReasons:{per:'기간 말 과거 종가 부족'},source:'DART:CFS',collectedAt:'2026-10-07T01:00:00Z',isDerived:false}));
+   const chartRows=Array.from({length:count},(_,i)=>({key:`${start+i}:ANNUAL`,label:mode==='quarter'?`${Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4)} ${(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1}Q`:String(start+i),year:mode==='quarter'?Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4):start+i,quarter:mode==='quarter'?(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1:null,revenue:'10000000000',operatingProfit:'100000000',netIncome:'10000000',roe:'10',per:null,pbr:null,metricStatus:'PARTIAL',metricReasons:{per:'기간 말 과거 종가 부족'},source:'DART:CFS',collectedAt:'2026-10-07T01:00:00Z',isDerived:false}));
    return route.fulfill({json:{data:{security:stocks.find(s=>s.id===id),year:2026,mode,valuation:null,fairPrices:[],notices:['저장 데이터'],collectedAt:'2026-10-07T01:00:00Z',chartRows,rows:p.includes('financial-statements')?chartRows.map(r=>({...r,values:{revenue:r.revenue,operatingProfit:r.operatingProfit,netIncome:r.netIncome},growth:{},basis:'DART:CFS'})):chartRows}}});
   }return route.fulfill({json:{data:[]}});
  });return state;
@@ -70,4 +70,13 @@ test('phase10 real progress survives status errors, reentry and completes with c
 for(const kind of ['SUCCESS','SKIPPED'] as const)test(`phase10 ${kind} summary and retry enablement`,async({page})=>{
  await setup(page);await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:{state:'FINISHED',status:kind,fiscalYear:2025,startYear:2025,endYear:2025,period:'ANNUAL',finishedAt:'2026-10-07T05:00:00Z',results:[{fiscalYear:2025,period:'ANNUAL',status:kind==='SUCCESS'?'SUCCESS':'NO_DATA',valuationStatus:kind==='SUCCESS'?'SUCCESS':undefined}]}}}));
  await page.goto('/stocks/1/financials?endYear=2025');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:/수동 업데이트/}).click();await expect(page.getByRole('button',{name:/수동 업데이트/})).toBeEnabled();await expect(page.getByText(kind==='SUCCESS'?'가치지표 보충 완료 1 · 보충 실패/근거 부족 0':'보고서 기준: 공시 확인 완료 0 · 미공시 1 · 수집 실패 0')).toBeVisible();
+});
+
+test('phase10 quarter refresh excludes future placeholder years without changing chart selection',async({page},info)=>{
+ const state=await setup(page);
+ for(const url of ['/detail/value?view=chart&selected=1&mode=quarter&quarterStart=2026:4','/stocks/1/financials?mode=quarter&quarterYear=2026&quarter=4']){
+  await page.goto(url);await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('combobox',{name:'시작연도',exact:true})).toContainText('2026');await expect(dialog.getByRole('combobox',{name:'종료연도',exact:true})).toContainText('2026');await expect(page.getByText('미래 기간은 제외하고 2026년까지 갱신합니다.')).toBeVisible();if(url.includes('/value')){await expect(dialog.locator('..')).toHaveCSS('opacity','1');await page.screenshot({path:info.outputPath('phase10-quarter-popup.png')});}await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();
+  if(url.includes('/value'))await expect(page.getByRole('combobox',{name:'시작기간',exact:true})).toHaveValue('2026:4');else await expect(page.getByLabel('재무제표 시작분기')).toHaveValue('4');
+ }
+ expect(state.posts).toBe(0);
 });
