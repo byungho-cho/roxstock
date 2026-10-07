@@ -14,11 +14,12 @@ export function won(value: bigint | null, signed = false) {
   const absolute = value < 0n ? -value : value;
   return `${value < 0n ? '-' : signed && value > 0n ? '+' : ''}${((absolute + scale / 2n) / scale).toLocaleString('ko-KR')}원`;
 }
-export function rate(profit: bigint | null, cost: bigint | null) {
-  if (profit === null || cost === null || cost <= 0n) return '—';
-  const absolute = profit < 0n ? -profit : profit;
-  const tenths = (absolute * 1000n + cost / 2n) / cost;
-  return `${profit < 0n ? '-' : profit > 0n ? '+' : ''}${tenths / 10n}.${tenths % 10n}%`;
+export function rate(profit: bigint | null, cost: bigint | null, allowNegativeDenominator = false) {
+  if (profit === null || cost === null || (cost === 0n || !allowNegativeDenominator && cost < 0n)) return '—';
+  const denominator = cost < 0n ? -cost : cost, relativeProfit = cost < 0n ? -profit : profit;
+  const absolute = relativeProfit < 0n ? -relativeProfit : relativeProfit;
+  const tenths = (absolute * 1000n + denominator / 2n) / denominator;
+  return `${relativeProfit < 0n ? '-' : relativeProfit > 0n ? '+' : ''}${tenths / 10n}.${tenths % 10n}%`;
 }
 export type Totals = { buy: bigint | null; sell: bigint | null; cost: bigint | null; trading: bigint | null; dividend: bigint | null; total: bigint | null };
 export type ProfitEvent = { date: string; securityId: string; name: string; kind: 'BUY' | 'SELL' | 'DIVIDEND'; buy: bigint | null; sell: bigint | null; trading: bigint | null; dividend: bigint | null; cost: bigint | null };
