@@ -25,22 +25,25 @@ export function InvestmentChart({ points, from, to, expanded = false }: { points
   };
   const selectAt = (event: PointerEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const target = ((event.clientX - rect.left) / rect.width * 320 - 4) / 252 * duration + start;
+    const target = ((event.clientX - rect.left) / rect.width * 260 - 4) / 252 * duration + start;
     const nearest = points.reduce<InvestmentPoint | null>((best, p) => !best || Math.abs(Date.parse(p.date) - target) < Math.abs(Date.parse(best.date) - target) ? p : best, null);
     setSelected(nearest?.date ?? null);
   };
   const point = points.find(p => p.date === selected);
   return <Box data-no-detail-swipe data-testid="investment-chart" data-dates={points.map(p => p.date).join(',')} sx={{ position: 'relative', mt: '8px', minWidth: 0 }}>
-    <Box component="svg" role="img" aria-label="선택 기간 평가금액과 투자금" viewBox="0 0 320 164" preserveAspectRatio="none"
+    <Box sx={{ position: 'relative', height: expanded ? 'clamp(170px, 52dvh, 480px)' : 164 }}>
+    {[0, 1, 2, 3].map(i => <Box key={i} sx={{ position: 'absolute', right: 0, top: `${(12 + i * 46) / 164 * 100}%`, transform: 'translateY(-50%)', color: colors.textMuted, fontSize: 9 }}>{Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만</Box>)}
+    <Box component="svg" role="img" aria-label="선택 기간 평가금액과 투자금" viewBox="0 0 260 164" preserveAspectRatio="none"
       onPointerDown={event => { gesture.current = { x: event.clientX, y: event.clientY, vertical: false }; selectAt(event); event.currentTarget.setPointerCapture(event.pointerId); }}
       onPointerMove={event => { const g = gesture.current; if (!g) { if (event.pointerType === 'mouse') selectAt(event); return; } if (Math.abs(event.clientY - g.y) > Math.abs(event.clientX - g.x) && Math.abs(event.clientY - g.y) > 8) g.vertical = true; if (!g.vertical) selectAt(event); }}
       onPointerUp={() => { gesture.current = null; }} onPointerCancel={() => { gesture.current = null; }}
-      sx={{ display: 'block', width: '100%', height: expanded ? 'clamp(170px, 52dvh, 480px)' : 164, touchAction: 'pan-y', userSelect: 'none' }}>
-      {[0, 1, 2, 3].map(i => { const lineY = 12 + i * 46, amount = max - i / 3 * (max - min); return <g key={i}><path d={`M4 ${lineY} H256`} stroke={colors.border} /><text x="262" y={lineY + 3} fill={colors.textMuted} fontSize="9">{Math.round(amount / 10000).toLocaleString('ko-KR')}만</text></g>; })}
+      sx={{ display: 'block', width: 'calc(100% - 64px)', height: '100%', touchAction: 'pan-y', userSelect: 'none' }}>
+      {[0, 1, 2, 3].map(i => <path key={i} d={`M4 ${12 + i * 46} H256`} stroke={colors.border} />)}
       {(['evaluation', 'investment'] as const).map(key => <g key={key}><path data-testid={key === 'evaluation' ? 'investment-evaluation-line' : 'investment-principal-line'} d={path(key)} stroke={key === 'evaluation' ? colors.marketRise : colors.marketFall} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />{points.length === 1 && points[0][key] !== null && <circle cx={x(points[0].date)} cy={y(points[0][key])} r="2" fill={key === 'evaluation' ? colors.marketRise : colors.marketFall} />}</g>)}
       {point && <g data-testid="investment-selection"><path d={`M${x(point.date)} 8 V154`} stroke={colors.textMuted} />{(['investment', 'evaluation'] as const).map(key => point[key] !== null && <circle key={key} cx={x(point.date)} cy={y(point[key])} r="3" fill={key === 'evaluation' ? colors.marketRise : colors.marketFall} />)}</g>}
     </Box>
+    </Box>
     {point && <Box data-testid="investment-tooltip" role="status" sx={{ position: 'absolute', pointerEvents: 'none', top: 32, left: x(point.date) > 130 ? '4px' : undefined, right: x(point.date) <= 130 ? '4px' : undefined, maxWidth: 'calc(100% - 8px)', p: '8px', bgcolor: '#111927', border: `1px solid ${colors.border}`, borderRadius: '8px', fontSize: 11, overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{point.date.replaceAll('-', '.')}</Typography><Typography sx={{ fontSize: 11, color: colors.marketFall }}>투자금 {moneyText(point.investment)}</Typography><Typography sx={{ fontSize: 11, color: colors.marketRise }}>평가금액 {moneyText(point.evaluation)}</Typography></Box>}
-    <Stack direction="row" sx={{ justifyContent: 'space-between', pr: '19%', fontSize: 9, color: colors.textMuted }}>{Array.from({ length: 5 }, (_, i) => <span key={i}>{new Date(start + duration * i / 4).toISOString().slice(5, 10).replace('-', '.')}</span>)}</Stack>
+    <Stack direction="row" sx={{ justifyContent: 'space-between', pr: '64px', fontSize: 9, color: colors.textMuted }}>{Array.from({ length: 5 }, (_, i) => <span key={i}>{new Date(start + duration * i / 4).toISOString().slice(5, 10).replace('-', '.')}</span>)}</Stack>
   </Box>;
 }
