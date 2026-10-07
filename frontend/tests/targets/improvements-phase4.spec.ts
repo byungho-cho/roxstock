@@ -31,6 +31,7 @@ test('equal navigation columns, long name ellipsis, search variants and normal f
     expect(boxes[0].width).toBeCloseTo(boxes[1].width,1);expect(boxes[2].width).toBeCloseTo(boxes[1].width,1);
     expect(boxes[1].x+boxes[1].width/2).toBeCloseTo(page.viewportSize()!.width/2,1);
     await expect(nav.getByRole('button').last()).toHaveCSS('text-overflow','ellipsis');
+    expect(await nav.getByRole('button').last().evaluate(e=>e.scrollWidth>e.clientWidth)).toBe(true);await page.screenshot({path:info.outputPath('stock-navigation.png')});
     await nav.getByRole('button').last().click();await expect(page).toHaveURL(/stocks\/4/);
   }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('stocks.png')});
@@ -62,12 +63,13 @@ test('analysis shares chart, yellow dates and left ticks; both back paths restor
   await expect(chart.getByTestId('asset-trend-date')).toHaveText(['2024','2025','2026']);
   expect(await chart.getByTestId('asset-trend-date').first().evaluate(e=>getComputedStyle(e).color)).toBe(await page.getByTestId('analysis-performance-period').evaluate(e=>getComputedStyle(e).color));
   const svg=(await chart.locator('svg').boundingBox())!,tick=(await chart.getByTestId('asset-trend-chart-amount').first().boundingBox())!;
+  const tip=(await chart.getByTestId('asset-trend-tooltip').boundingBox())!;expect(tip.x).toBeGreaterThan(tick.x+tick.width);
   expect(svg.height).toBe(200);expect(tick.x-svg.x).toBeLessThan(4);await expect(chart.getByTestId('asset-trend-line')).toHaveCount(1);
   await page.screenshot({path:info.outputPath('analysis.png')});
   const region=info.project.name==='cover'?page.locator('main'):page.locator('[data-scroll-region="analysis-left"]');
   await page.getByRole('button',{name:'자산추이 상세보기'}).scrollIntoViewIfNeeded();const saved=await region.evaluate(e=>e.scrollTop);
   await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page).toHaveURL(/chart=detail/);
-  let dialog=page.getByRole('dialog');await expect(dialog).toContainText('기본 · 전체');await selectLast(page,dialog.getByTestId('asset-trend-chart'));await page.screenshot({path:info.outputPath('analysis-detail.png')});
+  let dialog=page.getByRole('dialog');await expect(dialog).toContainText('기본 · 전체');await selectLast(page,dialog.getByTestId('asset-trend-chart'));const expandedTick=(await dialog.getByTestId('asset-trend-chart-amount').first().boundingBox())!,expandedTip=(await dialog.getByTestId('asset-trend-tooltip').boundingBox())!;expect(expandedTip.x).toBeGreaterThan(expandedTick.x+expandedTick.width);await page.screenshot({path:info.outputPath('analysis-detail.png')});
   await page.goBack();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBe(saved);
   await page.getByRole('button',{name:'자산추이 상세보기'}).click();await page.getByRole('button',{name:'자산 차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBe(saved);
   await page.getByRole('button',{name:'1개월',exact:true}).click();await expect(chart.getByTestId('asset-trend-date').first()).toHaveText('09/07');
