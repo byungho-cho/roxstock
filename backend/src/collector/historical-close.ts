@@ -16,8 +16,9 @@ export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetc
  const date=(d:Date)=>d.toISOString().slice(0,10).replaceAll('-','');
  const normalized=symbol.replace(/^A/,'');
  const from=date(new Date(end.getTime()-7*86400000));
+ // The provider may treat the end bound as exclusive; filter out next-day rows below.
  const url=new URL('https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo');
- url.search=new URLSearchParams({serviceKey:key,resultType:'json',numOfRows:'100',pageNo:'1',srtnCd:normalized,beginBasDt:from,endBasDt:date(end)}).toString();
+ url.search=new URLSearchParams({serviceKey:key,resultType:'json',numOfRows:'100',pageNo:'1',likeSrtnCd:normalized,beginBasDt:from,endBasDt:date(new Date(end.getTime()+86400000))}).toString();
  let response:Response;
  try { response=await fetcher(url,{signal:AbortSignal.timeout(15000)}); }
  catch { throw new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION'); }

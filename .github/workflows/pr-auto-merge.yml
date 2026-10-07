@@ -39,7 +39,15 @@ jobs:
                 if (pr.mergeable_state === 'clean') {
                   // GitHub rejects enableAutoMerge once already clean. Merge normally;
                   // required checks, strict base protection, and expected head still apply.
-                  await github.rest.pulls.merge({...context.repo, pull_number: number, merge_method: 'merge', sha: pr.head.sha});
+                  try {
+                    await github.rest.pulls.merge({...context.repo, pull_number: number, merge_method: 'merge', sha: pr.head.sha});
+                  } catch (error) {
+                    // GitHub auto-merge may win after the clean snapshot. Dispatch only
+                    // after re-reading a confirmed merge; retain real merge failures.
+                    ({data: pr} = await github.rest.pulls.get({...context.repo, pull_number: number}));
+                    if (!pr.merged) throw error;
+                    core.notice('Concurrent auto-merge confirmed for PR #' + number);
+                  }
                   ({data: pr} = await github.rest.pulls.get({...context.repo, pull_number: number}));
                 } else if (!pr.auto_merge) {
                   await github.graphql('mutation($id:ID!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:MERGE}){pullRequest{id}}}', {id: pr.node_id});
