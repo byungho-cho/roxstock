@@ -34,25 +34,7 @@ if [[ "$COMPONENT" == backend ]]; then
   # Only copy the existing server environment. Never read a CI/development env.
   test -f "$SOURCE_TREE/backend/.env.production"
   install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
-  if ! grep -Eq '^COLLECTOR_INTERNAL_TOKEN=.+
-  bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "$IMAGE_TAG"
-else
-  # API must have deployed this exact commit before the frontend.
-  [[ "$(docker inspect --format '{{.Config.Image}}' roxstock-backend)" == "newrox/roxstock-backend:$IMAGE_TAG" ]] || {
-    echo "Matching backend has not deployed. Run Production Deploy first."
-    exit 1
-  }
-  actual="$(docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-frontend 2>/dev/null || true)"
-  if [[ "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG running" || "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG healthy" ]]; then
-    curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
-    echo "Frontend already healthy at $SHA; duplicate deployment skipped"
-    exit 0
-  fi
-  bash "$DEPLOY_TREE/scripts/deploy.sh" "$IMAGE_TAG"
-fi
-echo "Verified deployment source: $SHA; component: $COMPONENT"
-docker inspect --format '{{.Name}} {{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "roxstock-$COMPONENT"
- "$DEPLOY_TREE/backend/.env.production"; then
+  if ! grep -Eq '^COLLECTOR_INTERNAL_TOKEN=.+$' "$DEPLOY_TREE/backend/.env.production"; then
     # Earlier deploys generated this token only in their worktree. Carry the
     # existing runtime token forward, without rotating it or logging its value.
     existing_token="$(docker exec roxstock-backend node -e 'process.stdout.write(process.env.COLLECTOR_INTERNAL_TOKEN || "")')"
