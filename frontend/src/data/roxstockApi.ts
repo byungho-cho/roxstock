@@ -299,10 +299,10 @@ export const getTrades = (accountId: string, search: { from?: string; to?: strin
   for (const [key, value] of Object.entries(search)) if (value) params.set(key, value);
   return apiEnvelope<TradeReport>(`/accounts/${encodeURIComponent(accountId)}/trades${params.size ? `?${params}` : ''}`, { signal });
 };
-export const getBuyLots = (accountId: string, securityId?: string, remainingOnly = true) => {
+export const getBuyLots = (accountId: string, securityId?: string, remainingOnly = true, signal?: AbortSignal) => {
   const params = new URLSearchParams({ remainingOnly: String(remainingOnly) });
   if (securityId) params.set('securityId', securityId);
-  return apiRequest<BuyLotDto[]>(`/accounts/${encodeURIComponent(accountId)}/buy-lots?${params}`);
+  return apiRequest<BuyLotDto[]>(`/accounts/${encodeURIComponent(accountId)}/buy-lots?${params}`, { signal });
 };
 
 

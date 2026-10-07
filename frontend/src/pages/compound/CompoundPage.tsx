@@ -1,9 +1,10 @@
-import {Box,Button,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
+import {Box,Button,Skeleton,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {useLocation,useNavigate} from 'react-router-dom';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {OverlayRegionScrollbar} from '../../components/navigation/OverlayRegionScrollbar';
 import {usePageMemory} from '../../hooks/navigation/usePageMemory';
+import {useMainLoading} from '../../hooks/useMainLoading';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
 import {format,number,seoulYear} from '../value/valueApi';
 import {CompoundForm} from './CompoundForm';
@@ -47,7 +48,7 @@ function FormDialog({title,children,busy,close,compact=false}:{title:string;chil
 }
 export function CompoundPage(){
  const {accountId,accounts}=useActiveAccount();
- if(!accountId)return <Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?'계좌 조회 중…':'계좌를 선택해 주세요.'}</Box>;
+ if(!accountId)return <Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?<Skeleton height={30}/>:'계좌를 선택해 주세요.'}</Box>;
  return <AccountPlans key={accountId} accountId={accountId}/>;
 }
 function AccountPlans({accountId}:{accountId:string}){
@@ -86,7 +87,8 @@ function AccountPlans({accountId}:{accountId:string}){
  const executeConfirm=async()=>{if(!confirm)return;const {plan:p,goal:g,type}=confirm,path=root(accountId)+'/'+p.id+(type==='plan-delete'?'':'/goals/'+g!.id+(type==='default'?'/default':''));
   try{await apply(path,type==='default'?'PUT':'DELETE');if(active.current){setConfirm(null);if(type==='goal-delete'){setSelectedGoal(null);go({view:'compare',goal:null},true);}if(type==='plan-delete')go({view:tablet?'compare':'list',plan:null,goal:null},true);}}catch{/* The dialog keeps the selection, error, and retry. */}
  };
- const status=<>{pending&&<Box role="status" sx={{fontSize:10,color:muted,py:'4px'}}>{data?'갱신 중 · 기존 데이터와 기준일을 유지합니다.':'조회 중…'}</Box>}{error&&<Box role="alert" sx={{fontSize:11,color:'#FA616E',mb:'8px'}}>조회 실패 · {error}<Button sx={button} onClick={refresh}>재시도</Button></Box>}</>;
+ useMainLoading(pending);
+ const status=<>{pending&&!data&&<Skeleton height={100}/>} {error&&<Box role="alert" sx={{fontSize:11,color:'#FA616E',mb:'8px'}}>조회 실패 · {error}<Button sx={button} onClick={refresh}>재시도</Button></Box>}</>;
  const planColor=(p:Plan)=>p.displayColor??p.goals[0]?.displayColor??colors[0];
  const actions=(p:Plan,g?:Goal)=><Box sx={{display:'flex',gap:'8px',mt:'4px'}}>{(['edit','delete'] as const).map(action=><IconButton key={action} disabled={busy} aria-label={(g?.goalName??p.planName)+(action==='edit'?' 수정':' 삭제')} onClick={event=>{event.stopPropagation();if(action==='edit')openForm(g?'goal-edit':'plan-edit',p,g);else{setMutationError('');setConfirm({type:g?'goal-delete':'plan-delete',plan:p,goal:g});}}} sx={{p:0,width:24,height:24}}><img src={'/stocks-v03/'+action+'.svg'} alt="" width="16" height="16"/></IconButton>)}</Box>;
  const assetCard=(showSelect=false)=><Box sx={{...card,p:'14px 16px',minHeight:95,boxSizing:'border-box'}}><Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',fontSize:14,fontWeight:600,lineHeight:'20px',minHeight:20,color:plan?planColor(plan):blue}}><span>현재 자산</span>{showSelect&&plan&&<select aria-label="계획 선택" value={plan.id} onChange={e=>{const p=plans.find(p=>p.id===e.target.value);if(p)choose(p);}} style={{background:'transparent',color:muted,border:0,fontSize:10,maxWidth:'55%',fontFamily:'inherit'}}>{plans.map(p=><option key={p.id} value={p.id} style={{background:'#0E1729'}}>{p.planName} · {p.startYear}–{p.endYear}</option>)}</select>}</Box>

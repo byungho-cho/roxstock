@@ -52,7 +52,7 @@ export function FinancialPage(){
  {showUpdate&&selected&&<FinancialRefreshControls key={selected} stockId={selected} collectedAt={detail.data.collectedAt} onSelection={()=>{}} fixedYear={startYear} allReports/>}
  <Typography sx={{fontSize:10,color:muted,lineHeight:'18px'}}>마지막 성공 수집: {detail.data.collectedAt?new Date(detail.data.collectedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미수집'}<br/>{detail.data.notices.join(' ')} · * Q4는 연간 누계 − 3분기 누계입니다.</Typography></>}
  </>}
- {(detailView?detail.isFetching:list.isFetching)&&<Typography role="status" sx={{fontSize:10,color:muted}}>조회 중…</Typography>}{(detailView?detail.isError:list.isError)&&<Box role="alert">조회에 실패했습니다. 기존 저장 데이터는 유지됩니다.<Button onClick={()=>void(detailView?detail.refetch():list.refetch())}>다시 조회</Button></Box>}
+ {(detailView?detail.isError:list.isError)&&<Box role="alert">조회에 실패했습니다. 기존 저장 데이터는 유지됩니다.<Button onClick={()=>void(detailView?detail.refetch():list.refetch())}>다시 조회</Button></Box>}
  </Box>;
 }
 function FinancialTableRows({label,rows}:{label:string;rows:{key:string;value:string|null;growth:string|null;color:string}[]}){return <><tr><th scope="row">{label}</th>{rows.map(r=><td key={r.key} style={{color:r.color}}>{r.value===null?'—':format(Number(r.value)/1e6)}</td>)}</tr><tr><th scope="row" style={{fontWeight:400}}>전년 대비</th>{rows.map(r=><td key={r.key} style={{color:r.color}}>{format(r.growth,1,'%')}</td>)}</tr></>;}

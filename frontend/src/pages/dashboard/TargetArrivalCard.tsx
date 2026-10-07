@@ -62,7 +62,7 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
       {!full && report.meta.total > 5 && <Button sx={{ display: 'block', ml: 'auto', fontSize: 12, color: colors.focus }} onClick={() => navigate('/detail/target-arrivals')}>더보기</Button>}
       {full && visible < report.data.length && <Button sx={{ display: 'block', ml: 'auto' }} onClick={() => setVisible(n => n + 20)}>20건 더 보기</Button>}
     </>}
-    {report && <Typography sx={{ mt: '8px', color: colors.textMuted, fontSize: 10, lineHeight: '16px', textAlign: 'right' }}>현재가 기준 {report.meta.priceAsOf ? new Date(report.meta.priceAsOf).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) : '—'}<br />계산 {new Date(report.meta.calculatedAt).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })}{query.isFetching ? ' · 갱신 중' : ''}</Typography>}
+    {report && <Typography sx={{ mt: '8px', color: colors.textMuted, fontSize: 10, lineHeight: '16px', textAlign: 'right' }}>현재가 기준 {report.meta.priceAsOf ? new Date(report.meta.priceAsOf).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) : '—'}<br />계산 {new Date(report.meta.calculatedAt).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })}</Typography>}
   </AppCard>;
 }
 
