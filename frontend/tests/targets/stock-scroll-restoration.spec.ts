@@ -51,7 +51,9 @@ for(const category of categories)test(category+' restores actual scroll after in
    await target.click({position:{x:wide?250:120,y:wide?14:60}});
    if(category==='watchlist')await expect(page).toHaveURL(new RegExp('/stocks/'+id+'/value$'));
    else if(wide)await expect(page.getByTestId('stock-right')).toBeVisible();
-   else await expect(page).toHaveURL(new RegExp('/stocks/'+id+(category==='traded'?'\\?tab=trades':'')+'$'));
+   else {
+    await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id && url.searchParams.get('detailTab')===(category==='traded'?'trades':'holding'));
+   }
    if(category==='traded')await expect(page.getByRole('tab',{name:'거래내역',exact:true})).toHaveAttribute('aria-selected','true');
   };
   await choose();await page.goBack();await restored('browser-back');
