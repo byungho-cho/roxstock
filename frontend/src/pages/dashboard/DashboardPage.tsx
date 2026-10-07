@@ -1,14 +1,14 @@
 import './home-font.css';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
-import { Box, Button,  Skeleton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button, CardActionArea, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { useDashboard } from '../../hooks/useMockData';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { liveApiEnabled } from '../../data/liveData';
 import type { StockItem } from '../../types/models';
 import { formatRate, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
-import { AppCard, SectionHeader } from '../../components/common/Common';
+import { AppCard } from '../../components/common/Common';
 import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
 import { HomeEmpty, HomeListCard, HomeTwoLineRow } from './HomeListCard';
 import { AssetTrendChart } from '../../components/common/AssetTrendChart';
@@ -40,7 +40,10 @@ export function DashboardPage() {
     <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, minHeight: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       {summary ? <><TotalAssetCard summary={summary} home /><AssetQuickCards summary={summary} home /></> : isPending ? <><Skeleton variant="rounded" height={76}/><Skeleton variant="rounded" height={68}/></> : <AppCard><Button onClick={() => void refetch()}>대시보드 조회 실패 · 재시도</Button></AppCard>}
       <AppCard data-testid="home-trend-card" sx={{ minHeight: { xs: 120, sm: 204 }, flex: { sm: 1 }, borderRadius: '8px' }}><Box sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
-        <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>} />
+        <CardActionArea aria-label="자산추이 (상세보기)" onClick={() => navigate('/assets')} sx={{ display: 'flex', justifyContent: 'space-between', gap: '4px', alignItems: 'center', minHeight: 24 }}>
+          <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600, lineHeight: '24px' }}>자산추이 <Box component="span" sx={{ fontSize: 11, color: colors.textMuted, fontWeight: 400 }}>(상세보기)</Box></Typography>
+          <Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>
+        </CardActionArea>
         {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <AssetTrendChart points={homeTrend.map(item => ({date: item.label, value: item.value}))} height={{xs:64,sm:148}} dateMode="day" /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
       </Box></AppCard>
     </Stack>
