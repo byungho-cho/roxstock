@@ -1,5 +1,7 @@
 # C1500 / T1500 investment v0.4 — 2026-10-05
 
+> 2026-10-07: 평가금액 아래 차액을 연간 매도 실현손익/누적투자금 비율로 교체한다. 분기 필터와 평가금액 원본은 유지한다. [후속 계약/검증](./improvements-12-20261007.md) 참조.
+
 Branch: codex/investment-v04-20261005. Base main: b1cc75fd77a26c68adf0719f4e2ff2dc34e86e16.
 Preserved other work: open PR #83 (user-test fixes), no modifications to that branch.
 

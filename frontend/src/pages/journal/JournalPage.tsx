@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../../data/storedQueryOptions';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import { usePageMemory, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
@@ -31,8 +32,8 @@ const panel = { bgcolor: colors.surface, border: 0, borderRadius: '8px' } as con
 const calendarPanel = { ...panel, bgcolor: '#0E1420', border: '1px solid #1F2B42' } as const;
 const journalQuery = (accountId: string, month: string) => ({
   queryKey: ['journalTrades', accountId, month] as const,
-  staleTime: 60_000,
-  queryFn: () => {
+  ...storedQueryOptions,
+  queryFn: ({ signal }: { signal: AbortSignal }) => {
     const [year, value] = month.split('-').map(Number);
     const first = new Date(year, value - 1, 1);
     const last = new Date(year, value, 0);
@@ -42,7 +43,7 @@ const journalQuery = (accountId: string, month: string) => ({
     return getTrades(accountId, {
       from: dateOf(first.getFullYear(), first.getMonth() + 1, first.getDate()),
       to: dateOf(last.getFullYear(), last.getMonth() + 1, last.getDate()),
-    });
+    }, signal);
   },
 });
 
@@ -68,7 +69,7 @@ export function JournalPage() {
     ...journalQuery(accountId ?? '', month), enabled: liveApiEnabled && !!accountId,
   });
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
-  const lotsQuery = useQuery({ queryKey: ['buyLots', accountId, 'journal-all'], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, staleTime: 60_000 });
+  const lotsQuery = useQuery({ queryKey: ['buyLots', accountId, 'journal-all'], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, ...storedQueryOptions });
   const remoteLots = lotsQuery.data;
   useEffect(() => {
     if (!liveApiEnabled || !accountId || !remoteReport || tradesError) return;
@@ -241,7 +242,7 @@ export function JournalPage() {
             <Typography color="text.secondary">계좌를 추가하면 매매일지를 확인할 수 있어요.</Typography>
             <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
           </>}
-        </Stack> : detailMode === 'profit' ? <>{dateSelector}{profitCards}</> : detailMode === 'trade' && selectedTrade ? <>
+        </Stack> : detailMode === 'profit' ? <Box data-testid="journal-profit-body" {...dayGesture} sx={{touchAction:'pan-y'}}>{dateSelector}{profitCards}</Box> : detailMode === 'trade' && selectedTrade ? <>
           <Button onClick={() => setDetailMode('trades')} startIcon={<ArrowBackRounded/>} sx={{ minHeight: 32, fontSize: 12, mb: '8px' }}>거래현황으로 돌아가기</Button>{detail}
         </> : <Box data-testid="journal-day-card" {...dayGesture} sx={{ ...calendarPanel, p: '8px 14px', touchAction: 'pan-y' }}>
           {dayHeading}

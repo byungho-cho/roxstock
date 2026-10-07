@@ -14,16 +14,18 @@ export function won(value: bigint | null, signed = false) {
   const absolute = value < 0n ? -value : value;
   return `${value < 0n ? '-' : signed && value > 0n ? '+' : ''}${((absolute + scale / 2n) / scale).toLocaleString('ko-KR')}원`;
 }
-export function rate(profit: bigint | null, cost: bigint | null) {
-  if (profit === null || cost === null || cost <= 0n) return '—';
-  const absolute = profit < 0n ? -profit : profit;
-  const tenths = (absolute * 1000n + cost / 2n) / cost;
-  return `${profit < 0n ? '-' : profit > 0n ? '+' : ''}${tenths / 10n}.${tenths % 10n}%`;
+export function rate(profit: bigint | null, cost: bigint | null, allowNegativeDenominator = false) {
+  if (profit === null || cost === null || (cost === 0n || !allowNegativeDenominator && cost < 0n)) return '—';
+  const denominator = cost < 0n ? -cost : cost, relativeProfit = cost < 0n ? -profit : profit;
+  const absolute = relativeProfit < 0n ? -relativeProfit : relativeProfit;
+  const tenths = (absolute * 1000n + denominator / 2n) / denominator;
+  return `${relativeProfit < 0n ? '-' : relativeProfit > 0n ? '+' : ''}${tenths / 10n}.${tenths % 10n}%`;
 }
 export type Totals = { buy: bigint | null; sell: bigint | null; cost: bigint | null; trading: bigint | null; dividend: bigint | null; total: bigint | null };
 export type ProfitEvent = { date: string; securityId: string; name: string; kind: 'BUY' | 'SELL' | 'DIVIDEND'; buy: bigint | null; sell: bigint | null; trading: bigint | null; dividend: bigint | null; cost: bigint | null };
 export type Group = { id: string; label: string; totals: Totals; events: ProfitEvent[] };
-export type ProfitData = { totals: Totals; years: Group[]; stocks: Group[]; events: ProfitEvent[] };
+export type Capital = { year: number; date: string | null; investmentAmount: string | null; status: string };
+export type ProfitData = { capital?: Capital[]; totals: Totals; years: Group[]; stocks: Group[]; events: ProfitEvent[] };
 const add = (a: bigint | null, b: bigint | null) => a === null || b === null ? null : a + b;
 const seoulDate = (value: string) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(value));
 export function totals(events: ProfitEvent[]): Totals {
@@ -56,24 +58,31 @@ export function calculateProfit(trades: TradeDto[], dividends: CashTransactionDt
   const current = events.filter(row => row.date <= today).sort((a, b) => b.date.localeCompare(a.date));
   return { events: current, totals: totals(current), years: groups(current, 'year'), stocks: groups(current, 'stock') };
 }
+export function sortProfit(rows: Group[], ascending = false): Group[] {
+  return [...rows].sort((a,b) => {
+    const x = a.totals.total, y = b.totals.total;
+    if (x === null || y === null) return x === y ? a.id.localeCompare(b.id) : x === null ? 1 : -1;
+    return x === y ? a.id.localeCompare(b.id, undefined, {numeric:true}) : (x < y ? -1 : 1) * (ascending ? 1 : -1);
+  });
+}
 export async function loadProfit(accountId: string, today: string, signal: AbortSignal): Promise<ProfitData> {
   const prefix = `/accounts/${encodeURIComponent(accountId)}`;
-  const trades = await apiEnvelope<TradeReport>(`${prefix}/trades?to=${today}`, { signal });
-  const dividends: CashTransactionDto[] = [], ids = new Set<string>();
-  let expected: number | undefined, firstPage = '';
-  for (let offset = 0; ; offset += 100) {
-    const page = await apiEnvelope<CashHistoryDto>(`${prefix}/cash-transactions?types=DIVIDEND&to=${today}&limit=100&offset=${offset}`, { signal });
-    if (expected === undefined) { expected = page.meta.total; firstPage = JSON.stringify(page); }
-    if (!Number.isInteger(expected) || expected < 0 || expected !== page.meta.total) throw new Error('조회 중 배당 내역이 변경되었습니다.');
-    for (const row of page.data) { if (ids.has(row.id) || row.transactionType !== 'DIVIDEND') throw new Error('배당 조회 결과가 일치하지 않습니다.'); ids.add(row.id); dividends.push(row); }
-    if (dividends.length === expected) break;
-    if (!page.data.length || dividends.length > expected) throw new Error('배당 내역을 모두 조회하지 못했습니다.');
-  }
-  // Publish one immutable account result, and reject records edited while its pages were loading.
-  const [verifiedTrades, verifiedDividends] = await Promise.all([
+  const readDividends = async () => {
+    const dividends: CashTransactionDto[] = [], ids = new Set<string>();
+    let expected: number | undefined;
+    for (let offset = 0; ; offset += 100) {
+      const page = await apiEnvelope<CashHistoryDto>(`${prefix}/cash-transactions?types=DIVIDEND&to=${today}&limit=100&offset=${offset}`, { signal });
+      expected ??= page.meta.total;
+      if (!Number.isInteger(expected) || expected < 0 || expected !== page.meta.total) throw new Error('조회 중 배당 내역이 변경되었습니다.');
+      for (const row of page.data) { if (ids.has(row.id) || row.transactionType !== 'DIVIDEND') throw new Error('배당 조회 결과가 일치하지 않습니다.'); ids.add(row.id); dividends.push(row); }
+      if (dividends.length === expected) return dividends;
+      if (!page.data.length || dividends.length > expected) throw new Error('배당 내역을 모두 조회하지 못했습니다.');
+    }
+  };
+  const [trades, capital, dividends] = await Promise.all([
     apiEnvelope<TradeReport>(`${prefix}/trades?to=${today}`, { signal }),
-    apiEnvelope<CashHistoryDto>(`${prefix}/cash-transactions?types=DIVIDEND&to=${today}&limit=100&offset=0`, { signal }),
+    apiEnvelope<{data: Capital[]}>(`${prefix}/investment-capital`, { signal }),
+    readDividends(),
   ]);
-  if (JSON.stringify(trades) !== JSON.stringify(verifiedTrades) || firstPage !== JSON.stringify(verifiedDividends)) throw new Error('조회 중 거래 기록이 변경되었습니다. 다시 시도해 주세요.');
-  return calculateProfit(trades.data, dividends, today);
+  return { ...calculateProfit(trades.data, dividends, today), capital: capital.data };
 }
