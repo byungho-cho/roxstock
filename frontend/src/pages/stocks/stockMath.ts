@@ -35,10 +35,10 @@ export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean,f
   const missing=(v:string|number|undefined)=>v==null||typeof v==='number'&&!Number.isFinite(v)||v==='';
   const group=(v:number)=>v>0?0:v===0?1:2;
   return [...stocks].sort((a,b)=>{
+    if(!grouped){const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;}
     const av=value(a),bv=value(b);
     if(missing(av)||missing(bv))return Number(missing(av))-Number(missing(bv)) || a.name.localeCompare(b.name,'ko') || a.id.localeCompare(b.id);
     if(grouped){const order=group(Number(av))-group(Number(bv));if(order)return order;}
-    else {const favorite=Number(favorites.has(b.id))-Number(favorites.has(a.id));if(favorite)return favorite;}
     const delta=grouped?Math.abs(Number(av))-Math.abs(Number(bv)):typeof av==='string'&&typeof bv==='string'?av.localeCompare(bv,'ko'):Number(av)-Number(bv);
     return delta*(descending?-1:1)||a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id);
   });

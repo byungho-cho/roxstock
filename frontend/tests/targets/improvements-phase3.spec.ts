@@ -45,7 +45,7 @@ test('stock card labels, grouped amount/rate ordering and query-only clear',asyn
   await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'손익률',exact:true}).click();
   const names=()=>page.locator('[data-testid="stock-list"] [data-scroll-item]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-scroll-item')));
   // Card and table representations share the same ordering, including missing last.
-  const list=info.project.name==='cover'?page.locator('[data-testid="stock-list"] .MuiCard-root'):page.getByRole('row').filter({has:page.getByRole('cell')});
+  const list=page.locator('[data-testid="stock-list"] [data-scroll-item]');
   await expect.poll(()=>list.allTextContents()).toHaveLength(6);
   const texts=await list.allTextContents();expect(texts.map(t=>t.match(/종목\d/)?.[0])).toEqual(['종목1','종목2','종목3','종목4','종목5','종목6']);
   await page.getByRole('button',{name:'내림차순 · 오름차순으로 변경'}).click();
@@ -82,6 +82,27 @@ test('analysis order, full-year dates and month dates; chart has no detail link'
   await page.screenshot({path:info.outputPath('analysis-all.png')});
   await page.getByRole('button',{name:'1개월',exact:true}).click();await expect(page.getByTestId('asset-trend-date').first()).toHaveText('09/07');await selectChart(page);
   await noOverflow(page);await page.screenshot({path:info.outputPath('analysis-month.png')});
+});
+
+test('asset chart touch drag stays on screen and vertical touch scroll remains native',async({page},info)=>{
+  await fixture(page);await page.goto('/assets');
+  const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();
+  const svg=chart.locator('svg');expect(await svg.evaluate(e=>getComputedStyle(e).touchAction)).toBe('pan-y');
+  const cdp=await page.context().newCDPSession(page),r=(await svg.boundingBox())!;
+  const x=r.x+r.width*.7,y=Math.min(r.y+80,page.viewportSize()!.height-70);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-70,y}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect(chart.getByTestId('asset-trend-tooltip')).toBeVisible();await expect(chart.getByTestId('asset-trend-guide')).toBeVisible();await expect(chart.getByTestId('asset-trend-selection')).toBeVisible();await expect(page).toHaveURL(/\/assets$/);
+  const region=info.project.name==='cover'?page.locator('main'):page.locator('[data-scroll-region="analysis-left"]');
+  if(info.project.name!=='large'){
+    const before=await region.evaluate(e=>e.scrollTop);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-60}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBeGreaterThan(before);
+  }
+  await noOverflow(page);await page.screenshot({path:info.outputPath('asset-touch.png')});
 });
 
 test('current-year remaining lot profit, historical year, browser/detail return and native scroll',async({page},info)=>{
