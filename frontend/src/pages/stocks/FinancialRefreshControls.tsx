@@ -20,7 +20,9 @@ const errorText = (code?: string) => {
 type Props = { stockId: string; collectedAt: string|null; startYear?:number; endYear?:number; initialPeriod?:RefreshPeriod; onComplete?:()=>void; onSelection?:(year:number,period:RefreshPeriod)=>void; fixedYear?:number; allReports?:boolean };
 export function FinancialRefreshControls({stockId,collectedAt,startYear:initialStart,endYear:initialEnd,initialPeriod='ALL',onComplete,fixedYear,allReports}:Props) {
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
-  const [startYear,setStartYear]=useState(initialStart??fixedYear??currentYear-2),[endYear,setEndYear]=useState(initialEnd??fixedYear??currentYear),[period,setPeriod]=useState<RefreshPeriod>(allReports?'ALL':initialPeriod);
+  const boundYear=(year:number)=>Math.max(2015,Math.min(currentYear,year));
+  const defaultStart=boundYear(initialStart??fixedYear??currentYear-2),defaultEnd=boundYear(initialEnd??fixedYear??currentYear);
+  const [startYear,setStartYear]=useState(defaultStart),[endYear,setEndYear]=useState(defaultEnd),[period,setPeriod]=useState<RefreshPeriod>(allReports?'ALL':initialPeriod);
   const [requestId,setRequestId]=useState<string|null>(()=>sessionStorage.getItem(`financialRefresh:${stockId}`));
   const client=useQueryClient(),submitLock=useRef(false),handled=useRef<string|null>(null),callback=useRef(onComplete);callback.current=onComplete;
   const mutation=useMutation({mutationFn:()=>apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period})}),onSuccess:data=>{sessionStorage.setItem(`financialRefresh:${stockId}`,data.requestId);setRequestId(data.requestId);},onSettled:()=>{submitLock.current=false;}});
@@ -34,7 +36,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     callback.current?.();
   },[status.data?.state,requestId,stockId,client]);
   const busy=mutation.isPending||Boolean(requestId&&status.data?.state!=='FINISHED'),invalid=startYear>endYear;
-  useEffect(()=>{if(!busy){setStartYear(initialStart??fixedYear??currentYear-2);setEndYear(initialEnd??fixedYear??currentYear);setPeriod(allReports?'ALL':initialPeriod);}},[initialStart,initialEnd,initialPeriod,fixedYear,allReports]);
+  useEffect(()=>{if(!busy){setStartYear(defaultStart);setEndYear(defaultEnd);setPeriod(allReports?'ALL':initialPeriod);}},[defaultStart,defaultEnd,initialPeriod,allReports]);
   const finished=status.data?.state==='FINISHED'?status.data:null,range=`${startYear}–${endYear}년 ${labels[period]}`;
   const years=Array.from({length:currentYear-2015+1},(_,i)=>({value:String(currentYear-i),label:`${currentYear-i}년`}));
   const run=()=>{if(busy||invalid||submitLock.current)return;submitLock.current=true;mutation.mutate();};
@@ -56,6 +58,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <FormSelect size="small" label="갱신범위" value={period} onChange={v=>setPeriod(v as RefreshPeriod)} options={Object.entries(labels).map(([value,label])=>({value,label}))} disabled={busy}/>
     <Button size="small" variant="contained" disabled={busy||invalid} startIcon={busy?<HourglassEmptyIcon/>:undefined} onClick={run}>{busy?'갱신 중':'수동 업데이트'} · {range}</Button>
     {busy&&<Typography role="status" aria-live="polite" sx={{fontSize:11,lineHeight:'18px',whiteSpace:'nowrap',overflowX:'auto'}}>{progressText}{progress?` (${progress.completed}/${progress.total} 보고서)`:''}</Typography>}
+    {initialEnd!==undefined&&initialEnd>currentYear&&<Typography sx={{fontSize:11,color:'text.secondary'}}>미래 기간은 제외하고 {currentYear}년까지 갱신합니다.</Typography>}
     <Typography sx={{fontSize:11,color:'text.secondary'}}>현재 종목만 갱신합니다. 실패·미공시 자료는 기존 데이터를 유지합니다.</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>저장 데이터 수집 시각: {collectedAt?new Date(collectedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미수집'}</Typography>
     {mutation.isError&&<Alert severity="error">{mutation.error instanceof ApiError?mutation.error.message:errorText()}</Alert>}
