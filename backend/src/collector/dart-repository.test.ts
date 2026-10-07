@@ -37,3 +37,10 @@ test('extending first collection adds current year idempotently and preserves su
  const db={buyTrade:{findMany:async()=>[]},accountWatchlistItem:{findMany:async()=>[]},dartCollectorState:{findUnique:async()=>state,upsert:async(q:any)=>{state={...state,...q.update};return state;}},security:{findMany:async()=>[{id:1n},{id:2n}]},dartSecurityState:{findMany:async()=>[{securityId:1n},{securityId:2n}],updateMany:async()=>({count:2})},dartBackfillTask:{createMany:async(q:any)=>{assert.equal(q.skipDuplicates,true);tasks.push(...q.data);return {count:q.data.length};},updateMany:async(q:any)=>{assert.equal(q.where.status,'PENDING');return {count:0};}}} as unknown as PrismaClient;
  const repo=new PrismaDartRepository(db);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);assert.ok(tasks.every(t=>t.fiscalYear===2026));assert.equal(state.backfillEndYear,2026);assert.equal(state.backfillCompletedAt,null);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);
 });
+
+test('priority enumeration is not truncated by the regular batch limit', async () => {
+ const db={buyTrade:{findMany:async()=>[{securityId:1n},{securityId:2n}]},accountWatchlistItem:{findMany:async()=>[]},security:{findMany:async()=>[{id:1n,symbol:'000001',securityType:'STOCK',dartCorpMapping:{corpCode:'1'}},{id:2n,symbol:'000002',securityType:'STOCK',dartCorpMapping:{corpCode:'2'}}]}} as unknown as PrismaClient;
+ const repo=new PrismaDartRepository(db);
+ assert.equal((await repo.listPhase2Securities('PRIORITY',1)).length,2);
+ assert.equal((await repo.listPhase2Securities('UNIVERSE',1)).length,1);
+});

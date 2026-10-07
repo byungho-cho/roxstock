@@ -12,7 +12,7 @@ try {
  const rows=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:currentYear},...(selected?{securityId:BigInt(selected)}:{})},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true}});
  rows.sort((a,b)=>Number(priority.has(String(b.securityId)))-Number(priority.has(String(a.securityId)))||b.fiscalYear-a.fiscalYear||(a.securityId<b.securityId?-1:1));
  for(const row of rows){
-  if(apply)await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner},data:{lockedUntil:new Date(Date.now()+900000)}});
+  if(apply){const lease=await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner,lockedUntil:{gt:new Date()}},data:{lockedUntil:new Date(Date.now()+900000)}});if(lease.count!==1)throw new Error('Collector lock lost; supplementation stopped.');}
   const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType,{dryRun:!apply});
   console.log(JSON.stringify({mode:apply?'APPLY':'DRY_RUN',...result},(_,v)=>typeof v==='bigint'?String(v):v));
  }
