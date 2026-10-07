@@ -46,6 +46,21 @@ if [[ "$COMPONENT" == backend ]]; then
     unset existing_token
     echo "Preserved the existing runtime collector token in the deployment environment."
   fi
+  # Retain a restricted server-local backup before applying schema migrations.
+  BACKUP_DIR="$SOURCE_TREE/.deploy/backups"
+  install -d -m 700 "$BACKUP_DIR"
+  backup_file="$BACKUP_DIR/roxstock-before-$SHA-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+  umask 077
+  docker exec roxstock-mariadb sh -c '
+    export MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
+    test -n "$MYSQL_PWD" || { echo "Database backup credential unavailable." >&2; exit 1; }
+    exec mariadb-dump -uroot --single-transaction --quick --routines --events --triggers --hex-blob --databases roxstock
+  ' | gzip > "$backup_file.partial"
+  test -s "$backup_file.partial"
+  gzip -t "$backup_file.partial"
+  mv "$backup_file.partial" "$backup_file"
+  sha256sum "$backup_file" > "$backup_file.sha256"
+  echo "Verified server-local pre-migration backup: $backup_file"
   bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "$IMAGE_TAG"
 else
   # API must have deployed this exact commit before the frontend.
