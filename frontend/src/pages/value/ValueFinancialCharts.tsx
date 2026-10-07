@@ -6,7 +6,7 @@ const red='#fa616e',blue='#6ba7ee',green='#48cba5';
 const groups:{title:string;unit:string;rightUnit?:string;metrics:Metric[]}[]=[
  {title:'수익성',unit:'조원',metrics:[{key:'revenue',label:'매출액',color:red,scale:1e12},{key:'operatingProfit',label:'영업이익',color:blue,scale:1e12},{key:'netIncome',label:'순이익',color:green,scale:1e12}]},
  {title:'가치지표',unit:'배',rightUnit:'%',metrics:[{key:'per',label:'PER',color:red},{key:'pbr',label:'PBR',color:blue},{key:'roe',label:'ROE',color:green,right:true}]},
- {title:'안정성',unit:'%',metrics:[{key:'debtRatio',label:'부채비율',color:red},{key:'currentRatio',label:'유동비율',color:blue}]},
+ {title:'안정성',unit:'%',metrics:[{key:'debtRatio',label:'부채비율',color:red}]},
  {title:'성장성',unit:'%',metrics:[{key:'revenueGrowth',label:'매출 성장률',color:red},{key:'profitGrowth',label:'이익 성장률',color:blue}]},
 ];
 function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof groups[number] {

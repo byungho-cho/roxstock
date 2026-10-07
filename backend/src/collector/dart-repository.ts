@@ -238,8 +238,12 @@ export class PrismaDartRepository {
     if (current) {
       if(current.securityId!==input.securityId||current.fsDivision!==input.fsDivision)return {created:false,supersedesReceiptNo:null};
       const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
-      const additions=Object.fromEntries(Object.entries(input.values.accountSources).filter(([key])=>!(key in existing)));
-      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:2,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      const additions=Object.fromEntries(Object.entries(input.values.accountSources).map(([key,incoming])=>{
+        const old=existing[key] as Record<string,unknown>|undefined;
+        if(!old)return [key,incoming];
+        return [key,{...incoming,...old,amount:old.amount??incoming.amount,ytdAmount:old.ytdAmount??incoming.ytdAmount}];
+      }));
+      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
       await supplementSafely(this.prisma,input.securityId,input.fiscalYear,input.periodType).catch(()=>undefined);
       return { created: false, supersedesReceiptNo: null };
     }
@@ -253,7 +257,7 @@ export class PrismaDartRepository {
         securityId: input.securityId, fiscalYear: input.fiscalYear, periodType: input.periodType, reportCode: input.reportCode,
         fsDivision: input.fsDivision, receiptNo: input.receiptNo, supersedesReceiptNo: previous?.receiptNo ?? null,
         reportName: input.reportName.slice(0, 300), receiptDate: input.receiptDate, periodEndDate: input.periodEndDate,
-        collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false, normalizationVersion:2,
+        collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false, normalizationVersion:3,
         revenueQuarter: values.revenueQuarter === null ? null : new Prisma.Decimal(values.revenueQuarter),
         revenueYtd: values.revenueYtd === null ? null : new Prisma.Decimal(values.revenueYtd),
         operatingProfitQuarter: values.operatingProfitQuarter === null ? null : new Prisma.Decimal(values.operatingProfitQuarter),
