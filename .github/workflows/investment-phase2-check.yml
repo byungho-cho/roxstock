@@ -7,9 +7,12 @@ on:
       - frontend/tests/**/investment*
       - frontend/playwright.phase2.config.ts
       - backend/src/routes/portfolio.ts
+      - backend/src/routes/investment-stored.test.ts
       - .github/workflows/investment-phase2-check.yml
 permissions:
   contents: read
+env:
+  DATABASE_URL: mysql://unused:unused@127.0.0.1:3306/unused
 jobs:
   investment:
     runs-on: ubuntu-latest
@@ -24,7 +27,7 @@ jobs:
       - run: npm run build:frontend
       - run: npm run prisma:generate
       - run: npm run typecheck:backend
-      - run: node --import tsx --test frontend/tests/unit/investment-phase2.test.ts frontend/tests/unit/investment-data.test.ts
+      - run: node --import tsx --test frontend/tests/unit/investment-phase2.test.ts frontend/tests/unit/investment-data.test.ts backend/src/routes/investment-stored.test.ts
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test -c playwright.phase2.config.ts
         working-directory: frontend
