@@ -36,6 +36,7 @@ export function useDetailSwipe(move: (offset: number) => void, enabled = true) {
       if (direction) move(direction);
     },
     onClickCapture(event: MouseEvent<HTMLElement>) {
+      if (event.target instanceof Element && event.target.closest(controls)) return;
       if (event.target instanceof Node && event.currentTarget.contains(event.target) && Date.now() < suppressUntil.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); }
     },
     onTouchCancel() { gesture.current = null; },

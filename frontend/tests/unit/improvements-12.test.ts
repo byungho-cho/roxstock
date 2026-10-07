@@ -32,7 +32,7 @@ test('profit rows sort signed amounts with stable ties; sold-lot cost cannot rep
  assert.equal(rate(stock.totals.trading,stock.totals.buy),'+35.0%');assert.equal(rate(stock.totals.trading,stock.totals.cost),'+70.0%');
  const groups=[-1000,0,350,-10,350].map((value,i)=>({...stock,id:String(i),totals:{...stock.totals,total:amount(String(value))}}));
  assert.deepEqual(sortProfit(groups).map(r=>r.id),['2','4','1','3','0']);assert.deepEqual(sortProfit(groups,true).map(r=>r.id),['0','3','1','2','4']);
- assert.equal(rate(amount('39720500'),amount('107317732')),'+37.0%');assert.equal(rate(amount('0'),amount('0')),'—');
+ assert.equal(rate(amount('39720500'),amount('107317732')),'+37.0%');assert.equal(rate(amount('0'),amount('0')),'—');assert.equal(rate(amount('10'),amount('-100'),true),'-10.0%');assert.equal(rate(amount('-10'),amount('-100'),true),'+10.0%');
 });
 test('profit load makes one trades request, parallel paginated dividends and passes cancellation to every source',async()=>{
  const original=globalThis.fetch,signal=new AbortController().signal,paths:string[]=[];
