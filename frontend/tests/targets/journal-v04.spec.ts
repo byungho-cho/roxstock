@@ -26,7 +26,9 @@ async function setup(page: Page) {
   return route.fulfill({json: {data, summary:{buyAmount:String(totals.buy),sellAmount:String(totals.sell),realizedProfitLoss:String(totals.profit)},daily:[]}});
  });
  await page.route('**/api/accounts/*/buy-lots**', route => {
-  expect(new URL(route.request().url()).searchParams.get('remainingOnly')).toBe('false');
+  const remainingOnly = new URL(route.request().url()).searchParams.get('remainingOnly');
+  expect(['true', 'false']).toContain(remainingOnly);
+  if (remainingOnly === 'true') return route.fulfill({json:{data:[]}});
   return route.fulfill({json:{data:entries.filter(entry=>entry.type==='sell').map(entry=>({id:entry.lotId,boughtAt:'2026-08-01T03:00:00Z',buyDate:'2026-08-01',unitPrice:String(entry.lotId==='linked0'?linkedPrice:entry.buyPrice),quantity:'30',remainingQuantity:'0',soldQuantity:'30',security:{id:'1',symbol:'005380',name:entry.stockName,marketType:'KOSPI'},sellTrades:[]}))}});
  });
  await page.route('**/api/buy-trades/linked0**',route=>{
@@ -207,15 +209,18 @@ test('raw decimals are evaluated before display rounding and unknown profits do 
 
 test('existing buy edit refreshes matched Lot costs on return and keeps the selected journal day',async({page})=>{
  await setup(page);
+ await page.getByRole('button',{name:'일별손익 보기'}).click();
  await page.getByTestId('journal-entry-linked0').click();
- if(isTablet(page))await page.getByRole('button',{name:'거래 수정·삭제 ›'}).click();
+ await expect(page).toHaveURL(/journal\/trade\/buy\/linked0/);
+ await page.getByRole('button',{name:'거래 수정',exact:true}).click();
  await expect(page.getByTestId('trade-form')).toBeVisible();
  const price=page.getByRole('textbox',{name:'매수가격',exact:true});
  await price.fill('80000');await price.press('Tab');
  await page.getByRole('button',{name:'변경',exact:true}).click();
+ await expect(page).toHaveURL(/journal\/trade\/buy\/linked0/);
+ await page.getByRole('button',{name:'뒤로가기',exact:true}).click();
  await expect(page).toHaveURL(/journal\?date=2026-09-18/);
- if(isTablet(page))await page.getByRole('button',{name:'거래현황으로 돌아가기',exact:true}).click();
  await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-cost')).toHaveText('160,000원');
  await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-profit')).toHaveText('+60,000원');
- await expect(page.getByRole('button',{name:/^2026-09-18 /})).toHaveAttribute('aria-pressed','true');
+ if(isTablet(page))await expect(page.getByRole('button',{name:/^2026-09-18 /})).toHaveAttribute('aria-pressed','true');
 });
