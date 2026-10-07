@@ -9,6 +9,8 @@ on:
       - "package-lock.json"
       - ".github/workflows/backend-check.yml"
 
+  workflow_call:
+
 permissions:
   contents: read
 
