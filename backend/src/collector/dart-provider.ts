@@ -213,6 +213,7 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
     };
   }
   for(const [field,statement,id] of [
+    ['basicEps','IS','ifrs-full_BasicEarningsLossPerShare'],
     ['parentNetIncome','IS','ifrs-full_ProfitLossAttributableToOwnersOfParent'],
     ['parentEquity','BS','ifrs-full_EquityAttributableToOwnersOfParent'],
     ['investingCashFlow','CF','ifrs-full_CashFlowsFromUsedInInvestingActivities'],
@@ -280,6 +281,16 @@ export class OpenDartProvider {
     return body;
   }
 
+  async fetchPeriodShares(corpCode:string,year:number,reportCode:DartReportCode,receiptNo:string) {
+    const body=await this.json<{rcept_no:string;se:string;distb_stock_co:string}>('stockTotqySttus.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
+    if(body.status==='013')return undefined;
+    const rows=(body.list??[]).filter(r=>r.rcept_no===receiptNo);
+    const ordinary=rows.find(r=>r.se.replace(/\s/g,'')==='보통주');
+    const outstanding=ordinary?numericText(ordinary.distb_stock_co):null;
+    if(!outstanding)return undefined;
+    const preferred=rows.some(r=>r.se!=='합계'&&r!==ordinary&&Number(numericText(r.distb_stock_co))>0);
+    return {outstanding,preferred,receiptNo};
+  }
   async fetchCorporations(): Promise<DartCorporation[]> {
     const response = await this.request(this.url('corpCode.xml', {}));
     let bytes: Uint8Array;
