@@ -1,0 +1,23 @@
+{
+  "sourceTag": "v0.1",
+  "sourceCommit": "ba15bad9b460e9b69c2a32339c977a8a48527c20",
+  "sourceRelease": "https://github.com/byungho-cho/roxstock/releases/tag/v0.1",
+  "database": "roxstock",
+  "directory": "/root/roxstock-backups/roxstock-v0.1-20261007T003430Z",
+  "method": "mariadb-dump; external FLUSH TABLES WITH READ LOCK held through dump and verification; gzip",
+  "objects": "tables,data,indexes,constraints,views,triggers,routines,events",
+  "startedAtUtc": "2026-10-07T00:34:34.641331+00:00",
+  "consistentPointUtc": "2026-10-07T00:34:35.730017+00:00",
+  "dumpExitCode": 0,
+  "dumpFinishedUtc": "2026-10-07T00:34:49.033774+00:00",
+  "lockReleasedUtc": "2026-10-07T00:34:50.071508+00:00",
+  "archive": "/root/roxstock-backups/roxstock-v0.1-20261007T003430Z/roxstock-v0.1-20261007T003430Z.sql.gz",
+  "bytes": 5520243,
+  "sha256": "96c87e5a4783ecdbaa7d09ef55c7af475cee86df2049e2929d16d331f701c2c0",
+  "gzipIntegrity": "passed",
+  "externalCopy": "No configured external backup destination found; no external copy created",
+  "validation": "validation.json",
+  "filePermissions": "directory 0700; files 0600; root ownership",
+  "browserVerification": "not performed, as requested",
+  "productionDataSourceDeployChanges": "none; writes briefly waited behind global read lock"
+}

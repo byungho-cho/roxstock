@@ -1,0 +1,33 @@
+RoxStock v0.1 recovery reference
+Source release: https://github.com/byungho-cho/roxstock/releases/tag/v0.1
+Verified tag commit: ba15bad9b460e9b69c2a32339c977a8a48527c20
+Database: roxstock / MariaDB 11.8.9
+Consistent backup point: 2026-10-07 00:34:35.730017 UTC / 2026-10-07 09:34:35.730017 Asia/Seoul
+Archive: /root/roxstock-backups/roxstock-v0.1-20261007T003430Z/roxstock-v0.1-20261007T003430Z.sql.gz
+SHA-256: 96c87e5a4783ecdbaa7d09ef55c7af475cee86df2049e2929d16d331f701c2c0
+
+FUTURE RESTORE PROCEDURE (NOT EXECUTED ON PRODUCTION)
+1. Schedule restoration and stop all database writers, including backend transaction input and all collectors. Preserve a fresh pre-restore backup.
+2. Use the GitHub v0.1 source commit above as the paired source recovery reference. This task does not check out or deploy source.
+3. Select the intended target MariaDB container explicitly. For test restores use an isolated server with event_scheduler OFF and no application access. Use MariaDB 11.8.9, matching this verified restore.
+4. Verify and import with bash (replace the target container name):
+
+set -euo pipefail
+cd /root/roxstock-backups/roxstock-v0.1-20261007T003430Z
+sha256sum -c roxstock-v0.1-20261007T003430Z.sql.gz.sha256
+gzip -t roxstock-v0.1-20261007T003430Z.sql.gz
+TARGET_DB_CONTAINER='REPLACE_WITH_INTENDED_TARGET_CONTAINER'
+gzip -dc roxstock-v0.1-20261007T003430Z.sql.gz | docker exec -i "$TARGET_DB_CONTAINER" sh -c 'export MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}"; exec mariadb -uroot'
+docker exec -i "$TARGET_DB_CONTAINER" sh -c 'export MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}"; exec mariadb -uroot --batch --skip-column-names' < verify.sql > restored-check.tsv
+cmp production-locked.tsv restored-check.tsv
+
+The SQL contains CREATE DATABASE/USE roxstock and DROP/CREATE TABLE statements; importing replaces the target RoxStock tables. Credentials are taken from the target container runtime environment and must never be printed or committed.
+5. Confirm all 32 table counts and checksums, all account balances, and foreign-key orphan counts. Expected main counts: cash_transactions 557; buy_trades 691; sell_trades 651; dividends 47. Account balances: 1=19,767,509; 4=20,167,232 KRW. Dividend links: cash 81 -> dividend 46 -> security 240 (gross 275000/net 232650); cash 85 -> dividend 47 -> security 243 (gross/net 3281). Preserve recovery memos explaining estimates and temporary values.
+6. Query cash-transactions and cash-overview APIs, verify restored figures, then resume application writes and collectors after validation. If restoring to production with additional newer schema objects, review those separately; this logical backup restores objects present at its timestamp.
+
+VERIFICATION COMPLETED
+Dump exit 0; dump stderr empty; gzip test exit 0; SHA-256 verification exit 0.
+Isolated MariaDB restore exit 0; restore stderr empty. All table counts/data checksums/balances/dividend links matched. Foreign keys checked: 29; orphan rows: 0.
+API account 4 cash-transactions and cash-overview responses identical before/after backup. Repaired links verified.
+Temporary validation container and its anonymous volume removed. No browser/Playwright verification performed.
+No external backup destination found in inspected server configuration/tool paths; server-only copy.

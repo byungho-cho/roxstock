@@ -1,0 +1,9 @@
+RoxStock full production database backup paired with GitHub v0.1.
+Filename timestamp: 2026-10-07 00:34:30 UTC / 2026-10-07 09:34:30 Asia/Seoul.
+Consistent database point: 2026-10-07 00:34:35.730017 UTC.
+Source tag commit: ba15bad9b460e9b69c2a32339c977a8a48527c20.
+Archive is gzip compressed and not encrypted. Keep repository access restricted.
+This copy has the same SHA-256 as the permanent server backup.
+Manifest paths refer to the original server; downloaded copies can be verified from this folder using sha256sum -c *.sha256.
+The original server backup and its verification evidence remain in place.
+No production database, source, tag, or deployment was modified by the upload.

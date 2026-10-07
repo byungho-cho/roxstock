@@ -1,0 +1,107 @@
+COUNT	accounts	2
+COUNT	account_watchlist_items	43
+COUNT	buy_trades	691
+COUNT	cash_transactions	557
+COUNT	collector_locks	2
+COUNT	collector_runs	522
+COUNT	collector_run_items	72368
+COUNT	compound_growth_goals	9
+COUNT	compound_growth_plans	9
+COUNT	daily_account_snapshots	5767
+COUNT	daily_position_snapshots	0
+COUNT	dart_api_daily_usage	7
+COUNT	dart_backfill_tasks	124320
+COUNT	dart_collector_state	1
+COUNT	dart_corp_mappings	2590
+COUNT	dart_daily_company_checks	2305
+COUNT	dart_financial_filings	22834
+COUNT	dart_report_cache	3381
+COUNT	dart_security_state	2590
+COUNT	dividends	47
+COUNT	financial_statements	0
+COUNT	market_prices	2589
+COUNT	realtime_collector_issues	4
+COUNT	realtime_cycle_aggregates	2424
+COUNT	realtime_worker_state	1
+COUNT	securities	2593
+COUNT	security_fundamentals	0
+COUNT	sell_trades	651
+COUNT	trade_requests	22
+COUNT	valuation_metrics	0
+COUNT	watchlist_items	4
+COUNT	_prisma_migrations	14
+roxstock.accounts	291981099
+roxstock.account_watchlist_items	4198057353
+roxstock.buy_trades	3740527473
+roxstock.cash_transactions	1310432980
+roxstock.collector_locks	3397885283
+roxstock.collector_runs	410996917
+roxstock.collector_run_items	2432226315
+roxstock.compound_growth_goals	2225151978
+roxstock.compound_growth_plans	1750825872
+roxstock.daily_account_snapshots	4057682746
+roxstock.daily_position_snapshots	0
+roxstock.dart_api_daily_usage	1926888381
+roxstock.dart_backfill_tasks	1274553402
+roxstock.dart_collector_state	283919105
+roxstock.dart_corp_mappings	1597891946
+roxstock.dart_daily_company_checks	1701812902
+roxstock.dart_financial_filings	126030398
+roxstock.dart_report_cache	1092569020
+roxstock.dart_security_state	2546508644
+roxstock.dividends	484624226
+roxstock.financial_statements	0
+roxstock.market_prices	4038329959
+roxstock.realtime_collector_issues	2703280513
+roxstock.realtime_cycle_aggregates	1598635895
+roxstock.realtime_worker_state	788084346
+roxstock.securities	2332228372
+roxstock.security_fundamentals	0
+roxstock.sell_trades	2644628499
+roxstock.trade_requests	3028524091
+roxstock.valuation_metrics	0
+roxstock.watchlist_items	2117798801
+roxstock._prisma_migrations	2576449429
+BALANCE	1	19767509.0000
+BALANCE	4	20167232.0000
+CASH_SUM	1	BUY	11	21860000.0000	0.0000
+CASH_SUM	1	SELL	18	21329509.0000	0.0000
+CASH_SUM	1	DEPOSIT	2	12000000.0000	0.0000
+CASH_SUM	1	WITHDRAWAL	1	500000.0000	0.0000
+CASH_SUM	1	DIVIDEND	1	141000.0000	0.0000
+CASH_SUM	4	BUY	250	430469000.0000	82736.0000
+CASH_SUM	4	SELL	244	451271500.0000	892429.0000
+CASH_SUM	4	DEPOSIT	7	18000000.0000	0.0000
+CASH_SUM	4	WITHDRAWAL	2	10000000.0000	0.0000
+CASH_SUM	4	DIVIDEND	21	1211636.0000	0.0000
+DIVIDEND_LINK	81	4	2025-09-30 12:11:45.000	232650.0000	327898.0000	legacy deposit:39	46	240	005380	현대차	275000.0000	232650.0000	과거 배당 연결 복구: 예수금 ID 81. 세후 232,650원 보존. 세전 275,000원은 사용자 승인에 따라 주당 2,500원 × 110주로 추정한 값이며 원본 확인값이 아님. 차액 42,350원도 이 추정값에 따른 금액.
+DIVIDEND_LINK	85	4	2025-10-10 02:03:04.000	3281.0000	2341143.0000	legacy deposit:46	47	243	005440	현대지에프홀딩스	3281.0000	3281.0000	과거 배당 연결 복구: 예수금 ID 85. 종목 현대지에프홀딩스(005440)는 실제 지급 증빙으로 확정한 것이 아닌 사용자 지정. 세후 3,281원 보존. 필수 세전 필드는 사용자 승인 복구용 임시값 3,281원. 차액 0원은 임시값이며 실제 세금이 없었다고 확정한 것이 아님.
+ORPHAN	account_watchlist_items	account_watchlist_items_account_id_fkey	0
+ORPHAN	account_watchlist_items	account_watchlist_items_security_id_fkey	0
+ORPHAN	buy_trades	buy_trades_account_id_fkey	0
+ORPHAN	buy_trades	buy_trades_security_id_fkey	0
+ORPHAN	cash_transactions	cash_transactions_account_id_fkey	0
+ORPHAN	cash_transactions	cash_transactions_buy_trade_id_fkey	0
+ORPHAN	cash_transactions	cash_transactions_sell_trade_id_fkey	0
+ORPHAN	collector_run_items	collector_run_items_run_id_fkey	0
+ORPHAN	collector_run_items	collector_run_items_security_id_fkey	0
+ORPHAN	compound_growth_goals	compound_growth_goals_plan_id_fkey	0
+ORPHAN	compound_growth_plans	compound_growth_plans_account_id_fkey	0
+ORPHAN	daily_account_snapshots	daily_account_snapshots_account_id_fkey	0
+ORPHAN	daily_position_snapshots	daily_position_snapshots_account_id_fkey	0
+ORPHAN	daily_position_snapshots	daily_position_snapshots_security_id_fkey	0
+ORPHAN	dart_backfill_tasks	dart_backfill_tasks_security_id_fkey	0
+ORPHAN	dart_corp_mappings	dart_corp_mappings_security_id_fkey	0
+ORPHAN	dart_daily_company_checks	dart_daily_company_checks_security_id_fkey	0
+ORPHAN	dart_financial_filings	dart_financial_filings_security_id_fkey	0
+ORPHAN	dart_security_state	dart_security_state_security_id_fkey	0
+ORPHAN	dividends	dividends_account_id_fkey	0
+ORPHAN	dividends	dividends_cash_transaction_id_fkey	0
+ORPHAN	dividends	dividends_security_id_fkey	0
+ORPHAN	financial_statements	financial_statements_security_id_fkey	0
+ORPHAN	market_prices	market_prices_security_id_fkey	0
+ORPHAN	security_fundamentals	security_fundamentals_security_id_fkey	0
+ORPHAN	sell_trades	sell_trades_buy_trade_id_fkey	0
+ORPHAN	trade_requests	trade_requests_account_id_fkey	0
+ORPHAN	valuation_metrics	valuation_metrics_security_id_fkey	0
+ORPHAN	watchlist_items	watchlist_items_security_id_fkey	0
