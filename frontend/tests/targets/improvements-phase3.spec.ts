@@ -34,7 +34,7 @@ async function fixture(page:Page) {
 async function noOverflow(page:Page) { expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true); }
 async function selectChart(page:Page,chart=page.getByTestId('asset-trend-chart').first()) {
   await chart.scrollIntoViewIfNeeded();const svg=chart.locator('svg'),r=(await svg.boundingBox())!;
-  await page.mouse.move(r.x+r.width*.1,r.y+r.height*.5);await page.mouse.down();await page.mouse.move(r.x+r.width*.9,r.y+r.height*.5);await page.mouse.up();
+  await page.mouse.move(r.x+r.width*.1,r.y+r.height*.5);await page.mouse.down();await page.mouse.move(r.x+r.width*.98,r.y+r.height*.5);await page.mouse.up();
   const tooltip=chart.getByTestId('asset-trend-tooltip');await expect(tooltip).toBeVisible();
   const t=(await tooltip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);
 }
@@ -93,7 +93,7 @@ test('asset chart touch drag stays on screen and vertical touch scroll remains n
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-70,y}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect(chart.getByTestId('asset-trend-tooltip')).toBeVisible();await expect(chart.getByTestId('asset-trend-guide')).toBeVisible();await expect(chart.getByTestId('asset-trend-selection')).toBeVisible();await expect(page).toHaveURL(/\/assets$/);
+  await expect(chart.getByTestId('asset-trend-tooltip')).toBeVisible();await expect(chart.getByTestId('asset-trend-guide')).toHaveCount(1);await expect(chart.getByTestId('asset-trend-guide')).toHaveAttribute('d',/ V100$/);await expect(chart.getByTestId('asset-trend-selection')).toBeVisible();await expect(page).toHaveURL(/\/assets$/);
   const region=info.project.name==='cover'?page.locator('main'):page.locator('[data-scroll-region="analysis-left"]');
   if(info.project.name!=='large'){
     const before=await region.evaluate(e=>e.scrollTop);
@@ -110,6 +110,7 @@ test('current-year remaining lot profit, historical year, browser/detail return 
   await expect(page.getByTestId('investment-trading-profit')).toHaveText('+1,300원');await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익 +1.3%');
   await page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'}).click();
   const chart=page.getByTestId('investment-chart');await chart.scrollIntoViewIfNeeded();await expect(chart.getByTestId('investment-legend')).toBeVisible();
+  await page.screenshot({path:info.outputPath('investment-summary.png')});
   const saved=await page.locator('main').evaluate(e=>e.scrollTop);
   await page.getByRole('button',{name:'상세보기 ›',exact:true}).click();await expect(page).toHaveURL(/chart=detail/);await expect(page.getByRole('dialog')).toBeVisible();await page.goBack();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page).toHaveURL(/detail\/investment/);
   await expect(page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'})).toHaveAttribute('aria-pressed','true');expect(await page.locator('main').evaluate(e=>e.scrollTop)).toBe(saved);
