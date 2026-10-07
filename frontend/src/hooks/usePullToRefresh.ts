@@ -7,15 +7,16 @@ const protectedControls = 'input,select,textarea,[contenteditable="true"],[role=
 export function usePullToRefresh(root: RefObject<HTMLElement | null>, scope: string) {
   const client = useQueryClient();
   const [refreshing, setRefreshing] = useState(false), [error, setError] = useState(false);
+  const [distance, setDistance] = useState(0);
   const refreshRef = useRef<() => void>(() => {});
   useMainLoading(refreshing);
   useEffect(() => {
     const element = root.current;
-    setRefreshing(false); setError(false);
+    setRefreshing(false); setError(false); setDistance(0);
     if (!element) return;
     let active = true, locked = false, pull = 0, suppressUntil = 0;
     let start: { x: number; y: number; region: HTMLElement; axis: 'pending' | 'vertical' } | null = null;
-    const reset = () => { start = null; pull = 0; delete element.dataset.pullDistance; };
+    const reset = () => { start = null; pull = 0; delete element.dataset.pullDistance; if (active) setDistance(0); };
     const atTop = (region: HTMLElement) => {
       for (let parent: HTMLElement | null = region; parent; parent = parent.parentElement) {
         if (parent.scrollTop > 0) return false;
@@ -55,7 +56,7 @@ export function usePullToRefresh(root: RefObject<HTMLElement | null>, scope: str
       }
       if (start.axis === 'vertical') {
         if (event.cancelable) event.preventDefault();
-        pull = Math.max(0, dy - 12); element.dataset.pullDistance = String(pull);
+        pull = Math.max(0, dy - 12); element.dataset.pullDistance = String(pull); setDistance(Math.min(76, pull * .5));
         if (pull >= 100) suppressUntil = performance.now() + 700;
       }
     };
@@ -72,5 +73,5 @@ export function usePullToRefresh(root: RefObject<HTMLElement | null>, scope: str
       element.removeEventListener('touchend', end); element.removeEventListener('touchcancel', reset); element.removeEventListener('click', click, true);
     };
   }, [client, root, scope]);
-  return { refreshing, error, dismissError: () => setError(false), retry: () => refreshRef.current() };
+  return { refreshing, distance, error, dismissError: () => setError(false), retry: () => refreshRef.current() };
 }
