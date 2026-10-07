@@ -3,7 +3,7 @@ import { InvestmentChart } from './InvestmentChart';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { rate, won } from '../investment-profit/profitData';
 import '../dashboard/home-font.css';
-import { Box, Button, ButtonBase, Dialog, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, Dialog, MenuItem, Select, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -47,7 +47,7 @@ export function InvestmentPage() {
   const location = useLocation(), navigate = useNavigate();
   const detail = new URLSearchParams(location.search).get('chart') === 'detail';
   const openDetail = () => {
-    setDetailQuarter(quarter);
+    setDetailQuarter(quarter); setDetailYear(year);
     const params = new URLSearchParams(location.search); params.set('chart', 'detail');
     navigate({pathname:location.pathname,search:`?${params}`}, {state:{...location.state,listEntryKey:location.state?.listEntryKey ?? location.key,investmentDetailEntry:true}});
   };
@@ -55,6 +55,8 @@ export function InvestmentPage() {
     if(location.state?.investmentDetailEntry) navigate(-1);
     else {const params=new URLSearchParams(location.search);params.delete('chart');navigate({pathname:location.pathname,search:params.toString()}, {replace:true,state:location.state});}
   };
+  const [detailYear,setDetailYear]=useState(year);
+  const detailQuery=useQuery({...storedQueryOptions,queryKey:['investment',accountId,detailYear],queryFn:({signal})=>loadInvestment(accountId!,detailYear,today,signal),enabled:!!accountId&&detail,retry:false});
   const [detailQuarter, setDetailQuarter] = useState<Quarter>(quarter);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const changeYear = (direction: number) => {
@@ -64,8 +66,8 @@ export function InvestmentPage() {
   };
   const data = query.data, range = periodRange(year, quarter, today);
   const points = (data?.points ?? []).filter(point => point.date >= range.from && point.date <= range.to);
-  const detailRange = periodRange(year, detailQuarter, today);
-  const detailPoints = (data?.points ?? []).filter(point => point.date >= detailRange.from && point.date <= detailRange.to);
+  const detailRange = periodRange(detailYear, detailQuarter, today);
+  const detailPoints = (detailQuery.data?.points ?? []).filter(point => point.date >= detailRange.from && point.date <= detailRange.to);
   const delta = data?.evaluation != null && data.investment != null ? data.evaluation - data.investment : null;
   const displayedProfit = year === currentYear ? data?.currentYearProfit ?? null : data?.annualTradingProfit ?? null;
   const failed = accounts.isError || query.isError;
@@ -100,11 +102,11 @@ export function InvestmentPage() {
       <Stack ref={leftRef} data-scroll-region="investment-left" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{summary}</Stack>
       <Stack ref={rightRef} data-scroll-region="investment-right" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { sm: '80px' } }}>{failed && <AppCard sx={card}><Typography role="alert" sx={small}>조회에 실패했습니다.{data ? ' 이전 데이터를 표시합니다.' : ''}</Typography><Button onClick={retry} sx={{ fontSize: 11 }}>재시도</Button></AppCard>}{table}</Stack>
     </Box>{tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="투자금 왼쪽 스크롤" offset={0} /><OverlayRegionScrollbar scrollRef={rightRef} label="투자금 오른쪽 스크롤" offset={0} /></>}
-    <Dialog transitionDuration={0} fullScreen open={enableChartDetail && detail} onClose={() => closeDetail()} slotProps={{ paper: { sx: { bgcolor: '#080D18', backgroundImage: 'none', p: '8px', overflowY: 'auto' } } }}>
-      <Stack direction="row" sx={{ alignItems: 'center', height: 44, gap: '8px', flexShrink: 0 }}><Button aria-label="차트 상세 뒤로가기" onClick={() => closeDetail()} sx={{ minWidth: 28, fontSize: 24 }}>‹</Button><Typography sx={{ fontSize: 20, fontWeight: 600 }}>차트 상세 · {year}년</Typography></Stack>
-      <AppCard sx={{ ...card, mt: '8px' }}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>일별 평가금액 · 추이</Typography><Stack direction="row" spacing="8px"><Typography sx={{ ...small, color: colors.marketRise }}>● 평가금액</Typography><Typography sx={{ ...small, color: colors.marketFall }}>● 투자금</Typography></Stack>
-      {detailPoints.length ? <InvestmentChart points={detailPoints} from={detailRange.from} to={detailRange.to} expanded /> : <Typography role="status">{status}</Typography>}
-      <Stack direction="row" spacing="4px" sx={{ mt: '16px' }}>{quarters.map(value => <Button key={value} aria-pressed={detailQuarter === value} disabled={!quarterAvailable(year, value, today)} onClick={() => setDetailQuarter(value)} sx={{ flex: 1, minWidth: 0, height: 28, fontSize: 11, bgcolor: detailQuarter === value ? '#337DF5' : '#1A2433', color: detailQuarter === value ? 'white' : colors.textMuted }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack></AppCard>
+    <Dialog transitionDuration={0} fullScreen open={enableChartDetail && detail} onClose={() => closeDetail()} slotProps={{ paper: { sx: { bgcolor: '#080D18', backgroundImage: 'none', p: '8px', overflow: 'hidden', display:'flex',flexDirection:'column' } } }}>
+      <Stack direction="row" sx={{ alignItems: 'center', height: 44, gap: '8px', flexShrink: 0 }}><Button aria-label="차트 상세 뒤로가기" onClick={() => closeDetail()} sx={{ minWidth: 28, fontSize: 24 }}>‹</Button><Typography sx={{ fontSize: 20, fontWeight: 600 }}>투자금 차트</Typography></Stack>
+      <AppCard data-testid="investment-detail-card" sx={{ ...card, mt: '8px',flex:1,minHeight:0,display:'flex',flexDirection:'column' }}><Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',flexShrink:0}}><Typography sx={{ fontSize: 14, fontWeight: 600 }}>일별 평가금액 · 추이</Typography><Select size="small" value={detailYear} inputProps={{'aria-label':'차트 연도'}} onChange={e=>setDetailYear(Number(e.target.value))} sx={{height:30,fontSize:12}}>{Array.from({length:currentYear-2010+1},(_,i)=>currentYear-i).map(value=><MenuItem key={value} value={value}>{value}년</MenuItem>)}</Select></Stack><Stack direction="row" spacing="8px"><Typography sx={{ ...small, color: colors.marketRise }}>● 평가금액</Typography><Typography sx={{ ...small, color: colors.marketFall }}>● 투자금</Typography></Stack>
+      {detailQuery.isPending ? <Skeleton sx={{flex:1,transform:'none'}}/> : detailPoints.length ? <InvestmentChart points={detailPoints} from={detailRange.from} to={detailRange.to} expanded /> : <Box role="status" sx={{flex:1,display:'grid',placeItems:'center',minHeight:0,fontSize:12}}> {detailQuery.isError?'조회에 실패했습니다.':'내용이 없습니다.'} </Box>}{detailQuery.isError&&<Button onClick={()=>detailQuery.refetch()}>다시 시도</Button>}
+      <Stack direction="row" spacing="4px" data-testid="investment-detail-quarters" sx={{ mt: '8px',flexShrink:0 }}>{quarters.map(value => <Button key={value} aria-pressed={detailQuarter === value} onClick={() => setDetailQuarter(value)} sx={{ flex: 1, minWidth: 0, height: 28, fontSize: 11, bgcolor: detailQuarter === value ? '#337DF5' : '#1A2433', color: detailQuarter === value ? 'white' : colors.textMuted }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack></AppCard>
     </Dialog>
   </>;
 }
