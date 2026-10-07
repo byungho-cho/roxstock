@@ -1,14 +1,15 @@
-import { Prisma, type FinancialStatement, type DartFinancialFiling, type ValuationMetric } from '../generated/prisma/index.js';
+import { Prisma, type FinancialStatement, type DartFinancialFiling, type ValuationMetric, type PeriodValuation } from '../generated/prisma/index.js';
 
 export const requiredReturn = new Prisma.Decimal('0.08');
 const decimal = (value: string | null | undefined) => value == null ? null : new Prisma.Decimal(value);
 const text = (value: { toString(): string } | null | undefined) => value?.toString() ?? null;
-export type StoredValuation = { metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
+export type StoredValuation = { rimCompatible?:boolean; metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
 export function valuation(row: ValuationMetric | null | undefined): StoredValuation | null {
   return row ? { metricDate: row.metricDate.toISOString().slice(0, 10), eps: text(row.eps), bps: text(row.bps), per: text(row.per), pbr: text(row.pbr), roe: text(row.roe) } : null;
 }
 // Same RIM formula as LiveStockInsightPage; Decimal keeps ordering/display input precision.
 export function fairPrice(metric: StoredValuation | null, weight: string): string | null {
+  if(metric?.rimCompatible===false)return null;
   const bps = decimal(metric?.bps), roe = decimal(metric?.roe);
   return bps && roe ? bps.mul(new Prisma.Decimal(1).plus(roe.div(100).minus(requiredReturn).mul(weight).div(requiredReturn))).toString() : null;
 }
@@ -71,18 +72,28 @@ export function growth(current: Statement | undefined, previous: Statement | und
   const a = decimal(current[field]), b = decimal(previous[field]);
   return a && b?.gt(0) ? a.minus(b).div(b).mul(100).toString() : null;
 }
-export function financialRows(selected: Period[], statements: Statement[], metrics: ValuationMetric[]) {
+export function financialRows(selected: Period[], statements: Statement[], metrics: ValuationMetric[], calculated: PeriodValuation[] = []) {
   const map = new Map(statements.map(row => [row.fiscalYear + ':' + row.periodType, row]));
   return selected.map(period => {
     const row = map.get(period.key), before = map.get(period.year - 1 + ':' + (period.quarter === null ? 'ANNUAL' : 'Q' + period.quarter));
     const from = period.year + '-' + String(period.quarter === null ? 1 : (period.quarter - 1) * 3 + 1).padStart(2, '0') + '-01';
     const end = period.quarter === null || period.quarter === 4 ? period.year + 1 + '-01-01' : period.year + '-' + String(period.quarter * 3 + 1).padStart(2, '0') + '-01';
     const metric = metrics.find(item => item.metricDate.toISOString().slice(0, 10) >= from && item.metricDate.toISOString().slice(0, 10) < end);
+    const computed=calculated.find(v=>v.fiscalYear===period.year&&v.periodType===(period.quarter===null?'ANNUAL':'Q'+period.quarter))??(period.quarter===4?calculated.find(v=>v.fiscalYear===period.year&&v.periodType==='ANNUAL'):undefined);
+    const values=computed?.values as Record<string,string|null>|undefined;
     const equity = decimal(row?.totalEquity), liabilities = decimal(row?.totalLiabilities);
     return { ...period, revenue: row?.revenue ?? null, operatingProfit: row?.operatingProfit ?? null, netIncome: row?.netIncome ?? null,
-      per: text(metric?.per), pbr: text(metric?.pbr), roe: text(metric?.roe), metricDate: metric?.metricDate.toISOString().slice(0, 10) ?? null,
+      per: text(metric?.per)??values?.per??null, pbr: text(metric?.pbr)??values?.pbr??null, roe: text(metric?.roe)??values?.roe??null, metricDate: metric?.metricDate.toISOString().slice(0, 10) ?? (computed?.provenance as {periodEnd?:string}|undefined)?.periodEnd??null,
+      metricStatus:computed?.status??'NOT_COLLECTED',metricReasons:computed?.reasons??{},metricProvenance:computed?.provenance??null,
       debtRatio: equity?.gt(0) && liabilities ? liabilities.div(equity).mul(100).toString() : null,
       currentRatio: null, revenueGrowth: growth(row, before, 'revenue'), profitGrowth: growth(row, before, 'netIncome'),
       source: row?.basis ?? null, collectedAt: row?.collectedAt ?? null, isDerived: row?.isDerived ?? false };
   });
+}
+
+export function combinedValuation(legacy:StoredValuation|null, rows:PeriodValuation[]):StoredValuation|null {
+ const computed=[...rows].sort((a,b)=>(a.periodType==='ANNUAL'?-1:b.periodType==='ANNUAL'?1:b.periodType.localeCompare(a.periodType)))[0];
+ if(!computed)return legacy;
+ const values=computed.values as Record<string,string|null>,provenance=computed.provenance as {periodEnd?:string;roeBasis?:string;fsDivision?:string};
+ return {rimCompatible:!!(legacy?.bps&&legacy?.roe)||provenance.fsDivision==='OFS'||provenance.roeBasis==='OWNERS_OF_PARENT',metricDate:legacy?.metricDate??provenance.periodEnd??computed.fiscalYear+'-12-31',eps:legacy?.eps??values.eps??null,bps:legacy?.bps??values.bps??null,per:legacy?.per??values.per??null,pbr:legacy?.pbr??values.pbr??null,roe:legacy?.roe??values.roe??null};
 }

@@ -4,12 +4,12 @@ import type { PrismaClient } from '../generated/prisma/index.js';
 import { PrismaDartRepository } from './dart-repository.js';
 import type { DartReport } from './dart-provider.js';
 
-test('priority ranks traded, manually held/recommended, and interest ahead of regular without duplicate accounts', async () => {
+test('priority ranks traded, manually held, and interest ahead of regular without duplicate accounts', async () => {
   const db = {
     buyTrade:{findMany:async (query:any)=>{assert.equal(query.where.account.isActive,true);return [{securityId:3n},{securityId:1n}];}},
     accountWatchlistItem:{findMany:async()=>[{securityId:1n,listType:'HOLDING',priority:0},{securityId:2n,listType:'WATCHLIST',priority:100},{securityId:4n,listType:'RECOMMENDED',priority:0},{securityId:5n,listType:'HOLDING',priority:0}]},
   } as unknown as PrismaClient;
-  assert.deepEqual(await new PrismaDartRepository(db).prioritySecurityIds(),[1n,3n,4n,5n,2n]);
+  assert.deepEqual(await new PrismaDartRepository(db).prioritySecurityIds(),[1n,3n,5n,2n]);
 });
 
 test('a newly added priority stock starts despite the general daily cap and daytime excludes regular stocks', async () => {
@@ -34,6 +34,6 @@ test('report cache survives repository instances and expired entries reload', as
 
 test('extending first collection adds current year idempotently and preserves successful history',async()=>{
  let state:any={backfillInitializedAt:new Date(),backfillEndYear:2025,backfillStartYear:2015,backfillCompletedAt:new Date()};const tasks:any[]=[];
- const db={dartCollectorState:{findUnique:async()=>state,upsert:async(q:any)=>{state={...state,...q.update};return state;}},security:{findMany:async()=>[{id:1n},{id:2n}]},dartSecurityState:{findMany:async()=>[{securityId:1n},{securityId:2n}],updateMany:async()=>({count:2})},dartBackfillTask:{createMany:async(q:any)=>{assert.equal(q.skipDuplicates,true);tasks.push(...q.data);return {count:q.data.length};},updateMany:async(q:any)=>{assert.equal(q.where.status,'PENDING');return {count:0};}}} as unknown as PrismaClient;
+ const db={buyTrade:{findMany:async()=>[]},accountWatchlistItem:{findMany:async()=>[]},dartCollectorState:{findUnique:async()=>state,upsert:async(q:any)=>{state={...state,...q.update};return state;}},security:{findMany:async()=>[{id:1n},{id:2n}]},dartSecurityState:{findMany:async()=>[{securityId:1n},{securityId:2n}],updateMany:async()=>({count:2})},dartBackfillTask:{createMany:async(q:any)=>{assert.equal(q.skipDuplicates,true);tasks.push(...q.data);return {count:q.data.length};},updateMany:async(q:any)=>{assert.equal(q.where.status,'PENDING');return {count:0};}}} as unknown as PrismaClient;
  const repo=new PrismaDartRepository(db);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);assert.ok(tasks.every(t=>t.fiscalYear===2026));assert.equal(state.backfillEndYear,2026);assert.equal(state.backfillCompletedAt,null);await repo.ensureBackfillPlan(2015,2026);assert.equal(tasks.length,8);
 });
