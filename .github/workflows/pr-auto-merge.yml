@@ -36,10 +36,15 @@ jobs:
               if (pr.state === 'open') {
                 // Queue PR-level auto-merge. Branch protection enforces PR Gate and an up-to-date branch.
                 // Registration on opened/synchronize is safe: no PR code or artifacts are used.
-                if (!pr.auto_merge) {
+                if (pr.mergeable_state === 'clean') {
+                  // GitHub rejects enableAutoMerge once already clean. Merge normally;
+                  // required checks, strict base protection, and expected head still apply.
+                  await github.rest.pulls.merge({...context.repo, pull_number: number, merge_method: 'merge', sha: pr.head.sha});
+                  ({data: pr} = await github.rest.pulls.get({...context.repo, pull_number: number}));
+                } else if (!pr.auto_merge) {
                   await github.graphql('mutation($id:ID!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:MERGE}){pullRequest{id}}}', {id: pr.node_id});
                 }
-                if (!context.payload.workflow_run) continue;
+                if (!context.payload.workflow_run && !pr.merged) continue;
                 for (let attempt = 0; attempt < 24 && !pr.merged; attempt++) {
                   await new Promise(r => setTimeout(r, 5000));
                   ({data: pr} = await github.rest.pulls.get({...context.repo, pull_number: number}));
