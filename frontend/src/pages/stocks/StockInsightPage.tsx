@@ -38,7 +38,7 @@ function ValueContent({ stock }: any) {
 type Metric = { name: string; unit: string; change: string; values: string[]; tone?: 'rise' | 'fall' };
 const annualGroups: Array<{ title: string; metrics: Metric[] }> = [
   { title: '수익성', metrics: [{ name:'매출액',unit:'조원',change:'+7.5%',values:['258.9','281.4','302.5'] },{ name:'영업이익',unit:'조원',change:'+27.6%',values:['6.6','26.8','34.2'] },{ name:'순이익',unit:'조원',change:'+25.8%',values:['15.5','22.1','27.8'] },{ name:'ROE',unit:'%',change:'+2.1%p',values:['4.1','8.6','10.7'] }]},
-  { title: '안정성', metrics: [{ name:'부채비율',unit:'%',change:'-3.2%p',values:['26.4','24.1','20.9'],tone:'fall' },{ name:'유동비율',unit:'%',change:'+8.7%p',values:['258.8','267.1','275.8'] }]},
+  { title: '안정성', metrics: [{ name:'부채비율',unit:'%',change:'-3.2%p',values:['26.4','24.1','20.9'],tone:'fall' }]},
   { title: '성장성', metrics: [{ name:'매출성장률',unit:'%',change:'+7.5%',values:['-14.3','8.7','7.5'] },{ name:'이익성장률',unit:'%',change:'+27.6%',values:['-84.9','306.1','27.6'] }]},
 ];
 

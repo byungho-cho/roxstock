@@ -14,7 +14,7 @@ test('all classifications keep their detail destination; nested controls, drag a
  await holding.dispatchEvent('pointerdown',{clientX:10,clientY:10});await holding.dispatchEvent('pointermove',{clientX:10,clientY:70});await holding.dispatchEvent('click');await expect(page).toHaveURL(/tab=holding$/);
  await holding.evaluate(el=>{const selection=window.getSelection()!,range=document.createRange();range.selectNodeContents(el);selection.removeAllRanges();selection.addRange(range);});await holding.dispatchEvent('click');await expect(page).toHaveURL(/tab=holding$/);await page.evaluate(()=>window.getSelection()?.removeAllRanges());
  await clickBody(holding);await expect(page.getByTestId('lot-lot1')).toBeVisible();await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/tab=holding$/);
- await page.getByRole('tab',{name:'관심종목'}).click();await clickBody(row(page,'2'));await expect(page).toHaveURL(/\/stocks\/2\/value$/);await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await waitReady(page);await expect(page.getByRole('tab',{name:'관심종목'})).toHaveAttribute('aria-selected','true');
+ await page.getByRole('tab',{name:'관심종목'}).click();await clickBody(row(page,'2'));await expect(page).toHaveURL(url=>url.pathname==='/stocks/2/value');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await waitReady(page);await expect(page.getByRole('tab',{name:'관심종목'})).toHaveAttribute('aria-selected','true');
  await page.getByRole('tab',{name:'거래종목'}).click();await clickBody(row(page,'9'));await expect(page.getByRole('tab',{name:'거래내역',exact:true})).toHaveAttribute('aria-selected','true');
 });
 

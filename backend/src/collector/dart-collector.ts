@@ -1,6 +1,5 @@
 import {collectionPasses} from './dart-order.js';
-import {supplementSafely} from './valuation-supplement.js';
-import {historicalClose} from './historical-close.js';
+import {supplementSafely,loadPeriodSupplement} from './valuation-supplement.js';
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { collectorLog as log } from './logger.js';
@@ -44,20 +43,10 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     onApiStatus: async (status) => repo.recordApiResult(status === '013' ? 'NO_DATA' : 'ERROR'),
   });
 
-  const supplement=(security:DartSecurityRecord,year:number,period:string)=>supplementSafely(prisma,security.id,year,period,async(f,saved)=>{
-    if(!f||!security.corpCode)return saved;
-    const sources=f.accountSources as Record<string,{amount?:string}>|null;
-    const equity=f.fsDivision==='OFS'?f.totalEquity:sources?.parentEquity?.amount;
-    const shares=saved.shares??(equity?await dart.fetchPeriodShares(security.corpCode,year,f.reportCode as DartReportCode,f.receiptNo):undefined);
-    let price=saved.price;
-    if(!price&&process.env.DATA_GO_KR_STOCK_PRICE_KEY&&(sources?.basicEps?.amount||equity&&shares&&!shares.preferred)){
-      if(!outsideWindowAllowed&&!activeWindow(new Date(),config))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window closed');
-      // Auxiliary calls consume the same conservative budget and renew the shared lease.
-      if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','Collection budget exhausted');
-      price=await historicalClose(security.symbol,f.periodEndDate);
-    }
-    return {...saved,...(shares?{shares}:{}),...(price?{price}:{})};
-  });
+  const supplement=(security:DartSecurityRecord,year:number,period:string)=>supplementSafely(prisma,security.id,year,period,security.corpCode?loadPeriodSupplement(dart,security.symbol,security.corpCode,prisma,async()=>{
+    if(!outsideWindowAllowed&&!activeWindow(new Date(),config))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window closed');
+    if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','Collection budget exhausted');
+  }):undefined);
   try {
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();

@@ -1,2 +1,8 @@
 import assert from 'node:assert/strict';import test from 'node:test';import {historicalClose} from './historical-close.js';
+test('historical price reuses the existing public-data key when no dedicated key is configured',async()=>{
+ const dedicated=process.env.DATA_GO_KR_STOCK_PRICE_KEY,shared=process.env.DATA_GO_KR_SERVICE_KEY;
+ delete process.env.DATA_GO_KR_STOCK_PRICE_KEY;process.env.DATA_GO_KR_SERVICE_KEY='shared-test';
+ try{await historicalClose('005380',new Date('2025-12-31'),async input=>{assert.equal(new URL(String(input)).searchParams.get('serviceKey'),'shared-test');return new Response(JSON.stringify({response:{header:{resultCode:'00'},body:{items:{item:[]}}}}));});}
+ finally{if(dedicated===undefined)delete process.env.DATA_GO_KR_STOCK_PRICE_KEY;else process.env.DATA_GO_KR_STOCK_PRICE_KEY=dedicated;if(shared===undefined)delete process.env.DATA_GO_KR_SERVICE_KEY;else process.env.DATA_GO_KR_SERVICE_KEY=shared;}
+});
 test('historical price accepts only exact symbol and prior seven-day window; never future/current fallback',async()=>{const old=process.env.DATA_GO_KR_STOCK_PRICE_KEY;process.env.DATA_GO_KR_STOCK_PRICE_KEY='test';try{let url='';const row=await historicalClose('005380',new Date('2025-12-31'),async input=>{url=String(input);return new Response(JSON.stringify({response:{header:{resultCode:'00'},body:{items:{item:[{srtnCd:'005380',basDt:'20260102',clpr:'999'},{srtnCd:'000001',basDt:'20251231',clpr:'99'},{srtnCd:'005380',basDt:'20251230',clpr:'100'}]}}}}));});assert.equal(row?.value,'100');assert.equal(row?.date,'2025-12-30');assert.ok(url.includes('endBasDt=20251231'));}finally{if(old===undefined)delete process.env.DATA_GO_KR_STOCK_PRICE_KEY;else process.env.DATA_GO_KR_STOCK_PRICE_KEY=old;}});
