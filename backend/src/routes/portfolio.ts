@@ -12,7 +12,7 @@ import { prisma } from '../lib/prisma.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 type AccountParams = { accountId: string };
-type AssetHistoryQuery = { from?: string; to?: string };
+type AssetHistoryQuery = { from?: string; to?: string; storedOnly?: string };
 
 const dateOnly = (value: string | undefined, fieldName: string) => {
   if (value === undefined) return undefined;
@@ -219,7 +219,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
     const calculatedAt = new Date(), todayKey=dashboardPeriod(calculatedAt).todayKey;
     let liveUnrealized: Prisma.Decimal | null = null;
     let liveClosing = false;
-    if ((!to || to >= todayKey) && (!from || from <= todayKey)) {
+    if (request.query.storedOnly !== 'true' && (!to || to >= todayKey) && (!from || from <= todayKey)) {
       const portfolio=await loadPortfolio(accountId);
       const current=calculateDashboard(portfolio.account.cashBalance,portfolio.holdings);
       if(current.totalAssetValue!==null && current.stockValue!==null){

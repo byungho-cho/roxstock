@@ -1,0 +1,39 @@
+name: Investment phase 2
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/investment/**
+      - frontend/tests/**/investment*
+      - frontend/playwright.phase2.config.ts
+      - backend/src/routes/portfolio.ts
+      - backend/src/routes/investment-stored.test.ts
+      - .github/workflows/investment-phase2-check.yml
+permissions:
+  contents: read
+env:
+  DATABASE_URL: mysql://unused:unused@127.0.0.1:3306/unused
+jobs:
+  investment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:frontend
+      - run: npm run prisma:generate
+      - run: npm run typecheck:backend
+      - run: node --import tsx --test frontend/tests/unit/investment-phase2.test.ts frontend/tests/unit/investment-data.test.ts backend/src/routes/investment-stored.test.ts
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test -c playwright.phase2.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: investment-phase2-evidence
+          path: frontend/test-results/investment-phase2
+          retention-days: 7
