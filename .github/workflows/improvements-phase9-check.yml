@@ -1,0 +1,40 @@
+name: Improvements phase 9
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/value/**
+      - frontend/src/pages/financial/**
+      - frontend/src/pages/stocks/**
+      - frontend/src/components/forms/**
+      - backend/src/collector/**
+      - backend/src/routes/financial*
+      - backend/src/domain/period-valuation*
+      - frontend/tests/targets/improvements-phase9.spec.ts
+      - frontend/playwright.phase9.config.ts
+      - .github/workflows/improvements-phase9-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phase9:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.phase9.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase9-evidence
+          path: frontend/test-results/
+          retention-days: 7
