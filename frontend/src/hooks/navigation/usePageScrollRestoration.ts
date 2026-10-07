@@ -56,6 +56,8 @@ export function usePageScrollRestoration(ref: RefObject<HTMLElement | null>) {
     main.addEventListener('scroll', onScroll, true);
     main.addEventListener('pointerdown', capture, true);
     main.addEventListener('keydown', capture, true);
-    return () => { observer.disconnect(); main.removeEventListener('scroll', onScroll, true); main.removeEventListener('pointerdown', capture, true); main.removeEventListener('keydown', capture, true); regions().forEach(element => { element.style.visibility = ''; }); };
+    // Capture before React click handlers change the region's condition or route.
+    main.addEventListener('click', capture, true);
+    return () => { observer.disconnect(); main.removeEventListener('scroll', onScroll, true); main.removeEventListener('pointerdown', capture, true); main.removeEventListener('keydown', capture, true); main.removeEventListener('click', capture, true); regions().forEach(element => { element.style.visibility = ''; }); };
   }, [pageKey, location.search, ref]);
 }
