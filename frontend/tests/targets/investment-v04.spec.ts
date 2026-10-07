@@ -19,7 +19,7 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
     if (path.endsWith('/asset-history')) {
       if (held && path.includes('/1/')) await new Promise<void>(resolve => releases.push(resolve));
       if (mode === 'error') return route.fulfill({ status: 503, json: { error: { message: '조회 오류' } } });
-      const year = Number(url.searchParams.get('from')!.slice(0, 4));
+      const year = Number(url.searchParams.get('to')!.slice(0, 4));
       const start = new Date(`${year}-01-01T00:00:00Z`);
       const snapshots = Array.from({ length: year === 2026 ? 181 : 365 }, (_, i) => {
         const date = new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10);

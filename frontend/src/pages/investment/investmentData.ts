@@ -38,7 +38,7 @@ export function returnRate(evaluation: bigint | null, investment: bigint | null)
 }
 type Snapshot = AssetHistoryDto['data'][number] & { updatedAt?: string };
 type Transaction = CashTransactionDto & { createdAt?: string; updatedAt?: string };
-export type InvestmentPoint = { date: string; evaluation: bigint | null; investment: bigint | null };
+export type InvestmentPoint = { date: string; evaluation: bigint | null; investment: bigint | null; dailyProfit?: bigint | null };
 export type InvestmentData = {
   points: InvestmentPoint[];
   asOf: string | null;
@@ -80,8 +80,20 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
     }
     return { investment, dividend };
   };
-  const points = ordered.map(snapshot => ({ date: snapshot.date, evaluation: money(snapshot.totalAssetValue), investment: totals(snapshot).investment }));
-  const latest = ordered.at(-1), point = points.at(-1);
+  const points = ordered.filter(snapshot => snapshot.date.startsWith(`${year}-`)).map(snapshot => {
+    const previousDate = new Date(Date.parse(snapshot.date) - 86400000).toISOString().slice(0, 10);
+    const previous = ordered.find(row => row.date === previousDate);
+    const evaluation = money(snapshot.totalAssetValue), previousValue = money(previous?.totalAssetValue);
+    let netDeposit: bigint | null = 0n;
+    for (const row of transactions) {
+      if (!['DEPOSIT', 'WITHDRAWAL'].includes(row.transactionType) || formatter.format(new Date(row.transactionDate)) !== snapshot.date) continue;
+      const value = money(row.amount);
+      netDeposit = value === null || netDeposit === null ? null : netDeposit + (row.transactionType === 'DEPOSIT' ? value : -value);
+    }
+    return { date: snapshot.date, evaluation, investment: totals(snapshot).investment,
+      dailyProfit: evaluation === null || previousValue === null || netDeposit === null ? null : evaluation - previousValue - netDeposit };
+  });
+  const point = points.at(-1), latest = ordered.find(row => row.date === point?.date);
   return { points, asOf: latest?.date ?? null, evaluation: point?.evaluation ?? null, investment: point?.investment ?? null,
     dividend: latest ? totals(latest).dividend : null, initialInvestment: opening ? money(opening.investmentAmount) : 0n, initialAsOf: opening?.date ?? null, historicalUnavailable };
 }
@@ -89,7 +101,7 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
 export async function loadInvestment(accountId: string, year: number, today: string, signal: AbortSignal) {
   const range = periodRange(year, 0, today), account = encodeURIComponent(accountId);
   const [history, baseline, trades] = await Promise.all([
-    apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams(range)}`, { signal }),
+    apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams({ ...range, from: `${year-1}-12-31`, storedOnly: 'true' })}`, { signal }),
     apiEnvelope<{data:{date:string;investmentAmount:string|null;updatedAt:string}|null}>(`/accounts/${account}/investment-baseline?year=${year}`,{signal}),
     apiEnvelope<TradeReport>(`/accounts/${account}/trades?${new URLSearchParams(range)}`, {signal}),
   ]);
@@ -111,5 +123,5 @@ export async function loadInvestment(accountId: string, year: number, today: str
       transactions.push(...result.data);
     }
   }
-  return { ...calculateInvestment(history.data.filter(point => point.date >= range.from && point.date <= range.to), transactions, year, opening), annualTradingProfit: amount(trades.summary.realizedProfitLoss) };
+  return { ...calculateInvestment(history.data.filter(point => point.date >= `${year-1}-12-31` && point.date <= range.to), transactions, year, opening), annualTradingProfit: amount(trades.summary.realizedProfitLoss) };
 }
