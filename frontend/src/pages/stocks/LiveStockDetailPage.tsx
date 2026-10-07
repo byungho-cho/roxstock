@@ -1,3 +1,4 @@
+import { StockNavigation } from './StockNavigation';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { amount, rate, won as profitWon } from '../investment-profit/profitData';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
@@ -33,9 +34,7 @@ export function LiveStockDetailPage(){
  const move=(offset:number)=>{const target=offset<0?previous:next;if(target)navigate(`/stocks/${target.id}${location.search}`,{replace:true,state:location.state});};
  const swipe=useDetailSwipe(move,!!stock);
  if(tablet&&stock)return <StockListPage initialSelectedId={stockId} initialTab={stock.listType}/>;
- return <Stack spacing={1} {...swipe} data-detail-swipe sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}><PageHeader embedded stockNavigation={stock&&(previous||next)?<Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}>
- <Button disabled={!previous} onClick={()=>move(-1)} sx={{fontSize:10,p:0,minWidth:0,minHeight:14,height:14,lineHeight:'14px',color:colors.textMuted}}>{previous?.name??''}</Button><Typography sx={{fontSize:10,color:colors.textMuted}}>{stock.symbol}</Typography>
- <Button disabled={!next} onClick={()=>move(1)} sx={{fontSize:10,p:0,minWidth:0,minHeight:14,height:14,lineHeight:'14px',color:colors.textMuted}}>{next?.name??''}</Button></Stack>:undefined}
+ return <Stack spacing={1} {...swipe} data-detail-swipe sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}><PageHeader embedded stockNavigation={stock&&(previous||next)?<StockNavigation symbol={stock.symbol} previousName={previous?.name} nextName={next?.name} onPrevious={()=>move(-1)} onNext={()=>move(1)} />:undefined}
  title={stock?.name??'종목 상세'} onBack={back} showAdd={false} action={stock&&<IconButton aria-label="즐겨찾기" onClick={()=>toggleFavorite(stock.id)} sx={{color:favoriteIds.has(stock.id)?colors.warning:colors.textMuted}}>{favoriteIds.has(stock.id)?<FavoriteRounded/>:<FavoriteBorderRounded/>}</IconButton>}/>
  {isPending?<Skeleton height={64}/>:isError&&!stocks?<Button role="alert" onClick={()=>void refetch()}>종목 조회 실패 · 다시 시도</Button>:stock?<StockDetailContent key={stock.id} stock={stock} initialTab={params.get('tab')==='trades'||stock.listType==='traded'?'trades':'holding'}/>:<Typography>내용이 없습니다.</Typography>}</Stack>;
 }

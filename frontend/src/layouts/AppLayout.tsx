@@ -1,5 +1,7 @@
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { useActiveAccount } from '../hooks/useActiveAccount';
 import { ArrowUpwardRounded } from '@mui/icons-material';
-import { Box, IconButton, Zoom } from '@mui/material';
+import { Box, Button, IconButton, Snackbar, Zoom } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, HeaderSlotContext, PageHeader } from '../components/navigation/Navigation';
@@ -24,6 +26,8 @@ export function AppLayout() {
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   const scrollRef = useRef<HTMLElement>(null);
   usePageScrollRestoration(scrollRef);
+  const { accountId } = useActiveAccount();
+  const pull = usePullToRefresh(scrollRef, `${accountId}:${location.pathname}:${location.search}`);
   const isTargetPage = location.pathname === '/detail/target-arrivals';
   const isTargetSettings = location.pathname === '/detail/settings' && new URLSearchParams(location.search).get('view') === 'target-arrival';
   const isTradePage = location.pathname.startsWith('/trade') || location.pathname.startsWith('/journal/trade/'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
@@ -54,6 +58,7 @@ export function AppLayout() {
       {!hasPageHeader && !isMoreMenu && <PageHeader homeDashboard={isHomePage} variant={isCollectionMonitoring ? 'detail' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isCollectionMonitoring ? location.pathname === '/detail/collection-monitoring' ? '/more' : '/detail/collection-monitoring' : location.pathname === '/more' ? '/' : undefined} backIcon={isCollectionMonitoring ? <img src="/stocks-v03/back.svg" alt="" /> : undefined} showBackTablet={isCollectionMonitoring} showAddMobile={!isCollectionMonitoring} showAdd={isHomePage} addPath="/stocks/add?type=holding&from=home" addLabel="종목 추가" onAdd={isHomePage ? () => navigate("/stocks/add?type=holding&from=home",{state:{backgroundLocation:location}}) : undefined} maxWidth={816} />}
     </Box>
     <MainLoadingBar />
+    <Snackbar open={pull.error} autoHideDuration={5000} onClose={pull.dismissError} message="새로고침에 실패했습니다. 기존 데이터를 표시합니다." action={<Button onClick={pull.retry}>재시도</Button>} />
     <PageLayout valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><Outlet /></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
