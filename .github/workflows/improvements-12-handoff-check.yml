@@ -5,7 +5,7 @@ on:
     paths:
       - frontend/src/**
       - frontend/tests/**
-      - frontend/playwright.handoff.config.ts
+      - frontend/playwright.handoff*.config.ts
       - frontend/playwright.improvements.config.ts
       - .github/workflows/improvements-12-handoff-check.yml
 permissions:
@@ -36,6 +36,9 @@ jobs:
       - name: First-phase improvements at cover tablet and large viewports
         run: npx playwright test -c playwright.improvements.config.ts
         working-directory: frontend
+      - name: Investment and profit regressions including large viewport
+        run: npx playwright test -c playwright.handoff.profit.config.ts --workers=2
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -43,4 +46,5 @@ jobs:
           path: |
             frontend/test-results/handoff-regression/
             frontend/test-results/improvements-12/
+            frontend/test-results/handoff-profit/
           retention-days: 7

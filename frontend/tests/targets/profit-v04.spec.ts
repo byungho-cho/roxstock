@@ -57,10 +57,10 @@ test('all stock results include losses and synchronize cumulative/detail sums', 
   await expect(page.getByTestId('profit-detail-summary')).toContainText('+461원');
   await expect(page.getByTestId('profit-selected')).toHaveText('종목00');
   await page.getByRole('button', { name: /다음 상세/ }).click(); await expect(page.getByTestId('profit-selected')).toHaveText('종목02');
-  if (info.project.name.startsWith('tablet')) await expect(page.getByTestId('profit-list-row').filter({hasText:'종목02'})).toHaveAttribute('aria-pressed', 'true');
+  if (page.viewportSize()!.width >= 600) await expect(page.getByTestId('profit-list-row').filter({hasText:'종목02'})).toHaveAttribute('aria-pressed', 'true');
 });
 test('year navigation wraps and cover back restores account tab and list position', async ({ page }, info) => {
-  await fixture(page); await ready(page); const tablet = info.project.name.startsWith('tablet');
+  await fixture(page); await ready(page); const tablet = page.viewportSize()!.width >= 600;
   if (!tablet) await page.getByTestId('profit-list-row').filter({ hasText: '2026' }).click();
   await page.getByRole('button', { name: /다음 상세/ }).click();
   if (tablet) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-navigation')).toHaveCount(0); await page.getByTestId('profit-list-row').filter({ hasText: '2025' }).click(); }
@@ -73,7 +73,7 @@ test('year navigation wraps and cover back restores account tab and list positio
   else { await expect(page.getByTestId('profit-selected')).toHaveText('종목07'); expect(await region.evaluate(node => node.scrollTop)).toBe(before); }
 });
 test('requested geometry percent alignment independent scrolling and safe clearance', async ({ page }, info) => {
-  await fixture(page); await ready(page); const tablet = info.project.name.startsWith('tablet');
+  await fixture(page); await ready(page); const tablet = page.viewportSize()!.width >= 600;
   await page.getByRole('button', { name: '종목별', exact: true }).click();
   const geometry = await page.evaluate(() => {
     const main = document.querySelector('main')!, tabs = document.querySelector('[data-testid="profit-tabs"]')!, list = document.querySelector('[data-testid="profit-list"]')!;
@@ -105,7 +105,7 @@ test('stored profit does not poll/focus-refresh; account switch rejects the old 
 });
 test('empty missing failed and changing-pagination results remain distinct', async ({ page }, info) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');
-  if (info.project.name.startsWith('tablet')) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
+  if (page.viewportSize()!.width >= 600) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
   f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
   f.mode('changing'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByRole('alert').first()).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveCount(0);
