@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {useRef,useState} from 'react';
 import {Box,Button,Stack,Typography} from '@mui/material';
@@ -12,7 +13,7 @@ import {colors} from '../../styles/tokens';
 import {formatWon,getMarketColor} from '../../utils/format';
 export function TradeDetailPage(){
  const {type:raw,tradeId=''}=useParams(),type=raw==='sell'?'sell':'buy';const {accountId}=useActiveAccount(),back=useReturnNavigation('/journal?view=profit'),navigate=useListNavigation(),client=useQueryClient();
- const detail=useQuery({queryKey:['tradeDetail',accountId,type,tradeId],queryFn:()=>getTradeDetail(type,tradeId,accountId),enabled:!!accountId});
+ const detail=useQuery({...storedQueryOptions,queryKey:['tradeDetail',accountId,type,tradeId],queryFn:({signal})=>getTradeDetail(type,tradeId,accountId,signal),enabled:!!accountId});
  const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');const lock=useRef(false);
  const t=detail.data,q=Number(t?.quantity),amount=q*Number(t?.unitPrice),buyPrice=t?.buyUnitPrice==null?Number.NaN:Number(t.buyUnitPrice),cost=q*buyPrice,profit=t?.realizedProfitLoss==null?Number.NaN:Number(t.realizedProfitLoss);
  const blocked=type==='buy'&&!!t?.sellTrades?.length;
