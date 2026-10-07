@@ -5,20 +5,42 @@ async function setup(page: Page) {
   await page.clock.setFixedTime(new Date('2026-10-04T03:00:00Z'));
   const reads: URL[] = [], writes: Array<{ path: string; method: string; body: Record<string, string> }> = [];
   let fail = '', empty = false, writeFail = false;
+  let currentBalance = 203200000;
+  let latest = {id:'997', transactionType:'DEPOSIT', transactionDate:'2026-10-02T03:00:00Z', createdAt:'2026-10-04T03:00:00Z', amount:'846000', signedAmount:'846000', balanceAfter:String(currentBalance), memo:'기존 메모', dividend:null};
+  let saved: typeof latest | null = null;
+  let removed = false;
   await page.route('**/api/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     if (request.method() !== 'GET') {
       writes.push({ path, method: request.method(), body: request.postDataJSON() ?? {} });
+      if (!writeFail && /cash-transactions/.test(path)) {
+        const body = writes.at(-1)!.body;
+        if (request.method() === 'POST') {
+          currentBalance += Number(body.amount);
+          saved = {...latest, id:'new', transactionDate:body.transactionDate, createdAt:'2026-10-04T04:00:00Z', amount:body.amount, signedAmount:body.amount, memo:body.memo, balanceAfter:String(currentBalance)};
+        } else if (request.method() === 'PATCH') {
+          currentBalance += Number(body.amount) - Number((saved ?? latest).amount);
+          if(saved) saved = {...saved, amount:body.amount, signedAmount:body.amount, memo:body.memo};
+          else latest = {...latest, amount:body.amount, signedAmount:body.amount, memo:body.memo};
+        } else if (request.method() === 'DELETE') {
+          currentBalance -= Number((saved ?? latest).amount);
+          if(saved) saved = null; else removed = true;
+        }
+      }
       return route.fulfill({ status: writeFail ? 500 : 200, json: writeFail ? { error: { message: '저장 실패 · 다시 시도' } } : { data: { id: 'new', cashBalanceAdjusted: false } } });
     }
     reads.push(url);
     if (fail && path.endsWith(fail)) return route.fulfill({ status: 500, json: { error: { message: '조회 실패' } } });
     if (path === '/api/accounts') return route.fulfill({ json: { data: ['a', 'b'].map(id => ({ id, name: `계좌 ${id}`, brokerName: '증권', cashBalance: id === 'a' ? '203200000' : '2000000', isDefault: id === 'a', isActive: true })) } });
-    if (path.endsWith('/cash-overview')) return route.fulfill({ json: { data: { account: { id: path.includes('/b/') ? 'b' : 'a', name: '계좌', currentBalance: path.includes('/b/') ? '2000000' : '203200000', updatedAt: '2026-10-04T03:00:00Z' }, monthly: { deposit: '20000000', withdrawal: '2000000', dividend: '100000', netChange: '18100000' }, yearly: { deposit: '240000000', withdrawal: '24000000', dividend: '1200000', netChange: '217200000' }, recentTransactions: [] } } });
+    if (path.endsWith('/cash-overview')) return route.fulfill({ json: { data: { account: { id: path.includes('/b/') ? 'b' : 'a', name: '계좌', currentBalance: path.includes('/b/') ? '2000000' : String(currentBalance), updatedAt: '2026-10-04T03:00:00Z' }, monthly: { deposit: '20000000', withdrawal: '2000000', dividend: '100000', netChange: '18100000' }, yearly: { deposit: '240000000', withdrawal: '24000000', dividend: '1200000', netChange: '217200000' }, recentTransactions: saved ? [saved] : removed ? [] : [latest] } } });
     if (path.endsWith('/cash-transactions')) {
       const from = url.searchParams.get('from')!, to = url.searchParams.get('to')!, previous = from < '2026-10-01';
       const types = ['DIVIDEND', 'SELL', 'BUY', 'DEPOSIT', 'WITHDRAWAL'];
-      const data = empty ? [] : Array.from({ length: previous ? 126 : 123 }, (_, i) => ({ id: String(1000 - i), transactionType: types[i % 5], transactionDate: `${i < 123 ? to.slice(0, 7) : from.slice(0, 7)}-02T03:00:00Z`, amount: '846000', signedAmount: i % 5 === 2 || i % 5 === 4 ? '-846000' : '846000', balanceAfter: '203200000', memo: '기존 메모', dividend: i % 5 === 0 ? { id: 'd', securityId: '2', securityName: '삼성전자', grossAmount: '1000000', netAmount: '846000' } : null }));
+      let data = empty ? [] : Array.from({ length: previous ? 126 : 123 }, (_, i) => ({ id: String(1000 - i), transactionType: types[i % 5], transactionDate: `${i < 123 ? to.slice(0, 7) : from.slice(0, 7)}-02T03:00:00Z`, amount: '846000', signedAmount: i % 5 === 2 || i % 5 === 4 ? '-846000' : '846000', createdAt:'2026-10-02T03:00:00Z', balanceAfter: '203200000', memo: '기존 메모', dividend: i % 5 === 0 ? { id: 'd', securityId: '2', securityName: '삼성전자', grossAmount: '1000000', netAmount: '846000' } : null }));
+      if (!empty) {
+        data = data.filter(row => !removed || row.id !== latest.id).map(row => row.id === latest.id ? latest : row);
+        if (saved) data.unshift(saved);
+      }
       const offset = Number(url.searchParams.get('offset')), limit = Number(url.searchParams.get('limit'));
       return route.fulfill({ json: { data: data.slice(offset, offset + limit), meta: { total: data.length, offset, limit } } });
     }
@@ -27,6 +49,7 @@ async function setup(page: Page) {
       const data = empty ? [] : [1, 2, 3, 4, 7].map((day, i) => ({ date: `${from.slice(0, 7)}-${String(day).padStart(2, '0')}`, cashBalance: i === 2 ? null : String(200000000 + i * 100000), totalAssetValue: '600000000', stockValue: '400000000', change: null, changeRate: null }));
       return route.fulfill({ json: { data, summary: { profitLoss: null, returnRate: null } } });
     }
+    if (path.endsWith('/buy-lots')) return route.fulfill({json:{data:[{id:'lot2',security:{id:'2',name:'삼성전자',symbol:'005930',marketType:'KOSPI'},boughtAt:'2026-01-01T03:00:00Z',quantity:'1',unitPrice:'100',remainingQuantity:'0',soldQuantity:'1',sellTrades:[]}]}});
     if (path === '/api/securities') return route.fulfill({ json: { data: [{ id: '2', name: '삼성전자', symbol: '005930', marketType: 'KOSPI' }, { id: '3', name: '삼성SDI', symbol: '006400', marketType: 'KOSPI' }], meta: { total: 2 } } });
     return route.fulfill({ status: 404, json: { error: { message: '검사 범위 밖' } } });
   });
@@ -74,7 +97,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   expect(heading.x + heading.width).toBeCloseTo(amount.x + amount.width, 1);
   await expect(page.getByTestId('cash-history-row').first()).toHaveCSS('height', '20px');
   await expect(page.getByTestId('cash-history-row').first().locator('p').first()).toHaveCSS('color', 'rgb(248, 113, 113)');
-  await expect(page.getByTestId('cash-history-row').nth(2).locator('p').first()).toHaveCSS('color', 'rgb(96, 165, 250)');
+  await expect(page.getByTestId('cash-history-row').filter({has:page.getByText('매수',{exact:true})}).first().locator('p').first()).toHaveCSS('color', 'rgb(96, 165, 250)');
   const clipped = await page.getByTestId('cash-page').locator('p').evaluateAll(els => els.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent)); expect(clipped).toEqual([]);
   if (tablet(page)) {
     const left = (await page.getByTestId('cash-balance').boundingBox())!, right = (await page.getByTestId('cash-history').boundingBox())!; expect(right.x - left.x - left.width).toBe(8);
@@ -93,37 +116,52 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   }
 });
 
-test('cover regular input/tablet popup reuses small forms, first focus and Enter; edit and delete leave balance unchanged', async ({ page }) => {
+test('cover regular input/tablet popup reuses small forms, amount focus and Enter; latest edit and delete adjust balance without original trade writes', async ({ page }) => {
   const state = await setup(page); await ready(page);
+  await expect(page.locator('button[data-testid="cash-history-row"]')).toHaveCount(1);
   await page.getByRole('button', { name: '예수금 등록', exact: true }).click();
-  await expect(page.getByLabel('거래일자', { exact: true })).toBeFocused();
+  await expect(page.getByRole('textbox', { name: '금액', exact: true })).toBeFocused();
   expect(await page.locator('[role="dialog"]:visible').count()).toBe(tablet(page) ? 1 : 0);
   expect(await page.getByRole('textbox', { name: '금액', exact: true }).evaluate(el => el.parentElement!.parentElement!.getBoundingClientRect().height)).toBe(36);
   await page.getByLabel('거래일자', { exact: true }).press('Enter'); await expect(page.getByRole('textbox', { name: '금액', exact: true })).toBeFocused();
   await page.getByRole('textbox', { name: '금액', exact: true }).fill('1000'); await page.getByRole('textbox', { name: '금액', exact: true }).press('Enter');
   await expect(page.getByRole('textbox', { name: '메모', exact: true })).toBeFocused(); await page.getByRole('textbox', { name: '메모', exact: true }).fill('신규 입금'); await page.getByRole('textbox', { name: '메모', exact: true }).press('Enter');
   await expect(page.getByTestId('cash-form')).not.toBeVisible();
+  await expect(page.getByTestId('cash-balance-value')).toHaveText('203,201,000원');
   expect(state.writes[0]).toMatchObject({ path: '/api/cash-transactions', method: 'POST', body: { accountId: 'a', transactionType: 'DEPOSIT', amount: '1000', memo: '신규 입금' } });
   await page.getByRole('button', { name: '입금 내역 수정', exact: true }).first().click();
   await page.getByRole('textbox', { name: '금액', exact: true }).focus();
   const selection = await page.getByRole('textbox', { name: '금액', exact: true }).evaluate(el => { const i = el as HTMLInputElement; return [i.selectionStart, i.selectionEnd, i.value.length]; }); expect(selection[0]).toBe(0); expect(selection[1]).toBe(selection[2]);
   await page.getByRole('textbox', { name: '금액', exact: true }).fill('500'); await page.getByRole('button', { name: '변경', exact: true }).click();
-  await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('PATCH'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');
+  await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('PATCH'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,500원');
   await page.getByRole('button', { name: '입금 내역 수정', exact: true }).first().click(); await page.getByRole('button', { name: '삭제', exact: true }).click();
   await page.locator('[role="dialog"]').last().getByRole('button', { name: '삭제', exact: true }).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('DELETE'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');
   expect(state.writes.some(write => /buy-trades|sell-trades/.test(write.path))).toBe(false);
 });
 
-test('dividend search matches only query text and preserves form draft; gross tax and net use existing payload', async ({ page }) => {
+test('dividend requires a traded security and preserves draft; gross net tax Enter order and payload', async ({ page }) => {
   const state = await setup(page); await ready(page); await page.getByRole('button', { name: '예수금 등록', exact: true }).click();
-  await page.getByRole('button', { name: '배당', exact: true }).click(); await page.getByRole('textbox', { name: '메모', exact: true }).fill('배당 메모');
-  await page.getByRole('button', { name: '배당 종목 선택' }).click(); await expect(page.getByRole('textbox', { name: '배당 종목 검색', exact: true })).toBeFocused();
-  await page.getByRole('textbox', { name: '배당 종목 검색', exact: true }).fill('삼성'); await page.getByRole('textbox', { name: '배당 종목 검색', exact: true }).press('Enter');
-  await expect(page.getByText('‘삼성’ 검색 결과 2개', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('cash-search-result').first()).toHaveCSS('height', '52px');
-  await expect(page.getByTestId('cash-search-result').first().locator('span')).toHaveText('삼성');
-  await page.getByTestId('cash-search-result').first().click(); await expect(page.getByRole('button', { name: '배당 종목 선택' })).toContainText('삼성전자'); await expect(page.getByRole('textbox', { name: '메모', exact: true })).toHaveValue('배당 메모');
-  await page.getByRole('textbox', { name: '세전 배당', exact: true }).fill('1000000'); await page.getByRole('textbox', { name: '세금', exact: true }).fill('154000'); await expect(page.getByRole('textbox', { name: '세후 배당', exact: true })).toHaveValue('846,000');
+  await page.getByRole('button', { name: '배당', exact: true }).click();
+  const gross = page.getByRole('textbox', { name: '세전 배당', exact: true });
+  await expect(gross).toBeFocused();
+  await page.getByRole('textbox', { name: '메모', exact: true }).fill('배당 메모');
+  const security = page.getByRole('combobox', {name:'배당 종목 선택'});
+  await expect(security).toContainText('종목을 선택하세요.');
+  await gross.fill('1000000');
+  await page.getByRole('textbox', { name: '메모', exact: true }).press('Enter');
+  await expect(page.getByRole('alert')).toContainText('종목을 선택');
+  expect(state.writes).toHaveLength(0);
+  await security.click();
+  await expect(page.getByRole('option',{name:'삼성SDI',exact:true})).toHaveCount(0);
+  await page.getByRole('option',{name:'삼성전자',exact:true}).click();
+  await expect(security).toContainText('삼성전자');
+  await expect(page.getByRole('textbox', { name: '메모', exact: true })).toHaveValue('배당 메모');
+  await gross.press('Enter');
+  const net = page.getByRole('textbox', {name:'세후 배당',exact:true});
+  await expect(net).toBeFocused(); await net.fill('846000'); await net.press('Enter');
+  const tax = page.getByRole('textbox', {name:'세금',exact:true});
+  await expect(tax).toBeFocused(); await expect(tax).toHaveValue('154,000');
+  await tax.press('Enter'); await expect(page.getByRole('textbox',{name:'메모',exact:true})).toBeFocused();
   await page.getByRole('textbox', { name: '메모', exact: true }).press('Enter'); await expect(page.getByTestId('cash-form')).not.toBeVisible();
   expect(state.writes.at(-1)).toMatchObject({ path: '/api/dividends', method: 'POST', body: { accountId: 'a', securityId: '2', grossAmount: '1000000', netAmount: '846000', memo: '배당 메모' } });
 });
