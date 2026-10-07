@@ -234,7 +234,7 @@ export interface TradeDetailDto {
   sellTrades?: { id: string; soldAt: string; quantity: string }[];
 }
 const tradePath = (type: 'buy' | 'sell', tradeId: string) => `/${type}-trades/${encodeURIComponent(tradeId)}`;
-export const getTradeDetail = async (type: 'buy' | 'sell', tradeId: string, accountId?: string) => apiRequest<TradeDetailDto>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}`);
+export const getTradeDetail = async (type: 'buy' | 'sell', tradeId: string, accountId?: string, signal?: AbortSignal) => apiRequest<TradeDetailDto>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}`, {signal});
 export const updateTrade = async (type: 'buy' | 'sell', tradeId: string, body: { quantity: string; unitPrice: string; memo: string | null; boughtAt?: string; soldAt?: string }, accountId?: string) =>
   apiRequest<{ id: string; remainingQuantity: string; cashBalanceAdjusted: false }>(tradePath(type, tradeId), { method: 'PATCH', body: JSON.stringify({ ...body, accountId: accountId ?? await currentAccountId() }) });
 export const deleteTrade = async (type: 'buy' | 'sell', tradeId: string, cascadeSells = false, accountId?: string) =>

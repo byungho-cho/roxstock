@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import {useReturnNavigation} from '../../hooks/navigation/usePageMemory';
@@ -25,7 +26,7 @@ function AccountTradeForm(){
  const [params]=useSearchParams(),location=useLocation(),navigate=useNavigate(),client=useQueryClient();const {accountId}=useActiveAccount();
  const type=params.get('type')==='sell'?'sell':'buy',editId=params.get('edit'),stockId=params.get('stock')??'';
  const {data:stocks,isError:stocksError}=useStocks(),{data:dashboard,isError:cashError}=useDashboard();
- const detail=useQuery({queryKey:['tradeDetail',accountId,type,editId],enabled:!!accountId&&!!editId,queryFn:()=>getTradeDetail(type,editId!,accountId)});
+ const detail=useQuery({...storedQueryOptions,queryKey:['tradeDetail',accountId,type,editId],enabled:!!accountId&&!!editId,queryFn:({signal})=>getTradeDetail(type,editId!,accountId,signal)});
  const stock=stocks?.find(s=>s.id===(detail.data?.security.id??stockId));
  const lots=useQuery({queryKey:['allBuyLots',accountId,stock?.id],enabled:!!accountId&&!!stock,queryFn:()=>getBuyLots(accountId!,stock!.id,false)});
  const lot=lots.data?.find(l=>l.id===(type==='sell'?detail.data?.buyTradeId??params.get('lot'):editId));

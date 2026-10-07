@@ -136,3 +136,18 @@ test('home shows ready cards while history loads, preserves account isolation an
  await expect(page.getByTestId('home-summary-area')).not.toContainText('4,000원');await expect.poll(()=>Boolean(releaseSecond)).toBe(true);releaseSecond();
  await expect(page.getByTestId('home-summary-area')).toContainText('9,000원');await page.screenshot({path:info.outputPath('home-ready.png')});
 });
+
+// A historical transaction is static too; returning from its edit form must reuse the cache.
+test('historical trade detail reuses cache on focus and edit cancellation',async({page})=>{
+ const f=await stockFixture(page);
+ await page.goto('/journal/trade/buy/lot1');
+ await expect(page.getByRole('button',{name:'거래 수정',exact:true})).toBeVisible();
+ const reads=()=>f.reads.filter(path=>path==='/api/buy-trades/lot1').length;
+ expect(reads()).toBe(1);
+ await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'));});
+ await page.getByRole('button',{name:'거래 수정',exact:true}).click();
+ await expect(page.getByTestId('trade-form')).toBeVisible();
+ await page.getByRole('button',{name:'취소',exact:true}).click();
+ await expect(page.getByRole('button',{name:'거래 수정',exact:true})).toBeVisible();
+ expect(reads()).toBe(1);
+});

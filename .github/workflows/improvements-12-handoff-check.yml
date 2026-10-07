@@ -1,0 +1,50 @@
+name: October 7 handoff regression
+on:
+  pull_request:
+    branches: [main, codex/improvements-12-20261007]
+    paths:
+      - frontend/src/**
+      - frontend/tests/**
+      - frontend/playwright.handoff*.config.ts
+      - frontend/playwright.improvements.config.ts
+      - .github/workflows/improvements-12-handoff-check.yml
+permissions:
+  contents: read
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run typecheck:frontend && npm run build:frontend && npm run typecheck:backend && npm run build:backend
+      - run: npm --workspace backend test
+      - run: node --import tsx --test frontend/tests/unit/*.test.ts
+      - run: npx playwright install --with-deps chromium
+      - name: Cash Journal Compound regressions at four viewports
+        run: npx playwright test -c playwright.handoff.config.ts --workers=2
+        working-directory: frontend
+      - name: First-phase improvements at cover tablet and large viewports
+        run: npx playwright test -c playwright.improvements.config.ts
+        working-directory: frontend
+      - name: Investment and profit regressions including large viewport
+        run: npx playwright test -c playwright.handoff.profit.config.ts --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: improvements-12-handoff-evidence
+          path: |
+            frontend/test-results/handoff-regression/
+            frontend/test-results/improvements-12/
+            frontend/test-results/handoff-profit/
+          retention-days: 7
