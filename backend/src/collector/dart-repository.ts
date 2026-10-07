@@ -1,3 +1,4 @@
+import {supplementSafely} from './valuation-supplement.js';
 import { Prisma, PrismaClient } from '../generated/prisma/index.js';
 import { getSeoulClock, toDatabaseDate } from './time.js';
 import type { DartCorporation, DartFinancialValues, DartPeriodType, DartReport, DartReportCode } from './dart-provider.js';
@@ -62,7 +63,7 @@ export class PrismaDartRepository {
 
   async syncCorporations(corporations: DartCorporation[], syncedAt = new Date()): Promise<{ matched: number; unmatched: number; ambiguous: number }> {
     const securities = await this.prisma.security.findMany({
-      where: { isActive: true }, select: { id: true, symbol: true },
+      where: { securityType:'STOCK' }, select: { id: true, symbol: true },
     });
     const bySymbol = new Map(securities.map((item) => [item.symbol.replace(/^A(?=\d{6}$)/, ''), item.id]));
     const corpBySymbol = new Map<string, DartCorporation[]>();
@@ -89,11 +90,13 @@ export class PrismaDartRepository {
   }
 
   async ensureBackfillPlan(startYear: number, endYear: number, initializedAt = new Date()): Promise<void> {
+    startYear=Math.max(2015,startYear);
     const existing = await this.getState();
     const extendsPlan=!!existing?.backfillInitializedAt && (existing.backfillEndYear??endYear)<endYear;
     const historicalPlanActive = !existing?.backfillCompletedAt || extendsPlan;
     if (!existing?.backfillInitializedAt) await this.setState({ phase: 'BACKFILL', backfillStartYear: startYear, backfillEndYear: endYear });
-    const securities = await this.prisma.security.findMany({ where: { isActive: true }, select: { id: true } });
+    const priorityIds=await this.prioritySecurityIds();
+    const securities = await this.prisma.security.findMany({ where: { OR:[{isActive:true},{id:{in:priorityIds}}] }, select: { id: true } });
     const known = await this.prisma.dartSecurityState.findMany({ select: { securityId: true } });
     const knownIds = new Set(known.map((item) => item.securityId.toString()));
     const missingSecurities = securities.filter(({ id }) => !knownIds.has(id.toString()));
@@ -102,7 +105,7 @@ export class PrismaDartRepository {
       await this.prisma.dartSecurityState.createMany({ data: slice.map(({ id }) => ({ securityId: id })), skipDuplicates: true });
       const tasks = historicalPlanActive ? slice.flatMap(({ id }) => {
         const result: Array<{ securityId: bigint; fiscalYear: number; reportCode: DartReportCode; periodType: DartPeriodType }> = [];
-        for (let year = existing?.backfillEndYear ?? endYear; year >= (existing?.backfillStartYear ?? startYear); year -= 1) {
+        for (let year = existing?.backfillEndYear ?? endYear; year >= Math.max(2015,existing?.backfillStartYear ?? startYear); year -= 1) {
           for (const report of REPORTS) result.push({ securityId: id, fiscalYear: year, ...report });
         }
         return result;
@@ -120,7 +123,7 @@ export class PrismaDartRepository {
       await this.setState({phase:'BACKFILL',backfillEndYear:endYear,backfillCompletedAt:null});
     }
     if (!existing?.backfillInitializedAt) await this.setState({ phase: 'BACKFILL', backfillStartYear: startYear, backfillEndYear: endYear, backfillInitializedAt: initializedAt, lastError: null });
-    if (historicalPlanActive) await this.prisma.dartBackfillTask.updateMany({ where: { status: 'PENDING', security: { isActive: false } }, data: { status: 'NOT_APPLICABLE', processedAt: initializedAt, errorCode: 'SECURITY_INACTIVE', errorMessage: 'Security became inactive before its backfill was started.' } });
+    if (historicalPlanActive) await this.prisma.dartBackfillTask.updateMany({ where: { status: 'PENDING', securityId:{notIn:priorityIds}, security: { isActive: false } }, data: { status: 'NOT_APPLICABLE', processedAt: initializedAt, errorCode: 'SECURITY_INACTIVE', errorMessage: 'Security became inactive before its backfill was started.' } });
   }
 
   async resetInterruptedTasks(): Promise<number> {
@@ -129,10 +132,10 @@ export class PrismaDartRepository {
   }
 
   async prioritySecurityIds(): Promise<bigint[]> {
-    const trades = await this.prisma.buyTrade.findMany({where:{account:{isActive:true},security:{isActive:true,securityType:'STOCK'}},distinct:['securityId'],select:{securityId:true}});
-    const listed = await this.prisma.accountWatchlistItem.findMany({where:{account:{isActive:true},security:{isActive:true,securityType:'STOCK'},listType:{in:['HOLDING','RECOMMENDED','WATCHLIST']}},select:{securityId:true,listType:true,priority:true}});
+    const trades = await this.prisma.buyTrade.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'}},distinct:['securityId'],select:{securityId:true}});
+    const listed = await this.prisma.accountWatchlistItem.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'},listType:{in:['HOLDING','WATCHLIST']}},select:{securityId:true,listType:true,priority:true}});
     const rank = new Map<bigint, number>();
-    for (const item of listed) rank.set(item.securityId, Math.max(rank.get(item.securityId) ?? 0, (item.listType === 'WATCHLIST' ? 1 : 2) * 1000000 + item.priority));
+    for (const item of listed.filter(item=>item.listType!=='RECOMMENDED')) rank.set(item.securityId, Math.max(rank.get(item.securityId) ?? 0, (item.listType === 'WATCHLIST' ? 1 : 2) * 1000000 + item.priority));
     for (const item of trades) rank.set(item.securityId, 3000000);
     return [...rank.keys()].sort((a,b)=>(rank.get(b)!-rank.get(a)!) || (a<b?-1:1));
   }
@@ -175,7 +178,7 @@ export class PrismaDartRepository {
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
-      where: { securityId, OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
+      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
       select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true },
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
@@ -237,6 +240,7 @@ export class PrismaDartRepository {
       const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
       const additions=Object.fromEntries(Object.entries(input.values.accountSources).filter(([key])=>!(key in existing)));
       await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:2,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      await supplementSafely(this.prisma,input.securityId,input.fiscalYear,input.periodType).catch(()=>undefined);
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
@@ -265,7 +269,8 @@ export class PrismaDartRepository {
         capitalExpenditureYtd: values.capitalExpenditureYtd === null ? null : new Prisma.Decimal(values.capitalExpenditureYtd),
         accountSources: values.accountSources as Prisma.InputJsonValue,
       } });
-      return { created: true, supersedesReceiptNo: previous?.receiptNo ?? null };
+      await supplementSafely(this.prisma,input.securityId,input.fiscalYear,input.periodType).catch(()=>undefined);
+    return { created: true, supersedesReceiptNo: previous?.receiptNo ?? null };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return { created: false, supersedesReceiptNo: null };
       throw error;
@@ -273,7 +278,7 @@ export class PrismaDartRepository {
   }
 
   async completeSecurityIfDone(securityId: bigint, now = new Date()): Promise<boolean> {
-    const pending = await this.prisma.dartBackfillTask.count({ where: { securityId, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const pending = await this.prisma.dartBackfillTask.count({ where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
     if (pending) return false;
     await this.prisma.dartSecurityState.update({ where: { securityId }, data: { backfillCompletedAt: now, lastError: null } });
     return true;
@@ -295,7 +300,7 @@ export class PrismaDartRepository {
   }
 
   async markBackfillCompleteIfReady(now = new Date()): Promise<boolean> {
-    const remaining = await this.prisma.dartBackfillTask.count({ where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const remaining = await this.prisma.dartBackfillTask.count({ where: { fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
     if (remaining) return false;
     await this.setState({ phase: 'CURRENT', backfillCompletedAt: now, phase2StartedAt: now, lastError: null });
     return true;
@@ -386,7 +391,7 @@ export class PrismaDartRepository {
     } });
   }
 
-  async listPhase2Securities(phase: 'PRIORITY' | 'UNIVERSE', limit: number, now = new Date()): Promise<DartSecurityRecord[]> {
+  async listPhase2Securities(phase: 'PRIORITY' | 'UNIVERSE', limit: number, now = new Date(), ignoreChecked = false): Promise<DartSecurityRecord[]> {
     const today = toDatabaseDate(getSeoulClock(now).dateKey);
     const priorityIds = phase === 'PRIORITY' ? await this.prioritySecurityIds() : [];
     const priorities = new Map(priorityIds.map((id,index)=>[id,priorityIds.length-index]));
@@ -395,16 +400,16 @@ export class PrismaDartRepository {
       ? { OR: [{ priorityCheckedAt: null }, { priorityCheckedAt: { lt: today } }] }
       : { OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: today } }] };
     const items = await this.prisma.security.findMany({
-      where: { isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null },
+      where: { ...(phase==='UNIVERSE'?{isActive:true}:{}), securityType: 'STOCK', dartCorpMapping: { isNot: null },
         ...(phase === 'PRIORITY' ? { id: { in: priorityIds } } : {}),
         ...(phase === 'UNIVERSE' ? { dartDailyCompanyChecks: { none: { usageDate: today } } } : {}),
-        dartSecurityState: { is: filterTime } },
+        ...(ignoreChecked?{}:{dartSecurityState: { is: filterTime }}) },
       select: { id: true, symbol: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
       orderBy: [{ id: 'asc' }],
       ...(phase === 'UNIVERSE' ? { take: limit } : {}),
     });
     if (phase === 'PRIORITY') items.sort((a, b) => (priorities.get(b.id) ?? 0) - (priorities.get(a.id) ?? 0) || (a.id < b.id ? -1 : 1));
-    return items.slice(0, limit).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
+    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
   }
 
   async updateStateError(error: string | null): Promise<void> {

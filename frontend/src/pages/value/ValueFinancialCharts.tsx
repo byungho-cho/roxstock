@@ -30,7 +30,8 @@ function Chart({rows,group}:{rows:FinancialRow[];group:typeof groups[number]}) {
   </svg>
   <Box sx={{display:'flex',flexWrap:'wrap',gap:'12px',justifyContent:'flex-start',my:'4px'}}>{group.metrics.map(metric=><Typography key={metric.key} sx={{fontSize:10,color:metric.color}}><Box component="span" sx={{display:'inline-block',width:6,height:6,borderRadius:3,bgcolor:metric.color,mr:'4px',verticalAlign:'middle'}}/>{metric.label}{metric.right?' (우측 %)':''}</Typography>)}</Box>
 
-  {!available&&<Typography sx={{fontSize:10,color:'#94A3B8',textAlign:'center'}}>해당 기간의 지표가 미수집되었습니다.</Typography>}
+  {group.title==='가치지표'&&rows.map(row=><Typography key={row.key} sx={{fontSize:10,color:'#94A3B8',mt:'4px'}}>{row.label}: {row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':Object.values(row.metricReasons??{}).join(' · ')||(!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':'저장 지표')}{row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION'?' · ROE: 전체 연결/별도 자본 기준':''}{row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM'?' · 누적 실적 연환산(TTM 아님)':''}</Typography>)}
+  {!available&&<Typography sx={{fontSize:10,color:'#94A3B8',textAlign:'center'}}>표시할 지표가 없습니다. 기간별 사유를 확인하세요.</Typography>}
   <Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+', minmax(0, 1fr))',gap:'8px',fontSize:11,lineHeight:'20px',color:'#94A3B8',mt:'4px'}}>
    {group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><span>{metric.label}{group.title==='수익성'?`(${group.unit})`:''}</span>{values[index].map((n,i)=><span key={i} style={{textAlign:'right',overflowWrap:'anywhere'}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}
   </Box>

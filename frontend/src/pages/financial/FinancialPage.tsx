@@ -1,6 +1,7 @@
+import {useFinancialCondition} from '../value/useFinancialCondition';
 import {Box,Button,Typography} from '@mui/material';
-import {useQuery} from '@tanstack/react-query';
-import {useState} from 'react';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {useEffect,useState} from 'react';
 import {useLocation,useNavigate,useParams} from 'react-router-dom';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {usePageMemory,useReturnNavigation} from '../../hooks/navigation/usePageMemory';
@@ -21,15 +22,17 @@ function rowColor(row:Row,key:keyof Row){if(key==='name')return neutral;const v=
  if(key==='eps'||key==='epsYield')return row.market==='KOSPI'?(v>=20?red:v>=10?yellow:v>=0?neutral:blue):neutral;
  if(key==='netIncome'){const equity=number(row.capital);return tier(equity!==null&&equity>0?v/equity*100:null);}return neutral;}
 export function FinancialPage(){
- const location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),backToSource=useReturnNavigation('/more'),currentYear=seoulYear();
+ const client=useQueryClient(),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),backToSource=useReturnNavigation('/more'),currentYear=seoulYear();
  const params=new URLSearchParams(location.search),selected=stockId??params.get('selected'),detailView=!!selected&&params.get('view')!=='list';
  const [year,setYear]=usePageMemory('financial-year',currentYear),[market,setMarket]=usePageMemory('financial-market','KOSPI'),[query,setQuery]=usePageMemory('financial-query',''),[draft,setDraft]=usePageMemory('financial-draft',''),[sort,setSort]=usePageMemory('financial-sort',''),[direction,setDirection]=usePageMemory('financial-direction','desc');
- const [startYear,setStartYear]=usePageMemory('financial-start',currentYear-2),[mode,setMode]=usePageMemory<'annual'|'quarter'>('financial-mode','annual'),[quarter,setQuarter]=usePageMemory('financial-quarter',1),[chart,setChart]=useState(false),[showUpdate,setShowUpdate]=useState(false),[limit,setLimit]=useState(100);
+ const [startYear,setStartYear]=useFinancialCondition('startYear',currentYear-2,currentYear),[mode,setMode]=useFinancialCondition<'annual'|'quarter'>('mode','annual',currentYear),[quarter,setQuarter]=useFinancialCondition<number>('quarter',1,currentYear),[chartMode,setChartMode]=useFinancialCondition<string>('chart','false',currentYear),[showUpdate,setShowUpdate]=useState(false),[limit,setLimit]=useState(100);
+ const chart=chartMode==='true',setChart=(value:boolean)=>setChartMode(String(value));
  const list=useQuery({queryKey:['financialList',year,market,query,sort,direction],queryFn:({signal})=>listFinancials(year,market,query,sort,direction,signal),staleTime:30000});
  const detail=useQuery({queryKey:['financialDetail',selected,startYear,mode,quarter],queryFn:({signal})=>detailFinancials(selected!,startYear,mode,quarter,signal),enabled:detailView,staleTime:30000});
  const rows=list.data?.rows??[],index=rows.findIndex(r=>r.id===selected),previous=rows[index-1],next=rows[index+1];
- const choose=(id:string,replace=false)=>navigate('/detail/financials?'+new URLSearchParams({view:'detail',selected:id}),{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
+ const choose=(id:string,replace=false)=>navigate('/detail/financials?'+new URLSearchParams({...Object.fromEntries(params),view:'detail',selected:id,startYear:String(startYear),mode,quarter:String(quarter),chart:String(chart)}),{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
  const move=(d:number)=>{const r=d<0?previous:next;if(r)choose(r.id,true);};
+ useEffect(()=>{for(const row of [previous,next])if(row)void client.prefetchQuery({queryKey:['financialDetail',row.id,startYear,mode,quarter],queryFn:({signal})=>detailFinancials(row.id,startYear,mode,quarter,signal),staleTime:30000});},[client,previous?.id,next?.id,startYear,mode,quarter]);
  const swipe=useDetailSwipe(move,detailView&&!showUpdate);
  const back=()=>{if(detailView&&!stockId){if(Number(window.history.state?.idx)>0)navigate(-1);else navigate('/detail/financials?view=list',{replace:true});}else backToSource();};
  const years=Array.from({length:currentYear-2015+1},(_,i)=>currentYear-i);
