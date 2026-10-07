@@ -49,7 +49,7 @@ for(const category of categories)test(category+' restores actual scroll after in
    expect(id,'A visible middle-list row is required').toBeTruthy();
    const target=wide?page.locator('[role="row"][data-scroll-item="'+id+'"]'):page.getByTestId('stock-card-'+id);
    await target.click({position:{x:wide?250:120,y:wide?14:60}});
-   if(category==='watchlist')await expect(page).toHaveURL(new RegExp('/stocks/'+id+'/value$'));
+   if(category==='watchlist')await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id+'/value');
    else if(wide)await expect(page.getByTestId('stock-right')).toBeVisible();
    else {
     await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id && url.searchParams.get('detailTab')===(category==='traded'?'trades':'holding'));

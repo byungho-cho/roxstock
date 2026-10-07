@@ -22,3 +22,6 @@ frontend/playwright-report/
 
 *.tsbuildinfo
 frontend/playwright-targets-report/
+
+# Production environment backups must stay outside Git
+backup/*.env
