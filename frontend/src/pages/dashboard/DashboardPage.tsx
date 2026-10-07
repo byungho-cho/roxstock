@@ -44,7 +44,7 @@ export function DashboardPage() {
         {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <AssetTrendChart points={homeTrend.map(item => ({date: item.label, value: item.value}))} height={{xs:64,sm:148}} dateMode="day" /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
       </Box></AppCard>
     </Stack>
-    <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목 (상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching}>
+    <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching}>
       {holdings.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}
       {holdings.length === 0 && <HomeEmpty />}
     </HomeListCard> : <Skeleton variant="rounded" height={156}/>}</Box>
