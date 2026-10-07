@@ -186,7 +186,7 @@ function HoldingLotCard({ lot, onSell }: { lot: HoldingLot; onSell: () => void }
     { border: 'rgba(255,107,107,.68)', rate: '#FF5F5F', total: '#FF9A9A' },
   ];
   return <Card component="button" type="button" aria-label={`${lot.date} 매수 Lot 매도`} onClick={onSell} sx={{ width: '100%', minHeight: 208, borderRadius: '16px', borderColor: '#23324A', overflow: 'hidden', textAlign: 'left', color: colors.textPrimary, cursor: 'pointer', '&:focus-visible': { outline: `2px solid ${colors.focus}` } }}><CardContent sx={{ p: '11px 15px 12px', '&:last-child': { pb: '12px' } }}>
-    <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>{lot.date}</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>보유 {lot.heldDays}일</Typography></Stack>
+    <Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ fontSize: 14, lineHeight: '20px', fontWeight: 700, color: '#fff' }}>{lot.date}</Typography><Typography sx={{ fontSize: 12, lineHeight: '20px', fontWeight: 500, color: colors.textMuted }}>보유 {lot.heldDays}일</Typography></Stack>
     <LotValueRow label="매수" expression={`${lot.quantity} × ${won(lot.buyPrice)}`} total={won(lot.quantity * lot.buyPrice)} />
     <LotValueRow label="예상" expression={`${lot.quantity} × ${won(lot.expectedPrice)}`} total={won(lot.quantity * lot.expectedPrice)} accent />
     <LotValueRow label="손익률" expression={`${lot.profitRate.toFixed(1)}%`} total={won(lot.profitAmount)} accent compact />

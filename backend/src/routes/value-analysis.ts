@@ -90,7 +90,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
         year, valuation: metric, w: weight(metric, price), fairPrices: ['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null, closingDate: annual?.periodEndDate ?? null,
         rows: financialRows(selected, statements, metrics,calculated).map(row=>{const task=tasks.find(t=>t.fiscalYear===row.year&&t.periodType===(row.quarter===null?'ANNUAL':'Q'+row.quarter));return {...row,availability:security.listingYear&&row.year<security.listingYear?'PRE_LISTING':row.source?'STORED':task?.status==='NO_FILING'?'NO_FILING':task?.status==='FAILED'?'FAILED':'NOT_COLLECTED'};}), mode, startYear, startQuarter: quarter, count,
-        notices: ['유동비율: 유동자산·유동부채 저장 필드가 없어 미수집입니다.', '가치지표는 기존 저장값을 우선합니다. 보완 지표는 재무기간별 저장값이며 분기 누적 실적을 연환산합니다(TTM 아님). 과거 종가는 기간 말 기준이며 이후 공시로 계산한 사후 지표입니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
+        notices: ['가치지표는 기존 저장값을 우선합니다. 보완 지표는 재무기간별 저장값이며 분기 누적 실적을 연환산합니다(TTM 아님). 과거 종가는 기간 말 기준이며 이후 공시로 계산한 사후 지표입니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
       } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   });

@@ -8,3 +8,13 @@ export function useFinancialCondition<T extends string|number>(key:string,fallba
  else if(key==='quarterStart'){const [y,q]=String(value).split(':').map(Number);value=Number.isInteger(y)&&Number.isInteger(q)?`${Math.max(2015,Math.min(currentYear,y))}:${Math.max(1,Math.min(4,q))}`:fallback;}
  return [value as T,(next:T)=>{const search=new URLSearchParams(location.search);search.set(key,String(next));navigate(location.pathname+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});}];
 }
+
+/** Legacy URLs used a start year; canonical annual URLs contain an effective end year. */
+export function useFinancialEndYear(currentYear:number,legacyKey='startYear') {
+ const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search);
+ const raw=params.get('endYear'),legacy=params.get(legacyKey);
+ const requested=raw!==null?Number(raw):legacy!==null?Number(legacy)+2:currentYear;
+ const endYear=Math.max(2018,Math.min(currentYear,Number.isInteger(requested)?requested:currentYear));
+ const setEndYear=(year:number)=>{const search=new URLSearchParams(location.search);search.set('endYear',String(Math.max(2018,Math.min(currentYear,year))));search.delete(legacyKey);navigate(location.pathname+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
+ return [endYear,setEndYear] as const;
+}

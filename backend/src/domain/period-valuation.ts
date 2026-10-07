@@ -1,7 +1,7 @@
 import {Prisma,type DartFinancialFiling} from '../generated/prisma/index.js';
 export const metricKeys=['eps','bps','per','pbr','roe'] as const;
 export type MetricValues=Record<typeof metricKeys[number],string|null>;
-export type Supplemental={shares?:{outstanding:string;preferred:boolean;receiptNo:string};price?:{value:string;date:string;source:string}};
+export type Supplemental={errors?:Record<string,string>;shares?:{outstanding:string;preferred:boolean;receiptNo:string};price?:{value:string;date:string;source:string}};
 const dec=(v:unknown)=>typeof v==='string'&&/^-?\d+(\.\d+)?$/.test(v)?new Prisma.Decimal(v):null;
 const text=(v:Prisma.Decimal|null)=>v?.toDecimalPlaces(4).toString()??null;
 function source(f:DartFinancialFiling,key:string,ytd=false){const sources=f.accountSources as Record<string,{amount?:string;ytdAmount?:string}>|null;return dec(ytd?sources?.[key]?.ytdAmount:sources?.[key]?.amount);}
@@ -30,6 +30,7 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  if(!bps)reasons.bps=supplemental.shares?.preferred?'우선주 자본 배분 근거 부족':'동일 공시의 유통주식수 또는 소유주 자본 부족';
  if(!per)reasons.per=!price?'재무기간 말 7일 이내 과거 종가 미확보':!eps?'EPS 근거 부족':'EPS가 0 이하';
  if(!pbr)reasons.pbr=!price?'재무기간 말 7일 이내 과거 종가 미확보':!bps?'BPS 근거 부족':'BPS가 0 이하';
+ if(supplemental.errors?.price&&!price){reasons.per=supplemental.errors.price;reasons.pbr=supplemental.errors.price;}
  if(!roe)reasons.roe='동일 연결/별도 전기말·당기말 자본 또는 누적순이익 부족';
  return {values,reasons,provenance:{version:1,source:'OPEN_DART',receiptNo:f.receiptNo,disclosedAt:f.receiptDate.toISOString().slice(0,10),periodEnd:end,fsDivision:f.fsDivision,roeBasis:useParent?'OWNERS_OF_PARENT':'TOTAL_SAME_DIVISION',roeDenominator:'AVERAGE_PREVIOUS_YEAR_END_AND_PERIOD_END',flow:annual?'ANNUAL':'YTD_ANNUALIZED_NOT_TTM',months,epsBasis:'DISCLOSED_BASIC_EPS_WEIGHTED_AVERAGE_ORDINARY_SHARES',bpsBasis:'OWNERS_EQUITY_DIV_PERIOD_END_OUTSTANDING_NO_PREFERRED',priceDate:priceInfo?.date??null,priceSource:priceInfo?.source??null,retrospective:true}};
 }
