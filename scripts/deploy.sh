@@ -7,7 +7,8 @@ CONTAINER_NAME="roxstock-frontend"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 HEALTH_TIMEOUT=120
-COMPOSE=(docker compose --project-name roxstock --file "${PROJECT_DIR}/compose.yml")
+COMPOSE_FILE="${FRONTEND_COMPOSE_FILE:-${PROJECT_DIR}/compose.yml}"
+COMPOSE=(docker compose --project-name roxstock --file "${COMPOSE_FILE}")
 
 if [[ $# -ne 1 || ! "${IMAGE_TAG}" =~ ^sha-[0-9a-f]{7,40}$ ]]; then
   echo "Usage: $0 <sha-commit>"
@@ -34,6 +35,12 @@ exec 9>"${PROJECT_DIR}/.deploy.lock"
 flock -n 9 || { echo "Another deployment is running."; exit 1; }
 
 "${COMPOSE[@]}" config --quiet
+# Preserve server proxy/network topology while enforcing the pinned image.
+configured_image="$("${COMPOSE[@]}" config --images | grep -Fx "newrox/roxstock-frontend:${IMAGE_TAG}" || true)"
+[[ "$configured_image" == "newrox/roxstock-frontend:${IMAGE_TAG}" ]] || {
+  echo "Compose configuration does not use the requested immutable frontend image."
+  exit 1
+}
 docker info >/dev/null
 
 compose_project=""
