@@ -19,7 +19,7 @@ test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',as
   r=await app.inject({method:'PUT',url:root+'/'+planId,payload:{...input,endYear:2024}});assert.equal(r.statusCode,400);assert.equal((await prisma.compoundGrowthPlan.findUniqueOrThrow({where:{id:BigInt(planId)}})).endDate.getUTCFullYear(),2026);
   r=await app.inject({method:'DELETE',url:goalUrl+'/'+second});assert.equal(r.statusCode,200);
   r=await app.inject({method:'DELETE',url:goalUrl+'/'+original.goals[0].id});assert.equal(r.statusCode,200);assert.equal((await app.inject(root)).json().data.plans[0].goals.length,0);
-  r=await app.inject({method:'POST',url:goalUrl,payload:{goalName:'새 기준',annualTargetRate:'0',displayColor:'#5EA1F0'}});assert.equal(r.statusCode,201);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId),isDefault:true}}),1);
+  r=await app.inject({method:'POST',url:goalUrl,payload:{goalName:'새 기준',annualTargetRate:'1',displayColor:'#5EA1F0'}});assert.equal(r.statusCode,201,r.body);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId),isDefault:true}}),1);
   r=await app.inject({method:'DELETE',url:root+'/'+planId});assert.equal(r.statusCode,200);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId)}}),0);assert.equal(await prisma.compoundGrowthPlan.count({where:{id:BigInt(planId)}}),0);
  }finally{
   await app.close();const ids=accounts.map(a=>a.id),plans=await prisma.compoundGrowthPlan.findMany({where:{accountId:{in:ids}}});await prisma.compoundGrowthGoal.deleteMany({where:{planId:{in:plans.map(p=>p.id)}}});await prisma.compoundGrowthPlan.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();

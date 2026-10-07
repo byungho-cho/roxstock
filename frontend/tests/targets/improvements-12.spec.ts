@@ -23,7 +23,7 @@ async function fixture(page:Page){
    return route.fulfill({json:{data:records,daily:[],summary:{buyAmount:'4000',sellAmount:'1340',realizedProfitLoss:path.includes('/2/')?'0':'39720500'}}});}
   if(path.endsWith('/asset-history'))return route.fulfill({json:{data:[{date:'2026-10-01',investmentAmount:'107317732',totalAssetValue:'81845732',updatedAt:'2026-10-01T14:00:00Z'}],summary:{}}});
   if(path.endsWith('/investment-baseline'))return route.fulfill({json:{data:null}});
-  if(path.endsWith('/cash-transactions'))return route.fulfill({json:{data:[],meta:{total:0}}});
+  if(path.endsWith('/cash-transactions')){const rows=url.searchParams.get('types')==='DIVIDEND'?[{id:'d',transactionType:'DIVIDEND',transactionDate:'2026-10-01T03:00:00Z',dividend:{securityId:'0',securityName:names[0],netAmount:'10'}}]:[];return route.fulfill({json:{data:rows,meta:{total:rows.length}}});}
   if(path.endsWith('/buy-lots'))return route.fulfill({json:{data:[]}});
   return route.fulfill({json:{data:[]}});
  });
@@ -50,7 +50,7 @@ test('signed sorting, total-buy denominator, zero and mutation-invalidated cache
  await invalidatePortfolio(client);await client.fetchQuery(options);expect(reads).toBe(2);client.clear();
 });
 test('profit capital, signed order toggle, neighbors and body swipe stop at ends; static cache survives focus/re-entry',async({page},info)=>{
- const f=await fixture(page);await page.goto('/detail/investment-profit');await expect(page.getByTestId('profit-total')).toHaveText('-660원');
+ const f=await fixture(page);await page.goto('/detail/investment-profit');await expect(page.getByTestId('profit-total')).toHaveText('-650원');
  if(info.project.name.startsWith('cover'))await page.getByTestId('profit-list-row').filter({hasText:'2026'}).click();
  await expect(page.getByTestId('profit-capital-asof')).toContainText('2026-10-01');
  await expect(page.getByTestId('profit-detail-summary')).toContainText('107,317,732원');
@@ -68,9 +68,13 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  await page.getByRole('button',{name:/다음 상세/}).click();await expect(page.getByTestId('profit-selected')).toHaveText(names[0]);
  await expect(page.getByRole('button',{name:/다음 상세/})).toBeDisabled();
  await expect(page.getByTestId('profit-detail-summary')).toContainText('+35.0%');
+ const monthly=page.getByTestId('profit-compact-row');
+ expect(await monthly.filter({hasText:'매매'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(251, 113, 133)');
+ expect(await monthly.filter({hasText:'배당'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(250, 199, 31)');
  const previous=page.getByRole('button',{name:/이전 상세/});expect(await previous.evaluate(n=>getComputedStyle(n).whiteSpace)).toBe('nowrap');
  const before=f.requests.length;await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(f.requests.length).toBe(before);
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();
+ await expect(page).toHaveURL(/\/$/);
  await page.goBack();await expect(page.getByTestId('profit-selected')).toHaveText(names[0]);
  expect(f.requests.filter(r=>r.includes('investment-capital'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -106,4 +110,27 @@ test('stock holding lots descend with deterministic tie-break; trades header ret
  await expect(page.getByTestId('stock-realized-profit')).toContainText('+125.7%');
  await expect(page.getByTestId('stock-detail-content').getByRole('button',{name:'매수',exact:true})).toBeVisible();
  await page.screenshot({path:info.outputPath('stock-trades.png')});
+});
+
+test('home shows ready cards while history loads, preserves account isolation and has no horizontal overflow',async({page},info)=>{
+ let releaseHistory!:()=>void,releaseSecond!:()=>void;const reads:string[]=[];
+ await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});
+ await page.route('**/api/**',async route=>{
+  const url=new URL(route.request().url()),path=url.pathname;reads.push(path);
+  if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isDefault:true,isActive:true},{id:'2',name:'다른 계좌',isActive:true}]}});
+  const second=path.includes('/2/');
+  if(path.endsWith('/dashboard')){if(second)await new Promise<void>(r=>{releaseSecond=r;});return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:second?'9000':'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});}
+  if(path.endsWith('/asset-history')){if(!second)await new Promise<void>(r=>{releaseHistory=r;});return route.fulfill({json:{data:[{date:'2026-10-06',totalAssetValue:'3900'},{date:'2026-10-07',totalAssetValue:'4000'}],summary:{}}});}
+  if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:second?'2':'1',total:0,enabled:true,unavailableCount:0,priceAsOf:'2026-10-07T03:00:00Z'}}});
+  return route.fulfill({json:{data:[]}});
+ });
+ await page.goto('/');await expect(page.getByTestId('home-summary-area')).toContainText('4,000원');
+ await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');await expect(page.getByTestId('recent-buys-card')).toContainText('내용이 없습니다.');
+ await expect(page.getByTestId('home-trend-loading')).toBeVisible();
+ expect(reads.filter(p=>p.endsWith('/dashboard'))).toHaveLength(1);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:info.outputPath('home-partial.png')});releaseHistory();await expect(page.getByRole('img',{name:'자산 추이'})).toBeVisible();
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await expect(page.getByTestId('home-summary-area')).not.toContainText('4,000원');await expect.poll(()=>Boolean(releaseSecond)).toBe(true);releaseSecond();
+ await expect(page.getByTestId('home-summary-area')).toContainText('9,000원');await page.screenshot({path:info.outputPath('home-ready.png')});
 });
