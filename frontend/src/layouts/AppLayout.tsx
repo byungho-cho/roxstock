@@ -7,8 +7,8 @@ import { OverlayPageScrollbar } from '../components/navigation/OverlayPageScroll
 import { ViewportMetricsPanel } from '../components/navigation/ViewportMetricsPanel';
 import { colors, pageMetrics } from '../styles/tokens';
 import { usePageScrollRestoration } from '../hooks/navigation/usePageScrollRestoration';
-import { PullRefreshIndicator } from '../components/navigation/PullRefreshIndicator';
-import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { MainLoadingBar } from '../components/navigation/MainLoadingBar';
+
 import { PageLayout } from './PageLayout';
 
 function getHeaderTitle(pathname: string): string {
@@ -27,7 +27,7 @@ export function AppLayout() {
   const isTargetPage = location.pathname === '/detail/target-arrivals';
   const isTargetSettings = location.pathname === '/detail/settings' && new URLSearchParams(location.search).get('view') === 'target-arrival';
   const isTradePage = location.pathname.startsWith('/trade') || location.pathname.startsWith('/journal/trade/'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
-  const pull = usePullToRefresh(scrollRef, isHomePage ? 'home' : location.pathname === '/stocks' ? 'stocks' : null);
+
   const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
   const isCash = location.pathname === '/detail/cash';
   const isFinancial = location.pathname === '/detail/financials' || /^\/stocks\/[^/]+\/financials$/.test(location.pathname);
@@ -53,7 +53,7 @@ export function AppLayout() {
       {isMoreMenu && <PageHeader title="메뉴" showAdd={false} />}
       {!hasPageHeader && !isMoreMenu && <PageHeader homeDashboard={isHomePage} variant={isCollectionMonitoring ? 'detail' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={getHeaderTitle(location.pathname)} backPath={isCollectionMonitoring ? location.pathname === '/detail/collection-monitoring' ? '/more' : '/detail/collection-monitoring' : location.pathname === '/more' ? '/' : undefined} backIcon={isCollectionMonitoring ? <img src="/stocks-v03/back.svg" alt="" /> : undefined} showBackTablet={isCollectionMonitoring} showAddMobile={!isCollectionMonitoring} showAdd={isHomePage} addPath="/stocks/add?type=holding&from=home" addLabel="종목 추가" onAdd={isHomePage ? () => navigate("/stocks/add?type=holding&from=home",{state:{backgroundLocation:location}}) : undefined} maxWidth={816} />}
     </Box>
-    {(isHomePage || location.pathname === '/stocks') && <PullRefreshIndicator pull={pull}/> }
+    <MainLoadingBar />
     <PageLayout valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><Outlet /></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}

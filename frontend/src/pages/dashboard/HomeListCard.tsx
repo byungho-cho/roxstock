@@ -3,19 +3,19 @@ import type { ReactNode } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { colors } from '../../styles/tokens';
 
-export function HomeListCard({ title, count, testId, action, children, timestamp, updating, more, notice, titleAction, timestampLabel = '', height = 290, compactFooter = false }: {
+export function HomeListCard({ title, count, testId, action, children, timestamp, more, notice, titleAction, timestampLabel = '', height = 290, compactFooter = false }: {
   title: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
   timestamp?: string | null; updating?: boolean; more?: () => void; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean;
 }) {
   return <AppCard data-testid={testId} sx={{ minWidth: 0, height: compactFooter ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
-      <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={`${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit' }}>{title}</ButtonBase> : title}</Typography>
+      <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={title.includes('상세보기') ? title : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit' }}>{title}</ButtonBase> : title}</Typography>
       <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{count ?? '—'}</Typography>{action}</Box>
     </Box>
     <Box sx={{ flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
     <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
       <Box sx={{ minWidth: 0 }}><Typography title={timestamp ?? undefined} sx={{ minWidth: 0, fontSize: 9, lineHeight: notice ? '12px' : '16px', color: colors.textMuted }}>
-        {timestampLabel}{homeTimestamp(timestamp)}{updating ? ' · 갱신 중' : ''}
+        {timestampLabel}{homeTimestamp(timestamp)}
       </Typography>{notice && <Box role="status" sx={{ fontSize: 8, lineHeight: '10px', color: colors.warning }}>{notice}</Box>}</Box>
       {more && <Button onClick={more} sx={{ minHeight: 24, minWidth: 48, p: 0, fontSize: 11, lineHeight: '20px', fontWeight: 400, color: colors.focus }}>더보기</Button>}
     </Box>

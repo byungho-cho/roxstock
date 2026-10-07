@@ -91,6 +91,6 @@ function CompositionCard({ summary, items, mode, onToggle, updating }: { summary
         {items.length === 0 && <Typography role="status" sx={{ mt: 2, fontSize: 11, color: colors.textMuted }}>내용이 없습니다.</Typography>}
       </Box>
     </>}
-    <Typography sx={{ position: 'absolute', left: 13, right: 13, bottom: 10, fontSize: 10, lineHeight: '20px', color: colors.textSecondary, opacity: .65 }}>갱신 {homeTimestamp(summary.collectedAt)}{updating ? ' · 갱신 중' : ''}</Typography>
+    <Typography sx={{ position: 'absolute', left: 13, right: 13, bottom: 10, fontSize: 10, lineHeight: '20px', color: colors.textSecondary, opacity: .65 }}>갱신 {homeTimestamp(summary.collectedAt)}</Typography>
   </AppCard>;
 }

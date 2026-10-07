@@ -1,3 +1,4 @@
+import { useMainLoading } from '../../hooks/useMainLoading';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
@@ -111,6 +112,7 @@ export function LiveCashPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  useMainLoading(olderLoading);
   const dividendLots = useQuery({queryKey:['allBuyLots',accountId,'dividend-options'],queryFn:()=>getBuyLots(accountId!,undefined,false),enabled:!!accountId});
   const dividendOptions = [...new Map((dividendLots.data??[]).map(lot=>[lot.security.id,lot.security])).values()];
   const inputVisible = tablet ? open : params.has('cashInput');
@@ -269,7 +271,7 @@ export function LiveCashPage() {
               {history.isPending && <Skeleton height={60} />}
               {history.isError && <Button role="alert" onClick={() => void history.refetch()} sx={{ fontSize: 11 }}>내역 조회 실패 · 다시 시도</Button>}
               {!history.isPending && !history.isError && !entries.length && <Typography role="status" sx={{ fontSize: 12, color: colors.textMuted }}>내용이 없습니다.</Typography>}
-              {(history.isFetching || olderLoading) && history.data && <Typography role="status" sx={{ fontSize: 10, color: colors.textMuted }}>내역 갱신 중</Typography>}
+
               {olderError && <Button role="alert" onClick={() => void loadOlder()} sx={{fontSize:11}}>{olderError}</Button>}
               <Button disabled={history.isFetching || olderLoading || history.isError || !history.data} onClick={() => void loadOlder()} sx={{ height: 36, flexShrink: 0, minWidth: 0, p: 0, color: colors.focus, fontSize: 11 }}>이전 1개월 불러오기</Button>
             </AppCard>

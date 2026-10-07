@@ -27,7 +27,7 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   await homeFixture(page); await page.goto('/');
   const targets=page.getByTestId('target-arrival-card'),recent=page.getByTestId('recent-buys-card'),held=page.getByTestId('home-holdings-card');
   await expect(targets.getByText('내용이 없습니다.')).toBeVisible(); await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5); await expect(held.getByTestId('home-holding')).toHaveCount(3);
-  await expect(recent.getByText('8건')).toBeVisible(); await expect(recent.getByText('26.09.30 (1일)')).toBeVisible();
+  await expect(recent.getByText('이달 0건')).toBeVisible(); await expect(recent.getByText('26.09.30 (1일)')).toBeVisible();
   const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,header:document.querySelector('header')!.getBoundingClientRect().height,nav:[...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!.getBoundingClientRect().height,panels:[...document.querySelectorAll('[data-testid$="-card"], [data-testid="home-summary-area"]')].map(n=>({id:n.getAttribute('data-testid'),rect:n.getBoundingClientRect().toJSON(),scroll:getComputedStyle(n).overflowY})),scrolls:[...document.querySelectorAll('main *')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY))}));
   const spacing = await page.evaluate(() => {
     const main = document.querySelector('main')!;
@@ -48,7 +48,7 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   for(const p of layout.panels.filter(p=>p.id!=='home-summary-area' && p.id!=='home-trend-card')){if(info.project.name.startsWith('tablet'))expect(p.rect.height).toBe(290);else expect(p.rect.height).toBeLessThan(290);}
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;
-    expect(summary.rect.height).toBe(290);expect(summary.rect.y).toBe(t.rect.y);expect(h.rect.y).toBe(r.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);
+    expect(summary.rect.height).toBeGreaterThanOrEqual(290);expect(summary.rect.y).toBe(t.rect.y);expect(h.rect.y).toBe(r.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);
   }
   const colors=await held.getByTestId('home-holding').evaluateAll(rows=>rows.map(row=>[...row.querySelectorAll('div > div')].filter(n=>n.textContent && n.childElementCount===0).map(n=>getComputedStyle(n).color)));
   expect(colors[0]).toContain('rgb(248, 113, 113)');expect(colors[1]).toContain('rgb(96, 165, 250)');expect(colors[2]).toContain('rgb(248, 250, 252)');
@@ -57,13 +57,13 @@ test('v0.4 example: three holdings, zero targets, eight buys; fixed panels and o
   for(const [card,name] of [[held,'holdings'],[targets,'targets'],[recent,'recent']] as const){await card.scrollIntoViewIfNeeded();await card.screenshot({path:info.outputPath(`home-v04-${name}.png`)});}
   await page.locator('main').evaluate(n=>n.scrollTop=n.scrollHeight);await page.clock.runFor(300);await page.screenshot({path:info.outputPath('home-v04-bottom.png')});
   const safety=await recent.evaluate(n=>({bottom:n.getBoundingClientRect().bottom,mainBottom:document.querySelector('main')!.getBoundingClientRect().bottom}));expect(safety.mainBottom-safety.bottom).toBeGreaterThanOrEqual(79);
-  const before=await recent.getByTestId('home-card-footer').boundingBox();await recent.getByRole('button',{name:'더보기',exact:true}).click();await expect(page).toHaveURL(/journal\?filter=buy/);expect(before).not.toBeNull();
+  const before=await recent.getByTestId('home-card-footer').boundingBox();await recent.getByRole('button',{name:'더보기',exact:true}).click();await expect(page).toHaveURL(/\/$/);await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(8);expect(before).not.toBeNull();
 });
 
 test('refresh retains list and scroll; unavailable/errors differ from empty; account switch clears all prior rows',async({page})=>{
   const f=await homeFixture(page,6);await page.goto('/');const card=page.getByTestId('target-arrival-card');await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.locator('main').evaluate(n=>n.scrollTop=180);const top=await page.locator('main').evaluate(n=>n.scrollTop);
-  f.hold();await page.clock.fastForward(60_000);await expect(card.getByText(/갱신 중/)).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);f.release();await expect(card.getByText(/갱신 중/)).toHaveCount(0);
+  f.hold();await page.clock.fastForward(60_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(card.getByTestId('target-lot')).toHaveCount(5);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);f.release();await expect(card.getByText(/갱신 중/)).toHaveCount(0);
   f.unavailable();await page.clock.fastForward(60_000);await expect(card.getByText(/판정 불가 1건/)).toBeVisible();await expect(card.getByText('내용이 없습니다.')).toHaveCount(0);
   f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(card.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);

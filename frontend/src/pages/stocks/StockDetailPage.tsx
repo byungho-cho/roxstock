@@ -1,3 +1,4 @@
+import { Skeleton } from '@mui/material';
 import {useReturnNavigation} from '../../hooks/navigation/usePageMemory';
 import { DeleteOutlineRounded, EditRounded, FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
 import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Tab, Tabs, Typography } from '@mui/material';
@@ -157,7 +158,7 @@ function TradeHistory({ stockId, onEdit, onDelete }: { stockId: string; onEdit: 
   return <Stack>
     <Stack direction="row" sx={{ height: 38, px: '14px', alignItems: 'center' }}><Typography sx={{ width: 90, fontSize: 14, fontWeight: 600 }}>2026년</Typography><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>{12 + recordedTrades.length}건</Typography><Typography sx={{ width: 144, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#FF6B6B' }}>{won(11_930_000 + recordedTrades.reduce((sum, { item }) => sum + item.profit, 0))}</Typography></Stack>
     <Stack spacing="8px">{recordedTrades.map(({ trade, item }) => <TradeHistoryCard key={trade.id} trade={item} onEdit={() => onEdit(trade)} onDelete={() => onDelete(trade)} />)}{trades.map((trade) => <TradeHistoryCard key={trade.sellDate} trade={trade} />)}</Stack>
-    <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.disabled }}>이전 연도 거래를 불러오는 중…</Typography></Box>
+    <Box sx={{ height: 44, minHeight: 44, mt: '8px', borderRadius: '12px', bgcolor: '#0F172A', display: 'grid', placeItems: 'center' }}><Skeleton width="80%" height={24}/></Box>
   </Stack>;
 }
 
