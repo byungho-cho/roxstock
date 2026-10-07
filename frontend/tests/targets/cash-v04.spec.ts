@@ -120,6 +120,8 @@ test('cover regular input/tablet popup reuses small forms, amount focus and Ente
   const state = await setup(page); await ready(page);
   await expect(page.locator('button[data-testid="cash-history-row"]')).toHaveCount(1);
   await page.getByRole('button', { name: '예수금 등록', exact: true }).click();
+  // Wait for the popup's onEntered focus before testing explicit keyboard navigation.
+  if (tablet(page)) await expect(page.locator('.MuiDialog-container:visible')).toHaveCSS('opacity', '1');
   await expect(page.getByRole('textbox', { name: '금액', exact: true })).toBeFocused();
   expect(await page.locator('[role="dialog"]:visible').count()).toBe(tablet(page) ? 1 : 0);
   expect(await page.getByRole('textbox', { name: '금액', exact: true }).evaluate(el => el.parentElement!.parentElement!.getBoundingClientRect().height)).toBe(36);
