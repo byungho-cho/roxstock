@@ -1,3 +1,5 @@
+import { storedQueryOptions } from '../../data/storedQueryOptions';
+import { rate, won } from '../investment-profit/profitData';
 import '../dashboard/home-font.css';
 import { Box, Button, ButtonBase, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +10,7 @@ import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegio
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePageMemory';
 import { colors } from '../../styles/tokens';
-import { loadInvestment, moneyNumber, moneyText, periodRange, quarterAvailable, quarters, returnRate, seoulToday, type Quarter } from './investmentData';
+import { loadInvestment, moneyNumber, moneyText, periodRange, quarterAvailable, quarters, seoulToday, type Quarter } from './investmentData';
 
 const card = { border: 0, borderRadius: '8px', bgcolor: '#0F1726', p: '12px 16px', minWidth: 0, flexShrink: 0 };
 const small = { fontSize: 10, lineHeight: '14px', color: colors.textMuted };
@@ -22,7 +24,7 @@ export function InvestmentPage() {
   const [storedQuarter, setQuarter] = usePageMemory<Quarter>('investment-quarter', 0);
   const quarter = quarterAvailable(year, storedQuarter, today) ? storedQuarter : 0;
   useEffect(() => { if (storedQuarter !== quarter) setQuarter(0); }, [storedQuarter, quarter, setQuarter]);
-  const query = useQuery({ queryKey: ['investment', accountId, year], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false, refetchInterval: 300_000 });
+  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment', accountId, year], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false });
   const tablet = useMediaQuery('(min-width:600px)'), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const changeYear = (direction: number) => {
@@ -56,7 +58,7 @@ export function InvestmentPage() {
     <AppCard data-testid="investment-current" sx={{ ...card, py: '8px' }}>
       <Typography data-testid="investment-asof" sx={small}>현재 평가금액 · {data?.asOf ? `${data.asOf.slice(5).replace('-', '.')} 기준` : '수집 기준: —'}</Typography>
       <Typography data-testid="investment-value" sx={{ textAlign: 'right', fontSize: 'clamp(20px, 5.5vw, 24px)', fontWeight: 600, lineHeight: '30px', my: '6px', color: pnlColor(delta), overflowWrap: 'anywhere' }}>{moneyText(data?.evaluation ?? null)}</Typography>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', gap: '8px', color: pnlColor(delta) }}><Typography sx={{ fontSize: 11 }}>투자금 대비 {returnRate(data?.evaluation ?? null, data?.investment ?? null)}</Typography><Typography sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }}>{moneyText(delta, true)}</Typography></Stack>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', gap: '8px', color: pnlColor(data?.annualTradingProfit ?? null) }}><Typography sx={{ fontSize: 11 }}>{year === currentYear ? '올해' : `${year}년`} 누적 매매손익 {rate(data?.annualTradingProfit ?? null, data?.investment == null ? null : data.investment * 10000n)}</Typography><Typography data-testid="investment-trading-profit" sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }}>{won(data?.annualTradingProfit ?? null, true)}</Typography></Stack>
     </AppCard>
     <AppCard data-testid="investment-summary" sx={card}><Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>{[{ label: '초기투자금', value: data?.initialInvestment ?? null }, { label: '누적투자금', value: data?.investment ?? null }, { label: '배당', value: data?.dividend ?? null }].map((item, index) => <Box key={item.label} sx={{ minWidth: 0, pl: index ? '8px' : 0, borderLeft: index ? `1px solid ${colors.border}` : undefined }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>{item.label}</Typography><Typography data-testid={`investment-metric-${index}`} sx={{ mt: '3px', fontSize: 10, textAlign: 'right', overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(item.value)}</Typography></Box>)}</Box></AppCard>
     <AppCard data-testid="investment-trend" sx={{ ...card, bgcolor: '#111927', pt: '6px', pb: '8px' }}>

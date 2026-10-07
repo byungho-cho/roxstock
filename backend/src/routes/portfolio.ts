@@ -1,3 +1,4 @@
+import { annualInvestmentCapital } from '../domain/investment-capital.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
@@ -176,6 +177,17 @@ export async function portfolioRoutes(app: FastifyInstance) {
         holdings: holdings.map(serializeHolding),
       },
     };
+  });
+
+  // Persisted snapshots only; no collection or history mutation on reads.
+  app.get<{ Params: AccountParams }>('/accounts/:accountId/investment-capital', async request => {
+    const accountId = id(request.params.accountId, 'accountId');
+    const account = await prisma.account.findUnique({ where: { id: accountId }, select: { isActive: true } });
+    if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+    const snapshots = await prisma.dailyAccountSnapshot.findMany({ where: { accountId, snapshotDate: { lte: new Date(`${today}T00:00:00Z`) } },
+      select: { snapshotDate: true, investmentAmount: true }, orderBy: [{ snapshotDate: 'desc' }, { id: 'desc' }] });
+    return { data: annualInvestmentCapital(snapshots, today) };
   });
 
   app.get<{Params:AccountParams;Querystring:{year?:string}}>('/accounts/:accountId/investment-baseline',async request=>{

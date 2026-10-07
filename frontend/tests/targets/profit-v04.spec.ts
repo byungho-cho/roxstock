@@ -16,6 +16,7 @@ async function fixture(page: Page, initial: Mode = 'normal') {
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url()), path = url.pathname;
     if (path === '/api/accounts') return route.fulfill({ json: { data: [{ id: '1', name: '기본', isDefault: true, isActive: true }, { id: '2', name: '빈 계좌', isActive: true }] } });
+    if (path.endsWith('/investment-capital')) return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}]}});
     if (path.endsWith('/trades')) {
       if (hold && path.includes('/1/')) await new Promise<void>(resolve => releases.push(resolve));
       if (mode === 'error') return route.fulfill({ status: 503, json: { error: { message: '조회 실패' } } });
@@ -55,15 +56,15 @@ test('all stock results include losses and synchronize cumulative/detail sums', 
   await page.getByTestId('profit-list-row').filter({ hasText: '종목00' }).click();
   await expect(page.getByTestId('profit-detail-summary')).toContainText('+461원');
   await expect(page.getByTestId('profit-selected')).toHaveText('종목00');
-  await page.getByRole('button', { name: '다음 상세' }).click(); await expect(page.getByTestId('profit-selected')).toHaveText('종목01');
-  if (info.project.name.startsWith('tablet')) await expect(loss).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /다음 상세/ }).click(); await expect(page.getByTestId('profit-selected')).toHaveText('종목02');
+  if (info.project.name.startsWith('tablet')) await expect(page.getByTestId('profit-list-row').filter({hasText:'종목02'})).toHaveAttribute('aria-pressed', 'true');
 });
 test('year navigation wraps and cover back restores account tab and list position', async ({ page }, info) => {
   await fixture(page); await ready(page); const tablet = info.project.name.startsWith('tablet');
   if (!tablet) await page.getByTestId('profit-list-row').filter({ hasText: '2026' }).click();
-  await page.getByRole('button', { name: '다음 상세' }).click();
+  await page.getByRole('button', { name: /다음 상세/ }).click();
   if (tablet) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-navigation')).toHaveCount(0); await page.getByTestId('profit-list-row').filter({ hasText: '2025' }).click(); }
-  else { await expect(page.getByTestId('profit-selected')).toHaveText('2010년'); await page.getByRole('button', { name: '이전 상세' }).click(); await expect(page.getByTestId('profit-selected')).toHaveText('2026년'); await page.getByRole('button', { name: '뒤로가기' }).click(); }
+  else { await expect(page.getByTestId('profit-selected')).toHaveText('2010년'); await page.getByRole('button', { name: /이전 상세/ }).click(); await expect(page.getByTestId('profit-selected')).toHaveText('2026년'); await page.getByRole('button', { name: '뒤로가기' }).click(); }
   await page.getByRole('button', { name: '종목별', exact: true }).click();
   const region = tablet ? page.locator('[data-scroll-region="profit-left"]') : page.locator('main');
   await region.evaluate(node => { node.scrollTop = 150; }); const before = await region.evaluate(node => node.scrollTop);
@@ -94,14 +95,13 @@ test('requested geometry percent alignment independent scrolling and safe cleara
   if (tablet) { const scroll = await page.locator('[data-scroll-region="profit-left"]').evaluate(node => node.scrollTop); await region.evaluate(node => { node.scrollTop = 0; }); expect(await page.locator('[data-scroll-region="profit-left"]').evaluate(node => node.scrollTop)).toBe(scroll); }
   await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: '자산분석', exact: true })).toHaveClass(/Mui-selected/);
 });
-test('refresh failure preserves data and retry recovers while account cancels stale responses', async ({ page }) => {
-  const f = await fixture(page); await ready(page); f.hold(); await page.clock.fastForward(300_000);
-  await expect(page.getByText('갱신 중…')).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
-  f.mode('error'); f.release(); await expect(page.getByRole('alert')).toContainText('기존 데이터를 표시합니다.');
-  await expect(page.getByTestId('profit-total')).toHaveText('-739원'); f.mode('normal'); await page.getByRole('button', { name: '재시도' }).click(); await expect(page.getByRole('alert')).toHaveCount(0);
-  f.hold(); await page.clock.fastForward(300_000); await expect(page.getByText('갱신 중…')).toBeVisible();
-  await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', '2'); window.dispatchEvent(new Event('roxstock-selected-account')); });
-  await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.'); f.release(); await expect(page.getByTestId('profit-total')).toHaveCount(0); await expect(page.getByTestId('profit-list-row')).toHaveCount(0);
+test('stored profit does not poll/focus-refresh; account switch rejects the old response', async ({ page }) => {
+ const f=await fixture(page);await ready(page);
+ const reads=f.offsets.length;await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ expect(f.offsets.length).toBe(reads);await expect(page.getByTestId('profit-total')).toHaveText('-739원');
+ f.hold();await page.reload();
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');f.release();await expect(page.getByTestId('profit-total')).toHaveCount(0);
 });
 test('empty missing failed and changing-pagination results remain distinct', async ({ page }, info) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');

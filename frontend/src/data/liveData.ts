@@ -1,5 +1,5 @@
 import type { DashboardData, StockItem, StockListType } from '../types/models';
-import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getTrades, listSecurities, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getTrades, listSecurities, type TradeReport, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
 import { deriveAccountStocks } from '../pages/stocks/stockMath';
 import type { BuyLot } from '../types/models';
 
@@ -50,16 +50,16 @@ export function mapHolding(holding: HoldingDto): StockItem {
   };
 }
 
-export async function fetchLiveStocks(listType?: StockListType, accountId?: string): Promise<StockItem[]> {
+export async function fetchLiveStocks(listType?: StockListType, accountId?: string, tradesRequest?: Promise<TradeReport>): Promise<StockItem[]> {
   const selected = accountId ?? await currentAccountId();
-  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), getTrades(selected)]);
+  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), tradesRequest ?? getTrades(selected)]);
   const all = deriveAccountStocks(catalog.map(mapSecurity), holdings.map(mapHolding), trades.data);
   return listType ? all.filter(stock => stock.listType === listType) : all;
 }
 
-export async function fetchLiveDashboard(selectedAccountId?: string): Promise<DashboardData> {
+export async function fetchLiveDashboard(selectedAccountId?: string, includeHistory = true): Promise<DashboardData> {
   const accountId = selectedAccountId ?? await currentAccountId();
-  const [response, history] = await Promise.all([getAccountDashboard(accountId), getAssetHistory(accountId)]);
+  const [response, history] = await Promise.all([getAccountDashboard(accountId), includeHistory ? getAssetHistory(accountId) : Promise.resolve({data: []})]);
   const holdings = response.holdings.map(mapHolding);
   const stockValue = decimal(response.stockValue);
   const totalAssets = decimal(response.totalAssetValue);

@@ -14,6 +14,8 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url()), path = url.pathname;
     if (path === '/api/accounts') return route.fulfill({ json: { data: [{ id: '1', name: '기본', isActive: true, isDefault: true, cashBalance: '0' }, { id: '2', name: '빈 계좌', isActive: true, cashBalance: '0' }] } });
+    if(path.endsWith('/trades'))return route.fulfill({json:{data:[],summary:{realizedProfitLoss:'39720500'}}});
+    if(path.endsWith('/investment-baseline'))return route.fulfill({json:{data:null}});
     if (path.endsWith('/asset-history')) {
       if (held && path.includes('/1/')) await new Promise<void>(resolve => releases.push(resolve));
       if (mode === 'error') return route.fulfill({ status: 503, json: { error: { message: '조회 오류' } } });
@@ -21,7 +23,7 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
       const start = new Date(`${year}-01-01T00:00:00Z`);
       const snapshots = Array.from({ length: year === 2026 ? 181 : 365 }, (_, i) => {
         const date = new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10);
-        return { date, totalAssetValue: mode === 'missing' ? null : mode === 'large' ? '999999999999999.4999' : String(130000000 + i * 1000), updatedAt: stamp(date) };
+        return { date, investmentAmount: mode === 'zero' ? '0' : mode === 'edited' ? null : mode === 'large' ? '400000000000000.1234' : '120000000', totalAssetValue: mode === 'missing' ? null : mode === 'large' ? '999999999999999.4999' : String(130000000 + i * 1000), updatedAt: stamp(date) };
       });
       return route.fulfill({ json: { data: mode === 'empty' || path.includes('/2/') ? [] : snapshots, summary: {} } });
     }
@@ -37,7 +39,7 @@ async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'er
 async function ready(page: Page) { await page.goto('/detail/investment'); await expect(page.getByTestId('investment-value')).toHaveText('130,165,000원'); }
 test('year and quarter filter share chart/table, include boundaries and keep summary', async ({ page }) => {
   await fixture(page); await ready(page);
-  await expect(page.getByTestId('investment-metric-0')).toHaveText('—');
+  await expect(page.getByTestId('investment-metric-0')).toHaveText('0원');
   await expect(page.getByTestId('investment-metric-1')).toHaveText('120,000,000원');
   await expect(page.getByTestId('investment-metric-2')).toHaveText('1,000,000원');
   const summary = await page.getByTestId('investment-current').textContent();
@@ -109,15 +111,12 @@ test('account switch cannot display a delayed prior-account response', async ({ 
   await expect(page.getByTestId('investment-row')).toHaveCount(0);
   await expect(page.getByTestId('investment-quarters').getByRole('button', { name: '2분기' })).toBeEnabled();
 });
-test('refresh/failure retains successful baseline and retry recovers', async ({ page }) => {
-  const f = await fixture(page); await ready(page); const previous = await page.getByTestId('investment-current').textContent();
-  f.hold(); await page.clock.fastForward(300_000);
-  await expect(page.getByText('갱신 중…')).toBeVisible(); expect(await page.getByTestId('investment-current').textContent()).toBe(previous);
-  f.setMode('error'); f.release();
-  await expect(page.getByRole('alert')).toContainText('이전 데이터를 표시합니다.');
-  expect(await page.getByTestId('investment-current').textContent()).toBe(previous);
-  await expect(page.getByTestId('investment-row')).toHaveCount(166);
-  f.setMode('normal'); await page.getByRole('button', { name: '재시도' }).click(); await expect(page.getByRole('alert')).toHaveCount(0);
+test('stored investment stays cached on focus/interval; a changed year reads its own records',async({page})=>{
+ const f=await fixture(page);await ready(page);const value=await page.getByTestId('investment-current').textContent();
+ f.setMode('error');await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ expect(await page.getByTestId('investment-current').textContent()).toBe(value);await expect(page.getByRole('alert')).toHaveCount(0);
+ await page.getByRole('button',{name:'이전 연도'}).click();await expect(page.getByRole('alert')).toContainText('조회에 실패');
+ f.setMode('normal');await page.getByRole('button',{name:'재시도'}).click();await expect(page.getByRole('alert')).toHaveCount(0);
 });
 test('empty, missing and failed results remain distinct', async ({ page }) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment');
@@ -135,12 +134,12 @@ test('large amounts, zero denominator, edited historical principal and changing 
   const clipped = await page.locator('[data-testid="investment-page"] .MuiTypography-root').evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));
   expect(clipped).toEqual([]);
   f.setMode('zero'); await page.reload(); await expect(page.getByTestId('investment-metric-1')).toHaveText('0원');
-  await expect(page.getByTestId('investment-current')).toContainText('투자금 대비 —');
+  await expect(page.getByTestId('investment-current')).toContainText('올해 누적 매매손익 —');
   f.setMode('edited'); await page.reload(); await expect(page.getByTestId('investment-value')).toHaveText('130,165,000원');
   await expect(page.getByTestId('investment-metric-1')).toHaveText('—');
   await expect(page.getByTestId('investment-metric-2')).toHaveText('1,000,000원');
   f.setMode('normal'); await page.reload(); await expect(page.getByTestId('investment-metric-1')).toHaveText('120,000,000원');
-  f.setMode('pagination-error'); await page.clock.fastForward(300_000);
-  await expect(page.getByRole('alert')).toContainText('이전 데이터를 표시합니다.');
-  await expect(page.getByTestId('investment-metric-1')).toHaveText('120,000,000원');
+  f.setMode('pagination-error'); await page.reload();
+  await expect(page.getByRole('alert')).toContainText('조회에 실패했습니다.');
+  await expect(page.getByTestId('investment-metric-1')).toHaveText('—');
 });

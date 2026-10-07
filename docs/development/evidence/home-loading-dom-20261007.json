@@ -1,0 +1,118 @@
+{
+  "measurement": "DOM availability, not browser paint or production/device performance",
+  "apiDelayMs": {
+    "accounts": 40,
+    "dashboard": 180,
+    "assetHistory": 600,
+    "targets": 120,
+    "buyLots": 100
+  },
+  "samples": [
+    {
+      "bundle": "main-cac3871",
+      "samples": [
+        {
+          "warmFirstCardDOMMs": 26,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 877,
+          "allCardsDOMMs": 1002,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/dashboard",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots"
+          ],
+          "errors": []
+        },
+        {
+          "warmFirstCardDOMMs": 23,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 868,
+          "allCardsDOMMs": 992,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/dashboard",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots"
+          ],
+          "errors": []
+        },
+        {
+          "warmFirstCardDOMMs": 36,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 836,
+          "allCardsDOMMs": 964,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/dashboard",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots"
+          ],
+          "errors": []
+        }
+      ]
+    },
+    {
+      "bundle": "improvements-12",
+      "samples": [
+        {
+          "warmFirstCardDOMMs": 28,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 332,
+          "allCardsDOMMs": 839,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/dashboard"
+          ],
+          "errors": []
+        },
+        {
+          "warmFirstCardDOMMs": 24,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 340,
+          "allCardsDOMMs": 847,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/dashboard"
+          ],
+          "errors": []
+        },
+        {
+          "warmFirstCardDOMMs": 20,
+          "warmRequests": 0,
+          "width": 370,
+          "firstValidCardDOMMs": 322,
+          "allCardsDOMMs": 829,
+          "requests": 5,
+          "paths": [
+            "/api/accounts",
+            "/api/accounts/1/target-arrivals",
+            "/api/accounts/1/buy-lots",
+            "/api/accounts/1/asset-history",
+            "/api/accounts/1/dashboard"
+          ],
+          "errors": []
+        }
+      ]
+    }
+  ]
+}
