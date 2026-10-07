@@ -34,7 +34,7 @@ PR Auto Merge: contents/write, pull-requests/write, actions/write.
 다른 검사는 읽기 권한을 사용한다. 저장소 자동 병합을 허용한다. 기본 토큰 권한은 읽기를 유지하고 자동 병합 워크플로에만 쓰기 권한을 지정한다.
 기존 DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, DEPLOY_HOST, DEPLOY_USER,
 DEPLOY_PORT(선택), DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS를 재사용한다.
-운영 backend/.env.production의 COLLECTOR_INTERNAL_TOKEN이 없으면 배포를 중단한다.
+운영 원본 env에 COLLECTOR_INTERNAL_TOKEN이 없으면 기존 실행 컨테이너의 토큰을 배포 worktree에 이어받는다. 새 토큰을 생성하거나 원본 env를 변경하지 않는다. 기존 토큰도 없으면 중단한다.
 시크릿 값이나 운영 env를 로그에 출력하지 않는다.
 
 ## 실패와 재시도

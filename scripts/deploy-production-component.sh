@@ -33,11 +33,19 @@ if [[ "$COMPONENT" == backend ]]; then
   fi
   # Only copy the existing server environment. Never read a CI/development env.
   test -f "$SOURCE_TREE/backend/.env.production"
-  grep -Eq '^COLLECTOR_INTERNAL_TOKEN=.+$' "$SOURCE_TREE/backend/.env.production" || {
-    echo "Production collector token is missing; preserve/configure the existing server environment before retrying."
-    exit 1
-  }
   install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
+  if ! grep -Eq '^COLLECTOR_INTERNAL_TOKEN=.+$' "$DEPLOY_TREE/backend/.env.production"; then
+    # Earlier deploys generated this token only in their worktree. Carry the
+    # existing runtime token forward, without rotating it or logging its value.
+    existing_token="$(docker exec roxstock-backend node -e 'process.stdout.write(process.env.COLLECTOR_INTERNAL_TOKEN || "")')"
+    [[ -n "$existing_token" && ! "$existing_token" =~ [[:space:]] ]] || {
+      echo "No existing production collector token available; deployment stopped."
+      exit 1
+    }
+    printf '\nCOLLECTOR_INTERNAL_TOKEN=%s\n' "$existing_token" >> "$DEPLOY_TREE/backend/.env.production"
+    unset existing_token
+    echo "Preserved the existing runtime collector token in the deployment environment."
+  fi
   bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "$IMAGE_TAG"
 else
   # API must have deployed this exact commit before the frontend.
