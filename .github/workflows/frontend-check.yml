@@ -11,11 +11,16 @@ on:
       - .github/workflows/frontend-check.yml
       - .github/workflows/frontend-image.yml
   workflow_call:
+    inputs:
+      target_sha:
+        type: string
+        required: false
+        default: ''
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: frontend-check-${{ github.head_ref || github.ref }}
+  group: frontend-check-${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: false
 jobs:
   scope:
@@ -25,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha || github.sha }}
           fetch-depth: 0
       - id: scope
         env:
@@ -43,7 +49,7 @@ jobs:
               fi
             fi
           fi
-          if [ -z "$BASE_SHA" ] || git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(frontend/(src/|public/|tsconfig|vite\.config|index\.html|package\.json|Dockerfile|nginx\.conf)|package(-lock)?\.json$)'; then
+          if [ -n '${{ inputs.target_sha }}' ] || [ -z "$BASE_SHA" ] || git diff --name-only "$BASE_SHA" HEAD | grep -Eq '^(frontend/(src/|public/|tsconfig|vite\.config|index\.html|package\.json|Dockerfile|nginx\.conf)|package(-lock)?\.json$)'; then
             echo "run_checks=true" >> "$GITHUB_OUTPUT"
           else
             echo "run_checks=false" >> "$GITHUB_OUTPUT"
@@ -57,6 +63,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -88,6 +96,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'

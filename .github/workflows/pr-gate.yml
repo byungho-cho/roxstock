@@ -1,0 +1,76 @@
+name: PR Validation
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.scope.outputs.frontend }}
+      backend: ${{ steps.scope.outputs.backend }}
+    steps:
+      - uses: actions/github-script@v7
+        id: scope
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {...context.repo, pull_number: context.issue.number, per_page: 100});
+            const paths = files.map(f => f.filename);
+            const shared = paths.some(p => /^(\.github\/workflows\/|scripts\/deploy|package(-lock)?\.json$)/.test(p));
+            core.setOutput('frontend', String(shared || paths.some(p => p.startsWith('frontend/'))));
+            core.setOutput('backend', String(shared || paths.some(p => /^(backend\/|database\/|infra\/docker\/)/.test(p))));
+  frontend:
+    needs: scope
+    if: needs.scope.outputs.frontend == 'true'
+    uses: ./.github/workflows/frontend-check.yml
+    with:
+      target_sha: ${{ github.event.pull_request.head.sha }}
+  backend:
+    needs: scope
+    if: needs.scope.outputs.backend == 'true'
+    uses: ./.github/workflows/backend-check.yml
+  automation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate workflows and deployment shell
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color -shellcheck=
+          bash -n scripts/deploy.sh scripts/deploy-backend.sh scripts/deploy-production-component.sh
+  gate:
+    name: PR Gate
+    if: always()
+    needs: [scope, frontend, backend, automation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Require selected checks
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e 'const n=JSON.parse(process.env.RESULTS); for(const [k,v] of Object.entries(n)){if(!["success","skipped"].includes(v.result))throw Error(k+" "+v.result)}; for(const k of ["scope","automation"])if(n[k].result!=="success")throw Error(k); for(const k of ["frontend","backend"])if(n.scope.outputs[k]==="true" && n[k].result!=="success")throw Error(k)'
+      - name: Wait for all other PR workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+            // Let independent path-filtered PR workflows register before checking.
+            await sleep(10000);
+            for (let attempt = 0; attempt < 140; attempt++) {
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {...context.repo, head_sha: sha, event: 'pull_request', per_page: 100});
+              const latest = new Map();
+              for (const run of runs) {
+                if (run.id === context.runId) continue;
+                if (!latest.has(run.workflow_id) || latest.get(run.workflow_id).id < run.id) latest.set(run.workflow_id, run);
+              }
+              const others = [...latest.values()];
+              const failed = others.filter(r => r.status === 'completed' && !['success','skipped','neutral'].includes(r.conclusion));
+              if (failed.length) throw new Error('Failed PR workflows: ' + failed.map(r => r.name + ': ' + r.conclusion).join(', '));
+              if (others.every(r => r.status === 'completed')) return;
+              await sleep(10000);
+            }
+            throw new Error('PR workflows still running; merge remains blocked');
