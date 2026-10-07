@@ -57,11 +57,11 @@ test('closed-day whole row is gray; weekday zero remains neutral',async({page},i
   await weekday.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('investment-closed-days.png')});
 });
 
-test('analysis shares chart, yellow dates and left ticks; both back paths restore period/account/scroll',async({page},info)=>{
+test('analysis shares chart, neutral dates and left ticks; both back paths restore period/account/scroll',async({page},info)=>{
   await fixture(page);await page.goto('/assets');await page.getByRole('button',{name:'전체',exact:true}).click();
   const chart=page.getByTestId('asset-trend-chart');await selectLast(page,chart);await expect(chart.getByTestId('asset-trend-tooltip')).toContainText('165,000원');
   await expect(chart.getByTestId('asset-trend-date')).toHaveText(['2024','2025','2026']);
-  expect(await chart.getByTestId('asset-trend-date').first().evaluate(e=>getComputedStyle(e).color)).toBe(await page.getByTestId('analysis-performance-period').evaluate(e=>getComputedStyle(e).color));
+  expect(await chart.getByTestId('asset-trend-date').first().evaluate(e=>getComputedStyle(e).color)).toBe(await chart.getByTestId('asset-trend-chart-amount').first().evaluate(e=>getComputedStyle(e).color));
   const svg=(await chart.locator('svg').boundingBox())!,tick=(await chart.getByTestId('asset-trend-chart-amount').first().boundingBox())!;
   const tip=(await chart.getByTestId('asset-trend-tooltip').boundingBox())!;expect(tip.x).toBeGreaterThan(tick.x+tick.width);
   expect(svg.height).toBe(200);expect(tick.x-svg.x).toBeLessThan(4);await expect(chart.getByTestId('asset-trend-line')).toHaveCount(1);
