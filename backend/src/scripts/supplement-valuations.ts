@@ -1,0 +1,19 @@
+import 'dotenv/config';
+import {PrismaClient} from '../generated/prisma/index.js';
+import {randomUUID} from 'node:crypto';
+import {PrismaDartRepository} from '../collector/dart-repository.js';
+import {supplementStoredPeriod} from '../collector/valuation-supplement.js';
+const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID();
+const apply=process.argv.includes('--apply'),selected=process.argv.find(a=>a.startsWith('--security='))?.split('=')[1];
+const currentYear=Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date()));
+try {
+ if(apply&&!await repo.acquireLock(owner,900))throw new Error('Collector is busy. Retry after it releases the shared lock.');
+ const priority=new Set((await repo.prioritySecurityIds()).map(String));
+ const rows=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:currentYear},...(selected?{securityId:BigInt(selected)}:{})},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true}});
+ rows.sort((a,b)=>Number(priority.has(String(b.securityId)))-Number(priority.has(String(a.securityId)))||b.fiscalYear-a.fiscalYear||(a.securityId<b.securityId?-1:1));
+ for(const row of rows){
+  if(apply)await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner},data:{lockedUntil:new Date(Date.now()+900000)}});
+  const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType,{dryRun:!apply});
+  console.log(JSON.stringify({mode:apply?'APPLY':'DRY_RUN',...result},(_,v)=>typeof v==='bigint'?String(v):v));
+ }
+}finally{if(apply)await repo.releaseLock(owner);await db.$disconnect();}

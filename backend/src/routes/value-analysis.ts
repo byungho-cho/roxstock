@@ -3,7 +3,7 @@ import { Prisma } from '../generated/prisma/index.js';
 import { prisma } from '../lib/prisma.js';
 import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
-import { fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
+import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
 
 type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string };
 const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));
@@ -17,7 +17,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   // Cache slow financial joins briefly; never cache the live price used for W/order.
   const loadFinancials = (year: number, query: string) => prisma.security.findMany({
     where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-    include: { fundamentals: true,
+    include: { fundamentals: true, periodValuations:{where:{fiscalYear:year},orderBy:{periodType:'asc'}},
       financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
       dartFinancialFilings: {where:{fiscalYear:{lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},
       valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
@@ -34,7 +34,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   }
   app.addHook('onClose', async () => { cache.clear(); });
   app.get<{ Querystring: Query }>('/value-analysis', async request => {
-    const year = integer(request.query.year, currentYear(), 1900, currentYear(), 'year');
+    const year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
     const query = request.query.query?.trim() ?? '';
     if (query.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'query is too long.');
     // Master securities, including unregistered companies. One result fixes the full navigation/order snapshot.
@@ -48,7 +48,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));
     const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString())).map(security => {
       const marketPrice = prices.get(security.id.toString());
-      const metric = valuation(security.valuationMetrics[0]), price = marketPrice?.currentPrice.toString() ?? null;
+      const metric=combinedValuation(valuation(security.valuationMetrics[0]),security.periodValuations??[]), price = marketPrice?.currentPrice.toString() ?? null;
       const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
@@ -64,10 +64,10 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     return { data: { rows, total: rows.length, year, query, timezone: 'Asia/Seoul', metricBasis: 'LATEST_STORED_DATE_WITHIN_YEAR' } };
   });
   app.get<{ Params: { id: string }; Querystring: Query }>('/value-analysis/:id', async request => {
-    const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 1900, currentYear(), 'year');
+    const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
     const mode = request.query.mode ?? 'annual';
     if (mode !== 'annual' && mode !== 'quarter') throw new ApiError(400, 'INVALID_INPUT', 'mode is invalid.');
-    const startYear = integer(request.query.startYear, Math.max(1900, year - 2), 1900, currentYear(), 'startYear');
+    const startYear = integer(request.query.startYear, Math.max(2015, year - 2), 2015, currentYear(), 'startYear');
     const quarter = mode === 'annual' ? null : integer(request.query.startQuarter, 1, 1, 4, 'startQuarter');
     const count = integer(request.query.count, 3, 1, 10, 'count'), selected = periods(startYear, quarter, count);
     const last = selected[selected.length - 1]!.year;
@@ -80,15 +80,17 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
         tx.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false, fiscalYear: { gte: fromYear, lte: toYear } }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }, { receiptNo: 'desc' }] }),
         tx.valuationMetric.findMany({ where: { securityId, metricDate: { gte: new Date(Date.UTC(fromYear, 0, 1)), lt: new Date(Date.UTC(toYear + 1, 0, 1)) } }, orderBy: { metricDate: 'desc' } }),
       ]);
+      const calculated=await tx.periodValuation.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}}});
+      const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}});
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
-      const metric = valuation(metrics.find(row => row.metricDate.getUTCFullYear() === year)), price = security.marketPrice?.currentPrice.toString() ?? null;
+      const metric = combinedValuation(valuation(metrics.find(row => row.metricDate.getUTCFullYear() === year)),calculated.filter(row=>row.fiscalYear===year)), price = security.marketPrice?.currentPrice.toString() ?? null;
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price, previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
         issuedShares: security.fundamentals && currentYear(security.fundamentals.updatedAt)===year ? security.fundamentals.issuedShares?.toString()??null : null,
         year, valuation: metric, w: weight(metric, price), fairPrices: ['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null, closingDate: annual?.periodEndDate ?? null,
-        rows: financialRows(selected, statements, metrics), mode, startYear, startQuarter: quarter, count,
-        notices: ['유동비율: 유동자산·유동부채 저장 필드가 없어 미수집입니다.', '가치지표는 해당 기간의 마지막 저장 기준일 값이며 분기 연환산을 새로 계산하지 않습니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
+        rows: financialRows(selected, statements, metrics,calculated).map(row=>{const task=tasks.find(t=>t.fiscalYear===row.year&&t.periodType===(row.quarter===null?'ANNUAL':'Q'+row.quarter));return {...row,availability:security.listingYear&&row.year<security.listingYear?'PRE_LISTING':row.source?'STORED':task?.status==='NO_FILING'?'NO_FILING':task?.status==='FAILED'?'FAILED':'NOT_COLLECTED'};}), mode, startYear, startQuarter: quarter, count,
+        notices: ['유동비율: 유동자산·유동부채 저장 필드가 없어 미수집입니다.', '가치지표는 기존 저장값을 우선합니다. 보완 지표는 재무기간별 저장값이며 분기 누적 실적을 연환산합니다(TTM 아님). 과거 종가는 기간 말 기준이며 이후 공시로 계산한 사후 지표입니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
       } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   });

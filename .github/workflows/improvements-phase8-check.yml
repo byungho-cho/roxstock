@@ -1,0 +1,38 @@
+name: Improvements phase 8
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/value/**
+      - frontend/src/pages/financial/**
+      - frontend/tests/targets/improvements-phase8.spec.ts
+      - frontend/tests/targets/value-v04.spec.ts
+      - frontend/playwright.phase8.config.ts
+      - .github/workflows/improvements-phase8-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phase8:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.phase8.config.ts
+        working-directory: frontend
+      - run: npx playwright test -c playwright.value.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase8-evidence
+          path: frontend/test-results/
+          retention-days: 7
