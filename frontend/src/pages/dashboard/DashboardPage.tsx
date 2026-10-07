@@ -16,7 +16,7 @@ import { colors } from '../../styles/tokens';
 
 export function DashboardPage() {
   const navigate = useListNavigation();
-  const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true });
+  const { data, isPending, isError, isFetching, refetch, historyPending, historyError } = useDashboard({ pollPrices: true });
   const { accountId, accounts } = useActiveAccount();
   if (liveApiEnabled && !accountId) {
     if (accounts.isPending) return <DashboardLoading />;
@@ -30,27 +30,23 @@ export function DashboardPage() {
       <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
     </Stack></AppCard>;
   }
-  if (isPending) return <DashboardLoading />;
-  if (!data) return <AppCard><Box sx={{ p: 2 }}><Typography sx={{ fontWeight: 700 }}>대시보드를 불러오지 못했어요.</Typography><Typography color="text.secondary" sx={{ mt: 0.5, cursor: 'pointer' }} onClick={() => refetch()}>눌러서 다시 시도해 주세요.</Typography></Box></AppCard>;
-
-  const { summary, holdings, trend } = data;
+  const summary = data?.summary, holdings = data?.holdings, trend = data?.trend ?? [];
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`); monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
   const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
   return <Box className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
     <Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, height: { sm: 290 }, gridArea: { sm: 'summary' } }}>
-      <TotalAssetCard summary={summary} home />
-      <AssetQuickCards summary={summary} home />
+      {summary ? <><TotalAssetCard summary={summary} home /><AssetQuickCards summary={summary} home /></> : isPending ? <><Skeleton variant="rounded" height={76}/><Skeleton variant="rounded" height={68}/></> : <AppCard><Button onClick={() => void refetch()}>대시보드 조회 실패 · 재시도</Button></AppCard>}
       <AppCard data-testid="home-trend-card" sx={{ height: { xs: 88, sm: 'auto' }, minHeight: { sm: 130 }, flex: { sm: 1 }, borderRadius: '8px' }}><CardActionArea onClick={() => navigate('/assets')} sx={{ height: '100%', px: { xs: '14px', sm: '15px' }, py: '12px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
         <SectionHeader title="자산 추이" action={<Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>} />
-        {homeTrend.length > 1 ? <TrendChart values={homeTrend.map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
+        {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <TrendChart values={homeTrend.map((item) => item.value)} /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
       </CardActionArea></AppCard>
     </Stack>
-    <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard testId="home-holdings-card" title="보유종목" timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching} more={holdings.length > 5 ? () => navigate('/stocks?tab=holding') : undefined}>
+    <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목" timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching} more={holdings.length > 5 ? () => navigate('/stocks?tab=holding') : undefined}>
       {holdings.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}
       {holdings.length === 0 && <HomeEmpty />}
-    </HomeListCard></Box>
+    </HomeListCard> : <Skeleton variant="rounded" height={156}/>}</Box>
     <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
     <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard /></Box>
   </Box>;

@@ -1,5 +1,6 @@
+import { amount } from '../investment-profit/profitData';
 import { apiEnvelope } from '../../data/apiClient';
-import type { AssetHistoryDto, CashHistoryDto, CashTransactionDto } from '../../data/roxstockApi';
+import type { AssetHistoryDto, CashHistoryDto, CashTransactionDto, TradeReport } from '../../data/roxstockApi';
 
 export type Quarter = 0 | 1 | 2 | 3 | 4;
 export const quarters: Quarter[] = [0, 1, 2, 3, 4];
@@ -47,6 +48,7 @@ export type InvestmentData = {
   initialInvestment: bigint | null;
   initialAsOf: string | null;
   historicalUnavailable: boolean;
+  annualTradingProfit?: bigint | null;
 };
 
 export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number, opening: Pick<Snapshot,'date'|'investmentAmount'|'updatedAt'> | null = null): InvestmentData {
@@ -86,8 +88,11 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
 
 export async function loadInvestment(accountId: string, year: number, today: string, signal: AbortSignal) {
   const range = periodRange(year, 0, today), account = encodeURIComponent(accountId);
-  const history = await apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams(range)}`, { signal });
-  const baseline=await apiEnvelope<{data:{date:string;investmentAmount:string|null;updatedAt:string}|null}>(`/accounts/${account}/investment-baseline?year=${year}`,{signal});
+  const [history, baseline, trades] = await Promise.all([
+    apiEnvelope<AssetHistoryDto>(`/accounts/${account}/asset-history?${new URLSearchParams(range)}`, { signal }),
+    apiEnvelope<{data:{date:string;investmentAmount:string|null;updatedAt:string}|null}>(`/accounts/${account}/investment-baseline?year=${year}`,{signal}),
+    apiEnvelope<TradeReport>(`/accounts/${account}/trades?${new URLSearchParams(range)}`, {signal}),
+  ]);
   const opening=baseline.data;
   const transactions: Transaction[] = [];
   // Read every page: a latest-20 list cannot supply cumulative principal.
@@ -106,5 +111,5 @@ export async function loadInvestment(accountId: string, year: number, today: str
       transactions.push(...result.data);
     }
   }
-  return calculateInvestment(history.data.filter(point => point.date >= range.from && point.date <= range.to), transactions, year, opening);
+  return { ...calculateInvestment(history.data.filter(point => point.date >= range.from && point.date <= range.to), transactions, year, opening), annualTradingProfit: amount(trades.summary.realizedProfitLoss) };
 }

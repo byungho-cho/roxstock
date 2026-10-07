@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import { usePageMemory } from '../../hooks/navigation/usePageMemory';
@@ -28,7 +29,7 @@ const signed = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '−' : ''
 const overviewQuery = (accountId: string, mode: 'month' | 'year', period: string | number) => ({
   queryKey: ['cashOverview', accountId, mode, period] as const,
   queryFn: () => getCashOverview(accountId, mode === 'month' ? Number(String(period).slice(0, 4)) : Number(period), mode === 'month' ? Number(String(period).slice(5)) : undefined),
-  staleTime: 60_000,
+  ...storedQueryOptions,
 });
 
 export function LiveCashPage() {
@@ -67,7 +68,7 @@ export function LiveCashPage() {
   }, [accountId, mode, month, year, overview.data, overview.isError, queryClient]);
   const range = cashRange(mode, month, year);
   const historyRange = cashRange(mode, month, year, olderMonths);
-  const history = useQuery({ queryKey: ['cashTransactions', accountId, mode, month, year, olderMonths], queryFn: () => cashHistory(accountId!, historyRange), enabled: !!accountId,
+  const history = useQuery({ ...storedQueryOptions, queryKey: ['cashTransactions', accountId, mode, month, year, olderMonths], queryFn: () => cashHistory(accountId!, historyRange), enabled: !!accountId,
     placeholderData: (previous, query) => query && query.queryKey[1] === accountId && query.queryKey[2] === mode && query.queryKey[3] === month && query.queryKey[4] === year ? previous : undefined });
   const pendingBottom = useRef<string | null>(null);
   const olderLock = useRef(false), [olderLoading, setOlderLoading] = useState(false), [olderError, setOlderError] = useState('');
@@ -88,7 +89,7 @@ export function LiveCashPage() {
     olderLock.current = true; setOlderLoading(true); setOlderError('');
     const context = rangeContext.current, next = olderMonths + 1;
     try {
-      await queryClient.fetchQuery({queryKey:['cashTransactions',accountId,mode,month,year,next], queryFn:()=>cashHistory(accountId,cashRange(mode,month,year,next)), staleTime:60_000});
+      await queryClient.fetchQuery({queryKey:['cashTransactions',accountId,mode,month,year,next], queryFn:()=>cashHistory(accountId,cashRange(mode,month,year,next)), ...storedQueryOptions});
       if (context !== rangeContext.current) return;
       pendingBottom.current = JSON.stringify([accountId,mode,month,year,next]);
       setOlderMonths(next);

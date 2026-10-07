@@ -1,0 +1,39 @@
+name: October 7 improvements
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/**
+      - frontend/tests/targets/improvements-12.spec.ts
+      - frontend/tests/unit/improvements-12.test.ts
+      - frontend/playwright.improvements.config.ts
+      - backend/src/domain/investment-capital*
+      - backend/src/routes/investment-capital.test.ts
+      - backend/src/routes/portfolio.ts
+      - .github/workflows/improvements-12-check.yml
+permissions:
+  contents: read
+jobs:
+  changed-functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace backend run prisma:generate
+      - run: node --import tsx --test backend/src/domain/investment-capital.test.ts backend/src/routes/investment-capital.test.ts frontend/tests/unit/improvements-12.test.ts frontend/tests/unit/investment-data.test.ts frontend/tests/unit/stockMath.test.ts
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test -c playwright.improvements.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: improvements-12-evidence
+          path: frontend/test-results/improvements-12/
+          retention-days: 7

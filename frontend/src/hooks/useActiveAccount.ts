@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../data/storedQueryOptions';
 import { useQuery } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 import { chooseAccount, listAccounts, selectedAccountStorageKey } from '../data/roxstockApi';
@@ -16,6 +17,6 @@ const selectedId = () => window.localStorage.getItem(selectedAccountStorageKey);
 export function useActiveAccount() {
   // The selection event makes a switch visible before any new account request finishes.
   useSyncExternalStore(subscribe, selectedId, () => null);
-  const accounts = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, enabled: liveApiEnabled });
+  const accounts = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: listAccounts, enabled: liveApiEnabled });
   return { accountId: liveApiEnabled ? chooseAccount(accounts.data ?? [])?.id : undefined, accounts };
 }
