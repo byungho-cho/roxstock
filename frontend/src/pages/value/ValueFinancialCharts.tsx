@@ -1,4 +1,5 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, IconButton, Popover } from '@mui/material';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useEffect,useRef,useState } from 'react';
 import { format,number,type FinancialRow } from './valueApi';
 type Metric = { key:keyof FinancialRow; label:string; color:string; scale?:number; right?:boolean };
@@ -30,11 +31,28 @@ function Chart({rows,group}:{rows:FinancialRow[];group:typeof groups[number]}) {
   </svg>
   <Box sx={{display:'flex',flexWrap:'wrap',gap:'12px',justifyContent:'flex-start',my:'4px'}}>{group.metrics.map(metric=><Typography key={metric.key} sx={{fontSize:10,color:metric.color}}><Box component="span" sx={{display:'inline-block',width:6,height:6,borderRadius:3,bgcolor:metric.color,mr:'4px',verticalAlign:'middle'}}/>{metric.label}{metric.right?' (우측 %)':''}</Typography>)}</Box>
 
-  {group.title==='가치지표'&&rows.map(row=><Typography key={row.key} sx={{fontSize:10,color:'#94A3B8',mt:'4px'}}>{row.label}: {row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':Object.values(row.metricReasons??{}).join(' · ')||(!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':'저장 지표')}{row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION'?' · ROE: 전체 연결/별도 자본 기준':''}{row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM'?' · 누적 실적 연환산(TTM 아님)':''}</Typography>)}
   {!available&&<Typography sx={{fontSize:10,color:'#94A3B8',textAlign:'center'}}>표시할 지표가 없습니다. 기간별 사유를 확인하세요.</Typography>}
   <Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+', minmax(0, 1fr))',gap:'8px',fontSize:11,lineHeight:'20px',color:'#94A3B8',mt:'4px'}}>
    {group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><span>{metric.label}{group.title==='수익성'?`(${group.unit})`:''}</span>{values[index].map((n,i)=><span key={i} style={{textAlign:'right',overflowWrap:'anywhere'}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}
   </Box>
  </Box>;
 }
-export function ValueFinancialCharts({rows}:{rows:FinancialRow[]}) {return <Box sx={{display:'grid',gap:'8px'}}><Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+',minmax(0,1fr))',gap:'8px',px:'16px',fontSize:11,color:'#94a3b8'}}><span>기간</span>{rows.map(r=><span key={r.key} style={{textAlign:'right'}}>{r.label}</span>)}</Box>{groups.map(group=><Box key={group.title} sx={{bgcolor:'#111927',borderRadius:'8px',p:'8px 16px'}}><Typography sx={{fontSize:13,fontWeight:600}}>{group.title}</Typography><Chart rows={rows} group={currencyGroup(group,rows)}/></Box>)}</Box>;}
+function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
+ const [anchor,setAnchor]=useState<HTMLElement|null>(null);
+ const notices=rows.flatMap(row=>{
+  const reasons=[...new Set(Object.values(row.metricReasons??{}))];
+  const availability=row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':null;
+  if(availability)reasons.unshift(availability);
+  if(row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION')reasons.push('ROE: 전체 연결/별도 자본 기준');
+  if(row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM')reasons.push('누적 실적 연환산(TTM 아님)');
+  if(row.metricProvenance?.fsDivision)reasons.push('재무제표 기준: '+row.metricProvenance.fsDivision);
+  if(row.metricProvenance?.priceDate)reasons.push('종가 기준일: '+row.metricProvenance.priceDate);
+  return reasons.length?[{key:row.key,label:row.label,reasons:[...new Set(reasons)]}]:[];
+ });
+ if(!notices.length&&!notes.length)return null;
+ return <><IconButton size="small" aria-label="가치지표 미산출 사유와 계산 기준" aria-expanded={Boolean(anchor)} aria-controls={anchor?'metric-notice-tooltip':undefined} onClick={e=>setAnchor(anchor?null:e.currentTarget)} sx={{color:'#FBBF24',p:'2px',ml:'4px'}}><WarningAmberRoundedIcon sx={{fontSize:18}}/></IconButton>
+ <Popover open={Boolean(anchor)} anchorEl={anchor} onClose={()=>setAnchor(null)} anchorOrigin={{vertical:'bottom',horizontal:'left'}} marginThreshold={8} slotProps={{paper:{sx:{width:320,maxWidth:'calc(100vw - 16px)',maxHeight:'min(280px, calc(100dvh - 32px))',overflowY:'auto',p:1.5,bgcolor:'#182232',border:'1px solid #334155'}}}}>
+ <Box id="metric-notice-tooltip" role="dialog" aria-label="가치지표 안내" tabIndex={0} onKeyDown={e=>{if(e.key==='Escape')setAnchor(null);}}>{[...new Set(notes)].map(note=><Typography key={note} sx={{fontSize:11,mb:1}}>{note}</Typography>)}{notices.map(n=><Box key={n.key} sx={{mb:1}}><Typography sx={{fontSize:12,fontWeight:600}}>{n.label}</Typography>{n.reasons.map(reason=><Typography key={reason} sx={{fontSize:11,color:'#CBD5E1',overflowWrap:'anywhere'}}>{reason}</Typography>)}</Box>)}</Box>
+ </Popover></>;
+}
+export function ValueFinancialCharts({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {return <Box sx={{display:'grid',gap:'8px'}}><Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+',minmax(0,1fr))',gap:'8px',px:'16px',fontSize:11,color:'#94a3b8'}}><span>기간</span>{rows.map(r=><span key={r.key} style={{textAlign:'right'}}>{r.label}</span>)}</Box>{groups.map(group=><Box key={group.title} sx={{bgcolor:'#111927',borderRadius:'8px',p:'8px 16px'}}><Box sx={{display:'flex',alignItems:'center'}}><Typography sx={{fontSize:13,fontWeight:600}}>{group.title}</Typography>{group.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}</Box><Chart rows={rows} group={currencyGroup(group,rows)}/></Box>)}</Box>;}

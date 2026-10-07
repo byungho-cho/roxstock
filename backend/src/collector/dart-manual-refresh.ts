@@ -9,7 +9,7 @@ import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartPe
 import { getCfsThenOfs, parseDartDate, endOfFiscalPeriod, type DartCollectorConfig } from './dart-collector.js';
 
 export const manualReports: Record<DartPeriodType, DartReportCode> = { Q1: '11013', Q2: '11012', Q3: '11014', ANNUAL: '11011' };
-export interface ManualRefreshMetadata { phase: 'MANUAL'; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; results?: Array<{ fiscalYear?: number; valuationStatus?: string; valuationReasons?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
+export interface ManualRefreshMetadata { phase: 'MANUAL'; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ fiscalYear?: number; valuationStatus?: string; valuationReasons?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
 export function parseManualRefresh(body: unknown): { fiscalYear: number; startYear: number; endYear: number; period: DartPeriodType | 'ALL' } {
   const b = body as Record<string, unknown> | null;
   const startYear = b?.startYear ?? b?.fiscalYear, endYear = b?.endYear ?? b?.fiscalYear;
@@ -49,10 +49,14 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
   try { fresh = await db.collectorRun.findUnique({ where: { id: run.id } }); }
   catch (error) { await repo.releaseLock(owner); throw error; }
   if (fresh?.status !== 'RUNNING') { await repo.releaseLock(owner); return true; }
-  const metadata = run.metadata as unknown as ManualRefreshMetadata;
+  const metadata = fresh.metadata as unknown as ManualRefreshMetadata;
   const results: NonNullable<ManualRefreshMetadata['results']> = [];
   const startYear=metadata.startYear??metadata.fiscalYear, endYear=metadata.endYear??metadata.fiscalYear;
   const periods = metadata.period === 'ALL' ? Object.keys(manualReports) as DartPeriodType[] : [metadata.period];
+  const publish = async (currentYear:number, stage:NonNullable<ManualRefreshMetadata['progress']>['stage'], currentPeriod?:DartPeriodType) => {
+    metadata.progress={currentYear,currentPeriod,stage,completed:results.length,total:periods.length*(endYear-startYear+1)};
+    await db.collectorRun.update({where:{id:run.id},data:{metadata:{...metadata,manualState:'PROCESSING',results:[...results]} as unknown as Prisma.InputJsonValue}});
+  };
   try {
     if (!config.enabled || !config.apiKey) throw new DartApiError('API_KEY_MISSING', 'DART 수집 설정을 확인해 주세요.');
     await db.collectorRun.update({ where: { id: run.id }, data: { metadata: { ...metadata, manualState: 'PROCESSING' } as unknown as Prisma.InputJsonValue } });
@@ -69,18 +73,21 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     }
     if (!mapping) throw new DartApiError('DART_CORP_CODE_NOT_MAPPED', 'DART 기업코드가 연결되지 않은 종목입니다.');
     for(let fiscalYear=startYear;fiscalYear<=endYear;fiscalYear++){
+    await publish(fiscalYear,'DISCLOSURE');
     const reports = await provider.listPeriodicReports(mapping.corpCode, fiscalYear);
     for (const period of periods) {
       try {
+        await publish(fiscalYear,'FINANCIALS',period);
         const report = reports.find((r) => r.reportCode === manualReports[period] && !r.withdrawn);
         if (!report) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'NO_PERIODIC_FILING' }); continue; }
         const stored=await db.dartFinancialFiling.findUnique({where:{receiptNo:report.receiptNo},select:{securityId:true,fiscalYear:true,periodType:true,isWithdrawn:true,normalizationVersion:true}});
-        if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,async()=>{if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','일일 API 호출 한도에 도달했습니다.');}));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
+        if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){await publish(fiscalYear,'VALUATION',period);const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,async()=>{if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','일일 API 호출 한도에 도달했습니다.');}));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
         const filing = await getCfsThenOfs(provider, mapping.corpCode, fiscalYear, manualReports[period]);
         if (!filing.rows.length) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'FINANCIAL_ROWS_NOT_PUBLISHED' }); continue; }
         if (filing.rows.some((r) => r.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', '공시 목록과 재무제표 접수번호가 일치하지 않습니다.');
         const saved = await repo.saveFiling({ securityId, fiscalYear: fiscalYear, periodType: period, reportCode: manualReports[period], fsDivision: filing.division,
           receiptNo: report.receiptNo, reportName: report.reportName, receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, period), collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
+        await publish(fiscalYear,'VALUATION',period);
         const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,async()=>{if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','일일 API 호출 한도에 도달했습니다.');}));
         results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });
       } catch (error) {
@@ -88,7 +95,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
         if (error instanceof DartApiError && (error.quotaExceeded || ['010', '011', '012', 'API_KEY_MISSING'].includes(error.code))) {
           throw error;
         }
-      }
+      } finally { await publish(fiscalYear,'REPORT_DONE',period); }
     }
     }
   } catch (error) {
@@ -96,12 +103,13 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     for(let fiscalYear=startYear;fiscalYear<=endYear;fiscalYear++)for(const period of periods)if(!results.some(r=>r.fiscalYear===fiscalYear&&r.period===period))results.push({fiscalYear,period,status:'FAILED',code});
   } finally {
     try {
+      if(metadata.progress)metadata.progress={...metadata.progress,completed:results.length};
       const success = results.filter((r) => r.status === 'SUCCESS').length;
       const failed = results.filter((r) => r.status === 'FAILED').length;
-      const valuationIncomplete=results.some(r=>r.status==='SUCCESS'&&r.valuationStatus&&r.valuationStatus!=='SUCCESS');
+      const valuationIncomplete=results.some(r=>r.status==='SUCCESS'&&r.valuationStatus!=='SUCCESS');
       const skipped = results.filter((r) => r.status === 'NO_DATA').length;
       for (const result of results) await db.collectorRunItem.create({ data: { runId: run.id, securityId: BigInt(metadata.securityId), symbol: `${metadata.securityId}:${result.fiscalYear}:${result.period}`, status: result.status, message: result.code ?? (result.created ? '신규 판본 저장' : '기존 판본 확인') } });
-      await repo.finishRun(run.id, failed ? success || skipped ? 'PARTIAL' : 'FAILED' : skipped === periods.length*(endYear-startYear+1) ? 'SKIPPED' : valuationIncomplete ? 'PARTIAL' : 'SUCCESS', { success, failed, skipped }, failed ? results.find((r) => r.status === 'FAILED')?.code : undefined, { ...metadata, manualState: 'FINISHED', results });
+      await repo.finishRun(run.id, failed ? success || skipped ? 'PARTIAL' : 'FAILED' : skipped === periods.length*(endYear-startYear+1) ? 'SKIPPED' : valuationIncomplete || skipped ? 'PARTIAL' : 'SUCCESS', { success, failed, skipped }, failed ? results.find((r) => r.status === 'FAILED')?.code : undefined, { ...metadata, manualState: 'FINISHED', results });
     } finally { await repo.releaseLock(owner); }
   }
   return true;
