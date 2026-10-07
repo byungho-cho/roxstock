@@ -1,9 +1,9 @@
 import '../dashboard/home-font.css';
-import { Box, Button, ButtonBase, CardActionArea, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, CardActionArea, Dialog, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useRef } from 'react';
-import { AssetTrendChart } from '../../components/common/AssetTrendChart';
-import { useLocation } from 'react-router-dom';
+import { AssetAnalysisChart } from './AssetAnalysisChart';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
@@ -21,6 +21,16 @@ const hintStyle = { fontSize: 10, color: colors.textMuted, lineHeight: '14px', w
 export function AssetAnalysisPage() {
   const { accountId, accounts } = useActiveAccount(), location = useLocation();
   const navigate = useListNavigation(), back = useReturnNavigation('/');
+  const routeNavigate = useNavigate();
+  const detail = new URLSearchParams(location.search).get('chart') === 'detail';
+  const openDetail = () => {
+    const params = new URLSearchParams(location.search); params.set('chart', 'detail');
+    routeNavigate({ pathname: location.pathname, search: `?${params}` }, { state: { ...location.state, listEntryKey: location.state?.listEntryKey ?? location.key, analysisDetailEntry: true } });
+  };
+  const closeDetail = () => {
+    if (location.state?.analysisDetailEntry) routeNavigate(-1);
+    else { const params = new URLSearchParams(location.search); params.delete('chart'); routeNavigate({ pathname: location.pathname, search: params.toString() }, { replace: true, state: location.state }); }
+  };
   const supplied = new URLSearchParams(location.search).get('period');
   const [period, setPeriod] = usePageMemory<AnalysisPeriod>('analysis-period', analysisPeriods.some(item => item.value === supplied) ? supplied as AnalysisPeriod : '1y');
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
@@ -78,9 +88,9 @@ export function AssetAnalysisPage() {
       {available ? <Box role="img" aria-label="주식·예수금 비중" sx={{ display: 'flex', mt: '4px', height: 12, overflow: 'hidden', borderRadius: '6px' }}><Box sx={{ width: `${stockRatio}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashRatio}%`, bgcolor: colors.warning }} /></Box> : <Typography sx={{ ...hintStyle, mt: '4px' }}>시세 미수집 · 구성 계산 불가</Typography>}
       {[{ name: '주식', value: stock, ratio: stockRatio, color: colors.positive }, { name: '예수금', value: cash, ratio: cashRatio, color: colors.warning }].map(item => <Box key={item.name} sx={{ display: 'grid', gridTemplateColumns: 'minmax(48px, 1fr) 60px minmax(110px, 1.3fr)', gap: '4px', mt: '4px', height: 12, alignItems: 'center' }}><Typography sx={{ fontSize: 12 }}>{item.name}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: item.color }}>{formatPercent(item.ratio)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: item.color }}>{formatWon(item.value)}</Typography></Box>)}
     </AppCard>
-    <AppCard data-testid="analysis-trend" sx={{ ...cardStyle, pb: '2px' }}><Stack data-testid="analysis-trend-title" direction="row" sx={{ height: 23, justifyContent: 'space-between', gap: '8px' }}><Typography sx={titleStyle}>자산추이</Typography><Typography data-testid="analysis-trend-period" sx={hintStyle}>{label}</Typography></Stack>
-      <Stack direction="row" sx={{ gap: '4px', my: '8px' }}>{analysisPeriods.map(item => <Button key={item.value} aria-pressed={item.value === period} onClick={event => { event.stopPropagation(); setPeriod(item.value); }} sx={{ flex: 1, minWidth: 0, height: 24, minHeight: 24, p: 0, borderRadius: '4px', fontSize: 10, bgcolor: item.value === period ? colors.buttonPrimary : colors.raised, color: item.value === period ? colors.textPrimary : colors.textSecondary }}>{item.label}</Button>)}</Stack>
-      {history.isPending ? <Skeleton height={100} /> : history.isError && !data ? <Box><Typography sx={hintStyle}>자산 이력 조회에 실패했습니다.</Typography><Button onClick={() => history.refetch()}>다시 시도</Button></Box> : !data?.data.length ? <Typography sx={{ ...hintStyle, height: 100, display: 'grid', placeItems: 'center' }}>내용이 없습니다.</Typography> : points.length < 2 || points.length !== data.data.length ? <Typography sx={{ ...hintStyle, height: 100, display: 'grid', placeItems: 'center' }}>기간 계산 불가 · 유효한 스냅샷이 부족합니다.</Typography> : <Box data-testid="analysis-chart"><AssetTrendChart points={points.map(point => ({ date: point.date, value: decimalValue(point.totalAssetValue) }))} height={200} dateMode={period === '1m' ? 'day' : period === 'all' ? 'year' : 'month'} color={colors.marketRise} /></Box>}
+    <AppCard data-testid="analysis-trend" sx={{ ...cardStyle, pb: '2px' }}><Stack data-testid="analysis-trend-title" direction="row" sx={{ height: 23, justifyContent: 'space-between', gap: '8px' }}><Typography sx={titleStyle}>자산추이</Typography><Button aria-label="자산추이 상세보기" onClick={openDetail} sx={{fontSize:10,minHeight:23,height:23,p:0}}>상세보기 ›</Button></Stack>
+      <Typography data-testid="analysis-trend-period" sx={{...hintStyle,color:colors.warning,textAlign:'right'}}>{label}</Typography><Stack direction="row" sx={{ gap: '4px', my: '8px' }}>{analysisPeriods.map(item => <Button key={item.value} aria-pressed={item.value === period} onClick={event => { event.stopPropagation(); setPeriod(item.value); }} sx={{ flex: 1, minWidth: 0, height: 24, minHeight: 24, p: 0, borderRadius: '4px', fontSize: 10, bgcolor: item.value === period ? colors.buttonPrimary : colors.raised, color: item.value === period ? colors.textPrimary : colors.textSecondary }}>{item.label}</Button>)}</Stack>
+      {history.isPending ? <Skeleton height={100} /> : history.isError && !data ? <Box><Typography sx={hintStyle}>자산 이력 조회에 실패했습니다.</Typography><Button onClick={() => history.refetch()}>다시 시도</Button></Box> : !data?.data.length ? <Typography sx={{ ...hintStyle, height: 100, display: 'grid', placeItems: 'center' }}>내용이 없습니다.</Typography> : !points.length ? <Typography sx={{ ...hintStyle, height: 100, display: 'grid', placeItems: 'center' }}>기간 계산 불가 · 유효한 스냅샷이 부족합니다.</Typography> : <Box data-testid="analysis-chart"><AssetAnalysisChart points={data.data} period={period} /></Box>}
 
     </AppCard>
   </>;
@@ -93,9 +103,17 @@ export function AssetAnalysisPage() {
     <AppCard data-testid="analysis-compound" sx={{ ...cardStyle, p: 0 }}><CardActionArea onClick={() => go('/detail/compound')} sx={{ px: '16px', py: '8px' }}><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={titleStyle}>복리계획</Typography><Typography sx={hintStyle}>상세보기 ›</Typography></Stack>{data?.compoundPlan&&<Stack direction="row" sx={{ justifyContent: 'space-between', mt: '4px' }}>{['계획 기준 자산', '올해 목표'].map((name, index) => <Box key={name}><Typography sx={hintStyle}>{name}</Typography><Typography sx={{ fontSize: 12 }}>{formatWon(decimalValue(index ? data?.compoundPlan?.yearTarget : data?.compoundPlan?.initialAssetValue))}</Typography></Box>)}</Stack>}<Typography sx={{ ...hintStyle, mt: '8px', whiteSpace: 'normal' }}>{history.isPending ? '' : history.isError ? '계획 조회 실패 · 재시도 필요' : data?.compoundPlan ? `${data.compoundPlan.name} · ${data.compoundPlan.targetYear}년 · 연초 납입 기준` : '현재년도의 복리계획을 추가하세요'}</Typography></CardActionArea></AppCard>
   </>;
   return <>{header}<Snackbar open={failed && !!dashboard.data} message="최신 조회에 실패했습니다. 다시 시도해 주세요." action={<Button onClick={retry}>재시도</Button>} />
-    <Box className="rox-home" data-testid="asset-analysis" data-screen-id={tablet ? 'T1400' : 'C1400'} data-restoration-ready={!history.isPending} sx={{ height: { sm: '100%' }, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px' }}>
+    <Box className="rox-home" data-testid="asset-analysis" data-list-condition={period} data-screen-id={tablet ? 'T1400' : 'C1400'} data-restoration-ready={!history.isPending} sx={{ height: { sm: '100%' }, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px' }}>
       <Stack ref={leftRef} data-scroll-region="analysis-left" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{left}</Stack>
       <Stack ref={rightRef} data-scroll-region="analysis-right" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{right}</Stack>
     </Box>{tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="자산분석 왼쪽 스크롤" offset={0} /><OverlayRegionScrollbar scrollRef={rightRef} label="자산분석 오른쪽 스크롤" offset={0} /></>}
+    <Dialog fullScreen transitionDuration={0} open={detail} onClose={closeDetail} slotProps={{paper:{sx:{bgcolor:colors.canvas,backgroundImage:'none',p:'8px',overflowY:'auto'}}}}>
+      <Stack direction="row" sx={{height:44,alignItems:'center',gap:'8px',flexShrink:0}}><Button aria-label="자산 차트 상세 뒤로가기" onClick={closeDetail} sx={{minWidth:28,fontSize:24}}>‹</Button><Typography sx={{fontSize:20,fontWeight:600}}>자산추이 상세</Typography></Stack>
+      <AppCard sx={cardStyle}><Stack direction="row" sx={{justifyContent:'space-between',gap:'8px'}}><Typography sx={titleStyle}>자산추이</Typography><Typography sx={{...hintStyle,color:colors.warning}}>{label}</Typography></Stack>
+        <Typography sx={hintStyle}>{accounts.data?.find(account=>account.id===accountId)?.name} · {analysisPeriods.find(item=>item.value===period)?.label}</Typography>
+        {history.isPending && !data ? <Skeleton height={200}/> : data?.data.length ? <AssetAnalysisChart points={data.data} period={period} expanded/> : <Typography role="status" sx={hintStyle}>{history.isError?'자산 이력 조회에 실패했습니다.':'내용이 없습니다.'}</Typography>}
+        {history.isError && <Button onClick={()=>history.refetch()}>다시 시도</Button>}
+      </AppCard>
+    </Dialog>
   </>;
 }

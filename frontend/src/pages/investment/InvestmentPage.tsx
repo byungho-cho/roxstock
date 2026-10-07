@@ -1,3 +1,4 @@
+import { isMarketClosed } from '../../utils/marketCalendar';
 import { InvestmentChart } from './InvestmentChart';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { rate, won } from '../investment-profit/profitData';
@@ -76,7 +77,7 @@ export function InvestmentPage() {
     </AppCard>
   </>;
   const table = <AppCard data-testid="investment-history" sx={card}><Typography sx={{ fontSize: 16, fontWeight: 600, mb: '8px' }}>투자내역</Typography><Stack spacing="8px"><Box sx={rowStyle}>{['날짜', '투자금', '평가금액', '일별손익'].map((title, index) => <Typography key={title} sx={{ ...small, textAlign: index ? 'right' : 'left' }}>{title}</Typography>)}</Box>
-    {[...points].reverse().map(point => <Box key={point.date} data-testid="investment-row" data-scroll-item={point.date} data-date={point.date} sx={rowStyle}><Typography sx={{ fontSize: 9 }}>{point.date.slice(2).replaceAll('-', '.')}</Typography>{[point.investment, point.evaluation, point.dailyProfit ?? null].map((value, i) => <Typography key={i} sx={{ fontSize: 9, textAlign: 'right', color: i === 2 ? pnlColor(value) : undefined, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(value, i === 2).replace('−', '-')}</Typography>)}</Box>)}
+    {[...points].reverse().map(point => <Box key={point.date} data-testid="investment-row" data-scroll-item={point.date} data-date={point.date} data-market-closed={isMarketClosed(point.date)} sx={{...rowStyle,...(isMarketClosed(point.date)?{'& .MuiTypography-root':{color:colors.textMuted}}:{})}}><Typography sx={{ fontSize: 9 }}>{point.date.slice(2).replaceAll('-', '.')}</Typography>{[point.investment, point.evaluation, point.dailyProfit ?? null].map((value, i) => <Typography key={i} sx={{ fontSize: 9, textAlign: 'right', color: i === 2 ? pnlColor(value) : undefined, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(value, i === 2).replace('−', '-')}</Typography>)}</Box>)}
     {!points.length && <Typography role="status" sx={{ ...small, py: '8px', textAlign: 'center' }}>{status}</Typography>}
     </Stack><Typography sx={{ ...small, mt: '8px' }}>초기투자금 기준: {data?.initialAsOf??'스냅샷 없음 · 0원'} · 배당은 선택 연도 세후 금액</Typography>{data?.historicalUnavailable && <Typography sx={{ ...small, mt: '4px' }}>과거 기준금액을 확인할 수 없는 투자금은 —로 표시합니다.</Typography>}
   </AppCard>;

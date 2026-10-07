@@ -22,7 +22,7 @@ export const theme = createTheme({
   components: {
     MuiCssBaseline: { styleOverrides: {
       html: { height: '100%', overflow: 'hidden', backgroundColor: '#080D18', colorScheme: 'dark', scrollbarWidth: 'none' },
-      body: { height: '100%', minWidth: 320, overflow: 'hidden', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', backgroundImage: 'none' },
+      body: { height: '100%', minWidth: 320, overflow: 'hidden', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'contain', backgroundImage: 'none' },
       '#root': { height: '100%' },
       'html::-webkit-scrollbar': { display: 'none', width: 0 },
       '*': {

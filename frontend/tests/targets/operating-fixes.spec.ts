@@ -20,18 +20,18 @@ test('stock quote time survives pending and failure; top pull preserves conditio
   await main.evaluate(el=>el.scrollTop=40);const count=reads;await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));expect(reads).toBe(count);
   await main.evaluate(el=>el.scrollTop=0);
   await gesture(page.viewportSize()!.width>=600?main:page.getByTestId('stock-list'));
-  await expect(page.getByTestId('pull-refresh')).toHaveCount(0);expect(reads).toBe(count);
+  await expect(page.getByTestId('pull-refresh')).toHaveCount(0);await expect.poll(()=>reads).toBe(count+1);
   expect(await page.getByTestId('stock-list').getAttribute('data-list-condition')).toBe(condition);
   await expect(page.locator('[data-scroll-item="2"]').getByTestId('price-timestamp')).toHaveText('09:00');
-  expect(await page.locator('main').evaluate(el=>getComputedStyle(el).overscrollBehaviorY)).toBe('auto');
+  expect(await page.locator('main').evaluate(el=>getComputedStyle(el).overscrollBehaviorY)).toBe('contain');
 });
 
-test('native pull has no duplicate app refresh; other screens do not refresh',async({page})=>{
+test('app pull refreshes only active screen queries once',async({page})=>{
   const state=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');await expect(page.getByTestId('home-trend-card')).toBeVisible();
   const before=state.reads.filter(path=>path.endsWith('/dashboard')).length;
-  await gesture(page.locator('main'));await expect.poll(()=>state.reads.filter(path=>path.endsWith('/dashboard')).length).toBe(before);
+  await gesture(page.locator('main'));await expect.poll(()=>state.reads.filter(path=>path.endsWith('/dashboard')).length).toBe(before+1);
   await page.goto('/assets');await expect(page.getByTestId('asset-analysis')).toBeVisible();const count=state.reads.length;
-  await gesture(page.getByTestId('asset-analysis'));expect(state.reads.length).toBe(count);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
+  await gesture(page.getByTestId('asset-analysis'));await expect.poll(()=>state.reads.length).toBeGreaterThan(count);await expect(page.getByTestId('pull-refresh')).toHaveCount(0);
 });
 
 test('journal day arrows and swipe cross months, synchronize calendar and exclude vertical/buttons',async({page})=>{
