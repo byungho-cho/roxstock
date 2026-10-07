@@ -18,7 +18,7 @@ export function TradeDetailPage(){
  const t=detail.data,q=Number(t?.quantity),amount=q*Number(t?.unitPrice),buyPrice=t?.buyUnitPrice==null?Number.NaN:Number(t.buyUnitPrice),cost=q*buyPrice,profit=t?.realizedProfitLoss==null?Number.NaN:Number(t.realizedProfitLoss);
  const blocked=type==='buy'&&!!t?.sellTrades?.length;
  const remove=async()=>{if(!t||t.account.id!==accountId||blocked||lock.current)return;lock.current=true;setBusy(true);try{await deleteTrade(type,tradeId,false,accountId);await invalidatePortfolio(client);back();}catch(e){setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;setBusy(false);}};
- const header=<PageHeader embedded title={type==='buy'?'매수 거래 상세':'매도 거래 상세'} showAdd={false} onBack={back}/>;
+ const header=<PageHeader embedded showBackTablet title={type==='buy'?'매수 거래 상세':'매도 거래 상세'} showAdd={false} onBack={back}/>;
  if(!t)return <>{header}{detail.isError?<Box role="alert">거래 조회에 실패했습니다. <Button onClick={()=>void detail.refetch()}>다시 시도</Button></Box>:<Typography>거래 정보를 불러오는 중입니다.</Typography>}</>;
  const date=new Date((t.boughtAt??t.soldAt)!).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).replaceAll('-','.');
  const panel={border:`1px solid ${colors.border}`,borderRadius:'8px',bgcolor:colors.surface};

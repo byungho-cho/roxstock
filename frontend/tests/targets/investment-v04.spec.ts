@@ -77,7 +77,7 @@ test('past-year quarters enabled, unavailable quarter resets, year wrap and swip
 });
 test('requested layout, independent scrolling, row spacing, safe clearance and no clipped values', async ({ page }, info) => {
   await fixture(page); await ready(page);
-  const tablet = info.project.name.startsWith('tablet');
+  const tablet = page.viewportSize()!.width >= 600;
   const geometry = await page.evaluate(() => {
     const main = document.querySelector('main')!, left = document.querySelector('[data-scroll-region="investment-left"]')!, right = document.querySelector('[data-scroll-region="investment-right"]')!;
     const nav = [...document.querySelectorAll('.MuiBottomNavigation-root')].find(node => getComputedStyle(node).display !== 'none')!;
