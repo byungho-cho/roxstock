@@ -294,10 +294,10 @@ export interface BuyLotDto {
   memo: string | null;
   sellTrades: { id: string; soldAt: string; quantity: string; unitPrice: string }[];
 }
-export const getTrades = (accountId: string, search: { from?: string; to?: string; securityId?: string } = {}) => {
+export const getTrades = (accountId: string, search: { from?: string; to?: string; securityId?: string } = {}, signal?: AbortSignal) => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(search)) if (value) params.set(key, value);
-  return apiEnvelope<TradeReport>(`/accounts/${encodeURIComponent(accountId)}/trades${params.size ? `?${params}` : ''}`);
+  return apiEnvelope<TradeReport>(`/accounts/${encodeURIComponent(accountId)}/trades${params.size ? `?${params}` : ''}`, { signal });
 };
 export const getBuyLots = (accountId: string, securityId?: string, remainingOnly = true) => {
   const params = new URLSearchParams({ remainingOnly: String(remainingOnly) });

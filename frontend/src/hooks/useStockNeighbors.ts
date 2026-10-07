@@ -1,3 +1,4 @@
+import { storedQueryOptions } from '../data/storedQueryOptions';
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
@@ -23,8 +24,8 @@ export function useStockNeighbors(stockId: string, stocks: StockItem[], supplied
       void client.prefetchQuery({ queryKey: ['buyLots', stock.id, liveApiEnabled ? 'api' : 'mock', accountId], staleTime: 30_000,
         queryFn: () => liveApiEnabled ? fetchLiveBuyLots(stock.id, accountId) : fetchBuyLots(stock.id) });
       if (liveApiEnabled && accountId) {
-        void client.prefetchQuery({ queryKey: ['stockTrades', accountId, stock.id], staleTime: 30_000, queryFn: () => getTrades(accountId, { securityId: stock.id }) });
-        void client.prefetchQuery({ queryKey: ['allBuyLots', accountId, stock.id], staleTime: 30_000, queryFn: () => getBuyLots(accountId, stock.id, false) });
+        void client.prefetchQuery({ queryKey: ['stockTrades', accountId, stock.id], ...storedQueryOptions, queryFn: ({signal}) => getTrades(accountId, { securityId: stock.id }, signal) });
+        void client.prefetchQuery({ queryKey: ['allBuyLots', accountId, stock.id], ...storedQueryOptions, queryFn: () => getBuyLots(accountId, stock.id, false) });
       }
     }
   }, [accountId, client, previous?.id, next?.id]);
