@@ -1,0 +1,49 @@
+name: Production Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: 'Merged main commit (blank uses current main)'
+        type: string
+        required: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: roxstock-production
+  cancel-in-progress: false
+jobs:
+  revision:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+      current: ${{ steps.revision.outputs.current }}
+    steps:
+      - uses: actions/github-script@v7
+        id: revision
+        env:
+          REQUESTED_SHA: ${{ inputs.target_sha || github.sha }}
+        with:
+          script: |
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+            const sha = process.env.REQUESTED_SHA;
+            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Full immutable SHA required');
+            core.setOutput('sha', sha);
+            core.setOutput('current', String(branch.commit.sha === sha));
+            if (branch.commit.sha !== sha) core.notice('Superseded revision; deployment skipped');
+  backend:
+    needs: revision
+    if: needs.revision.outputs.current == 'true'
+    uses: ./.github/workflows/backend-deploy.yml
+    with:
+      target_sha: ${{ needs.revision.outputs.sha }}
+    secrets: inherit
+  frontend:
+    needs: [revision, backend]
+    if: needs.revision.outputs.current == 'true'
+    uses: ./.github/workflows/frontend-image.yml
+    with:
+      target_sha: ${{ needs.revision.outputs.sha }}
+    secrets: inherit
