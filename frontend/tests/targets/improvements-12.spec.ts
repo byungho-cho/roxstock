@@ -16,6 +16,8 @@ async function fixture(page:Page){
  await page.route('**/api/**',async route=>{
   const url=new URL(route.request().url()),path=url.pathname;requests.push(url.pathname+url.search);
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',isActive:true,isDefault:true,name:'기본'},{id:'2',isActive:true,name:'다른 계좌'}]}});
+  if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{account:{id:'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});
+  if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:'1',total:0,enabled:true,unavailableCount:0,priceAsOf:'2026-10-07T03:00:00Z'}}});
   if(held&&path.includes('/1/')&&path.endsWith('/trades'))await new Promise<void>(r=>{release=r;});
   if(path.endsWith('/investment-capital'))return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'107317732',status:'AVAILABLE'},{year:2024,date:null,investmentAmount:null,status:'YEAR_END_MISSING'}]}});
   if(path.endsWith('/trades')){const empty=path.includes('/2/');let records=empty?[]:trades;
@@ -77,10 +79,7 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  await page.screenshot({path:info.outputPath('profit.png')});
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();
  await expect(page).toHaveURL(/\/$/);
- // Remount through a SPA history entry: browser back after the accelerated clock
- // can leave this synthetic navigation session for about:blank and destroy its cache.
- await page.evaluate(()=>{window.history.pushState({idx:Number(window.history.state?.idx??0)+1,key:'profit-reentry'},'', '/detail/investment-profit');window.dispatchEvent(new PopStateEvent('popstate'));});
- await expect(page.getByTestId('profit-total')).toHaveText('-650원');
+ await page.goBack();await expect(page.getByTestId('profit-selected')).toHaveText(names[0]);
  expect(f.requests.filter(r=>r.includes('investment-capital'))).toHaveLength(1);
 });
 test('annual realized summary is independent of evaluation and quarterly chart filter',async({page},info)=>{
