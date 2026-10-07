@@ -46,7 +46,7 @@ test('period changes chart and performance together; title and buttons have inde
   const title = page.getByTestId('analysis-trend-title'); await title.scrollIntoViewIfNeeded();
   const before = await body.evaluate(el => el.scrollTop);
   await title.click(); await expect(page).toHaveURL(/\/assets$/);
-  await expect(title.getByText('상세보기 ›')).toHaveCount(0);
+  await expect(title.getByText('상세보기 ›')).toHaveCount(1);
   await expect(page.getByRole('button', { name: '3개월', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await body.evaluate(el => el.scrollTop)).toBe(before);
   await body.evaluate(el => { el.scrollTop = 0; }); await page.getByTestId('analysis-total').click(); await expect(page).toHaveURL(/\/detail\/investment\?/);

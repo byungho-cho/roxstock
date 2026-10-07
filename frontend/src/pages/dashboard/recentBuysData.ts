@@ -9,9 +9,10 @@ export function recentBuys(rows: BuyLotDto[], today: string, monthsBack: number)
   const ordered = unique.sort((a,b) => buyDate(b).localeCompare(buyDate(a)) || b.boughtAt.localeCompare(a.boughtAt) || b.id.localeCompare(a.id, undefined, { numeric: true }));
   const from = monthStart(today, monthsBack);
   const initial = new Set(ordered.slice(0, 5).map(row => row.id));
+  const visible = ordered.filter(row => initial.has(row.id) || monthsBack > 0 && buyDate(row) >= from);
   return {
-    count: unique.filter(row => buyDate(row) >= monthStart(today) && buyDate(row) <= today).length,
-    rows: ordered.filter(row => initial.has(row.id) || monthsBack > 0 && buyDate(row) >= from),
+    count: visible.length,
+    rows: visible,
     more: ordered.some(row => !initial.has(row.id) && (monthsBack === 0 || buyDate(row) < from)),
   };
 }
