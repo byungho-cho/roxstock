@@ -47,7 +47,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   }
   const errors:Record<string,string>={};let shares=saved.shares,price=saved.price;
   try{if(!shares)shares=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';}
-  try{if(!price&&process.env.DATA_GO_KR_STOCK_PRICE_KEY){await beforePrice?.();price=await historicalClose(symbol,f.periodEndDate);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.price='기간 말 과거 종가 보충 조회 실패';}
+  try{if(!price&&(process.env.DATA_GO_KR_STOCK_PRICE_KEY||process.env.DATA_GO_KR_SERVICE_KEY)){await beforePrice?.();price=await historicalClose(symbol,f.periodEndDate);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.price='기간 말 과거 종가 보충 조회 실패';}
   return {...saved,...(shares?{shares}:{}),...(price?{price}:{}),errors};
  };
 }

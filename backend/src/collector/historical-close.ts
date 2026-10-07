@@ -1,7 +1,7 @@
 import type {Supplemental} from '../domain/period-valuation.js';
-/** A separate public-data credential and bounded request; no live-price fallback. */
+/** Public-data credential (dedicated or existing shared key) and bounded request; no live-price fallback. */
 export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch):Promise<Supplemental['price']> {
- const key=process.env.DATA_GO_KR_STOCK_PRICE_KEY?.trim();if(!key)return undefined;
+ const key=process.env.DATA_GO_KR_STOCK_PRICE_KEY?.trim()||process.env.DATA_GO_KR_SERVICE_KEY?.trim();if(!key)return undefined;
  const date=(d:Date)=>d.toISOString().slice(0,10).replaceAll('-','');
  const url=new URL('https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo');
  url.search=new URLSearchParams({serviceKey:key,resultType:'json',numOfRows:'10',pageNo:'1',likeSrtnCd:symbol.replace(/^A/,''),beginBasDt:date(new Date(end.getTime()-7*86400000)),endBasDt:date(end)}).toString();
