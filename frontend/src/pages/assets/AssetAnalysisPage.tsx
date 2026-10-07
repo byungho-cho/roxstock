@@ -1,7 +1,7 @@
 import '../dashboard/home-font.css';
 import { Box, Button, CardActionArea, Dialog, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { AssetAnalysisChart } from './AssetAnalysisChart';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
@@ -24,6 +24,7 @@ export function AssetAnalysisPage() {
   const routeNavigate = useNavigate();
   const detail = new URLSearchParams(location.search).get('chart') === 'detail';
   const openDetail = () => {
+    setDetailPeriod(period);
     const params = new URLSearchParams(location.search); params.set('chart', 'detail');
     routeNavigate({ pathname: location.pathname, search: `?${params}` }, { state: { ...location.state, listEntryKey: location.state?.listEntryKey ?? location.key, analysisDetailEntry: true } });
   };
@@ -35,6 +36,11 @@ export function AssetAnalysisPage() {
   const [period, setPeriod] = usePageMemory<AnalysisPeriod>('analysis-period', analysisPeriods.some(item => item.value === supplied) ? supplied as AnalysisPeriod : '1y');
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const range = analysisRange(period, today);
+  const [detailPeriod,setDetailPeriod]=useState<AnalysisPeriod>(period);
+  const detailRange=analysisRange(detailPeriod,today);
+  const detailHistory=useQuery({queryKey:['analysis-history',accountId,detailRange.from,detailRange.to],queryFn:()=>getAssetHistory(accountId!,detailRange),enabled:!!accountId&&detail});
+  const detailData=detailHistory.data;
+  const detailLabel=periodLabel(detailData?.summary?.from??detailData?.data.at(0)?.date,detailData?.summary?.to??detailData?.data.at(-1)?.date);
   const dashboard = useQuery({ queryKey: ['analysis-dashboard', accountId], queryFn: () => getAccountDashboard(accountId!), enabled: !!accountId });
   const history = useQuery({ queryKey: ['analysis-history', accountId, range.from, range.to], queryFn: () => getAssetHistory(accountId!, range), enabled: !!accountId });
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null), tablet = useMediaQuery('(min-width:600px)');
@@ -110,13 +116,14 @@ export function AssetAnalysisPage() {
       <Stack ref={leftRef} data-scroll-region="analysis-left" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{left}</Stack>
       <Stack ref={rightRef} data-scroll-region="analysis-right" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{right}</Stack>
     </Box>{tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="자산분석 왼쪽 스크롤" offset={0} /><OverlayRegionScrollbar scrollRef={rightRef} label="자산분석 오른쪽 스크롤" offset={0} /></>}
-    <Dialog fullScreen transitionDuration={0} open={detail} onClose={closeDetail} slotProps={{paper:{sx:{bgcolor:colors.canvas,backgroundImage:'none',p:'8px',overflowY:'auto'}}}}>
+    <Dialog fullScreen transitionDuration={0} open={detail} onClose={closeDetail} slotProps={{paper:{sx:{bgcolor:colors.canvas,backgroundImage:'none',p:'8px',overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
       <Stack direction="row" sx={{height:44,alignItems:'center',gap:'8px',flexShrink:0}}><Button aria-label="자산 차트 상세 뒤로가기" onClick={closeDetail} sx={{minWidth:28,fontSize:24}}>‹</Button><Typography sx={{fontSize:20,fontWeight:600}}>자산추이 상세</Typography></Stack>
-      <AppCard sx={cardStyle}><Stack direction="row" sx={{justifyContent:'space-between',gap:'8px'}}><Typography sx={titleStyle}>자산추이</Typography><Typography sx={{...hintStyle,color:colors.warning}}>{label}</Typography></Stack>
-        <Typography sx={hintStyle}>{accounts.data?.find(account=>account.id===accountId)?.name} · {analysisPeriods.find(item=>item.value===period)?.label}</Typography>
-        {history.isPending && !data ? <Skeleton height={200}/> : data?.data.length ? <AssetAnalysisChart points={data.data} period={period} expanded/> : <Typography role="status" sx={hintStyle}>{history.isError?'자산 이력 조회에 실패했습니다.':'내용이 없습니다.'}</Typography>}
-        {history.isError && <Button onClick={()=>history.refetch()}>다시 시도</Button>}
+      <AppCard data-testid="analysis-detail-card" sx={{...cardStyle,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+        <Stack direction="row" sx={{justifyContent:'space-between',gap:'8px',flexShrink:0}}><Typography sx={titleStyle}>자산추이</Typography><Typography sx={{...hintStyle,color:colors.warning}}>{detailLabel}</Typography></Stack>
+        <Typography sx={{...hintStyle,flexShrink:0}}>{accounts.data?.find(account=>account.id===accountId)?.name} · {analysisPeriods.find(item=>item.value===detailPeriod)?.label}</Typography>
+        {detailHistory.isPending && !detailData ? <Skeleton sx={{flex:1,transform:'none'}}/> : detailData?.data.length ? <AssetAnalysisChart points={detailData.data} period={detailPeriod} expanded/> : <Box role="status" sx={{...hintStyle,flex:1,display:'grid',placeItems:'center'}}>{detailHistory.isError?'자산 이력 조회에 실패했습니다.':'내용이 없습니다.'}</Box>}
+        {detailHistory.isError && <Button onClick={()=>detailHistory.refetch()}>다시 시도</Button>}
+        <Stack data-testid="analysis-detail-periods" direction="row" spacing="4px" sx={{mt:'8px',flexShrink:0}}>{analysisPeriods.map(item=><Button key={item.value} aria-pressed={detailPeriod===item.value} onClick={()=>setDetailPeriod(item.value)} sx={{flex:1,minWidth:0,p:0,height:28,fontSize:11,bgcolor:detailPeriod===item.value?colors.buttonPrimary:colors.raised,color:detailPeriod===item.value?'white':colors.textMuted}}>{item.label}</Button>)}</Stack>
       </AppCard>
-    </Dialog>
-  </>;
+    </Dialog></>;
 }
