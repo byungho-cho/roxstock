@@ -66,7 +66,7 @@ export async function fetchLiveDashboard(selectedAccountId?: string, includeHist
   return {
     summary: {
       totalAssets: totalAssets ?? Number.NaN, stockValue: stockValue ?? Number.NaN,
-      stockPurchaseAmount: Number(response.purchaseAmount), cashBalance: Number(response.cashBalance),
+      stockPurchaseAmount: Number(response.purchaseAmount), cashBalance: decimal(response.cashBalance) ?? Number.NaN,
       previousDayChange: decimal(response.previousDayChange) ?? Number.NaN,
       previousDayChangeRate: decimal(response.previousDayChangeRate) ?? Number.NaN,
       dailyProfit: decimal(response.dailyProfit) ?? Number.NaN,

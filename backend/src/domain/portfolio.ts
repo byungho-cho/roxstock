@@ -86,7 +86,7 @@ export const calculateHoldings = (lots: PortfolioLotInput[]): HoldingValue[] => 
   });
 };
 
-export const calculateDashboard = (cashBalance: Prisma.Decimal, holdings: HoldingValue[]) => {
+export const calculateDashboard = (cashBalance: Prisma.Decimal | null, holdings: HoldingValue[]) => {
   const purchaseAmount = holdings.reduce((sum, holding) => sum.plus(holding.purchaseAmount), new Prisma.Decimal(0));
   const pricingComplete = holdings.every((holding) => holding.marketValue !== null);
   const stockValue = pricingComplete
@@ -104,7 +104,7 @@ export const calculateDashboard = (cashBalance: Prisma.Decimal, holdings: Holdin
     cashBalance,
     purchaseAmount,
     stockValue,
-    totalAssetValue: stockValue?.plus(cashBalance) ?? null,
+    totalAssetValue: cashBalance !== null ? stockValue?.plus(cashBalance) ?? null : null,
     unrealizedProfitLoss,
     unrealizedReturnRate,
     pricingComplete,

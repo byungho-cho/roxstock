@@ -8,7 +8,7 @@ export type PerformanceSnapshot = {
 };
 
 export type DashboardPerformanceInput = {
-  currentCashBalance: Prisma.Decimal;
+  currentCashBalance: Prisma.Decimal | null;
   currentStockValue: Prisma.Decimal | null;
   previousDaySnapshot: PerformanceSnapshot | null;
   previousMonthEndSnapshot: PerformanceSnapshot | null;
@@ -17,6 +17,7 @@ export type DashboardPerformanceInput = {
 };
 
 export type UnavailableReason =
+  | 'CURRENT_CASH_MISSING'
   | 'CURRENT_PRICE_INCOMPLETE'
   | 'PREVIOUS_DAY_SNAPSHOT_MISSING'
   | 'PREVIOUS_DAY_ASSET_VALUE_ZERO'
@@ -25,12 +26,12 @@ export type UnavailableReason =
 const stringOrNull = (value: Prisma.Decimal | null) => value?.toString() ?? null;
 
 export const calculateDashboardPerformance = (input: DashboardPerformanceInput) => {
-  const currentTotalAssetValue = input.currentStockValue?.plus(input.currentCashBalance) ?? null;
+  const currentTotalAssetValue = input.currentCashBalance !== null ? input.currentStockValue?.plus(input.currentCashBalance) ?? null : null;
 
   let dailyProfit: Prisma.Decimal | null = null;
   let dailyProfitUnavailableReason: UnavailableReason | null = null;
   if (currentTotalAssetValue === null) {
-    dailyProfitUnavailableReason = 'CURRENT_PRICE_INCOMPLETE';
+    dailyProfitUnavailableReason = input.currentCashBalance === null ? 'CURRENT_CASH_MISSING' : 'CURRENT_PRICE_INCOMPLETE';
   } else if (!input.previousDaySnapshot) {
     dailyProfitUnavailableReason = 'PREVIOUS_DAY_SNAPSHOT_MISSING';
   } else {
@@ -57,7 +58,7 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
   const previousDayChangeRate = previousDayChange !== null && input.previousDaySnapshot?.totalAssetValue.greaterThan(0)
     ? previousDayChange.div(input.previousDaySnapshot.totalAssetValue).mul(100) : null;
 
-  const cashMonthlyProfit = input.previousMonthEndSnapshot
+  const cashMonthlyProfit = input.currentCashBalance !== null && input.previousMonthEndSnapshot
     ? input.currentCashBalance.minus(input.previousMonthEndSnapshot.cashBalance)
     : null;
   const stockMonthlyProfit = input.previousMonthEndSnapshot && input.currentStockValue !== null
@@ -76,7 +77,7 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
     stockMonthlyProfitUnavailableReason: input.currentStockValue === null
       ? 'CURRENT_PRICE_INCOMPLETE' as const
       : !input.previousMonthEndSnapshot ? 'PREVIOUS_MONTH_END_SNAPSHOT_MISSING' as const : null,
-    cashMonthlyProfitUnavailableReason: input.previousMonthEndSnapshot
+    cashMonthlyProfitUnavailableReason: input.currentCashBalance === null ? 'CURRENT_CASH_MISSING' as const : input.previousMonthEndSnapshot
       ? null
       : 'PREVIOUS_MONTH_END_SNAPSHOT_MISSING' as const,
   };

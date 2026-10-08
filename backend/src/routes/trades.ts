@@ -1,3 +1,4 @@
+import { readCurrentCash, requireCash } from '../domain/current-cash.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
@@ -402,7 +403,7 @@ export async function tradeRoutes(app: FastifyInstance) {
       if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
       if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
 
-      const { amount, balanceAfter } = calculateBuyBalance(account.cashBalance, quantity, unitPrice, feeTaxAmount);
+      const { amount, balanceAfter } = calculateBuyBalance(requireCash((await readCurrentCash(tx, accountId)).balance), quantity, unitPrice, feeTaxAmount);
       if (balanceAfter.isNegative() && body.allowNegativeCash !== true) {
         throw new ApiError(409, 'INSUFFICIENT_CASH', 'Cash balance is insufficient for this purchase.');
       }
@@ -463,7 +464,7 @@ export async function tradeRoutes(app: FastifyInstance) {
       }
 
       const { amount, balanceAfter } = calculateSellBalance(
-        buyTrade.account.cashBalance,
+        requireCash((await readCurrentCash(tx, accountId)).balance),
         quantity,
         unitPrice,
         feeTaxAmount,

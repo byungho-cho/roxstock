@@ -1,3 +1,4 @@
+import { cashBasis } from '../domain/current-cash.js';
 import type { FastifyInstance } from 'fastify';
 import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
 
@@ -84,7 +85,7 @@ export const summarizeCashGroups = (groups: CashGroup[]) => {
 
 const mapTransaction = (transaction: {
   id: bigint; transactionType: CashTransactionType; transactionDate: Date; amount: Prisma.Decimal;
-  feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal; memo: string | null; createdAt: Date; updatedAt: Date;
+  feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal | null; memo: string | null; createdAt: Date; updatedAt: Date;
   dividend?: { id: bigint; securityId: bigint; grossAmount: Prisma.Decimal; netAmount: Prisma.Decimal; security: { name: string } } | null;
 }) => ({
   id: transaction.id.toString(),
@@ -93,7 +94,7 @@ const mapTransaction = (transaction: {
   amount: transaction.amount.toString(),
   feeTaxAmount: (transaction.dividend ? transaction.dividend.grossAmount.minus(transaction.dividend.netAmount) : transaction.feeTaxAmount).toString(),
   signedAmount: cashDelta(transaction.transactionType, transaction.amount, transaction.feeTaxAmount).toString(),
-  balanceAfter: transaction.balanceAfter.toString(),
+  balanceAfter: transaction.balanceAfter?.toString() ?? null,
   memo: transaction.memo,
   dividend: transaction.dividend ? { id: transaction.dividend.id.toString(), securityId: transaction.dividend.securityId.toString(), securityName: transaction.dividend.security.name, grossAmount: transaction.dividend.grossAmount.toString(), netAmount: transaction.dividend.netAmount.toString() } : null,
   createdAt: transaction.createdAt.toISOString(),
@@ -171,7 +172,7 @@ export async function cashRoutes(app: FastifyInstance) {
     return {
       data: {
         currentYearTax: {year:nowKst.getFullYear(), amount:(yearTax._sum.feeTaxAmount ?? zero()).plus(dividendTax._sum.grossAmount ?? zero()).minus(dividendTax._sum.netAmount ?? zero()).toString()},
-        account: { id: account.id.toString(), name: account.name, currentBalance: account.cashBalance.toString(), updatedAt: account.updatedAt.toISOString() },
+        account: { id: account.id.toString(), name: account.name, currentBalance: cashBasis(recent[0]).balance?.toString() ?? null, balanceStatus: cashBasis(recent[0]).status, latestTransactionId: cashBasis(recent[0]).transactionId, updatedAt: cashBasis(recent[0]).updatedAt?.toISOString() ?? null },
         monthly: { year, month, ...summarizeCashGroups(monthlyGroups) },
         yearly: { year, ...summarizeCashGroups(yearlyGroups) },
         recentTransactions: recent.map(mapTransaction),
