@@ -26,7 +26,8 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  const age=priceInfo?(Date.parse(end)-Date.parse(priceInfo.date))/86400000:NaN;
  const price=priceInfo&&age>=0&&age<=7?dec(priceInfo.value):null;
  const strict=priceInfo?.source==='KRX_UNADJUSTED_CLOSE';
- const epsCompatible=!strict||supplemental.basis?.epsPriceCompatible===true,bpsCompatible=!strict||supplemental.basis?.bpsPriceCompatible===true;
+ const sameReceipt=supplemental.basis?.receiptNo===f.receiptNo;
+ const epsCompatible=!strict||(sameReceipt&&supplemental.basis?.epsPriceCompatible===true),bpsCompatible=!strict||(sameReceipt&&supplemental.basis?.bpsPriceCompatible===true);
  const per=epsCompatible&&price?.gt(0)&&eps?.gt(0)?price.div(eps):null,pbr=bpsCompatible&&price?.gt(0)&&bps?.gt(0)?price.div(bps):null;
  const values:MetricValues={eps:text(eps),bps:text(bps),per:text(per),pbr:text(pbr),roe:text(roe)};
  const reasons:Record<string,string>={};

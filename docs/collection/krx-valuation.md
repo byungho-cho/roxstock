@@ -49,7 +49,7 @@ OFS는 ownership=TOTAL. TTM·확정 실적은 예상치로 받지 않는다. 주
 
 `annual_consensus_snapshots`는 원본 예상 데이터와 출처/asOf를 보존하고 중복 asOf 저장을 막는다. 최근 1시간 내 스냅샷이면 재수집을 생략한다. 가격 변경은 조회 시 최신 저장 가격으로 반영하고, 이익/자본 변경은 새 스냅샷으로 ROE에 반영한다. 현재 연도는 Asia/Seoul 기준이다.
 
-다음 해 수집 작업에서 연말 실제 KRX 종가를 먼저 `frozenClose`에 고정한다(확정 공시 없이도 가능). 확정 EPS/BPS와 고정 종가의 PER/PBR 계산이 성공하면 state=FINALIZED, 원본 예상 data는 보존하며 finalValues/provenance를 별도로 기록한다. 기존 데이터에 고정 종가가 있으면 다시 덮어쓰지 않는다. 예상치 실패가 DART 수집을 취소하지 않는다.
+다음 해 수집 작업에서 연말 실제 KRX 종가를 먼저 `frozenClose`에 고정한다(확정 공시 없이도 가능). 확정 연간 공시와 고정 종가가 확보되면 state=FINALIZED, 원본 예상 data는 보존하며 finalValues/provenance를 별도로 기록한다. 확정 EPS/BPS가 부족하거나 이익이 음수이면 해당 비율은 null과 사유를 유지한다. 주당 기준 미검증 값은 확정 전환에서도 계산하지 않는다. 고정 종가가 확보되지 않으면 전환은 대기하며 예상/확정 값을 임의 대체하지 않는다. 기존 데이터에 고정 종가가 있으면 다시 덮어쓰지 않는다. 예상치 실패가 DART 수집을 취소하지 않는다.
 
 `GET /api/securities/:id/annual-estimates?year=2026`은 ESTIMATED/FINALIZED/UNAVAILABLE을 구분한다. FINALIZED는 isEstimated=false, 원본 예상치는 estimateArchive에 남는다. 경로 미설정은 CONSENSUS_NOT_CONFIGURED로 응답한다.
 

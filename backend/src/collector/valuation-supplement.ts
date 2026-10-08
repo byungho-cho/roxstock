@@ -23,7 +23,7 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  const data={status,values:values as Prisma.InputJsonValue,provenance:{...result.provenance,perMetric} as Prisma.InputJsonValue,reasons:reasons as Prisma.InputJsonValue,supplemental:supplemental as Prisma.InputJsonValue,attempts:(existing?.attempts??0)+1,nextAttemptAt:status==='SUCCESS'||!options.load?null:new Date(Date.now()+86400000)};
  if(!options.dryRun){
   await db.periodValuation.upsert({where,create:{securityId,fiscalYear,periodType,...data},update:data});
-  if(periodType==='ANNUAL'&&process.env.CONSENSUS_ENABLED==='true'){try{await settleAnnualConsensus(db,securityId,fiscalYear,{values,provenance:result.provenance,reasons},supplemental.price,[values.eps,values.bps,values.per,values.pbr].every(v=>v!==null));}catch{console.warn(JSON.stringify({event:'consensus_finalization_failed',securityId:String(securityId),fiscalYear}));}}
+  if(periodType==='ANNUAL'&&process.env.CONSENSUS_ENABLED==='true'){try{await settleAnnualConsensus(db,securityId,fiscalYear,{values,provenance:result.provenance,reasons},supplemental.price,true);}catch{console.warn(JSON.stringify({event:'consensus_finalization_failed',securityId:String(securityId),fiscalYear}));}}
  }
  return {securityId:securityId.toString(),fiscalYear,periodType,...data};
 }
