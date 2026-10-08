@@ -10,7 +10,7 @@
 - KRX HTTP/HTTPS 허용 도메인: `data-dbg.krx.co.kr`. 공시 보충: `opendart.fss.or.kr`. 기존 공공데이터 경로: `apis.data.go.kr`.
 - 승인 서비스: `stk_bydd_trd`, `ksq_bydd_trd`, `stk_isu_base_info`, `ksq_isu_base_info`. 인증은 요청 헤더 `AUTH_KEY`, 조회 인자는 `basDd=YYYYMMDD`.
 - 사용자가 확인한 이용기간: 2026-10-08~2027-01-07. 실제 인증/서비스 권한 검증은 별개이며 만료 전에 갱신해야 한다.
-- `KRX_VALIDATED_SYMBOLS=005930` 기본값. 삼성전자 실조회·주당 기준 검증 후 보유 → 관심 → 매매 이력 순서로 목록을 확대한다. DART 기존 전체 수집 범위는 유지한다.
+- `KRX_VALIDATED_SYMBOLS=005930` 기본값. 삼성전자 실조회·주당 기준 검증 후 보유 → 관심 → 매매 이력 순서로 목록을 확대한다. 새 기초계정 보충도 같은 허용 목록에 제한한다. DART 기존 재무제표 전체 수집 범위는 유지한다.
 
 서버/내부 개발 환경의 backend 디렉터리에서 실행:
 
