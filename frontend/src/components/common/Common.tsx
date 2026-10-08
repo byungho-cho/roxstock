@@ -25,9 +25,11 @@ export function StatusChip({ label, tone = 'neutral' }: { label: string; tone?: 
   return <Chip size="small" label={label} sx={{ height: 24, borderRadius: `${radius.xs}px`, color: map[tone], bgcolor: `${map[tone]}12`, borderColor: `${map[tone]}55`, '& .MuiChip-label': { px: 1, fontSize: 10 } }} />;
 }
 
+// Small uses the existing 28px / 8px-radius control standard used by compact pages.
 export function ActionButton({ children, tone = 'primary', ...props }: ButtonProps & { tone?: 'primary' | 'danger' | 'muted' }) {
-  const bg = tone === 'primary' ? colors.buttonPrimary : tone === 'danger' ? colors.marketRise : colors.surface;
-  return <Button {...props} variant={tone === 'muted' ? 'outlined' : 'contained'} sx={{ minHeight: 48, borderRadius: `${radius.md}px`, bgcolor: bg, color: tone === 'muted' ? colors.textSecondary : '#fff', borderColor: colors.border, boxShadow: tone === 'muted' ? 'none' : `0 4px 10px ${bg}47`, '&:hover': { bgcolor: bg }, ...props.sx }}>{children}</Button>;
+  const small = props.size === 'small';
+  const bg = tone === 'primary' ? colors.buttonPrimary : tone === 'danger' ? colors.marketRise : small ? colors.raised : colors.surface;
+  return <Button {...props} variant={tone === 'muted' ? 'outlined' : 'contained'} sx={{ minHeight: small ? 28 : 48, borderRadius: `${small ? radius.sm : radius.md}px`, bgcolor: bg, color: small || tone !== 'muted' ? '#fff' : colors.textSecondary, borderColor: small ? colors.borderStrong : colors.border, boxShadow: small || tone === 'muted' ? 'none' : `0 4px 10px ${bg}47`, '&:hover': { bgcolor: bg, ...(small ? {borderColor:colors.borderStrong} : {}) }, ...(small ? {height:28,minWidth:0,p:'0 8px',fontSize:11,whiteSpace:'nowrap','& .MuiButton-startIcon':{ml:0,mr:.5,'& > *:nth-of-type(1)':{fontSize:16}},'&.Mui-disabled':{bgcolor:colors.raised,borderColor:colors.borderStrong,color:colors.disabled,opacity:.55}} : {}), ...props.sx }}>{children}</Button>;
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel = '확인', cancelLabel = '취소', danger = false, onConfirm, onClose }: { open: boolean; title: string; description: ReactNode; confirmLabel?: string; cancelLabel?: string; danger?: boolean; onConfirm: () => void; onClose: () => void }) {

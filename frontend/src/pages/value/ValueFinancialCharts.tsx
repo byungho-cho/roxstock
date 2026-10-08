@@ -1,7 +1,6 @@
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import {useQuery} from '@tanstack/react-query';
 import {useLocation,useNavigate} from 'react-router-dom';
-import {FinancialPeriodHeader} from './FinancialPeriodHeader';
 import { Box, Typography, IconButton, Popover, Button, Dialog, CircularProgress } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useEffect,useRef,useState } from 'react';
@@ -68,13 +67,12 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
  <Box id="metric-notice-tooltip" role="dialog" aria-label="가치지표 안내" tabIndex={0} onKeyDown={e=>{if(e.key==='Escape')setAnchor(null);}}>{[...new Set(notes)].map(note=><Typography key={note} sx={{fontSize:11,mb:1}}>{note}</Typography>)}{notices.map(n=><Box key={n.key} sx={{mb:1}}><Typography sx={{fontSize:12,fontWeight:600}}>{n.label}</Typography>{n.reasons.map(reason=><Typography key={reason} sx={{fontSize:11,color:'#CBD5E1',overflowWrap:'anywhere'}}>{reason}</Typography>)}</Box>)}</Box>
  </Popover></>;
 }
-export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',currentYear=new Date().getFullYear(),centerYear=currentYear-1,onCenterChange}:{rows:FinancialRow[];notes?:string[];stockId?:string;mode?:'annual'|'quarter';currentYear?:number;centerYear?:number;onCenterChange?:(year:number)=>void}) {
+export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',currentYear=new Date().getFullYear()}:{rows:FinancialRow[];notes?:string[];stockId?:string;mode?:'annual'|'quarter';currentYear?:number}) {
  const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search),selected=params.get('chartDetail'),group=groups.find(g=>g.title===selected);
  const all=useQuery({queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
  const open=(title:string)=>{const search=new URLSearchParams(location.search);search.set('chartDetail',title);navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,financialChartOrigin:true}});};
  const close=()=>{if(location.state?.financialChartOrigin&&Number(window.history.state?.idx)>0)navigate(-1);else {const search=new URLSearchParams(location.search);search.delete('chartDetail');navigate(location.pathname+'?'+search,{replace:true,state:location.state});}};
  return <Box sx={{display:'grid',gap:1}}>
-  <FinancialPeriodHeader rows={rows} centerYear={centerYear} currentYear={currentYear} onCenterChange={onCenterChange}/>
   {groups.map(g=><Box key={g.title} sx={{bgcolor:'#111927',borderRadius:1,p:'8px 16px'}}><Box sx={{display:'flex',alignItems:'center'}}><Typography sx={{fontSize:13,fontWeight:600}}>{g.title}</Typography>{g.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}<Button size="small" disabled={!stockId} onClick={()=>open(g.title)} sx={{ml:'auto',p:0,minWidth:0,fontSize:10,color:'#94A3B8'}}>상세보기</Button></Box><Chart rows={rows} group={currencyGroup(g,rows)}/></Box>)}
   <Dialog fullScreen transitionDuration={0} open={!!group} onClose={close} aria-label="재무지표 차트 상세보기" slotProps={{paper:{'aria-label':'재무지표 차트 상세보기',sx:{bgcolor:'#080F1C',backgroundImage:'none',p:1,overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
    <Box sx={{display:'flex',alignItems:'center',gap:1,minHeight:36,flexShrink:0}}><IconButton aria-label="차트 상세보기 뒤로가기" onClick={close} size="small"><ArrowBackRoundedIcon/></IconButton><Typography sx={{fontSize:14,fontWeight:600}}>{group?.title}</Typography><Typography sx={{ml:'auto',fontSize:11,color:'#94A3B8'}}>2015–{currentYear} · {mode==='annual'?'연간':'분기'}</Typography></Box>

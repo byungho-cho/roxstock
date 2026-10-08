@@ -111,3 +111,5 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 
 - [수집·KRX·연간 예상치 계약/운영](collection/krx-valuation.md)
 - [삼성전자 2015~2025 수집 검증](qa/collector-krx.md)
+
+- [11차 재무지표 Small 버튼·연도 선택·sticky 검증](qa/financial-ui11.md): 10차의 버튼·상시 연도 셀렉트·스크롤 규칙을 해당 항목에 한해 대체합니다.

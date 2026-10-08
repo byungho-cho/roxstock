@@ -12,6 +12,8 @@ export function usePageScrollRestoration(ref: RefObject<HTMLElement | null>) {
     const applied = new WeakMap<HTMLElement, string>();
     const regions = () => [main, ...main.querySelectorAll<HTMLElement>('[data-scroll-region]')];
     const scrollSearch = new URLSearchParams(location.search); scrollSearch.delete('chartDetail');
+    // Annual range changes share the same body position only in the financial chart.
+    if (main.querySelector('[data-financial-chart]')) for (const key of ['centerYear','annualStart','endYear']) scrollSearch.delete(key);
     const scrollQuery = scrollSearch.toString();
     const keyFor = (element: HTMLElement) => pageKey + ':scroll:' + JSON.stringify([
       element.dataset.scrollRegion==='compound-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='compound-right' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='value-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>key!=='selected' && key!=='view')).toString() : element.dataset.scrollRegion==='stock-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>key!=='selected' && key!=='detailTab')).toString() : scrollQuery, element === main ? 'body' : element.dataset.scrollRegion,

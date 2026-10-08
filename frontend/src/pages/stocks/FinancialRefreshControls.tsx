@@ -1,3 +1,4 @@
+import {ActionButton} from '../../components/common/Common';
 import { Alert, Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography, CircularProgress } from '@mui/material';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import CloseIcon from '@mui/icons-material/Close';
@@ -93,5 +94,5 @@ export function FinancialRefreshDialog({open,onClose,...props}:Props&{open:boole
 export function FinancialRefreshButton({stockId,onClick,compact=false}:{stockId:string;onClick:()=>void;compact?:boolean}) {
  const active=useQuery({queryKey:['financialRefreshActive',stockId],queryFn:()=>apiRequest<RefreshStatus|null>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/active`),staleTime:0,retry:1,refetchInterval:q=>q.state.data?3000:false});
  const running=!!active.data&&active.data.state!=='FINISHED';
- return <Button aria-label="재무제표 갱신" size="small" variant="outlined" startIcon={running?<CircularProgress size={12}/>:<RefreshRoundedIcon sx={{fontSize:16}}/>} onClick={onClick} sx={{height:28,minHeight:28,minWidth:0,fontSize:11,px:1,whiteSpace:'nowrap'}}>{running?'갱신 중':compact?'갱신':'재무제표 갱신'}</Button>;
+ return <ActionButton tone="muted" aria-label="재무제표 갱신" size="small" startIcon={running?<CircularProgress size={12}/>:<RefreshRoundedIcon sx={{fontSize:16}}/>} onClick={onClick} >{running?'갱신 중':compact?'갱신':'재무제표 갱신'}</ActionButton>;
 }
