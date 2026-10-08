@@ -30,12 +30,12 @@ test('full chart keeps leading missing and real zero distinct, does not fill int
  await dialog.getByRole('button',{name:'차트 상세보기 뒤로가기'}).click();await page.getByRole('button',{name:'상세보기',exact:true}).nth(1).click();await expect(dialog.getByText('내용이 없습니다.',{exact:true})).toBeVisible();await expect(dialog.getByRole('img')).toHaveCount(0);
 });
 
-test('API forecast marker is yellow bold and touch guide selects the last period',async({page})=>{
+test('API forecast marker uses server blue state and bold and touch guide selects the last period',async({page})=>{
  await setup(page);await page.route('**/api/value-analysis/1?**',route=>{
  const u=new URL(route.request().url()),start=Number(u.searchParams.get('startYear')),count=Number(u.searchParams.get('count'));
- const rows=Array.from({length:count},(_,i)=>({key:String(start+i),label:String(start+i),year:start+i,quarter:null,isEstimated:start+i===2026,revenue:'100',operatingProfit:'10',netIncome:'5',source:'DART:CFS',metricReasons:{}}));
+ const rows=Array.from({length:count},(_,i)=>({key:String(start+i),label:String(start+i),year:start+i,quarter:null,isEstimated:start+i===2026,collectionState:start+i===2026?'ESTIMATE_READY':'COMPLETE',revenue:'100',operatingProfit:'10',netIncome:'5',source:'DART:CFS',metricReasons:{}}));
  return route.fulfill({json:{data:{security:{id:'1',name:'종목1',symbol:'000001'},year:2026,mode:'annual',rows,notices:[]}}});});
- await page.goto('/detail/value?view=chart&selected=1');const year=page.getByRole('button',{name:'다음 연도 2026'});await expect(year).toHaveText('2026E');await expect(year).toHaveCSS('color','rgb(251, 191, 36)');await expect(year).toHaveCSS('font-weight','700');
+ await page.goto('/detail/value?view=chart&selected=1');const year=page.getByRole('button',{name:'다음 연도 2026'});await expect(year).toHaveText('2026E');await expect(year).toHaveCSS('color','rgb(96, 165, 250)');await expect(year).toHaveCSS('font-weight','700');
  await page.getByRole('button',{name:'상세보기',exact:true}).first().click();const dialog=page.getByRole('dialog',{name:'재무지표 차트 상세보기'}),svg=dialog.getByRole('img');await expect(svg).toBeVisible();const box=await svg.boundingBox();const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box!.x+40,y:box!.y+50}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box!.x+box!.width-40,y:box!.y+50}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect(dialog.getByTestId('financial-chart-tooltip')).toContainText('2026E');
 });
 

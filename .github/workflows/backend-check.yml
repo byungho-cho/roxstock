@@ -76,6 +76,9 @@ jobs:
       - name: Asset analysis stored-data integration
         run: node --import tsx --test backend/tests/asset-analysis.integration.ts
 
+      - name: Manual collector source and period API integration
+        run: node --import tsx --test backend/tests/manual-collector.integration.ts
+
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
 
