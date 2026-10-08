@@ -5,7 +5,7 @@ async function select(chart:Locator,fraction=.5,touch=false){const svg=chart.loc
 test('annual and quarter cards select values, drag and reset outside without tooltips',async({page},info)=>{
  await ready(page);
  for(const mode of ['연간','분기']){
-  await page.getByRole('button',{name:mode,exact:true}).click();
+  await page.getByRole('button',{name:mode,exact:true}).click();if(mode==='분기')await expect(page.getByTestId('value-chart-수익성').locator('svg text').last()).toContainText('Q');
   for(const title of ['수익성','가치지표','안정성','성장성']){
    const chart=page.getByTestId('value-chart-'+title);await select(chart,.5,true);
    await expect(chart.getByTestId('financial-drag-guide')).toHaveCount(1);await expect(chart.getByTestId('financial-chart-tooltip')).toHaveCount(0);
@@ -50,4 +50,8 @@ test('chart touch horizontal drag selects last period and vertical gesture scrol
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:Math.min(main.y+main.height-20,box.y+90)}]});
   for(let i=1;i<=5;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box.x+box.width/2,y:Math.min(main.y+main.height-20,box.y+90)-i*12}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect.poll(()=>page.locator('main').evaluate(e=>e.scrollTop)).toBeGreaterThan(before);
  }
+});
+
+test('period change clears old selection while year collection colors stay intact',async({page})=>{
+ await ready(page);const chart=page.getByTestId('value-chart-수익성');await select(chart);await expect(chart.getByTestId('financial-drag-guide')).toHaveCount(1);await page.getByRole('button',{name:'이전 연도 2023'}).tap();await expect(page.getByRole('button',{name:'재무지표 중앙연도'})).toHaveText('2023');await expect(chart.locator('svg text').first()).toHaveText('2022');await expect(chart.getByTestId('financial-drag-guide')).toHaveCount(0);await expect(chart.locator('[data-period-value][data-selected="true"]')).toHaveCount(0);
 });
