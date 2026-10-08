@@ -21,10 +21,18 @@ for(const type of ['DEPOSIT','WITHDRAWAL','BUY','SELL','DIVIDEND'] as const){
   }finally{await app.close();prisma.$transaction=original;}
  });
 }
-test('cash edit rejects empty, negative and malformed explicit balances or taxes',async()=>{
+test('cash edit rejects empty/malformed amounts and negative explicit balances',async()=>{
  const original=prisma.$transaction;
  const tx={cashTransaction:{findUnique:async()=>({id:2n,accountId:1n,transactionType:'BUY',amount:d(100),feeTaxAmount:d(10),balanceAfter:d(900),transactionDate:new Date(),memo:null})},account:{findUnique:async()=>({isActive:true})}};
  prisma.$transaction=(async(fn:any)=>fn(tx)) as any;const app=buildApp();try{
-  for(const field of ['feeTaxAmount','balanceAfter'])for(const value of ['','-1','NaN'])assert.equal((await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{[field]:value}})).statusCode,400);
+  for(const field of ['feeTaxAmount','balanceAfter'])for(const value of field==='balanceAfter'?['','-1','NaN']:['','NaN'])assert.equal((await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{[field]:value}})).statusCode,400);
+ }finally{await app.close();prisma.$transaction=original;}
+});
+
+test('signed tax on a legacy buy record is preserved without account or original trade writes',async()=>{
+ const original=prisma.$transaction;let stored:any;
+ const tx={cashTransaction:{findUnique:async()=>({id:2n,accountId:1n,transactionType:'BUY',amount:d(100),feeTaxAmount:d(-10),balanceAfter:d(900),transactionDate:new Date(),memo:null}),update:async(args:any)=>{stored=args.data;}},account:{findUnique:async()=>({isActive:true})}};
+ prisma.$transaction=(async(fn:any)=>fn(tx)) as any;const app=buildApp();try{
+  const result=await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{memo:'음수 세금 유지',feeTaxAmount:'-10',balanceAfter:'900'}});assert.equal(result.statusCode,200,result.body);assert.equal(stored.feeTaxAmount.toString(),'-10');assert.equal(stored.amount.toString(),'100');assert.equal(stored.balanceAfter.toString(),'900');
  }finally{await app.close();prisma.$transaction=original;}
 });
