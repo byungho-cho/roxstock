@@ -3,19 +3,19 @@ import {cashDifference} from '../../src/pages/cash/cashData';
 const types=['BUY','SELL','DEPOSIT','WITHDRAWAL','DIVIDEND'];
 async function setup(page:Page){
  await page.clock.setFixedTime(new Date('2026-10-08T03:00:00Z'));
- const writes:{method:string,path:string,body:any}[]=[];let tax=230;let fail='',empty=false,latestId='99';
+ const writes:{method:string,path:string,body:any}[]=[];let tax=230;let fail='',empty=false,latestId='99',latestType=0,balanceMissing=false,noLedger=false;
  const rows=types.map((transactionType,i)=>({id:String(i+1),transactionType,createdAt:'2026-10-01T03:00:00Z',transactionDate:'2026-10-01T03:00:00Z',amount:'1000',feeTaxAmount:transactionType==='BUY'?'-230':'230',balanceAfter:'10000',signedAmount:'1000',memo:'과거 내역',dividend:transactionType==='DIVIDEND'?{id:'1',securityId:'2',securityName:'삼성전자',grossAmount:'1230',netAmount:'1000'}:null}));
  await page.route('**/api/**',async route=>{
   const request=route.request(),url=new URL(request.url()),path=url.pathname;
   if(request.method()!=='GET'){const body=request.postDataJSON();writes.push({method:request.method(),path,body});tax+=10;return route.fulfill({json:{data:{id:'1',cashBalanceAdjusted:false}}});}
   if(fail&&path.endsWith(fail))return route.fulfill({status:500,json:{error:{message:'조회 실패'}}});
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'계좌 1',isActive:true,isDefault:true,cashBalance:'10000'},{id:'2',name:'계좌 2',isActive:true,cashBalance:'20000'}]}});
-  if(path.endsWith('/cash-overview'))return route.fulfill({json:{data:{currentYearTax:{year:2026,amount:path.includes('/2/')?'990':String(tax)},account:{id:'1',name:'계좌',currentBalance:'10000',updatedAt:'2026-10-08T03:00:00Z'},monthly:{deposit:'1',withdrawal:'1',dividend:'1'},yearly:{deposit:'2',withdrawal:'2',dividend:'2'},recentTransactions:[{...rows[0],id:latestId,transactionDate:'2026-09-01T03:00:00Z'}]}}});
+  if(path.endsWith('/cash-overview'))return route.fulfill({json:{data:{currentYearTax:{year:2026,amount:path.includes('/2/')?'990':String(tax)},account:{id:'1',name:'계좌',currentBalance:noLedger||balanceMissing?null:'10000',balanceStatus:noLedger?'NO_TRANSACTIONS':balanceMissing?'BALANCE_MISSING':'AVAILABLE',updatedAt:'2026-10-08T03:00:00Z'},monthly:{deposit:'1',withdrawal:'1',dividend:'1'},yearly:{deposit:'2',withdrawal:'2',dividend:'2'},recentTransactions:noLedger?[]:[{...rows[latestType],id:latestId,balanceAfter:balanceMissing?null:'10000',transactionDate:'2026-09-01T03:00:00Z'}]}}});
   if(path.endsWith('/cash-transactions'))return route.fulfill({json:{data:rows,meta:{total:5,limit:100,offset:0}}});
   if(path.endsWith('/asset-history'))return route.fulfill({json:{data:empty?[]:[{date:'2026-10-01',cashBalance:'10000'},{date:'2026-10-02',cashBalance:null},{date:'2026-10-03',cashBalance:'12000'}],summary:{profitLoss:null,returnRate:null}}});
   if(path.endsWith('/buy-lots'))return route.fulfill({json:{data:[{id:'1',security:{id:'2',name:'삼성전자',symbol:'005930'},remainingQuantity:'1'}]}});
   return route.fulfill({json:{data:[]}});
- });return{writes,latest:()=>{latestId='5';},fail:(v:string)=>{fail=v;},empty:()=>{empty=true;}};
+ });return{writes,latest:()=>{latestId='5';},fail:(v:string)=>{fail=v;},empty:()=>{empty=true;},topType:(index:number)=>{latestType=index;},missing:()=>{balanceMissing=true;},noLedger:()=>{noLedger=true;}};
 }
 async function ready(page:Page){await page.goto('/detail/cash');await expect(page.getByTestId('cash-history-row')).toHaveCount(5);}
 const close=async(page:Page)=>{await page.getByRole('button',{name:'취소',exact:true}).click();};
@@ -63,4 +63,25 @@ test('latest entry can be deleted and year tax refreshes; read failures never sh
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');expect(state.writes.at(-1)?.method).toBe('DELETE');
  await page.getByRole('button',{name:'이전 기간',exact:true}).click();await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');
  state.fail('/cash-overview');await page.reload();await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 조회 실패');
+});
+
+
+test('whole card and pencil edit the displayed latest record outside list period; cancel never writes',async({page})=>{
+ const state=await setup(page);state.topType(2);await ready(page);
+ await expect(page.getByTestId('cash-balance-value')).toHaveText('10,000원');
+ await page.getByTestId('cash-balance').click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('10,000');await expect(page.getByRole('button',{name:'삭제',exact:true})).toBeEnabled();
+ await page.getByLabel('세후예수금',{exact:true}).fill('12345');await close(page);expect(state.writes).toHaveLength(0);
+ await page.getByRole('button',{name:'현재 예수금 편집',exact:true}).click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('10,000');
+ await page.getByLabel('세후예수금',{exact:true}).fill('12345');await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByTestId('cash-form')).not.toBeVisible();
+ expect(state.writes[0]).toMatchObject({path:'/api/cash-transactions/99',body:{accountId:'1',expectedLatestId:'99',balanceAfter:'12345',amount:'1000'}});expect(state.writes.some(w=>w.path.endsWith('/cash-balance'))).toBe(false);
+});
+test('no ledger and failed latest lookup never substitute a historical edit target or zero',async({page})=>{
+ const state=await setup(page);state.noLedger();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('—');
+ await page.getByTestId('cash-balance').click();await expect(page.getByTestId('cash-form')).not.toBeVisible();await expect(page.getByRole('alert')).toContainText('예수금 내역이 없습니다. 입금을 등록해 주세요.');expect(state.writes).toHaveLength(0);
+ state.fail('/cash-overview');await page.reload();await expect(page.getByText('예수금 조회 실패 · 다시 시도',{exact:true})).toBeVisible();await expect(page.getByTestId('cash-form')).not.toBeVisible();
+});
+test('missing net amount remains explicit and its latest record is editable without fallback',async({page})=>{
+ const state=await setup(page);state.topType(2);state.missing();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('—');
+ await page.getByRole('button',{name:'현재 예수금 편집',exact:true}).click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('');await page.getByRole('button',{name:'저장',exact:true}).click();expect(state.writes).toHaveLength(0);
+ await page.getByLabel('세후예수금',{exact:true}).fill('0');await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByTestId('cash-form')).not.toBeVisible();expect(state.writes[0].body.balanceAfter).toBe('0');
 });

@@ -10,7 +10,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
  const writes:{path:string;body:any}[]=[];
  const goal={id:'1',goalName:'기준형',isDefault:true,annualTargetRate:'15',displayColor:'#FFC21A',yearTarget:'93600000',finalTarget:'263600000',progress:'27.3',rows:[{year:2025,asset:'93600000',contributed:'84000000'},{year:2026,asset:'127640000',contributed:'104000000'}]};
  const plans=empty?[]:Array.from({length:8},(_,i)=>({id:String(i+1),planName:'계획'+(i+1),startYear:2025,endYear:2029,duration:5,initialAssetValue:'64000000',annualContributionAmount:'20000000',status:'ACTIVE',goals:goalsEmpty?[]:[goal]}));
- let account={id:'1',name:'기본 계좌',brokerName:'증권사',accountNumber:'1234',isActive:true,isDefault:true,cashBalance:'203200000',updatedAt:'2026-10-05T00:00:00Z'};
+ let account={id:'1',name:'기본 계좌',brokerName:'증권사',accountNumber:'1234',isActive:true,isDefault:true,cashBalance:'203200000' as string|null,updatedAt:'2026-10-05T00:00:00Z'};
  await page.route('**/api/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname;
   if(req.method()!=='GET'){
@@ -18,7 +18,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
    if(fail)return route.fulfill({status:503,json:{error:{code:'TEST_FAILURE',message:'테스트 저장 실패'}}});
    if(path.endsWith('/target-arrival-conditions')){conditions=body.conditions;version++;return route.fulfill({json:{data:{accountId:'1',conditions,version}}});}
    if(path.endsWith('/cash-balance')) account.cashBalance=body.amount;
-   if(path.endsWith('/reset')){reset=true;account.cashBalance='0';return route.fulfill({json:{data:{accountId:'1',cashBalance:'0'}}});}
+   if(path.endsWith('/reset')){reset=true;account.cashBalance=null;return route.fulfill({json:{data:{accountId:'1',cashBalance:null}}});}
    return route.fulfill({json:{data:{id:'1',...account}}});
   }
   if(path==='/api/accounts')return route.fulfill({json:{data:[account]}});
@@ -27,9 +27,10 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
   if(path==='/api/collection/status')return route.fulfill({json:{data:{latestRun:{status:'SUCCESS'},manualRunAvailable:false,settingsAvailable:false}}});
   if(path.endsWith('/target-arrival-conditions'))return route.fulfill({json:{data:{accountId:'1',conditions,version}}});
   if(path.includes('/compound-plans'))return route.fulfill({json:{data:{accountId:'1',currentAssets:'72000000',pricingComplete:true,currentYear:2026,asOf:'2026-10-05T00:00:00Z',plans}}});
-  if(reset&&path.endsWith('/dashboard'))return route.fulfill({json:{data:{cashBalance:'0',holdings:[]}}});
+  if(reset&&path.endsWith('/dashboard'))return route.fulfill({json:{data:{cashBalance:null,holdings:[]}}});
   if(reset&&path.endsWith('/holdings'))return route.fulfill({json:{data:[]}});
-  if(reset&&path.endsWith('/cash-overview'))return route.fulfill({json:{data:{account:{currentBalance:'0'},recentTransactions:[]}}});
+  if(reset&&path.endsWith('/cash-overview'))return route.fulfill({json:{data:{account:{currentBalance:null},recentTransactions:[]}}});
+  if(!reset&&path.endsWith('/cash-overview'))return route.fulfill({json:{data:{account:{id:'1',currentBalance:account.cashBalance},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'1',withdrawal:'0',dividend:'0'},yearly:{deposit:'1',withdrawal:'0',dividend:'0'},recentTransactions:[{id:'7',transactionType:'DEPOSIT',transactionDate:'2026-10-01T03:00:00Z',amount:'100',feeTaxAmount:'0',balanceAfter:account.cashBalance}]}}});
   if(reset&&path.endsWith('/asset-history'))return route.fulfill({json:{data:[],summary:{returnRate:null}}});
   return route.fulfill({json:{data:[],pagination:{total:0,totalPages:0,page:1}}});
  });
@@ -91,7 +92,7 @@ test('target limit, duplicate validation, delete draft and save failure retry',a
 test('reset confirmation, failure retry and duplicate guards',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/settings?view=reset');const input=page.getByRole('textbox',{name:'계좌명 입력'});await input.fill('틀린 이름');await expect(page.getByRole('button',{name:'계좌 데이터 초기화',exact:true})).toBeDisabled();await input.fill('기본 계좌');await input.press('Enter');expect(f.writes).toHaveLength(0);f.fail();
  await page.getByRole('dialog').getByRole('button',{name:'초기화',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('테스트 저장 실패');expect(f.writes).toHaveLength(1);
- await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(2);await expect(page.getByTestId('reset-result')).toBeVisible();f.succeed();await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('초기화가 완료되었습니다');await expect(page.getByTestId('reset-result')).toContainText('0원');expect(f.writes.filter(w=>w.path.endsWith('/reset'))).toHaveLength(3);
+ await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(2);await expect(page.getByTestId('reset-result')).toBeVisible();f.succeed();await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('reset-result')).toContainText('초기화가 완료되었습니다');await expect(page.getByTestId('reset-result')).toContainText('예수금 내역 없음');expect(f.writes.filter(w=>w.path.endsWith('/reset'))).toHaveLength(3);
 });
 test('compound empty once, inherited goal form, title alignment and unchanged calculation basis',async({page},info)=>{
  await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();await capture(page,'compound-main',info.project.name);await page.goto('/detail/compound?plan=1&goal=1&view=goal');await geometry(page);await expect(page.locator('main')).toContainText('연초 추가금 반영');
@@ -101,3 +102,5 @@ test('compound empty once, inherited goal form, title alignment and unchanged ca
  await expect(page.getByLabel('시작 연도',{exact:true})).toHaveAttribute('readonly','');
  await fixture(page,{empty:true});await page.goto('/detail/compound');await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(1);await expect(page.getByTestId('compound-empty').getByRole('button')).toHaveCount(0);await expect(page.getByRole('button',{name:'계획 추가',exact:true})).toBeVisible();
 });
+
+test('settings current-cash editing connects to ledger and sends no legacy balance write',async({page})=>{const f=await fixture(page);await page.goto('/detail/settings?view=cash');await expect(page.getByRole('textbox',{name:'변경 예수금',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'예수금 내역 편집으로 이동'}).click();await expect(page).toHaveURL(/detail\/cash$/);await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');await page.getByRole('button',{name:'현재 예수금 편집',exact:true}).click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('203,200,000');expect(f.writes).toHaveLength(0);});

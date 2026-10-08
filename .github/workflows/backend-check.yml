@@ -79,6 +79,9 @@ jobs:
       - name: Manual collector source and period API integration
         run: node --import tsx --test backend/tests/manual-collector.integration.ts
 
+      - name: Cash12 latest balance and concurrent writes (real MariaDB API)
+        run: node --import tsx --test backend/tests/cash-latest.integration.ts
+
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
 

@@ -1,3 +1,4 @@
+import { lockCashAccount } from './current-cash.js';
 import { createHash } from 'node:crypto';
 import { Prisma } from '../generated/prisma/index.js';
 import { ApiError } from '../lib/api-error.js';
@@ -18,6 +19,7 @@ export async function registerTrade(
 ) {
   const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
   return serializable(async tx => {
+    await lockCashAccount(tx, accountId);
     await requireActiveAccount(tx, accountId);
     if (key) {
       const previous = await tx.tradeRequest.findUnique({ where: { accountId_requestId: { accountId, requestId: key } } });

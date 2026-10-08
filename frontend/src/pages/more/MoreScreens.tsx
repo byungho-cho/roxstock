@@ -5,14 +5,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { chooseAccount, correctCashBalance, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { chooseAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
 export type MoreView = 'target-arrival' | 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
 const panel = { bgcolor: '#0E1420', border: '1px solid #1F2B42', borderRadius: '8px', p: '16px', minWidth: 0 } as const;
 const row = { bgcolor: '#111825', border: '1px solid #25344D', borderRadius: '8px' } as const;
-const fmt = (value: string | number) => `${Number(value).toLocaleString('ko-KR')}원`;
+const fmt = (value: string | number | null) => value === null ? '—' : `${Number(value).toLocaleString('ko-KR')}원`;
 const settingsPanel = { ...panel, bgcolor: '#090F1C', border: '1px solid #21304A' } as const;
 const hint = { fontSize: 11, color: '#7A859E' } as const;
 const heading = { fontSize: 18, fontWeight: 600, lineHeight: '26px' } as const;
@@ -110,7 +110,7 @@ export function AccountManagement({ openReset }: { openReset: () => void }) {
       <Typography sx={{ ...hint, mt: '12px' }}>최근 수정 {item.updatedAt ? new Date(item.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—'}</Typography>
     </ButtonBase>)}
     <Stack direction="row" spacing="8px">{selected ? <><Button variant="outlined" sx={{ flex: 1, minWidth: 0, height: 40, fontSize: 13 }} onClick={() => go('edit')}>계좌 정보 수정</Button><Button variant="outlined" sx={{ flex: 1, minWidth: 0, height: 40, fontSize: 13 }} onClick={() => go('cash')}>예수금 수정</Button></> : <Button variant="contained" onClick={() => go('add')}>계좌 추가</Button>}</Stack>
-    <Box sx={{ bgcolor: '#090F1C', p: '12px 14px', borderRadius: '8px' }}><Typography sx={{ fontSize: 13 }}>예수금 반영 기준</Typography><Typography sx={{ ...hint, mt: '6px' }}>실제 증권계좌 잔액을 기준으로 직접 수정합니다.</Typography></Box>
+    <Box sx={{ bgcolor: '#090F1C', p: '12px 14px', borderRadius: '8px' }}><Typography sx={{ fontSize: 13 }}>예수금 반영 기준</Typography><Typography sx={{ ...hint, mt: '6px' }}>최신 등록 내역의 세후예수금을 사용합니다. 현재예수금 카드에서 해당 내역을 수정합니다.</Typography></Box>
     {selected && <Button onClick={() => go('add')} sx={{ alignSelf: 'flex-start', fontSize: 11 }}>+ 계좌 추가</Button>}
     <Box sx={{ pt: '12px', borderTop: '1px solid #253652' }}><Typography sx={{ color: '#FA636E', fontSize: 12 }}>위험 영역</Typography><Button variant="outlined" color="error" fullWidth sx={{ height: 44, mt: '12px' }} onClick={openReset}>계좌 데이터 초기화</Button><Typography sx={{ ...hint, mt: '12px' }}>{allowed ? '선택한 계좌의 데이터만 삭제합니다.' : '현재 환경에서는 초기화를 사용할 수 없습니다.'}</Typography></Box>
   </Stack>;
@@ -160,15 +160,16 @@ function AccountFormContent({ add }: { add: boolean }) {
 }
 
 export function CashAdjustment() {
+  const navigate = useNavigate();
   const { selected, query } = useMoreAccounts();
   if (query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
   if (query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (!selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
+  if (liveApiEnabled) return <Stack spacing="14px"><Typography sx={hint}>현재예수금은 최신 등록 내역의 세후예수금입니다. 예수금 화면의 현재예수금 카드를 눌러 해당 내역을 수정해 주세요.</Typography><Button variant="contained" onClick={() => navigate('/detail/cash')}>예수금 내역 편집으로 이동</Button></Stack>;
   return <CashAdjustmentContent key={selected.id} />;
 }
 function CashAdjustmentContent() {
   const { selected, query } = useMoreAccounts(); const navigate = useNavigate();
-  const client = useQueryClient();
   const [saving, setSaving] = useState(false); const [error, setError] = useState('');
   const base = selected?.cashBalance ?? '';
   const [amount, setAmount] = useState(base);
@@ -178,10 +179,7 @@ function CashAdjustmentContent() {
     if (!selected || saving || !amount.trim() || !Number.isFinite(value) || value < 0) return;
     setSaving(true); setError('');
     try {
-      if (liveApiEnabled) {
-        await correctCashBalance(selected.id, String(value));
-        await invalidatePortfolio(client);
-      } else changeDemoCash(selected.id, String(value));
+      changeDemoCash(selected.id, String(value));
       navigate('/detail/settings?view=account');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 수정에 실패했습니다.'); }
     finally { setSaving(false); }

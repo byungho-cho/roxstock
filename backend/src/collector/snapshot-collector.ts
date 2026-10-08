@@ -11,6 +11,7 @@ export interface SnapshotCalculation {
 }
 
 export const calculateSnapshot = (account: SnapshotAccount): SnapshotCalculation => {
+  if (account.cashBalance === null) return { missingSymbols: ['CURRENT_CASH_MISSING'] };
   let stockValue = new Prisma.Decimal(0);
   let purchaseAmount = new Prisma.Decimal(0);
   const missing = new Set<string>();

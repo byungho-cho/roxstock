@@ -4,6 +4,7 @@ import {buildApp} from '../src/app.js';
 import {prisma} from '../src/lib/prisma.js';
 test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',async()=>{
  const accounts=await Promise.all([1,2].map(i=>prisma.account.create({data:{name:'복리 자체검사 '+i,brokerName:'TEST',cashBalance:'500'}})));
+ await prisma.cashTransaction.createMany({data:accounts.map(a=>({accountId:a.id,transactionType:'DEPOSIT' as const,transactionDate:new Date(),amount:'500',balanceAfter:'500'}))});
  const app=buildApp(),a=accounts[0]!,b=accounts[1]!,root='/api/accounts/'+a.id+'/compound-plans';
  const input={planName:'실제 테스트 계획',startYear:2025,endYear:2026,initialAssetValue:'100',annualContributionAmount:'20',annualTargetRate:'10',displayColor:'#5EA1F0'};
  let planId='';
@@ -22,6 +23,6 @@ test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',as
   r=await app.inject({method:'POST',url:goalUrl,payload:{goalName:'새 기준',annualTargetRate:'1',displayColor:'#5EA1F0'}});assert.equal(r.statusCode,201,r.body);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId),isDefault:true}}),1);
   r=await app.inject({method:'DELETE',url:root+'/'+planId});assert.equal(r.statusCode,200);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId)}}),0);assert.equal(await prisma.compoundGrowthPlan.count({where:{id:BigInt(planId)}}),0);
  }finally{
-  await app.close();const ids=accounts.map(a=>a.id),plans=await prisma.compoundGrowthPlan.findMany({where:{accountId:{in:ids}}});await prisma.compoundGrowthGoal.deleteMany({where:{planId:{in:plans.map(p=>p.id)}}});await prisma.compoundGrowthPlan.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
+  await app.close();const ids=accounts.map(a=>a.id),plans=await prisma.compoundGrowthPlan.findMany({where:{accountId:{in:ids}}});await prisma.compoundGrowthGoal.deleteMany({where:{planId:{in:plans.map(p=>p.id)}}});await prisma.compoundGrowthPlan.deleteMany({where:{accountId:{in:ids}}});await prisma.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
  }
 });

@@ -1,3 +1,5 @@
+import { cashBasis, lockCashAccount, readCurrentCash, requireCash } from '../domain/current-cash.js';
+import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 
@@ -65,7 +67,7 @@ const resetLocks = new Set<string>();
 
 export async function accountRoutes(app: FastifyInstance) {
   app.get('/accounts', async () => {
-    const accounts = await prisma.account.findMany({ orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }] });
+    const accounts = await prisma.account.findMany({ include: { cashTransactions: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 } }, orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }] });
     return {
       data: accounts.map((account) => ({
         id: account.id.toString(),
@@ -73,7 +75,8 @@ export async function accountRoutes(app: FastifyInstance) {
         brokerName: account.brokerName,
         accountNumber: account.accountNumber,
         isDefault: account.isDefault,
-        cashBalance: account.cashBalance.toString(),
+        cashBalance: cashBasis(account.cashTransactions[0]).balance?.toString() ?? null,
+        cashBalanceStatus: cashBasis(account.cashTransactions[0]).status,
         isActive: account.isActive,
         displayOrder: account.displayOrder,
         createdAt: account.createdAt.toISOString(),
@@ -99,7 +102,7 @@ export async function accountRoutes(app: FastifyInstance) {
         });
       }, transactionOptions);
       return reply.code(201).send({
-        data: { id: account.id.toString(), cashBalance: account.cashBalance.toString(), isDefault: account.isDefault },
+        data: { id: account.id.toString(), cashBalance: null, cashBalanceStatus: 'NO_TRANSACTIONS', isDefault: account.isDefault },
       });
     } catch (error) {
       mapAccountWriteError(error);
@@ -142,7 +145,7 @@ export async function accountRoutes(app: FastifyInstance) {
       return {
         data: {
           id: account.id.toString(), name: account.name, brokerName: account.brokerName,
-          accountNumber: account.accountNumber, cashBalance: account.cashBalance.toString(),
+          accountNumber: account.accountNumber, cashBalance: (await readCurrentCash(prisma, accountId)).balance?.toString() ?? null,
           isActive: account.isActive, isDefault: account.isDefault,
         },
       };
@@ -184,7 +187,7 @@ export async function accountRoutes(app: FastifyInstance) {
         };
       }, transactionOptions);
       request.log.warn({ accountId: lockKey, deleted: result }, 'account data reset completed');
-      return { data: { accountId: lockKey, cashBalance: '0', deleted: result } };
+      return { data: { accountId: lockKey, cashBalance: null, cashBalanceStatus: 'NO_TRANSACTIONS', deleted: result } };
     } finally {
       resetLocks.delete(lockKey);
     }
@@ -200,17 +203,21 @@ export async function accountRoutes(app: FastifyInstance) {
     const transactionDate = dateTime(body.transactionDate, 'transactionDate');
     const amount = positiveDecimal(body.amount, 'amount');
     const memo = optionalMemo(body.memo);
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
+      await lockCashAccount(tx, accountId);
       const account = await tx.account.findUnique({ where: { id: accountId } });
       if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
-      const balanceAfter = type === 'DEPOSIT' ? account.cashBalance.plus(amount) : account.cashBalance.minus(amount);
+      const basis = await readCurrentCash(tx, accountId);
+      // First deposit establishes an explicit balance; no displayed zero or legacy account fallback.
+      const current = basis.status === 'NO_TRANSACTIONS' && type === 'DEPOSIT' ? new Prisma.Decimal(0) : requireCash(basis.balance);
+      const balanceAfter = type === 'DEPOSIT' ? current.plus(amount) : current.minus(amount);
       if (balanceAfter.isNegative()) throw new ApiError(409, 'INSUFFICIENT_CASH', 'Cash balance is insufficient.');
       const transaction = await tx.cashTransaction.create({
         data: { accountId, transactionType: type, transactionDate, amount, feeTaxAmount: new Prisma.Decimal(0), balanceAfter, memo },
       });
       await tx.account.update({ where: { id: accountId }, data: { cashBalance: balanceAfter } });
       return { transaction, balanceAfter };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5_000, timeout: 10_000 });
+    });
     return reply.code(201).send({
       data: { id: result.transaction.id.toString(), balanceAfter: result.balanceAfter.toString() },
     });
