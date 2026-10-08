@@ -4,6 +4,7 @@ import { historicalClose, HistoricalPriceError } from './historical-close.js';
 import { DartApiError, normalizeDartFinancialRows, type OpenDartProvider, type DartReportCode } from './dart-provider.js';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {calculatePeriod,preserveValues,metricKeys,type Supplemental} from '../domain/period-valuation.js';
+import { normalizeManualDartAccounts } from './manual-dart-accounts.js';
 export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,fiscalYear:number,periodType:string,options:{dryRun?:boolean;load?:(f:Awaited<ReturnType<typeof db.dartFinancialFiling.findFirst>>,stored:Supplemental)=>Promise<Supplemental>}={}) {
  if(fiscalYear<2015||fiscalYear>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date())))return null;
  const where={securityId_fiscalYear_periodType:{securityId,fiscalYear,periodType}};
@@ -46,23 +47,23 @@ export async function supplementSafely(db:PrismaClient,securityId:bigint,year:nu
 }
 
 /** Reused by background and manual collection; period-end sources only. */
-export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,corpCode:string,db?:PrismaClient,market?:string) {
+export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,corpCode:string,db?:PrismaClient,market?:string,mode:'AUTOMATIC'|'MANUAL_PROTOTYPE'='AUTOMATIC') {
  return async(f:Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>,saved:Supplemental):Promise<Supplemental>=>{
   if(!f||f.periodType==='Q4'||(f.fsDivision!=='CFS'&&f.fsDivision!=='OFS'))return saved;
   if(process.env.CONSENSUS_ENABLED==='true'&&db){try{await freezePastEstimates(db,f.securityId,symbol,market??'KOSPI');if(f.fiscalYear===Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date())))await collectAnnualConsensus(db,f.securityId,symbol);}catch{console.warn(JSON.stringify({event:'consensus_collection_failed',securityId:String(f.securityId)}));}}
   const errors:Record<string,string>={};let shares=saved.shares,price=saved.price,accounts=saved.accounts;
-  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(symbol.replace(/^A/,''));
+  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(symbol.replace(/^A/,''))||(mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(symbol.replace(/^A/,'')));
   if(!sourceAllowed)errors.accounts='VALUATION_SOURCE_ROLLOUT_NOT_VALIDATED';
   if(sourceAllowed&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     if(rows.some(row=>row.receiptNo!==f.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','보충 기초계정의 공시번호 불일치');
-    const normalized=normalizeDartFinancialRows(rows);
+    const normalized=mode==='MANUAL_PROTOTYPE'?normalizeManualDartAccounts(rows):normalizeDartFinancialRows(rows);
     accounts={receiptNo:f.receiptNo,fsDivision:f.fsDivision,collectedAt:new Date().toISOString(),sources:normalized.accountSources};
    }catch(error){errors.accounts=error instanceof DartApiError?error.code:'ACCOUNTS_COMMUNICATION';}
   }
   try{if(!shares||shares.receiptNo!==f.receiptNo)shares=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';errors.sharesCode=error instanceof DartApiError?error.code:'SHARES_COMMUNICATION';}
-  try{if(!price){price=await historicalClose(symbol,f.periodEndDate,fetch,market);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증 오류',PERMISSION:'과거 종가 API 서비스 활용 권한 오류',PARSE:'과거 종가 응답 해석 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음'};errors.price=descriptions[failure.category];errors.priceCode=failure.code;errors.priceCategory=failure.category; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
+  try{if(!price){price=await historicalClose(symbol,f.periodEndDate,fetch,market,mode);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증 오류',PERMISSION:'과거 종가 API 서비스 활용 권한 오류',PARSE:'과거 종가 응답 해석 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음',INTERNAL_LIMIT:'검증되지 않은 종목에 대한 내부 적용 제한'};errors.price=descriptions[failure.category];errors.priceCode=failure.code;errors.priceCategory=failure.category; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
   let basis=saved.basis;
   if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo)){
    try{

@@ -8,10 +8,11 @@ function providerError(code:string):HistoricalPriceError {
  return new HistoricalPriceError(authCodes.includes(code)?'HISTORICAL_PRICE_AUTH':code==='22'?'HISTORICAL_PRICE_RATE_LIMIT':'HISTORICAL_PRICE_PROVIDER',authCodes.includes(code)?'AUTH':code==='22'?'RATE_LIMIT':'PROVIDER',code);
 }
 /** Exact ordinary-share symbol and period-end window; no live-price fallback. */
-export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch,market?:string):Promise<Supplemental['price']> {
+export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch,market?:string,mode:'AUTOMATIC'|'MANUAL_PROTOTYPE'='AUTOMATIC'):Promise<Supplemental['price']> {
  if(process.env.KRX_API_KEY?.trim()){
   const allowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim());
-  if(!allowed.includes(symbol.replace(/^A/,'')))throw new HistoricalPriceError('KRX_ROLLOUT_NOT_VALIDATED','PERMISSION');
+  const manualValidated=mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(symbol.replace(/^A/,''));
+  if(!allowed.includes(symbol.replace(/^A/,''))&&!manualValidated)throw new HistoricalPriceError('KRX_ROLLOUT_NOT_VALIDATED','INTERNAL_LIMIT');
   if(market&& !['KOSPI','KOSDAQ'].includes(market))throw new HistoricalPriceError('KRX_MARKET_UNSUPPORTED','PROVIDER');
   return configuredKrx().close(symbol,end,(market??'KOSPI') as 'KOSPI'|'KOSDAQ');
  }

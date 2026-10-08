@@ -2,8 +2,9 @@ import {Box,Button,Menu,MenuItem} from '@mui/material';
 import {useState} from 'react';
 import {colors} from '../../styles/tokens';
 import type {FinancialRow} from './valueApi';
+import {collectionColor} from './collectionColor';
 
-type PeriodRow = Pick<FinancialRow,'key'|'year'|'quarter'|'label'|'isEstimated'>;
+type PeriodRow = Pick<FinancialRow,'key'|'year'|'quarter'|'label'|'isEstimated'|'collectionState'>;
 const yearText = {height:28,minHeight:28,minWidth:0,p:0,fontSize:11,fontWeight:400,justifyContent:'center',color:colors.textMuted,bgcolor:'transparent',border:0,borderRadius:0,'&:hover':{bgcolor:'transparent'},'&.Mui-disabled':{color:colors.disabled},'&.Mui-focusVisible':{outline:`1px solid ${colors.focus}`,outlineOffset:1}} as const;
 export function FinancialPeriodHeader({rows,centerYear,currentYear,onCenterChange}:{rows:PeriodRow[];centerYear:number;currentYear:number;onCenterChange?:(year:number)=>void}) {
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
@@ -11,8 +12,8 @@ export function FinancialPeriodHeader({rows,centerYear,currentYear,onCenterChang
  return <Box data-testid="financial-period-header" sx={{display:'grid',gridTemplateColumns:`94px repeat(${rows.length},minmax(0,1fr))`,gap:1,px:2,height:28,alignItems:'center',fontSize:11,color:colors.textMuted}}>
   <span>기간</span>{rows.map((row,i)=>{
    const estimated=row.isEstimated===true,label=`${row.year}${estimated?'E':''}`;
-   const sx={...yearText,...(estimated?{color:colors.warning,fontWeight:700,'&.Mui-disabled':{color:colors.warning}}:{})};
-   if(!onCenterChange||row.quarter!==null)return <span key={row.key} style={{textAlign:'center',color:estimated?colors.warning:undefined,fontWeight:estimated?700:400}}>{row.quarter===null?label:row.label}</span>;
+   const color=collectionColor(row.collectionState),sx={...yearText,color,fontWeight:estimated?700:400,'&.Mui-disabled':{color}};
+   if(!onCenterChange||row.quarter!==null)return <span key={row.key} style={{textAlign:'center',color,fontWeight:estimated?700:400}}>{row.quarter===null?label:row.label}</span>;
    if(i===1)return <Button key={i} aria-label="재무지표 중앙연도" aria-haspopup="listbox" aria-expanded={Boolean(anchor)} aria-controls={anchor?'financial-year-options':undefined} onClick={e=>setAnchor(e.currentTarget)} onKeyDown={e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setAnchor(e.currentTarget);}}} sx={sx}>{label}</Button>;
    return <Button key={i} aria-label={`${i===0?'이전':'다음'} 연도 ${row.year}`} disabled={row.year<=2015||row.year>=currentYear} onClick={()=>onCenterChange(centerYear+(i===0?-1:1))} sx={sx}>{label}</Button>;
   })}

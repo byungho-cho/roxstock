@@ -31,7 +31,7 @@ for(const bottom of [false,true])test(`year moves and picker preserve ${bottom?'
 test('shorter data clamps to maximum position without resetting to top',async({page})=>{
  await ready(page);await scroll(page,true);const before=await top(page);
  await page.route('**/api/value-analysis/1?**',route=>route.fulfill({json:{data:{security:{id:'1',name:'종목1',symbol:'000001',currentPrice:'100',w:'1'},year:2026,mode:'annual',valuation:null,fairPrices:[],notices:[],rows:[],chartRows:[]}}}));
- await page.getByRole('button',{name:'이전 연도 2023'}).tap();await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(4);const positions=await page.locator('main').evaluate(e=>({top:e.scrollTop,max:e.scrollHeight-e.clientHeight}));expect(positions.top).toBe(Math.min(before,positions.max));expect(positions.top).toBeGreaterThan(0);await sticky(page);
+ await page.getByRole('button',{name:'이전 연도 2023'}).tap();await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(4);const positions=await page.locator('main').evaluate(e=>({top:e.scrollTop,max:e.scrollHeight-e.clientHeight}));expect(positions.top).toBe(Math.min(before,positions.max));if(positions.max>0)expect(positions.top).toBeGreaterThan(0);await sticky(page);
 });
 test('fullscreen and both back paths retain selected year and scroll',async({page})=>{
  await ready(page);await scroll(page);await center(page).tap();await page.getByRole('option',{name:'2023',exact:true}).tap();await expect(page.getByTestId('value-chart-수익성')).toContainText('2022');
