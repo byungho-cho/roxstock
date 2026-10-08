@@ -3,7 +3,7 @@ import type { Supplemental } from '../domain/period-valuation.js';
 export type KrxMarket = 'KOSPI' | 'KOSDAQ';
 type Row = Record<string, string>;
 const endpoints = { KOSPI: { daily: 'stk_bydd_trd', master: 'stk_isu_base_info' }, KOSDAQ: { daily: 'ksq_bydd_trd', master: 'ksq_isu_base_info' } };
-const numeric = (value: string | undefined) => value?.replaceAll(',', '').trim();
+const numeric = (value: string | undefined) => typeof value==='string'?value.replaceAll(',', '').trim():undefined;
 const day = (value: string) => value.replaceAll('/', '').replaceAll('-', '');
 const validDay = (value: string) => /^\d{8}$/.test(value) && !Number.isNaN(Date.parse(`${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`));
 /** One full-market response per date. Only successful parsed responses are cached. */
@@ -35,6 +35,8 @@ export class KrxProvider {
     let body: { OutBlock_1?: unknown };
     try { body = await response.json(); } catch { throw new HistoricalPriceError('KRX_RESPONSE_PARSE', 'PARSE'); }
     if (!Array.isArray(body.OutBlock_1) || body.OutBlock_1.some(r => !r || typeof r !== 'object')) throw new HistoricalPriceError('KRX_RESPONSE_SCHEMA', 'PARSE');
+    const required=kind==='daily'?['ISU_CD','BAS_DD','TDD_CLSPRC','ACC_TRDVOL']:['ISU_CD','ISU_SRT_CD','KIND_STKCERT_TP_NM'];
+    if(body.OutBlock_1.some(row=>required.some(field=>typeof row[field]!=='string')))throw new HistoricalPriceError('KRX_RESPONSE_FIELD_TYPE','PARSE');
     return body.OutBlock_1 as Row[];
   }
   async close(symbol: string, end: Date, market: KrxMarket): Promise<NonNullable<Supplemental['price']>> {
