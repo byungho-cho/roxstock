@@ -1,3 +1,4 @@
+import { collectAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import {collectionPasses} from './dart-order.js';
 import {supplementSafely,loadPeriodSupplement} from './valuation-supplement.js';
 import { randomUUID } from 'node:crypto';
@@ -43,10 +44,14 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     onApiStatus: async (status) => repo.recordApiResult(status === '013' ? 'NO_DATA' : 'ERROR'),
   });
 
-  const supplement=(security:DartSecurityRecord,year:number,period:string)=>supplementSafely(prisma,security.id,year,period,security.corpCode?loadPeriodSupplement(dart,security.symbol,security.corpCode,prisma,async()=>{
-    if(!outsideWindowAllowed&&!activeWindow(new Date(),config))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window closed');
-    if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','Collection budget exhausted');
-  }):undefined);
+  const consensusChecked=new Set<string>();
+  const checkConsensus=async(security:DartSecurityRecord)=>{
+    if(process.env.CONSENSUS_ENABLED!=='true'||consensusChecked.has(String(security.id)))return;
+    consensusChecked.add(String(security.id));
+    try{await freezePastEstimates(prisma,security.id,security.symbol,security.marketType??'KOSPI');await collectAnnualConsensus(prisma,security.id,security.symbol);}
+    catch{log('warn','Consensus unavailable; financial collection continues',{symbol:security.symbol});}
+  };
+  const supplement=(security:DartSecurityRecord,year:number,period:string)=>supplementSafely(prisma,security.id,year,period,security.corpCode?loadPeriodSupplement(dart,security.symbol,security.corpCode,prisma,security.marketType):undefined);
   try {
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();
@@ -97,6 +102,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
           await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
           continue;
         }
+        await checkConsensus(security);
         for (const task of (await repo.listTasksForSecurity(security.id)).filter(t=>t.fiscalYear===pass.year)) {
           if (!outsideWindowAllowed && !activeWindow(new Date(), config)) break;
           const taskNow = new Date();
@@ -193,6 +199,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
           if(!quotaReached){
+            await checkConsensus(security);
             const stored=await prisma.dartFinancialFiling.findMany({where:{securityId:security.id,fiscalYear,isWithdrawn:false},select:{periodType:true},distinct:['periodType']});
             for(const row of stored){
               const value=await prisma.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear,periodType:row.periodType}}});

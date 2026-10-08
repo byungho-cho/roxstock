@@ -24,6 +24,7 @@ test('manual refresh POST validates, queues once and GET cannot access another s
     const status=await app.inject('/api/securities/1/financial-refresh/99');assert.equal(status.json().data.state,'QUEUED');assert.equal(creates,1);
     run.metadata.progress={currentYear:2024,currentPeriod:'Q1',stage:'VALUATION',completed:0,total:1};
     const processing=await app.inject('/api/securities/1/financial-refresh/99');assert.deepEqual(processing.json().data.progress,run.metadata.progress);
+    const active=await app.inject('/api/securities/1/financial-refresh/active');assert.equal(active.statusCode,200);assert.equal(active.json().data.requestId,'99');assert.equal(active.json().data.counts.disclosureCompleted,0);
     const other=await app.inject('/api/securities/2/financial-refresh/99');assert.equal(other.statusCode,404);
     delete process.env.DART_API_KEY;
     const missing=await app.inject({method:'POST',url:'/api/securities/1/financial-refresh',payload:{fiscalYear:2024,period:'Q1'}});assert.equal(missing.statusCode,503);
