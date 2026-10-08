@@ -14,7 +14,7 @@ This fix is independent of pending value-analysis UI work. Base: b7b7470. Analys
 ## Recovery procedure
 
 1. Save a server-local full DB dump, gzip-check/hash it; record mapping, filing, valuation and task counts.
-2. Merge after required CI; Production Deploy takes an additional backup and applies additive migration before backend/worker start.
+2. Merge after required CI; Verify the explicit pre-deployment backup first; Production Deploy applies the additive migration before backend/worker start. The deployment script itself does not create an additional DB backup.
 3. Confirm error_code capacity=64 and migration success. Read current mapping counts; if already restored by the normal worker, do not duplicate recovery.
 4. If mappings remain empty, execute `docker exec roxstock-backend node backend/dist/scripts/recover-dart-mappings.js --apply`. This operator command takes the existing collector lock and API budget, fetches one validated corporation response, then uses normal syncCorporations. It does not reset tasks or collect financial history. If the lock is busy, wait for the active cycle rather than deleting its lock.
 5. Compare pre/post counts and saved filing fingerprints. Request two representative stocks for one reported period through the existing manual refresh API; inspect status/results. No full recollection.
@@ -26,3 +26,8 @@ This fix is independent of pending value-analysis UI work. Base: b7b7470. Analys
 - Verified backup: /root/roxstock-backups/dart-recovery-20261009/pre-deploy-20261008T230226Z.sql.gz (server-local .sha256 saved).
 - 2026-10-09 08:03:34 KST: mappings 0; filings 26640; financialStatements 0; valuationMetrics 0; periodValuations 5427; backfillTasks 124368.
 - Deployment/recovery results are appended to the fix PR after execution.
+
+
+## Recovery status after backend deployment
+
+The migration and data preservation checks succeeded, but real mapping recovery is blocked by OPENDART maintenance code 800 (CORP_FETCH). See the QA document for counts and evidence. Wait for a validated normal response; do not populate mappings from guesses, clear progress, or force full recollection. The documented operator command remains available after service recovery, if the normal worker has not already restored mappings.
