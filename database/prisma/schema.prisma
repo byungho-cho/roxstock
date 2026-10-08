@@ -118,6 +118,7 @@ model Security {
   financialStatements    FinancialStatement[]
   valuationMetrics       ValuationMetric[]
   periodValuations       PeriodValuation[]
+  annualConsensusSnapshots AnnualConsensusSnapshot[]
   fundamentals           SecurityFundamentals?
   collectorRunItems      CollectorRunItem[]
   dartCorpMapping        DartCorpMapping?
@@ -662,4 +663,22 @@ model PeriodValuation {
   @@id([securityId,fiscalYear,periodType])
   @@index([status,nextAttemptAt])
   @@map("period_valuations")
+}
+
+model AnnualConsensusSnapshot {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId BigInt @map("security_id") @db.UnsignedBigInt
+  fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
+  source String @db.VarChar(100)
+  asOf DateTime @map("as_of") @db.DateTime(3)
+  collectedAt DateTime @default(now()) @map("collected_at") @db.DateTime(3)
+  state String @default("ESTIMATED") @db.VarChar(24)
+  data Json
+  frozenClose Json? @map("frozen_close")
+  finalValues Json? @map("final_values")
+  finalizedAt DateTime? @map("finalized_at") @db.DateTime(3)
+  security Security @relation(fields:[securityId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  @@unique([securityId,fiscalYear,source,asOf])
+  @@index([securityId,fiscalYear,state])
+  @@map("annual_consensus_snapshots")
 }
