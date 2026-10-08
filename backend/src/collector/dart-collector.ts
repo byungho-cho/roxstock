@@ -1,3 +1,4 @@
+import {dartDiagnostic, recordDartFailure} from './dart-diagnostics.js';
 import { collectAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import {collectionPasses} from './dart-order.js';
 import {supplementSafely,loadPeriodSupplement} from './valuation-supplement.js';
@@ -34,6 +35,9 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   if ((usage?.apiCallCount ?? 0) >= config.dailyCallLimit) return { status: 'QUOTA_BLOCKED' as const };
   if (!await repo.acquireLock(owner, 900)) return { status: 'LOCKED' as const };
   let runId: bigint | undefined;
+  let stage='PLAN';
+  let succeeded=0,failures=0,skipped=0;
+
   let apiErrors = 0;
   let outsideWindowAllowed = false;
   let stoppedCode: string | null = null;
@@ -64,8 +68,10 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     if (refreshAfter && (activeWindow(now, config) || priorityIds.length)) {
       outsideWindowAllowed = priorityIds.length > 0;
       try {
-        const mappings = await dart.fetchCorporations();
-        await repo.syncCorporations(mappings, now);
+        stage='CORP_FETCH';
+    const mappings = await dart.fetchCorporations();
+        stage='CORP_SYNC';
+    await repo.syncCorporations(mappings, now);
         corpSyncSucceeded = true;
       } catch (error) {
         apiErrors += 1;
@@ -73,20 +79,24 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         throw error;
       }
     }
+    stage='PLAN';
     await repo.ensureBackfillPlan(config.backfillStartYear, priorBusinessYear + 1, now);
+    stage='MARK_UNMAPPED';
     if (corpSyncSucceeded) await repo.markUnmappedTasksNotApplicable(now);
+    stage='TASK_QUERY';
     await repo.resetInterruptedTasks();
     let processed = 0;
-    let succeeded = 0;
+
     let noFiling = 0;
-    let failures = 0;
-    let skipped = 0;
+
+
     let companyChecks = 0;
     const latestState = await repo.getState();
     if (!latestState?.backfillCompletedAt) {
       // Priority stocks are eligible throughout the day, including initial history collection.
       if (activeWindow(now, config) || priorityIds.length) await repo.startUpToDailyCompanyLimit(config.backfillCompanyLimit, now, !activeWindow(now, config));
-      const companies = await repo.listStartedBackfillSecurities();
+      stage='TASK_QUERY';
+    const companies = await repo.listStartedBackfillSecurities();
       const rank = new Map(priorityIds.map((id,index)=>[String(id),index]));
       companies.sort((a,b)=>(rank.get(String(a.id)) ?? 1000000)-(rank.get(String(b.id)) ?? 1000000));
       let stop = false;
@@ -99,7 +109,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         await repo.markCompanyChecked(security.id, 'BACKFILL', new Date());
         companyChecks += 1;
         if (!security.corpCode) {
-          await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
+          stage='MARK_UNMAPPED';
+    await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
           continue;
         }
         await checkConsensus(security);
@@ -108,7 +119,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
           const taskNow = new Date();
           const spec = reports[task.reportCode];
           if (!spec) continue;
-          let stage = 'LIST';
+          stage = 'LIST';
           await repo.updateTask(task.id, {status:'PROCESSING',attempts:task.attempts+1,lastAttemptAt:taskNow,errorCode:null,errorMessage:null});
           processed += 1;
           try {
@@ -135,6 +146,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
             await repo.addRunItem(runId,security,task,'SUCCESS',saved.created?undefined:'동일 접수번호 저장됨'); succeeded += 1;
           } catch(error) {
+            log('warn','DART task primary failure',{runId,...dartDiagnostic(error,stage)});
             const failure = dartFailure(error,stage,config.apiKey);
             const retry = retryDecision(failure.code,task.attempts+1,new Date());
             await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
@@ -142,7 +154,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             if (retry.stop) { stoppedCode = failure.code; stop = true; skipped += 1; break; }
             apiErrors += 1; failures += 1;
             await repo.addRunItem(runId,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`);
-            log('warn','DART task failed',{symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
+            log('warn','DART task failed',{runId,...dartDiagnostic(error,stage),symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
           }
         }
         if(!stop){
@@ -161,7 +173,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
       }
       await repo.markBackfillCompleteIfReady();
     } else {
-      const priority = await repo.listPhase2Securities('PRIORITY', 500);
+      stage='TASK_QUERY';
+    const priority = await repo.listPhase2Securities('PRIORITY', 500);
       const priorityIds = new Set(priority.map((security) => security.id.toString()));
       const universe = activeWindow(now, config) ? (await repo.listPhase2Securities('UNIVERSE', config.universeBatchSize)).filter((security) => !priorityIds.has(security.id.toString())) : [];
       let quotaReached = false;
@@ -176,16 +189,17 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const businessYears = [fiscalYear];
             let updated = false;
             for (const fiscalYear of businessYears) {
-              const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
+              stage='LIST'; const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
                 if (await repo.hasStoredReceipt(report.receiptNo)) continue;
-                const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
+                stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
                 if (!fetched.rows.length) continue;
                 if (fetched.rows.some((row) => row.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', 'Financial statement response did not match the selected disclosure receipt number.');
                 const spec = reports[report.reportCode]!;
-                await repo.saveFiling({ securityId: security.id, fiscalYear, periodType: spec.period, reportCode: spec.code,
+                stage='NORMALIZE'; const values=normalizeDartFinancialRows(fetched.rows);
+                stage='SAVE'; await repo.saveFiling({ securityId: security.id, fiscalYear, periodType: spec.period, reportCode: spec.code,
                   fsDivision: fetched.division, receiptNo: report.receiptNo, reportName: report.reportName,
-                  receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, spec.period), collectedAt: new Date(), values: normalizeDartFinancialRows(fetched.rows) });
+                  receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, spec.period), collectedAt: new Date(), values });
                 updated = true;
               }
             }
@@ -193,9 +207,10 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             await repo.addPhase2RunItem(runId, security, 'SUCCESS', updated ? '신규 정정 또는 변경 보고서를 저장했습니다.' : '공시 목록에 변경은 없고 기존 판본을 유지했습니다.');
             if (updated) log('info', 'DART new filing stored', { symbol: security.symbol });
           } catch (error) {
+            const diagnostic=dartDiagnostic(error,stage);log('warn','DART phase2 failure',{runId,...diagnostic});
             failures += 1; apiErrors += 1;
-            await repo.setPhase2Check(security.id, phase, new Date(), error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR');
-            await repo.addPhase2RunItem(runId, security, 'FAILED', error instanceof DartApiError ? `${error.code}: ${error.message}` : 'Unexpected failure; details were redacted.');
+            await repo.setPhase2Check(security.id, phase, new Date(), dartDiagnostic(error,stage).code);
+            await repo.addPhase2RunItem(runId, security, 'FAILED', `${diagnostic.code}: ${diagnostic.message}`);
             if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
           if(!quotaReached){
@@ -217,18 +232,21 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     }
     const usage = await repo.getDailyUsage();
     const status = failures ? (succeeded || noFiling ? 'PARTIAL' : 'FAILED') : 'SUCCESS';
+    stage='RUN_FINISH';
     await repo.finishRun(runId, status, { success: succeeded, failed: failures, skipped }, failures ? 'Some DART requests failed; pending tasks remain resumable.' : undefined,
       { phase: latestState?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', companyChecks, apiCalls: usage?.apiCallCount ?? 0, noFiling, apiErrors });
+    stage='STATE_UPDATE';
     await repo.updateStateError(stoppedCode ? `${stoppedCode}: collection paused` : failures ? 'Some DART tasks failed; see task errors and review queue.' : null);
     await repo.cleanupRealtimeRetention();
     return { status, processed, succeeded, noFiling, failures, apiCalls: usage?.apiCallCount ?? 0 };
   } catch (error) {
-    if (runId) await repo.finishRun(runId, 'FAILED', { success: 0, failed: 1, skipped: 0 }, error instanceof DartApiError ? `${error.code}: ${error.message}` : 'DART collector failed; sensitive request details were redacted.');
-    await repo.updateStateError(error instanceof DartApiError ? `${error.code}: ${error.message}` : 'DART collector failed; sensitive request details were redacted.');
-    if (!(error instanceof DartApiError && error.quotaExceeded)) log('error', 'DART collector cycle failed', { code: error instanceof DartApiError ? error.code : 'UNKNOWN' });
-    return { status: 'FAILED' as const, errorCode: error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR' };
+    const failure=await recordDartFailure(error,stage,runId,[
+      ...(runId?[{stage:'RUN_FINISH',write:(reason:string)=>repo.finishRun(runId!,'FAILED',{success:succeeded,failed:failures+1,skipped},reason)}]:[]),
+      {stage:'STATE_UPDATE',write:(reason:string)=>repo.updateStateError(reason)},
+    ]);
+    return {status:'FAILED' as const,errorCode:failure.code};
   } finally {
-    await repo.releaseLock(owner);
+    try { await repo.releaseLock(owner); } catch(error) { log('error','DART lock release failed',{runId,...dartDiagnostic(error,'LOCK_RELEASE')}); }
   }
 }
 

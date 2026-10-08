@@ -1,3 +1,5 @@
+import {storedDartCode} from './dart-diagnostics.js';
+import {DartApiError, validateDartCorporations} from './dart-provider.js';
 import {supplementSafely} from './valuation-supplement.js';
 import { Prisma, PrismaClient } from '../generated/prisma/index.js';
 import { getSeoulClock, toDatabaseDate } from './time.js';
@@ -62,6 +64,7 @@ export class PrismaDartRepository {
   }
 
   async syncCorporations(corporations: DartCorporation[], syncedAt = new Date()): Promise<{ matched: number; unmatched: number; ambiguous: number }> {
+    validateDartCorporations(corporations);
     const securities = await this.prisma.security.findMany({
       where: { securityType:'STOCK' }, select: { id: true, symbol: true },
     });
@@ -78,14 +81,15 @@ export class PrismaDartRepository {
       const securityId = bySymbol.get(symbol);
       return securityId === undefined ? [] : [{ securityId, corpCode: corp.corpCode, stockCode: symbol, corpName: corp.corpName, sourceModifiedAt: corp.modifiedDate || null, syncedAt }];
     });
+    if (!mapped.length || ambiguous) throw new DartApiError(ambiguous?'CORP_MAPPING_AMBIGUOUS':'CORP_MAPPING_EMPTY','Corporate mapping validation failed.');
     await this.prisma.$transaction(async (tx) => {
       // Replace the full, successfully parsed DART list so removed or changed mappings cannot linger.
       await tx.dartCorpMapping.deleteMany({});
       for (let i = 0; i < mapped.length; i += 500) {
-        await tx.dartCorpMapping.createMany({ data: mapped.slice(i, i + 500), skipDuplicates: true });
+        await tx.dartCorpMapping.createMany({ data: mapped.slice(i, i + 500) });
       }
-    });
-    await this.setState({ corpCodeSyncedAt: syncedAt });
+      await tx.dartCollectorState.upsert({where:{id:1},create:{id:1,phase:'BACKFILL',backfillStartYear:2015,corpCodeSyncedAt:syncedAt},update:{corpCodeSyncedAt:syncedAt}});
+    },{timeout:60000});
     return { matched: mapped.length, unmatched: securities.length - mapped.length, ambiguous };
   }
 
@@ -221,7 +225,7 @@ export class PrismaDartRepository {
   }
 
   async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null }) {
-    return this.prisma.dartBackfillTask.update({ where: { id: taskId }, data: update });
+    return this.prisma.dartBackfillTask.update({ where: { id: taskId }, data: {...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})} });
   }
 
   async markTasks(securityId: bigint, fiscalYear: number, reportCode: string, status: 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED', now: Date, errorCode?: string, errorMessage?: string) {
@@ -229,7 +233,7 @@ export class PrismaDartRepository {
       where: { securityId, fiscalYear, reportCode, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } },
       data: { status, attempts: { increment: status === 'FAILED' ? 1 : 0 }, processedAt: status === 'FAILED' ? null : now,
         lastAttemptAt: now, nextAttemptAt: status === 'FAILED' ? new Date(now.getTime() + 24 * 60 * 60_000) : null,
-        errorCode: errorCode ?? null, errorMessage: errorMessage?.slice(0, 1000) ?? null },
+        errorCode: errorCode ? storedDartCode(errorCode) : null, errorMessage: errorMessage?.slice(0, 1000) ?? null },
     });
   }
 
@@ -367,7 +371,7 @@ export class PrismaDartRepository {
   async markAllSecurityTasksNotApplicable(securityId: bigint, code: string, message: string): Promise<number> {
     return (await this.prisma.dartBackfillTask.updateMany({
       where: { securityId, status: { in: ['PENDING', 'FAILED'] } },
-      data: { status: 'NOT_APPLICABLE', processedAt: new Date(), errorCode: code, errorMessage: message.slice(0, 1000) },
+      data: { status: 'NOT_APPLICABLE', processedAt: new Date(), errorCode: storedDartCode(code), errorMessage: message.slice(0, 1000) },
     })).count;
   }
 
@@ -376,7 +380,7 @@ export class PrismaDartRepository {
     const processing = await this.prisma.dartBackfillTask.findMany({ where: { securityId, status: 'PROCESSING' }, select: { id: true, fiscalYear: true, reportCode: true } });
     if (!processing.length) return 0;
     await this.prisma.dartBackfillTask.updateMany({ where: { id: { in: processing.map((task) => task.id) } }, data: {
-      status, errorCode: code.slice(0, 20), errorMessage: message.slice(0, 1000), processedAt: null,
+      status, errorCode: storedDartCode(code), errorMessage: message.slice(0, 1000), processedAt: null,
       nextAttemptAt: status === 'FAILED' ? new Date(now.getTime() + 6 * 60 * 60_000) : null,
     } });
     await this.prisma.collectorRunItem.createMany({ data: processing.map((task) => ({

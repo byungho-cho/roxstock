@@ -158,3 +158,13 @@ test('historical report search includes late amendments after the following June
   assert.ok(end>'20160630');
   assert.equal(reports[0]?.receiptNo,'20260901000001');
 });
+
+test('corporation errors, empty lists and malformed responses are never successful replacements',async()=>{
+ for(const status of ['010','011','020']){
+  const api=new OpenDartProvider({apiKey:'fixture',dailyCallLimit:10,minDelayMs:1,reserveCall:async()=>true,fetchFn:async()=>new Response(`<result><status>${status}</status><message>secret</message></result>`) });
+  await assert.rejects(api.fetchCorporations(),(e:unknown)=>e instanceof DartApiError&&e.code===status&&!e.message.includes('secret'));
+ }
+ for(const xml of ['<result></result>','<result><list></list></result>','<result><list></result>','<html>error</html>'])assert.throws(()=>parseDartCorpCodeXml(xml),DartApiError);
+ const api=new OpenDartProvider({apiKey:'fixture',dailyCallLimit:10,minDelayMs:1,reserveCall:async()=>true,fetchFn:async()=>new Response(new Uint8Array([80,75,0,0]))});
+ await assert.rejects(api.fetchCorporations(),DartApiError);
+});

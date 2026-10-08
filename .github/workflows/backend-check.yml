@@ -82,6 +82,13 @@ jobs:
       - name: Cash12 latest balance and concurrent writes (real MariaDB API)
         run: node --import tsx --test backend/tests/cash-latest.integration.ts
 
+      - name: DART recovery on isolated real MariaDB
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_dart_recovery_test
+        run: |
+          node --import tsx backend/tests/prepare-dart-recovery.ts
+          node --import tsx --test backend/tests/dart-recovery.integration.ts
+
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
 
