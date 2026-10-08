@@ -77,3 +77,12 @@ test('automatic KRX scope remains restricted and internal restriction is not an 
  try{await assert.rejects(historicalClose('000660',new Date('2025-12-31')),e=>{assert.equal((e as any).code,'KRX_ROLLOUT_NOT_VALIDATED');assert.equal((e as any).category,'INTERNAL_LIMIT');return true;});assert.equal(calls,0);await historicalClose('000660',new Date('2025-12-31'),fetch,'KOSPI','MANUAL_PROTOTYPE');assert.equal(calls,1);await assert.rejects(historicalClose('005380',new Date('2025-12-31'),fetch,'KOSPI','MANUAL_PROTOTYPE'),{code:'KRX_ROLLOUT_NOT_VALIDATED'});}
  finally{krx.close=original;if(key===undefined)delete process.env.KRX_API_KEY;else process.env.KRX_API_KEY=key;if(allowed===undefined)delete process.env.KRX_VALIDATED_SYMBOLS;else process.env.KRX_VALIDATED_SYMBOLS=allowed;}
 });
+
+test('manual CFS ROE does not silently substitute total-equity basis when owner accounts are missing',async()=>{
+ const rows=parseNaverAnnual(table(),'005930',definitions);rows[0]!.values.roe=null;
+ const f=fixture({values:{},provenance:{},supplemental:{price:{value:'1000',date:`${year-1}-12-30`,source:'KRX_UNADJUSTED_CLOSE'}}});
+ const find=f.db.dartFinancialFiling.findFirst.bind(f.db.dartFinancialFiling);const current=await find({where:{fiscalYear:year-1}});
+ f.db.dartFinancialFiling.findFirst=(async(q:any)=>q.where.fiscalYear===year-2?{...current,fiscalYear:year-2,totalEquity:new Prisma.Decimal(250),accountSources:{}}:find(q)) as typeof f.db.dartFinancialFiling.findFirst;
+ await refreshManualAnnual(f.db,f.security,year-1,f.provider,naver(rows),f.repo,16n);
+ assert.equal(f.record().values.roe,null);assert.equal(f.record().reasons.roe,'OWNERS_PROFIT_AND_AVERAGE_EQUITY_BASIS_UNCONFIRMED');assert.equal(f.record().provenance.roeBasis,null);assert.equal(f.record().supplemental.manualAttempt.state,'FINAL_FAILED');
+});
