@@ -15,8 +15,11 @@ main 보호: PR 필수, PR Gate 필수, 최신 브랜치 필수, 관리자 우�
 
 ## 배포 연결
 
-Production Deploy는 main push 또는 수동 실행으로 동작한다.
-GITHUB_TOKEN 자동 병합 후에는 PR Auto Merge가 workflow_dispatch를 명시 호출한다.
+2026-10-08부터 Production Deploy의 main push 트리거를 제거한다. 자동 배포 요청은 PR Auto Merge의 workflow_dispatch 한 경로로 통일한다. 사람이 병합한 PR은 closed 이벤트, GITHUB_TOKEN 자동 병합은 기존 검사 완료 이벤트에서 같은 경로를 사용한다. 닫혔지만 병합되지 않은 PR·초안·외부 포크는 배포하지 않는다.
+
+이름 변경 전 경로를 포함한 PR 파일 전체를 페이지별로 조회해 frontend/backend/database/infra, 루트 package·lock/compose/.dockerignore, 배포 셸, production-deploy/backend-deploy/frontend-image 워크플로 변경만 자동 배포한다. 앱/infra 내부 README 등 Markdown 문서·docs 이미지 캡처·일반 테스트·검사/자동 병합 워크플로만 바뀐 경우 PR 검사는 유지하고 이미지 빌드·서버 재생성은 실행하지 않는다. 프론트 변경도 현재 서버의 동일 SHA 요구를 유지하기 위해 백엔드→프론트의 검증된 묶음 배포를 사용한다.
+
+자동 배포 요청 단계는 전역 직렬화하고, 현재 main SHA와 해당 SHA의 Production Deploy 실행 이력을 확인한다. queued/pending/in_progress 또는 이미 성공한 실행이 있으면 재요청하지 않는다. 실패·취소만 있으면 자동 단계 재실행으로 다시 요청할 수 있다. 필요 시 운영자의 명시적 workflow_dispatch 재배포는 유지한다. 이 명시 실행은 문서 변경 여부와 관계없이 요청한 최신 SHA를 배포한다.
 입력 target_sha는 전체 40자리 SHA이며, 현재 main과 다르면 오래된 작업을 건너뛴다.
 백엔드 → DB 연결·수집기 확인 → 프론트 순서로 기존 워크플로를 호출한다.
 기존 프론트·백엔드 수동 실행도 유지한다. 같은 SHA의 백엔드가 없으면 프론트 단독 배포는 실패하며 Production Deploy를 사용한다.
