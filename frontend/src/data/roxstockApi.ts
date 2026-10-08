@@ -167,6 +167,7 @@ export interface CashHistoryDto {
   meta: { total: number; limit: number; offset: number };
 }
 export interface CashOverviewDto {
+  currentYearTax: {year:number; amount:string};
   account: { id: string; name: string; currentBalance: string; updatedAt: string };
   monthly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
   yearly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
@@ -241,8 +242,8 @@ export const deleteTrade = async (type: 'buy' | 'sell', tradeId: string, cascade
   apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}${cascadeSells ? '&cascadeSells=true' : ''}`, { method: 'DELETE' });
 export const createCashTransaction = (body: { accountId: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; transactionDate: string; amount: string; memo: string | null }) => apiRequest<{ id: string; balanceAfter: string }>('/cash-transactions', { method: 'POST', body: JSON.stringify(body) });
 export const createDividend = (body: { accountId: string; securityId: string; receivedDate: string; grossAmount: string; netAmount: string; memo: string | null }) => apiRequest<{ id: string; cashTransactionId: string; balanceAfter: string }>('/dividends', { method: 'POST', body: JSON.stringify(body) });
-export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string }) => apiRequest<{ id: string; cashBalanceAdjusted: true }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
-export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id: string; cashBalanceAdjusted: true }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
+export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string; feeTaxAmount?:string; balanceAfter?:string }) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
+export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
 export const correctCashBalance = (accountId: string, amount: string) => apiRequest<{ accountId: string; previousBalance: string; cashBalance: string }>(`/accounts/${encodeURIComponent(accountId)}/cash-balance`, { method: 'PATCH', body: JSON.stringify({ amount }) });
 export type CollectionStatusDto = { latestRun: { id: string; status: string; startedAt: string; finishedAt: string | null; successCount: number; failureCount: number; failureReason: string | null } | null; latestPriceAt: string | null; manualRunAvailable: false; settingsAvailable: false };
 export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/collection/status');
