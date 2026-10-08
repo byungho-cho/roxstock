@@ -1,3 +1,4 @@
+import {recordDartFailure} from './dart-diagnostics.js';
 import { refreshManualAnnual } from './manual-annual-prototype.js';
 import { NaverAnnualProvider } from './naver-annual.js';
 import { collectAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
@@ -103,7 +104,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
         const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));
         results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });
       } catch (error) {
-        results.push({ fiscalYear, period, status: 'FAILED', code: error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR' });
+        results.push({ fiscalYear, period, status: 'FAILED', code: (await recordDartFailure(error,metadata.progress?.stage??'MANUAL_REFRESH',run.id,[])).code });
         if (!prototype && error instanceof DartApiError && (error.quotaExceeded || ['010', '011', '012', 'API_KEY_MISSING'].includes(error.code))) {
           throw error;
         }
@@ -111,7 +112,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     }
     }
   } catch (error) {
-    const code = error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR';
+    const code = (await recordDartFailure(error,metadata.progress?.stage??'MANUAL_REFRESH',run.id,[])).code;
     for(let fiscalYear=startYear;fiscalYear<=endYear;fiscalYear++)for(const period of periods)if(!results.some(r=>r.fiscalYear===fiscalYear&&r.period===period))results.push({fiscalYear,period,status:'FAILED',code});
   } finally {
     try {
@@ -122,7 +123,8 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
       const skipped = results.filter((r) => r.status === 'NO_DATA').length;
       for (const result of results) await db.collectorRunItem.create({ data: { runId: run.id, securityId: BigInt(metadata.securityId), symbol: `${metadata.securityId}:${result.fiscalYear}:${result.period}`, status: result.status, message: result.code ?? (result.created ? '신규 판본 저장' : '기존 판본 확인') } });
       await repo.finishRun(run.id, failed ? success || skipped ? 'PARTIAL' : 'FAILED' : skipped === periods.length*(endYear-startYear+1) ? 'SKIPPED' : valuationIncomplete || skipped ? 'PARTIAL' : 'SUCCESS', { success, failed, skipped }, failed ? results.find((r) => r.status === 'FAILED')?.code : undefined, { ...metadata, manualState: 'FINISHED', results });
-    } finally { await repo.releaseLock(owner); }
+    } catch(error) { await recordDartFailure(error,'RUN_FINISH',run.id,[]); }
+    finally { try{await repo.releaseLock(owner);}catch(error){await recordDartFailure(error,'LOCK_RELEASE',run.id,[]);} }
   }
   return true;
 }

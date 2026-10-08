@@ -278,7 +278,7 @@ model DartBackfillTask {
   lastAttemptAt  DateTime?       @map("last_attempt_at") @db.DateTime(3)
   nextAttemptAt  DateTime?       @map("next_attempt_at") @db.DateTime(3)
   processedAt    DateTime?       @map("processed_at") @db.DateTime(3)
-  errorCode      String?         @map("error_code") @db.VarChar(20)
+  errorCode      String?         @map("error_code") @db.VarChar(64)
   errorMessage   String?         @map("error_message") @db.VarChar(1000)
   createdAt      DateTime        @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt      DateTime        @updatedAt @map("updated_at") @db.DateTime(3)
