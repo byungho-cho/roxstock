@@ -15,7 +15,7 @@ import { useEffect,useRef,useState,type ReactNode } from 'react';
 import { useLocation,useNavigate,useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
-import { usePageMemory } from '../../hooks/navigation/usePageMemory';
+import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePageMemory';
 import { ValueFinancialCharts } from './ValueFinancialCharts';
 import { detailValues,listValues,format,movement,number,seoulYear,type ValueDetail,type ValueList } from './valueApi';
 const muted='#94A3B8',cardStyle={bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
@@ -45,7 +45,7 @@ function Detail({data,openCharts,refresh}:{data:ValueDetail;openCharts:()=>void;
 }
 export function ValueAnalysisPage(){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),params=new URLSearchParams(location.search),currentYear=seoulYear();
- const client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation});
+ const returnToSource=useReturnNavigation('/more'),client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation});
  const source=location.state?.stockNavigation as StockNavigation|undefined;
  const sourceItems=source&&source.accountId===accountId?source.ids.flatMap(id=>{const item=accountStocks?.find(s=>s.id===id);return item?[item]:[];}):null;
  const [year,setYear]=useFinancialCondition('year',currentYear,currentYear),[draft,setDraft]=usePageMemory('value-draft',''),[query,setQuery]=usePageMemory('value-query','');
@@ -93,8 +93,9 @@ export function ValueAnalysisPage(){
  </>;
  const detailContent=<>{tablet&&!chart&&selected&&<Box sx={{display:'flex',alignItems:'baseline',gap:.5,mb:1,minWidth:0}}><Typography noWrap title={currentName} sx={{fontSize:14,fontWeight:600,minWidth:0}}>{currentName}</Typography><Typography sx={{fontSize:10,color:muted,flexShrink:0}}> ({currentSymbol})</Typography></Box>}{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')} refresh={<FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box sx={{p:'24px',textAlign:'center'}}><CircularProgress size={20}/></Box>:!detail.error?<Empty/>:null}</>;
  const swipe=useDetailSwipe(move,!refreshOpen&&(chart||coverDetail||tablet));
+ const detailHeader=chart||coverDetail||(tablet&&!!selected);
  return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
-  <PageHeader embedded valueAnalysis title={chart||coverDetail?<Box component="span" sx={{display:'flex',alignItems:'baseline',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false}/>
+  <PageHeader embedded valueAnalysis title={chart||coverDetail?<Box component="span" sx={{display:'flex',alignItems:'baseline',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false} variant={detailHeader?'standard':'detail'} showBackTablet={!detailHeader} onBack={detailHeader?undefined:returnToSource} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>}/>
   {selected&&<FinancialRefreshDialog open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
   {chart?<Box {...swipe} data-detail-swipe data-financial-chart sx={{touchAction:'pan-y'}}>
    <Box data-testid="financial-sticky-header" sx={{position:'sticky',top:0,zIndex:10,bgcolor:colors.canvas,pt:1,pb:0,mb:0,borderBottom:`1px solid ${colors.borderStrong}`}}>
