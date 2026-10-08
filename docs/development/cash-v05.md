@@ -25,7 +25,7 @@
 - PATCH `/cash-transactions/:id`: 선택한 내역의 입력값만 수정한다. `balanceAfter`는 0 이상 Decimal 문자열, `feeTaxAmount`는 부호 있는 Decimal 문자열이다. 생략한 잔액은 유지한다. 최신 내역 수정은 변경된 세후예수금을 현재예수금으로 반영하며 `cashBalanceAdjusted:true`, 과거 내역은 `false`를 반환한다. 원본 BuyTrade/SellTrade/Lot, 이후 내역, 과거 스냅샷을 연쇄 수정하지 않는다.
 - 카드 편집은 `accountId`와 `expectedLatestId`를 보낸다. 잠금 후 최신 내역이 달라졌으면 `409 LATEST_CASH_CHANGED`로 거절하고 다시 열도록 안내한다. 목록에서 과거 내역을 명시적으로 편집하는 것은 계속 허용한다.
 - DELETE `/cash-transactions/:id?accountId`: API에서 선택 계좌를 검사하고 최신 1건만 삭제한다. 삭제 뒤 남은 최신 내역의 세후예수금을 사용하며, 마지막 내역 삭제는 `null/NO_TRANSACTIONS`가 된다. 역산하거나 다른 내역을 재계산하지 않는다.
-- 등록·수정·삭제는 Serializable 트랜잭션 및 계좌 행 `SELECT ... FOR UPDATE` 잠금을 공통 사용한다. 수정·삭제 대상과 최신 판정은 잠금 뒤 재조회한다. 데드락/충돌 P2034 및 롤백이 보장되는 P2002는 최대 3회 전체 트랜잭션을 다시 실행한다. 거래 등록의 기존 요청 ID 중복 방지도 유지한다.
+- 등록·수정·삭제는 Serializable 트랜잭션 및 계좌 행 `SELECT ... FOR UPDATE` 잠금을 공통 사용한다. 수정·삭제 대상과 최신 판정은 잠금 뒤 재조회한다. 데드락/충돌 P2034, P2002 및 MariaDB 잠금 충돌 P2010(SQL 1020/1213/1205)은 트랜잭션 콜백 실패로 롤백된 경우에만 최대 3회 전체 트랜잭션을 다시 실행한다. 거래 등록의 기존 요청 ID 중복 방지도 유지한다.
 
 ## 올해 제세금과 추이 유지
 
