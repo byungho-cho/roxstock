@@ -113,3 +113,6 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 - [삼성전자 2015~2025 수집 검증](qa/collector-krx.md)
 
 - [11차 재무지표 Small 버튼·연도 선택·sticky 검증](qa/financial-ui11.md): 10차의 버튼·상시 연도 셀렉트·스크롤 규칙을 해당 항목에 한해 대체합니다.
+
+- [13차 차트·상세 UI](development/financial-ui13.md) · [13차 QA](qa/financial-ui13.md): 선택/해제·범례·툴팁·간격 기준.
+- [13.1차 진입 경로별 상단·검색 기획](planning/financial-ui13-1.md) · [개발](development/financial-ui13-1.md) · [QA](qa/financial-ui13-1.md): 상세 상단과 검색은 이 기준이 우선합니다.
