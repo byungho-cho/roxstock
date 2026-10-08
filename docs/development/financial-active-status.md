@@ -1,5 +1,9 @@
 # 진행 중 재무 갱신 조회
 
+## 2026-10-08 병합·배포 상태 갱신
+
+#127·#129·#130·#131은 병합됐으며 최종 앱 SHA `292089a`의 [Production Deploy](https://github.com/byungho-cho/roxstock/actions/runs/37710401503)가 10:07:33 KST 성공했다. 아래 개발 당시 실행 계획은 과거 기록이다. 실제 KRX 공급자 조회·운영 키 등록/런타임 전달·컨센서스 경로 및 실기기 검증은 완료로 변경하지 않는다. [현재 현황](../개발현황.md)과 [10차 현행 명세](../handoff/20261008-phase10-current.md)를 함께 사용한다.
+
 GET `/api/securities/:id/financial-refresh/active`
 
 기존 CollectorRun의 `dart-financial-statements` / RUNNING / MANUAL / securityId 조건으로 최근 진행 작업을 읽는다. 작업이 없으면 `{data:null}`. 작업이 있으면 requestId, state, status, startYear, endYear, fiscalYear, period, progress, results, startedAt, finishedAt을 기존 상세 상태 API와 같은 형식으로 반환한다.

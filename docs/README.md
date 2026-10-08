@@ -10,11 +10,13 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 - 문서 내용이 변경되면 Markdown 원본을 먼저 수정하고 PDF를 다시 생성합니다.
 - 확정된 과거 버전은 삭제하거나 덮어쓰지 않고 버전별로 보존합니다.
 
-## 현재 기획 기준 (2026-10-08 · 1~9차 개선 및 QA 수정)
+## 현재 기획 기준 (2026-10-08 · 1~10차 개선)
 
+- [10차 현행 명세](./handoff/20261008-phase10-current.md): 중앙 연도·전체기간 상세 차트·공통 갱신 상태, 수집/운영 등록 분리. 같은 항목의 이전 종료연도 설명보다 우선.
+- [화면 QA](./qa/financial-ui.md) · [수집 QA](./qa/collector-krx.md) · [수집/API 계약](./collection/krx-valuation.md) · [진행 작업 조회](./development/financial-active-status.md).
 - [8·9차 현행 명세](./handoff/20261008-improvements-phase8-9.md): 기존 1~7차 위에 적용하는 최신 요구, 종료연도·공통 갱신 폼, 운영 배포 및 데이터 미검증 범위.
 - [8차 개발 명세](./development/improvements-phase8-20261007.md) · [9차 QA 보고서](./qa/phase9.md) · [자동 병합·배포 계약](./operations/pr-auto-merge-production.md).
-- 최신 확인 앱 SHA `000d600`, [운영 배포 성공](https://github.com/byungho-cho/roxstock/actions/runs/37695383061). 외부 원천 보충 완료 및 Figma 최신화는 별도 확인 대상.
+- 최신 확인 앱 SHA `292089a`, [운영 배포 성공](https://github.com/byungho-cho/roxstock/actions/runs/37710401503), 2026-10-08 10:07:33 KST. 실제 KRX 조회·올해 예상치·운영 키 등록 완료는 미확인. 열린 Draft PR #128 한 건. Figma/실기기 종합 QA는 별도.
 
 - [1~7차 개선 통합 현행 명세](./handoff/20261007-improvements.md): 확정 요구, 최신 우선순위, 취소·보류 및 QA 후 수정. 기획 v0.7·설계 v0.8의 10.07 추가 절과 함께 사용합니다.
 - Figma v0.4·10.06은 기존 디자인 기준이며, 1차 추가 명세와 2차 검토 예시 이후 3차·QA 요구가 모두 반영된 디자인으로 간주하지 않습니다.
@@ -37,7 +39,7 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 
 ## 개발·운영 현황
 
-- [현재 구현·수집·배포 현황 (2026-10-07)](./개발현황.md)
+- [현재 구현·수집·배포 현황 (2026-10-08)](./개발현황.md)
 
 ## API 인터페이스
 
