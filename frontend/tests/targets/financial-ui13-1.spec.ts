@@ -15,7 +15,7 @@ async function selectWatch(page:Page,id=1){
  await expect(page.getByTestId('value-detail')).toBeVisible();
 }
 test('source list order, centered header and entry state survive detail/chart transitions',async({page},info)=>{
- await fixture(page);await page.goto('/stocks?tab=watchlist');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('종목');await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();await page.getByRole('button',{name:'내림차순 · 오름차순으로 변경'}).click();await selectWatch(page);
+ await fixture(page);await page.goto('/stocks?tab=watchlist');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('종목');await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();await selectWatch(page);
  const heading=page.getByRole('heading',{level:1}),nav=page.getByTestId('stock-navigation');await expect(heading).toHaveText('종목1');await expect(nav.getByTestId('stock-navigation-code')).toHaveText('000001');await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
  const h=(await heading.boundingBox())!,n=(await nav.boundingBox())!;expect(Math.abs(h.x+h.width/2-n.x-n.width/2)).toBeLessThan(2);expect(n.y).toBeGreaterThanOrEqual(h.y+h.height-1);
  await page.screenshot({path:info.outputPath('stock-origin-value.png')});
@@ -34,7 +34,7 @@ test('name/code confirm and Enter share search, blur, deduplicate and show empty
 });
 test('Korean composition Enter and native composing Enter cannot commit early',async({page})=>{
  const queries=await fixture(page);await page.goto('/detail/value');const input=page.getByRole('textbox',{name:'종목 검색'});await expect(page.getByTestId('value-row-000001')).toBeVisible();await input.fill('종목1');await input.dispatchEvent('compositionstart');await input.press('Enter');await page.getByRole('button',{name:'검색 확인'}).click();expect(queries).not.toContain('종목1');await input.dispatchEvent('compositionend');await input.press('Enter');await expect(page.getByTestId('value-row-000002')).toHaveCount(0);expect(queries.filter(q=>q==='종목1')).toHaveLength(1);
- await input.fill('000002');const allowed=await input.evaluate(e=>e.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true,cancelable:true})));expect(allowed).toBe(false);expect(queries).not.toContain('000002');await input.press('Enter');await expect(page.getByTestId('value-row-000002')).toBeVisible();expect(await input.evaluate(e=>document.activeElement===e)).toBe(false);
+ await input.fill('000002');const allowed=await input.evaluate(e=>[e.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true,cancelable:true})),e.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',keyCode:229,bubbles:true,cancelable:true}))]);expect(allowed).toEqual([false,false]);expect(queries).not.toContain('000002');await input.press('Enter');await expect(page.getByTestId('value-row-000002')).toBeVisible();expect(await input.evaluate(e=>document.activeElement===e)).toBe(false);
 });
 
 test('holding value popup preserves filtered source and header across charts',async({page})=>{
