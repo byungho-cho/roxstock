@@ -126,14 +126,24 @@ export const unzipDartCorpCodeXml = (data: Uint8Array): string => {
   throw new DartApiError('CORP_CODE_XML_MISSING', 'Open DART corporation-code archive did not contain an XML file.');
 };
 
-export const parseDartCorpCodeXml = (xml: string): DartCorporation[] => [...xml.matchAll(/<list>([\s\S]*?)<\/list>/gi)]
-  .map(([, row = '']) => ({
-    corpCode: xmlValue(row, 'corp_code'),
-    corpName: xmlValue(row, 'corp_name'),
-    stockCode: xmlValue(row, 'stock_code'),
-    modifiedDate: xmlValue(row, 'modify_date'),
-  }))
-  .filter((item) => /^\d{8}$/.test(item.corpCode) && /^\d{6}$/.test(item.stockCode) && item.corpName.length > 0);
+export function validateDartCorporations(rows: DartCorporation[]): void {
+ if(!rows.length)throw new DartApiError('CORP_MAPPING_EMPTY','No listed corporations in response.');
+ const codes=new Set<string>();
+ for(const row of rows){
+  if(!/^\d{8}$/.test(row.corpCode)||!/^\d{6}$/.test(row.stockCode)||!row.corpName.trim()||row.corpName.length>200||!/^\d{8}$/.test(row.modifiedDate)||codes.has(row.corpCode))throw new DartApiError('CORP_MAPPING_INVALID','Corporation row validation failed.');
+  codes.add(row.corpCode);
+ }
+}
+export const parseDartCorpCodeXml = (xml: string): DartCorporation[] => {
+ const status=xmlValue(xml,'status');
+ if(status && status!=='000')throw new DartApiError(/^\d{3}$/.test(status)?status:'CORP_RESPONSE_INVALID','DART corporation response rejected.',false,status==='020');
+ if(!/^\s*(?:<\?xml[^>]*>\s*)?<result>[\s\S]*<\/result>\s*$/.test(xml)||/<!(?:DOCTYPE|ENTITY)/i.test(xml))throw new DartApiError('CORP_XML_INVALID','Malformed corporation XML.');
+ const lists=[...xml.matchAll(/<list>([\s\S]*?)<\/list>/gi)];
+ if(lists.length!==(xml.match(/<list>/gi)??[]).length || lists.length!==(xml.match(/<\/list>/gi)??[]).length)throw new DartApiError('CORP_XML_INVALID','Malformed corporation list.');
+ const all=lists.map(([,row=''])=>({corpCode:xmlValue(row,'corp_code'),corpName:xmlValue(row,'corp_name'),stockCode:xmlValue(row,'stock_code'),modifiedDate:xmlValue(row,'modify_date')}));
+ if(all.some(r=>!/^\d{8}$/.test(r.corpCode)||!r.corpName||!/^\d{8}$/.test(r.modifiedDate)||(r.stockCode!==''&&!/^\d{6}$/.test(r.stockCode))))throw new DartApiError('CORP_MAPPING_INVALID','Invalid corporation list row.');
+ const listed=all.filter(r=>r.stockCode!=='');validateDartCorporations(listed);return listed;
+};
 
 const dateInReportName = (name: string): { year: number; month: number } | null => {
   const match = name.match(/\((\d{4})\.(\d{2})\)/);
@@ -274,6 +284,7 @@ export class OpenDartProvider {
     try { body = await response.json() as DartEnvelope<T>; }
     catch { throw new DartApiError('INVALID_JSON', 'Open DART returned an invalid JSON response.'); }
     finally { this.lastResponseAt = Date.now(); }
+    if (!/^\d{3}$/.test(body.status??'')) throw new DartApiError('INVALID_JSON','Invalid DART status envelope.');
     if (body.status !== '000') await this.options.onApiStatus?.(body.status || 'UNKNOWN');
     if (body.status === '013') return body;
     if (body.status === '020') throw new DartApiError(body.status, 'Open DART daily request quota was exceeded.', false, true);
@@ -296,7 +307,12 @@ export class OpenDartProvider {
     let bytes: Uint8Array;
     try { bytes = new Uint8Array(await response.arrayBuffer()); }
     finally { this.lastResponseAt = Date.now(); }
-    return parseDartCorpCodeXml(unzipDartCorpCodeXml(bytes));
+    try { return parseDartCorpCodeXml(unzipDartCorpCodeXml(bytes)); }
+    catch(error) {
+      const safe=error instanceof DartApiError?error:new DartApiError('INVALID_CORP_CODE_ARCHIVE','Corporation archive could not be parsed.');
+      await this.options.onApiStatus?.(safe.code);
+      throw safe;
+    }
   }
 
   async listPeriodicReports(corpCode: string, fiscalYear: number): Promise<DartReport[]> {

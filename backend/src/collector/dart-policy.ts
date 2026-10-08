@@ -1,3 +1,4 @@
+import {dartDiagnostic} from './dart-diagnostics.js';
 import { getSeoulClock, isHourInOvernightWindow } from './time.js';
 
 export function dartWindowOpen(now: Date, start: number, end: number, holidays: readonly string[] = [], allDay = true) {
@@ -6,13 +7,8 @@ export function dartWindowOpen(now: Date, start: number, end: number, holidays: 
   return allDay && (weekday === 0 || weekday === 6 || holidays.includes(clock.dateKey)) || isHourInOvernightWindow(clock.hour, start, end);
 }
 
-export function dartFailure(error: unknown, stage: string, apiKey = '') {
-  const e = error as { code?: unknown; name?: unknown; message?: unknown } | null;
-  const code = typeof e?.code === 'string' ? e.code : stage === 'SAVE' ? 'DATABASE_ERROR' : stage === 'NORMALIZE' ? 'NORMALIZE_ERROR' : 'RESPONSE_ERROR';
-  let message = typeof e?.message === 'string' ? e.message : 'Unknown collector error';
-  if (apiKey) message = message.split(apiKey).join('[redacted]');
-  message = message.replace(/https?:\/\/\S+/gi, '[url]').replace(/(?:crtfc_key|api[_-]?key|token|secret)[\s=:"']+[^\s&,"']+/gi, '[redacted]');
-  return { code, message: `${stage}: ${String(e?.name ?? 'Error')} ${message}`.slice(0, 900) };
+export function dartFailure(error: unknown, stage: string, _apiKey = '') {
+ const diagnostic=dartDiagnostic(error,stage);return {code:diagnostic.code,message:diagnostic.message};
 }
 
 export function retryDecision(code: string, attempts: number, now: Date) {

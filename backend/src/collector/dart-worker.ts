@@ -1,3 +1,4 @@
+import {dartDiagnostic} from './dart-diagnostics.js';
 import 'dotenv/config';
 import { prisma } from '../lib/prisma.js';
 import { loadCollectorConfig } from './config.js';
@@ -27,8 +28,8 @@ const tick = async () => {
     const result = await runDartCollectorCycle(prisma, dartConfig);
     if (result.status === 'NOT_CONFIGURED') log('warn', 'DART collector is not configured; schedule is inactive', {});
     else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED'].includes(result.status)) log('info', 'DART collector cycle finished', result);
-  } catch {
-    log('error', 'DART collector worker tick failed', { code: 'WORKER_TICK_FAILED' });
+  } catch (error) {
+    log('error', 'DART collector worker tick failed', dartDiagnostic(error,'WORKER_TICK'));
   } finally { running = false; }
 };
 
