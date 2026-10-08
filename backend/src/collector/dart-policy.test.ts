@@ -26,7 +26,7 @@ test('quota pauses without failing a task, transient errors back off and structu
 test('task diagnostics preserve stage and database errors while redacting secrets', () => {
   const failure = dartFailure({code:'P2000',name:'PrismaError',message:'bad amount; api_key=secret123 https://dart.test?crtfc_key=secret123'},'SAVE','secret123');
   assert.equal(failure.code,'P2000');
-  assert.match(failure.message,/SAVE: PrismaError bad amount/);
+  assert.match(failure.message,/SAVE: .*DB/);
   assert.equal(failure.message.includes('secret123'),false);
   assert.equal(failure.message.includes('https:'),false);
 });

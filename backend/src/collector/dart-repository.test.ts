@@ -49,3 +49,8 @@ test('priority enumeration is not truncated by the regular batch limit', async (
  assert.equal((await repo.listPhase2Securities('PRIORITY',1)).length,2);
  assert.equal((await repo.listPhase2Securities('UNIVERSE',1)).length,1);
 });
+
+test('empty mappings cannot hide behind a recent sync timestamp',async()=>{
+ const db={dartCorpMapping:{count:async()=>0},dartCollectorState:{findUnique:async()=>{throw Error('empty mappings must force validated fetch')}}} as unknown as PrismaClient;
+ assert.equal(await new PrismaDartRepository(db).corpCodeMappingsSyncedAt(),null);
+});
