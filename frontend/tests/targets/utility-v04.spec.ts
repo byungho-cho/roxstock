@@ -30,6 +30,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
   if(reset&&path.endsWith('/dashboard'))return route.fulfill({json:{data:{cashBalance:null,holdings:[]}}});
   if(reset&&path.endsWith('/holdings'))return route.fulfill({json:{data:[]}});
   if(reset&&path.endsWith('/cash-overview'))return route.fulfill({json:{data:{account:{currentBalance:null},recentTransactions:[]}}});
+  if(!reset&&path.endsWith('/cash-overview'))return route.fulfill({json:{data:{account:{id:'1',currentBalance:account.cashBalance},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'1',withdrawal:'0',dividend:'0'},yearly:{deposit:'1',withdrawal:'0',dividend:'0'},recentTransactions:[{id:'7',transactionType:'DEPOSIT',transactionDate:'2026-10-01T03:00:00Z',amount:'100',feeTaxAmount:'0',balanceAfter:account.cashBalance}]}}});
   if(reset&&path.endsWith('/asset-history'))return route.fulfill({json:{data:[],summary:{returnRate:null}}});
   return route.fulfill({json:{data:[],pagination:{total:0,totalPages:0,page:1}}});
  });
@@ -102,4 +103,4 @@ test('compound empty once, inherited goal form, title alignment and unchanged ca
  await fixture(page,{empty:true});await page.goto('/detail/compound');await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(1);await expect(page.getByTestId('compound-empty').getByRole('button')).toHaveCount(0);await expect(page.getByRole('button',{name:'계획 추가',exact:true})).toBeVisible();
 });
 
-test('settings current-cash editing connects to ledger and sends no legacy balance write',async({page})=>{const f=await fixture(page);await page.goto('/detail/settings?view=cash');await expect(page.getByRole('textbox',{name:'변경 예수금',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'예수금 내역 편집으로 이동'}).click();await expect(page).toHaveURL(/detail\/cash$/);expect(f.writes).toHaveLength(0);});
+test('settings current-cash editing connects to ledger and sends no legacy balance write',async({page})=>{const f=await fixture(page);await page.goto('/detail/settings?view=cash');await expect(page.getByRole('textbox',{name:'변경 예수금',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'예수금 내역 편집으로 이동'}).click();await expect(page).toHaveURL(/detail\/cash$/);await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');await page.getByRole('button',{name:'현재 예수금 편집',exact:true}).click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('203,200,000');expect(f.writes).toHaveLength(0);});
