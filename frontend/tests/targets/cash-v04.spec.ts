@@ -21,8 +21,10 @@ async function setup(page: Page) {
         } else if (request.method() === 'PATCH') {
           if(saved) saved = {...saved, amount:body.amount, signedAmount:body.amount, memo:body.memo};
           else latest = {...latest, amount:body.amount, signedAmount:body.amount, memo:body.memo};
+          currentBalance = Number(body.balanceAfter);
+          if(saved) saved.balanceAfter=String(currentBalance); else latest.balanceAfter=String(currentBalance);
         } else if (request.method() === 'DELETE') {
-          if(saved) saved = null; else removed = true;
+          if(saved) {saved = null; currentBalance=Number(latest.balanceAfter);} else {removed = true; currentBalance=0;}
         }
       }
       return route.fulfill({ status: writeFail ? 500 : 200, json: writeFail ? { error: { message: '저장 실패 · 다시 시도' } } : { data: { id: 'new', cashBalanceAdjusted: false } } });
@@ -113,7 +115,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   }
 });
 
-test('cover regular input/tablet popup reuses small forms, amount focus and Enter; edit and latest delete preserve balance without original trade writes', async ({ page }) => {
+test('cover regular input/tablet popup reuses small forms, amount focus and Enter; edit preserves explicit balance and latest delete shifts basis without source trade writes', async ({ page }) => {
   const state = await setup(page); await ready(page);
   await expect(page.locator('button[data-testid="cash-history-row"]')).toHaveCount(123);
   await page.getByRole('button', { name: '예수금 등록', exact: true }).click();
@@ -134,7 +136,7 @@ test('cover regular input/tablet popup reuses small forms, amount focus and Ente
   await page.getByRole('textbox', { name: '금액', exact: true }).fill('500'); await page.getByRole('button', { name: '저장', exact: true }).click();
   await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('PATCH'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,201,000원');
   await page.getByRole('button', { name: '입금 내역 수정', exact: true }).first().click(); await page.getByRole('button', { name: '삭제', exact: true }).click();
-  await page.locator('[role="dialog"]').last().getByRole('button', { name: '삭제', exact: true }).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('DELETE'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,201,000원');
+  await page.locator('[role="dialog"]').last().getByRole('button', { name: '삭제', exact: true }).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('DELETE'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');
   expect(state.writes.some(write => /buy-trades|sell-trades/.test(write.path))).toBe(false);
 });
 
@@ -172,9 +174,9 @@ test('period and balance popups retain query and scroll; failed reads/writes ret
   await page.getByRole('button', { name: '기간 직접 선택' }).click(); await expect(page.getByRole('button', { name: '10월', exact: true })).toHaveAttribute('aria-pressed', 'true'); await expect(page.getByRole('button', { name: '11월', exact: true })).toBeDisabled();
   const buttons = await page.locator('[role="dialog"]').getByRole('button').filter({ hasText: /^[1-9]\d?월$/ }).evaluateAll(els => els.map(el => el.getBoundingClientRect().width)); expect(Math.max(...buttons) - Math.min(...buttons)).toBeLessThan(1);
   await page.getByRole('button', { name: '취소', exact: true }).click(); expect(await region(page).evaluate(el => el.scrollTop)).toBe(top);
-  await region(page, 'left').evaluate(el => { el.scrollTop = 0; }); await page.getByRole('button', { name: '현재 예수금 편집' }).click(); await expect(page.getByRole('textbox', { name: '현재 예수금', exact: true })).toBeFocused();
-  state.writeFail(); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).fill('2000'); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).press('Enter'); await expect(page.getByText('저장 실패 · 다시 시도', { exact: true })).toBeVisible();
-  state.success(); await page.getByRole('textbox', { name: '현재 예수금', exact: true }).press('Enter'); await expect(page.getByRole('textbox', { name: '현재 예수금', exact: true })).not.toBeVisible(); expect(state.writes.at(-1)?.body).toMatchObject({ amount: '2000' });
+  await region(page, 'left').evaluate(el => { el.scrollTop = 0; }); await page.getByRole('button', { name: '현재 예수금 편집' }).click(); await expect(page.getByRole('textbox', { name: '금액', exact: true })).toBeFocused();
+  state.writeFail(); await page.getByRole('textbox', { name: '세후예수금', exact: true }).fill('2000'); await page.getByRole('button', {name:'저장',exact:true}).click(); await expect(page.getByText('저장 실패 · 다시 시도', { exact: true })).toBeVisible();
+  state.success(); await page.getByRole('button', {name:'저장',exact:true}).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.body).toMatchObject({ accountId:'a', expectedLatestId:'997', balanceAfter: '2000' });
   state.fail('/asset-history'); await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByText('추이 조회 실패 · 다시 시도', { exact: true })).toBeVisible({ timeout: 15000 });
   state.success(); state.empty(); await page.getByText('추이 조회 실패 · 다시 시도', { exact: true }).click(); await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
   await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByTestId('cash-history-total')).toHaveText('총 0개'); await expect(page.getByTestId('cash-history')).toContainText('내용이 없습니다.');

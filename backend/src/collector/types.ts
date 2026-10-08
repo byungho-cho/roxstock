@@ -71,7 +71,7 @@ export interface SnapshotLot {
 export interface SnapshotAccount {
   id: bigint;
   name: string;
-  cashBalance: string;
+  cashBalance: string | null;
   lots: SnapshotLot[];
 }
 

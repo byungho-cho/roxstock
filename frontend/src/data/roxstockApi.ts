@@ -10,7 +10,7 @@ export interface AccountDto {
   accountNumber?: string | null;
   isDefault?: boolean;
   updatedAt?: string;
-  cashBalance: string;
+  cashBalance: string | null;
   isActive: boolean;
 }
 
@@ -84,7 +84,7 @@ export interface HoldingDto {
 
 export interface AccountDashboardDto {
   account: Pick<AccountDto, 'id' | 'name' | 'brokerName'>;
-  cashBalance: string;
+  cashBalance: string | null;
   purchaseAmount: string;
   stockValue: string | null;
   totalAssetValue: string | null;
@@ -123,12 +123,12 @@ export interface SecuritySearch {
 
 export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
 export type AccountWriteInput = { name: string; brokerName: string; accountNumber?: string | null; isDefault?: boolean };
-export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
+export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string | null; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
 export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
 
 /** The test-only backend accepts a fixed confirmation word; the UI additionally checks the account name. */
 export const resetAccountData = (accountId: string) =>
-  apiRequest<{ accountId: string; cashBalance: string; deleted: Record<string, number> }>(
+  apiRequest<{ accountId: string; cashBalance: string | null; deleted: Record<string, number> }>(
     `/accounts/${encodeURIComponent(accountId)}/reset`,
     { method: 'POST', body: JSON.stringify({ confirmation: '초기화' }) },
   );
@@ -151,7 +151,7 @@ export const getAccountDashboard = (accountId: string) => apiRequest<AccountDash
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
 export interface AssetHistoryDto {
-  data: { date: string; investmentAmount?: string | null; totalAssetValue: string; cashBalance: string; stockValue: string; change: string | null; changeRate: string | null }[];
+  data: { date: string; investmentAmount?: string | null; totalAssetValue: string; cashBalance: string | null; stockValue: string; change: string | null; changeRate: string | null }[];
   compoundPlan?: {id:string;name:string;assetBasis:string;initialAssetValue:string;yearTarget:string|null;goalName:string|null;targetYear:number} | null;
   summary: { calculationUnavailableReason?:string|null;unrealizedChange?:string|null;realizedProfitLoss?:string|null;dividendIncome?:string|null;feeTaxAmount?:string|null;detailedProfitLoss?:string|null;reconciliationDifference?:string|null;ledgerFrom?:string|null;ledgerTo?:string|null;profitLoss: string | null; returnRate: string | null; from?: string | null; to?: string | null; openingAssetValue?: string | null; closingAssetValue?: string | null; depositAmount?: string | null; withdrawalAmount?: string | null };
 }
@@ -159,7 +159,7 @@ export const getAssetHistory = (accountId: string, range?: { from?: string; to?:
 
 export interface CashTransactionDto {
   id: string; transactionType: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAWAL' | 'DIVIDEND';
-  createdAt: string; feeTaxAmount: string; transactionDate: string; amount: string; signedAmount: string; balanceAfter: string; memo: string | null;
+  createdAt: string; feeTaxAmount: string; transactionDate: string; amount: string; signedAmount: string; balanceAfter: string | null; memo: string | null;
   dividend: { id: string; securityId: string; securityName: string; grossAmount: string; netAmount: string } | null;
 }
 export interface CashHistoryDto {
@@ -168,7 +168,7 @@ export interface CashHistoryDto {
 }
 export interface CashOverviewDto {
   currentYearTax: {year:number; amount:string};
-  account: { id: string; name: string; currentBalance: string; updatedAt: string };
+  account: { id: string; name: string; currentBalance: string | null; balanceStatus?: 'AVAILABLE' | 'NO_TRANSACTIONS' | 'BALANCE_MISSING'; latestTransactionId?: string | null; updatedAt: string | null };
   monthly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
   yearly: { deposit: string; withdrawal: string; dividend: string; netChange: string };
   recentTransactions: CashTransactionDto[];
@@ -221,7 +221,7 @@ export interface SellTradeInput {
   feeTaxAmount: string;
   memo: string | null;
 }
-export interface TradeResult { id: string; cashTransactionId: string; amount: string; feeTaxAmount: string; balanceAfter: string; remainingQuantity?: string; realizedProfitLoss?: string }
+export interface TradeResult { id: string; cashTransactionId: string; amount: string; feeTaxAmount: string; balanceAfter: string | null; remainingQuantity?: string; realizedProfitLoss?: string }
 export const createBuyTrade = (body: BuyTradeInput) => apiRequest<TradeResult>('/buy-trades', { method: 'POST', body: JSON.stringify(body) });
 export const createSellTrade = async (body: SellTradeInput) => apiRequest<TradeResult>('/sell-trades', { method: 'POST', body: JSON.stringify({ ...body, accountId: body.accountId ?? await currentAccountId() }) });
 export interface TradeDetailDto {
@@ -242,9 +242,8 @@ export const deleteTrade = async (type: 'buy' | 'sell', tradeId: string, cascade
   apiRequest<{ id: string; deleted: boolean; deletedSellCount?: number }>(`${tradePath(type, tradeId)}?accountId=${encodeURIComponent(accountId ?? await currentAccountId())}${cascadeSells ? '&cascadeSells=true' : ''}`, { method: 'DELETE' });
 export const createCashTransaction = (body: { accountId: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; transactionDate: string; amount: string; memo: string | null }) => apiRequest<{ id: string; balanceAfter: string }>('/cash-transactions', { method: 'POST', body: JSON.stringify(body) });
 export const createDividend = (body: { accountId: string; securityId: string; receivedDate: string; grossAmount: string; netAmount: string; memo: string | null }) => apiRequest<{ id: string; cashTransactionId: string; balanceAfter: string }>('/dividends', { method: 'POST', body: JSON.stringify(body) });
-export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string; feeTaxAmount?:string; balanceAfter?:string }) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
-export const deleteCashTransaction = (transactionId: string) => apiRequest<{ id: string; cashBalanceAdjusted: false }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
-export const correctCashBalance = (accountId: string, amount: string) => apiRequest<{ accountId: string; previousBalance: string; cashBalance: string }>(`/accounts/${encodeURIComponent(accountId)}/cash-balance`, { method: 'PATCH', body: JSON.stringify({ amount }) });
+export const updateCashTransaction = (transactionId: string, body: { transactionDate: string; amount: string; memo: string | null; securityId?: string; grossAmount?: string; feeTaxAmount?:string; balanceAfter?:string; accountId?:string; expectedLatestId?:string }) => apiRequest<{ id: string; cashBalanceAdjusted: boolean }>(`/cash-transactions/${encodeURIComponent(transactionId)}`, { method: 'PATCH', body: JSON.stringify(body) });
+export const deleteCashTransaction = (transactionId: string, accountId?: string) => apiRequest<{ id: string; cashBalanceAdjusted: boolean }>(`/cash-transactions/${encodeURIComponent(transactionId)}${accountId ? '?accountId=' + encodeURIComponent(accountId) : ''}`, { method: 'DELETE' });
 export type CollectionStatusDto = { latestRun: { id: string; status: string; startedAt: string; finishedAt: string | null; successCount: number; failureCount: number; failureReason: string | null } | null; latestPriceAt: string | null; manualRunAvailable: false; settingsAvailable: false };
 export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/collection/status');
 export interface CollectionMonitorSummary {
