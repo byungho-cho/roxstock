@@ -1,7 +1,11 @@
-import { Box, Typography, IconButton, Popover } from '@mui/material';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import {useQuery} from '@tanstack/react-query';
+import {useLocation,useNavigate} from 'react-router-dom';
+import {FinancialPeriodHeader} from './FinancialPeriodHeader';
+import { Box, Typography, IconButton, Popover, Button, Dialog, CircularProgress } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useEffect,useRef,useState } from 'react';
-import { format,number,type FinancialRow } from './valueApi';
+import { format,number,allFinancialRows,type FinancialRow } from './valueApi';
 type Metric = { key:keyof FinancialRow; label:string; color:string; scale?:number; right?:boolean };
 const red='#fa616e',blue='#6ba7ee',green='#48cba5';
 const groups:{title:string;unit:string;rightUnit?:string;metrics:Metric[]}[]=[
@@ -16,25 +20,34 @@ function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof g
  const [scale,unit]=maximum>=1e12?[1e12,'조원']:maximum>=1e8?[1e8,'억원']:maximum>=1e4?[1e4,'만원']:[1,'원'];
  return {...group,unit:String(unit),metrics:group.metrics.map(metric=>({...metric,scale:Number(scale)}))};
 }
-function Chart({rows,group}:{rows:FinancialRow[];group:typeof groups[number]}) {
- const ref=useRef<HTMLDivElement>(null),[width,setWidth]=useState(320);
- useEffect(()=>{const el=ref.current;if(!el)return;const observer=new ResizeObserver(()=>setWidth(el.clientWidth));observer.observe(el);setWidth(el.clientWidth);return()=>observer.disconnect();},[]);
- const values=group.metrics.map(metric=>rows.map(row=>{const raw=row[metric.key];const n=typeof raw==='string'?number(raw):null;return n===null?null:n/(metric.scale??1);}));
+function Chart({rows,group,expanded=false}:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean}) {
+ const ref=useRef<HTMLDivElement>(null),[size,setSize]=useState({width:320,height:116}),[active,setActive]=useState<number|null>(null);
+ useEffect(()=>{setActive(null);},[rows,group.title]);
+ useEffect(()=>{const el=ref.current;if(!el)return;const update=()=>setSize({width:el.clientWidth,height:expanded?Math.max(120,el.clientHeight):116});const observer=new ResizeObserver(update);observer.observe(el);update();return()=>observer.disconnect();},[expanded]);
+ const {width,height}=size,top=12,bottom=height-30,leftPadding=38,plotWidth=Math.max(1,width-76);
+ const rawValues=group.metrics.map(metric=>rows.map(row=>{const raw=row[metric.key];return typeof raw==='string'?number(raw):null;}));
+ const first=rawValues.map(ns=>ns.findIndex(n=>n!==null));
+ // Leading gaps only: original rows/API values are never mutated, and interior gaps stay null.
+ const synthetic=(metric:number,index:number)=>expanded&&first[metric]>index&&first[metric]>=0;
+ const values=rawValues.map((ns,metric)=>ns.map((n,i)=>synthetic(metric,i)?0:n===null?null:n/(group.metrics[metric].scale??1)));
  const extent=(right:boolean)=>{const ns=values.flatMap((ns,i)=>Boolean(group.metrics[i].right)===right?ns.filter((n):n is number=>n!==null):[]);const min=Math.min(0,...ns),max=Math.max(0,...ns);return {min,max:max===min?min+1:max};};
- const left=extent(false),right=extent(true),x=(i:number)=>Math.min(38,width/6)+(Math.max(1,width-76))*i/Math.max(1,rows.length-1),y=(n:number,axis:typeof left)=>84-(n-axis.min)/(axis.max-axis.min)*74;
- const available=values.some(ns=>ns.some(n=>n!==null));
- return <Box ref={ref} data-no-stock-swipe data-testid={'value-chart-'+group.title}>
-  <svg role="img" aria-label={group.title+' '+group.unit+(group.rightUnit?' · 우측 '+group.rightUnit:'')} width="100%" height="116" viewBox={'0 0 '+width+' 116'} style={{display:'block'}}>
-   {[0,1,2].map(i=><line key={i} x1="0" x2={width} y1={10+i*37} y2={10+i*37} stroke="#334155" strokeWidth=".6"/>)}
-   {group.metrics.map((metric,index)=>{let previous=false;const axis=metric.right?right:left;const d=values[index].map((n,i)=>{if(n===null){previous=false;return '';}const command=(previous?'L':'M')+x(i)+' '+y(n,axis);previous=true;return command;}).join(' ');return <g key={metric.key}><path d={d} fill="none" stroke={metric.color} strokeWidth="1.8"/>{values[index].map((n,i)=>n===null?null:<circle key={i} cx={x(i)} cy={y(n,axis)} r="2" fill={metric.color}><title>{rows[i].label+' '+metric.label+' '+format(n,2,metric.right?'%':group.unit)+(rows[i].metricDate&&['per','pbr','roe'].includes(String(metric.key))?' · 저장 기준일 '+rows[i].metricDate:'')}</title></circle>)}</g>;})}
-   {rows.map((row,i)=><text key={row.key} x={x(i)} y="110" textAnchor="middle" fontSize="10" fill="#94A3B8">{row.quarter===null?row.year:rows.length>3?String(row.year).slice(2)+'.'+row.quarter+'Q':row.label}</text>)}
-  </svg>
-  <Box sx={{display:'flex',flexWrap:'wrap',gap:'12px',justifyContent:'flex-start',my:'4px'}}>{group.metrics.map(metric=><Typography key={metric.key} sx={{fontSize:10,color:metric.color}}><Box component="span" sx={{display:'inline-block',width:6,height:6,borderRadius:3,bgcolor:metric.color,mr:'4px',verticalAlign:'middle'}}/>{metric.label}{metric.right?' (우측 %)':''}</Typography>)}</Box>
-
-  {!available&&<Typography sx={{fontSize:10,color:'#94A3B8',textAlign:'center'}}>표시할 지표가 없습니다. 기간별 사유를 확인하세요.</Typography>}
-  <Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+', minmax(0, 1fr))',gap:'8px',fontSize:11,lineHeight:'20px',color:'#94A3B8',mt:'4px'}}>
-   {group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><span>{metric.label}{group.title==='수익성'?`(${group.unit})`:''}</span>{values[index].map((n,i)=><span key={i} style={{textAlign:'right',overflowWrap:'anywhere'}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}
+ const left=extent(false),right=extent(true),x=(i:number)=>leftPadding+plotWidth*i/Math.max(1,rows.length-1),y=(n:number,axis:typeof left)=>bottom-(n-axis.min)/(axis.max-axis.min)*(bottom-top);
+ const available=rawValues.some(ns=>ns.some(n=>n!==null));
+ const drag=(clientX:number)=>{if(!ref.current||!rows.length)return;const index=Math.round((clientX-ref.current.getBoundingClientRect().left-leftPadding)/plotWidth*(rows.length-1));setActive(Math.max(0,Math.min(rows.length-1,index)));};
+ const valueText=(metric:number,index:number)=>synthetic(metric,index)||values[metric][index]===null?'데이터 없음':format(values[metric][index],2,group.metrics[metric].right?'%':group.unit);
+ return <Box sx={{display:'flex',flexDirection:'column',minHeight:0,...(expanded?{flex:1}:{})}} data-no-stock-swipe data-testid={'value-chart-'+group.title}>
+  {available?<><Box ref={ref} sx={{position:'relative',minHeight:120,...(expanded?{flex:1}:{height:116}),touchAction:'pan-y'}}>
+   <svg role="img" aria-label={group.title+' '+group.unit+(group.rightUnit?' · 우측 '+group.rightUnit:'')} width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{display:'block',touchAction:expanded?'none':'pan-y'}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);drag(e.clientX);}} onPointerMove={e=>{if(e.buttons||e.pointerType==='touch')drag(e.clientX);}} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setActive(i=>Math.max(0,Math.min(rows.length-1,(i??0)+(e.key==='ArrowRight'?1:-1))));}}} tabIndex={0}>
+    {[0,1,2].map(i=><g key={i}><line x1={leftPadding} x2={width-leftPadding} y1={top+i*(bottom-top)/2} y2={top+i*(bottom-top)/2} stroke="#334155" strokeWidth=".6"/>{expanded&&<text x="2" y={top+i*(bottom-top)/2+4} fontSize="10" fill="#94A3B8">{format(left.max-i*(left.max-left.min)/2,1)}</text>}{expanded&&group.rightUnit&&<text x={width-2} y={top+i*(bottom-top)/2+4} textAnchor="end" fontSize="10" fill="#94A3B8">{format(right.max-i*(right.max-right.min)/2,1,'%')}</text>}</g>)}
+    {group.metrics.map((metric,index)=>{let previous=false;const axis=metric.right?right:left;const d=values[index].map((n,i)=>{if(n===null){previous=false;return '';}const command=(previous?'L':'M')+x(i)+' '+y(n,axis);previous=true;return command;}).join(' ');return <g key={metric.key}><path d={d} fill="none" stroke={metric.color} strokeWidth="1.8"/>{values[index].map((n,i)=>n===null?null:<circle key={i} cx={x(i)} cy={y(n,axis)} r="2" fill={metric.color}><title>{rows[i].label+' '+metric.label+' '+valueText(index,i)}</title></circle>)}</g>;})}
+    {rows.map((row,i)=>(!expanded||i===0||i===rows.length-1||i%Math.max(1,Math.ceil(rows.length/(width/55)))===0&&x(rows.length-1)-x(i)>48)&&<text key={row.key} x={x(i)} y={height-7} textAnchor="middle" fontSize="10" fill={row.isEstimated?'#FBBF24':'#94A3B8'} fontWeight={row.isEstimated?700:400}>{row.quarter===null?`${row.year}${row.isEstimated?'E':''}`:String(row.year).slice(2)+'.'+row.quarter+'Q'}</text>)}
+    {active!==null&&rows[active]&&<line data-testid="financial-drag-guide" x1={x(active)} x2={x(active)} y1={top} y2={bottom} stroke="#FBBF24" strokeDasharray="3 3"/>}
+   </svg>
+   {active!==null&&rows[active]&&<Box role="status" data-testid="financial-chart-tooltip" sx={{position:'absolute',top:4,left:Math.max(0,Math.min(width-190,x(active)-95)),width:190,maxWidth:'100%',pointerEvents:'none',bgcolor:'#182232',border:'1px solid #334155',borderRadius:1,p:.75,fontSize:11}}><b>{rows[active].label}{rows[active].isEstimated&&!rows[active].label.endsWith('E')?'E':''}</b>{group.metrics.map((metric,i)=><Box key={metric.key} sx={{color:metric.color}}>{metric.label} {valueText(i,active)}</Box>)}</Box>}
   </Box>
+  <Box sx={{display:'flex',flexWrap:'wrap',gap:1.5,justifyContent:'flex-start',my:.5}}>{group.metrics.map(metric=><Typography key={metric.key} sx={{fontSize:10,color:metric.color}}><Box component="span" sx={{display:'inline-block',width:6,height:6,borderRadius:3,bgcolor:metric.color,mr:.5}}/>{metric.label}{metric.right?' (우측 %)':''}</Typography>)}</Box>
+  {expanded?group.metrics.map((metric,index)=>first[index]>0?<Typography key={metric.key} sx={{fontSize:11,color:'#FBBF24'}}>{metric.label}: {rows[first[index]].year}년도부터 데이터가 제공됩니다.</Typography>:null):<Box sx={{display:'grid',gridTemplateColumns:`94px repeat(${rows.length}, minmax(0, 1fr))`,gap:1,fontSize:11,lineHeight:'20px',color:'#94A3B8',mt:.5}}>{group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><span>{metric.label}{group.title==='수익성'?`(${group.unit})`:''}</span>{values[index].map((n,i)=><span key={i} style={{textAlign:'right',overflowWrap:'anywhere'}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}</Box>}
+  </>:<Typography role="status" sx={{fontSize:12,color:'#94A3B8',textAlign:'center',py:3,...(expanded?{flex:1,display:'grid',placeItems:'center'}:{})}}>내용이 없습니다.</Typography>}
  </Box>;
 }
 function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
@@ -55,4 +68,17 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
  <Box id="metric-notice-tooltip" role="dialog" aria-label="가치지표 안내" tabIndex={0} onKeyDown={e=>{if(e.key==='Escape')setAnchor(null);}}>{[...new Set(notes)].map(note=><Typography key={note} sx={{fontSize:11,mb:1}}>{note}</Typography>)}{notices.map(n=><Box key={n.key} sx={{mb:1}}><Typography sx={{fontSize:12,fontWeight:600}}>{n.label}</Typography>{n.reasons.map(reason=><Typography key={reason} sx={{fontSize:11,color:'#CBD5E1',overflowWrap:'anywhere'}}>{reason}</Typography>)}</Box>)}</Box>
  </Popover></>;
 }
-export function ValueFinancialCharts({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {return <Box sx={{display:'grid',gap:'8px'}}><Box sx={{display:'grid',gridTemplateColumns:'94px repeat('+rows.length+',minmax(0,1fr))',gap:'8px',px:'16px',fontSize:11,color:'#94a3b8'}}><span>기간</span>{rows.map(r=><span key={r.key} style={{textAlign:'right'}}>{r.label}</span>)}</Box>{groups.map(group=><Box key={group.title} sx={{bgcolor:'#111927',borderRadius:'8px',p:'8px 16px'}}><Box sx={{display:'flex',alignItems:'center'}}><Typography sx={{fontSize:13,fontWeight:600}}>{group.title}</Typography>{group.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}</Box><Chart rows={rows} group={currencyGroup(group,rows)}/></Box>)}</Box>;}
+export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',currentYear=new Date().getFullYear(),centerYear=currentYear-1,onCenterChange}:{rows:FinancialRow[];notes?:string[];stockId?:string;mode?:'annual'|'quarter';currentYear?:number;centerYear?:number;onCenterChange?:(year:number)=>void}) {
+ const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search),selected=params.get('chartDetail'),group=groups.find(g=>g.title===selected);
+ const all=useQuery({queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
+ const open=(title:string)=>{const search=new URLSearchParams(location.search);search.set('chartDetail',title);navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,financialChartOrigin:true}});};
+ const close=()=>{if(location.state?.financialChartOrigin&&Number(window.history.state?.idx)>0)navigate(-1);else {const search=new URLSearchParams(location.search);search.delete('chartDetail');navigate(location.pathname+'?'+search,{replace:true,state:location.state});}};
+ return <Box sx={{display:'grid',gap:1}}>
+  <FinancialPeriodHeader rows={rows} centerYear={centerYear} currentYear={currentYear} onCenterChange={onCenterChange}/>
+  {groups.map(g=><Box key={g.title} sx={{bgcolor:'#111927',borderRadius:1,p:'8px 16px'}}><Box sx={{display:'flex',alignItems:'center'}}><Typography sx={{fontSize:13,fontWeight:600}}>{g.title}</Typography>{g.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}<Button size="small" disabled={!stockId} onClick={()=>open(g.title)} sx={{ml:'auto',p:0,minWidth:0,fontSize:10,color:'#94A3B8'}}>상세보기</Button></Box><Chart rows={rows} group={currencyGroup(g,rows)}/></Box>)}
+  <Dialog fullScreen transitionDuration={0} open={!!group} onClose={close} aria-label="재무지표 차트 상세보기" slotProps={{paper:{'aria-label':'재무지표 차트 상세보기',sx:{bgcolor:'#080F1C',backgroundImage:'none',p:1,overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
+   <Box sx={{display:'flex',alignItems:'center',gap:1,minHeight:36,flexShrink:0}}><IconButton aria-label="차트 상세보기 뒤로가기" onClick={close} size="small"><ArrowBackRoundedIcon/></IconButton><Typography sx={{fontSize:14,fontWeight:600}}>{group?.title}</Typography><Typography sx={{ml:'auto',fontSize:11,color:'#94A3B8'}}>2015–{currentYear} · {mode==='annual'?'연간':'분기'}</Typography></Box>
+   {all.isPending?<Box sx={{flex:1,display:'grid',placeItems:'center'}}><CircularProgress size={24}/></Box>:all.isError?<Box role="alert" sx={{p:2}}>전체 기간 조회에 실패했습니다.<Button onClick={()=>void all.refetch()}>다시 조회</Button></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
+  </Dialog>
+ </Box>;
+}

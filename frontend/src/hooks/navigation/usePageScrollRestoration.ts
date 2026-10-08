@@ -11,8 +11,10 @@ export function usePageScrollRestoration(ref: RefObject<HTMLElement | null>) {
     if (!main) return;
     const applied = new WeakMap<HTMLElement, string>();
     const regions = () => [main, ...main.querySelectorAll<HTMLElement>('[data-scroll-region]')];
+    const scrollSearch = new URLSearchParams(location.search); scrollSearch.delete('chartDetail');
+    const scrollQuery = scrollSearch.toString();
     const keyFor = (element: HTMLElement) => pageKey + ':scroll:' + JSON.stringify([
-      element.dataset.scrollRegion==='compound-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='compound-right' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='value-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>key!=='selected' && key!=='view')).toString() : element.dataset.scrollRegion==='stock-left' ? new URLSearchParams([...new URLSearchParams(location.search)].filter(([key])=>key!=='selected' && key!=='detailTab')).toString() : location.search, element === main ? 'body' : element.dataset.scrollRegion,
+      element.dataset.scrollRegion==='compound-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='compound-right' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>!['form','view','plan','goal'].includes(key))).toString() : element.dataset.scrollRegion==='value-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>key!=='selected' && key!=='view')).toString() : element.dataset.scrollRegion==='stock-left' ? new URLSearchParams([...new URLSearchParams(scrollQuery)].filter(([key])=>key!=='selected' && key!=='detailTab')).toString() : scrollQuery, element === main ? 'body' : element.dataset.scrollRegion,
       element.dataset.listCondition ?? main.querySelector<HTMLElement>('[data-list-condition]')?.dataset.listCondition ?? '',
     ]);
     const items = (element: HTMLElement) => [...element.querySelectorAll<HTMLElement>('[data-scroll-item]')].filter(item => {
