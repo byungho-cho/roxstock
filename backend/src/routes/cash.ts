@@ -91,7 +91,7 @@ const mapTransaction = (transaction: {
   transactionType: transaction.transactionType,
   transactionDate: transaction.transactionDate.toISOString(),
   amount: transaction.amount.toString(),
-  feeTaxAmount: transaction.feeTaxAmount.toString(),
+  feeTaxAmount: (transaction.dividend ? transaction.dividend.grossAmount.minus(transaction.dividend.netAmount) : transaction.feeTaxAmount).toString(),
   signedAmount: cashDelta(transaction.transactionType, transaction.amount, transaction.feeTaxAmount).toString(),
   balanceAfter: transaction.balanceAfter.toString(),
   memo: transaction.memo,
@@ -161,13 +161,16 @@ export async function cashRoutes(app: FastifyInstance) {
     const year = integer(request.query.year, 'year', nowKst.getFullYear(), 2000, 2100);
     const month = integer(request.query.month, 'month', nowKst.getMonth() + 1, 1, 12);
     const limit = integer(request.query.limit, 'limit', 10, 1, 100);
-    const [monthlyGroups, yearlyGroups, recent] = await Promise.all([
+    const [monthlyGroups, yearlyGroups, recent, yearTax, dividendTax] = await Promise.all([
       groupedSummary(accountId, kstMonthRange(year, month), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
       groupedSummary(accountId, kstYearRange(year), [CashTransactionType.DEPOSIT, CashTransactionType.WITHDRAWAL, CashTransactionType.DIVIDEND]),
       prisma.cashTransaction.findMany({ where: { accountId }, include: { dividend: { include: { security: { select: { name: true } } } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: limit }),
+      prisma.cashTransaction.aggregate({where:{accountId,transactionType:{not:CashTransactionType.DIVIDEND},transactionDate:{gte:kstDate(nowKst.getFullYear(),1,1),lte:new Date()}},_sum:{feeTaxAmount:true}}),
+      prisma.dividend.aggregate({where:{accountId,cashTransaction:{transactionDate:{gte:kstDate(nowKst.getFullYear(),1,1),lte:new Date()}}},_sum:{grossAmount:true,netAmount:true}}),
     ]);
     return {
       data: {
+        currentYearTax: {year:nowKst.getFullYear(), amount:(yearTax._sum.feeTaxAmount ?? zero()).plus(dividendTax._sum.grossAmount ?? zero()).minus(dividendTax._sum.netAmount ?? zero()).toString()},
         account: { id: account.id.toString(), name: account.name, currentBalance: account.cashBalance.toString(), updatedAt: account.updatedAt.toISOString() },
         monthly: { year, month, ...summarizeCashGroups(monthlyGroups) },
         yearly: { year, ...summarizeCashGroups(yearlyGroups) },

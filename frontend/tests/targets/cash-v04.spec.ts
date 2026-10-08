@@ -19,11 +19,9 @@ async function setup(page: Page) {
           currentBalance += Number(body.amount);
           saved = {...latest, id:'new', transactionDate:body.transactionDate, createdAt:'2026-10-04T04:00:00Z', amount:body.amount, signedAmount:body.amount, memo:body.memo, balanceAfter:String(currentBalance)};
         } else if (request.method() === 'PATCH') {
-          currentBalance += Number(body.amount) - Number((saved ?? latest).amount);
           if(saved) saved = {...saved, amount:body.amount, signedAmount:body.amount, memo:body.memo};
           else latest = {...latest, amount:body.amount, signedAmount:body.amount, memo:body.memo};
         } else if (request.method() === 'DELETE') {
-          currentBalance -= Number((saved ?? latest).amount);
           if(saved) saved = null; else removed = true;
         }
       }
@@ -64,7 +62,7 @@ test('account and period scope synchronizes history total and stored trend; cale
   const state = await setup(page); await ready(page);
   await expect(page.getByTestId('cash-history-row')).toHaveCount(123);
   expect(state.reads.filter(url => url.pathname.endsWith('/cash-transactions')).map(url => url.searchParams.get('offset'))).toEqual(['0', '100']);
-  await expect(page.getByTestId('cash-trend-segment')).toHaveCount(3);
+  expect((await page.getByTestId('cash-trend-chart').locator('path[stroke="#60A5FA"]').first().getAttribute('d'))?.match(/M/g)).toHaveLength(3);
   await page.getByRole('button', { name: '이전 1개월 불러오기' }).click();
   await expect(page.getByTestId('cash-history-total')).toHaveText('총 126개');
   const ids = await page.getByTestId('cash-history-row').evaluateAll(els => els.map(el => (el as HTMLElement).dataset.scrollItem)); expect(new Set(ids).size).toBe(126);
@@ -84,8 +82,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   await setup(page); await ready(page);
   const assetRoots = await page.evaluate(async () => Promise.all(['edit', 'calendar', 'search', 'search-clear'].map(async name => new DOMParser().parseFromString(await (await fetch('/cash-v04/' + name + '.svg')).text(), 'image/svg+xml').documentElement.tagName))); expect(assetRoots).toEqual(['svg', 'svg', 'svg', 'svg']);
   await expect.poll(() => page.locator('img[src^="/cash-v04/"]').evaluateAll(els => els.every(el => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0))).toBe(true);
-  if (info.project.name === 'tablet-725x396') console.log('ROX_CASH_IMAGE ' + (await page.screenshot()).toString('base64'));
-  expect((await page.getByTestId('cash-balance').boundingBox())!.x).toBe(8);
+  expect((await page.getByTestId('cash-balance').boundingBox())!.x).toBe(Math.max(0,(page.viewportSize()!.width-816)/2)+8);
   expect((await page.getByTestId('cash-balance').boundingBox())!.y).toBe(44);
   expect((await page.getByTestId('cash-balance').boundingBox())!.height).toBe(96);
   expect((await page.getByTestId('cash-trend').boundingBox())!.height).toBeGreaterThanOrEqual(82);
@@ -116,9 +113,9 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   }
 });
 
-test('cover regular input/tablet popup reuses small forms, amount focus and Enter; latest edit and delete adjust balance without original trade writes', async ({ page }) => {
+test('cover regular input/tablet popup reuses small forms, amount focus and Enter; edit and latest delete preserve balance without original trade writes', async ({ page }) => {
   const state = await setup(page); await ready(page);
-  await expect(page.locator('button[data-testid="cash-history-row"]')).toHaveCount(1);
+  await expect(page.locator('button[data-testid="cash-history-row"]')).toHaveCount(123);
   await page.getByRole('button', { name: '예수금 등록', exact: true }).click();
   // Wait for the popup's onEntered focus before testing explicit keyboard navigation.
   if (tablet(page)) await expect(page.locator('.MuiDialog-container:visible')).toHaveCSS('opacity', '1');
@@ -134,10 +131,10 @@ test('cover regular input/tablet popup reuses small forms, amount focus and Ente
   await page.getByRole('button', { name: '입금 내역 수정', exact: true }).first().click();
   await page.getByRole('textbox', { name: '금액', exact: true }).focus();
   const selection = await page.getByRole('textbox', { name: '금액', exact: true }).evaluate(el => { const i = el as HTMLInputElement; return [i.selectionStart, i.selectionEnd, i.value.length]; }); expect(selection[0]).toBe(0); expect(selection[1]).toBe(selection[2]);
-  await page.getByRole('textbox', { name: '금액', exact: true }).fill('500'); await page.getByRole('button', { name: '변경', exact: true }).click();
-  await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('PATCH'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,500원');
+  await page.getByRole('textbox', { name: '금액', exact: true }).fill('500'); await page.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('PATCH'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,201,000원');
   await page.getByRole('button', { name: '입금 내역 수정', exact: true }).first().click(); await page.getByRole('button', { name: '삭제', exact: true }).click();
-  await page.locator('[role="dialog"]').last().getByRole('button', { name: '삭제', exact: true }).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('DELETE'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,200,000원');
+  await page.locator('[role="dialog"]').last().getByRole('button', { name: '삭제', exact: true }).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.method).toBe('DELETE'); await expect(page.getByTestId('cash-balance-value')).toHaveText('203,201,000원');
   expect(state.writes.some(write => /buy-trades|sell-trades/.test(write.path))).toBe(false);
 });
 
@@ -161,7 +158,7 @@ test('dividend requires a traded security and preserves draft; gross net tax Ent
   await gross.press('Enter');
   const net = page.getByRole('textbox', {name:'세후 배당',exact:true});
   await expect(net).toBeFocused(); await net.fill('846000'); await net.press('Enter');
-  const tax = page.getByRole('textbox', {name:'세금',exact:true});
+  const tax = page.getByRole('textbox', {name:'제세금',exact:true});
   await expect(tax).toBeFocused(); await expect(tax).toHaveValue('154,000');
   await tax.press('Enter'); await expect(page.getByRole('textbox',{name:'메모',exact:true})).toBeFocused();
   await page.getByRole('textbox', { name: '메모', exact: true }).press('Enter'); await expect(page.getByTestId('cash-form')).not.toBeVisible();

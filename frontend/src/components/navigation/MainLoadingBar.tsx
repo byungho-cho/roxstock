@@ -18,9 +18,15 @@ export function MainLoadingBar() {
       if (!busy) { clearTimeout(timer); timer = undefined; setVisible(false); }
       else if (!timer) timer = setTimeout(() => setVisible(true), 150);
     };
-    const unsubscribe = cache.subscribe(update);
+    // Query observers can notify during render; publish the loading state after that render.
+    let disposed = false, queued = false;
+    const unsubscribe = cache.subscribe(() => {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => { queued = false; if (!disposed) update(); });
+    });
     update();
-    return () => { unsubscribe(); clearTimeout(timer); };
+    return () => { disposed = true; unsubscribe(); clearTimeout(timer); };
   }, [client, location.pathname, location.search, manual]);
   return <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1600, height: 3, pointerEvents: 'none' }}>
     {visible && <LinearProgress aria-label="메인 로딩바" data-testid="main-loading-bar" sx={{ height: 3 }} />}
