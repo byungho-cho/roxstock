@@ -19,7 +19,7 @@ export interface DartBackfillTaskRecord {
   attempts: number;
 }
 
-export interface DartSecurityRecord { id: bigint; symbol: string; securityType: string; corpCode: string | null; }
+export interface DartSecurityRecord { id: bigint; symbol: string; securityType: string; marketType?: string; corpCode: string | null; }
 
 export class PrismaDartRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -132,11 +132,14 @@ export class PrismaDartRepository {
   }
 
   async prioritySecurityIds(): Promise<bigint[]> {
-    const trades = await this.prisma.buyTrade.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'}},distinct:['securityId'],select:{securityId:true}});
+    const trades = await this.prisma.buyTrade.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'}},select:{securityId:true,quantity:true,sellTrades:{select:{quantity:true}}}});
     const listed = await this.prisma.accountWatchlistItem.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'},listType:{in:['HOLDING','WATCHLIST']}},select:{securityId:true,listType:true,priority:true}});
     const rank = new Map<bigint, number>();
-    for (const item of listed.filter(item=>item.listType!=='RECOMMENDED')) rank.set(item.securityId, Math.max(rank.get(item.securityId) ?? 0, (item.listType === 'WATCHLIST' ? 1 : 2) * 1000000 + item.priority));
-    for (const item of trades) rank.set(item.securityId, 3000000);
+    for (const item of listed.filter(item=>item.listType!=='RECOMMENDED')) rank.set(item.securityId, Math.max(rank.get(item.securityId) ?? 0, (item.listType === 'WATCHLIST' ? 2 : 3) * 1000000 + item.priority));
+    for (const item of trades) {
+      const held=item.quantity&&item.quantity.minus(item.sellTrades.reduce((sum,sale)=>sum.plus(sale.quantity),new Prisma.Decimal(0))).gt(0);
+      rank.set(item.securityId, Math.max(rank.get(item.securityId) ?? 0, held?3000000:1000000));
+    }
     return [...rank.keys()].sort((a,b)=>(rank.get(b)!-rank.get(a)!) || (a<b?-1:1));
   }
 
@@ -170,10 +173,10 @@ export class PrismaDartRepository {
     const states = await this.prisma.dartSecurityState.findMany({
       where: { backfillStartedAt: { not: null }, backfillCompletedAt: null,
         security: { isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
-      select: { securityId: true, security: { select: { symbol: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
+      select: { securityId: true, security: { select: { symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
       orderBy: { backfillStartedAt: 'asc' },
     });
-    return states.map((item) => ({ id: item.securityId, symbol: item.security.symbol, securityType: item.security.securityType, corpCode: item.security.dartCorpMapping?.corpCode ?? null }));
+    return states.map((item) => ({ id: item.securityId, symbol: item.security.symbol, marketType: item.security.marketType, securityType: item.security.securityType, corpCode: item.security.dartCorpMapping?.corpCode ?? null }));
   }
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
@@ -408,12 +411,12 @@ export class PrismaDartRepository {
         ...(phase === 'PRIORITY' ? { id: { in: priorityIds } } : {}),
         ...(phase === 'UNIVERSE' ? { dartDailyCompanyChecks: { none: { usageDate: today } } } : {}),
         ...(ignoreChecked?{}:{dartSecurityState: { is: filterTime }}) },
-      select: { id: true, symbol: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
+      select: { id: true, symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
       orderBy: [{ id: 'asc' }],
       ...(phase === 'UNIVERSE' ? { take: limit } : {}),
     });
     if (phase === 'PRIORITY') items.sort((a, b) => (priorities.get(b.id) ?? 0) - (priorities.get(a.id) ?? 0) || (a.id < b.id ? -1 : 1));
-    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
+    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, marketType: item.marketType, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
   }
 
   async updateStateError(error: string | null): Promise<void> {
