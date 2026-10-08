@@ -1,7 +1,7 @@
 import {HeaderAddButton} from '../../components/navigation/HeaderAddButton';
 import { Box, Button, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { stockItems } from '../../data/mockData';
 import type { StockItem, StockListType } from '../../types/models';
@@ -27,7 +27,7 @@ const recentTrades = [
 ];
 
 export function TabletStockDetail({ stock, initialTab = 'holding' }: { stock: StockItem; initialTab?: DetailTab }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(), location = useLocation();
   const [tab, setTab] = useState<DetailTab>(initialTab);
   const holdings = stockItems.filter((item) => item.listType === 'holding');
   const visible = [stock, ...holdings.filter((item) => item.id !== stock.id)].slice(0, 3);
@@ -56,7 +56,7 @@ export function TabletStockDetail({ stock, initialTab = 'holding' }: { stock: St
         <Stack direction="row" sx={{ alignItems: 'start', justifyContent: 'space-between', mt: '2px' }}><Box><Typography noWrap sx={{ fontSize: 22, fontWeight: 700, lineHeight: '29px' }}>{stock.name}</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>{stock.symbol} · KOSPI</Typography></Box><Box sx={{ textAlign: 'right' }}><Typography noWrap sx={{ fontSize: 20, fontWeight: 700, color: getMarketColor(stock.priceChangeRate) }}>{won(stock.currentPrice)}</Typography><Typography sx={{ fontSize: 11, color: getMarketColor(stock.priceChangeRate) }}>{formatRate(stock.priceChangeRate)}</Typography></Box></Stack>
         <Stack direction="row" spacing="8px" sx={{ mt: '9px' }}>
           {([['holding', '보유현황'], ['summary', '요약'], ['trades', '거래내역']] as const).map(([value, label]) => <Button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} sx={{ minWidth: 0, minHeight: 28, height: 28, px: '11px', border: `1px solid ${tab === value ? colors.buttonPrimary : colors.borderStrong}`, borderRadius: '8px', bgcolor: tab === value ? colors.buttonPrimary : '#172033', color: tab === value ? colors.textPrimary : colors.textMuted, fontSize: 11, whiteSpace: 'nowrap' }}>{label}</Button>)}
-          <Button onClick={() => navigate(`/stocks/${stock.id}/value`)} sx={linkStyle}>가치분석</Button><Button onClick={() => navigate(`/stocks/${stock.id}/financials`)} sx={linkStyle}>재무지표</Button>
+          <Button onClick={() => navigate(`/stocks/${stock.id}/value`,{state:location.state})} sx={linkStyle}>가치분석</Button><Button onClick={() => navigate(`/stocks/${stock.id}/financials`,{state:location.state})} sx={linkStyle}>재무지표</Button>
         </Stack>
         {tab === 'holding' ? <>
           <Stack direction="row" spacing="14px" sx={{ mt: '12px' }}><SummaryMetric label="평가금액" value={won(market)} color={getMarketColor(profit)} detail={`${stock.quantity ?? 0} × ${won(stock.currentPrice)}`} /><SummaryMetric label="평가손익" value={`${profit >= 0 ? '+' : ''}${won(profit)}`} color={getMarketColor(profit)} detail={formatRate(profitRate)} /></Stack>
