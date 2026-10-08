@@ -62,14 +62,15 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
     supplemental=await loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping.corpCode,undefined,security.marketType,'MANUAL_PROTOTYPE')(filing,supplemental);
     const previous=await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year-1,periodType:'ANNUAL',isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
     const calculated=calculatePeriod(filing,previous??undefined,supplemental);
+    const calculationEvidence=(key:typeof metricKeys[number])=>({...calculated.provenance,method:key==='eps'?'COLLECTED_DART_ACCOUNT':'CALCULATED',manualVersion:version,formula:{eps:'DISCLOSED_ANNUAL_BASIC_ORDINARY_EPS',bps:'OWNERS_EQUITY / PERIOD_END_OUTSTANDING_ORDINARY_SHARES',per:'LAST_TRADING_DAY_CLOSE / ANNUAL_EPS',pbr:'LAST_TRADING_DAY_CLOSE / YEAR_END_BPS',roe:'ANNUAL_PROFIT / AVERAGE_PREVIOUS_AND_CURRENT_YEAR_END_EQUITY * 100'}[key],accountEvidence:{stored:filing!.accountSources,supplement:supplemental.accounts?.sources??null},sharesEvidence:supplemental.shares??null,financialInputs:{netIncome:filing!.netIncomeYtd?.toString()??null,equity:filing!.totalEquity?.toString()??null,previousEquity:previous?.totalEquity?.toString()??null}});
     // A public-data close without verified share/adjustment evidence cannot unlock manual ratio calculations.
     if(supplemental.price?.source!=='KRX_UNADJUSTED_CLOSE'&&!supplemental.basis){calculated.values.per=null;calculated.values.pbr=null;calculated.reasons.per='PUBLIC_PRICE_SHARE_BASIS_UNCONFIRMED';calculated.reasons.pbr='PUBLIC_PRICE_SHARE_BASIS_UNCONFIRMED';}
     // Ratios use the same denominator group. A Naver denominator is never silently combined with DART/KRX.
     for(const [base,ratio] of [['eps','per'],['bps','pbr']] as const){
-     if(freshValues[base]==null&&calculated.values[base]!=null){freshValues[base]=calculated.values[base];perMetric[base]=calculated.provenance;}
-     if(freshValues[ratio]==null&&calculated.values[ratio]!=null&&freshValues[base]===calculated.values[base]&&!(base in perMetric&&source?.values[base]!=null)) {freshValues[ratio]=calculated.values[ratio];perMetric[ratio]=calculated.provenance;}
+     if(freshValues[base]==null&&calculated.values[base]!=null){freshValues[base]=calculated.values[base];perMetric[base]=calculationEvidence(base);}
+     if(freshValues[ratio]==null&&calculated.values[ratio]!=null&&freshValues[base]===calculated.values[base]&&!(base in perMetric&&source?.values[base]!=null)) {freshValues[ratio]=calculated.values[ratio];perMetric[ratio]=calculationEvidence(ratio);}
     }
-    if(freshValues.roe==null&&calculated.values.roe!=null){freshValues.roe=calculated.values.roe;perMetric.roe=calculated.provenance;}
+    if(freshValues.roe==null&&calculated.values.roe!=null){freshValues.roe=calculated.values.roe;perMetric.roe=calculationEvidence('roe');}
     Object.assign(reasons,calculated.reasons);Object.assign(errors,supplemental.errors??{});
    }catch(e){errors.supplement=safeCode(e);}
   }

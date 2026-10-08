@@ -66,7 +66,7 @@ test('missing PER uses verified year-end price and disclosed ordinary EPS; corpo
  const saved={price:{value:'1000',date:`${year-1}-12-30`,source:'KRX_UNADJUSTED_CLOSE'},shares:{outstanding:'10',preferred:false,receiptNo:'20260301000001'},basis:{epsPriceCompatible:true,bpsPriceCompatible:true,receiptNo:'20260301000001',source:'VERIFIED_ORDINARY',verifiedAt:new Date().toISOString()}};
  const f=fixture({values:{},provenance:{},supplemental:saved});
  await refreshManualAnnual(f.db,f.security,year-1,f.provider,naver(rows),f.repo,14n);
- assert.equal(f.record().values.eps,'6605');assert.equal(f.record().values.per,'0.1514');assert.equal(f.record().provenance.perMetric.per.priceDate,`${year-1}-12-30`);assert.equal(f.record().provenance.perMetric.per.epsBasis,'DISCLOSED_BASIC_EPS_WEIGHTED_AVERAGE_ORDINARY_SHARES');
+ assert.equal(f.record().values.eps,'6605');assert.equal(f.record().values.per,'0.1514');assert.equal(f.record().provenance.perMetric.per.method,'CALCULATED');assert.equal(f.record().provenance.perMetric.per.formula,'LAST_TRADING_DAY_CLOSE / ANNUAL_EPS');assert.equal(f.record().provenance.perMetric.eps.accountEvidence.stored.basicEps.amount,'6605');assert.equal(f.record().provenance.perMetric.per.priceDate,`${year-1}-12-30`);assert.equal(f.record().provenance.perMetric.per.epsBasis,'DISCLOSED_BASIC_EPS_WEIGHTED_AVERAGE_ORDINARY_SHARES');
  const blocked=fixture({values:{},provenance:{},supplemental:{...saved,basis:{...saved.basis,epsPriceCompatible:false}}});
  await refreshManualAnnual(blocked.db,blocked.security,year-1,blocked.provider,naver(rows),blocked.repo,15n);
  assert.equal(blocked.record().values.per,null);assert.equal(blocked.record().supplemental.manualAttempt.state,'FINAL_FAILED');assert.match(blocked.record().reasons.per,/액면분할/);
