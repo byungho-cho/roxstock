@@ -3,7 +3,7 @@ import type { Supplemental } from '../domain/period-valuation.js';
 export type KrxMarket = 'KOSPI' | 'KOSDAQ';
 type Row = Record<string, string>;
 const endpoints = { KOSPI: { daily: 'stk_bydd_trd', master: 'stk_isu_base_info' }, KOSDAQ: { daily: 'ksq_bydd_trd', master: 'ksq_isu_base_info' } };
-const numeric = (value: string | undefined) => value?.replaceAll(',', '').trim();
+const numeric = (value: string | undefined) => typeof value==='string'?value.replaceAll(',', '').trim():undefined;
 const day = (value: string) => value.replaceAll('/', '').replaceAll('-', '');
 const validDay = (value: string) => /^\d{8}$/.test(value) && !Number.isNaN(Date.parse(`${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`));
 /** One full-market response per date. Only successful parsed responses are cached. */
@@ -35,6 +35,8 @@ export class KrxProvider {
     let body: { OutBlock_1?: unknown };
     try { body = await response.json(); } catch { throw new HistoricalPriceError('KRX_RESPONSE_PARSE', 'PARSE'); }
     if (!Array.isArray(body.OutBlock_1) || body.OutBlock_1.some(r => !r || typeof r !== 'object')) throw new HistoricalPriceError('KRX_RESPONSE_SCHEMA', 'PARSE');
+    const required=kind==='daily'?['ISU_CD','BAS_DD','TDD_CLSPRC','ACC_TRDVOL']:['ISU_CD','ISU_SRT_CD','KIND_STKCERT_TP_NM'];
+    if(body.OutBlock_1.some(row=>required.some(field=>typeof row[field]!=='string')))throw new HistoricalPriceError('KRX_RESPONSE_FIELD_TYPE','PARSE');
     return body.OutBlock_1 as Row[];
   }
   async close(symbol: string, end: Date, market: KrxMarket): Promise<NonNullable<Supplemental['price']>> {
@@ -47,7 +49,11 @@ export class KrxProvider {
       if (!rows.length) continue;
       const row = rows.find(r => r.ISU_CD === normalized);
       if (!row) throw new HistoricalPriceError('KRX_SYMBOL_NO_DATA', 'NO_DATA');
-      if (day(row.BAS_DD ?? '') !== date || !/^\d+(\.\d+)?$/.test(numeric(row.TDD_CLSPRC) ?? '') || Number(numeric(row.TDD_CLSPRC)) <= 0) throw new HistoricalPriceError('KRX_PRICE_INVALID', 'PARSE');
+      if (typeof row.BAS_DD!=='string'||typeof row.TDD_CLSPRC!=='string'||day(row.BAS_DD) !== date || !/^\d+(\.\d+)?$/.test(numeric(row.TDD_CLSPRC) ?? '') || Number(numeric(row.TDD_CLSPRC)) <= 0) throw new HistoricalPriceError('KRX_PRICE_INVALID', 'PARSE');
+      if(typeof row.ACC_TRDVOL!=='string'||!/^\d+$/.test(numeric(row.ACC_TRDVOL)??''))throw new HistoricalPriceError('KRX_VOLUME_INVALID','PARSE');
+      // A carried close on a zero-volume stock date is not an actual stock trading day.
+      // This is distinct from an empty entire-market response (market closure).
+      if(Number(numeric(row.ACC_TRDVOL))===0)continue;
       const master = (await this.rows(market, date, 'master')).find(r => r.ISU_SRT_CD === normalized);
       if (!master) throw new HistoricalPriceError('KRX_MASTER_NO_DATA', 'NO_DATA');
       if (master.KIND_STKCERT_TP_NM !== '보통주') throw new HistoricalPriceError('KRX_ORDINARY_SHARE_BASIS_UNCONFIRMED', 'PROVIDER');
