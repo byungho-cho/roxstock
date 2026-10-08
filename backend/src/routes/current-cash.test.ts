@@ -34,3 +34,11 @@ test('serialization conflict retries entire transaction and re-reads changed lat
  prisma.$transaction=(async(fn:any)=>{attempts++;const basis=await fn({cashTransaction:{findFirst:async()=>({id:BigInt(attempts),balanceAfter:d(attempts*100),updatedAt:new Date()})}});if(attempts===1)throw new Prisma.PrismaClientKnownRequestError('conflict',{code:'P2034',clientVersion:'test'});return basis;}) as any;
  try{const result=await serializable(tx=>readCurrentCash(tx,1n));assert.equal(attempts,2);assert.equal(result.transactionId,'2');assert.equal(result.balance?.toString(),'200');}finally{prisma.$transaction=original;}
 });
+
+test('MariaDB raw lock conflicts retry rolled-back work; unrelated raw errors do not retry',async()=>{
+ const original=prisma.$transaction;
+ try{for(const sqlCode of ['1020','1213','1205','1146']){
+  let attempts=0;prisma.$transaction=(async()=>{attempts++;if(attempts===1)throw new Prisma.PrismaClientKnownRequestError('raw query failure',{code:'P2010',clientVersion:'test',meta:{code:sqlCode}});return 'ok';}) as any;
+  if(sqlCode==='1146'){await assert.rejects(serializable(async()=>''));assert.equal(attempts,1);}else{assert.equal(await serializable(async()=>''),'ok');assert.equal(attempts,2);}
+ }}finally{prisma.$transaction=original;}
+});
