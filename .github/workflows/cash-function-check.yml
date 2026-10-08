@@ -1,16 +1,17 @@
-name: Cash v0.4 Function Check
+name: Cash v0.5 Function Check
 on:
   pull_request:
     branches: [main]
     paths:
       - frontend/src/pages/cash/**
       - frontend/tests/targets/cash-v04.spec.ts
+      - frontend/tests/targets/cash-v05.spec.ts
       - .github/workflows/cash-function-check.yml
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: cash-v04-${{ github.head_ref || github.ref }}
+  group: cash-v05-${{ github.head_ref || github.ref }}
   cancel-in-progress: false
 jobs:
   functions:
@@ -26,24 +27,24 @@ jobs:
       - uses: actions/cache/restore@v4
         id: passed
         with:
-          path: ${{ runner.temp }}/cash-v04-passed
-          key: cash-v04-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/cash-v04.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.targets.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/cash-function-check.yml') }}
+          path: ${{ runner.temp }}/cash-v05-passed
+          key: cash-v05-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/cash-v04.spec.ts', 'frontend/tests/targets/cash-v05.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.cash-v05.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/cash-function-check.yml') }}
       - if: steps.passed.outputs.cache-hit != 'true'
         run: npm ci --workspace frontend --include-workspace-root=false
       - if: steps.passed.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - name: Check changed cash at four requested sizes
+      - name: Check changed cash at cover, tablet and desktop sizes
         if: steps.passed.outputs.cache-hit != 'true'
-        run: npx playwright test --config=playwright.targets.config.ts cash-v04.spec.ts --workers=2
+        run: npx playwright test --config=playwright.cash-v05.config.ts --workers=2
         working-directory: frontend
       - if: steps.passed.outputs.cache-hit != 'true'
-        run: mkdir -p "${{ runner.temp }}/cash-v04-passed" && git rev-parse HEAD > "${{ runner.temp }}/cash-v04-passed/passed"
+        run: mkdir -p "${{ runner.temp }}/cash-v05-passed" && git rev-parse HEAD > "${{ runner.temp }}/cash-v05-passed/passed"
       - if: steps.passed.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ${{ runner.temp }}/cash-v04-passed
-          key: cash-v04-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/cash-v04.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.targets.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/cash-function-check.yml') }}
+          path: ${{ runner.temp }}/cash-v05-passed
+          key: cash-v05-v1-${{ hashFiles('frontend/src/**', 'frontend/tests/targets/cash-v04.spec.ts', 'frontend/tests/targets/cash-v05.spec.ts', 'frontend/tests/targets/stock-input-fixture.ts', 'frontend/playwright.cash-v05.config.ts', 'frontend/package.json', 'package-lock.json', '.github/workflows/cash-function-check.yml') }}
       - name: Record execution
         if: always()
         run: |
@@ -51,8 +52,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always() && steps.passed.outputs.cache-hit != 'true'
         with:
-          name: cash-v04-evidence
+          name: cash-v05-evidence
           path: |
-            frontend/test-results/targets/
+            frontend/test-results/cash-v05/
             frontend/playwright-targets-report/
           retention-days: 7

@@ -3,9 +3,8 @@ import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
-import { cashDelta } from './cash.js';
 
-type CashEditBody = { transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown };
+type CashEditBody = { transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
 type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
 const transactionOptions = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5_000, timeout: 10_000 } as const;
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
@@ -13,7 +12,7 @@ async function latestAccount(tx: Prisma.TransactionClient, cash: {id: bigint; ac
   const account = await tx.account.findUnique({where:{id:cash.accountId}});
   if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
   const latest = await tx.cashTransaction.findFirst({where:{accountId:cash.accountId},orderBy:[{createdAt:'desc'},{id:'desc'}]});
-  if (latest?.id !== cash.id) throw new ApiError(409, 'LATEST_CASH_ONLY', '가장 최근 등록된 예수금 내역만 보정할 수 있습니다.');
+  if (latest?.id !== cash.id) throw new ApiError(409, 'LATEST_CASH_ONLY', '가장 최근 등록된 예수금 내역만 삭제할 수 있습니다.');
   return account;
 }
 
@@ -35,7 +34,7 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       const balanceAfter = account.cashBalance.plus(netAmount);
       const cash = await tx.cashTransaction.create({ data: {
         accountId, transactionType: CashTransactionType.DIVIDEND, transactionDate: receivedAt,
-        amount: netAmount, feeTaxAmount: new Prisma.Decimal(0), balanceAfter, memo,
+        amount: netAmount, feeTaxAmount: grossAmount.minus(netAmount), balanceAfter, memo,
       } });
       const dividend = await tx.dividend.create({ data: {
         accountId, securityId, cashTransactionId: cash.id, receivedDate: dividendDay(receivedAt), grossAmount, netAmount, memo,
@@ -52,7 +51,8 @@ export async function cashMutationRoutes(app: FastifyInstance) {
     const result = await prisma.$transaction(async (tx) => {
       const cash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
       if (!cash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
-      const account = await latestAccount(tx, cash);
+      const account = await tx.account.findUnique({where:{id:cash.accountId}});
+      if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
       const transactionDate = body.transactionDate === undefined ? cash.transactionDate : dateTime(body.transactionDate, 'transactionDate');
       const amount = body.amount === undefined ? cash.amount : positiveDecimal(body.amount, 'amount');
       const memo = body.memo === undefined ? cash.memo : optionalMemo(body.memo);
@@ -69,10 +69,15 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       } else if (body.securityId !== undefined || body.grossAmount !== undefined) {
         throw new ApiError(400, 'INVALID_INPUT', 'Dividend fields are only valid for dividends.');
       }
-      const balanceAfter = account.cashBalance.minus(cashDelta(cash.transactionType, cash.amount, cash.feeTaxAmount)).plus(cashDelta(cash.transactionType, amount, cash.feeTaxAmount));
-      await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, balanceAfter } });
-      await tx.account.update({where:{id:cash.accountId},data:{cashBalance:balanceAfter}});
-      return { id: transactionId.toString(), cashBalanceAdjusted: true, cashBalance: balanceAfter.toString() };
+      const nonNegative = (value: unknown, field: string) => {
+        if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value)) throw new ApiError(400, 'INVALID_INPUT', `${field} must be a non-negative decimal string.`);
+        return new Prisma.Decimal(value);
+      };
+      const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : nonNegative(body.feeTaxAmount, 'feeTaxAmount');
+      const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : nonNegative(body.balanceAfter, 'balanceAfter');
+      await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter } });
+      return { id: transactionId.toString(), cashBalanceAdjusted: false };
+
     }, transactionOptions);
     return { data: result };
   });
@@ -82,13 +87,11 @@ export async function cashMutationRoutes(app: FastifyInstance) {
     const result = await prisma.$transaction(async (tx) => {
       const cash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
       if (!cash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
-      const account = await latestAccount(tx, cash);
+      await latestAccount(tx, cash);
       if (cash.transactionType === CashTransactionType.DIVIDEND && !cash.dividend) throw new ApiError(409, 'DIVIDEND_LINK_MISSING', 'Dividend record is missing.');
       if (cash.dividend) await tx.dividend.delete({ where: { id: cash.dividend.id } });
       await tx.cashTransaction.delete({ where: { id: transactionId } });
-      const cashBalance = account.cashBalance.minus(cashDelta(cash.transactionType, cash.amount, cash.feeTaxAmount));
-      await tx.account.update({where:{id:cash.accountId},data:{cashBalance}});
-      return { id: transactionId.toString(), cashBalanceAdjusted: true, cashBalance: cashBalance.toString() };
+      return { id: transactionId.toString(), cashBalanceAdjusted: false };
     }, transactionOptions);
     return { data: result };
   });

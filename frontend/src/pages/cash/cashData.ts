@@ -41,3 +41,13 @@ export function cashSegments(data: AssetHistoryDto['data']) {
   if (current.length) segments.push(current);
   return segments;
 }
+
+// Decimal text arithmetic avoids rounding errors while editing the common amount fields.
+export function cashDifference(before: string, value: string, operation: 'subtract' | 'add' = 'subtract') {
+  if (!/^\d+(?:\.\d+)?$/.test(before) || !/^\d+(?:\.\d+)?$/.test(value)) return '';
+  const scale = Math.max(before.split('.')[1]?.length ?? 0, value.split('.')[1]?.length ?? 0);
+  const units = (text:string) => {const [integer,fraction='']=text.split('.');return BigInt(integer+fraction.padEnd(scale,'0'));};
+  const difference=operation === 'add' ? units(before)+units(value) : units(before)-units(value), sign=difference<0n?'-':'';
+  const digits=(difference<0n?-difference:difference).toString().padStart(scale+1,'0');
+  return sign+(scale ? (digits.slice(0,-scale)+'.'+digits.slice(-scale)).replace(/\.?0+$/, '') : digits);
+}

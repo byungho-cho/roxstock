@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+import base from './playwright.phase6.config';
+export default defineConfig({...base,testMatch:['cash-v04.spec.ts','cash-v05.spec.ts'],outputDir:'test-results/cash-v05',use:{...base.use,baseURL:'http://127.0.0.1:3015',launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}},projects:[...base.projects!,{name:'desktop-1280x800',use:{viewport:{width:1280,height:800}}}],webServer:{...base.webServer,command:'npm run dev -- --host 127.0.0.1 --port 3015',url:'http://127.0.0.1:3015'}});
