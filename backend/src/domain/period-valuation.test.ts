@@ -12,7 +12,7 @@ test('KRX unadjusted close requires separate split/share-class evidence; EPS/BPS
  const current=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'10'},parentEquity:{amount:'200'}}});
  const inputs={shares:{outstanding:'10',preferred:false,receiptNo:current.receiptNo},price:{value:'100',date:'2025-12-30',source:'KRX_UNADJUSTED_CLOSE',collectedAt:'2026-10-08T00:00:00Z'}};
  const missing=calculatePeriod(current,undefined,inputs);assert.equal(missing.values.eps,'10');assert.equal(missing.values.bps,'20');assert.equal(missing.values.per,null);assert.equal(missing.values.pbr,null);assert.match(missing.reasons.per!,/액면분할/);
- const verified=calculatePeriod(current,undefined,{...inputs,basis:{epsPriceCompatible:true,bpsPriceCompatible:true,source:'FIXTURE_REPORT_BASIS_CHECK',verifiedAt:'2026-10-08T00:00:00Z'}});assert.equal(verified.values.per,'10');assert.equal(verified.values.pbr,'5');assert.equal(verified.provenance.priceCollectedAt,'2026-10-08T00:00:00Z');
+ const verified=calculatePeriod(current,undefined,{...inputs,basis:{epsPriceCompatible:true,bpsPriceCompatible:true,source:'FIXTURE_REPORT_BASIS_CHECK',receiptNo:current.receiptNo,verifiedAt:'2026-10-08T00:00:00Z'}});assert.equal(verified.values.per,'10');assert.equal(verified.values.pbr,'5');assert.equal(verified.provenance.priceCollectedAt,'2026-10-08T00:00:00Z');
 });
 test('stored filings use separately collected exact-receipt accounts without altering the original financial sources',()=>{
  const f=filing(2025);const inputs={accounts:{receiptNo:f.receiptNo,fsDivision:'CFS',collectedAt:'2026-10-08T00:00:00Z',sources:{basicEps:{amount:'10'},parentEquity:{amount:'200'}}},shares:{outstanding:'10',preferred:false,receiptNo:f.receiptNo},price:{value:'100',date:'2025-12-30',source:'FSC'}};

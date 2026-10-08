@@ -55,8 +55,8 @@ export async function settleAnnualConsensus(db:PrismaClient,securityId:bigint,ye
   const frozen=stored?.frozenClose as {value:string;date:string;source:string}|null;
   const incoming=finalValues as {values:Record<string,string|null>;provenance?:Record<string,unknown>};
   const eps=decimal(incoming.values?.eps),bps=decimal(incoming.values?.bps),price=decimal(frozen?.value);
-  if(!frozen||!price?.gt(0)||!eps?.gt(0)||!bps?.gt(0))return;
-  const final={...incoming,values:{...incoming.values,per:price.div(eps).toDecimalPlaces(4).toString(),pbr:price.div(bps).toDecimalPlaces(4).toString()},provenance:{...incoming.provenance,priceDate:frozen.date,priceSource:frozen.source,pricePolicy:'FIXED_YEAR_END_CLOSE'}};
+  if(!frozen||!price?.gt(0)||!incoming.values)return;
+  const final={...incoming,values:{...incoming.values,per:incoming.values.per!==null&&eps?.gt(0)?price.div(eps).toDecimalPlaces(4).toString():null,pbr:incoming.values.pbr!==null&&bps?.gt(0)?price.div(bps).toDecimalPlaces(4).toString():null},provenance:{...incoming.provenance,priceDate:frozen.date,priceSource:frozen.source,pricePolicy:'FIXED_YEAR_END_CLOSE'}};
   await db.annualConsensusSnapshot.updateMany({where,data:{state:'FINALIZED',finalValues:final as Prisma.InputJsonValue,finalizedAt:new Date()}});
  }
 }
