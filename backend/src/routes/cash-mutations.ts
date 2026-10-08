@@ -1,12 +1,13 @@
+import { lockCashAccount, readCurrentCash, requireCash, syncCurrentCash } from '../domain/current-cash.js';
+import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
 import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
 
-type CashEditBody = { transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
+type CashEditBody = { accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
 type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
-const transactionOptions = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 5_000, timeout: 10_000 } as const;
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
 async function latestAccount(tx: Prisma.TransactionClient, cash: {id: bigint; accountId: bigint}) {
   const account = await tx.account.findUnique({where:{id:cash.accountId}});
@@ -26,12 +27,13 @@ export async function cashMutationRoutes(app: FastifyInstance) {
     const netAmount = positiveDecimal(body.netAmount, 'netAmount');
     if (grossAmount.lessThan(netAmount)) throw new ApiError(400, 'INVALID_INPUT', 'grossAmount must be at least netAmount.');
     const memo = optionalMemo(body.memo);
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
+      await lockCashAccount(tx, accountId);
       const account = await tx.account.findUnique({ where: { id: accountId } });
       if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
       const security = await tx.security.findUnique({ where: { id: securityId } });
       if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
-      const balanceAfter = account.cashBalance.plus(netAmount);
+      const balanceAfter = requireCash((await readCurrentCash(tx, accountId)).balance).plus(netAmount);
       const cash = await tx.cashTransaction.create({ data: {
         accountId, transactionType: CashTransactionType.DIVIDEND, transactionDate: receivedAt,
         amount: netAmount, feeTaxAmount: grossAmount.minus(netAmount), balanceAfter, memo,
@@ -41,18 +43,24 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       } });
       await tx.account.update({ where: { id: accountId }, data: { cashBalance: balanceAfter } });
       return { id: dividend.id.toString(), cashTransactionId: cash.id.toString(), balanceAfter: balanceAfter.toString() };
-    }, transactionOptions);
+    });
     return reply.code(201).send({ data: result });
   });
 
   app.patch<{ Params: { transactionId: string }; Body: CashEditBody }>('/cash-transactions/:transactionId', async (request) => {
     const transactionId = id(request.params.transactionId, 'transactionId');
     const body = request.body ?? {};
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
+      const initialCash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
+      if (!initialCash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
+      if (request.body?.accountId !== undefined && id(request.body.accountId, 'accountId') !== initialCash.accountId) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Cash transaction not found in this account.');
+      await lockCashAccount(tx, initialCash.accountId);
       const cash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
-      if (!cash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
+      if (!cash) throw new ApiError(409, 'CASH_CHANGED', '내역이 변경됐습니다. 다시 조회해 주세요.');
       const account = await tx.account.findUnique({where:{id:cash.accountId}});
       if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+      const latest = await readCurrentCash(tx, cash.accountId);
+      if (body.expectedLatestId !== undefined && (id(body.expectedLatestId, 'expectedLatestId').toString() !== latest.transactionId || latest.transactionId !== cash.id.toString())) throw new ApiError(409, 'LATEST_CASH_CHANGED', '최신 예수금 내역이 변경됐습니다. 카드를 다시 열어 주세요.');
       const transactionDate = body.transactionDate === undefined ? cash.transactionDate : dateTime(body.transactionDate, 'transactionDate');
       const amount = body.amount === undefined ? cash.amount : positiveDecimal(body.amount, 'amount');
       const memo = body.memo === undefined ? cash.memo : optionalMemo(body.memo);
@@ -76,38 +84,34 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : decimalAmount(body.feeTaxAmount, 'feeTaxAmount', true);
       const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : decimalAmount(body.balanceAfter, 'balanceAfter');
       await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter } });
-      return { id: transactionId.toString(), cashBalanceAdjusted: false };
+      const basis = latest.transactionId === cash.id.toString() ? await syncCurrentCash(tx, cash.accountId) : latest;
+      return { id: transactionId.toString(), cashBalanceAdjusted: latest.transactionId === cash.id.toString(), currentBalance: basis.balance?.toString() ?? null, balanceStatus: basis.status };
 
-    }, transactionOptions);
+    });
     return { data: result };
   });
 
-  app.delete<{ Params: { transactionId: string } }>('/cash-transactions/:transactionId', async (request) => {
+  app.delete<{ Params: { transactionId: string }; Querystring: { accountId?: string } }>('/cash-transactions/:transactionId', async (request) => {
     const transactionId = id(request.params.transactionId, 'transactionId');
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await serializable(async (tx) => {
+      const initialCash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
+      if (!initialCash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
+      if (request.query.accountId !== undefined && id(request.query.accountId, 'accountId') !== initialCash.accountId) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Cash transaction not found in this account.');
+      await lockCashAccount(tx, initialCash.accountId);
       const cash = await tx.cashTransaction.findUnique({ where: { id: transactionId }, include: { dividend: true } });
-      if (!cash) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', 'Editable cash transaction not found.');
+      if (!cash) throw new ApiError(409, 'CASH_CHANGED', '내역이 변경됐습니다. 다시 조회해 주세요.');
       await latestAccount(tx, cash);
       if (cash.transactionType === CashTransactionType.DIVIDEND && !cash.dividend) throw new ApiError(409, 'DIVIDEND_LINK_MISSING', 'Dividend record is missing.');
       if (cash.dividend) await tx.dividend.delete({ where: { id: cash.dividend.id } });
       await tx.cashTransaction.delete({ where: { id: transactionId } });
-      return { id: transactionId.toString(), cashBalanceAdjusted: false };
-    }, transactionOptions);
+      const basis = await syncCurrentCash(tx, cash.accountId);
+      return { id: transactionId.toString(), cashBalanceAdjusted: true, currentBalance: basis.balance?.toString() ?? null, balanceStatus: basis.status };
+    });
     return { data: result };
   });
 
-  app.patch<{ Params: { accountId: string }; Body: { amount?: unknown } }>('/accounts/:accountId/cash-balance', async (request) => {
-    const accountId = id(request.params.accountId, 'accountId');
-    const raw = request.body?.amount;
-    if (typeof raw !== 'string' || !/^\d+(\.\d+)?$/.test(raw)) throw new ApiError(400, 'INVALID_INPUT', 'amount must be a non-negative decimal string.');
-    const amount = new Prisma.Decimal(raw);
-    const result = await prisma.$transaction(async (tx) => {
-      const account = await tx.account.findUnique({ where: { id: accountId } });
-      if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
-      await tx.account.update({ where: { id: accountId }, data: { cashBalance: amount } });
-      return { accountId: accountId.toString(), previousBalance: account.cashBalance.toString(), cashBalance: amount.toString() };
-    }, transactionOptions);
-    request.log.info({ accountId: result.accountId, previousBalance: result.previousBalance, cashBalance: result.cashBalance }, 'cash balance corrected directly');
-    return { data: result };
+  // Retired endpoint: a separate current-balance edit must not compete with the ledger.
+  app.patch('/accounts/:accountId/cash-balance', async () => {
+    throw new ApiError(409, 'LATEST_CASH_EDIT_REQUIRED', '현재예수금 카드에서 최신 내역을 수정해 주세요.');
   });
 }

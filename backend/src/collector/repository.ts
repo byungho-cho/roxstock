@@ -163,7 +163,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
       select: {
         id: true,
         name: true,
-        cashBalance: true,
+        cashTransactions: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1, select: { balanceAfter: true } },
         buyTrades: {
           select: {
             quantity: true,
@@ -178,7 +178,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
     return accounts.map((account) => ({
       id: account.id,
       name: account.name,
-      cashBalance: account.cashBalance.toString(),
+      cashBalance: account.cashTransactions[0]?.balanceAfter?.toString() ?? null,
       lots: account.buyTrades.map((lot) => ({
         symbol: lot.security.symbol,
         quantity: lot.quantity.toString(),

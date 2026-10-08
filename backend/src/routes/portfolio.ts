@@ -1,3 +1,4 @@
+import { cashBasis } from '../domain/current-cash.js';
 import { annualInvestmentCapital } from '../domain/investment-capital.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
@@ -63,6 +64,7 @@ export const loadPortfolio = async (accountId: bigint, reader:Prisma.Transaction
   const account = await reader.account.findUnique({
     where: { id: accountId },
     include: {
+      cashTransactions: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
       buyTrades: {
         include: {
           sellTrades: { select: { quantity: true } },
@@ -94,7 +96,8 @@ export const loadPortfolio = async (accountId: bigint, reader:Prisma.Transaction
       marketStatus: useLive ? live.marketStatus : stored ? 'STORED' : null,
     };
   });
-  return { account, holdings: calculateHoldings(lots) };
+  const basis = cashBasis(account.cashTransactions[0]);
+  return { account: { ...account, cashBalance: basis.balance, cashBalanceStatus: basis.status }, holdings: calculateHoldings(lots) };
 };
 
 export async function portfolioRoutes(app: FastifyInstance) {
@@ -145,7 +148,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
     return {
       data: {
         account: { id: account.id.toString(), name: account.name, brokerName: account.brokerName },
-        cashBalance: dashboard.cashBalance.toString(),
+        cashBalance: decimal(dashboard.cashBalance),
+        cashBalanceStatus: account.cashBalanceStatus,
         purchaseAmount: dashboard.purchaseAmount.toString(),
         stockValue: decimal(dashboard.stockValue),
         totalAssetValue: decimal(dashboard.totalAssetValue),
@@ -222,7 +226,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
     if (request.query.storedOnly !== 'true' && (!to || to >= todayKey) && (!from || from <= todayKey)) {
       const portfolio=await loadPortfolio(accountId);
       const current=calculateDashboard(portfolio.account.cashBalance,portfolio.holdings);
-      if(current.totalAssetValue!==null && current.stockValue!==null){
+      if(current.totalAssetValue!==null && current.stockValue!==null && portfolio.account.cashBalance!==null){
         liveClosing=true;
         liveUnrealized=portfolio.holdings.reduce((sum,h)=>sum.plus(h.unrealizedProfitLoss??0),new Prisma.Decimal(0));
         const point={id:0n,accountId,snapshotDate:todayKey,cashBalance:portfolio.account.cashBalance,stockValue:current.stockValue,totalAssetValue:current.totalAssetValue,investmentAmount:current.purchaseAmount.plus(portfolio.account.cashBalance),createdAt:calculatedAt,updatedAt:calculatedAt};
