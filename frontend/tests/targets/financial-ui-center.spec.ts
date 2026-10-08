@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {setup} from './financial-ui-fixture';
+import {swipeStock} from './financial-chart-gestures';
 test('center boundaries clamp 2015 and 2026, preserve stock and quarter selection',async({page},info)=>{
  const s=await setup(page);await page.goto('/detail/value?view=chart&selected=1&centerYear=2015');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2016');await expect(page.getByRole('button',{name:'이전 연도 2015'})).toBeDisabled();await page.getByRole('button',{name:'다음 연도 2017'}).click();await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2017');
- await page.goto('/detail/value?view=chart&selected=1&centerYear=2026');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');await expect(page.getByRole('button',{name:'다음 연도 2026'})).toBeDisabled();await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');
- await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('시작기간').selectOption('2025:4');await page.getByRole('button',{name:'종목1',exact:true}).click();await expect(page.getByLabel('시작기간')).toHaveValue('2025:4');expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('quarter-header.png')});
+ await page.goto('/detail/value?view=chart&selected=1&centerYear=2026');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');await expect(page.getByRole('button',{name:'다음 연도 2026'})).toBeDisabled();await swipeStock(page,true);await expect(page.getByRole('heading',{level:1})).toContainText('종목2');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');
+ await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('시작기간').selectOption('2025:4');await swipeStock(page,false);await expect(page.getByRole('heading',{level:1})).toContainText('종목1');await expect(page.getByLabel('시작기간')).toHaveValue('2025:4');expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('quarter-header.png')});
 });
 for(const mode of ['annual','quarter'])test(`full ${mode} chart reads all periods and restores both backs`,async({page},info)=>{
  const s=await setup(page);await page.goto(`/detail/value?view=chart&selected=1&mode=${mode}`);

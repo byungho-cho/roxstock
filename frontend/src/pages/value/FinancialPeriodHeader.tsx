@@ -9,7 +9,7 @@ const yearText = {height:28,minHeight:28,minWidth:0,p:0,fontSize:11,fontWeight:4
 export function FinancialPeriodHeader({rows,centerYear,currentYear,onCenterChange}:{rows:PeriodRow[];centerYear:number;currentYear:number;onCenterChange?:(year:number)=>void}) {
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const years=Array.from({length:currentYear-2016},(_,i)=>currentYear-1-i);
- return <Box data-testid="financial-period-header" sx={{display:'grid',gridTemplateColumns:`94px repeat(${rows.length},minmax(0,1fr))`,gap:1,px:2,height:28,alignItems:'center',fontSize:11,color:colors.textMuted}}>
+ return <Box data-testid="financial-period-header" sx={{display:'grid',gridTemplateColumns:`94px repeat(${rows.length},minmax(0,1fr))`,columnGap:.5,px:2,height:28,alignItems:'center',fontSize:11,color:colors.textMuted}}>
   <span>기간</span>{rows.map((row,i)=>{
    const estimated=row.isEstimated===true,label=`${row.year}${estimated?'E':''}`;
    const color=collectionColor(row.collectionState),sx={...yearText,color,fontWeight:estimated?700:400,'&.Mui-disabled':{color}};

@@ -18,7 +18,7 @@ type PageHeaderProps = {
   valueAnalysis?: boolean;
   stockNavigation?: ReactNode;
   backIcon?: ReactNode;
-  title: string;
+  title: ReactNode;
   variant?: 'home' | 'detail' | 'standard' | 'more';
   subtitle?: string;
   showAdd?: boolean;
