@@ -7,11 +7,12 @@ export function storedDartCode(code: string): string {
  return /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'UNRECOGNIZED_'+createHash('sha256').update(code).digest('hex').slice(0,40);
 }
 export function dartDiagnostic(error: unknown, stage: string) {
- const e=error as {code?:unknown;name?:unknown;stack?:unknown}|null;
- const db=typeof e?.code==='string'&&/^P\d{4}$/.test(e.code);
+ const e=error as {code?:unknown;errorCode?:unknown;name?:unknown;stack?:unknown}|null;
+ const dbCode=typeof e?.code==='string'?e.code:typeof e?.errorCode==='string'?e.errorCode:'';
+ const db=/^P\d{4}$/.test(dbCode)||['PrismaClientInitializationError','PrismaClientUnknownRequestError','PrismaClientValidationError','PrismaClientKnownRequestError'].includes(String(e?.name));
  const parsing=error instanceof SyntaxError||error instanceof RangeError||stage==='NORMALIZE'||stage==='CORP_PARSE';
  const category=db?'DATABASE':error instanceof DartApiError?/CORP|INVALID|COMPRESSION|XML/.test(error.code)?'PARSING':'DART_API':parsing?'PARSING':'INTERNAL';
- const code=db?String(e!.code):error instanceof DartApiError?storedDartCode(error.code):category==='PARSING'?'NORMALIZE_ERROR':'INTERNAL_ERROR';
+ const code=db?(/^P\d{4}$/.test(dbCode)?dbCode:'DATABASE_ERROR'):error instanceof DartApiError?storedDartCode(error.code):category==='PARSING'?'NORMALIZE_ERROR':'INTERNAL_ERROR';
  const exceptionClass=db?'PrismaClientKnownRequestError':error instanceof DartApiError?'DartApiError':error instanceof SyntaxError?'SyntaxError':error instanceof RangeError?'RangeError':'Error';
  const safeStage=/^[A-Z_]{1,40}$/.test(stage)?stage:'UNKNOWN_STAGE';
  const reasons:Record<string,string>={DATABASE:'수집 상태 또는 자료를 DB에 저장하지 못했습니다.',PARSING:'응답 파싱·검증에 실패했습니다. 기존 자료는 유지됩니다.',DART_API:'DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.',INTERNAL:'수집 내부 처리 중 오류가 발생했습니다.'};
