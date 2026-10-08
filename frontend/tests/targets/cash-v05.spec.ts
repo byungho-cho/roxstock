@@ -4,7 +4,7 @@ const types=['BUY','SELL','DEPOSIT','WITHDRAWAL','DIVIDEND'];
 async function setup(page:Page){
  await page.clock.setFixedTime(new Date('2026-10-08T03:00:00Z'));
  const writes:{method:string,path:string,body:any}[]=[];let tax=230;let fail='',empty=false,latestId='99';
- const rows=types.map((transactionType,i)=>({id:String(i+1),transactionType,createdAt:'2026-10-01T03:00:00Z',transactionDate:'2026-10-01T03:00:00Z',amount:'1000',feeTaxAmount:'230',balanceAfter:'10000',signedAmount:'1000',memo:'과거 내역',dividend:transactionType==='DIVIDEND'?{id:'1',securityId:'2',securityName:'삼성전자',grossAmount:'1230',netAmount:'1000'}:null}));
+ const rows=types.map((transactionType,i)=>({id:String(i+1),transactionType,createdAt:'2026-10-01T03:00:00Z',transactionDate:'2026-10-01T03:00:00Z',amount:'1000',feeTaxAmount:transactionType==='BUY'?'-230':'230',balanceAfter:'10000',signedAmount:'1000',memo:'과거 내역',dividend:transactionType==='DIVIDEND'?{id:'1',securityId:'2',securityName:'삼성전자',grossAmount:'1230',netAmount:'1000'}:null}));
  await page.route('**/api/**',async route=>{
   const request=route.request(),url=new URL(request.url()),path=url.pathname;
   if(request.method()!=='GET'){const body=request.postDataJSON();writes.push({method:request.method(),path,body});tax+=10;return route.fulfill({json:{data:{id:'1',cashBalanceAdjusted:false}}});}
@@ -34,11 +34,13 @@ test('all past types editable; latest from entire account controls deletion; col
  expect(await page.getByTestId('cash-form').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
 });
 test('before tax clears dependents; last input governs mutual calculation and persists explicit balance only',async({page})=>{
- expect(cashDifference('100.1','90.01')).toBe('10.09');expect(cashDifference('100.1','0.2','add')).toBe('100.3');
+ expect(cashDifference('100.1','90.01')).toBe('10.09');expect(cashDifference('100.1','-0.2','add')).toBe('99.9');expect(cashDifference('100.1','0.2','add')).toBe('100.3');
  const state=await setup(page);await ready(page);await page.getByRole('button',{name:'매수 내역 수정',exact:true}).click();
  const gross=page.getByLabel('세전예수금',{exact:true}),after=page.getByLabel('세후예수금',{exact:true}),tax=page.getByLabel('제세금',{exact:true});
+ await expect(gross).toHaveValue('9,770');await expect(tax).toHaveValue('-230');
  await gross.fill('15000');await expect(after).toHaveValue('');await expect(tax).toHaveValue('');
  await after.fill('14000');await expect(tax).toHaveValue('1,000');await tax.fill('2000');await expect(after).toHaveValue('13,000');
+ await tax.fill('-100');await expect(after).toHaveValue('15,100');await tax.fill('2000');
  await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByTestId('cash-history-row')).toHaveCount(5);
  expect(state.writes[0].body).toMatchObject({amount:'1000',feeTaxAmount:'2000',balanceAfter:'13000'});
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');
