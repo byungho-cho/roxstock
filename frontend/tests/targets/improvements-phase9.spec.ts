@@ -6,25 +6,24 @@ async function setup(page:Page){
  await page.route('**/api/**',async route=>{
   const u=new URL(route.request().url()),p=u.pathname;
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'계좌',isActive:true,isDefault:true}]}});
+  if(p.endsWith('/financial-refresh/active'))return route.fulfill({json:{data:null}});
   if(p.endsWith('/financial-refresh')&&route.request().method()==='POST'){state.posts++;state.body=route.request().postDataJSON();return route.fulfill({status:202,json:{data:{requestId:'99',state:'QUEUED'}}});}
   if(p.endsWith('/financial-refresh/99'))return route.fulfill({json:{data:{state:state.finished?'FINISHED':'QUEUED',status:state.fail?'FAILED':state.finished?'PARTIAL':'RUNNING',startYear:2024,endYear:2025,fiscalYear:2024,period:'ALL',finishedAt:state.finished?'2026-10-07T05:00:00Z':null,results:state.finished?[{fiscalYear:2024,period:'ANNUAL',status:state.fail?'FAILED':'SUCCESS',valuationStatus:'PARTIAL',valuationReasons:{per:'기간 말 과거 종가 부족'}}]:[]}}});
   if(p==='/api/value-analysis'||p==='/api/financial-statements')return route.fulfill({json:{data:{year:2026,rows:stocks,total:2}}});
   if(p.startsWith('/api/value-analysis/')||p.startsWith('/api/financial-statements/')){
    state.reads.push(u);const id=p.split('/').at(-1),custom=u.searchParams.get('period'),mode=u.searchParams.get('mode')??'annual';
    const end=Number(u.searchParams.get('endYear')??2026),start=Number(u.searchParams.get('startYear')??end-2),count=custom?Number(u.searchParams.get('endYear'))-start+1:p.includes('value-analysis')?Number(u.searchParams.get('count')):3;
-   const chartRows=Array.from({length:count},(_,i)=>({key:`${start+i}:ANNUAL`,label:mode==='quarter'?`${Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4)} ${(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1}Q`:String(start+i),year:mode==='quarter'?Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4):start+i,quarter:mode==='quarter'?(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1:null,revenue:'10000000000',operatingProfit:'100000000',netIncome:'10000000',roe:'10',per:null,pbr:null,metricStatus:'PARTIAL',metricReasons:{per:'기간 말 과거 종가 부족'},source:'DART:CFS',collectedAt:'2026-10-07T01:00:00Z',isDerived:false}));
+   const chartRows=Array.from({length:count},(_,i)=>({key:`${mode==='quarter'?start*4+Number(u.searchParams.get('startQuarter')??1)-1+i:start+i}:${mode}`,label:mode==='quarter'?`${Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4)} ${(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1}Q`:String(start+i),year:mode==='quarter'?Math.floor((start*4+Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)/4):start+i,quarter:mode==='quarter'?(Number(u.searchParams.get('startQuarter')??u.searchParams.get('quarter')??1)-1+i)%4+1:null,revenue:'10000000000',operatingProfit:'100000000',netIncome:'10000000',roe:'10',per:null,pbr:null,metricStatus:'PARTIAL',metricReasons:{per:'기간 말 과거 종가 부족'},source:'DART:CFS',collectedAt:'2026-10-07T01:00:00Z',isDerived:false}));
    return route.fulfill({json:{data:{security:stocks.find(s=>s.id===id),year:2026,mode,valuation:null,fairPrices:[],notices:['저장 데이터'],collectedAt:'2026-10-07T01:00:00Z',chartRows,rows:p.includes('financial-statements')?chartRows.map(r=>({...r,values:{revenue:r.revenue,operatingProfit:r.operatingProfit,netIncome:r.netIncome},growth:{},basis:'DART:CFS'})):chartRows}}});
   }return route.fulfill({json:{data:[]}});
  });return state;
 }
 async function select(page:Page,label:string,value:string){await page.getByRole('combobox',{name:label,exact:true}).click();await page.getByRole('option',{name:value,exact:true}).click();}
-test('end boundaries, legacy URLs and neighbors; quarter selection survives',async({page})=>{
- const s=await setup(page);await page.goto('/detail/financials?selected=1&view=detail&startYear=2024');await expect(page.getByLabel('재무제표 종료연도')).toHaveValue('2026');await expect(page).toHaveURL(/endYear=2026/);
- for(const year of ['2015','2016','2017','2018','2019','2024','2026']){await page.getByLabel('재무제표 종료연도').selectOption(year);await expect(page.getByLabel('재무제표 종료연도')).toHaveValue(String(Math.max(2018,Number(year))));}
- await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무제표 종료연도')).toHaveValue('2026');
- await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('재무제표 시작연도').selectOption('2025');await page.getByLabel('재무제표 시작분기').selectOption('4');await page.getByRole('button',{name:'종목1',exact:true}).click();await expect(page.getByLabel('재무제표 시작연도')).toHaveValue('2025');await expect(page.getByLabel('재무제표 시작분기')).toHaveValue('4');
- await page.goto('/detail/value?view=chart&selected=1&annualStart=2024&count=10');await expect(page.getByRole('combobox',{name:'종료연도',exact:true})).toHaveValue('2026');await expect(page).toHaveURL(/endYear=2026/);await expect.poll(()=>s.reads.filter(u=>u.pathname.includes('value-analysis/')).at(-1)?.searchParams.get('count')).toBe('3');await expect(page.getByText('유동비율',{exact:true})).toHaveCount(0);
- await page.getByRole('combobox',{name:'종료연도',exact:true}).selectOption('2015');await expect(page.getByRole('combobox',{name:'종료연도',exact:true})).toHaveValue('2018');await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByRole('combobox',{name:'종료연도',exact:true})).toHaveValue('2018');
+test('central year and quarter survive neighbors and legacy URLs',async({page})=>{
+ await setup(page);await page.goto('/detail/financials?selected=1&view=detail&startYear=2024');await expect(page.getByLabel('재무제표 중앙연도')).toHaveValue('2025');await expect(page).toHaveURL(/centerYear=2025/);
+ await page.getByLabel('재무제표 중앙연도').selectOption('2016');await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무제표 중앙연도')).toHaveValue('2016');
+ await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('재무제표 시작연도').selectOption('2025');await page.getByLabel('재무제표 시작분기').selectOption('4');await page.getByRole('button',{name:'종목1',exact:true}).click();await expect(page.getByLabel('재무제표 시작분기')).toHaveValue('4');
+ await page.goto('/detail/value?view=chart&selected=1&annualStart=2024');await expect(page.getByLabel('재무지표 중앙연도')).toHaveValue('2025');await page.getByLabel('재무지표 중앙연도').selectOption('2016');await expect(page.getByRole('button',{name:'이전 연도 2015'})).toBeDisabled();await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무지표 중앙연도')).toHaveValue('2016');
 });
 test('popup validates range; persists request and reenables after failure',async({page},info)=>{
  const s=await setup(page);await page.goto('/stocks/1/financials?endYear=2026');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();
@@ -44,9 +43,9 @@ test('lot date styling and financial link preserve selection',async({page},info)
 
 test('phase10 single-row header and bounded touch tooltip',async({page},info)=>{
  await setup(page);await page.goto('/detail/value?view=chart&selected=1&endYear=2025');
- const title=page.getByText('전체 재무지표',{exact:true}),button=page.getByRole('button',{name:'재무제표 갱신',exact:true}),year=page.getByRole('combobox',{name:'종료연도',exact:true}),mode=page.getByRole('button',{name:'재무지표 연간 분기 전환'});
+ const title=page.getByText('재무지표',{exact:true}),button=page.getByRole('button',{name:'재무제표 갱신',exact:true}),mode=page.getByRole('button',{name:'연간',exact:true});
  await expect(title).toHaveCSS('font-size','14px');
- const bounds=await Promise.all([title,button,year,mode].map(x=>x.boundingBox()));
+ const bounds=await Promise.all([title,button,mode].map(x=>x.boundingBox()));
  const centers=bounds.map(b=>b!.y+b!.height/2);expect(Math.max(...centers)-Math.min(...centers)).toBeLessThan(2);
  for(let i=1;i<bounds.length;i++)expect(bounds[i]!.x).toBeGreaterThanOrEqual(bounds[i-1]!.x+bounds[i-1]!.width-1);
  const icon=page.getByRole('button',{name:'가치지표 미산출 사유와 계산 기준'});await icon.tap();const tooltip=page.getByRole('dialog',{name:'가치지표 안내'});await expect(tooltip).toBeVisible();

@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+import base from './playwright.phase10.config';
+export default defineConfig({...base,testMatch:['improvements-phase9.spec.ts','financial-ui-center.spec.ts'],outputDir:'test-results/financial-ui',use:{...base.use,baseURL:'http://127.0.0.1:3011',launchOptions:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}:undefined},webServer:{command:'npm run dev -- --host 127.0.0.1 --port 3011 --strictPort',env:{VITE_DATA_SOURCE:'api'},url:'http://127.0.0.1:3011',reuseExistingServer:false}});
