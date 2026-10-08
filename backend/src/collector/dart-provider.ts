@@ -220,7 +220,7 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
     ['financingCashFlow','CF','ifrs-full_CashFlowsFromUsedInFinancingActivities'],
     ['cashEquivalents','BS','ifrs-full_CashAndCashEquivalents'],
   ] as const) {
-    const row=rows.find(r=>(r.statementDivision===statement||(statement==='IS'&&r.statementDivision==='CIS'))&&r.accountId===id);
+    const row=rows.find(r=>(r.statementDivision===statement||(statement==='IS'&&r.statementDivision==='CIS'))&&(r.accountId===id||r.accountId===id.replace('ifrs-full_','ifrs_')));
     if(row)result.accountSources[field]={statementDivision:row.statementDivision,accountId:row.accountId,accountName:row.accountName,amount:numericText(row.currentAmount),ytdAmount:numericText(row.currentYtdAmount)};
   }
   return result;
@@ -289,7 +289,7 @@ export class OpenDartProvider {
     const outstanding=ordinary?numericText(ordinary.distb_stock_co):null;
     if(!outstanding)return undefined;
     const preferred=rows.some(r=>r.se!=='합계'&&r!==ordinary&&Number(numericText(r.distb_stock_co))>0);
-    return {outstanding,preferred,receiptNo};
+    return {outstanding,preferred,receiptNo,collectedAt:new Date().toISOString()};
   }
   async fetchCorporations(): Promise<DartCorporation[]> {
     const response = await this.request(this.url('corpCode.xml', {}));

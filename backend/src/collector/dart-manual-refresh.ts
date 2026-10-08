@@ -1,3 +1,4 @@
+import { collectAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import { supplementSafely } from './valuation-supplement.js';
 import { loadPeriodSupplement } from './valuation-supplement.js';
 import { randomUUID } from 'node:crypto';
@@ -9,7 +10,7 @@ import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartPe
 import { getCfsThenOfs, parseDartDate, endOfFiscalPeriod, type DartCollectorConfig } from './dart-collector.js';
 
 export const manualReports: Record<DartPeriodType, DartReportCode> = { Q1: '11013', Q2: '11012', Q3: '11014', ANNUAL: '11011' };
-export interface ManualRefreshMetadata { phase: 'MANUAL'; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ fiscalYear?: number; valuationStatus?: string; valuationReasons?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
+export interface ManualRefreshMetadata { phase: 'MANUAL'; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ fiscalYear?: number; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
 export function parseManualRefresh(body: unknown): { fiscalYear: number; startYear: number; endYear: number; period: DartPeriodType | 'ALL' } {
   const b = body as Record<string, unknown> | null;
   const startYear = b?.startYear ?? b?.fiscalYear, endYear = b?.endYear ?? b?.fiscalYear;
@@ -66,6 +67,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     const securityId = BigInt(metadata.securityId);
     const security = await db.security.findUnique({ where: { id: securityId }, include: { dartCorpMapping: true } });
     if (!security?.isActive || security.securityType !== 'STOCK') throw new DartApiError('SECURITY_NOT_FOUND', '수집 대상 종목을 확인해 주세요.');
+    if(process.env.CONSENSUS_ENABLED==='true'){try{await freezePastEstimates(db,securityId,security.symbol,security.marketType);await collectAnnualConsensus(db,securityId,security.symbol);}catch{console.warn(JSON.stringify({event:'consensus_collection_failed',securityId:String(securityId)}));}}
     let mapping = security.dartCorpMapping;
     if (!mapping) {
       await repo.syncCorporations(await provider.fetchCorporations());
@@ -81,15 +83,15 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
         const report = reports.find((r) => r.reportCode === manualReports[period] && !r.withdrawn);
         if (!report) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'NO_PERIODIC_FILING' }); continue; }
         const stored=await db.dartFinancialFiling.findUnique({where:{receiptNo:report.receiptNo},select:{securityId:true,fiscalYear:true,periodType:true,isWithdrawn:true,normalizationVersion:true}});
-        if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){await publish(fiscalYear,'VALUATION',period);const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,async()=>{if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','일일 API 호출 한도에 도달했습니다.');}));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
+        if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){await publish(fiscalYear,'VALUATION',period);const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
         const filing = await getCfsThenOfs(provider, mapping.corpCode, fiscalYear, manualReports[period]);
         if (!filing.rows.length) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'FINANCIAL_ROWS_NOT_PUBLISHED' }); continue; }
         if (filing.rows.some((r) => r.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', '공시 목록과 재무제표 접수번호가 일치하지 않습니다.');
         const saved = await repo.saveFiling({ securityId, fiscalYear: fiscalYear, periodType: period, reportCode: manualReports[period], fsDivision: filing.division,
           receiptNo: report.receiptNo, reportName: report.reportName, receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, period), collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
         await publish(fiscalYear,'VALUATION',period);
-        const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,async()=>{if(!await repo.reserveApiCall(config.dailyCallLimit,new Date(),owner))throw new DartApiError('DAILY_CALL_LIMIT','일일 API 호출 한도에 도달했습니다.');}));
-        results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });
+        const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));
+        results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });
       } catch (error) {
         results.push({ fiscalYear, period, status: 'FAILED', code: error instanceof DartApiError ? error.code : 'COLLECTOR_ERROR' });
         if (error instanceof DartApiError && (error.quotaExceeded || ['010', '011', '012', 'API_KEY_MISSING'].includes(error.code))) {
