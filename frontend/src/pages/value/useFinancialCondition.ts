@@ -9,12 +9,12 @@ export function useFinancialCondition<T extends string|number>(key:string,fallba
  return [value as T,(next:T)=>{const search=new URLSearchParams(location.search);search.set(key,String(next));navigate(location.pathname+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});}];
 }
 
-/** Legacy URLs used a start year; canonical annual URLs contain an effective end year. */
-export function useFinancialEndYear(currentYear:number,legacyKey='startYear') {
+/** Canonical URLs select the middle year. Legacy end/start URLs keep their visible window. */
+export function useFinancialCenterYear(currentYear:number,legacyKey='startYear') {
  const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search);
- const raw=params.get('endYear'),legacy=params.get(legacyKey);
- const requested=raw!==null?Number(raw):legacy!==null?Number(legacy)+2:currentYear;
- const endYear=Math.max(2018,Math.min(currentYear,Number.isInteger(requested)?requested:currentYear));
- const setEndYear=(year:number)=>{const search=new URLSearchParams(location.search);search.set('endYear',String(Math.max(2018,Math.min(currentYear,year))));search.delete(legacyKey);navigate(location.pathname+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
- return [endYear,setEndYear] as const;
+ const raw=params.get('centerYear'),end=params.get('endYear'),start=params.get(legacyKey);
+ const requested=raw!==null?Number(raw):end!==null?Number(end)-1:start!==null?Number(start)+1:currentYear-1;
+ const centerYear=Math.max(2016,Math.min(currentYear-1,Number.isInteger(requested)?requested:currentYear-1));
+ const setCenterYear=(year:number)=>{const search=new URLSearchParams(location.search);search.set('centerYear',String(Math.max(2016,Math.min(currentYear-1,year))));search.delete('endYear');search.delete(legacyKey);navigate(location.pathname+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
+ return [centerYear,setCenterYear] as const;
 }
