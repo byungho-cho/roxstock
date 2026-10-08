@@ -5,13 +5,13 @@ on:
     types: [completed]
   pull_request_target:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, closed]
 permissions:
   contents: write
   pull-requests: write
   actions: write
 concurrency:
-  group: pr-auto-merge-${{ github.event.pull_request.number || github.event.workflow_run.head_branch }}
+  group: pr-auto-merge-production
   cancel-in-progress: false
 jobs:
   merge:
@@ -36,7 +36,7 @@ jobs:
               if (pr.state === 'open') {
                 // Queue PR-level auto-merge. Branch protection enforces PR Gate and an up-to-date branch.
                 // Registration on opened/synchronize is safe: no PR code or artifacts are used.
-                if (pr.mergeable_state === 'clean') {
+                if (['clean', 'unstable'].includes(pr.mergeable_state)) {
                   // GitHub rejects enableAutoMerge once already clean. Merge normally;
                   // required checks, strict base protection, and expected head still apply.
                   try {
@@ -60,7 +60,26 @@ jobs:
                 }
               }
               if (pr.merged) {
-                // GITHUB_TOKEN merges do not trigger push workflows. Dispatch explicitly.
+                // This workflow is the sole automatic deployment entry point, including human merges.
+                // Inspect filenames only; never checkout or execute PR code with write permissions.
+                const files = await github.paginate(github.rest.pulls.listFiles, {...context.repo, pull_number: number, per_page: 100});
+                const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
+                const needsDeployment = paths.some(path => !/\.md$/i.test(path) && /^(frontend\/|backend\/|database\/|infra\/|scripts\/deploy[^/]*\.sh$|package(-lock)?\.json$|compose[^/]*\.ya?ml$|\.dockerignore$|\.github\/workflows\/(production-deploy|backend-deploy|frontend-image)\.yml$)/.test(path));
+                if (!needsDeployment) {
+                  core.notice('No application/deployment changes; production skipped for PR #' + number);
+                  continue;
+                }
+                const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+                if (branch.commit.sha !== pr.merge_commit_sha) {
+                  core.notice('Superseded revision; production skipped for PR #' + number);
+                  continue;
+                }
+                // Serialized dispatch plus SHA lookup prevents closed/workflow_run/retry duplication.
+                const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {...context.repo, workflow_id: 'production-deploy.yml', head_sha: pr.merge_commit_sha, per_page: 100});
+                if (runs.some(run => run.status !== 'completed' || run.conclusion === 'success')) {
+                  core.notice('Production already queued/running/succeeded for ' + pr.merge_commit_sha);
+                  continue;
+                }
                 await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'production-deploy.yml', ref: 'main', inputs: {target_sha: pr.merge_commit_sha}});
                 core.notice('Production dispatched for PR #' + number + ': ' + pr.merge_commit_sha);
               } else {
