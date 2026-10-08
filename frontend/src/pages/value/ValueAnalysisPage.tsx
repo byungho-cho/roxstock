@@ -1,7 +1,8 @@
-import {financialSmallButton} from './FinancialPeriodHeader';
+import {FinancialPeriodHeader} from './FinancialPeriodHeader';
+import {ActionButton} from '../../components/common/Common';
 import {FinancialRefreshDialog,FinancialRefreshButton} from '../stocks/FinancialRefreshControls';
 import {useFinancialCondition,useFinancialCenterYear} from './useFinancialCondition';
-import {pageMetrics} from '../../styles/tokens';
+import {colors,pageMetrics} from '../../styles/tokens';
 import {largeMoney} from '../../utils/largeMoney';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
@@ -95,17 +96,21 @@ export function ValueAnalysisPage(){
  </>;
  const detailContent=<>{tablet&&!chart&&selected&&<Box sx={{textAlign:'center',mb:'8px',fontSize:14,fontWeight:600}}>{currentName}<Typography sx={{fontSize:10,color:muted}}>{currentSymbol}</Typography></Box>}{detailStatus}{selected&&<FinancialRefreshButton stockId={selected} onClick={()=>setRefreshOpen(true)}/>}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box sx={{p:'24px',textAlign:'center'}}><CircularProgress size={20}/></Box>:!detail.error?<Empty/>:null}</>;
  const swipe=useDetailSwipe(move,!refreshOpen&&(chart||coverDetail||tablet));
- return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,startYear,startQuarter]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
+ return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
   <PageHeader embedded valueAnalysis title={chart||coverDetail?currentName:'가치분석'} showAdd={false} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>} variant="detail" showBackTablet onBack={back} stockNavigation={navigation}/>
   {selected&&<FinancialRefreshDialog open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
-  {chart?<Box {...swipe} data-detail-swipe sx={{touchAction:'pan-y'}}>
+  {chart?<Box {...swipe} data-detail-swipe data-financial-chart sx={{touchAction:'pan-y'}}>
+   <Box data-testid="financial-sticky-header" sx={{position:'sticky',top:0,zIndex:10,bgcolor:colors.canvas,pt:1,pb:1,mb:1}}>
    <Box sx={{display:'flex',gap:1,mb:1,height:28,alignItems:'center'}}>
     <Typography sx={{fontSize:14,fontWeight:600,whiteSpace:'nowrap'}}>재무지표</Typography>
     <FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>
-    <Box sx={{display:'flex',gap:.5,ml:'auto'}}>{(['annual','quarter'] as const).map(value=><Button key={value} size="small" aria-pressed={mode===value} variant={mode===value?'contained':'outlined'} onClick={()=>setMode(value)} sx={financialSmallButton}>{value==='annual'?'연간':'분기'}</Button>)}</Box>
+    {shownDetail&&!detail.data&&<Typography noWrap role="status" title={`이전 기간 결과 · ${shownDetail.mode==='annual'?'연간':'분기'} ${shownDetail.rows[0]?.label}부터`} sx={{fontSize:10,color:muted,flex:1,minWidth:0}}>이전 기간 결과 · {shownDetail.mode==='annual'?'연간':'분기'} {shownDetail.rows[0]?.label}부터</Typography>}
+    <Box sx={{display:'flex',gap:.5,ml:'auto'}}>{(['annual','quarter'] as const).map(value=><ActionButton key={value} size="small" aria-pressed={mode===value} tone={mode===value?'primary':'muted'} onClick={()=>setMode(value)}>{value==='annual'?'연간':'분기'}</ActionButton>)}</Box>
    </Box>
    {mode==='quarter'&&<select aria-label="시작기간" value={quarterStart} onChange={e=>setQuarterStart(e.target.value)} style={{...controlStyle,height:28,width:150,marginBottom:8}}>{Array.from({length:(currentYear-2015+1)*4},(_,i)=>{const y=currentYear-Math.floor(i/4),q=4-i%4;return <option key={y+':'+q} value={y+':'+q}>{y}년 {q}분기부터</option>;})}</select>}
-   {detailStatus}{shownDetail&&<ValueFinancialCharts rows={shownDetail.rows} notes={shownDetail.notices} stockId={selected!} mode={mode} currentYear={currentYear} centerYear={centerYear} onCenterChange={mode==='annual'?setCenterYear:undefined}/>}
+   <FinancialPeriodHeader rows={mode==='annual'?Array.from({length:3},(_,i)=>{const year=centerYear+i-1;return {key:String(year),year,quarter:null,label:String(year),isEstimated:shownDetail?.rows.find(row=>row.year===year)?.isEstimated};}):shownDetail?.rows??[]} centerYear={centerYear} currentYear={currentYear} onCenterChange={mode==='annual'?setCenterYear:undefined}/>
+   </Box>
+   <Status pending={detail.pending} error={detail.error} retry={detail.retry} hasData={!!shownDetail}/>{shownDetail&&<ValueFinancialCharts rows={shownDetail.rows} notes={shownDetail.notices} stockId={selected!} mode={mode} currentYear={currentYear}/>}
   </Box>:tablet?<Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'8px',height:'100%',minHeight:0}}>
    <Box ref={leftRef} data-scroll-region="value-left" data-list-condition={listKey} sx={{overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0,display:'flex',flexDirection:'column'}}>{listContent}</Box><OverlayRegionScrollbar scrollRef={leftRef} label="가치분석 목록 스크롤" offset={0}/>
    <Box ref={rightRef} {...swipe} data-detail-swipe data-scroll-region="value-right" data-list-condition={JSON.stringify([year,selected])} sx={{touchAction:'pan-y',overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'},pb:'80px',minWidth:0}}>{!sourceItems&&list.data?.rows.length===0?<Empty/>:detailContent}</Box><OverlayRegionScrollbar scrollRef={rightRef} label="가치분석 상세 스크롤" offset={0}/>
