@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma, type MarketType, type WatchlistType } from '../generated/prisma/index.js';
 
+import { combinedValuation, valuation } from '../domain/value-analysis.js';
 import { ApiError } from '../lib/api-error.js';
 import { parseManualRefresh } from '../collector/dart-manual-refresh.js';
 import { id, optionalMemo } from '../lib/input.js';
@@ -187,11 +188,12 @@ export async function securityRoutes(app: FastifyInstance) {
     if (accountId !== undefined) await requireActiveAccount(prisma, accountId);
     const manual = accountId === undefined ? null : await prisma.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
     const fiscalYear = request.query.fiscalYear === undefined ? undefined : parseManualRefresh({ fiscalYear: Number(request.query.fiscalYear), period: 'ANNUAL' }).fiscalYear;
-    const [metrics, manualStatements, dartFilings, fundamentals] = await Promise.all([
-      prisma.valuationMetric.findMany({ where: { securityId }, orderBy: { metricDate: 'desc' }, take: 2 }),
+    const [metrics, manualStatements, dartFilings, fundamentals, periodMetrics] = await Promise.all([
+      prisma.valuationMetric.findMany({ where: { securityId, ...(fiscalYear===undefined?{}:{metricDate:{gte:new Date(Date.UTC(fiscalYear,0,1)),lt:new Date(Date.UTC(fiscalYear+1,0,1))}}) }, orderBy: { metricDate: 'desc' }, take: 2 }),
       prisma.financialStatement.findMany({ where: { securityId, ...(fiscalYear === undefined ? {} : { fiscalYear }) }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }], take: 24 }),
       prisma.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false, ...(fiscalYear === undefined ? {} : { fiscalYear }) }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }], take: 40 }),
       prisma.securityFundamentals.findUnique({ where: { securityId } }),
+      prisma.periodValuation.findMany({where:{securityId,...(fiscalYear===undefined?{}:{fiscalYear})},orderBy:[{fiscalYear:'desc'},{periodType:'desc'}],take:48}),
     ]);
     const manualByPeriod = new Map(manualStatements.map((item) => [`${item.fiscalYear}:${item.periodType}`, item]));
     const filingByPeriod = new Map<string, typeof dartFilings[number]>();
@@ -238,8 +240,9 @@ export async function securityRoutes(app: FastifyInstance) {
     }).sort((a, b) => b.fiscalYear - a.fiscalYear || String(b.periodType).localeCompare(String(a.periodType))).slice(0, 24);
     return { data: {
       security: serializeSecurity({ ...security, watchlistItem: manual }),
-      valuation: serializeMetrics(metrics[0] ?? null),
-      previousValuation: serializeMetrics(metrics[1] ?? null),
+      valuation: combinedValuation(valuation(metrics[0]),periodMetrics),
+      previousValuation: combinedValuation(valuation(metrics[1]),periodMetrics.filter(r=>r.fiscalYear<(periodMetrics[0]?.fiscalYear??0))),
+      periodValuations:periodMetrics.map(r=>({fiscalYear:r.fiscalYear,periodType:r.periodType,status:r.status,values:r.values,provenance:r.provenance,reasons:r.reasons,latestAttempt:(r.supplemental as {manualAttempt?:unknown}|null)?.manualAttempt??null})),
       fundamentals: fundamentals && {
         controllingProfit: fundamentals.controllingProfit?.toString() ?? null,
         issuedShares: fundamentals.issuedShares?.toString() ?? null,
