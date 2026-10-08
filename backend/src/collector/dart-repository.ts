@@ -57,6 +57,8 @@ export class PrismaDartRepository {
   }
 
   async corpCodeMappingsSyncedAt(): Promise<Date | null> {
+    // An empty mapping table is never a usable fresh cache, even if an old sync timestamp remains.
+    if (await this.prisma.dartCorpMapping.count() === 0) return null;
     const state = await this.prisma.dartCollectorState.findUnique({ where: { id: 1 }, select: { corpCodeSyncedAt: true } });
     if (state?.corpCodeSyncedAt) return state.corpCodeSyncedAt;
     const latest = await this.prisma.dartCorpMapping.findFirst({ orderBy: { syncedAt: 'desc' }, select: { syncedAt: true } });
