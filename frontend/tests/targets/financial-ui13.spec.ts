@@ -55,3 +55,7 @@ test('chart touch horizontal drag selects last period and vertical gesture scrol
 test('period change clears old selection while year collection colors stay intact',async({page})=>{
  await ready(page);const chart=page.getByTestId('value-chart-수익성');await select(chart);await expect(chart.getByTestId('financial-drag-guide')).toHaveCount(1);await page.getByRole('button',{name:'이전 연도 2023'}).tap();await expect(page.getByRole('button',{name:'재무지표 중앙연도'})).toHaveText('2023');await expect(chart.locator('svg text').first()).toHaveText('2022');await expect(chart.getByTestId('financial-drag-guide')).toHaveCount(0);await expect(chart.locator('[data-period-value][data-selected="true"]')).toHaveCount(0);
 });
+
+test('value list keeps existing back while selected details omit it',async({page})=>{
+ await setup(page);await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();if((page.viewportSize()?.width??0)<600)await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(1);else await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+});
