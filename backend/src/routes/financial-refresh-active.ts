@@ -1,3 +1,4 @@
+import { refreshSummary } from '../collector/refresh-summary.js';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { id } from '../lib/input.js';
@@ -24,7 +25,7 @@ export async function financialRefreshActiveRoutes(app: FastifyInstance) {
       fiscalYear: m.fiscalYear, startYear: m.startYear ?? m.fiscalYear,
       endYear: m.endYear ?? m.fiscalYear, period: m.period,
       startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null,
-      progress: m.progress ?? null, results: m.results ?? [],
+      progress: m.progress ?? null, counts:refreshSummary(m.results??[]), results: m.results ?? [],
     } };
   });
 }
