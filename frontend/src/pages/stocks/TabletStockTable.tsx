@@ -1,3 +1,4 @@
+import {ReportButton} from './ReportButton';
 import {PriceTimestamp} from './PriceTimestamp';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
 import { useRef, type ReactNode } from 'react';
@@ -46,7 +47,7 @@ function StockTableRow({stock,columns,favorite,onSelect,children}:{stock:StockIt
 const cell = { fontSize: 9, lineHeight: '15px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;
 
 function StockName({ stock, favorite, onValue, onFavorite }: { stock: StockItem; favorite?: boolean; onValue?: (s: StockItem)=>void; onFavorite?: (s: StockItem)=>void }) {
-  return <Stack direction="row" sx={{minWidth:0,alignItems:'center'}}>{onFavorite&&<Button aria-label={`${stock.name} 즐겨찾기`} onClick={e=>{e.stopPropagation();onFavorite(stock);}} sx={{p:0,minWidth:12,fontSize:10,color:favorite?colors.warning:colors.textMuted}}>{favorite?'♥':'♡'}</Button>}<Button aria-label={`${stock.name} 가치지표`} onClick={e=>{e.stopPropagation();onValue?.(stock);}} sx={{p:0,minWidth:0,justifyContent:'flex-start',fontSize:10,color:colors.textPrimary,textAlign:'left',overflow:'hidden',whiteSpace:'nowrap'}}>{stock.name}<Box component="span" sx={{fontSize:8,color:colors.textMuted}}> (A{stock.symbol})</Box></Button></Stack>;
+  return <Stack direction="row" sx={{minWidth:0,alignItems:'center'}}>{onFavorite&&<Button aria-label={`${stock.name} 즐겨찾기`} onClick={e=>{e.stopPropagation();onFavorite(stock);}} sx={{p:0,minWidth:12,fontSize:10,color:favorite?colors.warning:colors.textMuted}}>{favorite?'♥':'♡'}</Button>}{stock.listType!=='traded'&&<ReportButton name={stock.name} onClick={()=>onValue?.(stock)}/>}<Button aria-label={`${stock.name} 가치지표`} onClick={e=>{e.stopPropagation();onValue?.(stock);}} sx={{p:0,minWidth:0,justifyContent:'flex-start',fontSize:10,color:colors.textPrimary,textAlign:'left',overflow:'hidden',whiteSpace:'nowrap'}}>{stock.name}<Box component="span" sx={{fontSize:8,color:colors.textMuted}}> (A{stock.symbol})</Box></Button></Stack>;
 }
 
 function WChip({ stock }: { stock: StockItem }) {

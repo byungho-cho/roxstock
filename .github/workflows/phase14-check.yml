@@ -1,0 +1,38 @@
+name: Stock value popup phase 14
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/stocks/**
+      - frontend/src/pages/value/**
+      - frontend/public/stocks-v05/**
+      - frontend/tests/targets/stock-value-popup14.spec.ts
+      - frontend/tests/unit/value-popup-basis.test.ts
+      - frontend/playwright.phase14.config.ts
+      - .github/workflows/phase14-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  popup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: node --import tsx --test frontend/tests/unit/value-popup-basis.test.ts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.phase14.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase14-screenshots
+          path: frontend/test-results/phase14/
+          retention-days: 14
