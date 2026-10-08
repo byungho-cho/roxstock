@@ -6,12 +6,6 @@ import { id } from '../lib/input.js';
 import { enqueueManualRefresh, parseManualRefresh, type ManualRefreshMetadata } from '../collector/dart-manual-refresh.js';
 
 export async function financialRefreshRoutes(app: FastifyInstance) {
-  app.get<{Params:{id:string}}>('/securities/:id/financial-refresh/active',async request=>{
-    const securityId=id(request.params.id,'id').toString();
-    const run=await prisma.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',AND:[{metadata:{path:'$.phase',equals:'MANUAL'}},{metadata:{path:'$.securityId',equals:securityId}}]},orderBy:{startedAt:'desc'}});
-    const metadata=run?.metadata as unknown as ManualRefreshMetadata|undefined;
-    return {data:run&&metadata?{requestId:String(run.id),state:metadata.manualState,status:run.status,progress:metadata.progress??null,counts:refreshSummary(metadata.results??[])}:null};
-  });
   app.post<{ Params: { id: string }; Body: unknown }>('/securities/:id/financial-refresh', async (request, reply) => {
     const securityId = id(request.params.id, 'id');
     const input = parseManualRefresh(request.body);
