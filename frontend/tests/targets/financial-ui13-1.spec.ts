@@ -4,7 +4,7 @@ async function fixture(page:Page,listType="WATCHLIST"){
  await setup(page,{allMetrics:true});
  const stocks=[2,1].map(id=>({id:String(id),symbol:'00000'+id,name:'종목'+id,marketType:'KOSPI',listType,watchlistItemId:String(id),hasTradeHistory:false,currentPrice:'100',previousClosePrice:'90',valuation:null}));
  const queries:string[]=[];
- await page.route('**/api/securities**',r=>r.fulfill({json:{data:new URL(r.request().url()).pathname==='/api/securities'?stocks:{statements:[],fundamentals:null,valuation:null}}}));
+ await page.route('**/api/securities**',r=>{const path=new URL(r.request().url()).pathname;if(path==='/api/securities')return r.fulfill({json:{data:stocks}});if(path.endsWith('/analysis'))return r.fulfill({json:{data:{statements:[],fundamentals:null,valuation:null}}});return r.fallback();});
  await page.route('**/api/accounts/*/trades**',r=>r.fulfill({json:{data:[],summary:{buyAmount:'0',sellAmount:'0',realizedProfitLoss:'0'},daily:[]}}));
  await page.route('**/api/value-analysis?**',r=>{const u=new URL(r.request().url()),query=u.searchParams.get('query')??'';queries.push(query);const rows=stocks.filter(s=>s.name.includes(query)||s.symbol.includes(query));return r.fulfill({json:{data:{rows,total:rows.length,year:2026,query}}});});
  return queries;
@@ -12,7 +12,7 @@ async function fixture(page:Page,listType="WATCHLIST"){
 async function selectWatch(page:Page,id=1){
  if(page.viewportSize()!.width>=600)await page.getByRole('row',{name:`종목${id} 상세보기`,exact:true}).click();
  else await page.getByTestId('stock-card-'+id).getByRole('button',{name:`종목${id} 상세보기`,exact:true}).click();
- await expect(page.getByTestId('value-detail')).toBeVisible();
+ await expect(page.getByTestId('value-detail')).toBeVisible();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toBeEnabled();
 }
 test('source list order, centered header and entry state survive detail/chart transitions',async({page},info)=>{
  await fixture(page);await page.goto('/stocks?tab=watchlist');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('종목');await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();await selectWatch(page);
