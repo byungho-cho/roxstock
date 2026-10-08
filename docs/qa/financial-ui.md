@@ -39,3 +39,7 @@ GET `/api/securities/:id/financial-refresh/active` → 없으면 data:null, 있�
 | 공통 팝업 | [커버](financial-ui/cover-phase10-popup.png) | [펼침](financial-ui/tablet-phase10-popup.png) |
 | 가치지표 안내 | [커버](financial-ui/cover-phase10-tooltip.png) | [펼침](financial-ui/tablet-phase10-tooltip.png) |
 | 서버 작업 발견 | [커버](financial-ui/cover-discovered-job.png) | [펼침](financial-ui/tablet-discovered-job.png) |
+
+## 11차 후속 변경
+
+버튼 공통화, 중앙 연도의 텍스트 선택 목록, 제목/연도 sticky 및 연도 변경 스크롤 유지 규칙은 [11차 검증 문서](financial-ui11.md)를 우선한다. 수집/계산 및 전체기간 조회 계약은 그대로 유지한다.
