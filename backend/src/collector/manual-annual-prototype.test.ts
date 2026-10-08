@@ -24,6 +24,7 @@ test('one manual provider shares a bounded crawl across years; no rate-limit ret
  let calls=0;const p=new NaverAnnualProvider((async input=>{calls++;return new Response(String(input).includes('/ajax/')?table():definitions+" encparam: 'opaque' , id: 'table' ");}) as typeof fetch);
  await Promise.all([p.annual('005930'),p.annual('005930')]);assert.equal(calls,2);
  let limits=0;const limited=new NaverAnnualProvider((async()=>{limits++;return new Response('',{status:429});}) as typeof fetch);await assert.rejects(limited.annual('005930'),{code:'NAVER_RATE_LIMIT'});assert.equal(limits,1);
+ let bodyReads=0;const interrupted=new NaverAnnualProvider((async()=>{bodyReads++;return {ok:true,text:async()=>{throw new DOMException('body timeout','TimeoutError');}} as unknown as Response;}) as typeof fetch);await assert.rejects(interrupted.annual('005930'),{code:'NAVER_COMMUNICATION'});assert.equal(bodyReads,2);
 });
 function fixture(old?:Record<string,unknown>){
  let record:any=old??null,snapshots=0,filingWrites=0;
