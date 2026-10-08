@@ -4,7 +4,7 @@ async function fixture(page:Page,listType="WATCHLIST"){
  await setup(page,{allMetrics:true});
  const stocks=[2,1].map(id=>({id:String(id),symbol:'00000'+id,name:'종목'+id,marketType:'KOSPI',listType,watchlistItemId:String(id),hasTradeHistory:false,currentPrice:'100',previousClosePrice:'90',valuation:null}));
  const queries:string[]=[];
- await page.route('**/api/securities**',r=>r.fulfill({json:{data:stocks}}));
+ await page.route('**/api/securities**',r=>r.fulfill({json:{data:new URL(r.request().url()).pathname==='/api/securities'?stocks:{statements:[],fundamentals:null,valuation:null}}}));
  await page.route('**/api/accounts/*/trades**',r=>r.fulfill({json:{data:[],summary:{buyAmount:'0',sellAmount:'0',realizedProfitLoss:'0'},daily:[]}}));
  await page.route('**/api/value-analysis?**',r=>{const u=new URL(r.request().url()),query=u.searchParams.get('query')??'';queries.push(query);const rows=stocks.filter(s=>s.name.includes(query)||s.symbol.includes(query));return r.fulfill({json:{data:{rows,total:rows.length,year:2026,query}}});});
  return queries;
