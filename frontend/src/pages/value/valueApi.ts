@@ -1,7 +1,7 @@
 import { apiRequest } from '../../data/apiClient';
 export type ValueRow = { id:string; name:string; symbol:string; currentPrice:string|null; previousClosePrice:string|null; priceUpdatedAt:string|null; per:string|null; pbr:string|null; roe:string|null; metricDate:string|null; w:string|null; eps?:string|null; issuedShares?:string|null; capital?:string|null; capitalYear?:number|null; requiredReturn?:string|null; excessEarnings?:string|null; shareholderValue?:string|null; fundamentalsUpdatedAt?:string|null; fairPrices?:{persistence:string;price:string|null}[]; notices?:string[] };
 export type ValueList = { rows:ValueRow[]; total:number; year:number; query:string };
-export type FinancialRow = { metricStatus?:string; metricReasons?:Record<string,string>; metricProvenance?:{fsDivision?:string;roeBasis?:string;flow?:string;priceDate?:string}; availability?:string; key:string; label:string; year:number; quarter:number|null; revenue:string|null; operatingProfit:string|null; netIncome:string|null; per:string|null; pbr:string|null; roe:string|null; debtRatio:string|null; currentRatio:string|null; revenueGrowth:string|null; profitGrowth:string|null; metricDate:string|null; source:string|null; collectedAt:string|null; isDerived:boolean };
+export type FinancialRow = { isEstimated?:boolean; metricStatus?:string; metricReasons?:Record<string,string>; metricProvenance?:{fsDivision?:string;roeBasis?:string;flow?:string;priceDate?:string}; availability?:string; key:string; label:string; year:number; quarter:number|null; revenue:string|null; operatingProfit:string|null; netIncome:string|null; per:string|null; pbr:string|null; roe:string|null; debtRatio:string|null; currentRatio:string|null; revenueGrowth:string|null; profitGrowth:string|null; metricDate:string|null; source:string|null; collectedAt:string|null; isDerived:boolean };
 export type ValueDetail = { security:Pick<ValueRow,'id'|'name'|'symbol'|'currentPrice'|'previousClosePrice'|'priceUpdatedAt'>; year:number; valuation:{ metricDate:string; bps:string|null; eps:string|null; per:string|null; pbr:string|null; roe:string|null }|null; w:string|null; fairPrices:{persistence:string;price:string|null}[]; issuedShares?:string|null; requiredReturn:string; equity:string|null; closingDate:string|null; rows:FinancialRow[]; mode:'annual'|'quarter'; startYear:number; startQuarter:number|null; count:number; notices:string[] };
 export const seoulYear = () => Number(new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
 export const number = (value:string|number|null|undefined) => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
@@ -9,3 +9,15 @@ export const format = (value:string|number|null|undefined, digits=0, suffix='') 
 export const movement = (value:number|null) => value===null||value===0?'#94A3B8':value>0?'#FA616E':'#60A5FA';
 export const listValues = (year:number,query:string,signal:AbortSignal) => apiRequest<ValueList>('/value-analysis?'+new URLSearchParams({year:String(year),query}),{signal});
 export const detailValues = (id:string,year:number,mode:string,startYear:number,startQuarter:number,count:number,signal:AbortSignal) => apiRequest<ValueDetail>('/value-analysis/'+encodeURIComponent(id)+'?'+new URLSearchParams({year:String(year),mode,startYear:String(startYear),startQuarter:String(startQuarter),count:String(count)}),{signal});
+
+/** Read existing endpoints in <=10-period slices; never initiate collection. */
+export async function allFinancialRows(id:string,year:number,mode:'annual'|'quarter',signal:AbortSignal) {
+ const rows:FinancialRow[]=[];
+ const total=(year-2015+1)*(mode==='quarter'?4:1);
+ for(let offset=0;offset<total;offset+=10){
+  const startYear=2015+(mode==='quarter'?Math.floor(offset/4):offset),quarter=mode==='quarter'?offset%4+1:1;
+  const data=await detailValues(id,year,mode,startYear,quarter,Math.min(10,total-offset),signal);
+  rows.push(...data.rows);
+ }
+ return rows;
+}
