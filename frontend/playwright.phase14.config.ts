@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+import base from './playwright.financial-ui.config';
+export default defineConfig({...base,testMatch:['stock-value-popup14.spec.ts','financial-ui13-1.spec.ts'],outputDir:'test-results/phase14',projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}},{name:'large',testMatch:'stock-value-popup14.spec.ts',use:{viewport:{width:1280,height:800}}}],use:{...base.use,baseURL:'http://127.0.0.1:3014'},webServer:{command:'npm run dev -- --host 127.0.0.1 --port 3014 --strictPort',env:{VITE_DATA_SOURCE:'api'},url:'http://127.0.0.1:3014',reuseExistingServer:false}});
