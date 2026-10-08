@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { KrxProvider } from './krx-provider.js';
 const master={ISU_CD:'KR7005930003',ISU_SRT_CD:'005930',KIND_STKCERT_TP_NM:'보통주'};
-const quote={ISU_CD:'005930',BAS_DD:'2025/12/30',TDD_CLSPRC:'100,000',LIST_SHRS:'5,000'};
+const quote={ISU_CD:'005930',BAS_DD:'2025/12/30',TDD_CLSPRC:'100,000',LIST_SHRS:'5,000',ACC_TRDVOL:'1,000'};
 test('shared market/date requests, explicit empty-day traversal, exact symbol/master and unadjusted provenance',async()=>{
  const requests:string[]=[];
  const provider=new KrxProvider('private-test',async(input,init)=>{const url=String(input);requests.push(url);assert.equal((init?.headers as any).AUTH_KEY,'private-test');assert.ok(!url.includes('private-test'));return Response.json({OutBlock_1:url.includes('20251231')?[]:url.includes('base_info')?[master]:[quote]});});
@@ -17,3 +17,9 @@ test('nonempty market without exact symbol is not treated as a holiday; preferre
  const p=new KrxProvider('test',async input=>Response.json({OutBlock_1:String(input).includes('base_info')?[{...master,KIND_STKCERT_TP_NM:'우선주'}]:[quote]}));await assert.rejects(p.close('005930',new Date('2025-12-30'),'KOSPI'),{code:'KRX_ORDINARY_SHARE_BASIS_UNCONFIRMED'});
 });
 test('failed responses are not cached; KOSDAQ uses its approved endpoints',async()=>{let calls=0;const p=new KrxProvider('test',async input=>{assert.ok(String(input).includes('ksq_bydd_trd'));calls++;return calls===1?new Response('',{status:429}):Response.json({OutBlock_1:[]});});await assert.rejects(p.rows('KOSDAQ','20151230'));assert.deepEqual(await p.rows('KOSDAQ','20151230'),[]);assert.equal(calls,2);});
+
+test('zero stock volume advances to an actual prior trading date; malformed volume is a parse failure',async()=>{
+ const provider=new KrxProvider('test',async input=>{const url=String(input);return Response.json({OutBlock_1:url.includes('base_info')?[master]:url.includes('20251231')?[{...quote,BAS_DD:'2025/12/31',ACC_TRDVOL:'0'}]:[quote]});});
+ assert.equal((await provider.close('005930',new Date('2025-12-31'),'KOSPI')).date,'2025-12-30');
+ for(const malformed of [{ACC_TRDVOL:'unknown'},{BAS_DD:20251230},{TDD_CLSPRC:100000}]){const p=new KrxProvider('test',async()=>Response.json({OutBlock_1:[{...quote,...malformed}]}));await assert.rejects(p.close('005930',new Date('2025-12-30'),'KOSPI'),(e:any)=>e.category==='PARSE');}
+});

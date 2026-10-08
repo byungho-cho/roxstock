@@ -47,7 +47,11 @@ export class KrxProvider {
       if (!rows.length) continue;
       const row = rows.find(r => r.ISU_CD === normalized);
       if (!row) throw new HistoricalPriceError('KRX_SYMBOL_NO_DATA', 'NO_DATA');
-      if (day(row.BAS_DD ?? '') !== date || !/^\d+(\.\d+)?$/.test(numeric(row.TDD_CLSPRC) ?? '') || Number(numeric(row.TDD_CLSPRC)) <= 0) throw new HistoricalPriceError('KRX_PRICE_INVALID', 'PARSE');
+      if (typeof row.BAS_DD!=='string'||typeof row.TDD_CLSPRC!=='string'||day(row.BAS_DD) !== date || !/^\d+(\.\d+)?$/.test(numeric(row.TDD_CLSPRC) ?? '') || Number(numeric(row.TDD_CLSPRC)) <= 0) throw new HistoricalPriceError('KRX_PRICE_INVALID', 'PARSE');
+      if(typeof row.ACC_TRDVOL!=='string'||!/^\d+$/.test(numeric(row.ACC_TRDVOL)??''))throw new HistoricalPriceError('KRX_VOLUME_INVALID','PARSE');
+      // A carried close on a zero-volume stock date is not an actual stock trading day.
+      // This is distinct from an empty entire-market response (market closure).
+      if(Number(numeric(row.ACC_TRDVOL))===0)continue;
       const master = (await this.rows(market, date, 'master')).find(r => r.ISU_SRT_CD === normalized);
       if (!master) throw new HistoricalPriceError('KRX_MASTER_NO_DATA', 'NO_DATA');
       if (master.KIND_STKCERT_TP_NM !== '보통주') throw new HistoricalPriceError('KRX_ORDINARY_SHARE_BASIS_UNCONFIRMED', 'PROVIDER');
