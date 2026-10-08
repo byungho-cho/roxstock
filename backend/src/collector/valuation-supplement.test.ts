@@ -8,6 +8,8 @@ test('supplement is idempotent, dry run never writes, failed supplemental source
  const preview=await supplementStoredPeriod(db,1n,2025,'ANNUAL',{dryRun:true});assert.equal((preview?.values as any).roe,'10');assert.equal(writes,0);
  await supplementStoredPeriod(db,1n,2025,'ANNUAL');await supplementStoredPeriod(db,1n,2025,'ANNUAL');assert.equal(saved.values.roe,'10');assert.equal(financialWrites,0);
  saved.values.eps='7';await supplementSafely(db,1n,2025,'ANNUAL',async()=>{throw {code:'020'};});assert.equal(saved.status,'FAILED');assert.equal(saved.values.eps,'7');assert.equal(saved.values.roe,'10');assert.equal(financialWrites,0);
+ await supplementStoredPeriod(db,1n,2025,'ANNUAL',{load:async()=>({accounts:{receiptNo:f.receiptNo,fsDivision:f.fsDivision,collectedAt:'2026-10-08T00:00:00Z',sources:{basicEps:{amount:'10'}}},shares:{outstanding:'10',preferred:false,receiptNo:f.receiptNo},price:{value:'100',date:'2025-12-30',source:'FSC'}})});
+ assert.equal(saved.values.eps,'7');assert.equal(saved.values.per,null);assert.match(saved.reasons.per,/기존 정상 EPS/);assert.equal(financialWrites,0);
  const count=writes;assert.equal(await supplementStoredPeriod(db,1n,2014,'ANNUAL'),null);assert.equal(writes,count);
 });
 test('missing accounts are supplemented independently; source errors cannot erase saved price or rewrite a filing',async()=>{
