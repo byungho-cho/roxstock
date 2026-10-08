@@ -1,0 +1,6 @@
+import {Box,Typography} from '@mui/material';
+import {format,number,type ValueDetail} from './valueApi';
+export function FairPriceCard({data,compact=false}:{data:{fairPrices:ValueDetail['fairPrices'];security:Pick<ValueDetail['security'],'currentPrice'>};compact?:boolean}) {
+ const price=number(data.security.currentPrice);
+ return <Box data-testid="fair-price-card" sx={{bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'}}><Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',minHeight:20,mb:compact?'4px':'8px'}}><Typography sx={{fontSize:compact?12:15,fontWeight:600}}>적정주가</Typography><Typography sx={{fontSize:compact?9:10,color:'#94A3B8'}}>RIM · 원</Typography></Box><Box sx={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'8px'}}>{data.fairPrices.map(fair=>{const value=number(fair.price),delta=value===null||price===null?null:value-price;return <Box key={fair.persistence} sx={{minHeight:compact?40:44,boxSizing:'border-box',p:'4px 2px',borderRadius:'8px',bgcolor:delta===null||delta===0?'#273244':delta>0?'rgba(250,97,110,.7)':'rgba(96,165,250,.7)',display:'flex',flexDirection:'column',justifyContent:'center',gap:'4px',textAlign:'center',fontSize:compact?9:10,fontWeight:600,overflowWrap:'anywhere'}}><span>W {fair.persistence}</span><span>{format(value,0,'원')}</span></Box>;})}</Box></Box>;
+}

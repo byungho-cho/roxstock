@@ -1,9 +1,13 @@
+import {FairPriceCard} from '../value/FairPriceCard';
+import {ValuePopupCharts} from '../value/ValueFinancialCharts';
+import {detailValues,seoulYear,format} from '../value/valueApi';
+import {valuePopupBasis} from './valuePopupBasis';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import {Box,Button,Dialog,IconButton,Stack,Typography} from '@mui/material';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useEffect,useRef,useState} from 'react';
 import type {StockItem} from '../../types/models';
-import {getSecurityAnalysis,updateSecurityPrice} from '../../data/roxstockApi';
+import {updateSecurityPrice} from '../../data/roxstockApi';
 import {NumberField} from '../../components/forms/Fields';
 import {formatRate,getMarketColor} from '../../utils/format';
 import {colors} from '../../styles/tokens';
@@ -11,11 +15,19 @@ import {dayChange,won} from './stockMath';
 import {useListNavigation} from '../../hooks/navigation/usePageMemory';
 export const stockDialogPaper={m:'16px',width:'calc(100% - 32px)',maxWidth:354,maxHeight:'calc(100dvh - 32px)',p:'16px',borderRadius:'8px',bgcolor:'#0B1322',border:'1px solid #2E4263',backgroundImage:'none'};
 export function ValueIndicatorDialog({stock,onClose,navigationState}:{stock:StockItem|null;onClose:()=>void;navigationState?:import('../../hooks/useStockNeighbors').StockNavigation}) {
- const {accountId}=useActiveAccount();const navigate=useListNavigation();const data=useQuery({queryKey:['securityAnalysis',stock?.id,accountId],enabled:!!stock,queryFn:()=>getSecurityAnalysis(stock!.id,undefined,accountId)});
- const analysis=data.data,latest=analysis?.statements.filter(s=>s.periodType==='ANNUAL').sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
- const amount=(v:string|null|undefined)=>v==null?'—':won(Number(v));
- const rows=[['주요지표',`PER ${analysis?.valuation?.per??stock?.per??'—'} · PBR ${analysis?.valuation?.pbr??stock?.pbr??'—'} · ROE ${analysis?.valuation?.roe??stock?.roe??'—'}%`],['지배순이익',amount(analysis?.fundamentals?.controllingProfit)],['발행주식수 (자기주식수)',`${analysis?.fundamentals?.issuedShares==null?'—':Number(analysis.fundamentals.issuedShares).toLocaleString('ko-KR')} (${analysis?.fundamentals?.treasuryShares==null?'—':Number(analysis.fundamentals.treasuryShares).toLocaleString('ko-KR')})`],['자산',amount(latest?.totalAssets)],['부채',amount(latest?.totalLiabilities)],['자본 (전년도)',`${amount(latest?.totalEquity)} (${amount(analysis?.fundamentals?.previousEquity)})`],['주당배당금',amount(analysis?.valuation?.dividendPerShare)],['배당수익률',analysis?.valuation?.dividendYield==null?'—':`${analysis.valuation.dividendYield}%`]];
- return <Dialog open={!!stock} onClose={onClose} slotProps={{paper:{sx:stockDialogPaper}}}><Stack spacing={1.5}><Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}><Typography sx={{fontSize:16,fontWeight:600}}>가치지표</Typography><IconButton aria-label="가치지표 닫기" onClick={onClose} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></Stack><Typography sx={{fontSize:13,fontWeight:600}}>{stock?.name}<Box component="span" sx={{fontSize:11,color:colors.textMuted}}> · A{stock?.symbol}</Box></Typography>{data.isError?<Button role="alert" onClick={()=>void data.refetch()}>가치지표 조회 실패 · 다시 시도</Button>:rows.map(([label,value])=><Stack key={label} direction="row" sx={{justifyContent:'space-between',gap:1}}><Typography sx={{fontSize:10,color:colors.textMuted}}>{label}</Typography><Typography sx={{fontSize:11,textAlign:'right'}}>{data.isPending?'—':value}</Typography></Stack>)}<Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center'}}><Typography sx={{fontSize:10,color:colors.textMuted}}>{latest?`${latest.fiscalYear}년 연결 기준`:'재무 기준 미수집'}</Typography><Button size="small" sx={{fontSize:11,p:0}} onClick={()=>{onClose();navigate(`/stocks/${stock!.id}/value`,{state:{stockNavigation:navigationState}});}}>상세보기 ›</Button></Stack></Stack></Dialog>;
+ const {accountId}=useActiveAccount(),navigate=useListNavigation(),year=seoulYear();
+ const query=useQuery({queryKey:['valuePopup',accountId,stock?.id,year],enabled:!!stock,queryFn:({signal})=>detailValues(stock!.id,year,'annual',Math.max(2015,year-2),1,3,signal)});
+ const data=query.data,empty={security:{currentPrice:null},fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:null}))};
+ return <Dialog open={!!stock} onClose={onClose} aria-labelledby="value-popup-title" slotProps={{paper:{sx:{...stockDialogPaper,m:'16px 8px',width:'calc(100% - 16px)',overflow:'hidden',display:'flex',flexDirection:'column',gap:'8px'}}}}>
+  <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',flexShrink:0}}><Typography id="value-popup-title" sx={{fontSize:16,fontWeight:600}}>가치지표</Typography><IconButton aria-label="가치지표 닫기" onClick={onClose} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></Stack>
+  <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',flexShrink:0,gap:1,minHeight:24}}><Typography sx={{fontSize:14,fontWeight:500,overflowWrap:'anywhere'}}>{stock?.name} · {stock?.symbol}</Typography><Box sx={{border:'1px solid #FBBF2488',borderRadius:'6px',px:'6px',fontSize:10,color:'#FBBF24',whiteSpace:'nowrap'}}>W {format(data?.w??stock?.valuationW,2)}</Box></Stack>
+  <Box data-testid="value-popup-body" tabIndex={0} aria-label="가치지표 본문" sx={{overflowY:'auto',minHeight:0,overscrollBehavior:'contain',display:'grid',gap:'8px'}}>
+   {query.isError&&<Button role="alert" onClick={()=>void query.refetch()}>가치지표 조회 실패 · 다시 시도</Button>}
+   <FairPriceCard data={data??empty} compact/>
+   {data?<ValuePopupCharts rows={data.rows}/>:<Typography role="status" sx={{fontSize:12,color:colors.textMuted,p:2}}>{query.isPending?'불러오는 중…':'재무 데이터 없음'}</Typography>}
+  </Box>
+  <Stack direction="row" data-testid="value-popup-footer" sx={{justifyContent:'space-between',alignItems:'center',minHeight:28,flexShrink:0,gap:1}}><Typography sx={{fontSize:10,color:colors.textMuted}}>{valuePopupBasis(data)}</Typography><Button size="small" sx={{fontSize:12,p:0,minHeight:28,whiteSpace:'nowrap'}} onClick={()=>{onClose();navigate(`/stocks/${stock!.id}/value`,{state:{stockNavigation:navigationState}});}}>상세보기 ›</Button></Stack>
+ </Dialog>;
 }
 export function PriceDialog({stock,onClose}:{stock:StockItem|null;onClose:()=>void}) {
  const[busy,setBusy]=useState(false),body=useRef<HTMLDivElement>(null);
