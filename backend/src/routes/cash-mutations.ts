@@ -69,12 +69,12 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       } else if (body.securityId !== undefined || body.grossAmount !== undefined) {
         throw new ApiError(400, 'INVALID_INPUT', 'Dividend fields are only valid for dividends.');
       }
-      const nonNegative = (value: unknown, field: string) => {
-        if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value)) throw new ApiError(400, 'INVALID_INPUT', `${field} must be a non-negative decimal string.`);
+      const decimalAmount = (value: unknown, field: string, signed = false) => {
+        if (typeof value !== 'string' || !(signed ? /^-?\d+(\.\d+)?$/ : /^\d+(\.\d+)?$/).test(value)) throw new ApiError(400, 'INVALID_INPUT', `${field} must be ${signed ? 'a signed' : 'a non-negative'} decimal string.`);
         return new Prisma.Decimal(value);
       };
-      const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : nonNegative(body.feeTaxAmount, 'feeTaxAmount');
-      const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : nonNegative(body.balanceAfter, 'balanceAfter');
+      const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : decimalAmount(body.feeTaxAmount, 'feeTaxAmount', true);
+      const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : decimalAmount(body.balanceAfter, 'balanceAfter');
       await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter } });
       return { id: transactionId.toString(), cashBalanceAdjusted: false };
 
