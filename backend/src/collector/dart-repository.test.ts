@@ -4,12 +4,17 @@ import type { PrismaClient } from '../generated/prisma/index.js';
 import { PrismaDartRepository } from './dart-repository.js';
 import type { DartReport } from './dart-provider.js';
 
-test('priority ranks traded, manually held, and interest ahead of regular without duplicate accounts', async () => {
+test('priority ranks held, interest, then traded ahead of regular without duplicate accounts', async () => {
   const db = {
     buyTrade:{findMany:async (query:any)=>{assert.equal(query.where.account.isActive,true);return [{securityId:3n},{securityId:1n}];}},
     accountWatchlistItem:{findMany:async()=>[{securityId:1n,listType:'HOLDING',priority:0},{securityId:2n,listType:'WATCHLIST',priority:100},{securityId:4n,listType:'RECOMMENDED',priority:0},{securityId:5n,listType:'HOLDING',priority:0}]},
   } as unknown as PrismaClient;
-  assert.deepEqual(await new PrismaDartRepository(db).prioritySecurityIds(),[1n,3n,5n,2n]);
+  assert.deepEqual(await new PrismaDartRepository(db).prioritySecurityIds(),[1n,5n,2n,3n]);
+});
+test('an unsold purchase is held priority; a fully sold lot remains trade-history priority',async()=>{
+ const {Prisma}=await import('../generated/prisma/index.js');const d=(v:number)=>new Prisma.Decimal(v);
+ const db={buyTrade:{findMany:async()=>[{securityId:3n,quantity:d(2),sellTrades:[{quantity:d(1)}]},{securityId:4n,quantity:d(2),sellTrades:[{quantity:d(2)}]}]},accountWatchlistItem:{findMany:async()=>[{securityId:2n,listType:'WATCHLIST',priority:0}]}} as unknown as PrismaClient;
+ assert.deepEqual(await new PrismaDartRepository(db).prioritySecurityIds(),[3n,2n,4n]);
 });
 
 test('a newly added priority stock starts despite the general daily cap and daytime excludes regular stocks', async () => {

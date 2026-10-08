@@ -1,3 +1,4 @@
+import { annualConsensusRoutes } from './routes/annual-consensus.js';
 import { compoundGrowthRoutes } from './routes/compound-growth.js';
 import { financialStatementRoutes } from './routes/financial-statements.js';
 import Fastify from 'fastify';
@@ -45,6 +46,7 @@ export function buildApp() {
   void app.register(compoundGrowthRoutes, { prefix: '/api' });
   void app.register(financialStatementRoutes, { prefix: '/api' });
   void app.register(valueAnalysisRoutes, { prefix: '/api' });
+  void app.register(annualConsensusRoutes, { prefix: '/api' });
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });

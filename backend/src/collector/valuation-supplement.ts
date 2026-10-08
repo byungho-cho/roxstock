@@ -1,4 +1,5 @@
-import { PrismaDartRepository } from './dart-repository.js';
+import { configuredKrx, type KrxMarket } from './krx-provider.js';
+import { collectAnnualConsensus, settleAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import { historicalClose, HistoricalPriceError } from './historical-close.js';
 import { DartApiError, normalizeDartFinancialRows, type OpenDartProvider, type DartReportCode } from './dart-provider.js';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
@@ -15,12 +16,22 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  let supplemental=(existing?.supplemental??{}) as Supplemental;
  if(options.load){supplemental=await options.load(filing,supplemental);if(filing.normalizationVersion<3)filing=await db.dartFinancialFiling.findFirst({where:{id:filing.id}})??filing;}
  const result=calculatePeriod(filing,previous??undefined,supplemental);
+ const oldProvenance=existing?.provenance as Record<string,unknown>|undefined;
+ const oldValues=existing?.values as Record<string,string|null>|undefined;
+ for(const [ratio,base]of [['per','eps'],['pbr','bps']] as const){
+  const evidence=(oldProvenance?.perMetric as Record<string,Record<string,unknown>>|undefined)?.[base]??oldProvenance;
+  if(oldValues?.[base]!=null&&oldValues[ratio]==null&&result.values[ratio]!==null&&(oldValues[base]!==result.values[base]||evidence?.fsDivision&&evidence.fsDivision!==filing.fsDivision||evidence?.receiptNo&&evidence.receiptNo!==filing.receiptNo)){
+   result.values[ratio]=null;result.reasons[ratio]=`기존 정상 ${base.toUpperCase()}와 새 보충 자료의 공시·귀속 기준 불일치`;
+  }
+ }
  const values=preserveValues(existing?.values,result.values),reasons=Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null));
  const status=metricKeys.every(k=>values[k]!==null)?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
- const oldProvenance=existing?.provenance as Record<string,unknown>|undefined;
  const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:result.provenance]));
  const data={status,values:values as Prisma.InputJsonValue,provenance:{...result.provenance,perMetric} as Prisma.InputJsonValue,reasons:reasons as Prisma.InputJsonValue,supplemental:supplemental as Prisma.InputJsonValue,attempts:(existing?.attempts??0)+1,nextAttemptAt:status==='SUCCESS'||!options.load?null:new Date(Date.now()+86400000)};
- if(!options.dryRun)await db.periodValuation.upsert({where,create:{securityId,fiscalYear,periodType,...data},update:data});
+ if(!options.dryRun){
+  await db.periodValuation.upsert({where,create:{securityId,fiscalYear,periodType,...data},update:data});
+  if(periodType==='ANNUAL'&&process.env.CONSENSUS_ENABLED==='true'){try{await settleAnnualConsensus(db,securityId,fiscalYear,{values,provenance:data.provenance,reasons},supplemental.price,true);}catch{console.warn(JSON.stringify({event:'consensus_finalization_failed',securityId:String(securityId),fiscalYear}));}}
+ }
  return {securityId:securityId.toString(),fiscalYear,periodType,...data};
 }
 /** Failure state never changes a financial filing or its SUCCESS task. */
@@ -35,19 +46,34 @@ export async function supplementSafely(db:PrismaClient,securityId:bigint,year:nu
 }
 
 /** Reused by background and manual collection; period-end sources only. */
-export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,corpCode:string,db?:PrismaClient,beforePrice?:()=>Promise<void>) {
+export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,corpCode:string,db?:PrismaClient,market?:string) {
  return async(f:Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>,saved:Supplemental):Promise<Supplemental>=>{
   if(!f||f.periodType==='Q4'||(f.fsDivision!=='CFS'&&f.fsDivision!=='OFS'))return saved;
-  if(db&&f.normalizationVersion<3){
-   const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
-   if(rows.length){
-    if(rows.some(r=>r.receiptNo!==f.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','보충 자료의 공시번호가 일치하지 않습니다.');
-    await new PrismaDartRepository(db).saveFiling({securityId:f.securityId,fiscalYear:f.fiscalYear,periodType:f.periodType,reportCode:f.reportCode as DartReportCode,fsDivision:f.fsDivision,receiptNo:f.receiptNo,reportName:f.reportName,receiptDate:f.receiptDate,periodEndDate:f.periodEndDate,collectedAt:new Date(),values:normalizeDartFinancialRows(rows)});
-   }
+  if(process.env.CONSENSUS_ENABLED==='true'&&db){try{await freezePastEstimates(db,f.securityId,symbol,market??'KOSPI');if(f.fiscalYear===Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date())))await collectAnnualConsensus(db,f.securityId,symbol);}catch{console.warn(JSON.stringify({event:'consensus_collection_failed',securityId:String(f.securityId)}));}}
+  const errors:Record<string,string>={};let shares=saved.shares,price=saved.price,accounts=saved.accounts;
+  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(symbol.replace(/^A/,''));
+  if(!sourceAllowed)errors.accounts='VALUATION_SOURCE_ROLLOUT_NOT_VALIDATED';
+  if(sourceAllowed&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
+   try{
+    const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
+    if(rows.some(row=>row.receiptNo!==f.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','보충 기초계정의 공시번호 불일치');
+    const normalized=normalizeDartFinancialRows(rows);
+    accounts={receiptNo:f.receiptNo,fsDivision:f.fsDivision,collectedAt:new Date().toISOString(),sources:normalized.accountSources};
+   }catch(error){errors.accounts=error instanceof DartApiError?error.code:'ACCOUNTS_COMMUNICATION';}
   }
-  const errors:Record<string,string>={};let shares=saved.shares,price=saved.price;
-  try{if(!shares)shares=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';}
-  try{if(!price){await beforePrice?.();price=await historicalClose(symbol,f.periodEndDate);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증·활용 권한 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음'};errors.price=descriptions[failure.category];errors.priceCode=failure.code; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
-  return {...saved,...(shares?{shares}:{}),...(price?{price}:{}),errors};
+  try{if(!shares||shares.receiptNo!==f.receiptNo)shares=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';errors.sharesCode=error instanceof DartApiError?error.code:'SHARES_COMMUNICATION';}
+  try{if(!price){price=await historicalClose(symbol,f.periodEndDate,fetch,market);}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증 오류',PERMISSION:'과거 종가 API 서비스 활용 권한 오류',PARSE:'과거 종가 응답 해석 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음'};errors.price=descriptions[failure.category];errors.priceCode=failure.code;errors.priceCategory=failure.category; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
+  let basis=saved.basis;
+  if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo)){
+   try{
+    const receiptDate=f.receiptDate.toISOString().slice(0,10).replaceAll('-','');
+    const master=(await configuredKrx().rows(price.market as KrxMarket,receiptDate,'master')).find(row=>row.ISU_SRT_CD===symbol.replace(/^A/,''));
+    const stable=!!master&&master.ISU_CD===price.isin&&master.KIND_STKCERT_TP_NM==='보통주'&&!!price.parValue&&master.PARVAL?.replaceAll(',','')===price.parValue&&!!price.listedShares&&master.LIST_SHRS?.replaceAll(',','')===price.listedShares;
+    const ordinaryEps=/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
+    const exactShares=shares?.receiptNo===f.receiptNo;
+    basis={epsPriceCompatible:stable&&!!exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:stable&&!!exactShares&&!shares?.preferred,source:'KRX_PERIOD_END_AND_DISCLOSURE_DATE_MASTER_WITH_DART_ORDINARY_SHARE_REPORT',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:!stable?'CORPORATE_ACTION_OR_MASTER_BASIS_UNCONFIRMED':shares?.preferred?'PREFERRED_EQUITY_ALLOCATION_OR_ORDINARY_EPS_LABEL_REQUIRED':!exactShares?'EXACT_RECEIPT_SHARE_REPORT_REQUIRED':'VERIFIED_NO_MASTER_SHARE_BASIS_CHANGE'};
+   }catch(error){basis=undefined;errors.basis=error instanceof HistoricalPriceError?error.code:'SHARE_BASIS_VERIFICATION_FAILED';}
+  }
+  return {...saved,...(shares?{shares}:{}),...(price?{price}:{}),basis,...(accounts?{accounts}:{}),errors};
  };
 }

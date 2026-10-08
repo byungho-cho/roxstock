@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {refreshSummary} from './refresh-summary.js';
+test('filing confirmation and valuation completion count separately per report',()=>{assert.deepEqual(refreshSummary([{period:'ANNUAL',status:'SUCCESS',valuationStatus:'PARTIAL'},{period:'Q1',status:'SUCCESS',valuationStatus:'SUCCESS'},{period:'Q2',status:'NO_DATA'},{period:'Q3',status:'FAILED'}]),{processed:4,disclosureCompleted:2,valuationCompleted:1,noDisclosure:1,disclosureFailed:1,supplementFailed:1});});
