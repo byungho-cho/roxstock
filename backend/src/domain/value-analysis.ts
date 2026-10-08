@@ -1,9 +1,11 @@
 import { Prisma, type FinancialStatement, type DartFinancialFiling, type ValuationMetric, type PeriodValuation } from '../generated/prisma/index.js';
+import { periodCollectionState } from './collection-status.js';
+const seoulCurrentYear=()=>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date()));
 
 export const requiredReturn = new Prisma.Decimal('0.08');
 const decimal = (value: string | null | undefined) => value == null ? null : new Prisma.Decimal(value);
 const text = (value: { toString(): string } | null | undefined) => value?.toString() ?? null;
-export type StoredValuation = { rimCompatible?:boolean; metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
+export type StoredValuation = { rimCompatible?:boolean; kind?:string; fiscalYear?:number; periodType?:string; collectionState?:string; provenance?:unknown; metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
 export function valuation(row: ValuationMetric | null | undefined): StoredValuation | null {
   return row ? { metricDate: row.metricDate.toISOString().slice(0, 10), eps: text(row.eps), bps: text(row.bps), per: text(row.per), pbr: text(row.pbr), roe: text(row.roe) } : null;
 }
@@ -79,21 +81,30 @@ export function financialRows(selected: Period[], statements: Statement[], metri
     const from = period.year + '-' + String(period.quarter === null ? 1 : (period.quarter - 1) * 3 + 1).padStart(2, '0') + '-01';
     const end = period.quarter === null || period.quarter === 4 ? period.year + 1 + '-01-01' : period.year + '-' + String(period.quarter * 3 + 1).padStart(2, '0') + '-01';
     const metric = metrics.find(item => item.metricDate.toISOString().slice(0, 10) >= from && item.metricDate.toISOString().slice(0, 10) < end);
-    const computed=calculated.find(v=>v.fiscalYear===period.year&&v.periodType===(period.quarter===null?'ANNUAL':'Q'+period.quarter))??(period.quarter===4?calculated.find(v=>v.fiscalYear===period.year&&v.periodType==='ANNUAL'):undefined);
+    const estimate=period.quarter===null&&period.year===seoulCurrentYear();
+    const computed=calculated.find(v=>v.fiscalYear===period.year&&v.periodType===(estimate?'ESTIMATE':period.quarter===null?'ANNUAL':'Q'+period.quarter))??(period.quarter===4?calculated.find(v=>v.fiscalYear===period.year&&v.periodType==='ANNUAL'):undefined);
     const values=computed?.values as Record<string,string|null>|undefined;
+    const estimateFinancials=(computed?.supplemental as {estimateFinancials?:Record<string,string|null>}|null)?.estimateFinancials;
+    const actualRow=estimate?undefined:row,periodMetric=estimate?undefined:metric;
+    const financialComplete=!!actualRow&&[actualRow.revenue,actualRow.operatingProfit,actualRow.netIncome,actualRow.totalAssets,actualRow.totalLiabilities,actualRow.totalEquity].every(v=>v!=null);
     const equity = decimal(row?.totalEquity), liabilities = decimal(row?.totalLiabilities);
-    return { ...period, revenue: row?.revenue ?? null, operatingProfit: row?.operatingProfit ?? null, netIncome: row?.netIncome ?? null,
-      per: text(metric?.per)??values?.per??null, pbr: text(metric?.pbr)??values?.pbr??null, roe: text(metric?.roe)??values?.roe??null, metricDate: metric?.metricDate.toISOString().slice(0, 10) ?? (computed?.provenance as {periodEnd?:string}|undefined)?.periodEnd??null,
+    return { ...period,isEstimated:estimate, label:estimate?`${period.year}E`:period.label,collectionState:periodCollectionState(computed,financialComplete),latestAttempt:(computed?.supplemental as {manualAttempt?:unknown}|null)?.manualAttempt??null,
+      revenue:estimate?estimateFinancials?.revenue??null:row?.revenue??null, operatingProfit:estimate?estimateFinancials?.operatingProfit??null:row?.operatingProfit??null, netIncome:estimate?estimateFinancials?.netIncome??null:row?.netIncome??null,
+      per: values?.per??text(periodMetric?.per)??null, pbr: values?.pbr??text(periodMetric?.pbr)??null, roe: values?.roe??text(periodMetric?.roe)??null, metricDate: periodMetric?.metricDate.toISOString().slice(0, 10) ?? (computed?.provenance as {periodEnd?:string}|undefined)?.periodEnd??null,
       metricStatus:computed?.status??'NOT_COLLECTED',metricReasons:computed?.reasons??{},metricProvenance:computed?.provenance??null,
-      debtRatio: equity?.gt(0) && liabilities ? liabilities.div(equity).mul(100).toString() : null,
-      currentRatio: null, revenueGrowth: growth(row, before, 'revenue'), profitGrowth: growth(row, before, 'netIncome'),
-      source: row?.basis ?? null, collectedAt: row?.collectedAt ?? null, isDerived: row?.isDerived ?? false };
+      debtRatio: !estimate&&equity?.gt(0) && liabilities ? liabilities.div(equity).mul(100).toString() : null,
+      currentRatio: null, revenueGrowth: estimate?null:growth(row, before, 'revenue'), profitGrowth: estimate?null:growth(row, before, 'netIncome'),
+      source: estimate?estimateFinancials?'CONSENSUS:NAVER_FNGUIDE_ANNUAL':null:row?.basis??null, collectedAt: estimate?computed?.updatedAt?.toISOString()??null:row?.collectedAt ?? null, isDerived: row?.isDerived ?? false };
   });
 }
 
 export function combinedValuation(legacy:StoredValuation|null, rows:PeriodValuation[]):StoredValuation|null {
- const computed=[...rows].sort((a,b)=>(a.periodType==='ANNUAL'?-1:b.periodType==='ANNUAL'?1:b.periodType.localeCompare(a.periodType)))[0];
+ const ranked=rows.filter(r=>r.periodType!=='ESTIMATE'||r.fiscalYear===seoulCurrentYear());
+ const rank=(r:PeriodValuation)=>r.periodType==='ESTIMATE'?0:r.periodType==='ANNUAL'?1:2;
+ const computed=[...ranked].sort((a,b)=>b.fiscalYear-a.fiscalYear||rank(a)-rank(b)||b.periodType.localeCompare(a.periodType))[0];
  if(!computed)return legacy;
  const values=computed.values as Record<string,string|null>,provenance=computed.provenance as {periodEnd?:string;roeBasis?:string;fsDivision?:string};
- return {rimCompatible:!!(legacy?.bps&&legacy?.roe)||provenance.fsDivision==='OFS'||provenance.roeBasis==='OWNERS_OF_PARENT',metricDate:legacy?.metricDate??provenance.periodEnd??computed.fiscalYear+'-12-31',eps:legacy?.eps??values.eps??null,bps:legacy?.bps??values.bps??null,per:legacy?.per??values.per??null,pbr:legacy?.pbr??values.pbr??null,roe:legacy?.roe??values.roe??null};
+ const estimated=computed.periodType==='ESTIMATE';
+ const legacyValue=estimated?null:legacy;
+ return {kind:estimated?'ANNUAL_ESTIMATE':computed.periodType==='ANNUAL'?'FINAL_ANNUAL':'REPORTED_INTERIM',fiscalYear:computed.fiscalYear,periodType:computed.periodType,collectionState:periodCollectionState(computed,false),provenance:computed.provenance,rimCompatible:!!(legacyValue?.bps&&legacyValue?.roe)||provenance.fsDivision==='OFS'||provenance.roeBasis==='OWNERS_OF_PARENT',metricDate:provenance.periodEnd??legacyValue?.metricDate??computed.fiscalYear+'-12-31',eps:values.eps??legacyValue?.eps??null,bps:values.bps??legacyValue?.bps??null,per:values.per??legacyValue?.per??null,pbr:values.pbr??legacyValue?.pbr??null,roe:values.roe??legacyValue?.roe??null};
 }

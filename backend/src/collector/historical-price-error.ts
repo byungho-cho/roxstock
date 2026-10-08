@@ -1,4 +1,4 @@
-export type PriceFailureCategory = 'AUTH' | 'PERMISSION' | 'COMMUNICATION' | 'RATE_LIMIT' | 'PROVIDER' | 'PARSE' | 'NO_DATA';
+export type PriceFailureCategory = 'AUTH' | 'PERMISSION' | 'COMMUNICATION' | 'RATE_LIMIT' | 'PROVIDER' | 'PARSE' | 'NO_DATA' | 'INTERNAL_LIMIT';
 /** Only allowlisted codes are carried into logs; never provider bodies or request headers. */
 export class HistoricalPriceError extends Error {
   readonly providerCode?: string;

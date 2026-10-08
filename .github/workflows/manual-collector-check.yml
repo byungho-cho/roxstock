@@ -1,0 +1,38 @@
+name: Manual Collector Prototype
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - backend/src/collector/**
+      - backend/src/domain/collection-status.ts
+      - backend/src/domain/value-analysis.ts
+      - backend/src/routes/securities.ts
+      - frontend/src/pages/value/**
+      - frontend/src/pages/financial/**
+      - frontend/tests/targets/manual-collector.spec.ts
+      - frontend/playwright.manual-collector.config.ts
+      - .github/workflows/manual-collector-check.yml
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npm run typecheck:frontend && npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.manual-collector.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manual-collector-evidence
+          path: frontend/test-results/manual-collector/
+          retention-days: 7

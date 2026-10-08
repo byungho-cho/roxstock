@@ -10,6 +10,7 @@ export async function annualConsensusRoutes(app:FastifyInstance){
   if(!Number.isInteger(year)||year<2015||year>Number(getSeoulClock().dateKey.slice(0,4)))throw new ApiError(400,'INVALID_YEAR','예상치 연도를 확인해 주세요.');
   const snapshot=await prisma.annualConsensusSnapshot.findFirst({where:{securityId,fiscalYear:year},orderBy:[{asOf:'desc'},{collectedAt:'desc'}]});
   if(!snapshot)return {data:{fiscalYear:year,kind:'ANNUAL_ESTIMATE',state:'UNAVAILABLE',code:process.env.CONSENSUS_ENABLED==='true'?'CONSENSUS_NOT_COLLECTED':'CONSENSUS_NOT_CONFIGURED'}};
+  if(snapshot.source==='NAVER_FNGUIDE_ANNUAL')return {data:{fiscalYear:year,state:'ESTIMATED',isEstimated:true,asOf:snapshot.asOf.toISOString(),collectedAt:snapshot.collectedAt.toISOString(),source:snapshot.source,...(snapshot.data as object)}};
   if(snapshot.state==='FINALIZED')return {data:{fiscalYear:year,kind:'FINAL_ANNUAL',state:'FINALIZED',isEstimated:false,values:snapshot.finalValues,price:snapshot.frozenClose,estimateArchive:{source:snapshot.source,asOf:snapshot.asOf.toISOString(),data:snapshot.data}}};
   const live=year===Number(getSeoulClock().dateKey.slice(0,4))?await prisma.marketPrice.findUnique({where:{securityId}}):null;
   const price=snapshot.frozenClose as {value:string;date:string;source:string}|null??(live?{value:live.currentPrice.toString(),date:getSeoulClock(live.priceUpdatedAt).dateKey,source:'STORED_LATEST_MARKET_PRICE'}:undefined);
