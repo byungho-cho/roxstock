@@ -49,4 +49,4 @@ RGB 각 채널을 시작+(끝-시작)×보간값으로 계산한다. 위 값은 
 
 - [커버 최종 3안](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=3739-106) · [태블릿 최종 3안](https://www.figma.com/design/HFguP6QYb6xnO9FRsjYlc2?node-id=3740-560).
 - 여덟 예시의 실제 막대 비율 및 고정 글자색, 커버·태블릿 시각 확인 완료. 관련 Figma 명세를 갱신하고 실제 화면의 23.8% 자산구성 막대도 최종안 농도로 맞췄다.
-- 이 작업은 디자인·문서 수정이다. 최종 3안의 실제 앱 코드·런타임·배포 검증은 미실행이다. [15차 검증 기록](../qa/accounts-cash-ratio15.md)의 과거 통과 결과를 이 변경의 검증 결과로 사용하지 않는다.
+- 이 명세를 확정한 당시 작업은 디자인·문서 수정이었다. 이후 실제 앱 구현은 [PR #154](https://github.com/byungho-cho/roxstock/pull/154), [개발현황](../development/asset-composition15-1.md), [최종 3안 QA](../qa/asset-composition15-1.md)에 별도로 기록한다. [15차 검증 기록](../qa/accounts-cash-ratio15.md)의 과거 통과 결과를 이 변경의 검증 결과로 사용하지 않는다.
