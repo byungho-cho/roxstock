@@ -12,6 +12,7 @@
 ## 디렉터리
 
 - `frontend/`: React 웹 애플리케이션
+- [`android-app/`](android-app/README.md): 앱 개발 — 웹을 감싼 안드로이드 앱 및 체결 알림 등록 보조
 - `backend/`: Fastify API 및 데이터 수집 서버
 - `database/`: DB 스키마와 마이그레이션 자료
 - `infra/`: Docker, Nginx 및 배포 설정
