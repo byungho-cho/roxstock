@@ -1,3 +1,5 @@
+import {cashAllocation} from '../../utils/cashAllocation';
+import {useDashboard} from '../../hooks/useMockData';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -32,6 +34,7 @@ export function CashPage() {
   const queryClient = useQueryClient();
   const [initialCash] = useState(loadCash);
   const [balance, setBalance] = useState(initialCash.balance);
+  const dashboard=useDashboard();const allocation=cashAllocation(dashboard.data?.summary.stockValue,balance,!dashboard.isError);
   const [entries, setEntries] = useState<CashEntry[]>(initialCash.entries);
   const [mode, setMode] = useState<'month' | 'year'>('month');
   const [month, setMonth] = useState(currentMonth);
@@ -132,7 +135,7 @@ export function CashPage() {
       <Stack spacing={`${pageMetrics.gap}px`} sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0 }}>
         <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, p: { xs: `11px ${pageMetrics.cardInset}px`, sm: '16px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ display: { sm: 'none' }, minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>
-          <Typography onClick={() => openEditor('balance')} title="예수금 수정" sx={{ color: colors.warning, fontSize: { xs: 28, sm: 30 }, fontWeight: 700, textAlign: { xs: 'right', sm: 'left' }, lineHeight: { xs: '36px', sm: '42px' }, mt: { sm: '8px' }, whiteSpace: 'nowrap', cursor: 'pointer' }}>{amountText(balance)}</Typography>
+          <Typography onClick={() => openEditor('balance')} title="예수금 수정" sx={{ color: allocation.cashColor, fontSize: { xs: 28, sm: 30 }, fontWeight: 700, textAlign: { xs: 'right', sm: 'left' }, lineHeight: { xs: '36px', sm: '42px' }, mt: { sm: '8px' }, whiteSpace: 'nowrap', cursor: 'pointer' }}>{amountText(balance)}</Typography>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end', gap: 1 }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: tone(monthChange), fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>이번 달 {amountText(Math.abs(monthChange))} {monthChange >= 0 ? '증가' : '감소'}</Typography><Typography sx={{ flex: 1, textAlign: 'right', color: colors.textMuted, fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap' }}>09.20 05:30</Typography></Stack>
         </AppCard>
 

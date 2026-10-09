@@ -1,3 +1,4 @@
+import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
 import { Box, Button, CardActionArea, Dialog, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -68,8 +69,7 @@ export function AssetAnalysisPage() {
   if (!dashboard.data) return <>{header}<AppCard sx={cardStyle}><Typography>자산분석 조회에 실패했습니다.</Typography><Button onClick={retry}>다시 시도</Button></AppCard></>;
   const current = dashboard.data, total = decimalValue(current.totalAssetValue), stock = decimalValue(current.stockValue), cash = decimalValue(current.cashBalance);
   const rate = decimalValue(summary?.returnRate), profit = decimalValue(summary?.profitLoss);
-  const available = current.pricingComplete && Number.isFinite(total) && total > 0;
-  const stockRatio = available ? stock / total * 100 : Number.NaN, cashRatio = available ? cash / total * 100 : Number.NaN;
+  const {available,stockPercent:stockRatio,cashPercent:cashRatio,stockColor,cashColor}=cashAllocation(stock,cash,current.pricingComplete&&!dashboard.isError);
   const points = (data?.data ?? []).filter(point => Number.isFinite(decimalValue(point.totalAssetValue)));
   const rows: { label: string; value: number; signed?: boolean; divider?: boolean; percent?: boolean }[] = [
     { label: '기간 시작자산', value: decimalValue(summary?.openingAssetValue ?? points.at(0)?.totalAssetValue) },
@@ -91,8 +91,8 @@ export function AssetAnalysisPage() {
       <Stack direction="row" sx={{ justifyContent: 'space-between', gap: '8px', height: 16 }}><Typography sx={hintStyle}>{current.latestPriceUpdatedAt ? new Date(current.latestPriceUpdatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '시세 미수집'}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: getMarketColor(profit), whiteSpace: 'nowrap' }}>{analysisPeriods.find(item => item.value === period)?.label} · {formatSignedWon(profit)}</Typography></Stack>
     </CardActionArea></AppCard>
     <AppCard data-testid="analysis-composition" sx={cardStyle}><Typography sx={titleStyle}>자산구성</Typography>
-      {available ? <Box role="img" aria-label="주식·예수금 비중" sx={{ display: 'flex', mt: '4px', height: 12, overflow: 'hidden', borderRadius: '6px' }}><Box sx={{ width: `${stockRatio}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashRatio}%`, bgcolor: colors.warning }} /></Box> : <Typography sx={{ ...hintStyle, mt: '4px' }}>시세 미수집 · 구성 계산 불가</Typography>}
-      {[{ name: '주식', value: stock, ratio: stockRatio, color: colors.positive }, { name: '예수금', value: cash, ratio: cashRatio, color: colors.warning }].map(item => <Box key={item.name} sx={{ display: 'grid', gridTemplateColumns: 'minmax(48px, 1fr) 60px minmax(110px, 1.3fr)', gap: '4px', mt: '4px', height: 12, alignItems: 'center' }}><Typography sx={{ fontSize: 12 }}>{item.name}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: item.color }}>{formatPercent(item.ratio)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: item.color }}>{formatWon(item.value)}</Typography></Box>)}
+      {available ? <Box role="img" aria-label="주식·예수금 비중" sx={{ display: 'flex', mt: '4px', height: 12, overflow: 'hidden', borderRadius: '6px' }}><Box sx={{ width: `${stockRatio}%`, bgcolor: stockColor }} /><Box sx={{ width: `${cashRatio}%`, bgcolor: cashColor }} /></Box> : <Typography sx={{ ...hintStyle, mt: '4px' }}>시세 미수집 · 구성 계산 불가</Typography>}
+      {[{ name: '주식', value: stock, ratio: stockRatio, color: stockColor }, { name: '예수금', value: cash, ratio: cashRatio, color: cashColor }].map(item => <Box key={item.name} sx={{ display: 'grid', gridTemplateColumns: 'minmax(48px, 1fr) 60px minmax(110px, 1.3fr)', gap: '4px', mt: '4px', height: 12, alignItems: 'center' }}><Typography sx={{ fontSize: 12 }}>{item.name}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: item.color }}>{formatPercent(item.ratio)}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap', color: item.color }}>{formatWon(item.value)}</Typography></Box>)}
     </AppCard>
     <AppCard data-testid="analysis-trend" sx={{ ...cardStyle, pb: '2px' }}>
       <CardActionArea data-testid="analysis-trend-title" aria-label="자산추이 상세보기" onClick={openDetail} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', minHeight: 23 }}>

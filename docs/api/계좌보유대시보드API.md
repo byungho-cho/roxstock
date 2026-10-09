@@ -1,13 +1,13 @@
 # RoxStock 계좌·보유종목·대시보드 API v0.2
 
-## 15차 변경 요구 · 2026-10-09 · API 구현 검증 전
+## 15차 변경 요구 · 2026-10-09 · 구현 계약 (운영 반영은 배포 결과 별도 확인)
 
-[15차 정본](../handoff/20261009-phase15-accounts-cash-ratio.md) 및 [검증 계획](../qa/accounts-cash-ratio15.md)을 따른다. 아래 기존 계약은 구현 이력이며, 계좌번호 선택값과 초기화 확인 문구는15차 최종 요구와 구분해야 한다.
+[15차 정본](../handoff/20261009-phase15-accounts-cash-ratio.md) 및 [검증 계획](../qa/accounts-cash-ratio15.md)을 따른다. 아래 계약은 15차 구현에 맞춰 갱신했다.
 
 - 추가·수정의 name/brokerName/accountNumber 모두 필수. 정규화 후 빈 계좌번호도 차단하고 증권사+정규화 번호 중복 검사(자기 제외). 스키마/기존 데이터 검증 후 NOT NULL 이행 여부 기록.
 - 계좌 전체의 연결 데이터 유무를 서버에서 제공하고 조회실패를 데이터 없음으로 표시하지 않는다.
-- 삭제는 권한·대상·연결 데이터 없음 재검증과 계좌 완전 삭제를 원자적으로 처리. 검증 후 동시 데이터 추가도 방어.
-- 사용중/기본 계좌 삭제 후 남은 활성 계좌로 전환, 마지막 삭제 후 계좌 없음. 실제 응답·오류코드·삭제 경로는 구현 후 확정 기록하며 이 문서는 신규 엔드포인트가 이미 제공된다는 선언이 아니다.
+- 삭제는 대상·연결 데이터 없음 재검증과 계좌 완전 삭제를 원자적으로 처리. 검증 후 동시 데이터 추가도 방어.
+- 사용중/기본 계좌 삭제 후 남은 활성 계좌로 전환, 마지막 삭제 후 계좌 없음. 실제 응답·오류코드·삭제 경로는 아래 구현 상세를 따른다.
 - 초기화는 계좌명 일치 확인, 계좌 삭제는 이름 재입력 없는 취소/삭제 확인 팝업으로 구분.
 - 현재예수금은 [12차 최신 등록 세후예수금 기준](../development/cash-v05.md) 유지.
 - 색상은 예수금/(주식평가액+예수금)의 반올림 전 비율을 공통 판정.30% 이상 주식 녹색/현금 노랑,20% 이상~30% 미만 주식 빨강/현금 파랑,20% 미만 주식 파랑/현금 빨강. 비율 계산 불가는 null/—로 구분하고 금액0으로 대체하지 않는다.
@@ -20,9 +20,9 @@ POST /api/accounts
 PATCH /api/accounts/{accountId}
 ```
 
-생성·변경 요청은 `name`, `brokerName`, 선택값 `accountNumber`, `isDefault`를 사용합니다. 첫 활성 계좌는 자동으로 기본 계좌가 됩니다. 기본 계좌를 다른 계좌로 변경하면 기존 기본 계좌는 같은 트랜잭션에서 해제됩니다.
+생성·변경 요청은 `name`, `brokerName`, 필수값 `accountNumber`, `isDefault`를 사용합니다. 첫 활성 계좌는 자동으로 기본 계좌가 됩니다. 기본 계좌를 다른 계좌로 변경하면 기존 기본 계좌는 같은 트랜잭션에서 해제됩니다.
 
-계좌번호는 공백·탭·하이픈을 제거해 정규화하며 `brokerName + normalizedAccountNumber`가 같은 계좌는 중복 등록할 수 없습니다. 계좌번호가 없는 계좌는 중복 번호 검사를 적용하지 않습니다. 중복 시 `409 ACCOUNT_ALREADY_EXISTS`, 현재 기본 계좌를 대체 계좌 없이 해제하면 `409 DEFAULT_ACCOUNT_REQUIRED`를 반환합니다.
+계좌번호는 공백·탭·하이픈을 제거해 정규화하며 `brokerName + normalizedAccountNumber`가 같은 계좌는 중복 등록할 수 없습니다. 정규화 후 빈 계좌번호는 저장을 거부합니다. 수정 시 자기 자신은 기존 복합 고유키로 제외합니다. 중복 시 `409 ACCOUNT_ALREADY_EXISTS`, 현재 기본 계좌를 대체 계좌 없이 해제하면 `409 DEFAULT_ACCOUNT_REQUIRED`를 반환합니다.
 
 ### 테스트용 계좌 데이터 초기화
 
@@ -30,18 +30,19 @@ PATCH /api/accounts/{accountId}
 POST /api/accounts/{accountId}/reset
 Content-Type: application/json
 
-{ "confirmation": "초기화" }
+{ "confirmation": "대상 계좌명과 정확히 같은 문자열" }
 ```
 
-`ENABLE_ACCOUNT_DATA_RESET=true`인 환경에서만 실행됩니다. 계좌 자체와 계좌 설정, 공통 종목·시세, 계좌 공통 관심·추천 목록은 유지하고 다음 계좌 종속 데이터를 단일 트랜잭션으로 삭제합니다.
+`ENABLE_ACCOUNT_DATA_RESET=true`인 환경에서만 실행됩니다. 계좌 자체와 계좌 설정, 공통 종목·시세 및 전역 과거 분류 자료는 유지하고 다음 계좌 종속 데이터를 단일 트랜잭션으로 삭제합니다.
 
 - 매수·매도와 현금 거래
 - 배당
 - 일별 계좌·보유종목 스냅샷
 - 복리 계획과 목표
-- 현재 예수금(0원으로 변경)
+- 계좌별 보유·관심 목록과 거래 요청 멱등성 기록
+- 현재예수금의 기준 내역(초기화 후 null/—; 계좌 캐시 필드는 0)
 
-보유 종목 분류는 다른 계좌의 잔여 Lot까지 확인한 뒤 재계산합니다. 비활성 환경은 `403 ACCOUNT_RESET_DISABLED`, 확인 문구 불일치는 `400 RESET_CONFIRMATION_MISMATCH`, 같은 API 프로세스의 중복 실행은 `409 ACCOUNT_RESET_IN_PROGRESS`입니다.
+다른 계좌의 자료와 공통 종목 분류는 변경하지 않습니다. 비활성 환경은 `403 ACCOUNT_RESET_DISABLED`, 확인 문구 불일치는 `400 RESET_CONFIRMATION_MISMATCH`, 같은 API 프로세스의 중복 실행은 `409 ACCOUNT_RESET_IN_PROGRESS`입니다.
 
 ## 1. 계산 기준
 
@@ -121,3 +122,11 @@ GET /api/accounts/{accountId}/asset-history?from=2026-01-01&to=2026-09-28
 
 
 1001 전일 대비는 `previousDayChange`·`previousDayChangeRate`를 표시합니다. 일별손익과 별도 계산하며, 시세·직전 달력일 스냅샷 부재는 두 값 모두 null, 전일 총자산 0원은 비율만 null입니다. 갱신 시각은 계산 시각이 아닌 `latestPriceUpdatedAt`을 표시합니다.
+
+## 15차 구현 상세
+
+- `GET /api/accounts/{accountId}/data-state`: `{data:{hasData,counts}}`. 8개 직접 연결 테이블의 전 기간 건수를 확인합니다.
+- `DELETE /api/accounts/{accountId}`: 빈 활성 계좌만 삭제, `{data:{accountId,nextAccountId}}`. 마지막 계좌면 nextAccountId=null. 연결 자료 있음은 409 ACCOUNT_HAS_DATA, 없는/비활성 계좌는 404 ACCOUNT_NOT_FOUND.
+- 모든 계좌 행을 ID순 FOR UPDATE 잠금한 Serializable 트랜잭션에서 확인·삭제·기본 계좌 전환합니다. Restrict 외래키가 새 자식 추가와 삭제 간 충돌을 방어합니다. 연결 자료를 연쇄 삭제하지 않습니다.
+- 사용자 2026-10-09 추가 결정: 개인 단독 사용이므로 로그인·계좌 소유권 검사는 이번 범위 제외, 후속 2차 검토. 이를 권한 검사 통과로 보고하지 않습니다.
+- 기존 nullable 컬럼은 보존하며 API 필수 검증을 적용합니다. 운영 읽기 전용 점검에서 계좌 3건 모두 번호·정규화 값이 존재했습니다. NOT NULL 변경/DB 마이그레이션은 없습니다.

@@ -92,6 +92,13 @@ jobs:
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
 
+      - name: Account reset and deletion on isolated MariaDB
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_phase15_test
+        run: |
+          node --import tsx backend/tests/prepare-accounts-phase15.ts
+          node --import tsx --test backend/tests/accounts-phase15.integration.ts
+
       - name: Type-check backend
         run: npm run typecheck:backend
 
