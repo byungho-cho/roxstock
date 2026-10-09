@@ -35,7 +35,7 @@ test('1001: four-size layout, distinct profit, donut units, chart toggle and hol
     return {padding:[getComputedStyle(main).paddingTop,getComputedStyle(main).paddingLeft,getComputedStyle(main).paddingRight,getComputedStyle(main).paddingBottom],overflow:document.documentElement.scrollWidth>innerWidth,header:rect(document.querySelector('header')!),title:rect(document.querySelector('h1')!),nav:rect([...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!),main:rect(main),grid:rect(grid),left:rect(left),right:rect(right),internalScrolls:[...main.querySelectorAll('*')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY)).length};
   });
   expect(layout.padding).toEqual(['0px','8px','8px','80px']);expect(layout.overflow).toBe(false);expect(layout.internalScrolls).toBe(0);expect(layout.header.height).toBe(44);expect(layout.nav.height).toBe(44);expect(layout.title.x).toBe(52);expect(layout.grid.x).toBe(8);expect(layout.grid.y).toBe(44);expect(layout.right.height).toBe(info.project.name.startsWith('tablet')?564:552);
-  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button')).toHaveCount(info.project.name.startsWith('tablet') ? 9 : 5);
+  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button')).toHaveCount(13);
   if(info.project.name.startsWith('tablet')) {
     expect(layout.left.height).toBe(564);expect(layout.right.y).toBe(layout.left.y);expect(layout.right.x-layout.left.right).toBe(8);expect((await pnl.boundingBox())!.height).toBe(174);
     const held=page.getByTestId('asset-holdings-card');expect((await held.boundingBox())!.height).toBe(222);await expect(held).toContainText('8종목');await expect(held.getByTestId('home-holding')).toHaveCount(3);
@@ -121,17 +121,17 @@ test('v0.4 navigation: assets, home and holding-add share the nine tablet routes
   test.setTimeout(60_000);
   await fixture(page);
   const tablet=info.project.name.startsWith('tablet');
-  const labels=tablet?['종목목록','매매일지','평가자산','예수금','홈','자산분석','재무제표','시세수집','더보기']:['종목목록','매매일지','홈','자산분석','더보기'];
-  const routes=tablet?['/stocks','/journal','/detail/assets','/detail/cash','/','/assets','/detail/financials','/detail/collection-monitoring','/more']:['/stocks','/journal','/','/assets','/more'];
+  const labels=['홈','종목목록','매매일지','예수금','자산분석','투자금','투자손익','가치분석','재무제표','복리계획','모니터링','설정','더보기'];
+  const routes=['/','/stocks','/journal','/detail/cash','/assets','/detail/investment','/detail/investment-profit','/detail/value','/detail/financials','/detail/compound','/detail/collection-monitoring','/detail/settings','/more'];
   for(const path of ['/detail/assets','/','/stocks/add?type=holding&from=home']){
     await page.goto(path);await expect(page.locator('header h1')).toBeVisible();
     const nav=page.locator('.MuiBottomNavigation-root:visible');
     await expect(nav.getByRole('button')).toHaveText(labels);
-    const selected=path==='/detail/assets'&&tablet?'평가자산':'홈';
+    const selected=path.startsWith('/stocks')?'종목목록':'홈';
     await expect(nav.getByRole('button',{name:selected,exact:true})).toHaveClass(/Mui-selected/);
     await expect.poll(()=>nav.locator('img').evaluateAll(nodes=>nodes.every(n=>(n as HTMLImageElement).complete&&(n as HTMLImageElement).naturalWidth>0))).toBe(true);
     const sizes=await nav.getByRole('button').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();const img=n.querySelector('img') as HTMLImageElement;const label=n.querySelector('.MuiBottomNavigationAction-label')!.getBoundingClientRect();return {width:r.width,height:r.height,iw:img.naturalWidth,ih:img.naturalHeight,render:img.getBoundingClientRect().width,vertical:img.getBoundingClientRect().bottom<=label.top};}));
-    for(const size of sizes){expect(size.height).toBe(43);expect(size.width).toBeCloseTo(info.project.use.viewport!.width/labels.length,0);expect(size.iw).toBe(tablet?16:18);expect(size.ih).toBe(tablet?16:18);expect(size.render).toBe(tablet?16:18);expect(size.vertical).toBe(true);}
+    for(const [index,size] of sizes.entries()){expect(size.height).toBe(44);expect(size.width).toBeCloseTo(index===0||index===12?44:tablet?52:(info.project.use.viewport!.width-90)/5.5,0);expect(size.iw).toBe(18);expect(size.ih).toBe(18);expect(size.render).toBe(18);expect(size.vertical).toBe(true);}
     await page.screenshot({path:info.outputPath(`nav-v04-${path==='/detail/assets'?'assets':path==='/'?'home':'add'}.png`)});
   }
   await page.goto('/detail/assets');

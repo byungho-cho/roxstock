@@ -98,7 +98,7 @@ test('requested layout, independent scrolling, row spacing, safe clearance and n
     return region.getBoundingClientRect().bottom - node.getBoundingClientRect().bottom;
   }, tablet);
   expect(clearance).toBeGreaterThanOrEqual(79);
-  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: '자산분석', exact: true })).toHaveClass(/Mui-selected/);
+  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: '투자금', exact: true })).toHaveClass(/Mui-selected/);
   const assets = await page.locator('[data-testid="investment-year"] img, .MuiBottomNavigation-root:visible img').evaluateAll(nodes => nodes.map(node => { const img = node as HTMLImageElement; return { valid: img.complete && img.naturalWidth > 0, width: img.getBoundingClientRect().width }; }));
   expect(assets.every(asset => asset.valid)).toBe(true); expect(assets.slice(0, 2).every(asset => asset.width === 32)).toBe(true);
 });

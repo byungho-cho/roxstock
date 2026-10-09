@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
 import { Prisma, type MarketType, type WatchlistType } from '../generated/prisma/index.js';
 
 import { combinedValuation, valuation } from '../domain/value-analysis.js';
@@ -10,8 +11,8 @@ import { serializable } from '../lib/transaction.js';
 import { manualClassification, requireActiveAccount } from '../domain/classification.js';
 import { calculateRemainingQuantity } from '../domain/trade.js';
 
-type SecurityQuery = { accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
-type WatchlistBody = { accountId?: unknown; securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
+type SecurityQuery = { includeInactive?: string; accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
+type WatchlistBody = { reactivate?: unknown; accountId?: unknown; securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
 type WatchlistParams = { id: string };
 type SecurityParams = { id: string };
 type DirectSecurityBody = { accountId?: unknown; symbol?: unknown; name?: unknown; marketType?: unknown; listType?: unknown; listingYear?: unknown };
@@ -304,7 +305,7 @@ export async function securityRoutes(app: FastifyInstance) {
     const selectedList = request.query.listType === 'TRADED' ? 'TRADED' : listTypeFilter(request.query.listType);
     const excludeRegistered = request.query.excludeRegistered === 'true';
     const registeredOnly = request.query.registeredOnly === 'true';
-    for (const key of ['excludeRegistered', 'registeredOnly'] as const) {
+    for (const key of ['excludeRegistered', 'registeredOnly', 'includeInactive'] as const) {
       if (request.query[key] && !['true', 'false'].includes(request.query[key]!)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be true or false.`);
     }
     if (selectedList && excludeRegistered) throw new ApiError(400, 'INVALID_INPUT', 'listType and excludeRegistered cannot be combined.');
@@ -319,16 +320,16 @@ export async function securityRoutes(app: FastifyInstance) {
       remainingById.set(key, (remainingById.get(key) ?? new Prisma.Decimal(0)).plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map(s => s.quantity))));
     }
     const where: Prisma.SecurityWhereInput = {
-      isActive: true,
+      ...(request.query.includeInactive !== 'true' && { isActive: true }),
       ...(selectedMarket && { marketType: selectedMarket }),
       ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),
-      ...(search && { AND: [{ OR: [{ symbol: { contains: search.replace(/^A(?=\d{6}$)/i, '') } }, { name: { contains: search } }] }] }),
+      ...(search && !hasInitialQuery(search) && { AND: [{ OR: [{ symbol: { contains: search.replace(/^A(?=\d{6}$)/i, '') } }, { name: { contains: search } }] }] }),
     };
     const securities = await prisma.security.findMany({
       where, include: { marketPrice: true, accountWatchlistItems: { where: { accountId: accountId ?? 0n } } },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
-    const classified = securities.map(security => {
+    const classified = securities.filter(security => !hasInitialQuery(search) || matchesStockSearch(security.name, search) || matchesStockSearch(security.symbol, search)).map(security => {
       const manual = security.accountWatchlistItems[0] ?? null;
       const remaining = remainingById.get(security.id.toString());
       const effective = remaining !== undefined ? remaining.gt(0) ? 'HOLDING' : 'TRADED' : manual?.listType ?? null;
@@ -346,7 +347,7 @@ export async function securityRoutes(app: FastifyInstance) {
     const metricById = new Map(metrics.map(item => [item.securityId.toString(), item]));
     return { data: page.map(({ security, manual, effective, hasTradeHistory }) => {
       const years = financials.filter(item => item.securityId === security.id).slice(0, 2);
-      return { ...serializeSecurity({ ...security, watchlistItem: manual }), listType: effective, manualListType: manual?.listType ?? null, hasTradeHistory,
+      return { ...serializeSecurity({ ...security, watchlistItem: manual }), listType: effective, manualListType: manual?.listType ?? null, hasTradeHistory, isActive: security.isActive,
         valuation: serializeMetrics(metricById.get(security.id.toString()) ?? null), operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
         previousOperatingProfit: years[1]?.operatingProfit?.toString() ?? null };
     }), meta: { total: classified.length, limit: hasPagination ? limit : classified.length, offset: hasPagination ? offset : 0 } };
@@ -360,10 +361,12 @@ export async function securityRoutes(app: FastifyInstance) {
     const result = await serializable(async tx => {
       await requireActiveAccount(tx, accountId);
       const security = await tx.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
-      if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', '종목을 찾을 수 없습니다.');
+      if (!security) throw new ApiError(404, 'SECURITY_NOT_FOUND', '종목을 찾을 수 없습니다.');
+      if (!security.isActive && body.reactivate !== true) throw new ApiError(409, 'SECURITY_INACTIVE', '비활성 종목입니다. 활성화 후 등록을 확인해 주세요.');
       if (await tx.buyTrade.count({ where: { accountId, securityId } })) throw new ApiError(409, 'CLASSIFICATION_LOCKED', '거래내역이 있는 종목은 분류를 변경할 수 없습니다.');
       const existing = await tx.accountWatchlistItem.findUnique({ where: { accountId_securityId: { accountId, securityId } } });
       if (existing && existing.listType !== listType) throw new ApiError(409, 'WATCHLIST_ITEM_ALREADY_EXISTS', '이미 등록된 종목입니다. 분류 변경을 사용하세요.');
+      if (!security.isActive) await tx.security.update({where:{id:securityId},data:{isActive:true}});
       const item = existing ?? await tx.accountWatchlistItem.create({ data: { accountId, securityId, listType, targetBuyPrice, priority, memo } });
       return serializeSecurity({ ...security, watchlistItem: item });
     });
@@ -379,6 +382,7 @@ export async function securityRoutes(app: FastifyInstance) {
       const existing = await tx.accountWatchlistItem.findFirst({ where: { id: itemId, accountId } });
       if (!existing) throw new ApiError(404, 'WATCHLIST_ITEM_NOT_FOUND', '이 계좌의 분류 항목을 찾을 수 없습니다.');
       if (listType !== undefined && await tx.buyTrade.count({ where: { accountId, securityId: existing.securityId } })) throw new ApiError(409, 'CLASSIFICATION_LOCKED', '거래내역이 있는 종목은 분류를 변경할 수 없습니다.');
+      if (body.reactivate === true) await tx.security.update({where:{id:existing.securityId},data:{isActive:true}});
       const item = await tx.accountWatchlistItem.update({ where: { id: itemId }, data: {
         ...(listType && { listType }), ...(body.targetBuyPrice !== undefined && { targetBuyPrice: optionalPrice(body.targetBuyPrice) }),
         ...(body.priority !== undefined && { priority: optionalPriority(body.priority) }), ...(body.memo !== undefined && { memo: optionalMemo(body.memo) }),

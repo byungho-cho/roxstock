@@ -17,6 +17,7 @@ backend/src/generated/prisma/
 
 # Local viewport QA output
 frontend/test-results/
+/test-results/
 frontend/playwright-report/
 
 

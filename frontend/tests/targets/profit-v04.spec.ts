@@ -93,7 +93,7 @@ test('requested geometry percent alignment independent scrolling and safe cleara
   const gap = await page.getByTestId('profit-compact').last().evaluate((node, tablet) => (tablet ? node.closest('[data-scroll-region]')! : document.querySelector('main')!).getBoundingClientRect().bottom - node.getBoundingClientRect().bottom, tablet);
   expect(gap).toBeGreaterThanOrEqual(79);
   if (tablet) { const scroll = await page.locator('[data-scroll-region="profit-left"]').evaluate(node => node.scrollTop); await region.evaluate(node => { node.scrollTop = 0; }); expect(await page.locator('[data-scroll-region="profit-left"]').evaluate(node => node.scrollTop)).toBe(scroll); }
-  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: '자산분석', exact: true })).toHaveClass(/Mui-selected/);
+  await expect(page.locator('.MuiBottomNavigation-root:visible').getByRole('button', { name: '투자손익', exact: true })).toHaveClass(/Mui-selected/);
 });
 test('stored profit does not poll/focus-refresh; account switch rejects the old response', async ({ page }) => {
  const f=await fixture(page);await ready(page);
