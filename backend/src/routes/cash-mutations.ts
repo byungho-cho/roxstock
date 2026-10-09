@@ -5,9 +5,10 @@ import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
 import { ApiError } from '../lib/api-error.js';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../lib/prisma.js';
+import { registerTrade, requestId } from '../domain/trade-request.js';
 
 type CashEditBody = { accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
-type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
+type DividendBody = { requestId?: unknown; accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
 async function latestAccount(tx: Prisma.TransactionClient, cash: {id: bigint; accountId: bigint}) {
   const account = await tx.account.findUnique({where:{id:cash.accountId}});
@@ -27,8 +28,9 @@ export async function cashMutationRoutes(app: FastifyInstance) {
     const netAmount = positiveDecimal(body.netAmount, 'netAmount');
     if (grossAmount.lessThan(netAmount)) throw new ApiError(400, 'INVALID_INPUT', 'grossAmount must be at least netAmount.');
     const memo = optionalMemo(body.memo);
-    const result = await serializable(async (tx) => {
-      await lockCashAccount(tx, accountId);
+    const result = await registerTrade(accountId, 'DIVIDEND', requestId(body.requestId), {
+      securityId: securityId.toString(), receivedAt: receivedAt.toISOString(), grossAmount: grossAmount.toString(), netAmount: netAmount.toString(), memo,
+    }, async (tx) => {
       const account = await tx.account.findUnique({ where: { id: accountId } });
       if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
       const security = await tx.security.findUnique({ where: { id: securityId } });

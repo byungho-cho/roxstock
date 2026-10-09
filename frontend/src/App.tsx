@@ -1,4 +1,5 @@
 import {TradeDetailPage} from './pages/trade/TradeDetailPage';
+import {NotificationInboxPage} from './pages/notifications/NotificationInboxPage';
 import {useCallback,useRef,useState} from 'react';
 import {Box,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
@@ -60,6 +61,7 @@ export function App() {
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
+        <Route path="detail/notifications" element={<NotificationInboxPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
         <Route path="detail/compound" element={<CompoundPage />} />
