@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { inflateRawSync } from 'node:zlib';
 import {shareClassOf} from '../domain/share-counts.js';
 
@@ -131,7 +132,7 @@ export function validateDartCorporations(rows: DartCorporation[]): void {
  if(!rows.length)throw new DartApiError('CORP_MAPPING_EMPTY','No listed corporations in response.');
  const codes=new Set<string>();
  for(const row of rows){
-  if(!/^\d{8}$/.test(row.corpCode)||!/^\d{6}$/.test(row.stockCode)||!row.corpName.trim()||row.corpName.length>200||!/^\d{8}$/.test(row.modifiedDate)||codes.has(row.corpCode))throw new DartApiError('CORP_MAPPING_INVALID','Corporation row validation failed.');
+  if(!/^\d{8}$/.test(row.corpCode)||!isSecuritySymbol(row.stockCode)||!row.corpName.trim()||row.corpName.length>200||!/^\d{8}$/.test(row.modifiedDate)||codes.has(row.corpCode))throw new DartApiError('CORP_MAPPING_INVALID','Corporation row validation failed.');
   codes.add(row.corpCode);
  }
 }
@@ -141,8 +142,8 @@ export const parseDartCorpCodeXml = (xml: string): DartCorporation[] => {
  if(!/^\s*(?:<\?xml[^>]*>\s*)?<result>[\s\S]*<\/result>\s*$/.test(xml)||/<!(?:DOCTYPE|ENTITY)/i.test(xml))throw new DartApiError('CORP_XML_INVALID','Malformed corporation XML.');
  const lists=[...xml.matchAll(/<list>([\s\S]*?)<\/list>/gi)];
  if(lists.length!==(xml.match(/<list>/gi)??[]).length || lists.length!==(xml.match(/<\/list>/gi)??[]).length)throw new DartApiError('CORP_XML_INVALID','Malformed corporation list.');
- const all=lists.map(([,row=''])=>({corpCode:xmlValue(row,'corp_code'),corpName:xmlValue(row,'corp_name'),stockCode:xmlValue(row,'stock_code'),modifiedDate:xmlValue(row,'modify_date')}));
- if(all.some(r=>!/^\d{8}$/.test(r.corpCode)||!r.corpName||!/^\d{8}$/.test(r.modifiedDate)||(r.stockCode!==''&&!/^\d{6}$/.test(r.stockCode))))throw new DartApiError('CORP_MAPPING_INVALID','Invalid corporation list row.');
+ const all=lists.map(([,row=''])=>({corpCode:xmlValue(row,'corp_code'),corpName:xmlValue(row,'corp_name'),stockCode:normalizeProviderSymbol(xmlValue(row,'stock_code')),modifiedDate:xmlValue(row,'modify_date')}));
+ if(all.some(r=>!/^\d{8}$/.test(r.corpCode)||!r.corpName||!/^\d{8}$/.test(r.modifiedDate)||(r.stockCode!==''&&!isSecuritySymbol(r.stockCode))))throw new DartApiError('CORP_MAPPING_INVALID','Invalid corporation list row.');
  const listed=all.filter(r=>r.stockCode!=='');validateDartCorporations(listed);return listed;
 };
 

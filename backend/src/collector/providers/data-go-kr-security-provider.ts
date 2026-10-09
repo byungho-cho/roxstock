@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../../domain/security-symbol.js';
 import type { SecurityMasterBatch, SecurityMasterItem, SupportedMarketType } from '../types.js';
 
 interface ApiItem {
@@ -41,9 +42,9 @@ export const parseSecurityMasterResponse = (payload: unknown): { totalCount: num
   const items: SecurityMasterItem[] = [];
   for (const raw of rawItems) {
     const market = marketType(raw.mrktCtg);
-    const symbol = String(raw.srtnCd ?? '').replace(/^A/i, '').trim();
+    const symbol = normalizeProviderSymbol(String(raw.srtnCd ?? ''));
     const name = String(raw.itmsNm ?? '').trim();
-    if (market && /^\d{6}$/.test(symbol) && name) items.push({ symbol, name, marketType: market });
+    if (market && isSecuritySymbol(symbol) && name) items.push({ symbol, name, marketType: market });
   }
   return { totalCount: Number(parsed.response?.body?.totalCount ?? 0), items };
 };

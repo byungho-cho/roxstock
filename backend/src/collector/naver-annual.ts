@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { Prisma } from '../generated/prisma/index.js';
 import { metricKeys, type MetricValues } from '../domain/period-valuation.js';
 
@@ -52,7 +53,8 @@ export class NaverAnnualProvider {
  private pending=new Map<string,Promise<NaverAnnual[]>>();
  constructor(private fetcher:typeof fetch=fetch) {}
  annual(symbol:string){
-  if(!/^\d{6}$/.test(symbol))throw new NaverAnnualError('NAVER_SYMBOL_INVALID');
+  symbol=normalizeProviderSymbol(symbol);
+  if(!isSecuritySymbol(symbol))throw new NaverAnnualError('NAVER_SYMBOL_INVALID');
   let result=this.pending.get(symbol);
   if(!result){result=this.load(symbol);this.pending.set(symbol,result);}
   return result;

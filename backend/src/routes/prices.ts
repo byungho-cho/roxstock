@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
@@ -13,9 +14,9 @@ interface InternalPriceBody {
 
 const parseSymbols = (value: string | undefined): Set<string> | undefined => {
   if (!value) return undefined;
-  const symbols = value.split(',').map((symbol) => symbol.trim().replace(/^A(?=\d{6}$)/i, '')).filter(Boolean);
-  if (symbols.length > 100 || symbols.some((symbol) => !/^\d{6}$/.test(symbol))) {
-    throw new Error('symbols must contain at most 100 comma-separated six-digit codes');
+  const symbols = value.split(',').map((symbol) => normalizeProviderSymbol(symbol)).filter(Boolean);
+  if (symbols.length > 100 || symbols.some((symbol) => !isSecuritySymbol(symbol))) {
+    throw new Error('symbols must contain at most 100 comma-separated six-character alphanumeric codes');
   }
   return new Set(symbols);
 };

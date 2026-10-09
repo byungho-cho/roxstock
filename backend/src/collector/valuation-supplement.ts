@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol } from '../domain/security-symbol.js';
 import { configuredKrx, type KrxMarket } from './krx-provider.js';
 import { collectAnnualConsensus, settleAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import { historicalClose, HistoricalPriceError } from './historical-close.js';
@@ -66,7 +67,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   const errors:Record<string,string>={};let shares=saved.shares,price=saved.price,accounts=saved.accounts;
   try{if(!completeShares(shares,f.receiptNo)){const fetched=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);if(fetched)shares=fetched;else {errors.shares='주식수 미공시 또는 미제공';errors.sharesCode='SHARES_NO_DATA';}}}catch(error){if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';errors.sharesCode=error instanceof DartApiError?error.code:'SHARES_COMMUNICATION';}
   if(sharesOnly)return {...saved,...(shares?{shares}:{}),errors};
-  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(symbol.replace(/^A/,''))||(mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(symbol.replace(/^A/,'')));
+  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(normalizeProviderSymbol(symbol))||(mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(normalizeProviderSymbol(symbol)));
   if(!sourceAllowed)errors.accounts='VALUATION_SOURCE_ROLLOUT_NOT_VALIDATED';
   if(sourceAllowed&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
    try{
@@ -82,7 +83,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo)){
    try{
     const receiptDate=f.receiptDate.toISOString().slice(0,10).replaceAll('-','');
-    const master=(await configuredKrx().rows(price.market as KrxMarket,receiptDate,'master')).find(row=>row.ISU_SRT_CD===symbol.replace(/^A/,''));
+    const master=(await configuredKrx().rows(price.market as KrxMarket,receiptDate,'master')).find(row=>row.ISU_SRT_CD===normalizeProviderSymbol(symbol));
     const stable=!!master&&master.ISU_CD===price.isin&&master.KIND_STKCERT_TP_NM==='보통주'&&!!price.parValue&&master.PARVAL?.replaceAll(',','')===price.parValue&&!!price.listedShares&&master.LIST_SHRS?.replaceAll(',','')===price.listedShares;
     const ordinaryEps=/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
     const exactShares=shares?.receiptNo===f.receiptNo;
