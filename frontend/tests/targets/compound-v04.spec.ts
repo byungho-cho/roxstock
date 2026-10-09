@@ -29,7 +29,7 @@ async function fixture(page:Page,empty=false,goalsEmpty=false){
 }
 test('cover plan compare detail same targets, default change confirmation and delete cancel',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await page.getByTestId('compound-plan-1').click();await expect(page.getByTestId('compound-goal-1')).toContainText('167원');
- await page.getByRole('radio',{name:'안정형 기본 목표로 설정'}).click();await expect(page.getByRole('dialog')).toContainText('올해 목표·최종 목표·진행률');await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
+ await page.getByRole('radio',{name:'안정형 기본 목표로 설정'}).click();await expect(page.getByRole('dialog')).toContainText('올해 목표·최종 목표·진행률');await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');await expect(page.getByTestId('compound-goal-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');await expect(page.getByTestId('compound-goal-1')).toHaveCSS('border-top-color','rgba(0, 0, 0, 0)');
  await page.getByTestId('compound-goal-2').click();await expect(page.getByRole('img',{name:'연도별 예상 자산과 누적 투입금 · 원'})).toBeVisible();
  await page.getByRole('button',{name:'뒤로가기'}).click();await page.getByRole('button',{name:'계획 삭제',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('계획1 · 2025–2026');await expect(page.getByRole('dialog')).toContainText('목표 2개');await page.getByRole('button',{name:'취소',exact:true}).click();expect(f.writes.filter(w=>w.method==='DELETE')).toHaveLength(0);
 });
@@ -64,10 +64,26 @@ test('refresh failure preserves contents and timestamp; account switch hides old
 test('tablet input popup closing restores both column positions and selected plan',async({page})=>{
  await page.setViewportSize({width:725,height:396});await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-goal-1')).toBeVisible();
  await page.getByTestId('compound-plan-2').click();
- await expect(page.getByTestId('compound-plan-2')).toHaveCSS('border-top-color','rgb(255, 255, 255)');
- await expect(page.getByTestId('compound-plan-1')).toHaveCSS('border-top-color','rgba(0, 0, 0, 0)');
+ await expect(page.getByTestId('compound-plan-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
+ await expect(page.getByTestId('compound-plan-1')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
  const left=page.locator('[data-scroll-region="compound-left"]'),right=page.locator('[data-scroll-region="compound-right"]');
  await left.evaluate(el=>el.scrollTop=250);await right.evaluate(el=>el.scrollTop=80);const beforeLeft=await left.evaluate(el=>el.scrollTop),beforeRight=await right.evaluate(el=>el.scrollTop);
  await page.getByRole('button',{name:'계획 추가',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'팝업 닫기',exact:true}).click();
- expect(await left.evaluate(el=>el.scrollTop)).toBe(beforeLeft);expect(await right.evaluate(el=>el.scrollTop)).toBe(beforeRight);await expect(page.getByTestId('compound-plan-2')).toHaveCSS('border-top-color','rgb(255, 255, 255)');
+ expect(await left.evaluate(el=>el.scrollTop)).toBe(beforeLeft);expect(await right.evaluate(el=>el.scrollTop)).toBe(beforeRight);await expect(page.getByTestId('compound-plan-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
+});
+
+for(const viewport of [{width:370,height:465},{width:725,height:396}])test('annual actual columns and active highlights '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await fixture(page);
+ const p=makePlan('1');p.startYear=2023;p.endYear=2027;p.duration=5;
+ p.goals.forEach(g=>{g.rows=[{year:2023,asset:'100',contributed:'100',realizedAsset:'100',realizedTargetMet:true},{year:2024,asset:'100',contributed:'100',realizedAsset:'0',realizedTargetMet:false},{year:2025,asset:'100',contributed:'100',realizedAsset:null},{year:2026,asset:'100',contributed:'100',realizedAsset:'83.6'},{year:2027,asset:'999999999999999999',contributed:'100',realizedAsset:null}] as any;});
+ const past={...makePlan('2'),startYear:2020,endYear:2022,status:'ENDED'};
+ await page.route('**/api/accounts/1/compound-plans',route=>route.fulfill({json:{data:{accountId:'1',currentAssets:'83.6',asOf:'2026-10-09T00:00:00Z',currentYear:2026,pricingComplete:true,plans:[p,past]}}}));
+ await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
+ await page.getByTestId('compound-plan-2').click();if(viewport.width>=600){await expect(page.getByTestId('compound-plan-1')).toHaveCSS('border-top-color','rgb(250, 204, 21)');await expect(page.getByTestId('compound-plan-2')).not.toHaveCSS('border-top-color','rgb(255, 255, 255)');await page.getByTestId('compound-plan-1').click();}else{await page.getByRole('button',{name:'뒤로가기'}).click();await page.getByTestId('compound-plan-1').click();}
+ await expect(page.getByTestId('compound-goal-1')).toHaveCSS('border-top-color','rgb(250, 204, 21)');await expect(page.getByTestId('compound-goal-2')).not.toHaveCSS('border-top-color','rgb(250, 204, 21)');
+ await page.getByTestId('compound-goal-1').focus();await page.keyboard.press('Enter');const table=page.getByRole('table',{name:'연도별 실현금액과 목표금액'});await expect(table.getByRole('columnheader')).toHaveText(['연도','실현금액','목표금액']);
+ await expect(page.getByTestId('compound-year-2023').getByRole('cell').nth(1)).toHaveCSS('color','rgb(250, 97, 110)');await expect(page.getByTestId('compound-year-2024').getByRole('cell').nth(1)).toHaveText('0원');await expect(page.getByTestId('compound-year-2024').getByRole('cell').nth(1)).toHaveCSS('color','rgb(96, 165, 250)');
+ for(const year of [2025,2027])await expect(page.getByTestId('compound-year-'+year).getByRole('cell').nth(1)).toHaveText('—');await expect(page.getByTestId('compound-year-2026').getByRole('cell').nth(1)).toHaveCSS('color','rgb(248, 250, 252)');
+ for(const cell of await table.getByRole('cell').all()){const box=await cell.boundingBox();expect(box!.x+box!.width).toBeLessThanOrEqual(viewport.width);}
+ await table.scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/compound/annual-'+viewport.width+'.png'});
 });

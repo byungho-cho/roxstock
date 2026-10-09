@@ -29,10 +29,14 @@ export function project(initial:string,contribution:string,rate:string,start:num
  for(let year=start;year<=end;year++){asset=asset.plus(addition).mul(factor);rows.push({year,asset:asset.toString(),contributed:new D(initial).plus(addition.mul(year-start+1)).toString()});}
  return rows;
 }
-export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number,endingAssets:string|null=null) {
+export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number,endingAssets:string|null=null,yearAssets:ReadonlyMap<number,string>=new Map()) {
  const startYear=plan.startDate.getUTCFullYear(),endYear=plan.endDate.getUTCFullYear();
  const goals=plan.goals.map(goal=>{
-  const rows=project(plan.initialAssetValue.toString(),plan.annualContributionAmount.toString(),goal.annualTargetRate.toString(),startYear,endYear);
+  const rows=project(plan.initialAssetValue.toString(),plan.annualContributionAmount.toString(),goal.annualTargetRate.toString(),startYear,endYear).map(row=>{
+   const realizedAsset=row.year<currentYear?yearAssets.get(row.year)??null:row.year===currentYear?currentAssets:null;
+   const target=new D(row.asset);
+   return {...row,realizedAsset,realizedTargetMet:realizedAsset===null?null:new D(realizedAsset).gte(target),annualAchievementRate:realizedAsset!==null&&target.gt(0)?new D(realizedAsset).div(target).mul(100).toString():null};
+  });
   const finalTarget=rows.at(-1)?.asset??null,yearTarget=rows.find(row=>row.year===currentYear)?.asset??null;
   const final=finalTarget===null?null:new D(finalTarget);
   return {id:goal.id.toString(),goalName:goal.goalName,annualTargetRate:goal.annualTargetRate.toString(),displayColor:goal.displayColor??colors[0]!,isDefault:goal.isDefault,isVisible:goal.isVisible,rows,yearTarget,finalTarget,
