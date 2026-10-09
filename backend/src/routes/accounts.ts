@@ -1,3 +1,5 @@
+import {accountConnections} from '../domain/account-connections.js';
+import {deleteEmptyAccount} from '../domain/account-delete.js';
 import { cashBasis, lockCashAccount, readCurrentCash, requireCash } from '../domain/current-cash.js';
 import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
@@ -21,14 +23,6 @@ type CashBody = {
 const requiredText = (value: unknown, fieldName: string, maxLength: number) => {
   if (typeof value !== 'string' || value.trim().length === 0 || value.trim().length > maxLength) {
     throw new ApiError(400, 'INVALID_INPUT', `${fieldName} must be between 1 and ${maxLength} characters.`);
-  }
-  return value.trim();
-};
-
-const optionalText = (value: unknown, fieldName: string, maxLength: number) => {
-  if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'string' || value.trim().length > maxLength) {
-    throw new ApiError(400, 'INVALID_INPUT', `${fieldName} must be at most ${maxLength} characters.`);
   }
   return value.trim();
 };
@@ -89,7 +83,8 @@ export async function accountRoutes(app: FastifyInstance) {
     const body = request.body ?? {};
     const name = requiredText(body.name, 'name', 100);
     const brokerName = requiredText(body.brokerName, 'brokerName', 100);
-    const accountNumber = optionalText(body.accountNumber, 'accountNumber', 50);
+    const accountNumber = requiredText(body.accountNumber, 'accountNumber', 50);
+    if(!normalizeAccountNumber(accountNumber))throw new ApiError(400,'INVALID_INPUT','계좌번호를 입력해 주세요.');
     const normalizedAccountNumber = normalizeAccountNumber(accountNumber);
     const requestedDefault = body.isDefault === undefined ? false : boolean(body.isDefault, 'isDefault');
     try {
@@ -121,7 +116,8 @@ export async function accountRoutes(app: FastifyInstance) {
         if (!current || !current.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
         const accountNumber = body.accountNumber === undefined
           ? current.accountNumber
-          : optionalText(body.accountNumber, 'accountNumber', 50);
+          : requiredText(body.accountNumber, 'accountNumber', 50);
+        if(!normalizeAccountNumber(accountNumber))throw new ApiError(400,'INVALID_INPUT','계좌번호를 입력해 주세요.');
         const makeDefault = body.isDefault === undefined ? current.isDefault : boolean(body.isDefault, 'isDefault');
         if (current.isDefault && !makeDefault) {
           throw new ApiError(409, 'DEFAULT_ACCOUNT_REQUIRED', 'Choose another default account before clearing this one.');
@@ -154,21 +150,34 @@ export async function accountRoutes(app: FastifyInstance) {
     }
   });
 
+  app.get<{Params:AccountParams}>('/accounts/:accountId/data-state',async request=>{
+    const accountId=id(request.params.accountId,'accountId');
+    return {data:await serializable(async tx=>{await lockCashAccount(tx,accountId);const account=await tx.account.findUnique({where:{id:accountId}});if(!account||!account.isActive)throw new ApiError(404,'ACCOUNT_NOT_FOUND','계좌를 찾을 수 없습니다.');return accountConnections(tx,accountId);})};
+  });
+
+  // Personal single-user installation: ownership authentication is a separate follow-up.
+  app.delete<{Params:AccountParams}>('/accounts/:accountId', async request => {
+    const accountId = id(request.params.accountId, 'accountId');
+    return {data: await serializable(tx => deleteEmptyAccount(tx, accountId))};
+  });
+
   app.post<{ Params: AccountParams; Body: ResetBody }>('/accounts/:accountId/reset', async (request) => {
     if (!isAccountDataResetEnabled()) {
       throw new ApiError(403, 'ACCOUNT_RESET_DISABLED', 'Account data reset is disabled in this environment.');
     }
-    if (request.body?.confirmation !== '초기화') {
-      throw new ApiError(400, 'RESET_CONFIRMATION_MISMATCH', 'Type 초기화 to confirm account data reset.');
-    }
+
     const accountId = id(request.params.accountId, 'accountId');
     const lockKey = accountId.toString();
     if (resetLocks.has(lockKey)) throw new ApiError(409, 'ACCOUNT_RESET_IN_PROGRESS', 'Account data reset is already running.');
     resetLocks.add(lockKey);
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const account = await tx.account.findUnique({ where: { id: accountId }, select: { id: true, isActive: true } });
+        await lockCashAccount(tx,accountId);
+        const account = await tx.account.findUnique({ where: { id: accountId }, select: { id: true, name:true,isActive: true } });
+        if(!account||request.body?.confirmation!==account.name)throw new ApiError(400,'RESET_CONFIRMATION_MISMATCH','계좌명이 일치하지 않습니다.');
         if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+        const watchlistItems=await tx.accountWatchlistItem.deleteMany({where:{accountId}});
+        const tradeRequests=await tx.tradeRequest.deleteMany({where:{accountId}});
         const compoundGoals = await tx.compoundGrowthGoal.deleteMany({ where: { plan: { accountId } } });
         const compoundPlans = await tx.compoundGrowthPlan.deleteMany({ where: { accountId } });
         const positionSnapshots = await tx.dailyPositionSnapshot.deleteMany({ where: { accountId } });
@@ -180,6 +189,7 @@ export async function accountRoutes(app: FastifyInstance) {
         await tx.account.update({ where: { id: accountId }, data: { cashBalance: new Prisma.Decimal(0) } });
 
         return {
+          watchlistItems:watchlistItems.count,tradeRequests:tradeRequests.count,
           compoundGoals: compoundGoals.count, compoundPlans: compoundPlans.count,
           positionSnapshots: positionSnapshots.count, accountSnapshots: accountSnapshots.count,
           dividends: dividends.count, sellTrades: sellTrades.count, buyTrades: buyTrades.count,
