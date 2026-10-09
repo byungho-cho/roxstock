@@ -10,6 +10,7 @@ import { createBuyTrade, createSellTrade, createDividend, getBuyLots, listSecuri
 import { ApiError } from '../../data/apiClient';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { liveApiEnabled } from '../../data/liveData';
+import { isWebOnlyApp } from '../../data/appCapabilities';
 import { addSample, finishInbox, getInboxEntry, inboxError, nativeRequest, patchInbox, syncInbox, useInbox } from './inboxStore';
 import { kstInput, notificationLabels, parseBrokerNotice, resolveNoticeAccount, type InboxEntry } from './notificationModel';
 
@@ -21,13 +22,13 @@ const demoAccounts: AccountDto[] = [
 export function NotificationBadge() {
   const entries = useInbox(), navigate = useNavigate();
   useEffect(() => {
-    if (!window.RoxStockNative) return;
+    if (isWebOnlyApp || !window.RoxStockNative) return;
     let running = false;
     const refresh = async () => { if (running) return; running = true; try { await syncInbox(); } catch { /* Inbox page provides retry and detailed errors. */ } finally { running = false; } };
     void refresh(); const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 3000);
     return () => clearInterval(timer);
   }, []);
-  if (!window.RoxStockNative && entries.length === 0) return null;
+  if (isWebOnlyApp || !window.RoxStockNative && entries.length === 0) return null;
   return <IconButton aria-label="거래 알림 목록" onClick={() => navigate('/detail/notifications')} sx={{ position: 'fixed', right: 12, bottom: 100, zIndex: 15, bgcolor: '#172235', border: '1px solid #334155' }}><Badge badgeContent={entries.filter(entry => entry.status === 'pending').length} color="warning"><NotificationsOutlined /></Badge></IconButton>;
 }
 

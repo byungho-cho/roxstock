@@ -7,6 +7,7 @@ async function api(page: Page) {
     if (route.request().method() === 'POST') { writes++; return route.fulfill({ json: { data: { id: '20', cashTransactionId: '21', balanceAfter: '100' } } }); }
     if (url.pathname === '/api/accounts') return route.fulfill({ json: { data: [{ id: '1', name: '기본 계좌', accountNumber: '010123456780', brokerName: '미래에셋증권', cashBalance: '10000000', isActive: true }] } });
     if (url.pathname === '/api/securities') return route.fulfill({ json: { data: [{ id: '262', symbol: '000660', name: 'SK하이닉스' }] } });
+    if (url.pathname === '/api/collection/monitoring') return route.fulfill({ json: { data: { features: [] } } });
     return route.fulfill({ json: { data: [] } });
   });
   return () => writes;
@@ -68,4 +69,19 @@ test('dividend sample pre-fills gross and net', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: '세전 배당금', exact: true })).toHaveValue('137,500');
   await expect(page.getByRole('textbox', { name: '세후 배당금', exact: true })).toHaveValue('116,330');
   expect(writes()).toBe(0);
+});
+
+test.describe('web-only APK capability', () => {
+  test.use({ userAgent: 'Mozilla/5.0 Android RoxStockWebOnly/0.1.1' });
+  test('settings has no notification entry, access instruction or badge even with cached entries', async ({ page }) => {
+    await api(page);
+    await page.addInitScript(({ raw }) => localStorage.setItem('roxstock-notification-inbox-v1', JSON.stringify([{ id: 'c'.repeat(64), raw, receivedAt: Date.now(), status: 'pending' }])), { raw });
+    await page.goto('/detail/settings');
+    await expect(page.getByText('안드로이드 앱 다운로드', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '거래 알림 목록', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '거래 알림 · 샘플 테스트', exact: true })).toHaveCount(0);
+    await expect(page.getByText('설치 후 앱에서 알림 접근을 허용하세요.', { exact: false })).toHaveCount(0);
+    await page.getByRole('button', { name: /계좌 관리/ }).click();
+    await expect(page).toHaveURL(/view=account/);
+  });
 });

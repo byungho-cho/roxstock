@@ -1,5 +1,25 @@
 # 앱 개발
 
+## 2026-10-10 · 알림 수집 없는 웹 전용 시험 APK
+
+최신 시험 대상은 **webOnlyDebug / RoxStock 웹 시험 / 0.1.1-webonly-test**이다. 앱 ID는 `com.roxstock.app.webonly.debug`이며 기존 알림 수집용 시험 앱과 구별된다.
+
+- `src/webOnly/`: 웹 표시·메뉴 이동·뒤로 가기 전용 Activity. 알림 권한 요청, 브리지, 대기 배지 없음.
+- `src/notifications/`: 기존 MainActivity, BrokerNotificationService, InboxDb 및 서비스 선언을 소스 변경 없이 보존한다. 이 소스는 webOnly APK의 컴파일 대상이 아니다.
+- 공통 manifest에는 INTERNET만 선언한다. 알림 서비스·관련 권한은 notifications flavor에만 존재한다. webOnly는 AndroidX WebKit 의존성도 포함하지 않는다.
+- 기존 수집용 빌드는 `assembleNotificationsDebug`, 이번 웹 전용 빌드는 `assembleWebOnlyDebug`이다. 배포용 다운로드로는 이번 웹 전용 APK만 제공한다.
+- APK 생성 후 실제 manifest·DEX를 검사하여 서비스·receiver·수집 클래스가 없는지 확인하고 서명을 검증한다. 에뮬레이터 설치 시험은 권한 목록, 클래스 부재, 웹 표시, 메뉴 이동, 뒤로 가기를 확인한다.
+- Play 프로텍트 판정은 빌드/에뮬레이터 검사와 별개다. 실제 Android 17 / One UI 9.0 기기에서 이 APK의 설치 차단 여부를 확인해야 한다. 보호 기능을 끄거나 차단을 우회하지 않는다.
+- 기존 수집용 앱을 삭제하지 않아도 새 앱을 설치할 수 있다. 기존 수집 앱의 알림 접근 권한이 이미 켜져 있다면 비교 시험 중에는 기존 앱 권한을 꺼 두고 **RoxStock 웹 시험**을 실행한다.
+
+```text
+gradle -p android-app assembleWebOnlyDebug lintWebOnlyDebug
+python3 android-app/scripts/verify-web-only-apk.py android-app/app/build/outputs/apk/webOnly/debug/app-webOnly-debug.apk
+gradle -p android-app connectedWebOnlyDebugAndroidTest
+```
+
+아래 0.1.0 문서는 보존한 알림 수집용 구현 기록이며 이번 웹 전용 APK의 기능 설명이 아니다.
+
 기준일: 2026-10-09  
 버전: 0.1.0 (1차 시험 구현)
 상태: Android 웹 래퍼·기기 내 알림 보관·웹 등록 보조 구현, 시험 APK 빌드·lint 통과. 운영 반영 및 실기기 검증 전. [PR #170](https://github.com/byungho-cho/roxstock/pull/170).

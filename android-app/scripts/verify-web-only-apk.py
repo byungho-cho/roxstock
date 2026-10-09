@@ -1,0 +1,36 @@
+"""Inspect the delivered APK, not just source configuration. Run with Android SDK installed."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+import zipfile
+
+apk = Path(sys.argv[1])
+sdk = Path(os.environ.get('ANDROID_HOME') or os.environ['ANDROID_SDK_ROOT'])
+analyzer = next(sdk.glob('cmdline-tools/*/bin/apkanalyzer'))
+manifest = subprocess.check_output([str(analyzer), 'manifest', 'print', str(apk)], text=True)
+root = ET.fromstring(manifest)
+ns = '{http://schemas.android.com/apk/res/android}'
+assert root.attrib['package'] == 'com.roxstock.app.webonly.debug'
+permissions = [node.attrib[ns + 'name'] for node in root.findall('uses-permission')]
+assert permissions == ['android.permission.INTERNET'], permissions
+app = root.find('application')
+assert len(app.findall('service')) == 0
+assert len(app.findall('receiver')) == 0
+for token in ['NotificationListenerService', 'BIND_NOTIFICATION', 'POST_NOTIFICATIONS']:
+    assert token not in manifest, token
+with zipfile.ZipFile(apk) as archive:
+    dex = b''.join(archive.read(name) for name in archive.namelist() if name.endswith('.dex'))
+    for token in [b'BrokerNotificationService', b'InboxDb', b'NotificationListenerService', b'RoxStockNative', b'NOTIFICATION_LISTENER_SETTINGS']:
+        assert token not in dex, token
+apksigner = next(sdk.glob('build-tools/35.0.0/apksigner'))
+subprocess.run([str(apksigner), 'verify', '--verbose', str(apk)], check=True)
+report = {'apk': apk.name, 'applicationId': root.attrib['package'], 'permissions': permissions,
+          'services': 0, 'receivers': 0, 'collectorClassesPresent': False, 'signatureVerified': True,
+          'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}
+output = apk.with_suffix('.verification.json')
+output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+print(output.read_text(encoding='utf-8'))
