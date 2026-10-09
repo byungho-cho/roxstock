@@ -68,10 +68,12 @@ public class WebOnlySmokeTest {
             });
             assertTrue(bridge.await(5, TimeUnit.SECONDS));
             loaded.set(new CountDownLatch(1));
+            expectedPath.set("/test-menu");
             scenario.onActivity(activity -> web.get().evaluateJavascript("document.getElementById('menu').click()", null));
             assertTrue("Menu navigation failed", loaded.get().await(20, TimeUnit.SECONDS));
             scenario.onActivity(activity -> { assertTrue(web.get().getUrl().endsWith("/test-menu")); assertTrue(web.get().canGoBack()); });
             loaded.set(new CountDownLatch(1));
+            expectedPath.set("/test-home");
             scenario.onActivity(MainActivity::onBackPressed);
             assertTrue("Back navigation failed", loaded.get().await(20, TimeUnit.SECONDS));
             scenario.onActivity(activity -> assertTrue(web.get().getUrl().endsWith("/test-home")));
