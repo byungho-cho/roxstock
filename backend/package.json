@@ -25,7 +25,8 @@
     "prisma:migrate:dev": "prisma migrate dev --schema ../database/prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma",
     "verify:krx:samsung": "tsx src/scripts/verify-krx-samsung.ts",
-    "supplement:valuations": "tsx src/scripts/supplement-valuations.ts"
+    "supplement:valuations": "tsx src/scripts/supplement-valuations.ts",
+    "supplement:shares": "tsx src/scripts/supplement-shares.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

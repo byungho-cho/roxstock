@@ -33,3 +33,5 @@ npx playwright test -c playwright.phase15.config.ts
 ```
 
 실제 로컬 MariaDB 13.0.2에서 입력·중복·초기화 오류 롤백·삭제·동시 FK 추가·기본/마지막 계좌를 검증했다. CI는 MariaDB 11.8.9로 재검증한다. 브라우저 검사는 모의 API이며 실기기·운영 쓰기 검증이 아니다. 캡처와 결과는 QA 기록 참조.
+
+현재 계좌 카드 선택·번호·연필 배치는 [2026-10-09 주식수·계좌 보완](share-counts-account-cards.md)을 우선합니다. 삭제·초기화 및 필수 입력 기준은 유지합니다.

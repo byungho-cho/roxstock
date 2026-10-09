@@ -1,7 +1,8 @@
 import {Prisma,type DartFinancialFiling} from '../generated/prisma/index.js';
+import type {PeriodShares} from './share-counts.js';
 export const metricKeys=['eps','bps','per','pbr','roe'] as const;
 export type MetricValues=Record<typeof metricKeys[number],string|null>;
-export type Supplemental={accounts?:{receiptNo:string;fsDivision:string;collectedAt:string;sources:Record<string,{amount?:string|null;ytdAmount?:string|null;accountName?:string}>};errors?:Record<string,string>;shares?:{outstanding:string;preferred:boolean;receiptNo:string;collectedAt?:string};basis?:{epsPriceCompatible:boolean;bpsPriceCompatible:boolean;source:string;verifiedAt:string;receiptNo?:string;reason?:string};price?:{value:string;date:string;source:string;collectedAt?:string;shareBasis?:string;listedShares?:string;isin?:string;market?:string;parValue?:string}};
+export type Supplemental={accounts?:{receiptNo:string;fsDivision:string;collectedAt:string;sources:Record<string,{amount?:string|null;ytdAmount?:string|null;accountName?:string}>};errors?:Record<string,string>;shares?:PeriodShares;basis?:{epsPriceCompatible:boolean;bpsPriceCompatible:boolean;source:string;verifiedAt:string;receiptNo?:string;reason?:string};price?:{value:string;date:string;source:string;collectedAt?:string;shareBasis?:string;listedShares?:string;isin?:string;market?:string;parValue?:string}};
 const dec=(v:unknown)=>typeof v==='string'&&/^-?\d+(\.\d+)?$/.test(v)?new Prisma.Decimal(v):null;
 const text=(v:Prisma.Decimal|null)=>v?.toDecimalPlaces(4).toString()??null;
 function source(f:DartFinancialFiling,key:string,ytd=false){const sources=f.accountSources as Record<string,{amount?:string;ytdAmount?:string}>|null;return dec(ytd?sources?.[key]?.ytdAmount:sources?.[key]?.amount);}
