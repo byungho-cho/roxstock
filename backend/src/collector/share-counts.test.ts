@@ -1,6 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {OpenDartProvider} from './dart-provider.js';import {completeShares,displayShares} from '../domain/share-counts.js';import {Prisma} from '../generated/prisma/index.js';
+import {OpenDartProvider} from './dart-provider.js';import {completeShares,displayShares,shareClassOf} from '../domain/share-counts.js';import {Prisma} from '../generated/prisma/index.js';
 const receipts=['20260310002820','20260814003699'];
+test('explicit ordinary variants are ordinary; unknown voting categories and mixed classes stay unknown',()=>{
+ for(const name of ['보통주','보통주식','의결권 있는 보통주','기명식 보통주'])assert.equal(shareClassOf(name),'COMMON');
+ for(const name of ['우선주','의결권 없는 우선주'])assert.equal(shareClassOf(name),'PREFERRED');
+ for(const name of ['보통부','의결권 있는 주식','의결권 없는 주식','보통주 및 우선주'])assert.equal(shareClassOf(name),'OTHER');
+ assert.equal(shareClassOf('합 계'),'TOTAL');
+ const row={receiptNo:'20260814003699',shareClass:'COMMON'} as any,filing={receiptNo:row.receiptNo,fiscalYear:2026,periodEndDate:new Date('2026-06-30'),receiptDate:new Date('2026-08-14')};
+ assert.equal(displayShares([row,{...row,stockKind:'다른 보통주'}],[filing],2026).issuedShares,null);
+});
 test('DART three counts stay receipt/class/period scoped, zero differs from missing and inconsistent data rejects',async()=>{
  let data:any[]=[];const provider=new OpenDartProvider({apiKey:'fixture',dailyCallLimit:100,minDelayMs:0,fetchFn:async()=>new Response(JSON.stringify({status:'000',list:data})),reserveCall:async()=>true});
  const values=[['5919637922','91828987','5827808935','2025-12-31'],['5846278608','82086705','5764191903','2026-06-30']];
