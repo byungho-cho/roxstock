@@ -52,13 +52,15 @@ test('journal day arrows and swipe cross months, synchronize calendar and exclud
 
 test('analysis displays API breakdown and plan, exact selected interval and states',async({page})=>{
   await fixture(page);let fail=false,empty=false,missing=false;const ranges:URL[]=[];
+  await page.route('**/api/accounts/*/dashboard',route=>route.fulfill({json:{data:{account:{id:'a',name:'기본 계좌'},cashBalance:'600',stockValue:'900',totalAssetValue:'1500',pricingComplete:true,holdings:[]}}}));
+  await page.route('**/api/accounts/*/compound-plans',route=>route.fulfill({json:{data:{accountId:'a',currentAssets:'1500',currentYear:2026,pricingComplete:true,plans:[{id:'1',planName:'기준계획',startYear:2025,endYear:2026,duration:2,initialAssetValue:'1000',annualContributionAmount:'100',status:'ACTIVE',goals:[{id:'g1',goalName:'기본',annualTargetRate:'0',displayColor:'#5EA1F0',isDefault:true,isVisible:true,yearTarget:'1200',finalTarget:'1200',progress:'125',rows:[]}]}]}}}));
   await page.route('**/api/accounts/*/asset-history**',route=>{
     const url=new URL(route.request().url());ranges.push(url);
     return route.fulfill({status:fail?500:200,json:fail?{error:{message:'fail'}}:{data:empty?[]:[{date:'2026-09-01',totalAssetValue:'1000',cashBalance:'400',stockValue:'600'},{date:'2026-09-30',totalAssetValue:'1500',cashBalance:'600',stockValue:'900'}],compoundPlan:{id:'1',name:'기준계획',assetBasis:'PLAN_INITIAL_ASSET',initialAssetValue:'1000',yearTarget:'1200',targetYear:2026,goalName:'기본'},summary:{from:'2026-09-01',to:'2026-09-30',openingAssetValue:'1000',closingAssetValue:'1500',depositAmount:'200',withdrawalAmount:'0',profitLoss:'300',returnRate:'30',unrealizedChange:missing?null:'150',realizedProfitLoss:'100',dividendIncome:'100',feeTaxAmount:'30',reconciliationDifference:'-20'}}});
   });
   await page.goto('/assets');await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('+150원');
   await expect(page.getByTestId('analysis-metric-수수료·세금')).toContainText('-30원');
-  await expect(page.getByTestId('analysis-compound')).toContainText('1,000원');await expect(page.getByTestId('analysis-compound')).toContainText('1,200원');
+  await expect(page.getByTestId('analysis-compound').getByTestId('compound-summary-current')).toHaveText('1,500원');await expect(page.getByTestId('analysis-compound')).toContainText('1,200원');
   await expect(page.getByTestId('analysis-performance-period')).toHaveText('26.09.01 ~ 26.09.30');
   await expect(page.locator('.MuiToolbar-root').first()).toHaveCSS('padding-left','0px');expect((await page.getByTestId('analysis-total').boundingBox())!.x).toBe(8);
   missing=true;await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
