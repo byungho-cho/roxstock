@@ -27,9 +27,26 @@ android {
         }
         notifications { dimension 'capability' }
     }
+    signingConfigs {
+        if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) {
+            stable {
+                storeFile file(System.getenv('ROXSTOCK_SIGNING_KEYSTORE'))
+                storePassword System.getenv('ROXSTOCK_SIGNING_PASSWORD')
+                keyAlias 'roxstock'
+                keyPassword System.getenv('ROXSTOCK_SIGNING_PASSWORD')
+                storeType 'PKCS12'
+            }
+        }
+    }
     buildTypes {
-        debug { applicationIdSuffix '.debug'; versionNameSuffix '-test' }
-        release { minifyEnabled false }
+        debug {
+            applicationIdSuffix '.debug'; versionNameSuffix '-test'
+            if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
+        }
+        release {
+            minifyEnabled false
+            if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
+        }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     lint { abortOnError true }

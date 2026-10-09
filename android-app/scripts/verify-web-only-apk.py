@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -31,10 +32,12 @@ with zipfile.ZipFile(apk) as archive:
     for token in [b'BrokerNotificationService', b'InboxDb', b'NotificationListenerService', b'RoxStockNative', b'NOTIFICATION_LISTENER_SETTINGS']:
         assert token not in dex, token
 apksigner = next(sdk.glob('build-tools/35.0.0/apksigner'))
-subprocess.run([str(apksigner), 'verify', '--verbose', str(apk)], check=True)
+signature = subprocess.check_output([str(apksigner), 'verify', '--verbose', '--print-certs', str(apk)], text=True)
+fingerprint = re.search(r'certificate SHA-256 digest: ([0-9a-f]+)', signature).group(1)
+assert fingerprint == '0c419a20f4672e1829ad5427e9d7ea81d6f94f668729c045e564711dcda7ef86', 'Unexpected signing key'
 report = {'apk': apk.name, 'applicationId': root.attrib['package'], 'permissions': permissions,
           'services': 0, 'receivers': 0, 'collectorClassesPresent': False, 'signatureVerified': True,
-          'launcherIconPresent': True, 'versionName': root.attrib.get(ns + 'versionName'),
+          'launcherIconPresent': True, 'certificateSha256': fingerprint, 'versionName': root.attrib.get(ns + 'versionName'),
           'sha256': hashlib.sha256(apk.read_bytes()).hexdigest()}
 output = apk.with_suffix('.verification.json')
 output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

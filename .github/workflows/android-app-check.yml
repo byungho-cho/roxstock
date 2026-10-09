@@ -7,8 +7,11 @@ permissions:
   contents: read
 jobs:
   apk:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      ROXSTOCK_SIGNING_PASSWORD: ${{ secrets.ROXSTOCK_ANDROID_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -22,6 +25,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Restore approved persistent signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ROXSTOCK_ANDROID_KEYSTORE }}
+        run: |
+          test -n "$KEYSTORE_BASE64" && test -n "$ROXSTOCK_SIGNING_PASSWORD"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/roxstock.p12"
+          echo "ROXSTOCK_SIGNING_KEYSTORE=$RUNNER_TEMP/roxstock.p12" >> "$GITHUB_ENV"
       - name: Build separate APKs and verify web-only package
         run: |
           gradle --no-daemon -p android-app assembleWebOnlyDebug lintWebOnlyDebug assembleNotificationsDebug assembleWebOnlyDebugAndroidTest
@@ -52,3 +63,6 @@ jobs:
         with:
           name: web-only-installation-test-report
           path: android-app/app/build/reports/androidTests/connected/**
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/roxstock.p12"
