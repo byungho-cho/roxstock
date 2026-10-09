@@ -10,8 +10,8 @@ test('v0.4 layout, 36px toolbar, correct menus and data-only table scrolling',as
  expect((await page.locator('header').boundingBox())!.height).toBe(44);
  const nav=page.locator('.MuiBottomNavigation-root:visible');
  expect((await nav.boundingBox())!.height).toBe(44);
- await expect(nav.getByRole('button')).toHaveCount(wide?9:5);
- if(wide)await expect(nav.getByRole('button',{name:'시세수집'})).toBeVisible();
+ await expect(nav.getByRole('button')).toHaveCount(13);
+ if(wide)await expect(nav.getByRole('button',{name:'모니터링'})).toBeVisible();
  expect((await page.getByRole('combobox',{name:'정렬 기준'}).locator('..').boundingBox())!.height).toBe(36);
  const input=page.getByRole('textbox',{name:'목록 종목 검색'});await input.fill('보유');await input.blur();await input.focus();expect(await input.evaluate((el:HTMLInputElement)=>el.selectionEnd!-el.selectionStart!)).toBe(2);await input.fill('');
  if(wide){const rows=page.locator('[data-scroll-region="stock-table"]'),header=page.getByRole('columnheader',{name:'종목',exact:true}),before=(await header.boundingBox())!.y;await rows.evaluate(el=>el.scrollTop=100);expect((await header.boundingBox())!.y).toBe(before);expect(await page.locator('main').evaluate(el=>el.scrollTop)).toBe(0);await rows.evaluate(el=>el.scrollTop=0);}

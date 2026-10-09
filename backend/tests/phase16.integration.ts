@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {buildApp} from '../src/app.js';
+import {prisma as db} from '../src/lib/prisma.js';
+const url=new URL(process.env.DATABASE_URL??'');
+if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_phase16_test'))throw Error('Isolated phase16 database required');
+test('account-aware security search, initials, inactive distinction, exact cash linkage and idempotency',async()=>{
+ const app=buildApp();const suffix=Date.now().toString();
+ const first=await db.account.create({data:{name:'phase16-'+suffix,brokerName:'test',accountNumber:suffix,normalizedAccountNumber:suffix}});
+ const other=await db.account.create({data:{name:'other-'+suffix,brokerName:'test',accountNumber:suffix+'2',normalizedAccountNumber:suffix+'2'}});
+ const security=await db.security.upsert({where:{marketType_symbol:{marketType:'KOSPI',symbol:'069500'}},create:{symbol:'069500',name:'KODEX 200',marketType:'KOSPI'},update:{isActive:true}});
+ await db.security.upsert({where:{marketType_symbol:{marketType:'KOSPI',symbol:'005930'}},create:{symbol:'005930',name:'삼성전자',marketType:'KOSPI'},update:{isActive:true}});
+ const inactive=await db.security.upsert({where:{marketType_symbol:{marketType:'KOSPI',symbol:'999916'}},create:{symbol:'999916',name:'비활성검증',marketType:'KOSPI',isActive:false},update:{isActive:false}});
+ try {
+  await db.accountWatchlistItem.create({data:{accountId:other.id,securityId:security.id,listType:'WATCHLIST'}});
+  const search=async(query:string,accountId=first.id,extra='')=>(await app.inject({url:`/api/securities?accountId=${accountId}&query=${encodeURIComponent(query)}${extra}`})).json().data;
+  assert.equal((await search('069500'))[0].watchlistItemId,null);
+  assert.equal((await search('069500',other.id))[0].listType,'WATCHLIST');
+  assert.ok((await search('ㅅㅅㅈㅈ')).some((s:{symbol:string})=>s.symbol==='005930'));
+  assert.equal((await search('999916')).length,0);
+  assert.equal((await search('999916',first.id,'&includeInactive=true'))[0].isActive,false);
+  const registerInactive={accountId:first.id.toString(),securityId:inactive.id.toString(),listType:'HOLDING'};
+  assert.equal((await app.inject({method:'POST',url:'/api/watchlist-items',payload:registerInactive})).statusCode,409);
+  assert.equal((await db.security.findUniqueOrThrow({where:{id:inactive.id}})).isActive,false);
+  assert.equal((await app.inject({method:'POST',url:'/api/watchlist-items',payload:{...registerInactive,reactivate:true}})).statusCode,201);
+  assert.equal((await search('999916'))[0].id,inactive.id.toString());
+  assert.equal((await app.inject({method:'POST',url:'/api/watchlist-items',payload:{accountId:first.id.toString(),securityId:security.id.toString(),listType:'HOLDING'}})).statusCode,201);
+  assert.equal((await search('069500'))[0].listType,'HOLDING');
+  await db.cashTransaction.create({data:{accountId:first.id,transactionType:'DEPOSIT',transactionDate:new Date(),amount:1000000,balanceAfter:1000000}});
+  const payload={requestId:'phase16-'+suffix,accountId:first.id.toString(),securityId:security.id.toString(),boughtAt:new Date().toISOString(),quantity:'2',unitPrice:'1000',feeTaxAmount:'0'};
+  const buy=await app.inject({method:'POST',url:'/api/buy-trades',payload});assert.equal(buy.statusCode,201,buy.body);
+  const result=buy.json().data;assert.ok(result.cashTransactionId);
+  const retry=await app.inject({method:'POST',url:'/api/buy-trades',payload});assert.equal(retry.json().data.cashTransactionId,result.cashTransactionId);
+  await db.cashTransaction.create({data:{accountId:first.id,transactionType:'DEPOSIT',transactionDate:new Date(),amount:50,balanceAfter:998050}});
+  const exact=await app.inject({url:`/api/accounts/${first.id}/cash-transactions/${result.cashTransactionId}`});assert.equal(exact.statusCode,200);assert.equal(exact.json().data.id,result.cashTransactionId);assert.equal(exact.json().data.transactionType,'BUY');
+  assert.equal((await app.inject({url:`/api/accounts/${other.id}/cash-transactions/${result.cashTransactionId}`})).statusCode,404);
+  assert.equal(await db.buyTrade.count({where:{accountId:first.id}}),1);
+ } finally {
+  await db.tradeRequest.deleteMany({where:{accountId:{in:[first.id,other.id]}}});
+  await db.cashTransaction.deleteMany({where:{accountId:{in:[first.id,other.id]}}});
+  await db.buyTrade.deleteMany({where:{accountId:first.id}});
+  await db.accountWatchlistItem.deleteMany({where:{accountId:{in:[first.id,other.id]}}});
+  await db.account.deleteMany({where:{id:{in:[first.id,other.id]}}});
+  await db.security.delete({where:{id:inactive.id}});
+  await app.close();await db.$disconnect();
+ }
+});

@@ -6,7 +6,7 @@ async function fixture(page:Page){
   const u=new URL(route.request().url()),p=u.pathname,m=route.request().method(),account=u.searchParams.get('accountId');
   if(m!=='GET'){const body=route.request().postDataJSON();writes.push(body);await new Promise(r=>setTimeout(r,200));if(fail)return route.fulfill({status:409,json:{error:{message:'검증 저장 실패'}}});saved=true;return route.fulfill({json:{data:{...security,...body,watchlistItemId:'1'}}});}
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'검증 계좌 1',brokerName:'CI',cashBalance:'1000',isActive:true,isDefault:true},{id:'2',name:'검증 계좌 2',brokerName:'CI',cashBalance:'1000',isActive:true}]}});
-  if(p==='/api/securities'){expect(account).toBeTruthy();reads.push(account!);if(u.searchParams.get('excludeRegistered')==='true')return route.fulfill({json:{data:account==='2'?[]:Array.from({length:8},(_,i)=>({...security,id:String(i+1),name:i?'삼성검증'+i:security.name,symbol:String(6400+i).padStart(6,'0')}))}});
+  if(p==='/api/securities'){expect(account).toBeTruthy();reads.push(account!);if(u.searchParams.get('query')==='삼성')return route.fulfill({json:{data:account==='2'?[]:Array.from({length:8},(_,i)=>({...security,id:String(i+1),name:i?'삼성검증'+i:security.name,symbol:String(6400+i).padStart(6,'0')}))}});
    return route.fulfill({json:{data:saved?[{...security,listType:'HOLDING',watchlistItemId:'1',hasTradeHistory:false}]:[]}});}
   if(p.endsWith('/holdings')||p.endsWith('/buy-lots'))return route.fulfill({json:{data:[]}});
   if(p.endsWith('/trades'))return route.fulfill({json:{data:[],summary:{buyAmount:'0',sellAmount:'0',realizedProfitLoss:'0'},daily:[]}});
