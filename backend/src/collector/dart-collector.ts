@@ -1,8 +1,5 @@
-import {completeShares} from '../domain/share-counts.js';
 import {dartDiagnostic, recordDartFailure} from './dart-diagnostics.js';
-import { collectAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import {collectionPasses} from './dart-order.js';
-import {supplementSafely,loadPeriodSupplement} from './valuation-supplement.js';
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '../generated/prisma/index.js';
 import { collectorLog as log } from './logger.js';
@@ -49,14 +46,6 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     onApiStatus: async (status) => repo.recordApiResult(status === '013' ? 'NO_DATA' : 'ERROR'),
   });
 
-  const consensusChecked=new Set<string>();
-  const checkConsensus=async(security:DartSecurityRecord)=>{
-    if(process.env.CONSENSUS_ENABLED!=='true'||consensusChecked.has(String(security.id)))return;
-    consensusChecked.add(String(security.id));
-    try{await freezePastEstimates(prisma,security.id,security.symbol,security.marketType??'KOSPI');await collectAnnualConsensus(prisma,security.id,security.symbol);}
-    catch{log('warn','Consensus unavailable; financial collection continues',{symbol:security.symbol});}
-  };
-  const supplement=(security:DartSecurityRecord,year:number,period:string)=>supplementSafely(prisma,security.id,year,period,security.corpCode?loadPeriodSupplement(dart,security.symbol,security.corpCode,prisma,security.marketType):undefined);
   try {
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();
@@ -114,7 +103,6 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     await repo.markAllSecurityTasksNotApplicable(security.id, 'DART_CORP_CODE_NOT_MAPPED', 'No exact DART company mapping.');
           continue;
         }
-        await checkConsensus(security);
         for (const task of (await repo.listTasksForSecurity(security.id)).filter(t=>t.fiscalYear===pass.year)) {
           if (!outsideWindowAllowed && !activeWindow(new Date(), config)) break;
           const taskNow = new Date();
@@ -156,15 +144,6 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             apiErrors += 1; failures += 1;
             await repo.addRunItem(runId,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`);
             log('warn','DART task failed',{runId,...dartDiagnostic(error,stage),symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
-          }
-        }
-        if(!stop){
-          const stored=await prisma.dartFinancialFiling.findMany({where:{securityId:security.id,fiscalYear:pass.year,isWithdrawn:false},select:{periodType:true,receiptNo:true},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],distinct:['periodType']});
-          for(const row of stored){
-            const existing=await prisma.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:pass.year,periodType:row.periodType}}});
-            if(existing?.status==='SUCCESS'&&completeShares((existing.supplemental as import('../domain/period-valuation.js').Supplemental|null)?.shares, row.receiptNo)||existing?.status!=='SUCCESS'&&existing?.nextAttemptAt&&existing.nextAttemptAt>new Date())continue;
-            const result=await supplement(security,pass.year,row.periodType);
-            if(result&&'code'in result&&['020','DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(result.code)){stoppedCode=result.code;stop=true;break;}
           }
         }
         await repo.completeSecurityIfDone(security.id);
@@ -214,16 +193,6 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             await repo.addPhase2RunItem(runId, security, 'FAILED', `${diagnostic.code}: ${diagnostic.message}`);
             if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
-          if(!quotaReached){
-            await checkConsensus(security);
-            const stored=await prisma.dartFinancialFiling.findMany({where:{securityId:security.id,fiscalYear,isWithdrawn:false},select:{periodType:true,receiptNo:true},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],distinct:['periodType']});
-            for(const row of stored){
-              const value=await prisma.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear,periodType:row.periodType}}});
-              if(value?.status==='SUCCESS'&&completeShares((value.supplemental as import('../domain/period-valuation.js').Supplemental|null)?.shares, row.receiptNo)||value?.status!=='SUCCESS'&&value?.nextAttemptAt&&value.nextAttemptAt>new Date())continue;
-              const result=await supplement(security,fiscalYear,row.periodType);
-              if(result&&'code'in result&&['020','DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(result.code)){stoppedCode=result.code;quotaReached=true;break;}
-            }
-          }
           if (quotaReached || (phase === 'UNIVERSE' && !activeWindow(new Date(), config))) break;
         }
         if (quotaReached) break;
@@ -265,5 +234,4 @@ export function endOfFiscalPeriod(year: number, period: DartPeriodType): Date {
   const month = period === 'Q1' ? 3 : period === 'Q2' ? 6 : period === 'Q3' ? 9 : 12;
   return new Date(Date.UTC(year, month, 0, 12));
 }
-
 
