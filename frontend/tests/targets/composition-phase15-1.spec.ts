@@ -25,9 +25,8 @@ async function barCheck(bar:Locator,ratio:number,stock:string,cash:string){
  const widths=await bar.evaluate(el=>({total:el.getBoundingClientRect().width,parts:Array.from(el.children).map(child=>child.getBoundingClientRect().width)}));
  expect(widths.parts[0]/widths.total*100).toBeCloseTo(100-ratio,1);expect(widths.parts[1]/widths.total*100).toBeCloseTo(ratio,1);expect(widths.parts[0]+widths.parts[1]).toBeCloseTo(widths.total,1);
 }
-test('twelve boundaries share fixed text colors and real bar lengths on all surfaces',async({page},info)=>{
- test.setTimeout(120000);const state=await fixture(page);
- for(const [ratio,stockShade,cashShade] of cases){
+for(const [ratio,stockShade,cashShade] of cases) test(`cash ${ratio}%: fixed text colors and real bar lengths on all surfaces`,async({page},info)=>{
+ test.setTimeout(60000);const state=await fixture(page);
   state.ratio=ratio;const stable=ratio>20&&ratio<30,stockColor=stable?'52, 211, 153':'248, 113, 113',cashColor=stable?'251, 191, 36':'96, 165, 250';
   for(const path of ['/','/detail/assets','/assets','/detail/cash','/detail/settings?view=account']){
    await page.goto(path);
@@ -49,7 +48,6 @@ test('twelve boundaries share fixed text colors and real bar lengths on all surf
    else await expect(page.getByTestId('account-card-1').getByTestId('account-cash')).toHaveCSS('color',`rgb(${cashColor})`);
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }
- }
 });
 test('unknown prices and zero denominator preserve amounts; valid zero stays distinct',async({page},info)=>{
  const state=await fixture(page);state.missing=true;
