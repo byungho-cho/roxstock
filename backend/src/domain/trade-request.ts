@@ -14,7 +14,7 @@ export function requestId(value: unknown): string | undefined {
 }
 
 export async function registerTrade(
-  accountId: bigint, operation: 'BUY' | 'SELL', key: string | undefined,
+  accountId: bigint, operation: 'BUY' | 'SELL' | 'DIVIDEND', key: string | undefined,
   payload: Record<string, unknown>, work: (tx: Prisma.TransactionClient) => Promise<Record<string, string>>,
 ) {
   const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
