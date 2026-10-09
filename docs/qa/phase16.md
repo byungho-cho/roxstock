@@ -1,6 +1,6 @@
 # 16차 검증 기록
 
-기준 main: c38b8e8. 작업 브랜치: codex/phase16-navigation-trade-flow.
+기준 main: ed1bacc (개발 도중 병합된 #156 기획 문서 포함). 작업 브랜치: codex/phase16-navigation-trade-flow.
 
 ## 환경별 증거
 
@@ -8,8 +8,10 @@
 - 기존 백엔드 회귀: 153/153 통과.
 - 실제 MariaDB: 로컬 `roxstock_phase16_test`에서 초성·코드 검색, 계좌별 분류, 비활성 포함 조회/명시적 활성화 등록, 정확한 cashTransactionId 조회, 다른 계좌 조회 404, 거래 재요청 중복 방지 통과.
 - DEV 읽기 확인: KODEX 200 ID 2592는 비활성 상태. 화면 검색은 해당 상태를 명시하며 사용자가 확인한 등록에서만 재활성화한다. 이 검증으로 DEV/운영의 해당 종목을 변경하지 않았다.
-- 브라우저 모의 API: 370×465와 725×396에서 팝업 Back/X 반복, 검색 상태 유지, 하단 고정 영역·5.5개/52px 폭, 계좌 선택, KODEX 기존 ID 분류 변경, 매수/매도 직후 정확한 예수금 연결·제세금 포커스·기존 내역 PATCH 검증.
+- 브라우저 모의 API 12/12 통과: 370×465와 725×396에서 팝업 Back/X 반복, 검색 상태 유지, 하단 고정 영역·5.5개/52px 폭, 계좌 선택/연속 전환 중 늦은 응답 차단, KODEX 기존 ID 분류 변경, 매수/매도 직후 정확한 예수금 연결·제세금 포커스·기존 내역 PATCH 검증.
 - Figma와 캡처 대조: 메뉴 18px SVG, 44px 높이, 계좌 제목 16px, 계좌 팝업 최대340px/내부20px, 행40px, 사용 중 녹색·굵게 표시.
+
+캡처: [커버 홈](artifacts/phase16/home-cover.png), [커버 팝업](artifacts/phase16/account-cover.png), [태블릿 홈](artifacts/phase16/home-tablet.png), [태블릿 팝업](artifacts/phase16/account-tablet.png). 모의 데이터 화면이며 운영 금액이 아니다.
 
 ## 확대 회귀 결과
 
