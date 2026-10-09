@@ -125,6 +125,7 @@ model Security {
   dartSecurityState      DartSecurityState?
   dartBackfillTasks      DartBackfillTask[]
   dartFinancialFilings   DartFinancialFiling[]
+  dartShareSnapshots     DartShareSnapshot[]
   dartDailyCompanyChecks DartDailyCompanyCheck[]
 
   @@unique([marketType, symbol])
@@ -595,6 +596,25 @@ model SecurityFundamentals {
   security          Security @relation(fields: [securityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("security_fundamentals")
+}
+
+model DartShareSnapshot {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId BigInt @map("security_id") @db.UnsignedBigInt
+  fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
+  reportCode String @map("report_code") @db.Char(5)
+  receiptNo String @map("receipt_no") @db.VarChar(14)
+  stockKind String @map("stock_kind") @db.VarChar(100)
+  shareClass String @map("share_class") @db.VarChar(16)
+  issuedShares Decimal? @map("issued_shares") @db.Decimal(24,0)
+  treasuryShares Decimal? @map("treasury_shares") @db.Decimal(24,0)
+  outstandingShares Decimal? @map("outstanding_shares") @db.Decimal(24,0)
+  periodEndDate DateTime @map("period_end_date") @db.Date
+  collectedAt DateTime @map("collected_at") @db.DateTime(3)
+  security Security @relation(fields:[securityId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  @@unique([securityId,receiptNo,stockKind])
+  @@index([securityId,fiscalYear,periodEndDate])
+  @@map("dart_share_snapshots")
 }
 
 model CompoundGrowthPlan {

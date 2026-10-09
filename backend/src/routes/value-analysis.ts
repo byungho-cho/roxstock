@@ -1,4 +1,5 @@
 import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
+import {displayShares} from '../domain/share-counts.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 import { prisma } from '../lib/prisma.js';
@@ -6,7 +7,7 @@ import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
 import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
 
-type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string };
+type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string };
 const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));
 function integer(value: string | undefined, fallback: number, min: number, max: number, name: string) {
   if (value === undefined) return fallback;
@@ -18,9 +19,9 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   // Cache slow financial joins briefly; never cache the live price used for W/order.
   const loadFinancials = (year: number, query: string) => prisma.security.findMany({
     where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-    include: { fundamentals: true, periodValuations:{where:{fiscalYear:year},orderBy:{periodType:'asc'}},
+    include: { fundamentals: true, dartShareSnapshots:{where:{fiscalYear:year}}, periodValuations:{where:{fiscalYear:year},orderBy:{periodType:'asc'}},
       financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
-      dartFinancialFilings: {where:{fiscalYear:{lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},
+      dartFinancialFilings: {where:{fiscalYear:{lte:year},isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]},
       valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
   });
   const cache = new Map<string, { expires: number; result: ReturnType<typeof loadFinancials> }>();
@@ -50,17 +51,17 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString()) && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
       const marketPrice = prices.get(security.id.toString());
       const metric=combinedValuation(valuation(security.valuationMetrics[0]),security.periodValuations??[]), price = marketPrice?.currentPrice.toString() ?? null;
-      const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
+      const annual=mergeStatements(security.financialStatements??[],(security.dartFinancialFilings??[]).filter(f=>f.periodType==='ANNUAL')).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
-      const issuedShares=fundamentals&&currentYear(fundamentals.updatedAt)===year?fundamentals.issuedShares?.toString()??null:null;
+      const shareCounts=displayShares(security.dartShareSnapshots??[],security.dartFinancialFilings??[],year);
       return { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price,
         previousClosePrice: marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice?.priceUpdatedAt.toISOString() ?? null,
         per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price),
-        eps:metric?.eps??null,issuedShares,capital:annual?.totalEquity??null,capitalYear:annual?.fiscalYear??null,requiredReturn:'8.0',
+        eps:metric?.eps??null,...shareCounts,capital:annual?.totalEquity??null,capitalYear:annual?.fiscalYear??null,requiredReturn:'8.0',
         excessEarnings:null,shareholderValue:null,fundamentalsUpdatedAt:fundamentals?.updatedAt.toISOString()??null,
         fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:fairPrice(metric,persistence)})),
-        notices:['초과이익·주주가치: 총액 집계 기준이 미확정되어 —로 표시합니다.','발행주식수: 기준연도에 저장된 현재 필드만 표시하며 과거 버전은 보관되지 않습니다.'] };
+        notices:['초과이익·주주가치: 총액 집계 기준이 미확정되어 —로 표시합니다.','주식수: 선택연도 내 최근 공시의 보통주 저장값입니다. 미수집은 —입니다.'] };
     }));
     return { data: { rows, total: rows.length, year, query, timezone: 'Asia/Seoul', metricBasis: 'LATEST_STORED_DATE_WITHIN_YEAR' } };
   });
@@ -68,6 +69,8 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
     const mode = request.query.mode ?? 'annual';
     if (mode !== 'annual' && mode !== 'quarter') throw new ApiError(400, 'INVALID_INPUT', 'mode is invalid.');
+    const shareClass=request.query.shareClass??'COMMON';
+    if(!['COMMON','PREFERRED','TOTAL'].includes(shareClass))throw new ApiError(400,'INVALID_INPUT','shareClass is invalid.');
     const startYear = integer(request.query.startYear, Math.max(2015, year - 2), 2015, currentYear(), 'startYear');
     const quarter = mode === 'annual' ? null : integer(request.query.startQuarter, 1, 1, 4, 'startQuarter');
     const count = integer(request.query.count, 3, 1, 10, 'count'), selected = periods(startYear, quarter, count);
@@ -82,12 +85,13 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
         tx.valuationMetric.findMany({ where: { securityId, metricDate: { gte: new Date(Date.UTC(fromYear, 0, 1)), lt: new Date(Date.UTC(toYear + 1, 0, 1)) } }, orderBy: { metricDate: 'desc' } }),
       ]);
       const calculated=await tx.periodValuation.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}}});
+      const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:year}});
       const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}});
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
       const metric = combinedValuation(valuation(metrics.find(row => row.metricDate.getUTCFullYear() === year)),calculated.filter(row=>row.fiscalYear===year)), price = security.marketPrice?.currentPrice.toString() ?? null;
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
-        issuedShares: security.fundamentals && currentYear(security.fundamentals.updatedAt)===year ? security.fundamentals.issuedShares?.toString()??null : null,
+        ...displayShares(shareRows,filings,year,shareClass,mode==='quarter'?quarter:null),
         year, valuation: metric, w: weight(metric, price), fairPrices: ['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null, closingDate: annual?.periodEndDate ?? null,
         rows: financialRows(selected, statements, metrics,calculated).map(row=>{const task=tasks.find(t=>t.fiscalYear===row.year&&t.periodType===(row.quarter===null?'ANNUAL':'Q'+row.quarter));return {...row,availability:security.listingYear&&row.year<security.listingYear?'PRE_LISTING':row.source?'STORED':task?.status==='NO_FILING'?'NO_FILING':task?.status==='FAILED'?'FAILED':'NOT_COLLECTED'};}), mode, startYear, startQuarter: quarter, count,
