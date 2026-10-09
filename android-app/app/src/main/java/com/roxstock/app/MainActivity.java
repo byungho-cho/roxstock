@@ -33,6 +33,26 @@ public final class MainActivity extends Activity {
         if (listeners != null) for (String value : listeners.split(":")) if (component.equals(value)) return true;
         return false;
     }
+    private void showInbox() {
+        try (InboxDb db = new InboxDb(this)) {
+            org.json.JSONArray rows = db.list();
+            java.util.List<String> labels = new java.util.ArrayList<>();
+            java.util.List<JSONObject> pending = new java.util.ArrayList<>();
+            for (int i = 0; i < rows.length(); i++) {
+                JSONObject row = rows.getJSONObject(i);
+                if (!"pending".equals(row.getString("status"))) continue;
+                pending.add(row);
+                String raw = row.getString("raw");
+                labels.add(raw.substring(0, Math.min(100, raw.length())).replace('\n', ' '));
+            }
+            if (pending.isEmpty()) { new AlertDialog.Builder(this).setMessage("대기 알림이 없습니다. 알림 접근을 허용한 이후 새로 수신한 전량체결·배당 알림을 확인하세요.").setPositiveButton("확인", null).show(); return; }
+            new AlertDialog.Builder(this).setTitle("등록 대기 " + pending.size() + "건").setItems(labels.toArray(new String[0]), (dialog, index) -> {
+                JSONObject entry = pending.get(index);
+                new AlertDialog.Builder(this).setTitle("수신 내용 확인").setMessage(entry.optString("raw"))
+                    .setNegativeButton("닫기", null).setPositiveButton("등록 화면", (detail, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications?notice=" + entry.optString("id"))).show();
+            }).setNegativeButton("닫기", null).show();
+        } catch (Exception error) { new AlertDialog.Builder(this).setMessage("알림 보관함을 열지 못했습니다.").setPositiveButton("확인", null).show(); }
+    }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
@@ -79,7 +99,12 @@ public final class MainActivity extends Activity {
                 reply.postMessage(response.toString());
             });
         } else new AlertDialog.Builder(this).setMessage("알림 기능을 사용하려면 Android System WebView 또는 Chrome을 업데이트해 주세요.").setPositiveButton("확인", null).show();
-        inbox.setOnClickListener(v -> new AlertDialog.Builder(this).setMessage("작성 중인 화면을 나가 거래 알림 목록을 여시겠습니까? 저장하지 않은 입력은 다시 입력해야 할 수 있습니다.").setNegativeButton("취소", null).setPositiveButton("목록 열기", (dialog, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications")).show());
+        inbox.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("거래 알림")
+            .setItems(new String[]{"휴대폰에 수신한 대기 알림 확인", "알림 접근 허용·설정", "웹 등록 대기 목록"}, (dialog, index) -> {
+                if (index == 0) showInbox();
+                else if (index == 1) startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                else new AlertDialog.Builder(this).setMessage("작성 중인 화면을 나가시겠습니까? 저장하지 않은 입력은 다시 입력해야 할 수 있습니다.").setNegativeButton("취소", null).setPositiveButton("목록 열기", (confirm, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications")).show();
+            }).setNegativeButton("닫기", null).show());
         web.loadUrl(BuildConfig.SITE_ORIGIN);
     }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }

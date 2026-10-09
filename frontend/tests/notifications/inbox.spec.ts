@@ -34,11 +34,22 @@ test('matching account opens prefill; more native notices do not overwrite edits
   await page.addInitScript(({ raw }) => {
     localStorage.setItem('roxstock-selected-account-id', '1');
     if (!localStorage.getItem('roxstock-notification-inbox-v1')) localStorage.setItem('roxstock-notification-inbox-v1', JSON.stringify([{ id: 'a'.repeat(64), raw, receivedAt: Date.parse('2026-10-09T16:30:15Z'), status: 'pending' }]));
+    const target = window as any;
+    target.nativeNotices = [];
+    target.RoxStockNative = {
+      postMessage: (message: string) => {
+        const command = JSON.parse(message);
+        setTimeout(() => target.RoxStockNative.onmessage?.({ data: JSON.stringify({ requestId: command.requestId, entries: target.nativeNotices, permission: true }) }), 0);
+      },
+    };
   }, { raw });
   await page.goto('/detail/notifications?notice=' + 'a'.repeat(64));
   await expect(page.getByTestId('notification-registration')).toBeVisible();
   await expect(page.getByLabel('거래일시 (한국시간)')).toHaveValue('2026-10-10T01:30:15');
   await page.getByRole('textbox', { name: '체결단가', exact: true }).fill('1600000');
+  await page.evaluate(({ raw }) => { (window as any).nativeNotices = [{ id: 'b'.repeat(64), raw: raw.replace('10001', '10002'), receivedAt: Date.now(), status: 'pending' }]; }, { raw });
+  await expect(page.getByRole('button', { name: '거래 알림 목록', exact: true })).toContainText('2', { timeout: 8000 });
+  await expect(page.getByRole('textbox', { name: '체결단가', exact: true })).toHaveValue('1,600,000');
   await page.getByRole('checkbox', { name: '계좌, 종목, 전체 체결수량과 금액을 확인했습니다.' }).check();
   expect(payloads).toHaveLength(0);
   await page.getByRole('button', { name: '확인 후 저장', exact: true }).click();
@@ -46,7 +57,7 @@ test('matching account opens prefill; more native notices do not overwrite edits
   await page.reload();
   await expect(page.getByRole('textbox', { name: '체결단가', exact: true })).toHaveValue('1,600,000');
   await page.getByRole('button', { name: '동일 요청 재확인', exact: true }).click();
-  await expect(page.getByText('등록 대기 0건', { exact: true })).toBeVisible();
+  await expect(page.getByText('등록 대기 1건', { exact: true })).toBeVisible();
   expect(payloads).toHaveLength(2); expect(payloads[1]).toEqual(payloads[0]);
   expect(payloads[0].boughtAt).toBe('2026-10-09T16:30:15.000Z'); expect(payloads[0].accountId).toBe('1');
 });
