@@ -6,6 +6,15 @@
 }
 
 newrox.cafe24.com {
+    handle /downloads/android/* {
+        root * /data/roxstock-public
+        header Cache-Control "no-cache"
+        @apk path *.apk
+        header @apk Content-Type "application/vnd.android.package-archive"
+        header @apk Content-Disposition "attachment"
+        file_server
+    }
+
     @api path /api /api/*
     handle @api {
         reverse_proxy roxstock-backend:3300
