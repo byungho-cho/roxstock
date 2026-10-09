@@ -8,6 +8,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -21,9 +22,33 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - run: gradle --no-daemon -p android-app assembleDebug lintDebug
+      - name: Build separate APKs and verify web-only package
+        run: |
+          gradle --no-daemon -p android-app assembleWebOnlyDebug lintWebOnlyDebug assembleNotificationsDebug assembleWebOnlyDebugAndroidTest
+          python3 android-app/scripts/verify-web-only-apk.py android-app/app/build/outputs/apk/webOnly/debug/app-webOnly-debug.apk
+      - name: Enable KVM for installation test
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and test web-only APK on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: gradle --no-daemon -p android-app connectedWebOnlyDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
-          name: roxstock-android-test-apk
-          path: android-app/app/build/outputs/apk/debug/*.apk
+          name: roxstock-web-only-test-apk
+          path: |
+            android-app/app/build/outputs/apk/webOnly/debug/*.apk
+            android-app/app/build/outputs/apk/webOnly/debug/*.verification.json
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-only-installation-test-report
+          path: android-app/app/build/reports/androidTests/connected/**
