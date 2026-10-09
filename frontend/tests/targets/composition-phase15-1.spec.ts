@@ -61,7 +61,7 @@ test('unknown prices and zero denominator preserve amounts; valid zero stays dis
  state.zero=false;state.ratio=0;await page.goto('/assets');await expect(page.getByTestId('composition-ratios')).toHaveText('100.0%0.0%');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),0,'239, 68, 68','191, 219, 254');
 });
 test('account switch preserves selected border and profit sign colors',async({page},info)=>{
- await fixture(page);await page.goto('/detail/settings?view=account');await page.getByTestId('account-card-2').getByRole('button',{name:'선택',exact:true}).click();await expect(page.getByTestId('account-card-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
+ await fixture(page);await page.goto('/detail/settings?view=account');await page.getByTestId('account-card-2').getByRole('button',{name:/계좌 선택/}).click();await expect(page.getByTestId('account-card-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
  await page.goto('/assets');await expect(page.getByTestId('composition-ratios')).toHaveText('60.0%40.0%');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),40,'251, 175, 175','85, 148, 248');
  await expect(page.getByTestId('analysis-metric-기간 투자손익').getByText('+10,000원')).toHaveCSS('color','rgb(248, 113, 113)');await page.getByTestId('analysis-composition').screenshot({path:`test-results/phase15/switch-${info.project.name}.png`});
 });

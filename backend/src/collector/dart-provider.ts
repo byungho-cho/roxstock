@@ -293,14 +293,23 @@ export class OpenDartProvider {
   }
 
   async fetchPeriodShares(corpCode:string,year:number,reportCode:DartReportCode,receiptNo:string) {
-    const body=await this.json<{rcept_no:string;se:string;distb_stock_co:string}>('stockTotqySttus.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
+    const body=await this.json<{rcept_no:string;se:string;istc_totqy:string;tesstk_co:string;distb_stock_co:string;stlm_dt:string}>('stockTotqySttus.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
     if(body.status==='013')return undefined;
-    const rows=(body.list??[]).filter(r=>r.rcept_no===receiptNo);
-    const ordinary=rows.find(r=>r.se.replace(/\s/g,'')==='보통주');
-    const outstanding=ordinary?numericText(ordinary.distb_stock_co):null;
-    if(!outstanding)return undefined;
-    const preferred=rows.some(r=>r.se!=='합계'&&r!==ordinary&&Number(numericText(r.distb_stock_co))>0);
-    return {outstanding,preferred,receiptNo,collectedAt:new Date().toISOString()};
+    if(!Array.isArray(body.list)||!body.list.length)throw new DartApiError('SHARES_EMPTY','주식수 응답이 비어 있습니다.');
+    const matched=body.list.filter(r=>r.rcept_no===receiptNo);
+    if(!matched.length)throw new DartApiError('SHARES_RECEIPT_MISMATCH','주식수 접수번호가 저장 재무자료와 다릅니다.');
+    const count=(v:string)=>{const raw=v?.trim().replaceAll(',','');if(!raw||raw==='-')return null;if(!/^\d+$/.test(raw))throw new DartApiError('SHARES_INVALID','주식수 응답의 정수 형식을 확인할 수 없습니다.');return BigInt(raw).toString();};
+    const rows=matched.filter(r=>r.se?.replace(/\s/g,'')!=='비고').map(r=>{
+      const stockKind=r.se?.trim(),kind=stockKind?.replace(/\s/g,'');
+      const date=r.stlm_dt?.trim().replaceAll('.','-');
+      if(!stockKind||stockKind.length>100||!/^\d{4}-\d{2}-\d{2}$/.test(date??'')||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)throw new DartApiError('SHARES_INVALID','주식 종류·결산기준일을 확인할 수 없습니다.');
+      const issuedShares=count(r.istc_totqy),treasuryShares=count(r.tesstk_co),outstandingShares=count(r.distb_stock_co);
+      if(issuedShares!==null&&treasuryShares!==null&&outstandingShares!==null&&BigInt(issuedShares)-BigInt(treasuryShares)!==BigInt(outstandingShares))throw new DartApiError('SHARES_INCONSISTENT','발행·자기·유통주식수 관계가 일치하지 않습니다.');
+      return {stockKind,shareClass:kind==='보통주'?'COMMON':kind==='합계'?'TOTAL':kind?.includes('우선')?'PREFERRED':'OTHER',issuedShares,treasuryShares,outstandingShares,periodEndDate:date};
+    });
+    if(new Set(rows.map(r=>r.stockKind)).size!==rows.length)throw new DartApiError('SHARES_DUPLICATE_KIND','주식 종류별 응답이 중복됩니다.');
+    const ordinary=rows.find(r=>r.shareClass==='COMMON');
+    return {outstanding:ordinary?.outstandingShares??null,issuedShares:ordinary?.issuedShares??null,treasuryShares:ordinary?.treasuryShares??null,preferred:rows.some(r=>r.shareClass==='PREFERRED'&&BigInt(r.outstandingShares??'0')>0n),receiptNo,collectedAt:new Date().toISOString(),rows};
   }
   async fetchCorporations(): Promise<DartCorporation[]> {
     const response = await this.request(this.url('corpCode.xml', {}));
