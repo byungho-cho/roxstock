@@ -1,3 +1,5 @@
+import {useCompoundPlans} from '../compound/useCompoundPlans';
+import {CompoundGoalSummary} from '../compound/CompoundGoalSummary';
 import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
 import { Box, Button, CardActionArea, Dialog, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
@@ -44,6 +46,9 @@ export function AssetAnalysisPage() {
   const detailLabel=periodLabel(detailData?.summary?.from??detailData?.data.at(0)?.date,detailData?.summary?.to??detailData?.data.at(-1)?.date);
   const dashboard = useQuery({ queryKey: ['analysis-dashboard', accountId], queryFn: () => getAccountDashboard(accountId!), enabled: !!accountId });
   const history = useQuery({ queryKey: ['analysis-history', accountId, range.from, range.to], queryFn: () => getAssetHistory(accountId!, range), enabled: !!accountId });
+  const compound=useCompoundPlans(accountId);
+  const compoundPlan=compound.data?.plans.find(plan=>plan.id===history.data?.compoundPlan?.id);
+  const defaultGoal=compoundPlan?.goals.find(goal=>goal.isDefault);
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null), tablet = useMediaQuery('(min-width:600px)');
   const data = history.data, summary = data?.summary;
   const from = summary?.from ?? data?.data.at(0)?.date, to = summary?.to ?? data?.data.at(-1)?.date;
@@ -113,7 +118,12 @@ export function AssetAnalysisPage() {
       <Stack spacing="4px" sx={{ mt: '4px' }}>{history.isPending ? <Skeleton height={240} aria-label="기간 성과 조회 중"/> : history.isError && !data ? <Button role="alert" onClick={() => history.refetch()}>기간 성과 조회 실패 · 다시 시도</Button> : !data?.data.length ? <Typography sx={hintStyle}>내용이 없습니다.</Typography> : rows.map(row => <Box key={row.label}>{row.divider && <Box sx={{ borderTop: `1px solid ${colors.border}`, mb: '4px' }} />}<Stack data-testid={'analysis-metric-' + row.label} direction="row" sx={{ height: 20, alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}><Typography sx={{ fontSize: 12, color: colors.textSecondary, whiteSpace: 'nowrap' }}>{row.label}</Typography><Typography sx={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', color: row.signed || row.percent || row.label==='기간 종료자산' ? getMarketColor(row.label==='기간 종료자산'?profit:row.value) : colors.textPrimary }}>{row.percent ? formatRate(row.value) : row.signed ? formatSignedWon(row.value) : formatWon(row.value)}</Typography></Stack></Box>)}</Stack>
       <Typography data-testid="analysis-unavailable" sx={{ ...hintStyle, mt: '8px', whiteSpace: 'normal' }}>평가손익은 기초 대비 증감, 배당은 세전, 수수료·세금은 차감 기준입니다. {summary?.reconciliationDifference != null && decimalValue(summary.reconciliationDifference) !== 0 ? `잔액 수정·과거 내역 변경 등에 따른 차이 ${formatSignedWon(decimalValue(summary.reconciliationDifference))}` : ''}{summary?.calculationUnavailableReason === 'SNAPSHOT_CAPTURE_ORDER_INVALID' ? ' 스냅샷 기록 시각 순서 불일치 · 기간 계산 불가' : summary?.unrealizedChange == null ? ' 기초·기말 스냅샷 부족 · 세부 손익 계산 불가' : ''}</Typography>
     </AppCard>
-    <AppCard data-testid="analysis-compound" sx={{ ...cardStyle, p: 0 }}><CardActionArea onClick={() => go('/detail/compound')} sx={{ px: '16px', py: '8px' }}><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={titleStyle}>복리계획</Typography><Typography sx={hintStyle}>상세보기 ›</Typography></Stack>{data?.compoundPlan&&<Stack direction="row" sx={{ justifyContent: 'space-between', mt: '4px' }}>{['계획 기준 자산', '올해 목표'].map((name, index) => <Box key={name}><Typography sx={hintStyle}>{name}</Typography><Typography sx={{ fontSize: 12 }}>{formatWon(decimalValue(index ? data?.compoundPlan?.yearTarget : data?.compoundPlan?.initialAssetValue))}</Typography></Box>)}</Stack>}<Typography sx={{ ...hintStyle, mt: '8px', whiteSpace: 'normal' }}>{history.isPending ? '' : history.isError ? '계획 조회 실패 · 재시도 필요' : data?.compoundPlan ? `${data.compoundPlan.name} · ${data.compoundPlan.targetYear}년 · 연초 납입 기준` : '현재년도의 복리계획을 추가하세요'}</Typography></CardActionArea></AppCard>
+    <Box data-testid="analysis-compound" sx={{minWidth:0}}>
+      {compound.isError||history.isError?<AppCard sx={cardStyle}><Typography role="alert" sx={{fontSize:12}}>복리계획 조회에 실패했습니다.</Typography><Button aria-label="복리계획 다시 시도" onClick={()=>{void compound.refetch();void history.refetch();}}>다시 시도</Button></AppCard>:compound.isPending||history.isPending?<Skeleton height={114}/>:compoundPlan&&defaultGoal?<CardActionArea aria-label={compoundPlan.planName+' 기본 목표 상세'} sx={{borderRadius:'8px','&:focus-visible':{outline:'2px solid '+colors.focus}}} onClick={()=>{
+       const params=new URLSearchParams({period,accountId:accountId!,view:'goal',plan:compoundPlan.id,goal:defaultGoal.id,...(from?{from}:{}),...(to?{to}:{})});
+       navigate('/detail/compound?'+params,{state:{analysisContext:{accountId,period,from,to}}});
+      }}><CompoundGoalSummary testId="analysis-compound-summary" plan={compoundPlan} goal={defaultGoal} assets={compound.data?.pricingComplete===false?null:compound.data?.currentAssets??null}/></CardActionArea>:<AppCard sx={cardStyle}><Typography role="status" sx={{fontSize:12,color:colors.textMuted}}>{compoundPlan?'기본 목표가 없습니다.':'현재년도의 복리계획이 없습니다.'}</Typography></AppCard>}
+    </Box>
   </>;
   return <>{header}<Snackbar open={failed && !!dashboard.data} message="최신 조회에 실패했습니다. 다시 시도해 주세요." action={<Button onClick={retry}>재시도</Button>} />
     <Box className="rox-home" data-testid="asset-analysis" data-list-condition={period} data-screen-id={tablet ? 'T1400' : 'C1400'} data-restoration-ready={!history.isPending} sx={{ height: { sm: '100%' }, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px' }}>
