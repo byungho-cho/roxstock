@@ -11,6 +11,11 @@ test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',as
  try{
   let r=await app.inject({method:'POST',url:root,payload:input});assert.equal(r.statusCode,201,r.body);planId=r.json().data.id;
   r=await app.inject(root);assert.equal(r.json().data.currentAssets,'500');const original=r.json().data.plans[0];assert.equal(original.goals.length,1);assert.equal(original.goals[0].finalTarget,'167.2');
+  assert.equal(original.goals[0].rows[0].realizedAsset,null);
+  await prisma.dailyAccountSnapshot.createMany({data:[{accountId:a.id,snapshotDate:new Date('2025-12-30'),cashBalance:999,stockValue:0,totalAssetValue:999},{accountId:a.id,snapshotDate:new Date('2025-12-31'),cashBalance:0,stockValue:0,totalAssetValue:0},{accountId:b.id,snapshotDate:new Date('2025-12-31'),cashBalance:999,stockValue:0,totalAssetValue:999}]});
+  let yearly=(await app.inject(root)).json().data.plans[0].goals[0].rows;assert.equal(yearly[0].realizedAsset,'0');assert.equal(yearly[0].realizedTargetMet,false);assert.equal(yearly[1].realizedAsset,'500');
+  await prisma.dailyAccountSnapshot.update({where:{accountId_snapshotDate:{accountId:a.id,snapshotDate:new Date('2025-12-31')}},data:{totalAssetValue:132}});
+  yearly=(await app.inject(root)).json().data.plans[0].goals[0].rows;assert.equal(yearly[0].realizedTargetMet,true);
   r=await app.inject({method:'POST',url:root,payload:input});assert.equal(r.statusCode,409);
   r=await app.inject({method:'DELETE',url:'/api/accounts/'+b.id+'/compound-plans/'+planId});assert.equal(r.statusCode,404);assert.equal(await prisma.compoundGrowthPlan.count({where:{id:BigInt(planId)}}),1);
   const goalUrl=root+'/'+planId+'/goals';
@@ -23,6 +28,6 @@ test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',as
   r=await app.inject({method:'POST',url:goalUrl,payload:{goalName:'새 기준',annualTargetRate:'1',displayColor:'#5EA1F0'}});assert.equal(r.statusCode,201,r.body);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId),isDefault:true}}),1);
   r=await app.inject({method:'DELETE',url:root+'/'+planId});assert.equal(r.statusCode,200);assert.equal(await prisma.compoundGrowthGoal.count({where:{planId:BigInt(planId)}}),0);assert.equal(await prisma.compoundGrowthPlan.count({where:{id:BigInt(planId)}}),0);
  }finally{
-  await app.close();const ids=accounts.map(a=>a.id),plans=await prisma.compoundGrowthPlan.findMany({where:{accountId:{in:ids}}});await prisma.compoundGrowthGoal.deleteMany({where:{planId:{in:plans.map(p=>p.id)}}});await prisma.compoundGrowthPlan.deleteMany({where:{accountId:{in:ids}}});await prisma.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
+  await app.close();const ids=accounts.map(a=>a.id),plans=await prisma.compoundGrowthPlan.findMany({where:{accountId:{in:ids}}});await prisma.compoundGrowthGoal.deleteMany({where:{planId:{in:plans.map(p=>p.id)}}});await prisma.compoundGrowthPlan.deleteMany({where:{accountId:{in:ids}}});await prisma.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await prisma.dailyAccountSnapshot.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
  }
 });
