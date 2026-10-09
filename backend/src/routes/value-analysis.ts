@@ -1,3 +1,4 @@
+import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
 import { prisma } from '../lib/prisma.js';
@@ -39,21 +40,21 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     if (query.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'query is too long.');
     // Master securities, including unregistered companies. One result fixes the full navigation/order snapshot.
     const [securities, live] = await Promise.all([
-      financials(year, query),
+      financials(year, hasInitialQuery(query) ? '' : query),
       prisma.security.findMany({
-        where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
+        where: { isActive: true, ...(query && !hasInitialQuery(query) ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
         select: { id: true, marketPrice: true },
       }),
     ]);
     const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));
-    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString())).map(security => {
+    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString()) && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
       const marketPrice = prices.get(security.id.toString());
       const metric=combinedValuation(valuation(security.valuationMetrics[0]),security.periodValuations??[]), price = marketPrice?.currentPrice.toString() ?? null;
       const annual=mergeStatements(security.financialStatements??[],security.dartFinancialFilings??[]).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
       const issuedShares=fundamentals&&currentYear(fundamentals.updatedAt)===year?fundamentals.issuedShares?.toString()??null:null;
-      return { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price,
+      return { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price,
         previousClosePrice: marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice?.priceUpdatedAt.toISOString() ?? null,
         per: metric?.per ?? null, pbr: metric?.pbr ?? null, roe: metric?.roe ?? null, metricDate: metric?.metricDate ?? null, w: weight(metric, price),
         eps:metric?.eps??null,issuedShares,capital:annual?.totalEquity??null,capitalYear:annual?.fiscalYear??null,requiredReturn:'8.0',
@@ -85,7 +86,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
       const metric = combinedValuation(valuation(metrics.find(row => row.metricDate.getUTCFullYear() === year)),calculated.filter(row=>row.fiscalYear===year)), price = security.marketPrice?.currentPrice.toString() ?? null;
       return { data: {
-        security: { id: security.id.toString(), symbol: security.symbol, name: security.name, currentPrice: price, previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
+        security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
         issuedShares: security.fundamentals && currentYear(security.fundamentals.updatedAt)===year ? security.fundamentals.issuedShares?.toString()??null : null,
         year, valuation: metric, w: weight(metric, price), fairPrices: ['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null, closingDate: annual?.periodEndDate ?? null,
