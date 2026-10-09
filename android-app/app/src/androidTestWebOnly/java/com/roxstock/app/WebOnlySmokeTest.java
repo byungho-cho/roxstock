@@ -43,6 +43,7 @@ public class WebOnlySmokeTest {
         }
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             AtomicReference<WebView> web = new AtomicReference<>();
+            AtomicReference<String> expectedPath = new AtomicReference<>("/test-home");
             AtomicReference<CountDownLatch> loaded = new AtomicReference<>(new CountDownLatch(1));
             scenario.onActivity(activity -> {
                 WebView view = findWeb(activity.getWindow().getDecorView()); web.set(view);
@@ -55,7 +56,7 @@ public class WebOnlySmokeTest {
                         String html = "<html><head><title>RoxStock fixture</title></head><body><a id='menu' href='/test-menu'>menu</a></body></html>";
                         return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
                     }
-                    @Override public void onPageFinished(WebView v, String url) { if (url.contains("/test-")) loaded.get().countDown(); }
+                    @Override public void onPageFinished(WebView v, String url) { if (url.endsWith(expectedPath.get())) loaded.get().countDown(); }
                 });
                 view.loadUrl(BuildConfig.SITE_ORIGIN + "/test-home");
             });
