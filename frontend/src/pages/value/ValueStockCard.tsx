@@ -6,9 +6,10 @@ export function ValueStockCard({row,selected,disabled,onClick}:{row:ValueRow;sel
  const color=(n:number|null)=>n===null||n===0?'#94A3B8':n>0?'#FA616E':'#5EA1F0';
  const values=[['EPS',format(row.eps,0,'원')],['초과이익',largeMoney(row.excessEarnings)],['주주가치',largeMoney(row.shareholderValue)],['자본',largeMoney(row.capital)],['기준평가율',format(row.requiredReturn,1,'%')]];
  return <Box component="button" data-scroll-item={row.id} data-testid={'value-row-'+row.symbol} disabled={disabled} onClick={onClick} aria-pressed={selected} title={row.notices?.join('\n')}
-  sx={{font:'inherit',color:'#F7FAFC',textAlign:'left',cursor:'pointer',border:'1px solid '+(selected?'#FFC21A':'#334052'),bgcolor:'#101827',px:'8px',py:'4px',borderRadius:'8px',width:'100%',minWidth:0,display:'grid',gap:'2px',opacity:1,'&:focus-visible':{outline:'2px solid #FFC21A'},'&:disabled':{cursor:'progress'}}}>
-  <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',minHeight:20}}>
+  sx={{font:'inherit',color:'#F7FAFC',textAlign:'left',cursor:'pointer',border:'1px solid #334052',bgcolor:'#101827',px:'8px',py:'4px',borderRadius:'8px',width:'100%',minWidth:0,display:'grid',gap:'2px',opacity:1,'&:focus-visible':{outline:'2px solid #FFC21A'},'&:disabled':{cursor:'progress'}}}>
+  <Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto minmax(0,1fr)',alignItems:'center',gap:'4px',minHeight:20}}>
    <Typography sx={{fontSize:12,minWidth:0,overflowWrap:'anywhere'}}>{row.name}<Box component="span" sx={{ml:'4px',fontSize:10,color:'#94A3BA'}}>{row.symbol}</Box></Typography>
+   <Box component="span" data-testid="value-market" sx={{fontSize:10,color:row.marketType==='KOSPI'?'#FBBF24':row.marketType==='KOSDAQ'?'#34D399':'#94A3B8',textAlign:'center',whiteSpace:'nowrap'}}>{row.marketType??'—'}</Box>
    <Box component="span" data-testid="value-current-price" sx={{fontSize:11,color:color(delta),textAlign:'right',overflowWrap:'anywhere'}}>{format(row.currentPrice,0,'원')}</Box>
   </Box>
   <Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)',gap:'4px',alignItems:'center',minHeight:20,fontWeight:700,bgcolor:'#FFD96E',px:'8px',borderRadius:0}}>

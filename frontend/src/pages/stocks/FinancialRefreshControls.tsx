@@ -87,7 +87,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   </Stack>;
 }
 export function FinancialRefreshDialog({open,onClose,...props}:Props&{open:boolean;onClose:()=>void}) {
- return <Dialog keepMounted open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{paper:{sx:{m:1,width:'calc(100% - 16px)',maxHeight:'calc(100dvh - 16px)',bgcolor:colors.surface,border:`1px solid ${colors.border}`,backgroundImage:'none',borderRadius:`${radius.lg}px`}}}}><DialogTitle sx={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:15,p:2,flexShrink:0}}>재무제표 갱신<IconButton onClick={onClose} aria-label="재무제표 갱신 닫기"><CloseIcon/></IconButton></DialogTitle><DialogContent sx={{p:2,overflowY:'auto',minHeight:0}}><FinancialRefreshControls key={props.stockId} {...props} visible={open}/></DialogContent></Dialog>;
+ return <Dialog keepMounted open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{paper:{sx:{m:'16px 24px',width:'calc(100% - 48px)',boxSizing:'border-box',maxHeight:'calc(100dvh - 32px)',bgcolor:colors.surface,border:`1px solid ${colors.border}`,backgroundImage:'none',borderRadius:`${radius.lg}px`}}}}><DialogTitle sx={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:15,p:2,flexShrink:0}}>재무제표 갱신<IconButton onClick={onClose} aria-label="재무제표 갱신 닫기"><CloseIcon/></IconButton></DialogTitle><DialogContent sx={{p:2,overflowY:'auto',minHeight:0}}><FinancialRefreshControls key={props.stockId} {...props} visible={open}/></DialogContent></Dialog>;
 }
 
 /** Shared by both entry screens; status comes from the durable server job, not session state. */
