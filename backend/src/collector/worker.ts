@@ -1,3 +1,4 @@
+import {runIndependentSupplement} from './independent-valuation-supplement.js';
 import 'dotenv/config';
 import { prisma } from '../lib/prisma.js';
 import { loadCollectorConfig } from './config.js';
@@ -113,9 +114,13 @@ const daemon = async (): Promise<void> => {
     }
   };
   log('info', 'collector scheduler started', { timezone: 'Asia/Seoul', config });
-  await tick();
+  // A long initial price sweep must not postpone the independent supplement timer.
+  void tick();
   const timer = setInterval(() => void tick(), config.schedulerTickSeconds * 1000);
-  const stop = async () => { clearInterval(timer); await prisma.$disconnect(); process.exit(0); };
+  let supplementRunning=false;
+  const supplementTick=async()=>{if(supplementRunning)return;supplementRunning=true;try{const result=await runIndependentSupplement(prisma,{windowStartHour:config.dartWindowStartHour,windowEndHour:config.dartWindowEndHour});if(!['IDLE','LOCKED','OUTSIDE_WINDOW','DISABLED','QUOTA_BLOCKED'].includes(result.status))log('info','independent valuation supplement finished',result);}catch{log('error','independent valuation supplement failed',{code:'SUPPLEMENT_INTERNAL_ERROR'});}finally{supplementRunning=false;}};
+  void supplementTick();const supplementTimer=setInterval(()=>void supplementTick(),60000);
+  const stop = async () => { clearInterval(timer); clearInterval(supplementTimer); while(supplementRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
   process.on('SIGTERM', () => void stop());
   process.on('SIGINT', () => void stop());
 };

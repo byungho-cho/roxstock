@@ -1,7 +1,6 @@
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import {storedDartCode} from './dart-diagnostics.js';
 import {DartApiError, validateDartCorporations} from './dart-provider.js';
-import {supplementSafely} from './valuation-supplement.js';
 import { Prisma, PrismaClient } from '../generated/prisma/index.js';
 import { getSeoulClock, toDatabaseDate } from './time.js';
 import type { DartCorporation, DartFinancialValues, DartPeriodType, DartReport, DartReportCode } from './dart-provider.js';
@@ -254,7 +253,6 @@ export class PrismaDartRepository {
         return [key,{...incoming,...old,amount:old.amount??incoming.amount,ytdAmount:old.ytdAmount??incoming.ytdAmount}];
       }));
       await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
-      await supplementSafely(this.prisma,input.securityId,input.fiscalYear,input.periodType).catch(()=>undefined);
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
@@ -283,7 +281,6 @@ export class PrismaDartRepository {
         capitalExpenditureYtd: values.capitalExpenditureYtd === null ? null : new Prisma.Decimal(values.capitalExpenditureYtd),
         accountSources: values.accountSources as Prisma.InputJsonValue,
       } });
-      await supplementSafely(this.prisma,input.securityId,input.fiscalYear,input.periodType).catch(()=>undefined);
     return { created: true, supersedesReceiptNo: previous?.receiptNo ?? null };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return { created: false, supersedesReceiptNo: null };
