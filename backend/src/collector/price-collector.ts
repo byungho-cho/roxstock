@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol } from '../domain/security-symbol.js';
 import { randomUUID } from 'node:crypto';
 import { collectorLog as log } from './logger.js';
 import type { CollectorRepository, CollectorRunStatus, PriceProvider, RunCounters } from './types.js';
@@ -35,12 +36,12 @@ export const collectPrices = async (
   let status: CollectorRunStatus = 'FAILED';
   try {
     const activeSecurities = await repository.listActiveSecurities();
-    const requestedSymbols = new Set(options.symbols?.map((symbol) => symbol.trim().toUpperCase().replace(/^A(?=\d{6}$)/, '')));
+    const requestedSymbols = new Set(options.symbols?.map((symbol) => normalizeProviderSymbol(symbol)));
     const securities = requestedSymbols.size === 0
       ? activeSecurities
-      : activeSecurities.filter((security) => requestedSymbols.has(security.symbol.toUpperCase().replace(/^A(?=\d{6}$)/, '')));
+      : activeSecurities.filter((security) => requestedSymbols.has(normalizeProviderSymbol(security.symbol)));
     const missingSymbols = [...requestedSymbols].filter((symbol) => !securities.some(
-      (security) => security.symbol.toUpperCase().replace(/^A(?=\d{6}$)/, '') === symbol,
+      (security) => normalizeProviderSymbol(security.symbol) === symbol,
     ));
     for (const symbol of missingSymbols) {
       counters.skipped += 1;

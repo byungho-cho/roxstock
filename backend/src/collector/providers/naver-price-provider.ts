@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../../domain/security-symbol.js';
 import type { PriceObservation, PriceProvider, SecurityTarget } from '../types.js';
 import { getSeoulClock } from '../time.js';
 
@@ -28,8 +29,8 @@ interface NaverResponse {
 }
 
 const normalizeSymbol = (symbol: string): string => {
-  const normalized = symbol.trim().toUpperCase().replace(/^A(?=\d{6}$)/, '');
-  if (!/^\d{6}$/.test(normalized)) throw new Error(`Unsupported Korean security symbol: ${symbol}`);
+  const normalized = normalizeProviderSymbol(symbol);
+  if (!isSecuritySymbol(normalized)) throw new Error(`Unsupported Korean security symbol: ${symbol}`);
   return normalized;
 };
 

@@ -28,7 +28,8 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const currentSearch=!composing&&query.trim().length>=2&&search===query.trim()?search:'';
  const rows=currentSearch?(result.data??[]):[];
  useEffect(()=>{if(composing||direct)return;const value=query.trim();if(value.length<2){setSearch('');return;}const timer=window.setTimeout(()=>setSearch(value),250);return()=>window.clearTimeout(timer);},[query,composing,direct]);
- const valid=!!name.trim()&&name.trim().length<=100&&/^\d{6}$/.test(symbol)&&/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=new Date().getFullYear();
+ const normalizedSymbol=symbol.trim().replace(/[a-z]/g, letter => letter.toUpperCase());
+ const valid=!!name.trim()&&name.trim().length<=100&&/^[A-Z0-9]{6}$/.test(normalizedSymbol)&&/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=new Date().getFullYear();
  const showConfirm=()=>{if(!busy&&accountId&&(!direct||valid)){setError('');setConfirm(true);}};
  const finish=async()=>{await Promise.all(['stocks','dashboard','targetArrivals','recentBuys'].map(key=>client.invalidateQueries({queryKey:[key]})));if(alive.current)navigate('/stocks?tab='+type,{replace:true});};
  const save=async()=>{
@@ -37,10 +38,10 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
   try{
    const listType=type==='holding'?'HOLDING':'WATCHLIST';
    if(direct){
-    const existing=(await listSecurities({accountId,query:symbol,includeInactive:true})).find(row=>row.symbol===symbol);
+    const existing=(await listSecurities({accountId,query:normalizedSymbol,includeInactive:true})).find(row=>row.symbol===normalizedSymbol);
     if(!alive.current)return;
-    if(existing){setSelected({...mapSecurity(existing),isActive:existing.isActive});setDirect(false);setQuery(symbol);setSearch(symbol);setConfirm(true);return;}
-    await createSecurity({accountId,name:name.trim(),symbol,marketType:market,listType,listingYear:Number(year)});
+    if(existing){setSelected({...mapSecurity(existing),isActive:existing.isActive});setDirect(false);setQuery(normalizedSymbol);setSearch(normalizedSymbol);setConfirm(true);return;}
+    await createSecurity({accountId,name:name.trim(),symbol:normalizedSymbol,marketType:market,listType,listingYear:Number(year)});
    }
    else if(selected!.hasTradeHistory){setError('거래내역이 있는 종목은 추가·분류 변경할 수 없습니다. 기존 종목을 확인해 주세요.');return;}else if(selected!.watchlistItemId)await updateWatchlistItem(selected!.watchlistItemId,{accountId,listType,reactivate:selected!.isActive===false});
    else await createWatchlistItem({accountId,securityId:selected!.id,listType,reactivate:selected!.isActive===false});
@@ -56,7 +57,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const clearField=(label:string,value:string,change:(s:string)=>void)=><IconButton aria-label={label+' 지우기'} disabled={!value||busy} onClick={()=>change('')} sx={{width:16,height:16,p:0}}><Box component="img" src="/stocks-v03/clear.svg" alt="" sx={{width:16,height:16,opacity:value?1:.4}}/></IconButton>;
  useEffect(()=>{inputHost?.setTitle(`${direct?'종목 직접추가':'종목추가'}(${type==='holding'?'보유종목':'관심종목'})`);},[direct,type,inputHost?.setTitle]);
  useEffect(()=>{inputHost?.setBusy(busy);return()=>inputHost?.setBusy(false);},[busy,inputHost?.setBusy]);
- const chosenName=direct?name.trim():selected?.name,chosenSymbol=direct?symbol:selected?.symbol;
+ const chosenName=direct?name.trim():selected?.name,chosenSymbol=direct?normalizedSymbol:selected?.symbol;
  const chosenMarket=direct?market:selected?.marketType;
  return <Box data-testid="stock-add-content" className="rox-home" sx={{fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded variant="more" backIcon={<Box component="span" aria-hidden sx={{width:28,fontSize:36,lineHeight:"36px",textAlign:"left"}}>‹</Box>} showAdd={false} title={title} onBack={()=>direct?setDirect(false):navigate(-1)} showBackTablet/>
@@ -82,8 +83,8 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
    {currentSearch&&rows.length>0&&<Button onClick={enterDirect} sx={{fontSize:11,alignSelf:'flex-end'}}>직접 추가 ›</Button>}
   </Stack>:<Box data-testid="stock-direct-add" sx={{'& .MuiInputBase-input':{fontSize:'13px !important'},'& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root':{flex:'0 0 60px',mr:'8px'}}}>
    <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목명" endAdornment={clearField('종목명',name,setName)} value={name} placeholder="예: 신규테크" onChange={setName} autoFocus onEnter={()=>symbolRef.current?.focus()} disabled={busy}/>
-   <Box sx={{mt:'12px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목코드" endAdornment={clearField('종목코드',symbol,setSymbol)} value={symbol} placeholder="예: 123456" onChange={s=>setSymbol(s.replace(/\D/g,'').slice(0,6))} inputRef={symbolRef} onEnter={()=>yearRef.current?.focus()} disabled={busy}/></Box>
-   <Typography sx={{mt:'16px',fontSize:10,lineHeight:'15px',color:colors.textMuted,textAlign:'right',px:'8px'}}>6자리 숫자 · 기존 전체종목과 직접 추가 종목의 코드 중복 확인</Typography>
+   <Box sx={{mt:'12px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="종목코드" endAdornment={clearField('종목코드',symbol,setSymbol)} value={symbol} placeholder="예: 0163Y0" error={symbol&&!/^[A-Z0-9]{6}$/.test(normalizedSymbol)?'영문·숫자 6자리를 입력하세요.':undefined} onChange={s=>setSymbol(s.replace(/[a-z]/g, letter=>letter.toUpperCase()))} inputRef={symbolRef} onEnter={()=>yearRef.current?.focus()} disabled={busy}/></Box>
+   <Typography sx={{mt:'16px',fontSize:10,lineHeight:'15px',color:colors.textMuted,textAlign:'right',px:'8px'}}>영문·숫자 6자리 · 기존 전체종목과 직접 추가 종목의 코드 중복 확인</Typography>
    <Typography sx={{mt:'33px',mb:'8px',fontSize:11,lineHeight:'14px',color:colors.textMuted}}>시장 구분</Typography>
    <Stack direction="row" spacing="8px">{(['KOSPI','KOSDAQ'] as const).map(value=><Button key={value} aria-pressed={market===value} disabled={busy} onClick={()=>setMarket(value)} variant={market===value?'contained':'outlined'} sx={{...button,flex:1,border:'1px solid '+(market===value?colors.focus:'#25344d'),bgcolor:market===value?colors.buttonPrimary:'#0f172a',color:market===value?colors.textPrimary:colors.textMuted}}>{value==='KOSPI'?'코스피':'코스닥'}</Button>)}</Stack>
    <Box sx={{mt:'14px'}}><FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="상장 연도" endAdornment={clearField('상장 연도',year,setYear)} value={year} onChange={s=>setYear(s.replace(/\D/g,'').slice(0,4))} inputRef={yearRef} onEnter={showConfirm} disabled={busy}/></Box>

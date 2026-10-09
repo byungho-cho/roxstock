@@ -1,3 +1,4 @@
+import { normalizeSecuritySymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 export interface RealtimePriceDto {
   securityId: string;
   symbol: string;
@@ -19,7 +20,7 @@ const parsePrice = (value: unknown): RealtimePriceDto | null => {
   const timestamp = typeof candidate.observedAt === 'string' ? Date.parse(candidate.observedAt) : Number.NaN;
   if (
     typeof candidate.securityId !== 'string' || !/^\d+$/.test(candidate.securityId)
-    || typeof candidate.symbol !== 'string' || !/^\d{6}$/.test(candidate.symbol)
+    || typeof candidate.symbol !== 'string' || !isSecuritySymbol(normalizeSecuritySymbol(candidate.symbol))
     || typeof candidate.name !== 'string' || candidate.name.length === 0
     || !validDecimal(candidate.currentPrice)
     || (candidate.previousClosePrice !== null && !validDecimal(candidate.previousClosePrice))
@@ -28,7 +29,7 @@ const parsePrice = (value: unknown): RealtimePriceDto | null => {
   ) return null;
   return {
     securityId: candidate.securityId,
-    symbol: candidate.symbol,
+    symbol: normalizeSecuritySymbol(candidate.symbol),
     name: candidate.name,
     currentPrice: candidate.currentPrice,
     previousClosePrice: candidate.previousClosePrice,

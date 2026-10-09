@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { HistoricalPriceError } from './historical-price-error.js';
 import type { Supplemental } from '../domain/period-valuation.js';
 export type KrxMarket = 'KOSPI' | 'KOSDAQ';
@@ -40,8 +41,8 @@ export class KrxProvider {
     return body.OutBlock_1 as Row[];
   }
   async close(symbol: string, end: Date, market: KrxMarket): Promise<NonNullable<Supplemental['price']>> {
-    const normalized = symbol.replace(/^A/, '');
-    if (!/^\d{6}$/.test(normalized)) throw new HistoricalPriceError('KRX_SYMBOL_INVALID', 'PROVIDER');
+    const normalized = normalizeProviderSymbol(symbol);
+    if (!isSecuritySymbol(normalized)) throw new HistoricalPriceError('KRX_SYMBOL_INVALID', 'PROVIDER');
     // Only an explicitly empty entire-market response advances to a previous date.
     for (let offset = 0; offset <= 7; offset++) {
       const date = new Date(end.getTime() - offset * 86400000).toISOString().slice(0,10).replaceAll('-', '');

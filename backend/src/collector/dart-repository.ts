@@ -1,3 +1,4 @@
+import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import {storedDartCode} from './dart-diagnostics.js';
 import {DartApiError, validateDartCorporations} from './dart-provider.js';
 import {supplementSafely} from './valuation-supplement.js';
@@ -70,10 +71,10 @@ export class PrismaDartRepository {
     const securities = await this.prisma.security.findMany({
       where: { securityType:'STOCK' }, select: { id: true, symbol: true },
     });
-    const bySymbol = new Map(securities.map((item) => [item.symbol.replace(/^A(?=\d{6}$)/, ''), item.id]));
+    const bySymbol = new Map(securities.map((item) => [normalizeProviderSymbol(item.symbol), item.id]));
     const corpBySymbol = new Map<string, DartCorporation[]>();
     for (const corp of corporations) {
-      if (!/^\d{6}$/.test(corp.stockCode)) continue;
+      if (!isSecuritySymbol(corp.stockCode)) continue;
       corpBySymbol.set(corp.stockCode, [...(corpBySymbol.get(corp.stockCode) ?? []), corp]);
     }
     const candidates = [...corpBySymbol.entries()].filter(([, entries]) => entries.length === 1);
