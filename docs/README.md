@@ -126,3 +126,5 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 - [13.1차 진입 경로별 상단·검색 기획](planning/financial-ui13-1.md) · [개발](development/financial-ui13-1.md) · [QA](qa/financial-ui13-1.md): 상세 상단과 검색은 이 기준이 우선합니다.
 
 - [14차 종목 보고서·가치지표 팝업](development/stock-value-popup14.md) · [QA](qa/stock-value-popup14.md)
+
+- [15.1차 최종 3안 개발현황](development/asset-composition15-1.md) · [QA](qa/asset-composition15-1.md)
