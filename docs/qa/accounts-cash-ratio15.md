@@ -54,3 +54,5 @@
 | 계좌 카드 | [보기](artifacts/phase15/accounts-cover.png) | [보기](artifacts/phase15/accounts-tablet.png) |
 | 초기화 버튼 상태 | [보기](artifacts/phase15/reset-state-cover.png) | [보기](artifacts/phase15/reset-state-tablet.png) |
 | 삭제 팝업 | [보기](artifacts/phase15/delete-cover.png) | [보기](artifacts/phase15/delete-tablet.png) |
+
+CI에서 15차 화면 및 MariaDB 11.8.9 검증이 통과했다. 기존 종목 검사에서 보고서 아이콘/버튼 부분일치가 중복되는 선택자를 exact로 수정(로컬 6건 통과), 예수금 검사에서 저장 요청 수신을 기다리도록 보완(로컬 2건 통과). 앱 동작 변경 없이 기존 검사의 대상을 명확히 했다.
