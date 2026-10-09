@@ -1,3 +1,4 @@
+import {invalidatePortfolio} from '../../data/invalidatePortfolio';
 import { usePopupHistory } from '../../hooks/usePopupHistory';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import {FairPriceCard} from '../value/FairPriceCard';
@@ -44,7 +45,7 @@ export function PriceEditor({stock,onClose,dialog=false,onBusyChange}:{stock:Sto
  const valid=value.trim()!==''&&Number.isFinite(Number(value))&&Number(value)>0;
  const save=async()=>{
   if(!valid||lock.current)return;lock.current=true;setBusy(true);setError('');
-  try{await updateSecurityPrice(stock.id,value);await Promise.all(['stocks','securityAnalysis','targetArrivals','buyLots','allBuyLots','dashboard','recentBuys'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));if(alive.current)onClose();}
+  try{await updateSecurityPrice(stock.id,value);await invalidatePortfolio(queryClient);if(alive.current)onClose();}
   catch(cause){if(alive.current)setError(cause instanceof Error?cause.message:'현재가 저장 실패 · 다시 시도해 주세요.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
  };

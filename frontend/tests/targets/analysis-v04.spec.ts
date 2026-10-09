@@ -4,6 +4,7 @@ import { analysisRange, decimalValue } from '../../src/pages/assets/analysisPeri
 
 async function setup(page: Page) {
   await fixture(page);
+  await page.route('**/api/accounts/*/compound-plans',route=>route.fulfill({json:{data:{accountId:'a',currentAssets:'1000000',currentYear:2026,plans:[]}}}));
   let error = false, empty = false, missing = false;
   const reads: URL[] = [];
   await page.route('**/api/accounts', route => route.fulfill({ json: { data: ['a', 'b'].map((id, i) => ({ id, name: '계좌 ' + id, brokerName: '검사', cashBalance: '200000', isActive: true, isDefault: i === 0 })) } }));
@@ -97,7 +98,7 @@ test('real server period result is preserved, unknown breakdown and plan are not
   const state = await setup(page); await page.goto('/assets');
   await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('100,000원');
   await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
-  await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획을 추가하세요');
+  await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획이 없습니다.');
   await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('analysis-total-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.at(-1)?.pathname).toContain('/b/');

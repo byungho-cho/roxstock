@@ -8,7 +8,9 @@ on:
       - backend/src/domain/compound-growth*
       - backend/src/routes/compound-growth*
       - backend/tests/compound-growth.integration.ts
-      - frontend/tests/targets/compound-v04.spec.ts
+      - frontend/tests/targets/compound-*.spec.ts
+      - frontend/src/utils/compoundAchievement.ts
+      - frontend/tests/unit/compound-achievement.test.ts
       - frontend/playwright.compound.config.ts
       - .github/workflows/compound-function-check.yml
 permissions:
@@ -42,6 +44,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prisma:generate && npm run prisma:migrate:deploy
+      - name: Summary amount boundary checks
+        run: node --import tsx --test frontend/tests/unit/compound-achievement.test.ts
       - name: Changed calculator and value API checks
         run: node --import tsx --test backend/src/domain/compound-growth.test.ts backend/src/domain/value-analysis.test.ts backend/src/routes/value-analysis.test.ts
       - name: Real database compound operations
@@ -50,6 +54,12 @@ jobs:
         run: npm run typecheck:backend && npm run build:backend && npm run typecheck:frontend && npm run build:frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - name: Changed compound functions only (no screenshots, trace or visual QA)
+      - name: Compound card, chart, cache and navigation regression
         run: npx playwright test --config=playwright.compound.config.ts --workers=2
         working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compound-goal-qa
+          path: frontend/test-results
+          retention-days: 14
