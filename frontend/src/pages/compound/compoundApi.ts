@@ -1,5 +1,5 @@
 import {apiRequest} from '../../data/apiClient';
-export type Projection={year:number;asset:string;contributed:string};
+export type Projection={year:number;asset:string;contributed:string;realizedAsset?:string|null;realizedTargetMet?:boolean|null;annualAchievementRate?:string|null};
 export type Goal={id:string;goalName:string;annualTargetRate:string;displayColor:string;isDefault:boolean;isVisible:boolean;rows:Projection[];yearTarget:string|null;finalTarget:string|null;progress:string|null;finalAchievementRate?:string|null};
 export type Plan={id:string;planName:string;displayColor?:string;startYear:number;endYear:number;duration:number;initialAssetValue:string;annualContributionAmount:string;goals:Goal[];endingAssets?:string|null;endingAsOf?:string|null;status:'UPCOMING'|'ACTIVE'|'ENDED'};
 export type Plans={accountId:string;currentAssets:string|null;asOf:string;calculatedAt:string;currentYear:number;pricingComplete:boolean;plans:Plan[];basis:{contributionTiming:string;initialTiming:string;inclusiveYears:boolean;yearTarget:string;progressDenominator:string;timezone:string}};
