@@ -19,7 +19,7 @@ export function SettingsPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
   useEffect(() => { detailRef.current?.scrollTo({ top: 0 }); }, [detailView]);
-  const backPath = view === 'settings' ? '/more' : ['add', 'edit', 'cash', 'reset'].includes(view) ? '/detail/settings?view=account' : '/detail/settings?view=settings';
+  const backPath = view === 'settings' ? '/more' : view==='reset'?'/detail/settings?view=edit&accountId='+params.get('accountId'):['add', 'edit', 'cash'].includes(view) ? '/detail/settings?view=account' : '/detail/settings?view=settings';
   return <>
     <PageHeader embedded title={tablet ? '설정' : labels[view]} backPath={tablet ? '/more' : backPath} backIcon={<img src="/stocks-v03/back.svg" alt="" />} showBackTablet showAdd={false} variant="more" compact />
     <Box className="rox-home" data-testid="settings-layout" sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>

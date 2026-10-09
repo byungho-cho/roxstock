@@ -26,7 +26,7 @@ test('full-screen search exceeds six results, failure retains state and duplicat
  await expect(page.locator('.MuiDialog-container').last()).toHaveCSS('opacity','1');await page.screenshot({path:info.outputPath('stock-add-confirm.png')});
  f.fail();await dialog.getByRole('button',{name:'추가',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('검증 저장 실패');await expect(page.getByRole('textbox',{name:'전체 종목 검색',includeHidden:true})).toHaveValue('삼성');
  f.success();await dialog.getByRole('button',{name:'추가',exact:true}).dblclick();await expect(page).toHaveURL(/stocks\?tab=holding/);expect(f.writes).toHaveLength(2);expect(f.writes[1]).toMatchObject({accountId:'1',listType:'HOLDING'});
- await page.reload();await expect(page.getByRole('button',{name:'삼성SDI 가치지표'})).toBeVisible();await expect(page.getByRole('tab',{name:'추천종목'})).toHaveCount(0);
+ await page.reload();await expect(page.getByRole('button',{name:'삼성SDI 가치지표',exact:true})).toBeVisible();await expect(page.getByRole('tab',{name:'추천종목'})).toHaveCount(0);
 });
 test('direct addition focuses fields, year uses runtime year, IME does not submit and failure retains values',async({page},info)=>{
  const f=await fixture(page);await page.goto('/stocks/add?type=holding&from=home');await page.screenshot({path:info.outputPath('stock-add-initial.png')});

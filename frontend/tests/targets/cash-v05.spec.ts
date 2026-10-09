@@ -42,6 +42,7 @@ test('before tax clears dependents; last input governs mutual calculation and pe
  await after.fill('14000');await expect(tax).toHaveValue('1,000');await tax.fill('2000');await expect(after).toHaveValue('13,000');
  await tax.fill('-100');await expect(after).toHaveValue('15,100');await tax.fill('2000');
  await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByTestId('cash-history-row')).toHaveCount(5);
+ await expect.poll(()=>state.writes.length).toBe(1);
  expect(state.writes[0].body).toMatchObject({amount:'1000',feeTaxAmount:'2000',balanceAfter:'13000'});
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
