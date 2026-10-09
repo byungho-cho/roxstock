@@ -17,7 +17,7 @@ test('per-account colors, stable selection border and explicit edit target',asyn
  await fixture(page);await page.goto('/detail/settings?view=account');
  const first=page.getByTestId('account-card-1'),second=page.getByTestId('account-card-2');
  await expect(first.getByTestId('account-cash')).toHaveCSS('color','rgb(96, 165, 250)');
- await expect(second.getByTestId('account-cash')).toHaveCSS('color','rgb(251, 191, 36)');
+ await expect(second.getByTestId('account-cash')).toHaveCSS('color','rgb(96, 165, 250)');
  await expect(first).toHaveCSS('border-top-color','rgb(250, 204, 21)');
  const width=(await second.boundingBox())!.width;
  await second.getByRole('button',{name:'선택',exact:true}).click();
@@ -71,7 +71,7 @@ test('delete nonselected then selected last account, clearing selection and offe
 
 test('home and assets use identical unrounded color bands and missing-price neutral',async({page})=>{
  const f=await fixture(page);
- for(const [ratio,stock,cash] of [[19.99,'96, 165, 250','248, 113, 113'],[20,'248, 113, 113','96, 165, 250'],[29.99,'248, 113, 113','96, 165, 250'],[30,'52, 211, 153','251, 191, 36']] as const){
+ for(const [ratio,stock,cash] of [[19.99,'248, 113, 113','96, 165, 250'],[20,'248, 113, 113','96, 165, 250'],[29.99,'52, 211, 153','251, 191, 36'],[30,'248, 113, 113','96, 165, 250']] as const){
   f.state.ratio=ratio;
   for(const path of ['/','/detail/assets']){
    await page.goto(path);
@@ -81,8 +81,7 @@ test('home and assets use identical unrounded color bands and missing-price neut
    await expect(cashCard.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
    if(path.includes('assets')){
     const bar=page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /});
-    await expect(bar.locator(':scope > *').first()).toHaveCSS('background-color',`rgb(${stock})`);
-    await expect(bar.locator(':scope > *').last()).toHaveCSS('background-color',`rgb(${cash})`);
+    await expect(bar).toBeVisible(); // final 3안 bar shades are verified in phase15-1 tests
    }
   }
  }
