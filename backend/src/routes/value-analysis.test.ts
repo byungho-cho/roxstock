@@ -27,3 +27,15 @@ test('financial cache shares concurrent loads but prices and W remain fresh', as
   await app.inject('/api/value-analysis?year=2025');assert.equal(joins,2);
  }finally{await app.close();prisma.security.findMany=original;}
 });
+
+test('initial search filters full master without changing live-price or year selection', async()=>{
+ const original=prisma.security.findMany;
+ const rows=[{id:1n,name:'삼성전자',symbol:'005930',valuationMetrics:[],marketPrice:null},{id:2n,name:'현대차',symbol:'005380',valuationMetrics:[],marketPrice:null}];
+ prisma.security.findMany=(async(input:any)=>{assert.equal(input.where.isActive,true);assert.equal(input.where.OR,undefined);return rows;}) as unknown as typeof original;
+ const app=buildApp();try{
+  for(const [query,expected] of [['ㅅㅅㅈㅈ','삼성전자'],['ㅎㄷㅊ','현대차'],['삼성ㅈㅈ','삼성전자']] as const){
+   const response=await app.inject('/api/value-analysis?year=2025&query='+encodeURIComponent(query));assert.equal(response.statusCode,200);assert.deepEqual(response.json().data.rows.map((r:any)=>r.name),[expected]);assert.equal(response.json().data.year,2025);
+  }
+  const empty=await app.inject('/api/value-analysis?query='+encodeURIComponent('ㅂㅂㅂ'));assert.equal(empty.json().data.total,0);
+ }finally{await app.close();prisma.security.findMany=original;}
+});
