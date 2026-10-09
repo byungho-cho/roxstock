@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="88" fill="#0B1220"/>
+  <g fill="none" stroke-width="42">
+    <path d="M426 266 A170 170 0 1 1 246 86" stroke="#3B82F6"/>
+    <path d="M266 86 A170 170 0 0 1 426 246" stroke="#EF4444"/>
+  </g>
+  <path fill="#FACC15" stroke="#0B1220" stroke-width="13" stroke-linejoin="miter" fill-rule="evenodd" d="M170 150 H267 C323 150 359 178 359 219 C359 252 343 275 313 285 L432 426 H360 L269 311 L222 355 V368 H170 Z M222 202 V286 L266 242 H267 C290 242 306 234 306 222 C306 207 293 202 267 202 Z"/>
+</svg>
