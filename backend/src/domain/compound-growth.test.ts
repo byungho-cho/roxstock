@@ -28,3 +28,13 @@ test('ended plans use collected closing assets for final achievement, never curr
  const historical=serializePlan(plan,'500',2027,'83.6');assert.equal(historical.endingAssets,'83.6');assert.equal(historical.endingAsOf,'2026-12-31');assert.equal(historical.goals[0]!.finalAchievementRate,'50');
  const missing=serializePlan(plan,'500',2027);assert.equal(missing.endingAssets,null);assert.equal(missing.goals[0]!.finalAchievementRate,null);assert.equal(missing.goals[0]!.yearTarget,null);
 });
+
+test('yearly realized assets use exact closing snapshot, preserve zero and keep annual ratio separate',()=>{
+ const plan:any={id:1n,planName:'계획',startDate:new Date('2023-01-01'),endDate:new Date('2027-12-31'),initialAssetValue:new Prisma.Decimal(100),annualContributionAmount:new Prisma.Decimal(0),goals:[{id:2n,goalName:'기준',annualTargetRate:new Prisma.Decimal(0),displayColor:'#5EA1F0',isDefault:true,isVisible:true}]};
+ const rows=serializePlan(plan,'150',2026,null,new Map([[2023,'100'],[2024,'0']])).goals[0]!.rows;
+ assert.deepEqual(rows.map(r=>r.realizedAsset),['100','0',null,'150',null]);
+ assert.equal(rows[0]!.realizedTargetMet,true);assert.equal(rows[1]!.realizedTargetMet,false);assert.equal(rows[2]!.annualAchievementRate,null);assert.equal(rows[3]!.annualAchievementRate,'150');
+ assert.equal(serializePlan(plan,null,2026).goals[0]!.rows[3]!.realizedAsset,null);
+ plan.initialAssetValue=new Prisma.Decimal(0);assert.equal(serializePlan(plan,'100',2026).goals[0]!.rows[3]!.annualAchievementRate,null);
+ assert.equal(seoulYear(new Date('2025-12-31T14:59:59Z')),2025);assert.equal(seoulYear(new Date('2025-12-31T15:00:00Z')),2026);
+});
