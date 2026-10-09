@@ -27,7 +27,7 @@ async function fixture(page: Page, initial: Mode = 'normal') {
       expect(url.searchParams.get('types')).toBe('DIVIDEND');
       const offset = Number(url.searchParams.get('offset')); offsets.push(offset);
       const rows = mode === 'empty' || path.includes('/2/') ? [] : dividends;
-      return route.fulfill({ json: { data: rows.slice(offset, offset + 100), meta: { total: rows.length + (mode === 'changing' && offset ? 1 : 0), limit: 100, offset } } });
+      return route.fulfill({ headers: { 'x-fixture-mode': mode }, json: { data: rows.slice(offset, offset + 100), meta: { total: rows.length + (mode === 'changing' && offset ? 1 : 0), limit: 100, offset } } });
     }
     return route.fulfill({ json: { data: [] } });
   });
@@ -108,7 +108,8 @@ test('empty missing failed and changing-pagination results remain distinct', asy
   if (page.viewportSize()!.width >= 600) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
   f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
-  f.mode('changing'); const changedPage=page.waitForResponse(r=>r.url().includes('/cash-transactions')&&new URL(r.url()).searchParams.get('offset')==='100'); await page.getByRole('button', { name: '재시도' }).first().click(); expect((await (await changedPage).json()).meta.total).toBe(112); await expect(page.getByRole('alert').first()).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveCount(0);
+  // A cash page from the previous failed trades request may still arrive. Observe the retry fixture, not that older response.
+  f.mode('changing'); const changedPage=page.waitForResponse(r=>r.url().includes('/cash-transactions')&&new URL(r.url()).searchParams.get('offset')==='100'&&r.headers()['x-fixture-mode']==='changing'); await page.getByRole('button', { name: '재시도' }).first().click(); expect((await (await changedPage).json()).meta.total).toBe(112); await expect(page.getByRole('alert').first()).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveCount(0);
   f.mode('normal'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
 });
 test('long amounts never invade adjacent columns', async ({ page }) => {
