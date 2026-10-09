@@ -5,6 +5,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.MotionEvent;
+import android.os.SystemClock;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -53,7 +55,7 @@ public class WebOnlySmokeTest {
                 // In-process site fixture: no production data or network dependency.
                 view.setWebViewClient(new WebViewClient() {
                     @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest request) {
-                        String html = "<html><head><title>RoxStock fixture</title></head><body><a id='menu' href='/test-menu'>menu</a></body></html>";
+                        String html = "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>RoxStock fixture</title></head><body style='margin:0'><a style='display:block;height:200px' id='menu' href='/test-menu'>menu</a></body></html>";
                         return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
                     }
                     @Override public void onPageFinished(WebView v, String url) { if (url.endsWith(expectedPath.get())) loaded.get().countDown(); }
@@ -69,9 +71,16 @@ public class WebOnlySmokeTest {
             assertTrue(bridge.await(5, TimeUnit.SECONDS));
             loaded.set(new CountDownLatch(1));
             expectedPath.set("/test-menu");
-            scenario.onActivity(activity -> web.get().evaluateJavascript("document.getElementById('menu').click()", null));
+            int[] location = new int[2];
+            scenario.onActivity(activity -> web.get().getLocationOnScreen(location));
+            long downTime = SystemClock.uptimeMillis();
+            MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, location[0] + 40, location[1] + 40, 0);
+            MotionEvent up = MotionEvent.obtain(downTime, downTime + 100, MotionEvent.ACTION_UP, location[0] + 40, location[1] + 40, 0);
+            InstrumentationRegistry.getInstrumentation().sendPointerSync(down);
+            InstrumentationRegistry.getInstrumentation().sendPointerSync(up);
+            down.recycle(); up.recycle();
             assertTrue("Menu navigation failed", loaded.get().await(20, TimeUnit.SECONDS));
-            scenario.onActivity(activity -> { assertTrue(web.get().getUrl().endsWith("/test-menu")); assertTrue(web.get().canGoBack()); });
+            scenario.onActivity(activity -> { assertTrue("Menu URL: " + web.get().getUrl(), web.get().getUrl().endsWith("/test-menu")); assertTrue("Menu must create browser history", web.get().canGoBack()); });
             loaded.set(new CountDownLatch(1));
             expectedPath.set("/test-home");
             scenario.onActivity(MainActivity::onBackPressed);
