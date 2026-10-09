@@ -26,11 +26,11 @@ test('one manual provider shares a bounded crawl across years; no rate-limit ret
  let limits=0;const limited=new NaverAnnualProvider((async()=>{limits++;return new Response('',{status:429});}) as typeof fetch);await assert.rejects(limited.annual('005930'),{code:'NAVER_RATE_LIMIT'});assert.equal(limits,1);
  let bodyReads=0;const interrupted=new NaverAnnualProvider((async()=>{bodyReads++;return {ok:true,text:async()=>{throw new DOMException('body timeout','TimeoutError');}} as unknown as Response;}) as typeof fetch);await assert.rejects(interrupted.annual('005930'),{code:'NAVER_COMMUNICATION'});assert.equal(bodyReads,2);
 });
-function fixture(old?:Record<string,unknown>){
+function fixture(old?:Record<string,unknown>,fiscalYear=year-1){
  let record:any=old??null,snapshots=0,filingWrites=0;
  const d=(v:number)=>new Prisma.Decimal(v);
- const filing:any={id:1n,securityId:1n,fiscalYear:year-1,periodType:'ANNUAL',reportCode:'11011',fsDivision:'CFS',receiptNo:'20260301000001',receiptDate:new Date('2026-03-01'),periodEndDate:new Date(`${year-1}-12-31`),normalizationVersion:1,collectedAt:new Date(),revenueYtd:d(100),operatingProfitYtd:d(10),netIncomeYtd:d(5),totalAssets:d(500),totalLiabilities:d(200),totalEquity:d(300),accountSources:{basicEps:{amount:'6605'}}};
- const db={periodValuation:{findUnique:async()=>record,upsert:async(q:any)=>{record=record?{...record,...q.update}:q.create;return record;},update:async(q:any)=>{record={...record,...q.data};return record;}},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===year-1?filing:null,update:async()=>{filingWrites++;throw Error('not permitted');}},annualConsensusSnapshot:{upsert:async()=>{snapshots++;}}} as unknown as PrismaClient;
+ const filing:any={id:1n,securityId:1n,fiscalYear,periodType:'ANNUAL',reportCode:'11011',fsDivision:'CFS',receiptNo:'20260301000001',receiptDate:new Date('2026-03-01'),periodEndDate:new Date(`${year-1}-12-31`),normalizationVersion:1,collectedAt:new Date(),revenueYtd:d(100),operatingProfitYtd:d(10),netIncomeYtd:d(5),totalAssets:d(500),totalLiabilities:d(200),totalEquity:d(300),accountSources:{basicEps:{amount:'6605'}}};
+ const db={periodValuation:{findUnique:async()=>record,upsert:async(q:any)=>{record=record?{...record,...q.update}:q.create;return record;},update:async(q:any)=>{record={...record,...q.data};return record;}},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===fiscalYear?filing:null,update:async()=>{filingWrites++;throw Error('not permitted');}},annualConsensusSnapshot:{upsert:async()=>{snapshots++;}}} as unknown as PrismaClient;
  const security={id:1n,symbol:'005930',marketType:'KOSPI',dartCorpMapping:{corpCode:'00126380'}};
  const provider={listPeriodicReports:async()=>{throw Error('unnecessary list call');},fetchFinancials:async()=>{throw Error('unnecessary full re-collection');}} as unknown as OpenDartProvider;
  const repo={} as PrismaDartRepository;
@@ -85,4 +85,12 @@ test('manual CFS ROE does not silently substitute total-equity basis when owner 
  f.db.dartFinancialFiling.findFirst=(async(q:any)=>q.where.fiscalYear===year-2?{...current,fiscalYear:year-2,totalEquity:new Prisma.Decimal(250),accountSources:{}}:find(q)) as typeof f.db.dartFinancialFiling.findFirst;
  await refreshManualAnnual(f.db,f.security,year-1,f.provider,naver(rows),f.repo,16n);
  assert.equal(f.record().values.roe,null);assert.equal(f.record().reasons.roe,'OWNERS_PROFIT_AND_AVERAGE_EQUITY_BASIS_UNCONFIRMED');assert.equal(f.record().provenance.roeBasis,null);assert.equal(f.record().supplemental.manualAttempt.state,'FINAL_FAILED');
+});
+
+for(const fiscalYear of [2021,2022])test('manual Naver historical annual '+fiscalYear+' uses exact year and preserves unavailable source',async()=>{
+ const f=fixture(undefined,fiscalYear);const rows=parseNaverAnnual(table().replaceAll(String(year-1)+'/12',String(fiscalYear)+'/12'),'005930',definitions);
+ await refreshManualAnnual(f.db,f.security,fiscalYear,f.provider,naver(rows),f.repo,21n);
+ assert.equal(f.record().values.per,'10');assert.equal(f.record().values.pbr,'1');assert.equal(f.record().provenance.perMetric.per.fiscalYear,fiscalYear);assert.equal(f.filingWrites(),0);
+ await refreshManualAnnual(f.db,f.security,fiscalYear,f.provider,naver([]),f.repo,22n);
+ assert.equal(f.record().values.per,'10');assert.equal(f.record().values.pbr,'1');
 });
