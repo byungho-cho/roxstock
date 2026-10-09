@@ -80,3 +80,22 @@ for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses 
  await page.getByRole('button',{name:'저장',exact:true}).click();
  await expect.poll(()=>writes.length).toBe(2);expect(writes[1].path).toContain('linked-123');expect(writes[1].body).toMatchObject({accountId:'a',feeTaxAmount:'100',balanceAfter:'8900'});
 });
+
+ test('alphanumeric direct input preserves invalid text, canonicalizes paste and reuses existing code',async({page},info)=>{
+ await fixture(page);const writes:any[]=[];
+ await page.route('**/api/securities?**',route=>route.fulfill({json:{data:[]}}));
+ await page.route('**/api/securities',route=>{writes.push(route.request().postDataJSON());return route.fulfill({json:{data:{id:'17',symbol:'0163Y0',name:'KoAct'}}});});
+ await page.goto('/stocks/add?type=holding');await page.getByRole('button',{name:'직접 추가 ›',exact:true}).click();
+ await page.getByLabel('종목명',{exact:true}).fill('KoAct 코스닥액티브');const code=page.getByLabel('종목코드',{exact:true}),add=page.getByRole('button',{name:'종목 추가',exact:true});
+ for(const invalid of ['0163Y!0','01-6300','0163Y00']){await code.fill(invalid);await expect(code).toHaveValue(invalid);await expect(add).toBeDisabled();}
+ for(const numeric of ['005930','069500']){await code.fill(numeric);await expect(add).toBeEnabled();}
+ await code.fill('0163y0');await expect(code).toHaveValue('0163Y0');await expect(add).toBeEnabled();
+ // A paste input event exercises the same native input path without clipboard permissions.
+ await code.evaluate((input:HTMLInputElement)=>{const paste=new DataTransfer();paste.setData('text/plain',' 0163y0 ');input.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,clipboardData:paste}));const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!;set.call(input,' 0163y0 ');input.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertFromPaste',data:' 0163y0 '}));});
+ await expect(code).toHaveValue(' 0163Y0 ');await expect(add).toBeEnabled();
+ await page.screenshot({path:'test-results/phase16/code-'+info.project.name+'.png',animations:'disabled'});
+ await add.click();await page.getByTestId('stock-add-confirm').getByRole('button',{name:'추가',exact:true}).click();await expect.poll(()=>writes.length).toBe(1);expect(writes[0].symbol).toBe('0163Y0');
+ await page.route('**/api/securities?**',route=>route.fulfill({json:{data:[{id:'17',name:'KoAct 코스닥액티브',symbol:'0163Y0',marketType:'KOSDAQ',securityType:'ETF',isActive:true,hasTradeHistory:false,watchlistItemId:null}]}}));
+ await page.goto('/stocks/add?type=watchlist');await page.getByLabel('전체 종목 검색').fill('0163y0');await expect(page.getByTestId('security-search-result')).toContainText('0163Y0');
+ await page.getByRole('button',{name:'직접 추가 ›',exact:true}).click();await page.getByLabel('종목명',{exact:true}).fill('KoAct');await code.fill('0163y0');await add.click();await page.getByTestId('stock-add-confirm').getByRole('button',{name:'추가',exact:true}).click();await expect(page.getByTestId('stock-direct-add')).toHaveCount(0);expect(writes.length).toBe(1);
+ });
