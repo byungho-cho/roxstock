@@ -1,3 +1,4 @@
+import { normalizeSecuritySymbol, isSecuritySymbol, normalizeProviderSymbol } from '../domain/security-symbol.js';
 import type { FastifyInstance } from 'fastify';
 import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
 import { Prisma, type MarketType, type WatchlistType } from '../generated/prisma/index.js';
@@ -257,9 +258,9 @@ export async function securityRoutes(app: FastifyInstance) {
   app.post<{ Body: DirectSecurityBody }>('/securities', async (request, reply) => {
     const body = request.body ?? {};
     const accountId = id(body.accountId, 'accountId');
-    const symbol = typeof body.symbol === 'string' ? body.symbol.trim() : '';
+    const symbol = typeof body.symbol === 'string' ? normalizeSecuritySymbol(body.symbol) : '';
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!/^\d{6}$/.test(symbol) || !name || name.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'A six-digit symbol and name are required.');
+    if (!isSecuritySymbol(symbol) || !name || name.length > 100) throw new ApiError(400, 'INVALID_INPUT', '종목코드는 영문·숫자 6자리이며 종목명이 필요합니다.');
     const selectedMarket = marketType(body.marketType as string) ?? 'OTHER';
     const selectedList = manualClassification(body.listType);
     const listingYear = body.listingYear === undefined ? undefined : Number(body.listingYear);
@@ -323,7 +324,7 @@ export async function securityRoutes(app: FastifyInstance) {
       ...(request.query.includeInactive !== 'true' && { isActive: true }),
       ...(selectedMarket && { marketType: selectedMarket }),
       ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),
-      ...(search && !hasInitialQuery(search) && { AND: [{ OR: [{ symbol: { contains: search.replace(/^A(?=\d{6}$)/i, '') } }, { name: { contains: search } }] }] }),
+      ...(search && !hasInitialQuery(search) && { AND: [{ OR: [{ symbol: { contains: normalizeProviderSymbol(search) } }, { name: { contains: search } }] }] }),
     };
     const securities = await prisma.security.findMany({
       where, include: { marketPrice: true, accountWatchlistItems: { where: { accountId: accountId ?? 0n } } },

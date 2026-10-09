@@ -29,3 +29,11 @@ test('internal realtime ingestion requires token and accepts valid prices', asyn
   if (priorToken === undefined) delete process.env.COLLECTOR_INTERNAL_TOKEN;
   else process.env.COLLECTOR_INTERNAL_TOKEN = priorToken;
 });
+
+test('realtime cache distinguishes alphanumeric codes from numeric lookalikes',()=>{
+ const base={securityId:'170',symbol:'0163y0',name:'KoAct',currentPrice:'1234',previousClosePrice:null,observedAt:'2026-10-09T01:00:00Z',marketStatus:'OPEN'};
+ assert.equal(realtimePriceCache.ingest([base]).length,1);
+ assert.equal(realtimePriceCache.get(new Set(['0163Y0']))[0]?.symbol,'0163Y0');
+ assert.equal(realtimePriceCache.get(new Set(['016300'])).length,0);
+ assert.equal(realtimePriceCache.ingest([{...base,symbol:'0163Y!0'}]).length,0);
+});

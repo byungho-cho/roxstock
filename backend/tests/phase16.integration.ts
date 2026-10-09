@@ -14,6 +14,19 @@ test('account-aware security search, initials, inactive distinction, exact cash 
  try {
   await db.accountWatchlistItem.create({data:{accountId:other.id,securityId:security.id,listType:'WATCHLIST'}});
   const search=async(query:string,accountId=first.id,extra='')=>(await app.inject({url:`/api/securities?accountId=${accountId}&query=${encodeURIComponent(query)}${extra}`})).json().data;
+  const direct={accountId:first.id.toString(),name:'KoAct test',symbol:' 0163y0 ',marketType:'KOSDAQ',listType:'WATCHLIST'};
+  const created=await app.inject({method:'POST',url:'/api/securities',payload:direct});assert.equal(created.statusCode,201,created.body);
+  assert.equal(created.json().data.symbol,'0163Y0');
+  assert.equal((await search('0163y0'))[0].symbol,'0163Y0');
+  assert.equal((await search('016300')).length,0);
+  const numericCreated=await app.inject({method:'POST',url:'/api/securities',payload:{...direct,symbol:'016300'}});assert.equal(numericCreated.statusCode,201);
+  assert.notEqual(numericCreated.json().data.id,created.json().data.id);
+  await db.marketPrice.create({data:{securityId:BigInt(created.json().data.id),currentPrice:10000,priceUpdatedAt:new Date()}});
+  const price=await app.inject({url:'/api/prices/latest?symbols=0163y0'});assert.equal(price.statusCode,200);assert.equal(price.json().data[0].symbol,'0163Y0');
+  assert.equal((await app.inject({url:'/api/prices/latest?symbols=0163Y!0'})).statusCode,400);
+  assert.equal((await app.inject({method:'POST',url:'/api/securities',payload:{...direct,symbol:'0163Y0'}})).statusCode,409);
+  for(const symbol of ['0163Y!0','01-6300','0163 0','0163Y00'])assert.equal((await app.inject({method:'POST',url:'/api/securities',payload:{...direct,symbol}})).statusCode,400);
+  for(const symbol of ['005930','069500'])assert.equal((await app.inject({method:'POST',url:'/api/securities',payload:{...direct,symbol}})).statusCode,409);
   assert.equal((await search('069500'))[0].watchlistItemId,null);
   assert.equal((await search('069500',other.id))[0].listType,'WATCHLIST');
   assert.ok((await search('ㅅㅅㅈㅈ')).some((s:{symbol:string})=>s.symbol==='005930'));
@@ -40,6 +53,9 @@ test('account-aware security search, initials, inactive distinction, exact cash 
   await db.cashTransaction.deleteMany({where:{accountId:{in:[first.id,other.id]}}});
   await db.buyTrade.deleteMany({where:{accountId:first.id}});
   await db.accountWatchlistItem.deleteMany({where:{accountId:{in:[first.id,other.id]}}});
+  const testSymbols={symbol:{in:['0163Y0','016300']},name:'KoAct test'};
+  await db.marketPrice.deleteMany({where:{security:testSymbols}});
+  await db.security.deleteMany({where:testSymbols});
   await db.account.deleteMany({where:{id:{in:[first.id,other.id]}}});
   await db.security.delete({where:{id:inactive.id}});
   await app.close();await db.$disconnect();
