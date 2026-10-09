@@ -1,5 +1,5 @@
-import { AccountBalanceWalletOutlined, ArrowBackRounded, AssessmentOutlined, CalendarMonthRounded, DonutSmallOutlined, HomeRounded, MenuRounded, MoreHorizRounded, PaidOutlined, SyncRounded } from '@mui/icons-material';
-import { AppBar, BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
+import { ArrowBackRounded } from '@mui/icons-material';
+import { AppBar, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
 import { HeaderAddButton } from './HeaderAddButton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createContext, useContext, type ReactNode } from 'react';
@@ -7,12 +7,6 @@ import { createPortal } from 'react-dom';
 import { useMediaQuery } from '@mui/material';
 import { colors, pageGutter, pageMetrics } from '../../styles/tokens';
 import { navigateToForm } from '../../utils/focusForm';
-
-const coverItems = [
-  { label: '종목목록', path: '/stocks', icon: <MenuRounded /> }, { label: '매매일지', path: '/journal', icon: <CalendarMonthRounded /> },
-  { label: '홈', path: '/', icon: <HomeRounded /> }, { label: '자산분석', path: '/assets', icon: <DonutSmallOutlined /> }, { label: '더보기', path: '/more', icon: <MoreHorizRounded /> },
-];
-const tabletItems = [coverItems[0], coverItems[1], { label: '평가자산', path: '/detail/assets', icon: <PaidOutlined /> }, { label: '예수금', path: '/detail/cash', icon: <AccountBalanceWalletOutlined /> }, coverItems[2], coverItems[3], { label: '재무제표', path: '/detail/financials', icon: <AssessmentOutlined /> }, { label: '수집현황', path: '/detail/collection-monitoring', icon: <SyncRounded /> }, coverItems[4]];
 
 type PageHeaderProps = {
   valueAnalysis?: boolean;
@@ -64,39 +58,32 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
   return embedded ? slot ? createPortal(header, slot) : null : header;
 }
 
+const menuItems = [
+  { label: '종목목록', path: '/stocks', asset: 'stocks' },
+  { label: '매매일지', path: '/journal', asset: 'journal' },
+  { label: '예수금', path: '/detail/cash', asset: 'cash' },
+  { label: '자산분석', path: '/assets', asset: 'analysis' },
+  { label: '투자금', path: '/detail/investment', asset: 'financials' },
+  { label: '투자손익', path: '/detail/investment-profit', asset: 'financials' },
+  { label: '가치분석', path: '/detail/value', asset: 'financials' },
+  { label: '재무제표', path: '/detail/financials', asset: 'financials' },
+  { label: '복리계획', path: '/detail/compound', asset: 'financials' },
+  { label: '모니터링', path: '/detail/collection-monitoring', asset: 'financials' },
+  { label: '설정', path: '/detail/settings', asset: 'financials' },
+];
 export function BottomNav() {
-  const navigate = useNavigate(); const location = useLocation();
-  const value = location.pathname === '/trade' ? (location.state?.backgroundLocation?.pathname.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks') : [...tabletItems].sort((a, b) => b.path.length - a.path.length).find((item) => item.path !== '/' && location.pathname.startsWith(item.path))?.path ?? '/';
-  const isValue = location.pathname === '/detail/value' || /^\/stocks\/[^/]+\/value$/.test(location.pathname);
-  const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
-  const isAnalysis = location.pathname === '/assets' || isInvestment || isValue;
-  const isSettings = location.pathname === '/detail/settings';
-  const isStocks = location.pathname.startsWith('/stocks');
-  const isCash = location.pathname === '/detail/cash';
-  const isCompound = location.pathname === '/detail/compound';
-  const isUtilityV04 = location.pathname === '/more' || isSettings || location.pathname.startsWith('/detail/collection-monitoring');
-  const isFinancial = location.pathname === '/detail/financials' || /^\/stocks\/[^/]+\/financials$/.test(location.pathname);
-  const isV04 = isFinancial || isUtilityV04 || isCompound || isValue || isInvestment || isCash || location.pathname === '/assets' || location.pathname === '/' || location.pathname === '/stocks/add' || location.pathname === '/journal';
-  const isTabletV04 = isV04 || isStocks || location.pathname === '/detail/assets';
-  const isMore = location.pathname === '/more' || location.pathname === '/detail/settings';
-  const iconFor = (item: typeof coverItems[number], tabletMore = false) => {
-    if (tabletMore) {
-      const names = ['stocks', 'journal', 'assets', 'cash', 'home', 'analysis', 'financials', 'collection', 'more'];
-      const src = isTabletV04 ? `/tablet-v04/${names[tabletItems.findIndex(entry => entry.path === item.path)]}.svg` : `/figma-100/tablet-${names[tabletItems.findIndex(entry => entry.path === item.path)]}.svg`;
-      return <Box component="span" sx={{ display: 'inline-flex', width: 16, height: 16, bgcolor: 'currentColor', maskImage: `url(${src})`, maskRepeat: 'no-repeat', maskPosition: 'center' }}><Box component="img" src={src} alt="" sx={{ opacity: 0 }} /></Box>;
-    }
-    const index = coverItems.findIndex(entry => entry.path === item.path);
-    if (index < 0) return item.icon;
-    const src = `/${isV04 || isStocks ? 'home-v04' : 'home-v03'}/${['stocks', 'journal', 'home', 'assets', 'more'][index]}.svg`;
-    return <Box component="span" sx={{ display: 'inline-flex', width: 18, height: 18, bgcolor: 'currentColor', maskImage: `url(${src})`, maskRepeat: 'no-repeat', maskPosition: 'center' }}><Box component="img" src={src} alt="" sx={{ opacity: 0 }} /></Box>;
-  };
-  const homeItems = coverItems.map(item => ({ ...item, icon: iconFor(item) }));
-  const extendedItems = tabletItems.map(item => ({ ...item, label: isTabletV04 && item.path === '/detail/collection-monitoring' ? '시세수집' : item.label, icon: iconFor(item, isMore || isTabletV04) }));
-  const isHome = location.pathname === '/' || location.pathname === '/detail/assets';
-  const isAssetOverview = location.pathname === '/detail/cash';
-  const moreStyle = isMore ? { bgcolor: { xs: colors.surface, sm: '#0B1220' }, '& .MuiBottomNavigationAction-root': { justifyContent: 'flex-start', py: 0, pt: { xs: '9px', sm: '2px' } }, '& .MuiBottomNavigationAction-label': { fontSize: { xs: 9, sm: 8 }, lineHeight: { xs: '11px', sm: '10px' }, mt: { xs: '3px', sm: '10px' }, '&.Mui-selected': { fontSize: { xs: 9, sm: 8 } } } } : {};
-  const v04Style = isV04 || isStocks ? { '& .MuiBottomNavigationAction-root': { flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: '3px', sm: '8px' }, justifyContent: 'center', minWidth: 0, px: '2px', py: 0, color: colors.textMuted }, '& .MuiBottomNavigationAction-label': { fontSize: { xs: isUtilityV04 || isAnalysis || isCash || isCompound ? 10 : 9, sm: 13 }, lineHeight: { xs: '11px', sm: '16px' }, mt: 0, '&.Mui-selected': { fontSize: { xs: isUtilityV04 || isAnalysis || isCash || isCompound ? 10 : 9, sm: 13 }, fontWeight: 500 } } } : {};
-  const tabletV04Style = isTabletV04 ? { bgcolor: '#0B1220', '& .MuiBottomNavigationAction-root': { flexDirection: 'column', flex: '1 1 11.111%', justifyContent: 'flex-start', gap: '10px', pt: '2px', pb: 0 }, '& .MuiBottomNavigationAction-label': { fontSize: isUtilityV04 || isAnalysis || isCash || isCompound ? 10 : 8, lineHeight: '10px', mt: 0, whiteSpace: 'nowrap', '&.Mui-selected': { fontSize: isUtilityV04 || isAnalysis || isCash || isCompound ? 10 : 8, fontWeight: 600 } } } : {};
-  const style = { fontFamily: isHome || isMore || isStocks ? 'RoxHomeInter, sans-serif' : undefined, position: 'fixed', inset: 'auto 0 0', zIndex: 10, mx: 'auto', width: '100%', height: pageMetrics.headerHeight, borderTop: `1px solid ${colors.border}`, bgcolor: colors.surface, '& .MuiBottomNavigationAction-root': { minWidth: 0, height: '100%', color: colors.textMuted, px: '2px', py: '2px', justifyContent: 'center' }, '& .MuiBottomNavigationAction-root.Mui-selected': { color: colors.navActive }, '& .MuiBottomNavigationAction-label': { fontSize: isHome ? 8 : 10, lineHeight: '14px', mt: '1px', '&.Mui-selected': { fontSize: isHome ? 8 : 10, fontWeight: 500 } }, '& .MuiSvgIcon-root': { fontSize: 17 } } as const;
-  return <><MuiBottomNavigation showLabels value={isInvestment || isValue || isCompound ? '/assets' : isV04 && location.search.includes('from=home') ? '/' : isSettings || location.pathname.startsWith('/detail/collection-monitoring') ? '/more' : isAssetOverview || location.pathname === '/detail/assets' ? '/' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, ...moreStyle, ...v04Style, display: { xs: 'flex', sm: 'none' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], ...moreStyle['& .MuiBottomNavigationAction-root'], ...v04Style['& .MuiBottomNavigationAction-root'], flex: '1 1 20%' } }}>{homeItems.map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation><MuiBottomNavigation showLabels value={isInvestment || isValue || isCompound ? '/assets' : isV04 && location.search.includes('from=home') ? '/' : isSettings || location.pathname.startsWith('/detail/collection-monitoring') ? '/more' : value} onChange={(_, path: string) => navigate(path)} sx={{ ...style, ...moreStyle, ...v04Style, ...tabletV04Style, display: { xs: 'none', sm: 'flex' }, '& .MuiBottomNavigationAction-root': { ...style['& .MuiBottomNavigationAction-root'], ...moreStyle['& .MuiBottomNavigationAction-root'], ...v04Style['& .MuiBottomNavigationAction-root'], ...tabletV04Style['& .MuiBottomNavigationAction-root'], flex: isTabletV04 ? '1 1 11.111%' : isHome || isSettings || isStocks ? '1 1 20%' : '1 1 11.111%' } }}>{(isTabletV04 ? extendedItems : isHome || isSettings || isStocks ? homeItems : extendedItems).map((item) => <BottomNavigationAction key={item.path} value={item.path} label={item.label} icon={item.icon} />)}</MuiBottomNavigation></>;
+  const navigate = useNavigate(), location = useLocation();
+  const path = location.pathname;
+  const active = path === '/trade' ? (location.state?.backgroundLocation?.pathname?.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks')
+    : /\/stocks\/[^/]+\/value$/.test(path) ? '/detail/value'
+    : /\/stocks\/[^/]+\/financials$/.test(path) ? '/detail/financials'
+    : [...menuItems].sort((a,b)=>b.path.length-a.path.length).find(item=>path.startsWith(item.path))?.path
+    ?? (path === '/more' ? '/more' : '/');
+  const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(/navigation-v16/${asset}.svg)`,maskSize:'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={`/navigation-v16/${asset}.svg`} alt="" sx={{width:18,height:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
+  const divider = <Box sx={{width:'1px',height:28,my:'8px',bgcolor:'#334155',flexShrink:0}}/>;
+  return <Box component="nav" className="MuiBottomNavigation-root" aria-label="하단 메뉴" sx={{position:'fixed',inset:'auto 0 0',height:44,zIndex:10,display:'flex',bgcolor:'#0B1220',borderTop:`1px solid ${colors.border}`}}>
+    {item('홈','/','home',true)}{divider}
+    <Box data-testid="bottom-menu-scroll" sx={{display:'flex',minWidth:0,flex:1,overflowX:'auto',overflowY:'hidden',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}>{menuItems.map(entry=>item(entry.label,entry.path,entry.asset))}</Box>
+    {divider}{item('더보기','/more','more',true)}
+  </Box>;
 }

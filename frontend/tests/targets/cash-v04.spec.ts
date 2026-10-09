@@ -101,7 +101,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   if (tablet(page)) {
     const left = (await page.getByTestId('cash-balance').boundingBox())!, right = (await page.getByTestId('cash-history').boundingBox())!; expect(right.x - left.x - left.width).toBe(8);
     const top = await region(page, 'left').evaluate(el => el.scrollTop); await region(page).evaluate(el => { el.scrollTop = 60; }); expect(await region(page, 'left').evaluate(el => el.scrollTop)).toBe(top);
-    await expect(page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root')).toHaveCount(9);
+    await expect(page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root')).toHaveCount(13);
     await expect(page.locator('.MuiBottomNavigation-root:visible .MuiBottomNavigationAction-root.Mui-selected')).toContainText('예수금');
   }
   const body = region(page); await body.evaluate(el => { el.scrollTop = 50; });

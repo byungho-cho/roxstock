@@ -1,8 +1,9 @@
+import { HistoryDialog } from '../../components/common/HistoryDialog';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import { usePageMemory, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, ButtonBase, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -253,7 +254,7 @@ export function JournalPage() {
       </Box>
     </Box>
     {tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="매매일지 달력 스크롤" offset={2}/><OverlayRegionScrollbar scrollRef={rightRef} label="매매일지 상세 스크롤" offset={4}/></>}
-    <Dialog open={monthPickerOpen} onClose={() => setMonthPickerOpen(false)} aria-labelledby="journal-month-picker-title" fullWidth maxWidth="xs" slotProps={{ paper: { sx: { m: 2, maxWidth: 320, bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', backgroundImage: 'none' } } }}>
+    <HistoryDialog open={monthPickerOpen} onClose={() => setMonthPickerOpen(false)} aria-labelledby="journal-month-picker-title" fullWidth maxWidth="xs" slotProps={{ paper: { sx: { m: 2, maxWidth: 320, bgcolor: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: '14px', backgroundImage: 'none' } } }}>
       <DialogTitle id="journal-month-picker-title" sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>월 선택</DialogTitle>
       <DialogContent sx={{ pt: '4px !important' }}>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -270,7 +271,7 @@ export function JournalPage() {
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 2, pb: 1.5 }}><Button onClick={() => setMonthPickerOpen(false)} sx={{ color: colors.textSecondary }}>취소</Button></DialogActions>
-    </Dialog>
+    </HistoryDialog>
   </>;
 }
 

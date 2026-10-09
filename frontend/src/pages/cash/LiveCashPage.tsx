@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActionButton, AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { getBuyLots, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
+import { getCashTransaction, getBuyLots, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { flushSync } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -39,6 +39,10 @@ export function LiveCashPage() {
   const { accountId, accounts } = useActiveAccount();
   const tablet = useMediaQuery('(min-width:600px)'), navigate = useNavigate(), location = useLocation();
   const [params] = useSearchParams();
+  const linkedId = params.get('editCash');
+  const linkedAccount = params.get('cashAccount');
+  const openedLinked = useRef<string | null>(null);
+  const linked = useQuery({queryKey:['cashTransaction',accountId,linkedId],enabled:!!linkedId&&!!accountId&&linkedAccount===accountId,queryFn:({signal})=>getCashTransaction(accountId!,linkedId!,signal)});
   const bodyRef = useRef<HTMLDivElement>(null), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false), [securityName, setSecurityName] = useState('');
@@ -119,9 +123,9 @@ export function LiveCashPage() {
   useMainLoading(olderLoading);
   const dividendLots = useQuery({queryKey:['allBuyLots',accountId,'dividend-options'],queryFn:()=>getBuyLots(accountId!,undefined,false),enabled:!!accountId});
   const dividendOptions = [...new Map((dividendLots.data??[]).map(lot=>[lot.security.id,lot.security])).values()];
-  const inputVisible = tablet ? open : params.has('cashInput');
+  const inputVisible = tablet ? open : params.has('cashInput') || (!!linkedId && open);
   const searching = tablet ? searchOpen : params.get('cashInput') === 'search';
-  useEffect(()=>{if(inputVisible&&!searching){const frame=requestAnimationFrame(()=>{if(!tablet) bodyRef.current?.scrollTo({top:0});(type==='DIVIDEND'||tradeEdit?grossRef:amountRef).current?.focus({preventScroll:true});});return()=>cancelAnimationFrame(frame);}},[inputVisible,searching,type,tradeEdit,tablet]);
+  useEffect(()=>{if(inputVisible&&!searching){const frame=requestAnimationFrame(()=>{if(!tablet) bodyRef.current?.scrollTo({top:0});(linkedId?taxRef:type==='DIVIDEND'||tradeEdit?grossRef:amountRef).current?.focus({preventScroll:true});});return()=>cancelAnimationFrame(frame);}},[inputVisible,searching,type,tradeEdit,tablet]);
   const enterInput = (search = false) => {
     if (tablet) { if (search) setSearchOpen(true); return; }
     const next = new URLSearchParams(location.search); next.set('cashInput', search ? 'search' : 'form');
@@ -133,6 +137,7 @@ export function LiveCashPage() {
   };
   const closeInput = () => {
     setOpen(false); setSearchOpen(false);
+    if (linkedId) { navigate(location.state?.taxReturnTo ?? '/detail/cash', {replace:true}); return; }
     if (tablet) return;
     const distance = Number(window.history.state?.idx) - Number(location.state?.cashSourceIndex);
     if (Number.isFinite(distance) && distance > 0) navigate(-distance);
@@ -142,15 +147,20 @@ export function LiveCashPage() {
   useEffect(() => { if (!tablet) { setOpen(params.has('cashInput')); setSearchOpen(params.get('cashInput') === 'search'); } }, [tablet, params]);
   useEffect(() => { if (inputVisible && !editingAccountId && accountId) setEditingAccountId(accountId); }, [inputVisible, editingAccountId, accountId]);
   const openCreate = () => { setCardEditing(false); setCardError(''); setEditing(null); setEditingAccountId(accountId ?? null); setType('DEPOSIT'); setDate(today()); setAmount(''); setGross(''); setTax(''); setSecurityId(''); setSecurityName(''); setMemo(''); setError(''); setFieldErrors({}); setOpen(true); enterInput(); };
-  const openEdit = (entry: CashTransactionDto, fromCard = false) => {
+  const openEdit = (entry: CashTransactionDto, fromCard = false, linkedTrade = false) => {
     setCardEditing(fromCard); setCardError('');
     setEditing(entry); setEditingAccountId(accountId ?? null); setType(entry.transactionType);
     setDate(new Date(entry.transactionDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     setAmount(entry.amount); setGross(entry.dividend?.grossAmount ?? ((entry.transactionType === 'BUY' || entry.transactionType === 'SELL') ? cashDifference(entry.balanceAfter ?? '',entry.feeTaxAmount,'add') : ''));
     setTax(entry.dividend ? cashDifference(entry.dividend.grossAmount,entry.dividend.netAmount) : entry.feeTaxAmount);
     setAfter(entry.balanceAfter ?? '');
-    setSecurityId(entry.dividend?.securityId ?? ''); setSecurityName(entry.dividend?.securityName ?? ''); setMemo(entry.memo ?? ''); setError(''); setFieldErrors({}); setOpen(true); enterInput();
+    setSecurityId(entry.dividend?.securityId ?? ''); setSecurityName(entry.dividend?.securityName ?? ''); setMemo(entry.memo ?? ''); setError(''); setFieldErrors({}); setOpen(true); if (!linkedTrade) enterInput();
   };
+  useEffect(() => {
+    if (!linkedId || linkedAccount !== accountId || !linked.data || openedLinked.current === linkedId) return;
+    openedLinked.current = linkedId;
+    openEdit(linked.data, false, true);
+  }, [linkedId,linkedAccount,accountId,linked.data]);
   const invalidateCash = async () => invalidatePortfolio(queryClient);
   const latestEntry = !balance.isError ? balance.data?.recentTransactions[0] : undefined;
   const editBalance = () => {
@@ -233,7 +243,7 @@ export function LiveCashPage() {
   }} /> : <Stack spacing="8px" data-testid="cash-form" sx={{ '& .MuiInputBase-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiTypography-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiInputBase-root + img': {ml:'8px'}, '& input': { fontSize: '14px !important', fontWeight: '600 !important' }, '& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root': { fontSize: 12 } }}>
     {!tradeEdit && <Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>}
     <DateField size="small" calendarIconSrc="/cash-v04/calendar.svg" label="거래일자" value={date} onChange={setDate} inputRef={dateRef} error={fieldErrors.date} disabled={saving} onEnter={() => type === 'DIVIDEND' || tradeEdit ? grossRef.current?.focus() : amountRef.current?.focus()} enterKeyHint="next" />
-    {tradeEdit && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
+    {tradeEdit && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!linkedId} label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
     {type === 'DIVIDEND' && <>
       <Select size="small" displayEmpty value={securityId} disabled={saving||dividendLots.isPending} onChange={e=>{setSecurityId(e.target.value);setSecurityName(dividendOptions.find(s=>s.id===e.target.value)?.name??'');}} inputProps={{'aria-label':'배당 종목 선택',required:true}} sx={{height:36,bgcolor:colors.raised,fontSize:12}}><MenuItem value="" disabled>종목을 선택하세요.</MenuItem>{dividendOptions.map(stock=><MenuItem key={stock.id} value={stock.id}>{stock.name}</MenuItem>)}</Select>
       {dividendLots.isError&&<Button onClick={()=>void dividendLots.refetch()}>종목 조회 실패 · 다시 시도</Button>}
@@ -241,7 +251,7 @@ export function LiveCashPage() {
       <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus label="세전 배당" value={gross} onChange={changeGross} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
     </>}
     <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={type!=='DIVIDEND'&&!tradeEdit} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
-    {(tradeEdit || type === 'DIVIDEND') && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
+    {(tradeEdit || type === 'DIVIDEND') && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!!linkedId} label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
     {editing && !tradeEdit && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
     <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{tradeEdit ? '제세금 반영 결과' : '변동 정보'}</Typography>
@@ -298,7 +308,8 @@ export function LiveCashPage() {
     </Box>
     {!tablet && <OverlayRegionScrollbar scrollRef={bodyRef} label="예수금 본문 스크롤" offset={4} />}
     {tablet && <><OverlayRegionScrollbar scrollRef={leftRef} label="예수금 왼쪽 스크롤" offset={4} /><OverlayRegionScrollbar scrollRef={rightRef} label="예수금 오른쪽 스크롤" offset={4} /></>}
-    <CashPopup input actions={tablet && inputVisible && !searching ? inputActions : undefined} open={tablet && inputVisible} title={inputTitle} onClose={() => { if (!saving) searching ? backFromSearch() : closeInput(); }}>{tablet && inputVisible && inputContent}</CashPopup>
+    {linkedId && (linkedAccount!==accountId || linked.isError) && <Box role="alert">연결된 예수금 내역을 열 수 없습니다. 계좌를 확인해 주세요.<Button onClick={()=>void linked.refetch()}>다시 시도</Button></Box>}
+    <CashPopup input historyEnabled={!linkedId} actions={tablet && inputVisible && !searching ? inputActions : undefined} open={tablet && inputVisible} title={inputTitle} onClose={() => { if (!saving) searching ? backFromSearch() : closeInput(); }}>{tablet && inputVisible && inputContent}</CashPopup>
     <CashPopup open={periodPicker} title={mode === 'month' ? '월간 기간 선택' : '연간 기간 선택'} onClose={() => setPeriodPicker(false)}>
       <Typography sx={{ fontSize: 11, color: colors.textMuted, pb: '8px', mb: '12px', borderBottom: '1px solid ' + colors.border }}>현재 기간 · {mode === 'month' ? month.replace('-', '년 ') + '월' : `${year}년`}</Typography>
       <Stack direction="row" sx={{ height: 36, border: '1px solid ' + colors.border, borderRadius: '8px', alignItems: 'center', mb: '12px' }}><IconButton aria-label="기간 선택 이전 연도" onClick={() => setChosenYear(previous => previous - (mode === 'month' ? 1 : 12))} sx={{ width: 36, p: 0 }}>‹</IconButton><Typography sx={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{mode === 'month' ? `${chosenYear}년` : `${Math.floor(chosenYear / 12) * 12}–${Math.floor(chosenYear / 12) * 12 + 11}년`}</Typography><IconButton aria-label="기간 선택 다음 연도" disabled={mode === 'month' ? chosenYear >= Number(initialMonth.slice(0, 4)) : Math.floor(chosenYear / 12) >= Math.floor(Number(initialMonth.slice(0, 4)) / 12)} onClick={() => setChosenYear(previous => previous + (mode === 'month' ? 1 : 12))} sx={{ width: 36, p: 0 }}>›</IconButton></Stack>
