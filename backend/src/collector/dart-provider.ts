@@ -1,4 +1,5 @@
 import { inflateRawSync } from 'node:zlib';
+import {shareClassOf} from '../domain/share-counts.js';
 
 export type DartReportCode = '11013' | '11012' | '11014' | '11011';
 export type DartPeriodType = 'Q1' | 'Q2' | 'Q3' | 'ANNUAL';
@@ -305,11 +306,11 @@ export class OpenDartProvider {
       if(!stockKind||stockKind.length>100||!/^\d{4}-\d{2}-\d{2}$/.test(date??'')||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)throw new DartApiError('SHARES_INVALID','주식 종류·결산기준일을 확인할 수 없습니다.');
       const issuedShares=count(r.istc_totqy),treasuryShares=count(r.tesstk_co),outstandingShares=count(r.distb_stock_co);
       if(issuedShares!==null&&treasuryShares!==null&&outstandingShares!==null&&BigInt(issuedShares)-BigInt(treasuryShares)!==BigInt(outstandingShares))throw new DartApiError('SHARES_INCONSISTENT','발행·자기·유통주식수 관계가 일치하지 않습니다.');
-      return {stockKind,shareClass:kind==='보통주'?'COMMON':kind==='합계'?'TOTAL':kind?.includes('우선')?'PREFERRED':'OTHER',issuedShares,treasuryShares,outstandingShares,periodEndDate:date};
+      return {stockKind,shareClass:shareClassOf(stockKind),issuedShares,treasuryShares,outstandingShares,periodEndDate:date};
     });
     if(new Set(rows.map(r=>r.stockKind)).size!==rows.length)throw new DartApiError('SHARES_DUPLICATE_KIND','주식 종류별 응답이 중복됩니다.');
     const ordinary=rows.find(r=>r.shareClass==='COMMON');
-    return {outstanding:ordinary?.outstandingShares??null,issuedShares:ordinary?.issuedShares??null,treasuryShares:ordinary?.treasuryShares??null,preferred:rows.some(r=>r.shareClass==='PREFERRED'&&BigInt(r.outstandingShares??'0')>0n),receiptNo,collectedAt:new Date().toISOString(),rows};
+    return {outstanding:ordinary?.outstandingShares??null,issuedShares:ordinary?.issuedShares??null,treasuryShares:ordinary?.treasuryShares??null,preferred:rows.some(r=>r.stockKind.includes('우선')&&BigInt(r.outstandingShares??'0')>0n),receiptNo,collectedAt:new Date().toISOString(),rows};
   }
   async fetchCorporations(): Promise<DartCorporation[]> {
     const response = await this.request(this.url('corpCode.xml', {}));
