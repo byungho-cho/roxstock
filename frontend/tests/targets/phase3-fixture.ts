@@ -14,6 +14,7 @@ export async function fixture(page:Page, options: { names?: string[]; history?: 
     if(hold && /asset-history|dashboard|buy-lots/.test(p))await new Promise<void>(resolve=>pending.push(resolve));
     if(fail && /asset-history|dashboard/.test(p))return route.fulfill({status:500,json:{error:{message:'테스트 조회 실패'}}});
     const second=p.includes('/2/');
+    if(p.endsWith('/compound-plans'))return route.fulfill({json:{data:{accountId:second?'2':'1',currentAssets:'165000',currentYear:2026,pricingComplete:true,plans:[]}}});
     if(p.endsWith('/securities'))return route.fulfill({json:{data:securities}});
     if(p.endsWith('/holdings'))return route.fulfill({json:{data:second?[]:holdings}});
     if(p.endsWith('/trades'))return route.fulfill({json:{data:[],daily:[],summary:{realizedProfitLoss:'200',buyAmount:'0',sellAmount:'0'}}});

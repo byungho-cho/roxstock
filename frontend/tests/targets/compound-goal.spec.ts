@@ -89,3 +89,8 @@ test('back during a late save does not consume the goal entry twice',async({page
  await page.route('**/api/accounts/a/compound-plans/p1/goals/g1',async route=>{await new Promise<void>(resolve=>release=resolve);await route.fulfill({json:{data:{id:'g1'}}});});
  await page.getByLabel('목표명',{exact:true}).fill('저장 중 목표');const request=page.waitForRequest(request=>request.method()==='PUT');await page.getByRole('button',{name:'저장',exact:true}).click();await request;await page.goBack();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page).toHaveURL(/view=goal/);release();await expect(page.getByRole('button',{name:'목표 수정',exact:true})).toBeEnabled();await expect(page).toHaveURL(/view=goal/);
 });
+
+test('malformed or mismatched account responses show an error without breaking analysis',async({page})=>{
+ await setup(page);await page.route('**/api/accounts/a/compound-plans',route=>route.fulfill({json:{data:[]}}));await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.route('**/api/accounts/a/compound-plans',route=>route.fulfill({json:{data:{accountId:'b',currentAssets:'999',currentYear:2026,plans:[plan]}}}));await page.getByRole('button',{name:'복리계획 다시 시도'}).click();await expect(page.getByTestId('analysis-compound-summary')).toHaveCount(0);await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');
+});

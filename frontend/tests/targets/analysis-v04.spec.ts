@@ -4,7 +4,7 @@ import { analysisRange, decimalValue } from '../../src/pages/assets/analysisPeri
 
 async function setup(page: Page) {
   await fixture(page);
-  await page.route('**/api/accounts/*/compound-plans',route=>route.fulfill({json:{data:{accountId:'a',currentAssets:'1000000',currentYear:2026,plans:[]}}}));
+  await page.route('**/api/accounts/*/compound-plans',route=>route.fulfill({json:{data:{accountId:new URL(route.request().url()).pathname.split('/')[3],currentAssets:'1000000',currentYear:2026,plans:[]}}}));
   let error = false, empty = false, missing = false;
   const reads: URL[] = [];
   await page.route('**/api/accounts', route => route.fulfill({ json: { data: ['a', 'b'].map((id, i) => ({ id, name: '계좌 ' + id, brokerName: '검사', cashBalance: '200000', isActive: true, isDefault: i === 0 })) } }));
