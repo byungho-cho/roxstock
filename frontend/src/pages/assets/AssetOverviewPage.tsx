@@ -1,3 +1,4 @@
+import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
 import { Box, Button, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
@@ -39,13 +40,13 @@ export function AssetOverviewPage() {
   }));
   return <>{header}<Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Box className="rox-home" data-testid="asset-overview" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', alignItems: 'stretch' }}>
-      <Stack data-testid="asset-summary-column" spacing="8px" sx={{ minWidth: 0, '& [data-testid="home-holding"]': { pr: '8px' }, '& h2': { fontSize: 13, lineHeight: '22px' }, '& [data-testid="home-card-footer"] .MuiTypography-root': { fontSize: 10 } }}><TotalAssetCard summary={summary} home /><AssetQuickCards summary={summary} home gap="10px" /><PerformanceCard summary={summary} profit={profit} rate={rate} />
+      <Stack data-testid="asset-summary-column" spacing="8px" sx={{ minWidth: 0, '& [data-testid="home-holding"]': { pr: '8px' }, '& h2': { fontSize: 13, lineHeight: '22px' }, '& [data-testid="home-card-footer"] .MuiTypography-root': { fontSize: 10 } }}><TotalAssetCard summary={summary} home /><AssetQuickCards allocationAvailable={!isError} summary={summary} home gap="10px" /><PerformanceCard summary={summary} profit={profit} rate={rate} />
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}><HomeListCard height={222} compactFooter testId="asset-holdings-card" title="보유종목" count={`${holdings.length}종목`} timestampLabel="갱신 " timestamp={summary.collectedAt} updating={isFetching} more={() => navigate('/stocks?tab=holding')} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined}>
           {holdings.slice(0, 3).map(stock => <HoldingRow key={stock.id} stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} />)}
           {holdings.length === 0 && <HomeEmpty />}
         </HomeListCard></Box>
       </Stack>
-      <CompositionCard summary={summary} items={items} mode={mode} updating={isFetching} onToggle={() => setMode(previous => previous === 'cumulative' ? 'ranked' : 'cumulative')} />
+      <CompositionCard allocationAvailable={!isError} summary={summary} items={items} mode={mode} updating={isFetching} onToggle={() => setMode(previous => previous === 'cumulative' ? 'ranked' : 'cumulative')} />
     </Box>
   </>;
 }
@@ -63,17 +64,15 @@ function PerformanceCard({ summary, profit, rate }: { summary: DashboardSummary;
   </AppCard>;
 }
 
-function CompositionCard({ summary, items, mode, onToggle, updating }: { summary: DashboardSummary; items: ChartItem[]; mode: 'cumulative' | 'ranked'; onToggle: () => void; updating: boolean }) {
-  const available = Number.isFinite(summary.totalAssets) && summary.totalAssets > 0 && summary.pricingComplete !== false;
-  const stockPercent = available ? summary.stockValue / summary.totalAssets * 100 : Number.NaN;
-  const cashPercent = available ? summary.cashBalance / summary.totalAssets * 100 : Number.NaN;
+function CompositionCard({ summary, items, mode, onToggle, updating,allocationAvailable }: { summary: DashboardSummary; items: ChartItem[]; mode: 'cumulative' | 'ranked'; onToggle: () => void; updating: boolean;allocationAvailable:boolean }) {
+  const {available,stockPercent,cashPercent,stockColor,cashColor}=cashAllocation(summary.stockValue,summary.cashBalance,summary.pricingComplete!==false&&allocationAvailable);
   const named = items.filter(item => item.id !== 'other');
   return <AppCard data-testid="asset-composition-card" sx={{ minWidth: 0, height: { xs: 552, sm: '100%' }, minHeight: 552, position: 'relative', borderRadius: '8px', borderColor: '#25344D', px: '13px', pt: '15px', overflow: 'visible' }}>
     <Typography sx={{ pl: '4px', fontSize: 15, lineHeight: '18px', fontWeight: 600 }}>자산구성</Typography>
-    {!available ? <Box sx={{ height: 470, display: 'grid', placeItems: 'center' }}><Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>{summary.pricingComplete === false ? '가격 미수집 종목이 있어 자산구성을 계산할 수 없습니다.' : !Number.isFinite(summary.totalAssets) ? '자산구성을 계산할 수 없습니다.' : '내용이 없습니다.'}</Typography></Box> : <>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '16px', height: 16, fontSize: 11, fontWeight: 600, color: colors.positive }}><span>{formatWon(summary.stockValue)}</span><Box component="span" sx={{ color: colors.warning }}>{formatWon(summary.cashBalance)}</Box></Stack>
-      <Stack role="img" aria-label={`주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} direction="row" sx={{ width: '100%', height: 12, borderRadius: '6px', overflow: 'hidden', mt: '4px', bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: colors.positive }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: colors.warning }} /></Stack>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '5px', height: 25, borderBottom: '1px solid #25344D', fontSize: 11, fontWeight: 600, color: colors.positive }}><Box component="span" sx={{color:weightColor(stockPercent,colors.positive)}}>{formatPercent(stockPercent)}</Box><Box component="span" sx={{ color: weightColor(cashPercent,colors.warning) }}>{formatPercent(cashPercent)}</Box></Stack>
+    {!available ? <Box sx={{ height: 470, display: 'grid', placeItems: 'center' }}><Box><Stack direction="row" sx={{justifyContent:"space-between",color:colors.textMuted}}><span>{formatWon(summary.stockValue)} · —</span><span>{formatWon(summary.cashBalance)} · —</span></Stack><Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>{summary.pricingComplete === false ? '가격 미수집 종목이 있어 자산구성을 계산할 수 없습니다.' : !Number.isFinite(summary.totalAssets) ? '자산구성을 계산할 수 없습니다.' : '내용이 없습니다.'}</Typography></Box></Box> : <>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '16px', height: 16, fontSize: 11, fontWeight: 600, color: stockColor }}><span>{formatWon(summary.stockValue)}</span><Box component="span" sx={{ color: cashColor }}>{formatWon(summary.cashBalance)}</Box></Stack>
+      <Stack role="img" aria-label={`주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} direction="row" sx={{ width: '100%', height: 12, borderRadius: '6px', overflow: 'hidden', mt: '4px', bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: stockColor }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: cashColor }} /></Stack>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '5px', height: 25, borderBottom: '1px solid #25344D', fontSize: 11, fontWeight: 600, color: stockColor }}><Box component="span" sx={{color:stockColor}}>{formatPercent(stockPercent)}</Box><Box component="span" sx={{ color: cashColor }}>{formatPercent(cashPercent)}</Box></Stack>
       <Box sx={{ display: 'grid', gridTemplateColumns: '124.8px minmax(0, 1fr)', gap: '8.8px', mt: '16px', height: 178, borderBottom: '1px solid #25344D' }}>
         <Box data-testid="asset-donut" role="img" aria-label="종목별 자산 구성 도넛" sx={{ position: 'relative', width: '100%', maxWidth: 124.8, height: 124.8, mt: '15.6px' }}>
           <svg viewBox="0 0 156 156" width="100%" height="124.8" aria-hidden="true"><circle cx="78" cy="78" r="51" fill="none" stroke={colors.raised} strokeWidth="26" />{items.map((item, index) => <circle key={item.id} cx="78" cy="78" r="51" fill="none" stroke={item.color} strokeWidth="26" pathLength="100" strokeDasharray={`${item.percent} ${100 - item.percent}`} strokeDashoffset={-items.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0)} transform="rotate(-90 78 78)" />)}</svg>

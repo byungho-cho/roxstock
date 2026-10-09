@@ -1,11 +1,14 @@
+import {ApiError} from '../../data/apiClient';
+import {useAccountAllocation} from '../../hooks/useAccountAllocation';
+import {ActionButton} from '../../components/common/Common';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
-import { Box, Button, ButtonBase, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, ButtonBase, IconButton, Dialog, Skeleton, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { chooseAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { getAccountDataState, deleteAccount, chooseAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
@@ -29,7 +32,7 @@ export function useMoreAccounts() {
   const query = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, enabled: liveApiEnabled });
   void version;
   const demo = readDemoSettings();
-  const accounts = liveApiEnabled ? (query.data ?? []) : demo.accounts;
+  const accounts = liveApiEnabled ? (query.data ?? []).filter(a=>a.isActive) : demo.accounts;
   const selected = liveApiEnabled ? chooseAccount(accounts) : accounts.find((item) => item.id === demo.selectedId) ?? accounts[0];
   const refresh = async () => {
     if (!liveApiEnabled) return;
@@ -96,28 +99,25 @@ export function SettingsOverview({ compact = false }: { compact?: boolean }) {
   return <SettingsMenu />;
 }
 
-export function AccountManagement({ openReset }: { openReset: () => void }) {
-  const navigate = useNavigate();
-  const { accounts, selected, query, select } = useMoreAccounts();
-  const allowed = liveApiEnabled && !!selected?.isActive;
-  const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
-  if (liveApiEnabled && query.isPending) return <LabelledCard title="등록 계좌"><Skeleton height={80}/></LabelledCard>;
-  if (liveApiEnabled && query.isError) return <Button onClick={() => void query.refetch()} role="alert">계좌 조회 실패 · 다시 시도</Button>;
-  return <Stack spacing="12px">
-    {accounts.length === 0 ? <Typography sx={hint}>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography> : accounts.map(item => <ButtonBase key={item.id} onClick={() => void select(item.id)} sx={{ ...settingsPanel, width: '100%', textAlign: 'left', display: 'block', p: '15px' }}>
-      <Stack direction="row" spacing="8px" sx={{ alignItems: 'center' }}><Typography sx={{ fontSize: 16 }}>{item.name}</Typography><Typography sx={{ color: '#33D48C', fontSize: 11 }}>{selected?.id === item.id ? '사용 중' : item.isDefault ? '기본 계좌' : '선택'}</Typography><Typography sx={hint}>›</Typography></Stack>
-      <Typography sx={{ ...hint, mt: '12px' }}>현재 예수금</Typography><Typography sx={{ fontSize: 24, mt: '6px', overflowWrap: 'anywhere' }}>{fmt(item.cashBalance)}</Typography>
-      <Typography sx={{ ...hint, mt: '12px' }}>최근 수정 {item.updatedAt ? new Date(item.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '—'}</Typography>
-    </ButtonBase>)}
-    <Stack direction="row" spacing="8px">{selected ? <><Button variant="outlined" sx={{ flex: 1, minWidth: 0, height: 40, fontSize: 13 }} onClick={() => go('edit')}>계좌 정보 수정</Button><Button variant="outlined" sx={{ flex: 1, minWidth: 0, height: 40, fontSize: 13 }} onClick={() => go('cash')}>예수금 수정</Button></> : <Button variant="contained" onClick={() => go('add')}>계좌 추가</Button>}</Stack>
-    <Box sx={{ bgcolor: '#090F1C', p: '12px 14px', borderRadius: '8px' }}><Typography sx={{ fontSize: 13 }}>예수금 반영 기준</Typography><Typography sx={{ ...hint, mt: '6px' }}>최신 등록 내역의 세후예수금을 사용합니다. 현재예수금 카드에서 해당 내역을 수정합니다.</Typography></Box>
-    {selected && <Button onClick={() => go('add')} sx={{ alignSelf: 'flex-start', fontSize: 11 }}>+ 계좌 추가</Button>}
-    <Box sx={{ pt: '12px', borderTop: '1px solid #253652' }}><Typography sx={{ color: '#FA636E', fontSize: 12 }}>위험 영역</Typography><Button variant="outlined" color="error" fullWidth sx={{ height: 44, mt: '12px' }} onClick={openReset}>계좌 데이터 초기화</Button><Typography sx={{ ...hint, mt: '12px' }}>{allowed ? '선택한 계좌의 데이터만 삭제합니다.' : '현재 환경에서는 초기화를 사용할 수 없습니다.'}</Typography></Box>
-  </Stack>;
+export function AccountManagement(_props: { openReset?: () => void }) {
+ const navigate=useNavigate();const {accounts,selected,query,select}=useMoreAccounts();
+ if(liveApiEnabled&&query.isPending)return <Skeleton height={100}/>;
+ if(liveApiEnabled&&query.isError)return <Button role="alert" onClick={()=>void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+ return <Stack spacing="8px">{!accounts.length&&<Typography>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography>}{accounts.map(item=><AccountCard key={item.id} item={item} active={selected?.id===item.id} select={()=>void select(item.id)}/>)}<Button fullWidth variant="contained" sx={{height:42,bgcolor:colors.buttonPrimary,color:'#fff'}} onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button></Stack>;
+}
+function AccountCard({item,active,select}:{item:AccountDto;active:boolean;select:()=>void}) {
+ const navigate=useNavigate();const allocation=useAccountAllocation(item.id);const cash=allocation.query.data?allocation.query.data.cashBalance:item.cashBalance;
+ return <Box data-testid={'account-card-'+item.id} sx={{...settingsPanel,p:'8px 15px',border:'2px solid',borderColor:active?'#FACC15':'#21304A',display:'flex',flexDirection:'column',gap:'8px'}}>
+ <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:1}}><Typography sx={{fontSize:16,color:active?'#FACC15':colors.textPrimary,overflowWrap:'anywhere',minWidth:0}}>{item.name}</Typography><ActionButton size="small" tone={active?'primary':'muted'} sx={{width:60,flexShrink:0,fontSize:12}} onClick={select}>{active?'사용중':'선택'}</ActionButton></Stack>
+ <Typography data-testid="account-cash" sx={{fontSize:24,color:allocation.cashColor,textAlign:'right',overflowWrap:'anywhere'}}>{fmt(cash)}</Typography>
+ <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:1}}><Typography sx={{...hint,fontSize:11}}>최근 수정 {item.updatedAt?new Date(item.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—'}</Typography><IconButton aria-label={item.name+' 계좌 정보 수정'} sx={{p:0,width:20,height:20,flexShrink:0}} onClick={()=>navigate('/detail/settings?view=edit&accountId='+item.id)}><img src="/phase15/account-edit.svg" alt="" width="20" height="20"/></IconButton></Stack>
+ </Box>;
 }
 
+export function useTargetAccount(){const state=useMoreAccounts();const [params]=useSearchParams();const target=params.get('accountId');return {...state,selected:target?state.accounts.find(a=>a.id===target):state.selected};}
+
 export function AccountForm({ add }: { add: boolean }) {
-  const { selected, query } = useMoreAccounts();
+  const { selected, query } = useTargetAccount();
   if (!add && query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
   if (!add && query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
   if (!add && !selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
@@ -125,7 +125,18 @@ export function AccountForm({ add }: { add: boolean }) {
 }
 function AccountFormContent({ add }: { add: boolean }) {
   const navigate = useNavigate(); const client = useQueryClient();
-  const { selected, accounts, refresh } = useMoreAccounts();
+  const { selected, accounts, refresh } = useTargetAccount();
+  const state=useQuery({queryKey:['account-data-state',selected?.id],queryFn:()=>getAccountDataState(selected!.id),enabled:liveApiEnabled&&!add&&!!selected});
+  const [confirmDelete,setConfirmDelete]=useState(false);const busy=useRef(false);
+  const remove=async()=>{if(!selected||busy.current||!state.data||state.isError||state.data.hasData)return;busy.current=true;setSaving(true);setError('');try{
+   const result=await deleteAccount(selected.id);
+   await client.cancelQueries();client.removeQueries({predicate:q=>q.queryKey[0]!=='accounts'});
+   const current=localStorage.getItem(selectedAccountStorageKey);
+   if(current===selected.id||!current){if(result.nextAccountId)localStorage.setItem(selectedAccountStorageKey,result.nextAccountId);else localStorage.removeItem(selectedAccountStorageKey);}
+   client.setQueryData(['accounts','api'],accounts.filter(a=>a.id!==selected.id).map(a=>({...a,isDefault:a.isDefault||a.id===result.nextAccountId})));
+   window.dispatchEvent(new Event('roxstock-selected-account'));setConfirmDelete(false);
+   navigate('/detail/settings?view=account',{replace:true});void client.invalidateQueries({queryKey:['accounts']});
+  }catch(cause){setError(cause instanceof Error?cause.message:'계좌 삭제에 실패했습니다. 다시 시도해 주세요.');if(cause instanceof ApiError&&cause.code==='ACCOUNT_HAS_DATA'){setConfirmDelete(false);void state.refetch();}}finally{busy.current=false;setSaving(false);}};
   const [name, setName] = useState(add ? '' : selected?.name ?? '');
   const [broker, setBroker] = useState(add ? '' : selected?.brokerName ?? '');
   const [number, setNumber] = useState(add ? '' : selected?.accountNumber ?? '');
@@ -133,10 +144,10 @@ function AccountFormContent({ add }: { add: boolean }) {
   const [saving, setSaving] = useState(false); const [error, setError] = useState('');
   useEffect(() => { if (!add && selected) { setName(selected.name); setBroker(selected.brokerName); setNumber(selected.accountNumber ?? ''); setDefault(!!selected.isDefault); } }, [add, selected?.id]);
   const submit = async () => {
-    if (!name.trim() || !broker.trim() || saving || (!add && !selected)) return;
-    setSaving(true); setError('');
+    if (busy.current || !name.trim() || !broker.trim() || !number.replace(/[\s-]/g,'') || saving || (!add && !selected)) return;
+    busy.current=true;setSaving(true); setError('');
     try {
-      const input = { name: name.trim(), brokerName: broker.trim(), accountNumber: number.trim() || null, isDefault };
+      const input = { name: name.trim(), brokerName: broker.trim(), accountNumber: number.trim(), isDefault };
       if (liveApiEnabled) {
         const result = add ? await createAccount(input) : await updateAccount(selected!.id, input);
         if (add) { localStorage.setItem(selectedAccountStorageKey, result.id); window.dispatchEvent(new Event('roxstock-selected-account')); }
@@ -145,17 +156,23 @@ function AccountFormContent({ add }: { add: boolean }) {
       } else if (add) addDemoAccount(input); else editDemoAccount(selected!.id, input);
       navigate('/detail/settings?view=account');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '계좌 변경에 실패했습니다.'); }
-    finally { setSaving(false); }
+    finally { busy.current=false;setSaving(false); }
   };
   const brokerInput = useRef<HTMLInputElement>(null); const numberInput = useRef<HTMLInputElement>(null);
   return <Stack spacing="12px" component="form" onSubmit={event => { event.preventDefault(); void submit(); }}>
-    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="계좌명" value={name} onChange={setName} autoFocus disabled={saving} enterKeyHint="next" onEnter={() => brokerInput.current?.focus()} />
-    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="증권사" value={broker} onChange={setBroker} inputRef={brokerInput} disabled={saving} enterKeyHint="next" onEnter={() => numberInput.current?.focus()} />
-    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" label="계좌번호" value={number} onChange={setNumber} inputRef={numberInput} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
+    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" required label="계좌명" value={name} onChange={setName} autoFocus disabled={saving} enterKeyHint="next" onEnter={() => brokerInput.current?.focus()} />
+    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" required label="증권사" value={broker} onChange={setBroker} inputRef={brokerInput} disabled={saving} enterKeyHint="next" onEnter={() => numberInput.current?.focus()} />
+    <FormTextField size="small" clearIconSrc="/settings-v03/clear.svg" required label="계좌번호" value={number} onChange={setNumber} inputRef={numberInput} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', py: '8px' }}><Typography sx={{ fontSize: 13 }}>기본 계좌로 사용</Typography><ButtonBase role="switch" aria-label="기본 계좌로 사용" aria-checked={isDefault} disabled={saving || (!add && selected?.isDefault)} onClick={() => setDefault(!isDefault)} sx={{ width: 42, height: 24, borderRadius: '12px', bgcolor: '#334054', flexShrink: 0 }}>{isDefault ? <Box component="img" src="/settings-v03/switch-on.svg" alt="" /> : <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'white', position: 'absolute', left: 2 }} />}</ButtonBase></Stack>
     <Typography sx={hint}>계좌번호는 목록에서 일부만 표시됩니다.</Typography>
     {error && <Typography role="alert" sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }} color="error">{error}</Typography>}
-    <Button type="submit" variant="contained" disabled={!name.trim() || !broker.trim() || saving || (!add && !selected)} sx={{ height: 42 }}>{saving ? '저장 중…' : add ? '추가' : '변경'}</Button>
+    {!add&&state.isError&&<Button role="alert" onClick={()=>void state.refetch()}>계좌 상태 조회 실패 · 다시 시도</Button>}
+    <Stack direction="row" spacing="8px">{!add&&<Button variant="contained" sx={{flex:1,height:42,bgcolor:'#EF4444',color:'#fff'}} disabled={saving||!liveApiEnabled||state.isPending||state.isError||!state.data||state.isFetching} onClick={()=>state.data?.hasData?navigate('/detail/settings?view=reset&accountId='+selected!.id):setConfirmDelete(true)}>{state.data?.hasData?'데이터 초기화':state.data?'계좌 삭제':'상태 확인 중'}</Button>}
+    <Button type="submit" variant="contained" disabled={!name.trim()||!broker.trim()||!number.replace(/[\s-]/g,'')||saving||(!add&&!selected)} sx={{height:42,flex:1,bgcolor:colors.buttonPrimary,color:'#fff'}}>{saving?'처리 중…':add?'추가':'변경'}</Button></Stack>
+    <Dialog open={confirmDelete} onClose={()=>{if(!busy.current)setConfirmDelete(false)}} aria-labelledby="delete-account-title" slotProps={{backdrop:{sx:{bgcolor:'rgba(0,0,0,.6)'}},paper:{sx:{width:306,maxWidth:'calc(100vw - 64px)',m:0,p:'20px 16px',borderRadius:'8px',bgcolor:colors.surface,backgroundImage:'none'}}}}>
+    <Typography id="delete-account-title" sx={{fontSize:16,fontWeight:600}}>계좌 삭제</Typography><Typography sx={{fontSize:14,fontWeight:400,my:'16px'}}>삭제하시겠습니까?</Typography>
+    {error&&<Typography role="alert" color="error" sx={{fontSize:12,mb:1}}>{error}</Typography>}
+    <Stack direction="row" spacing="8px"><Button variant="outlined" sx={{height:42,flex:1,color:colors.textMuted,borderColor:colors.borderStrong}} disabled={saving} onClick={()=>setConfirmDelete(false)}>취소</Button><Button variant="contained" sx={{height:42,flex:1,bgcolor:'#EF4444',color:'#fff'}} disabled={saving} onClick={()=>void remove()}>{saving?'삭제 중…':'삭제'}</Button></Stack></Dialog>
   </Stack>;
 }
 

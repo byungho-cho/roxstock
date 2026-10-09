@@ -1,3 +1,4 @@
+import {useAccountAllocation} from '../../hooks/useAccountAllocation';
 import { useMainLoading } from '../../hooks/useMainLoading';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
@@ -57,6 +58,7 @@ export function LiveCashPage() {
   const memoRef = useRef<HTMLInputElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const balance = useQuery({ queryKey: ['cashBalance', accountId], queryFn: () => getCashOverview(accountId!), enabled: !!accountId });
+  const allocation=useAccountAllocation(accountId??undefined,balance.isError?null:balance.data?.account.currentBalance??null);
   const overview = useQuery({ ...overviewQuery(accountId ?? '', mode, mode === 'month' ? month : year), enabled: !!accountId });
   useEffect(() => {
     if (!accountId || !overview.data || overview.isError) return;
@@ -260,7 +262,7 @@ export function LiveCashPage() {
           <Stack ref={leftRef} data-scroll-region="cash-left" data-list-condition={condition} spacing="8px" onTouchStart={event => { const touch = event.touches[0]; touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null; }} onTouchEnd={event => { const touch = event.changedTouches[0]; if (touch) handleTouchEnd(touch.clientX, touch.clientY); }} onTouchCancel={() => { touchStart.current = null; }} sx={{ ...scrollStyle, overflowY: { sm: 'auto' }, pb: { sm: '80px' }, height: { sm: '100%' }, boxSizing: 'border-box' }}>
             <AppCard data-testid="cash-balance" component="button" aria-busy={balance.isPending} onClick={editBalance} aria-label="현재 예수금 편집" sx={{ width: '100%', color: 'inherit', textAlign: 'left', cursor: 'pointer', height: 96, flexShrink: 0, p: '10px 16px 6px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
               <Stack direction="row" sx={{ height: 22, alignItems: 'center', justifyContent: 'space-between', width: '100%' }}><Typography sx={{ fontSize: 12, color: colors.textSecondary }}>현재 예수금</Typography><Box component="img" src="/cash-v04/edit.svg" alt="" sx={{ width: 16, height: 16 }} /></Stack>
-              <Typography data-testid="cash-balance-value" sx={{ width: '100%', textAlign: 'right', color: colors.warning, fontSize: 28, fontWeight: 700, lineHeight: '34px', overflowWrap: 'anywhere' }}>{balance.isError ? '—' : balance.data ? Number.isFinite(cashNumber(balance.data.account.currentBalance)) ? formatWon(Number(balance.data.account.currentBalance)) : '—' : <Skeleton width="70%" sx={{ ml: 'auto' }} />}</Typography>
+              <Typography data-testid="cash-balance-value" sx={{ width: '100%', textAlign: 'right', color: allocation.cashColor, fontSize: 28, fontWeight: 700, lineHeight: '34px', overflowWrap: 'anywhere' }}>{balance.isError ? '—' : balance.data ? Number.isFinite(cashNumber(balance.data.account.currentBalance)) ? formatWon(Number(balance.data.account.currentBalance)) : '—' : <Skeleton width="70%" sx={{ ml: 'auto' }} />}</Typography>
               <Stack direction="row" sx={{width:'100%',justifyContent:'space-between',gap:'4px'}}><Typography data-testid="cash-year-tax" sx={{color:colors.marketFall,fontSize:10,lineHeight:'15px'}}>올해 제세금 {balance.isError ? '조회 실패' : balance.data?.currentYearTax ? formatWon(Number(balance.data.currentYearTax.amount)) : '—'}</Typography><Typography sx={{color:colors.textMuted,fontSize:10,lineHeight:'15px'}}>{balance.data?.account.updatedAt ? `계좌 기준 · ${shortDate(balance.data.account.updatedAt)} ${new Date(balance.data.account.updatedAt).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false })} 갱신` : ''}</Typography></Stack>
             </AppCard>
             {cardError && <Typography role="alert" sx={{ fontSize: 12, color: colors.error }}>{cardError}</Typography>}
