@@ -20,11 +20,11 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const[type]=useState<'holding'|'watchlist'>(fromHome||params.get('type')==='holding'?'holding':'watchlist');
  const[query,setQuery]=useState(''),[search,setSearch]=useState(''),[direct,setDirect]=useState(false),[composing,setComposing]=useState(false);
  const[name,setName]=useState(''),[symbol,setSymbol]=useState(''),[market,setMarket]=useState<MarketType>('KOSPI'),[year,setYear]=useState(String(new Date().getFullYear()));
- const[selected,setSelected]=useState<StockItem|null>(null),[confirm,setConfirm]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const[selected,setSelected]=useState<(StockItem & {isActive?:boolean})|null>(null),[confirm,setConfirm]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const lock=useRef(false),alive=useRef(true),searchRef=useRef<HTMLInputElement>(null),symbolRef=useRef<HTMLInputElement>(null),yearRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  const result=useQuery({queryKey:['securitySearch',accountId,search],enabled:!!accountId&&!direct&&!composing&&search.length>=2&&search===query.trim(),
-  queryFn:async({signal})=> (await listSecurities({accountId,query:search,excludeRegistered:true},signal)).map(mapSecurity)});
+  queryFn:async({signal})=> (await listSecurities({accountId,query:search,includeInactive:true},signal)).map(row=>({...mapSecurity(row),isActive:row.isActive}))});
  const currentSearch=!composing&&query.trim().length>=2&&search===query.trim()?search:'';
  const rows=currentSearch?(result.data??[]):[];
  useEffect(()=>{if(composing||direct)return;const value=query.trim();if(value.length<2){setSearch('');return;}const timer=window.setTimeout(()=>setSearch(value),250);return()=>window.clearTimeout(timer);},[query,composing,direct]);
@@ -36,9 +36,14 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
   lock.current=true;setBusy(true);setError('');
   try{
    const listType=type==='holding'?'HOLDING':'WATCHLIST';
-   if(direct)await createSecurity({accountId,name:name.trim(),symbol,marketType:market,listType,listingYear:Number(year)});
-   else if(selected!.watchlistItemId)await updateWatchlistItem(selected!.watchlistItemId,{accountId,listType});
-   else await createWatchlistItem({accountId,securityId:selected!.id,listType});
+   if(direct){
+    const existing=(await listSecurities({accountId,query:symbol,includeInactive:true})).find(row=>row.symbol===symbol);
+    if(!alive.current)return;
+    if(existing){setSelected({...mapSecurity(existing),isActive:existing.isActive});setDirect(false);setQuery(symbol);setSearch(symbol);setConfirm(true);return;}
+    await createSecurity({accountId,name:name.trim(),symbol,marketType:market,listType,listingYear:Number(year)});
+   }
+   else if(selected!.hasTradeHistory){setError('거래내역이 있는 종목은 추가·분류 변경할 수 없습니다. 기존 종목을 확인해 주세요.');return;}else if(selected!.watchlistItemId)await updateWatchlistItem(selected!.watchlistItemId,{accountId,listType,reactivate:selected!.isActive===false});
+   else await createWatchlistItem({accountId,securityId:selected!.id,listType,reactivate:selected!.isActive===false});
    if(alive.current)await finish();
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:'등록에 실패했습니다.');}
   finally{lock.current=false;if(alive.current)setBusy(false);}
@@ -65,12 +70,12 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
    {currentSearch&&result.isError?<Box role="alert" sx={{p:'20px',fontSize:13}}>검색에 실패했습니다. 기존 검색 상태를 유지합니다.<Button onClick={()=>void result.refetch()}>다시 시도</Button></Box>:currentSearch&&result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:currentSearch&&rows.length?
     <Box data-testid="stock-search-results" sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:'8px'}}>{rows.map(s=><ButtonBase key={s.id} data-testid="security-search-result" onClick={()=>{setSelected(s);showConfirm();}} sx={{height:52,p:'8px 14px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',borderRadius:'8px',bgcolor:colors.surface,border:'1px solid #25344d',minWidth:0,textAlign:'left'}}>
      <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={currentSearch}/></Typography>
-     <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={currentSearch}/> · {s.marketType}</Typography>
+     <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={currentSearch}/> · {s.marketType} · {s.isActive===false?'비활성 종목':s.hasTradeHistory?'현재 계좌 거래종목 · 분류 변경 불가':s.watchlistItemId?`현재 계좌 ${s.listType==='holding'?'보유종목':'관심종목'}`:'현재 계좌 미등록'}</Typography>
     </ButtonBase>)}</Box>:
     <Box sx={{height:currentSearch?210:180,mt:currentSearch?'4px !important':'14px !important',p:currentSearch?'24px 16px':'30px 16px',textAlign:'center',bgcolor:colors.surface,border:'1px solid '+colors.border,borderRadius:'8px'}}>
      {!currentSearch&&<Typography aria-hidden sx={{fontSize:30,lineHeight:'44px',color:colors.textMuted}}>⌕</Typography>}
      <Typography sx={{fontSize:currentSearch?16:15,fontWeight:600,mt:currentSearch?'12px':'6px'}}>{currentSearch?'내용이 없습니다.':'코스피·코스닥 전체 종목 검색'}</Typography>
-     <Typography sx={{fontSize:currentSearch?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{currentSearch?'전체 종목에 없는 경우 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
+     <Typography sx={{fontSize:currentSearch?11:12,lineHeight:'15px',color:colors.textMuted,mt:'14px'}}>{currentSearch?'검색 조건을 확인하거나 종목코드로 직접 추가해 주세요.':'종목명 또는 종목코드를 입력해 주세요.'}</Typography>
      {currentSearch&&<Button variant="contained" onClick={enterDirect} sx={{...primaryButton,mt:'24px',px:'20px'}}>종목 직접 추가</Button>}
     </Box>}
    {!currentSearch&&<Stack direction="row" sx={{height:46,mt:'16px !important',px:'14px',border:'1px solid #25344d',borderRadius:'8px',bgcolor:'#0f172a',alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>검색되지 않는 종목인가요?</Typography><Button sx={{fontSize:11,p:0,minWidth:0,color:colors.focus}} onClick={enterDirect}>직접 추가 ›</Button></Stack>}
@@ -87,9 +92,9 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
   <Dialog data-testid="stock-add-confirm" open={confirm} onClose={()=>!busy&&setConfirm(false)} slotProps={{backdrop:{sx:{bgcolor:'rgba(0,0,0,.6)'}},paper:{sx:{width:{xs:'calc(100% - 64px)',sm:306},maxWidth:368,m:'32px',p:'19px',borderRadius:'8px',border:'1px solid #25344d',bgcolor:colors.surface,backgroundImage:'none',fontFamily:'RoxHomeInter, sans-serif'}}}}>
    <Typography component="h2" sx={{fontSize:18,lineHeight:'22px',fontWeight:700}}>{chosenName}</Typography>
    <Typography sx={{mt:'6px',fontSize:11,lineHeight:'15px',color:colors.textMuted}}>{chosenSymbol} · {chosenMarket}</Typography>
-   <Typography sx={{mt:'20px',fontSize:12,lineHeight:'18px',color:colors.textMuted}}>{type==='holding'?'보유종목':'관심종목'}에 추가하시겠습니까?</Typography>
+   <Typography sx={{mt:'20px',fontSize:12,lineHeight:'18px',color:colors.textMuted}}>{selected?.isActive===false?'비활성 종목입니다. 기존 종목을 활성화하고 선택한 분류로 등록하시겠습니까?':selected?.hasTradeHistory?'현재 계좌에 거래내역이 있는 종목입니다. 분류는 변경할 수 없습니다.':`${type==='holding'?'보유종목':'관심종목'}에 ${selected?.watchlistItemId?'등록·분류 변경':'추가'}하시겠습니까?`}</Typography>
    {error&&<Typography role="alert" sx={{mt:'8px',fontSize:12,color:colors.marketRise}}>{error}</Typography>}
-   <Stack direction="row" spacing="8px" sx={{mt:'20px'}}><Button disabled={busy} fullWidth onClick={()=>setConfirm(false)} variant="outlined" sx={{...button,borderColor:'#25344d',color:colors.textPrimary}}>취소</Button><Button disabled={busy} fullWidth variant="contained" onClick={()=>void save()} sx={primaryButton}>{busy?'저장 중':'추가'}</Button></Stack>
+   <Stack direction="row" spacing="8px" sx={{mt:'20px'}}><Button disabled={busy} fullWidth onClick={()=>setConfirm(false)} variant="outlined" sx={{...button,borderColor:'#25344d',color:colors.textPrimary}}>취소</Button><Button disabled={busy||(!direct&&selected?.hasTradeHistory)} fullWidth variant="contained" onClick={()=>void save()} sx={primaryButton}>{busy?'저장 중':'추가'}</Button></Stack>
   </Dialog>
  </Box>;
 }

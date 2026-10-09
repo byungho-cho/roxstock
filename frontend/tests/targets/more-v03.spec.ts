@@ -36,7 +36,7 @@ test('more v0.3: 12 equal buttons, fixed header/nav, 8px edges and exact icon si
     expect(state.labels[index].clipped).toBe(false);expect(state.labels[index].rect.bottom).toBeLessThan(b.bottom);expect(state.icons[index].rect.top).toBeGreaterThan(b.top);expect(state.icons[index].rect.bottom).toBeLessThan(b.bottom);
   }
   for(const icon of state.icons){expect(icon.loaded).toBe(true);expect(icon.natural).toEqual([20,20]);expect(icon.rect.width).toBe(20);expect(icon.rect.height).toBe(20);}
-  const tablet=info.project.name.startsWith('tablet');expect(state.navIcons).toHaveLength(tablet?9:5);for(const icon of state.navIcons){expect(icon.natural).toEqual(tablet?[16,16]:[18,18]);expect(icon.rect.width).toBe(tablet?16:18);expect(icon.rect.height).toBe(tablet?16:18);}
+  const tablet=info.project.name.startsWith('tablet');expect(state.navIcons).toHaveLength(13);for(const icon of state.navIcons){expect(icon.natural).toEqual([18,18]);expect(icon.rect.width).toBe(18);expect(icon.rect.height).toBe(18);}
   if(info.project.name==='cover-370x465')expect(state.buttons[0].height).toBeCloseTo(86.25,1);
   if(tablet) {
     const panel=await page.getByTestId('more-settings-panel').boundingBox();expect(panel).not.toBeNull();expect(panel!.x-state.menu.right).toBeCloseTo(16,1);expect(panel!.y).toBe(44);expect(panel!.height).toBeCloseTo(state.menu.height,1);

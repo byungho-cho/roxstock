@@ -14,7 +14,7 @@ export interface AccountDto {
   isActive: boolean;
 }
 
-export interface SecurityDto {
+export interface SecurityDto { isActive?: boolean;
   id: string;
   symbol: string;
   name: string;
@@ -110,7 +110,7 @@ export interface AccountDashboardDto {
   holdings: HoldingDto[];
 }
 
-export interface SecuritySearch {
+export interface SecuritySearch { includeInactive?: boolean;
   accountId?: string;
   registeredOnly?: boolean;
   query?: string;
@@ -163,6 +163,7 @@ export interface CashHistoryDto {
   data: CashTransactionDto[];
   meta: { total: number; limit: number; offset: number };
 }
+export const getCashTransaction = (accountId: string, id: string, signal?: AbortSignal) => apiRequest<CashTransactionDto>(`/accounts/${encodeURIComponent(accountId)}/cash-transactions/${encodeURIComponent(id)}`, { signal });
 export interface CashOverviewDto {
   currentYearTax: {year:number; amount:string};
   account: { id: string; name: string; currentBalance: string | null; balanceStatus?: 'AVAILABLE' | 'NO_TRANSACTIONS' | 'BALANCE_MISSING'; latestTransactionId?: string | null; updatedAt: string | null };
@@ -185,6 +186,7 @@ export function listSecurities(search: SecuritySearch = {}, signal?: AbortSignal
 }
 
 export interface WatchlistInput {
+  reactivate?: boolean;
   accountId?: string;
   securityId: string;
   listType: ServerListType;

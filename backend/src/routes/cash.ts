@@ -114,6 +114,16 @@ const groupedSummary = (accountId: bigint, range: DateRange, types?: CashTransac
 });
 
 export async function cashRoutes(app: FastifyInstance) {
+  app.get<{ Params: { accountId: string; id: string } }>('/accounts/:accountId/cash-transactions/:id', async request => {
+    const accountId = id(request.params.accountId, 'accountId');
+    await ensureAccount(accountId);
+    const transaction = await prisma.cashTransaction.findFirst({
+      where: { id: id(request.params.id, 'id'), accountId },
+      include: { dividend: { include: { security: { select: { name: true } } } } },
+    });
+    if (!transaction) throw new ApiError(404, 'CASH_TRANSACTION_NOT_FOUND', '연결된 예수금 내역을 찾을 수 없습니다.');
+    return { data: mapTransaction(transaction) };
+  });
   app.get<{ Params: AccountParams; Querystring: HistoryQuery }>('/accounts/:accountId/cash-transactions', async (request) => {
     const accountId = id(request.params.accountId, 'accountId');
     await ensureAccount(accountId);
