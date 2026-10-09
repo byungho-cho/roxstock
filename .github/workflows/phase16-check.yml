@@ -33,6 +33,7 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate && npm run prisma:migrate:deploy
       - run: node --import tsx --test backend/tests/phase16.integration.ts backend/tests/share-counts.integration.ts
+      - run: node --import tsx --test backend/tests/independent-supplement.integration.ts
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 12
