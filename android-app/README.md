@@ -4,11 +4,20 @@
 
 최신 시험 대상은 **webOnlyDebug / RoxStock 웹 시험 / 0.1.1-webonly-test**이다. 앱 ID는 `com.roxstock.app.webonly.debug`이며 기존 알림 수집용 시험 앱과 구별된다.
 
+검증 완료: 2026-10-10(KST). 코드 `fc7ffa44c5b1cfd65e0ca46ce2cbb8f68e62495a`, [빌드·설치 검사 성공](https://github.com/byungho-cho/roxstock/actions/runs/37998022692), [APK 다운로드 ZIP](https://github.com/byungho-cho/roxstock/actions/runs/37998022692/artifacts/11647832421). GitHub 로그인이 필요할 수 있으며 보관 기간은 14일이다.
+
+- APK 10,469 bytes, SHA-256 `61cb8ae68a64cf8e0021e30cf6e374c980a7e1fb794360f1c4e6778c32fdd470`.
+- 실제 APK 검사: INTERNET만 선언, 서비스 0개, receiver 0개, 수집 클래스 없음, 서명 검증 통과.
+- Android 15(API 35) 에뮬레이터 설치, 시험 페이지 표시, 실제 터치 메뉴 이동, 뒤로 가기 통과. 알림 브리지 부재 확인.
+- 프론트엔드 타입 검사·빌드 및 알림 화면 관련 Playwright 4개 검사 통과. 운영 웹 배포 및 실기기 Play 프로텍트 판정은 미실시.
+
 - `src/webOnly/`: 웹 표시·메뉴 이동·뒤로 가기 전용 Activity. 알림 권한 요청, 브리지, 대기 배지 없음.
 - `src/notifications/`: 기존 MainActivity, BrokerNotificationService, InboxDb 및 서비스 선언을 소스 변경 없이 보존한다. 이 소스는 webOnly APK의 컴파일 대상이 아니다.
 - 공통 manifest에는 INTERNET만 선언한다. 알림 서비스·관련 권한은 notifications flavor에만 존재한다. webOnly는 AndroidX WebKit 의존성도 포함하지 않는다.
 - 기존 수집용 빌드는 `assembleNotificationsDebug`, 이번 웹 전용 빌드는 `assembleWebOnlyDebug`이다. 배포용 다운로드로는 이번 웹 전용 APK만 제공한다.
 - APK 생성 후 실제 manifest·DEX를 검사하여 서비스·receiver·수집 클래스가 없는지 확인하고 서명을 검증한다. 에뮬레이터 설치 시험은 권한 목록, 클래스 부재, 웹 표시, 메뉴 이동, 뒤로 가기를 확인한다.
+- 에뮬레이터는 Android 15(API 35)이며 웹 이동 검사는 시험용 HTML로 수행한다. 운영 서버 로그인이나 실제 계좌 기능, Android 17 실기기 동작까지 검증한 것은 아니다.
+- 프론트엔드에는 `RoxStockWebOnly/` 식별자를 기준으로 대기 배지·알림 화면·권한 안내를 제외하는 분기를 추가했다. 이 웹 변경은 PR에 포함되어 있으며 운영 배포와 별개다. APK 자체에는 알림 접근 기능이 없다.
 - Play 프로텍트 판정은 빌드/에뮬레이터 검사와 별개다. 실제 Android 17 / One UI 9.0 기기에서 이 APK의 설치 차단 여부를 확인해야 한다. 보호 기능을 끄거나 차단을 우회하지 않는다.
 - 기존 수집용 앱을 삭제하지 않아도 새 앱을 설치할 수 있다. 기존 수집 앱의 알림 접근 권한이 이미 켜져 있다면 비교 시험 중에는 기존 앱 권한을 꺼 두고 **RoxStock 웹 시험**을 실행한다.
 
