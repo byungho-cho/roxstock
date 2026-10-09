@@ -22,6 +22,7 @@ test('DART three counts stay receipt/class/period scoped, zero differs from miss
  data[1].tesstk_co='-';const explicitMissing=await provider.fetchPeriodShares('00126380',2026,'11012',receipts[1]!);assert.equal(explicitMissing?.rows?.length,2);assert.equal(explicitMissing?.rows?.[1]?.treasuryShares,null);assert.equal(completeShares(explicitMissing,receipts[1]!),true);
  data[0].tesstk_co='-';assert.equal((await provider.fetchPeriodShares('00126380',2026,'11012',receipts[1]!))?.treasuryShares,null);
  data[0].tesstk_co='0';await assert.rejects(()=>provider.fetchPeriodShares('00126380',2026,'11012',receipts[1]!),/관계/);
+ data[0].tesstk_co='82086705';data[1].se='보통주 및 우선주';const mixed=await provider.fetchPeriodShares('00126380',2026,'11012',receipts[1]!);assert.equal(mixed?.rows?.[1]?.shareClass,'OTHER');assert.equal(mixed?.preferred,true); // Existing preferred-capital calculation guard remains conservative.
  await assert.rejects(()=>provider.fetchPeriodShares('00126380',2025,'11011',receipts[0]!),/접수번호/);
  data=[];await assert.rejects(()=>provider.fetchPeriodShares('00126380',2025,'11011',receipts[0]!),/비어/);
 });

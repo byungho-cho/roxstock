@@ -310,7 +310,7 @@ export class OpenDartProvider {
     });
     if(new Set(rows.map(r=>r.stockKind)).size!==rows.length)throw new DartApiError('SHARES_DUPLICATE_KIND','주식 종류별 응답이 중복됩니다.');
     const ordinary=rows.find(r=>r.shareClass==='COMMON');
-    return {outstanding:ordinary?.outstandingShares??null,issuedShares:ordinary?.issuedShares??null,treasuryShares:ordinary?.treasuryShares??null,preferred:rows.some(r=>r.shareClass==='PREFERRED'&&BigInt(r.outstandingShares??'0')>0n),receiptNo,collectedAt:new Date().toISOString(),rows};
+    return {outstanding:ordinary?.outstandingShares??null,issuedShares:ordinary?.issuedShares??null,treasuryShares:ordinary?.treasuryShares??null,preferred:rows.some(r=>r.stockKind.includes('우선')&&BigInt(r.outstandingShares??'0')>0n),receiptNo,collectedAt:new Date().toISOString(),rows};
   }
   async fetchCorporations(): Promise<DartCorporation[]> {
     const response = await this.request(this.url('corpCode.xml', {}));
