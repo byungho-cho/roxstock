@@ -11,4 +11,4 @@
 
 ## 검증과 개발현황
 
-로컬 TypeScript·프론트 빌드와 13건 단위 검사를 통과했다. Playwright 실행용 Chromium 다운로드가 이 환경에서 유효한 ZIP으로 제공되지 않아 화면 검사는 GitHub Actions에서 수행한다. 계좌 관리 기존 검사 기대색을 최종안으로 갱신하고 15.1차 전용 검사에서 12비율×5화면을 검증한다. 브라우저 검증·운영 배포 결과는 [QA](../qa/asset-composition15-1.md)에 기록한다.
+앱 [PR #154](https://github.com/byungho-cho/roxstock/pull/154)를 병합했다. 반영 커밋 fb694b1b771092a4d8ab01b3a8f7ba56e65082c5, 검증한 PR head cbb20c4aacac7f294569d7df1b063457c10d0db2이며 두 커밋의 frontend/src는 동일하다. 로컬·CI TypeScript·프론트 빌드와 13건 단위 검사를 통과했다. Playwright 실행용 Chromium 다운로드가 이 환경에서 유효한 ZIP으로 제공되지 않아 화면 검사는 GitHub Actions에서 수행했다. 계좌 관리 기존 검사 기대색을 최종안으로 갱신하고 15.1차 전용 검사에서 12비율×5화면을 검증했다. 긴 단일 반복 검사를 비율별로 분리하고 API 모드의 production build + Vite preview에서 실행해 화면57/57을 확인했다. 운영 배포도 성공했고 실제 화면의 색상·배치를 확인했다. 브라우저 검증·운영 배포 결과는 [QA](../qa/asset-composition15-1.md)에 기록한다.
