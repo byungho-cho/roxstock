@@ -7,13 +7,15 @@ const cases=[
 ] as const;
 async function fixture(page:Page){
  const state={ratio:22,missing:false,zero:false};
+ page.on('pageerror',error=>{throw error;});
  await page.route('**/api/**',async route=>{
   const path=new URL(route.request().url()).pathname,ratio=path.includes('/2/')?40:state.ratio,cash=state.zero?0:ratio*10000,stock=state.missing?null:String(state.zero?0:(100-ratio)*10000);
   if(path==='/api/accounts')return route.fulfill({json:{data:[1,2].map(id=>({id:String(id),name:'계좌 '+id,brokerName:'검증',accountNumber:'123-'+id,cashBalance:String((id===2?40:state.ratio)*10000),isActive:true,isDefault:id===1}))}});
   if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{stockValue:stock,cashBalance:String(cash),totalAssetValue:state.missing?null:state.zero?'0':'1000000',purchaseAmount:'300000',unrealizedProfitLoss:'10000',unrealizedReturnRate:'1',stockMonthlyProfit:'10000',cashMonthlyProfit:'-1000',holdings:[],pricingComplete:!state.missing,latestPriceUpdatedAt:'2026-10-09T00:00:00Z'}}});
   if(path.endsWith('/cash-overview'))return route.fulfill({json:{data:{currentYearTax:{year:2026,amount:'0'},account:{id:'1',name:'계좌',currentBalance:String(cash),balanceStatus:'AVAILABLE'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},recentTransactions:[]}}});
   if(path.endsWith('/asset-history'))return route.fulfill({json:{data:[{date:'2026-10-01',totalAssetValue:'1000000',cashBalance:String(cash),stockValue:stock}],summary:{from:'2026-10-01',to:'2026-10-09',openingAssetValue:'1000000',closingAssetValue:'1000000',profitLoss:'10000',returnRate:'1',depositAmount:'0',withdrawalAmount:'0',unrealizedChange:'10000',realizedProfitLoss:'0',dividendIncome:'0',feeTaxAmount:'0'}}});
-  return route.fulfill({json:{data:[]}});
+  if(path.endsWith('/cash-transactions'))return route.fulfill({json:{data:[],meta:{total:0,limit:100,offset:0}}});
+  return route.fulfill({status:503,json:{error:{message:'Fixture endpoint unavailable'}}});
  });return state;
 }
 const quick=(page:Page,name:string)=>page.getByRole('button').filter({has:page.getByText(name,{exact:true})}).first();
@@ -31,6 +33,7 @@ test('twelve boundaries share fixed text colors and real bar lengths on all surf
    await page.goto(path);
    if(path==='/'||path==='/detail/assets'){
     for(const [name,value,color] of [['주식평가액',(100-ratio)*10000,stockColor],['예수금',ratio*10000,cashColor]] as const)await expect(quick(page,name).getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true})).toHaveCSS('color',`rgb(${color})`);
+    await expect(quick(page,'주식평가액').getByText(`${(100-ratio).toFixed(1)}%`,{exact:true})).toHaveCSS('color',`rgb(${stockColor})`);await expect(quick(page,'예수금').getByText(`${ratio.toFixed(1)}%`,{exact:true})).toHaveCSS('color',`rgb(${cashColor})`);
     if(path==='/detail/assets')await barCheck(page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/assets'){
     const card=page.getByTestId('analysis-composition');
@@ -39,7 +42,9 @@ test('twelve boundaries share fixed text colors and real bar lengths on all surf
     await expect(card.getByText('주식',{exact:true})).toHaveCount(0);await expect(card.getByText('예수금',{exact:true})).toHaveCount(0);
     const boxes=await card.evaluate(el=>['composition-amounts',null,'composition-ratios'].map(id=>(id?el.querySelector(`[data-testid="${id}"]`):el.querySelector('[role="img"]'))!.getBoundingClientRect().toJSON()));
     expect(boxes[0].bottom).toBeLessThanOrEqual(boxes[1].top);expect(boxes[1].bottom).toBeLessThanOrEqual(boxes[2].top);
-    if(ratio===22||ratio===60){await card.screenshot({path:`test-results/phase15/analysis-${ratio}-${info.project.name}.png`});await page.screenshot({path:`test-results/phase15/analysis-screen-${ratio}-${info.project.name}.png`});}
+    if(ratio===22||ratio===60){await card.screenshot({path:`test-results/phase15/analysis-${ratio}-${info.project.name}.png`});await page.screenshot({path:`test-results/phase15/analysis-screen-${ratio}-${info.project.name}.png`});
+     if(ratio===22){const scroll=page.viewportSize()!.width>=600?page.locator('[data-scroll-region="analysis-left"]'):page.locator('main');await scroll.evaluate(el=>{el.scrollTop=el.scrollHeight;});await card.scrollIntoViewIfNeeded();await barCheck(card.getByRole('img'),ratio,stockShade,cashShade);await card.screenshot({path:`test-results/phase15/analysis-scrolled-${info.project.name}.png`});}
+     const clipped=await card.locator('span').evaluateAll(nodes=>nodes.some(n=>n.scrollWidth>n.clientWidth+1));expect(clipped).toBe(false);}
    }else if(path==='/detail/cash')await expect(page.getByTestId('cash-balance-value')).toHaveCSS('color',`rgb(${cashColor})`);
    else await expect(page.getByTestId('account-card-1').getByTestId('account-cash')).toHaveCSS('color',`rgb(${cashColor})`);
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
