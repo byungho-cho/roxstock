@@ -5,13 +5,29 @@ async function fixture(page:Page){
  const state={hasData:false,fail:false,deleteFail:false,ratio:20,pricingComplete:true};const writes:string[]=[];
  await page.route('**/api/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname;
+  if(req.method()==='PATCH'&&path.startsWith('/api/accounts/')){writes.push(path);const account=accounts.find(a=>path.endsWith('/'+a.id))!;Object.assign(account,req.postDataJSON());return route.fulfill({json:{data:account}});}
   if(req.method()==='DELETE'){writes.push(path);if(state.deleteFail)return route.fulfill({status:409,json:{error:{code:'ACCOUNT_HAS_DATA',message:'연결 데이터가 추가되었습니다.'}}});accounts=accounts.filter(a=>!path.endsWith('/'+a.id));return route.fulfill({json:{data:{accountId:path.split('/').at(-1),nextAccountId:accounts[0]?.id??null}}});}
   if(path==='/api/accounts')return route.fulfill({json:{data:accounts}});
   if(path.endsWith('/data-state'))return route.fulfill(state.fail?{status:503,json:{error:{message:'상태 조회 실패'}}}:{json:{data:{hasData:state.hasData,counts:{}}}});
   if(path.endsWith('/dashboard')){const second=path.includes('/2/');return route.fulfill({json:{data:{stockValue:String(100-(second?30:state.ratio)),cashBalance:String(second?30:state.ratio),totalAssetValue:'100',purchaseAmount:'50',holdings:[],pricingComplete:state.pricingComplete}}});}
   return route.fulfill({status:503,json:{error:{message:'Fixture endpoint unavailable'}}});
- });return {state,writes};
+});return {state,writes};
 }
+
+test('card keyboard selection, reselection, pencil isolation and edited account number',async({page})=>{
+ const f=await fixture(page);await page.goto('/detail/settings?view=account');
+ const first=page.getByTestId('account-card-1'),second=page.getByTestId('account-card-2');
+ await expect(first.getByTestId('account-number')).toHaveText('(123-1)');
+ await expect(first.getByTestId('account-number')).toHaveCSS('color','rgb(122, 133, 158)');
+ await second.getByRole('button',{name:/계좌 선택/}).focus();await page.keyboard.press('Enter');
+ await expect(second.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','true');
+ await page.keyboard.press('Space');expect(f.writes).toEqual([]);
+ await first.getByRole('button',{name:/계좌 정보 수정/}).focus();await page.keyboard.press('Enter');
+ await expect(page).toHaveURL(/accountId=1/);expect(await page.evaluate(()=>localStorage.getItem('roxstock-selected-account-id'))).toBe('2');
+ await page.getByRole('textbox',{name:'계좌번호',exact:true}).fill('010-2222-0000-1');await page.getByRole('button',{name:'변경',exact:true}).click();
+ await expect(first.getByTestId('account-number')).toHaveText('(010-2222-0000-1)');await expect(second.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','true');
+ expect(f.writes).toEqual(['/api/accounts/1']);
+});
 
 test('per-account colors, stable selection border and explicit edit target',async({page},info)=>{
  await fixture(page);await page.goto('/detail/settings?view=account');
@@ -20,10 +36,10 @@ test('per-account colors, stable selection border and explicit edit target',asyn
  await expect(second.getByTestId('account-cash')).toHaveCSS('color','rgb(96, 165, 250)');
  await expect(first).toHaveCSS('border-top-color','rgb(250, 204, 21)');
  const width=(await second.boundingBox())!.width;
- await second.getByRole('button',{name:'선택',exact:true}).click();
+ await second.getByRole('button',{name:/계좌 선택/}).click();
  await expect(second).toHaveCSS('border-top-color','rgb(250, 204, 21)');
- await expect(second.getByRole('button',{name:'사용중'})).toHaveCSS('background-color','rgb(59, 130, 246)');
- await expect(first.getByRole('button',{name:'선택',exact:true})).toHaveCSS('background-color','rgb(30, 41, 59)');
+ await expect(second.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','true');
+ await expect(first.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','false');
  expect((await second.boundingBox())!.width).toBe(width);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({animations:'disabled',path:`test-results/phase15/accounts-${info.project.name}.png`});
@@ -58,11 +74,11 @@ test('status failure never permits deletion and add has no destructive buttons',
 
 test('delete nonselected then selected last account, clearing selection and offering add',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/settings?view=account');
- await page.getByTestId('account-card-1').getByRole('button',{name:'사용중'}).click();
+ await page.getByTestId('account-card-1').getByRole('button',{name:/계좌 선택/}).click();
  await page.getByTestId('account-card-2').getByRole('button',{name:/계좌 정보 수정/}).click();
  await page.getByRole('button',{name:'계좌 삭제',exact:true}).click();
  await page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true}).click();
- await expect(page.getByTestId('account-card-2')).toHaveCount(0);await expect(page.getByTestId('account-card-1').getByRole('button',{name:'사용중'})).toBeVisible();
+ await expect(page.getByTestId('account-card-2')).toHaveCount(0);await expect(page.getByTestId('account-card-1').getByRole('button',{name:/계좌 선택/})).toBeVisible();
  await page.getByTestId('account-card-1').getByRole('button',{name:/계좌 정보 수정/}).click();await page.getByRole('button',{name:'계좌 삭제',exact:true}).click();
  await page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true}).dblclick();
  await expect(page.getByText('등록된 계좌가 없습니다. 계좌를 추가해 주세요.')).toBeVisible();
