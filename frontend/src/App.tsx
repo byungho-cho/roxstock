@@ -1,35 +1,38 @@
-import {TradeDetailPage} from './pages/trade/TradeDetailPage';
-import {useCallback,useRef,useState} from 'react';
+import { StockInputContext } from './pages/stocks/StockInputContext';
+import { RouteContent } from './components/common/RouteLoading';
+import {lazy,useCallback,useRef,useState} from 'react';
 import {Box,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
-import {StockInputContext} from './pages/stocks/StockInputContext';
-import {StockPricePage} from './pages/stocks/StockPricePage';
-import { TargetArrivalPage } from './pages/dashboard/TargetArrivalCard';
 import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
-import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ValueAnalysisPage } from './pages/value/ValueAnalysisPage';
-import { FinancialPage } from './pages/financial/FinancialPage';
-import { CompoundPage } from './pages/compound/CompoundPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
-import { StockListPage } from './pages/stocks/StockListPage';
-import { StockDetailPage } from './pages/stocks/StockDetailPage';
-import { LiveStockDetailPage } from './pages/stocks/LiveStockDetailPage';
-import { LiveStockEditPage } from './pages/stocks/LiveStockEditPage';
-import { StockAddPage } from './pages/stocks/StockAddPage';
-import { StockEditPage } from './pages/stocks/StockEditPage';
-import { TradePage } from './pages/trade/TradePage';
-import { InvestmentProfitPage } from './pages/investment-profit/InvestmentProfitPage';
-import { InvestmentPage } from './pages/investment/InvestmentPage';
-import { AssetAnalysisPage } from './pages/assets/AssetAnalysisPage';
-import { AssetOverviewPage } from './pages/assets/AssetOverviewPage';
-import { CashPage } from './pages/cash/CashPage';
-import { LiveCashPage } from './pages/cash/LiveCashPage';
 import { liveApiEnabled } from './data/liveData';
-import { JournalPage } from './pages/journal/JournalPage';
-import { MorePage } from './pages/more/MorePage';
-import { SettingsPage } from './pages/more/SettingsPage';
-import { CollectionMonitoringPage } from './pages/more/CollectionMonitoringPage';
+
+const TradeDetailPage = lazy(() => import('./pages/trade/TradeDetailPage').then(module => ({ default: module.TradeDetailPage })));
+
+const StockPricePage = lazy(() => import('./pages/stocks/StockPricePage').then(module => ({ default: module.StockPricePage })));
+const TargetArrivalPage = lazy(() => import('./pages/dashboard/TargetArrivalCard').then(module => ({ default: module.TargetArrivalPage })));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const ValueAnalysisPage = lazy(() => import('./pages/value/ValueAnalysisPage').then(module => ({ default: module.ValueAnalysisPage })));
+const FinancialPage = lazy(() => import('./pages/financial/FinancialPage').then(module => ({ default: module.FinancialPage })));
+const CompoundPage = lazy(() => import('./pages/compound/CompoundPage').then(module => ({ default: module.CompoundPage })));
+const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage').then(module => ({ default: module.PlaceholderPage })));
+const StockListPage = lazy(() => import('./pages/stocks/StockListPage').then(module => ({ default: module.StockListPage })));
+const StockDetailPage = lazy(() => import('./pages/stocks/StockDetailPage').then(module => ({ default: module.StockDetailPage })));
+const LiveStockDetailPage = lazy(() => import('./pages/stocks/LiveStockDetailPage').then(module => ({ default: module.LiveStockDetailPage })));
+const LiveStockEditPage = lazy(() => import('./pages/stocks/LiveStockEditPage').then(module => ({ default: module.LiveStockEditPage })));
+const StockAddPage = lazy(() => import('./pages/stocks/StockAddPage').then(module => ({ default: module.StockAddPage })));
+const StockEditPage = lazy(() => import('./pages/stocks/StockEditPage').then(module => ({ default: module.StockEditPage })));
+const TradePage = lazy(() => import('./pages/trade/TradePage').then(module => ({ default: module.TradePage })));
+const InvestmentProfitPage = lazy(() => import('./pages/investment-profit/InvestmentProfitPage').then(module => ({ default: module.InvestmentProfitPage })));
+const InvestmentPage = lazy(() => import('./pages/investment/InvestmentPage').then(module => ({ default: module.InvestmentPage })));
+const AssetAnalysisPage = lazy(() => import('./pages/assets/AssetAnalysisPage').then(module => ({ default: module.AssetAnalysisPage })));
+const AssetOverviewPage = lazy(() => import('./pages/assets/AssetOverviewPage').then(module => ({ default: module.AssetOverviewPage })));
+const CashPage = lazy(() => import('./pages/cash/CashPage').then(module => ({ default: module.CashPage })));
+const LiveCashPage = lazy(() => import('./pages/cash/LiveCashPage').then(module => ({ default: module.LiveCashPage })));
+const JournalPage = lazy(() => import('./pages/journal/JournalPage').then(module => ({ default: module.JournalPage })));
+const MorePage = lazy(() => import('./pages/more/MorePage').then(module => ({ default: module.MorePage })));
+const SettingsPage = lazy(() => import('./pages/more/SettingsPage').then(module => ({ default: module.SettingsPage })));
+const CollectionMonitoringPage = lazy(() => import('./pages/more/CollectionMonitoringPage').then(module => ({ default: module.CollectionMonitoringPage })));
 
 export function App() {
   const location=useLocation(),navigate=useNavigate(),modalContent=useRef<HTMLDivElement>(null);
@@ -72,7 +75,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
-    {modal&&<Dialog open onClose={close} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');if(!modalContent.current?.contains(document.activeElement)){input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}}},paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:location.pathname==='/trade'?816:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',fontFamily:'RoxHomeInter, sans-serif',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle data-testid="stock-flow-modal-title" sx={{height:44,minHeight:44,flexShrink:0,boxSizing:'border-box',p:'8px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={close} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><StockInputContext.Provider value={{inDialog:true,setTitle:setInputTitle,setBusy:setInputBusy}}><HeaderSlotContext.Provider value={null}><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></HeaderSlotContext.Provider></StockInputContext.Provider></DialogContent></Dialog>}
+    {modal&&<Dialog open onClose={close} slotProps={{transition:{onEntered:()=>{const input=modalContent.current?.querySelector<HTMLInputElement>('input:not([disabled]):not([readonly])');if(!modalContent.current?.contains(document.activeElement)){input?.focus({preventScroll:true});if(input&&input.type!=='date')input.select();}}},paper:{className:'rox-home',sx:{m:'16px',width:'calc(100% - 32px)',maxWidth:location.pathname==='/trade'?816:370,maxHeight:'calc(100dvh - 32px)',borderRadius:'8px',bgcolor:'#0B1220',fontFamily:'RoxHomeInter, sans-serif',border:'1px solid #2E4263',backgroundImage:'none'}}}}><DialogTitle data-testid="stock-flow-modal-title" sx={{height:44,minHeight:44,flexShrink:0,boxSizing:'border-box',p:'8px',fontSize:16,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'space-between'}}>{title}<IconButton aria-label="입력 팝업 닫기" onClick={close} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt="" sx={{width:16,height:16}}/></IconButton></DialogTitle><DialogContent ref={modalContent} data-testid="stock-flow-modal-body" sx={{p:'0 8px 8px !important',minHeight:0,overflowY:'auto',scrollbarWidth:'none'}}><StockInputContext.Provider value={{inDialog:true,setTitle:setInputTitle,setBusy:setInputBusy}}><HeaderSlotContext.Provider value={null}><RouteContent><Routes><Route path="stocks/add" element={<StockAddPage/>}/><Route path="trade" element={<TradePage/>}/></Routes></RouteContent></HeaderSlotContext.Provider></StockInputContext.Provider></DialogContent></Dialog>}
   </>);
 }
 
