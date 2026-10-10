@@ -4,7 +4,7 @@ import type { QueryClient } from '@tanstack/react-query';
 const portfolioQueryKeys = [
   'account-data-state', 'accounts', 'dashboard', 'analysis-dashboard', 'analysis-history', 'assetHistory',
   'investment', 'investment-profit', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
-  'stocks', 'accountTrades', 'buyLots', 'allBuyLots', 'stockTrades', 'journalTrades', 'tradeDetail',
+  'accountTradesSummary', 'stocks', 'accountTrades', 'buyLots', 'allBuyLots', 'stockTrades', 'journalTrades', 'tradeDetail',
   'targetArrivals', 'recentBuys', 'compound-plans', 'securityAnalysis',
 ] as const;
 

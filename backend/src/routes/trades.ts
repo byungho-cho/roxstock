@@ -35,7 +35,7 @@ type SellBody = {
 };
 
 type AccountParams = { accountId: string };
-type TradeQuery = { from?: string; to?: string; securityId?: string };
+type TradeQuery = { from?: string; to?: string; securityId?: string; view?: string };
 type LotQuery = { securityId?: string; remainingOnly?: string };
 type TradeParams = { tradeId: string };
 type AccountQuery = { accountId?: string };
@@ -87,6 +87,7 @@ const mapLinkedCashTransaction = (cashTransaction: {
 export async function tradeRoutes(app: FastifyInstance) {
   app.get<{ Params: AccountParams; Querystring: TradeQuery }>('/accounts/:accountId/trades', async (request) => {
     const accountId = id(request.params.accountId, 'accountId');
+    if (request.query.view !== undefined && request.query.view !== 'stocks') throw new ApiError(400, 'INVALID_INPUT', 'view must be stocks.');
     const securityId = optionalId(request.query.securityId, 'securityId');
     const from = dateOnly(request.query.from, 'from');
     const toStart = dateOnly(request.query.to, 'to');
@@ -107,6 +108,25 @@ export async function tradeRoutes(app: FastifyInstance) {
         include: { buyTrade: { include: { security: { select: { id: true, symbol: true, name: true, marketType: true } } } } },
       }),
     ]);
+
+    if (request.query.view === 'stocks') {
+      const summary = new Map<string, { security: typeof buys[number]['security']; realizedProfitLoss: Prisma.Decimal; lastSoldAt: Date | null }>();
+      for (const buy of buys) summary.set(buy.security.id.toString(), {
+        security: buy.security, realizedProfitLoss: new Prisma.Decimal(0), lastSoldAt: null,
+      });
+      for (const sell of sells) {
+        const security = sell.buyTrade.security;
+        const row = summary.get(security.id.toString()) ?? { security, realizedProfitLoss: new Prisma.Decimal(0), lastSoldAt: null };
+        row.realizedProfitLoss = row.realizedProfitLoss.plus(sell.quantity.mul(sell.unitPrice.minus(sell.buyTrade.unitPrice)));
+        if (!row.lastSoldAt || sell.soldAt > row.lastSoldAt) row.lastSoldAt = sell.soldAt;
+        summary.set(security.id.toString(), row);
+      }
+      return { data: [...summary.values()].map(row => ({
+        security: { ...row.security, id: row.security.id.toString() },
+        realizedProfitLoss: row.lastSoldAt ? row.realizedProfitLoss.toString() : null,
+        lastSoldAt: row.lastSoldAt?.toISOString() ?? null,
+      })) };
+    }
 
     const entries = [
       ...buys.map((trade) => ({

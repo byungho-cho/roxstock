@@ -1,9 +1,22 @@
 import {nearestSavedItem} from '../../src/hooks/navigation/pageMemory.ts';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {averageAfter,lotValue,sortStocks,deriveAccountStocks,dayChange,stockValuation} from '../../src/pages/stocks/stockMath.ts';
+import {averageAfter,lotValue,sortStocks,deriveAccountStocks,deriveAccountStocksFromSummary,dayChange,stockValuation} from '../../src/pages/stocks/stockMath.ts';
 import type {StockItem} from '../../src/types/models.ts';
 const stock=(id:string,per?:number):StockItem=>({id,symbol:id,name:id,listType:'watchlist',currentPrice:519000,priceChangeRate:65000/454000*100,collectionStatus:'success',watchlistItemId:id,per});
+
+test('compact trade summary preserves classifications, holding overrides and delisted stock history', () => {
+ const security = (id:string) => ({id,symbol:id,name:id,marketType:'KOSPI' as const});
+ const summaries = ['1','2','3'].map(id => ({security:security(id),realizedProfitLoss:id==='3'?null:'40',lastSoldAt:id==='3'?null:'2020-02-03T00:00:00Z'}));
+ const result = deriveAccountStocksFromSummary([stock('1'),stock('2'),stock('4')],[{...stock('1'),listType:'holding',quantity:2}],summaries);
+ assert.equal(result.find(s=>s.id==='1')?.listType,'holding');
+ assert.equal(result.find(s=>s.id==='2')?.listType,'traded');
+ assert.equal(result.find(s=>s.id==='2')?.realizedProfit,40);
+ assert.equal(result.find(s=>s.id==='3')?.listType,'traded');
+ assert.equal(result.find(s=>s.id==='3')?.realizedProfit,undefined);
+ assert.equal(result.find(s=>s.id==='4')?.listType,'watchlist');
+ assert.equal(result.length,4);
+});
 test('Lot valuation uses remaining quantity and its own price; missing quote stays unavailable',()=>{assert.deepEqual(lotValue({remainingQuantity:70,buyPrice:230000},519000),{amount:36330000,profit:20230000,rate:(519000/230000-1)*100});assert.ok(Number.isNaN(lotValue({remainingQuantity:70,buyPrice:230000},Number.NaN).amount));assert.equal(Math.round(dayChange(stock('1'))),65000);});
 test('buy edit replaces original lot and excludes sold shares, preserving unrounded comparison',()=>{assert.equal(averageAfter(700,230000,70,240000,{remaining:70,price:230000,sold:0}),231000);assert.equal(averageAfter(50,230000,70,240000,{remaining:50,price:230000,sold:20}),240000);assert.equal(averageAfter(700,230000,10,515000),234014.08450704225);});
 test('sort keeps missing last in either direction, zero remains valid',()=>{const data=[stock('null'),stock('0',0),stock('2',2)];assert.deepEqual(sortStocks(data,'per',false).map(s=>s.id),['0','2','null']);assert.deepEqual(sortStocks(data,'per',true).map(s=>s.id),['2','0','null']);});
