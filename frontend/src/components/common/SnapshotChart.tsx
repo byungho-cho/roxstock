@@ -1,5 +1,6 @@
+import {useChartDismiss} from '../../hooks/useChartDismiss';
 import { Box, Stack, Typography } from '@mui/material';
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useRef, useState, type PointerEvent } from 'react';
 import { colors } from '../../styles/tokens';
 
 export type SnapshotChartPoint = { date: string; values: Record<string, number | null>; text: Record<string, string> };
@@ -13,7 +14,8 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const gesture = useRef<{ x: number; y: number; vertical: boolean } | null>(null);
-  useEffect(() => setSelected(null), [points, from, to]);
+  const boundary=useRef<HTMLDivElement>(null);
+  useChartDismiss({boundary,clear:()=>setSelected(null),resetKey:JSON.stringify([points, from, to])});
   const finite = (value: number | null | undefined): value is number => value != null && Number.isFinite(value);
   const values = points.flatMap(point => series.map(item => point.values[item.key])).filter(finite);
   const low = values.length ? Math.min(...values) : 0, high = values.length ? Math.max(...values) : 1;
@@ -45,7 +47,7 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
     return { date, label: date.slice(5).replace('-', '.') };
   });
   return <Box data-no-detail-swipe data-no-pull-refresh data-testid={testId} data-dates={points.map(item => item.date).join(',')} sx={{ position: 'relative', mt: '8px', minWidth: 0, ...(fill ? {display:'flex',flexDirection:'column',flex:1,minHeight:0} : {}) }}>
-    <Box sx={{ position: 'relative', height:fill?undefined:height, ...(fill?{flex:1,minHeight:0}:{}) }}>
+    <Box ref={boundary} sx={{ position: 'relative', height:fill?undefined:height, ...(fill?{flex:1,minHeight:0}:{}) }}>
       {[0, 1, 2, 3].map(i => <Box data-testid={`${testId}-amount`} key={i} sx={{ position: 'absolute', ...(rightAxis ? { right: 0 } : { left: 2 }), pointerEvents: 'none', zIndex: 1, bgcolor: '#111927bb', top: `${(12 + i * 46) / 164 * 100}%`, transform: 'translateY(-50%)', color: colors.textMuted, fontSize: 9 }}>{amounts[i]}</Box>)}
       <Box component="svg" role="img" aria-label={ariaLabel} viewBox="0 0 260 164" preserveAspectRatio="none"
         onPointerDown={event => { gesture.current = { x: event.clientX, y: event.clientY, vertical: false }; selectAt(event); event.currentTarget.setPointerCapture(event.pointerId); }}
@@ -57,9 +59,10 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
         {point && <g data-testid={testId === 'investment-chart' ? 'investment-selection' : `${testId}-selection-guide`}><path data-testid={testId === 'asset-trend-chart' ? 'asset-trend-guide' : undefined} d={`M${x(point.date)} 8 V154`} stroke={colors.textMuted} /></g>}
       </Box>
       {point && series.map(item => finite(point.values[item.key]) && <Box data-testid={testId === 'asset-trend-chart' ? 'asset-trend-selection' : undefined} key={item.key} sx={{ position: 'absolute', pointerEvents: 'none', left: `calc(${gutter}px + ${x(point.date) / 260 * 100}% - ${(rightAxis ? 64 : gutter) * x(point.date) / 260}px)`, top: `${y(point.values[item.key]!) / 164 * 100}%`, transform: 'translate(-50%, -50%)', width: 6, height: 6, borderRadius: '50%', bgcolor: item.color }} />)}
+    {point && <Box data-testid={testId === 'investment-chart' ? 'investment-tooltip' : 'asset-trend-tooltip'} data-chart-tooltip role="status" sx={{ position: 'absolute', pointerEvents: 'auto', zIndex: 2, top: legend ? 32 : 18, left: x(point.date) > 130 ? `${tooltipLeft}px` : undefined, right: x(point.date) <= 130 ? rightAxis ? '68px' : '4px' : undefined, maxWidth: rightAxis ? 'calc(100% - 72px)' : `calc(100% - ${x(point.date) > 130 ? tooltipLeft + 4 : 8}px)`, p: '8px', bgcolor: '#111927', border: `1px solid ${colors.border}`, borderRadius: '8px', overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{dottedTooltipDate ? point.date.replaceAll('-', '.') : point.date}</Typography>{series.map(item => <Typography key={item.key} sx={{ fontSize: 11, color: item.color }}>{series.length > 1 ? `${item.label} ` : ''}{point.text[item.key] ?? '—'}</Typography>)}</Box>}
     </Box>
-    {legend && <Stack data-testid="investment-legend" direction="row" spacing="8px" sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', bgcolor: '#111927dd', px: '4px', pointerEvents: 'none', whiteSpace: 'nowrap' }}>{series.map(item => <Typography key={item.key} sx={{ fontSize: 10, color: item.color }}>● {item.label}</Typography>)}</Stack>}
-    {point && <Box data-testid={testId === 'investment-chart' ? 'investment-tooltip' : 'asset-trend-tooltip'} role="status" sx={{ position: 'absolute', pointerEvents: 'none', zIndex: 2, top: legend ? 32 : 18, left: x(point.date) > 130 ? `${tooltipLeft}px` : undefined, right: x(point.date) <= 130 ? rightAxis ? '68px' : '4px' : undefined, maxWidth: rightAxis ? 'calc(100% - 72px)' : `calc(100% - ${x(point.date) > 130 ? tooltipLeft + 4 : 8}px)`, p: '8px', bgcolor: '#111927', border: `1px solid ${colors.border}`, borderRadius: '8px', overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{dottedTooltipDate ? point.date.replaceAll('-', '.') : point.date}</Typography>{series.map(item => <Typography key={item.key} sx={{ fontSize: 11, color: item.color }}>{series.length > 1 ? `${item.label} ` : ''}{point.text[item.key] ?? '—'}</Typography>)}</Box>}
+    {legend && <Stack data-testid="investment-legend" direction="row" spacing="8px" sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', bgcolor: '#111927dd', px: '4px', pointerEvents: 'auto', whiteSpace: 'nowrap' }}>{series.map(item => <Typography key={item.key} sx={{ fontSize: 10, color: item.color }}>● {item.label}</Typography>)}</Stack>}
+
     <Box sx={{ height: 16, flexShrink:0, ml:gutter+'px', position: 'relative', mr: rightAxis ? '64px' : 0, color: dateColor }}>{labels.map((item, index) => <Typography key={`${item.date}:${index}`} data-testid={testId === 'asset-trend-chart' ? 'asset-trend-date' : undefined} sx={{ position: 'absolute', left: `${x(item.date) / 260 * 100}%`, transform: x(item.date) > 232 ? 'translateX(-100%)' : x(item.date) < 20 ? 'none' : 'translateX(-50%)', fontSize: 9, color: 'inherit', whiteSpace: 'nowrap' }}>{item.label}</Typography>)}</Box>
   </Box>;
 }

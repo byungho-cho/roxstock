@@ -77,7 +77,7 @@ jobs:
         run: node --import tsx --test backend/tests/asset-analysis.integration.ts
 
       - name: Manual collector source and period API integration
-        run: node --import tsx --test backend/tests/manual-collector.integration.ts
+        run: node --import tsx --test backend/tests/manual-collector.integration.ts backend/tests/manual-independent.integration.ts
 
       - name: Cash12 latest balance and concurrent writes (real MariaDB API)
         run: node --import tsx --test backend/tests/cash-latest.integration.ts
@@ -101,6 +101,9 @@ jobs:
 
       - name: Type-check backend
         run: npm run typecheck:backend
+
+      - name: Safe collector diagnostic filter
+        run: node --test scripts/tests/collector-diagnostics.test.mjs
 
       - name: Test backend
         run: npm --workspace backend run test

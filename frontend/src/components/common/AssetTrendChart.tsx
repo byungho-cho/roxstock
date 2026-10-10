@@ -1,5 +1,6 @@
+import {useChartDismiss} from '../../hooks/useChartDismiss';
 import { Box, Typography } from '@mui/material';
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useRef, useState, type PointerEvent } from 'react';
 import { colors } from '../../styles/tokens';
 import { formatWon } from '../../utils/format';
 
@@ -7,7 +8,8 @@ export type AssetTrendPoint = { date: string; value: number };
 export function AssetTrendChart({ points, height, dateMode = 'month', color = colors.marketFall }: { points: AssetTrendPoint[]; height: number | { xs: number; sm: number }; color?: string; dateMode?: 'day' | 'year' | 'month' }) {
   const [selected, setSelected] = useState<string | null>(null);
   const gesture = useRef<{ x: number; y: number; vertical: boolean } | null>(null);
-  useEffect(() => setSelected(null), [points]);
+  const boundary=useRef<HTMLDivElement>(null);
+  useChartDismiss({boundary,clear:()=>setSelected(null),resetKey:JSON.stringify(points)});
   const values = points.map(p => p.value).filter(Number.isFinite);
   const min = Math.min(...values), span = Math.max(1, Math.max(...values) - min);
   const start = Date.parse(points[0]?.date), duration = Math.max(1, Date.parse(points.at(-1)?.date ?? '') - start);
@@ -26,7 +28,7 @@ export function AssetTrendChart({ points, height, dateMode = 'month', color = co
   };
   const point = points.find(p => p.date === selected);
   return <Box data-no-detail-swipe data-no-pull-refresh data-testid="asset-trend-chart" sx={{ position: 'relative', minWidth: 0, mt: '7px' }}>
-    <Box sx={{ height, position: 'relative' }}>
+    <Box ref={boundary} sx={{ height, position: 'relative' }}>
       <Box component="svg" role="img" aria-label="자산추이 · 날짜별 금액 조회" viewBox="0 0 340 104" preserveAspectRatio="none"
         onPointerDown={e => { gesture.current = { x: e.clientX, y: e.clientY, vertical: false }; selectAt(e); e.currentTarget.setPointerCapture(e.pointerId); }}
         onPointerMove={e => { const g = gesture.current; if (!g) { if (e.pointerType === 'mouse') selectAt(e); return; } if (Math.abs(e.clientY-g.y)>Math.abs(e.clientX-g.x) && Math.abs(e.clientY-g.y)>8) g.vertical=true; if (!g.vertical) selectAt(e); }}
@@ -37,8 +39,9 @@ export function AssetTrendChart({ points, height, dateMode = 'month', color = co
         {point && <path data-testid="asset-trend-guide" d={`M${x(point.date)} 4 V100`} stroke={colors.textMuted} />}
       </Box>
       {point && Number.isFinite(point.value) && <Box data-testid="asset-trend-selection" sx={{ position: 'absolute', left: `${x(point.date)/340*100}%`, top: `${y(point.value)/104*100}%`, width: 6, height: 6, borderRadius: '50%', bgcolor: color, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />}
+    {point && <Box data-chart-tooltip role="status" data-testid="asset-trend-tooltip" sx={{ position: 'absolute', top: 18, ...(x(point.date)>170 ? {left:4} : {right:4}), maxWidth: 'calc(100% - 8px)', px: '8px', py: '4px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '4px', pointerEvents: 'auto', overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{point.date}</Typography><Typography sx={{ fontSize: 11 }}>{formatWon(point.value)}</Typography></Box>}
     </Box>
     <Box sx={{ height: 16, position: 'relative', color: colors.textMuted }}>{labels.map(p => <Typography key={p.date} data-testid="asset-trend-date" sx={{ position: 'absolute', left: `${x(p.date)/340*100}%`, transform: x(p.date)>300?'translateX(-100%)':x(p.date)<20?'none':'translateX(-50%)', fontSize: 9, whiteSpace: 'nowrap' }}>{formatDate(p.date)}</Typography>)}</Box>
-    {point && <Box role="status" data-testid="asset-trend-tooltip" sx={{ position: 'absolute', top: 18, ...(x(point.date)>170 ? {left:4} : {right:4}), maxWidth: 'calc(100% - 8px)', px: '8px', py: '4px', bgcolor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '4px', pointerEvents: 'none', overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{point.date}</Typography><Typography sx={{ fontSize: 11 }}>{formatWon(point.value)}</Typography></Box>}
+
   </Box>;
 }
