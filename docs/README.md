@@ -1,3 +1,7 @@
+## 17차 후속 UI 보완 · 2026-10-10
+
+[기획](planning/phase17-followup.md) · [개발](development/phase17-followup.md) · [검증](qa/phase17-followup.md). 메뉴 아이콘·계좌 2줄 카드·올해 목표 배경/기준선·90~110% 색상은 이 기준을 우선한다. 새 차수로 분리하지 않는다.
+
 # Documentation
 
 ## 2026-10-09 · 복리 연도별 실현금액·강조 보완
