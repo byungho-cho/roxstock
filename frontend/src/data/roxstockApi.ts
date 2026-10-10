@@ -147,6 +147,10 @@ export async function currentAccountId(): Promise<string> {
 export const getAccountDashboard = (accountId: string) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`);
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
+export const getDashboardTrend = (accountId: string, range: { from: string; to: string }, signal?: AbortSignal) =>
+  apiEnvelope<{ data: { date: string; totalAssetValue: string }[] }>(
+    `/accounts/${encodeURIComponent(accountId)}/asset-history?${new URLSearchParams({ ...range, view: 'trend' })}`, { signal });
+
 export interface AssetHistoryDto {
   data: { date: string; investmentAmount?: string | null; totalAssetValue: string; cashBalance: string | null; stockValue: string; change: string | null; changeRate: string | null }[];
   compoundPlan?: {id:string;name:string;assetBasis:string;initialAssetValue:string;yearTarget:string|null;goalName:string|null;targetYear:number} | null;
@@ -274,6 +278,13 @@ export interface TradeReport {
   summary: { buyAmount: string; sellAmount: string; realizedProfitLoss: string };
   daily: { date: string; buyCount: number; sellCount: number; buyAmount: string; sellAmount: string; realizedProfitLoss: string }[];
 }
+export interface StockTradeSummaryDto {
+  security: TradeDto['security'];
+  realizedProfitLoss: string | null;
+  lastSoldAt: string | null;
+}
+export const getStockTradeSummary = (accountId: string, signal?: AbortSignal) =>
+  apiRequest<StockTradeSummaryDto[]>(`/accounts/${encodeURIComponent(accountId)}/trades?view=stocks`, { signal });
 export interface BuyLotDto {
   buyDate: string;
   holdingDays: number;

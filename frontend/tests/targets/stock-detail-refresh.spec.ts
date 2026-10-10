@@ -1,3 +1,4 @@
+import {tradeFixtureData} from './trade-summary-fixture';
 import {test,expect,type Locator,type Page} from '@playwright/test';
 import {fixture} from './stock-input-fixture';
 
@@ -25,7 +26,7 @@ async function setup(page:Page){
    return route.fulfill({status:fail?500:200,json:fail?{error:{message:'조회 실패'}}:{data:securities}});
   }
   if(path.endsWith('/holdings'))return route.fulfill({json:{data:securities.filter(s=>s.hasTradeHistory&&s.listType==='HOLDING').map(s=>({securityId:s.id,symbol:s.symbol,name:s.name,quantity:'10',purchaseAmount:'1000',averagePurchasePrice:'100',currentPrice:'200',previousClosePrice:'190',marketValue:String(2000+Number(s.id)),unrealizedProfitLoss:'1000',unrealizedReturnRate:'100',priceChangeRate:'5',priceUpdatedAt:s.priceUpdatedAt}))}});
-  if(path.endsWith('/trades')){const sid=url.searchParams.get('securityId'),data=securities.filter(s=>s.hasTradeHistory&&(!sid||s.id===sid)).map(s=>({id:'trade-'+s.id,type:s.listType==='TRADED'?'SELL':'BUY',security:{id:s.id,symbol:s.symbol,name:s.name},tradedAt:'2026-10-01T00:00:00Z',quantity:'10',unitPrice:'100',amount:'1000',realizedProfitLoss:s.listType==='TRADED'?'1000':null}));return route.fulfill({json:{data,summary:{buyAmount:'1000',sellAmount:'2000',realizedProfitLoss:'1000'},daily:[]}});}
+  if(path.endsWith('/trades')){const sid=url.searchParams.get('securityId'),data=securities.filter(s=>s.hasTradeHistory&&(!sid||s.id===sid)).map(s=>({id:'trade-'+s.id,type:s.listType==='TRADED'?'SELL':'BUY',security:{id:s.id,symbol:s.symbol,name:s.name},tradedAt:'2026-10-01T00:00:00Z',quantity:'10',unitPrice:'100',amount:'1000',realizedProfitLoss:s.listType==='TRADED'?'1000':null}));return route.fulfill({json:{data:tradeFixtureData(url,data),summary:{buyAmount:'1000',sellAmount:'2000',realizedProfitLoss:'1000'},daily:[]}});}
   if(path.endsWith('/buy-lots')){const sid=url.searchParams.get('securityId'),s=securities.find(item=>item.id===sid);const data=s?.hasTradeHistory&&s.listType==='HOLDING'?Array.from({length:6},(_,i)=>({id:`${sid}-lot-${i}`,security:{id:sid,name:s.name,symbol:s.symbol},boughtAt:'2026-10-01T00:00:00Z',quantity:'10',soldQuantity:'0',remainingQuantity:'10',unitPrice:'100',sellTrades:[]})):[];return route.fulfill({json:{data}});}
   if(path==='/api/value-analysis')return route.fulfill({json:{data:{rows:securities.map(s=>({...s,per:null,pbr:null,roe:null,w:null,metricDate:null})),total:securities.length,year:2026,query:''}}});
   const s=securities.find(s=>s.id===path.split('/').at(-1))!;
