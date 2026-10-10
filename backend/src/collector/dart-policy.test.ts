@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dartFailure, dartWindowOpen, retryDecision, publicHolidayDates } from './dart-policy.js';
+import { dartFailure, dartPriorityWindowOpen, dartWindowOpen, retryDecision, publicHolidayDates } from './dart-policy.js';
 
 test('general collection uses Seoul nights, all-day weekends and configured holidays', () => {
   assert.equal(dartWindowOpen(new Date('2026-10-06T01:00Z'),18,6),false);
@@ -46,4 +46,14 @@ test('official holiday rows are cached and merged with explicitly configured dat
     if(priorKey===undefined) delete process.env.DATA_GO_KR_SERVICE_KEY; else process.env.DATA_GO_KR_SERVICE_KEY=priorKey;
     if(priorDates===undefined) delete process.env.DART_PUBLIC_HOLIDAYS; else process.env.DART_PUBLIC_HOLIDAYS=priorDates;
   }
+});
+
+
+test('priority collection opens at 16 KST and closes at 06 even on holidays/weekends', () => {
+  for (const day of ['2026-10-06', '2026-10-09', '2026-10-10']) {
+    for (const [time, expected] of [['05:59:59',true], ['06:00:00',false], ['15:59:59',false], ['16:00:00',true], ['23:59:59',true]] as const) {
+      assert.equal(dartPriorityWindowOpen(new Date(`${day}T${time}+09:00`)),expected,`${day} ${time}`);
+    }
+  }
+  assert.equal(retryDecision('SCHEDULE_WINDOW_ENDED',1,new Date()).status,'PENDING');
 });

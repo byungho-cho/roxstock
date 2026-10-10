@@ -3,15 +3,15 @@ import { prisma } from '../lib/prisma.js';
 import { getSeoulClock } from '../collector/time.js';
 import { PrismaDartRepository } from '../collector/dart-repository.js';
 import { loadCollectorConfig } from '../collector/config.js';
-import { dartWindowOpen, publicHolidayDates, holidayCalendarStatus } from '../collector/dart-policy.js';
+import { dartWindowOpen, dartPriorityWindowOpen, publicHolidayDates, holidayCalendarStatus } from '../collector/dart-policy.js';
 
 interface CollectionJob { id: string; name: string; jobType: string; schedule: string; hour?: number; }
 const jobs: CollectionJob[] = [
-  { id: 'security-master', name: '종목 마스터', jobType: 'security-master', schedule: '매일 07:00', hour: 7 },
+  { id: 'security-master', name: '종목 마스터', jobType: 'security-master', schedule: '매일 06:00', hour: 6 },
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
   { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '매일 20:00', hour: 20 },
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
-  { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 상시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
+  { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
 ];
 
 type Run = Awaited<ReturnType<typeof prisma.collectorRun.findFirst>>;
@@ -96,14 +96,16 @@ async function summary() {
       const config = loadCollectorConfig();
       const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
       const night = dartWindowOpen(now,config.dartWindowStartHour,config.dartWindowEndHour,await publicHolidayDates(now),config.dartRestDayAllDay);
+      const automaticWindow = night || dartPriorityWindowOpen(now, config.dartPriorityWindowStartHour, config.dartPriorityWindowEndHour);
+      const nextAutomaticAt = new Date(Math.min(localSchedule(config.dartPriorityWindowStartHour, now).getTime(), localSchedule(config.dartWindowStartHour, now).getTime()));
       const quotaBlocked = (usage?.apiCallCount ?? 0) >= limit || Boolean(state?.lastRunAt && getSeoulClock(state.lastRunAt).dateKey===getSeoulClock(now).dateKey && state.lastError?.startsWith('020:'));
-      const dartStatus = process.env.DART_COLLECTOR_ENABLED === 'false' || !process.env.DART_API_KEY?.trim() ? 'NOT_CONFIGURED' : !state ? 'NOT_IMPLEMENTED' : quotaBlocked ? 'WAITING' : run?.status === 'RUNNING' && state.lastRunAt && now.getTime()-state.lastRunAt.getTime()<120000 ? 'RUNNING' : phase==='BACKFILL' && !night ? 'WAITING' : run?.status === 'FAILED' ? 'FAILED' : run?.status === 'PARTIAL' ? 'PARTIAL' : state.lastRunAt && now.getTime()-state.lastRunAt.getTime()>120000 ? 'DELAYED' : 'OK';
+      const dartStatus = process.env.DART_COLLECTOR_ENABLED === 'false' || !process.env.DART_API_KEY?.trim() ? 'NOT_CONFIGURED' : !state ? 'NOT_IMPLEMENTED' : quotaBlocked ? 'WAITING' : run?.status === 'RUNNING' && state.lastRunAt && now.getTime()-state.lastRunAt.getTime()<120000 ? 'RUNNING' : !automaticWindow ? 'WAITING' : run?.status === 'FAILED' ? 'FAILED' : run?.status === 'PARTIAL' ? 'PARTIAL' : state.lastRunAt && now.getTime()-state.lastRunAt.getTime()>120000 ? 'DELAYED' : 'OK';
       return { id: job.id, name: job.name, schedule: job.schedule, status: dartStatus,
         lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
-        lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: phase === 'BACKFILL' && !night ? iso(localSchedule(Number(process.env.DART_NIGHT_WINDOW_START_HOUR ?? 18), now)) : null,
+        lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: !automaticWindow ? iso(nextAutomaticAt) : null,
         recent: { target: Number(counts.SUCCESS ?? 0) + Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0) + Number(counts.FAILED ?? 0), processed: Number(counts.SUCCESS ?? 0) + Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0), success: Number(counts.SUCCESS ?? 0), failed: Number(counts.FAILED ?? 0), skipped: Number(counts.NO_FILING ?? 0) + Number(counts.NOT_APPLICABLE ?? 0) },
         phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0) },
-        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !night && phase==='BACKFILL' ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
+        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
     const state = await statusFor(job, run ?? emptyRun(job.jobType, now), now, realtime);
     let nextAt: Date | null = job.hour === undefined ? null : localSchedule(job.hour, now);
