@@ -1,5 +1,7 @@
 # 복리 카드·실현자산 차트 QA (2026-10-09)
 
+아래는 PR #171 당시 검사 기록이다. 현재 색상·진행 막대 기준과 후속 검증은 [17차 후속 QA](phase17-followup.md)를 따른다.
+
 화면 API는 Playwright 모의 응답이다. 실제 운영 데이터·실기기 검증과 구분한다. 기준 main 65f4f58, Chromium, Asia/Seoul, 커버 370×465·태블릿 725×396·큰 화면 1280×800 CSS px.
 
 | 검사 | 결과 및 범위 |
@@ -30,4 +32,4 @@
 
 재현: `node --import tsx --test frontend/tests/unit/compound-achievement.test.ts`, `npm run typecheck:frontend`, `npm run build:frontend`, `npm --workspace backend test`, frontend에서 `npx playwright test --config=playwright.compound.config.ts --workers=2`. 기존 회귀는 `playwright.targets.config.ts`에서 analysis-v04·stock-inputs-v04를 선택한다. CI는 `compound-goal-qa` 아티팩트로 캡처를 보관한다.
 
-미검증: 실제 OS 모바일 시스템 뒤로가기·실기기 세로 스와이프·운영 계좌에서 변경 후 확인·운영 배포 후 확인. 운영 데이터 쓰기/정정, 수집 로직 및 스케줄 변경 없음. 운영 배포는 병합 후 기존 자동화에 맡기며 완료를 기다리지 않는다.
+미검증: 실제 OS 모바일 시스템 뒤로가기·실기기 세로 스와이프·운영 계좌에서 변경 후 확인·운영 배포 후 확인. 운영 데이터 쓰기/정정, 수집 로직 및 스케줄 변경 없음. 해당 작업 당시 운영 확인은 수행하지 않았다. 17차 후속 작업은 배포 완료와 운영 확인을 별도 기록한다.
