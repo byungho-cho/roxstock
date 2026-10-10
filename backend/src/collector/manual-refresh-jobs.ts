@@ -49,12 +49,13 @@ export async function expireManualRun(db:PrismaClient,run:CollectorRun,now=Date.
 }
 
 export async function processIndependentRefresh(db:PrismaClient,config:DartCollectorConfig,run:CollectorRun){
- if(await expireManualRun(db,run))return true;
+ if(await boundedManualJob(()=>expireManualRun(db,run),10_000))return true;
  const owner=randomUUID(),repo=new PrismaDartRepository(db);
- if(!await repo.acquireLock(owner,660))return true;
+ try{if(!await boundedManualJob(()=>repo.acquireLock(owner,660),10_000))return true;}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
  let publishTail=Promise.resolve();
- const fresh=await db.collectorRun.findUnique({where:{id:run.id}});
- if(!fresh||fresh.status!=='RUNNING'){await repo.releaseLock(owner);return true;}
+ let fresh:CollectorRun|null;
+ try{fresh=await boundedManualJob(()=>db.collectorRun.findUnique({where:{id:run.id}}),10_000);}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
+ if(!fresh||fresh.status!=='RUNNING'){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});return true;}
  const m=fresh.metadata as unknown as ManualRefreshMetadata;
  const results:NonNullable<ManualRefreshMetadata['results']>=[];
  const start=m.startYear??m.fiscalYear,end=m.endYear??m.fiscalYear,periods=allPeriods(m),deadline=Date.now()+manualLimits.runMs;

@@ -11,7 +11,7 @@ for(const mode of ['annual','quarter'])test(`common dismiss: all financial ${mod
   await expect(card.locator('[data-period-value][data-selected=true]').first()).toHaveCSS('color','rgb(251, 191, 36)');
   await card.locator('[data-period-value]').first().click();await expect(card.getByTestId('financial-drag-guide')).toHaveCount(0);await expect(card.locator('[data-selected=true]')).toHaveCount(0);
  }
- const open=page.getByRole('button',{name:'상세보기',exact:true}).first();await open.click();const dialog=page.getByRole('dialog',{name:'재무지표 차트 상세보기'}),svg=dialog.getByRole('img');await expect(svg).toBeVisible();const b=await svg.boundingBox();await page.mouse.click(b!.x+45,b!.y+40);
+ const open=page.getByRole('button',{name:'상세보기',exact:true}).first();await open.click();const dialog=page.getByRole('dialog',{name:'재무지표 차트 상세보기'}),svg=dialog.getByRole('img');await svg.click({position:{x:45,y:40}});
  const tooltip=dialog.getByTestId('financial-chart-tooltip');await expect(tooltip).toBeVisible();await tooltip.click();await expect(tooltip).toBeVisible();await page.screenshot({path:info.outputPath('phase17-financial-'+mode+'.png')});
  await dialog.getByRole('button',{name:'차트 상세보기 뒤로가기'}).tap();await expect(dialog).toBeHidden();await expect(page.getByTestId('financial-chart-tooltip')).toHaveCount(0);await overflow(page);
 });
