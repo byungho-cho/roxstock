@@ -90,8 +90,9 @@ test('compact value cards use real API fields and missing amounts, with no edit 
 test('fresh value cache survives menu reentry without refetching list or detail',async({page})=>{
  const f=await fixture(page);await ready(page);
  const listReads=()=>f.requests.filter(r=>r.startsWith('GET /api/value-analysis?')).length;
- expect(listReads()).toBe(1);
+ // StrictMode can cancel/restart the first request; reentry must add no requests.
+ const initialReads=listReads();expect(initialReads).toBeGreaterThanOrEqual(1);
  await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'더보기',exact:true}).click();
  await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'가치분석',exact:true}).click();
- await expect(page.getByTestId('value-row-000001')).toBeVisible();expect(listReads()).toBe(1);
+ await expect(page.getByTestId('value-row-000001')).toBeVisible();expect(listReads()).toBe(initialReads);
 });
