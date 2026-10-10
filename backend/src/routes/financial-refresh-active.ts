@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { id } from '../lib/input.js';
 import type { ManualRefreshMetadata } from '../collector/dart-manual-refresh.js';
 
-/** Read only: follows the worker's existing durable run and does not enqueue or alter it. */
+/** Follows durable jobs, repairs expired manual runs, and never enqueues a new collection. */
 export async function financialRefreshActiveRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/securities/:id/financial-refresh/active', async request => {
     const securityId = id(request.params.id, 'id').toString();
