@@ -13,7 +13,7 @@ import { prisma } from '../lib/prisma.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 type AccountParams = { accountId: string };
-type AssetHistoryQuery = { from?: string; to?: string; storedOnly?: string };
+type AssetHistoryQuery = { from?: string; to?: string; storedOnly?: string; view?: string };
 
 const dateOnly = (value: string | undefined, fieldName: string) => {
   if (value === undefined) return undefined;
@@ -207,6 +207,7 @@ export async function portfolioRoutes(app: FastifyInstance) {
 
   app.get<{ Params: AccountParams; Querystring: AssetHistoryQuery }>('/accounts/:accountId/asset-history', async (request) => {
     const accountId = id(request.params.accountId, 'accountId');
+    if (request.query.view !== undefined && request.query.view !== 'trend') throw new ApiError(400, 'INVALID_INPUT', 'view must be trend.');
     const from = dateOnly(request.query.from, 'from');
     const to = dateOnly(request.query.to, 'to');
     if (from && to && from > to) throw new ApiError(400, 'INVALID_INPUT', 'from must not be later than to.');
@@ -234,6 +235,14 @@ export async function portfolioRoutes(app: FastifyInstance) {
         snapshots.push(point);
       }
     }
+    // Home only needs chart points, not ledger reconciliation or compound targets.
+    // Keep the same live closing point and account/date checks as the detailed view.
+    if (request.query.view === 'trend') return {
+      data: snapshots.map(snapshot => ({
+        date: snapshot.snapshotDate.toISOString().slice(0, 10),
+        totalAssetValue: snapshot.totalAssetValue.toString(),
+      })),
+    };
     const first = snapshots.at(0);
     const last = snapshots.at(-1);
     const validInterval = !!first && !!last && snapshots.length >= 2 && last.updatedAt > first.updatedAt;

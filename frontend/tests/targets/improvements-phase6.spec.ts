@@ -1,3 +1,4 @@
+import {tradeFixtureData} from './trade-summary-fixture';
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import { fixture } from './phase3-fixture';
 async function setup(page:Page) {
@@ -6,7 +7,7 @@ async function setup(page:Page) {
   const u=new URL(route.request().url());if(!u.pathname.endsWith('/trades'))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));
-  return route.fulfill({json:{data,summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
+  return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
  });return control;
 }
 async function swipe(target:Locator,dx:number){await target.evaluate((el,dx)=>{for(const [type,x] of [['touchstart',200],['touchmove',200+dx],['touchend',200+dx]] as const){const touch=new Touch({identifier:1,target:el,clientX:x,clientY:180});el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));}},dx);}

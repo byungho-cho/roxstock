@@ -1,5 +1,5 @@
 import type { StockItem, StockListType, BuyLot } from '../../types/models';
-import type { TradeDto } from '../../data/roxstockApi';
+import type { TradeDto, StockTradeSummaryDto } from '../../data/roxstockApi';
 export const stockTabs: Array<{value: StockListType; label: string}> = [
   {value:'holding',label:'보유종목'},{value:'watchlist',label:'관심종목'},{value:'traded',label:'거래종목'},
 ];
@@ -44,10 +44,29 @@ export function sortStocks(stocks:StockItem[],key:StockSort,descending:boolean,f
   });
 }
 export function deriveAccountStocks(catalog:StockItem[],holdings:StockItem[],trades:TradeDto[]) {
+  const catalogById = new Map(catalog.map(stock => [stock.id, stock]));
   const result=new Map<string,StockItem>(catalog.filter(s=>s.watchlistItemId||s.listType==='holding').map(s=>[s.id,{...s,listType:s.listType==='recommended'?'watchlist':s.listType}]));
-  for(const trade of trades){if(!result.has(trade.security.id))result.set(trade.security.id,{id:trade.security.id,symbol:trade.security.symbol,name:trade.security.name,listType:'traded',currentPrice:Number.NaN,priceChangeRate:Number.NaN,collectionStatus:'failed',...catalog.find(s=>s.id===trade.security.id)});}
+  for(const trade of trades){if(!result.has(trade.security.id))result.set(trade.security.id,{id:trade.security.id,symbol:trade.security.symbol,name:trade.security.name,listType:'traded',currentPrice:Number.NaN,priceChangeRate:Number.NaN,collectionStatus:'failed',...catalogById.get(trade.security.id)});}
   const holdingIds=new Set(holdings.filter(s=>(s.quantity??0)>0).map(s=>s.id));
   for(const trade of trades){const s=result.get(trade.security.id)!;s.hasTradeHistory=true;if(!holdingIds.has(s.id))s.listType='traded';if(trade.type==='SELL'){s.realizedProfit=(s.realizedProfit??0)+Number(trade.realizedProfitLoss??0);s.lastSoldAt=!s.lastSoldAt||trade.tradedAt>s.lastSoldAt?trade.tradedAt:s.lastSoldAt;}}
   for(const s of holdings)result.set(s.id,{...result.get(s.id),...s,hasTradeHistory:true});
+  return [...result.values()];
+}
+
+export function deriveAccountStocksFromSummary(catalog: StockItem[], holdings: StockItem[], summaries: StockTradeSummaryDto[]) {
+  const catalogById = new Map(catalog.map(stock => [stock.id, stock]));
+  const result = new Map<string, StockItem>(catalog.filter(stock => stock.watchlistItemId || stock.listType === 'holding')
+    .map(stock => [stock.id, { ...stock, listType: stock.listType === 'recommended' ? 'watchlist' : stock.listType }]));
+  for (const summary of summaries) {
+    const id = summary.security.id;
+    const stock = result.get(id) ?? catalogById.get(id) ?? {
+      id, symbol: summary.security.symbol, name: summary.security.name,
+      currentPrice: Number.NaN, priceChangeRate: Number.NaN, collectionStatus: 'failed' as const,
+    };
+    result.set(id, { ...stock, listType: 'traded', hasTradeHistory: true,
+      ...(summary.lastSoldAt ? { lastSoldAt: summary.lastSoldAt, realizedProfit: Number(summary.realizedProfitLoss ?? 0) } : {}),
+    });
+  }
+  for (const holding of holdings) result.set(holding.id, { ...result.get(holding.id), ...holding, hasTradeHistory: true });
   return [...result.values()];
 }

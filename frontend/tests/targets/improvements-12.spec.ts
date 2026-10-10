@@ -1,3 +1,4 @@
+import {tradeFixtureData} from './trade-summary-fixture';
 import { expect, test, type Page, type Locator } from '@playwright/test';
 import { fixture as stockFixture } from './stock-input-fixture';
 import { calculateProfit, sortProfit, rate, amount } from '../../src/pages/investment-profit/profitData';
@@ -22,7 +23,7 @@ async function fixture(page:Page){
   if(path.endsWith('/investment-capital'))return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'107317732',status:'AVAILABLE'},{year:2024,date:null,investmentAmount:null,status:'YEAR_END_MISSING'}]}});
   if(path.endsWith('/trades')){const empty=path.includes('/2/');let records=empty?[]:trades;
    if(url.searchParams.has('from'))records=records.filter(r=>r.tradedAt.slice(0,10)>=url.searchParams.get('from')!&&r.tradedAt.slice(0,10)<=url.searchParams.get('to')!);
-   return route.fulfill({json:{data:records,daily:[],summary:{buyAmount:'4000',sellAmount:'1340',realizedProfitLoss:path.includes('/2/')?'0':'39720500'}}});}
+   return route.fulfill({json:{data:tradeFixtureData(url,records),daily:[],summary:{buyAmount:'4000',sellAmount:'1340',realizedProfitLoss:path.includes('/2/')?'0':'39720500'}}});}
   if(path.endsWith('/asset-history'))return route.fulfill({json:{data:[{date:'2026-10-01',investmentAmount:'107317732',totalAssetValue:'81845732',updatedAt:'2026-10-01T14:00:00Z'}],summary:{}}});
   if(path.endsWith('/investment-baseline'))return route.fulfill({json:{data:null}});
   if(path.endsWith('/cash-transactions')){const rows=url.searchParams.get('types')==='DIVIDEND'?[{id:'d',transactionType:'DIVIDEND',transactionDate:'2026-10-01T03:00:00Z',dividend:{securityId:'0',securityName:names[0],netAmount:'10'}}]:[];return route.fulfill({json:{data:rows,meta:{total:rows.length}}});}
