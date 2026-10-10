@@ -1,5 +1,5 @@
 import { storedQueryOptions } from '../data/storedQueryOptions';
-import { getAssetHistory, getTrades } from '../data/roxstockApi';
+import { getDashboardTrend, getStockTradeSummary } from '../data/roxstockApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchBuyLots, fetchDashboard, fetchStocks } from '../data/mockApi';
 import { fetchLiveBuyLots, fetchLiveDashboard, fetchLiveStocks, liveApiEnabled } from '../data/liveData';
@@ -10,9 +10,13 @@ const PRICE_REFRESH_INTERVAL_MS = 5 * 60_000;
 
 export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = {}) {
   const { accountId } = useActiveAccount();
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const monthAgo = new Date(`${today}T00:00:00Z`);
+  monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
+  const from = monthAgo.toISOString().slice(0, 10);
   const history = useQuery({
-    queryKey: ['assetHistory', accountId, 'dashboard'],
-    queryFn: () => getAssetHistory(accountId!), enabled: liveApiEnabled && !!accountId,
+    queryKey: ['assetHistory', accountId, 'dashboard', from, today],
+    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: liveApiEnabled && !!accountId,
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   const summary = useQuery({
@@ -29,7 +33,7 @@ export function useStocks(listType?: StockListType, options: { enabled?: boolean
   const { accountId } = useActiveAccount(), client = useQueryClient();
   return useQuery({
     queryKey: ['stocks', listType ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId],
-    queryFn: () => liveApiEnabled ? fetchLiveStocks(listType, accountId, client.fetchQuery({ ...storedQueryOptions, queryKey: ['accountTrades', accountId], queryFn: ({signal}) => getTrades(accountId!, {}, signal) })) : fetchStocks(listType),
+    queryFn: () => liveApiEnabled ? fetchLiveStocks(listType, accountId, client.fetchQuery({ ...storedQueryOptions, queryKey: ['accountTradesSummary', accountId], queryFn: ({signal}) => getStockTradeSummary(accountId!, signal) })) : fetchStocks(listType),
     enabled: options.enabled !== false && (!liveApiEnabled || !!accountId),
     refetchInterval: liveApiEnabled ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,

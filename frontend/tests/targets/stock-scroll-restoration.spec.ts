@@ -1,3 +1,4 @@
+import {tradeFixtureData} from './trade-summary-fixture';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {test,expect,type Page} from '@playwright/test';
 import {fixture} from './stock-input-fixture';
@@ -12,7 +13,7 @@ async function scrollFixture(page:Page){
  const history=catalog.slice(60).map(s=>({id:'sell-'+s.id,type:'SELL',buyTradeId:'lot-'+s.id,tradedAt:'2026-09-18T03:00:00Z',security:s,quantity:'1',unitPrice:'1000',amount:'1000',realizedProfitLoss:'900',memo:null}));
  await page.route('**/api/securities?**',route=>new URL(route.request().url()).searchParams.has('query')?route.fallback():route.fulfill({json:{data:catalog}}));
  await page.route('**/api/accounts/a/holdings',route=>route.fulfill({json:{data:holdings}}));
- await page.route('**/api/accounts/a/trades**',route=>{const id=new URL(route.request().url()).searchParams.get('securityId');return route.fulfill({json:{data:history.filter(t=>!id||t.security.id===id),summary:{buyAmount:'0',sellAmount:'30000',realizedProfitLoss:'27000'},daily:[]}});});
+ await page.route('**/api/accounts/a/trades**',route=>{const id=new URL(route.request().url()).searchParams.get('securityId');return route.fulfill({json:{data:tradeFixtureData(new URL(route.request().url()),history.filter(t=>!id||t.security.id===id)),summary:{buyAmount:'0',sellAmount:'30000',realizedProfitLoss:'27000'},daily:[]}});});
  return original;
 }
 for(const category of categories)test(category+' restores actual scroll after input, browser back and header back',async({page},info)=>{

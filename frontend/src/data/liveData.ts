@@ -1,6 +1,6 @@
 import type { DashboardData, StockItem, StockListType } from '../types/models';
-import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getTrades, listSecurities, type TradeReport, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
-import { deriveAccountStocks } from '../pages/stocks/stockMath';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getStockTradeSummary, listSecurities, type StockTradeSummaryDto, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { deriveAccountStocksFromSummary } from '../pages/stocks/stockMath';
 import type { BuyLot } from '../types/models';
 
 /** Enable only after the backend and same-origin /api proxy have been deployed. */
@@ -50,10 +50,10 @@ export function mapHolding(holding: HoldingDto): StockItem {
   };
 }
 
-export async function fetchLiveStocks(listType?: StockListType, accountId?: string, tradesRequest?: Promise<TradeReport>): Promise<StockItem[]> {
+export async function fetchLiveStocks(listType?: StockListType, accountId?: string, tradesRequest?: Promise<StockTradeSummaryDto[]>): Promise<StockItem[]> {
   const selected = accountId ?? await currentAccountId();
-  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), tradesRequest ?? getTrades(selected)]);
-  const all = deriveAccountStocks(catalog.map(mapSecurity), holdings.map(mapHolding), trades.data);
+  const [catalog, holdings, trades] = await Promise.all([listSecurities({ accountId: selected, registeredOnly: true }), getAccountHoldings(selected), tradesRequest ?? getStockTradeSummary(selected)]);
+  const all = deriveAccountStocksFromSummary(catalog.map(mapSecurity), holdings.map(mapHolding), trades);
   return listType ? all.filter(stock => stock.listType === listType) : all;
 }
 
