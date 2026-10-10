@@ -20,6 +20,7 @@ const tick = async () => {
       enabled: config.dartEnabled, apiKey: process.env.DART_API_KEY?.trim() ?? '', dailyCallLimit: backfill ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit,
       minDelayMs: backfill ? config.dartBackfillMinDelayMs : config.dartMinDelayMs, backfillStartYear: config.dartBackfillStartYear,
       backfillCompanyLimit: config.dartBackfillCompanyLimit, universeBatchSize: config.dartUniverseBatchSize,
+      priorityWindowStartHour: config.dartPriorityWindowStartHour, priorityWindowEndHour: config.dartPriorityWindowEndHour,
       windowStartHour: config.dartWindowStartHour, windowEndHour: config.dartWindowEndHour,
       corpRefreshHours: config.dartCorpRefreshHours,
       restDayAllDay: config.dartRestDayAllDay, holidayDates: await publicHolidayDates(),
@@ -27,7 +28,7 @@ const tick = async () => {
     if (await processManualRefresh(prisma, dartConfig)) return;
     const result = await runDartCollectorCycle(prisma, dartConfig);
     if (result.status === 'NOT_CONFIGURED') log('warn', 'DART collector is not configured; schedule is inactive', {});
-    else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED'].includes(result.status)) log('info', 'DART collector cycle finished', result);
+    else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED', 'OUTSIDE_WINDOW'].includes(result.status)) log('info', 'DART collector cycle finished', result);
   } catch (error) {
     log('error', 'DART collector worker tick failed', dartDiagnostic(error,'WORKER_TICK'));
   } finally { running = false; }

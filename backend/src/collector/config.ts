@@ -69,6 +69,8 @@ export interface CollectorConfig {
   dartBackfillStartYear: number;
   dartBackfillCompanyLimit: number;
   dartUniverseBatchSize: number;
+  dartPriorityWindowStartHour: number;
+  dartPriorityWindowEndHour: number;
   dartWindowStartHour: number;
   dartWindowEndHour: number;
   dartCorpRefreshHours: number;
@@ -101,7 +103,7 @@ export const loadCollectorConfig = (): CollectorConfig => {
     snapshotHours: [...new Set(snapshotHours)],
     lockTtlSeconds: positiveInteger(process.env.COLLECTOR_LOCK_TTL_SECONDS, 7200, 'COLLECTOR_LOCK_TTL_SECONDS'),
     schedulerTickSeconds: positiveInteger(process.env.COLLECTOR_SCHEDULER_TICK_SECONDS, 30, 'COLLECTOR_SCHEDULER_TICK_SECONDS'),
-    securityMasterHour: hour(process.env.COLLECTOR_SECURITY_MASTER_HOUR, 7, 'COLLECTOR_SECURITY_MASTER_HOUR'),
+    securityMasterHour: hour(process.env.COLLECTOR_SECURITY_MASTER_HOUR, 6, 'COLLECTOR_SECURITY_MASTER_HOUR'),
     securityMasterEndpoint: process.env.DATA_GO_KR_KRX_LISTED_ENDPOINT
       ?? process.env.DATA_GO_KR_STOCK_PRICE_ENDPOINT
       ?? 'https://apis.data.go.kr/1160100/GetKrxListedInfoService_V2/getItemInfo_V2',
@@ -133,6 +135,8 @@ export const loadCollectorConfig = (): CollectorConfig => {
     dartBackfillStartYear,
     dartBackfillCompanyLimit,
     dartUniverseBatchSize: positiveInteger(process.env.DART_UNIVERSE_DAILY_COMPANIES, 35, 'DART_UNIVERSE_DAILY_COMPANIES'),
+    dartPriorityWindowStartHour: hour(process.env.DART_PRIORITY_WINDOW_START_HOUR, 16, 'DART_PRIORITY_WINDOW_START_HOUR'),
+    dartPriorityWindowEndHour: hour(process.env.DART_PRIORITY_WINDOW_END_HOUR, 6, 'DART_PRIORITY_WINDOW_END_HOUR'),
     dartWindowStartHour: hour(process.env.DART_NIGHT_WINDOW_START_HOUR, 18, 'DART_NIGHT_WINDOW_START_HOUR'),
     dartWindowEndHour: hour(process.env.DART_NIGHT_WINDOW_END_HOUR, 6, 'DART_NIGHT_WINDOW_END_HOUR'),
     dartCorpRefreshHours: positiveInteger(process.env.DART_CORP_CODE_REFRESH_HOURS, 24, 'DART_CORP_CODE_REFRESH_HOURS'),
