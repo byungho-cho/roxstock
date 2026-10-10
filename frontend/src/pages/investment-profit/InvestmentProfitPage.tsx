@@ -94,7 +94,16 @@ export function InvestmentProfitPage() {
   };
   // All stock events and adjacent details are fetched in one account result; no per-swipe requests.
   const swipe = useDetailSwipe(step, tab === 'stock' && !!group);
-  const retry = () => { if (accounts.isError) void accounts.refetch(); if (accountId) void query.refetch(); };
+  const retry = async () => {
+    if (accounts.isError) void accounts.refetch();
+    if (!accountId) return;
+    // Explicit retry must refresh every source, including a successful sibling of a failed request.
+    for (const key of ['profitTrades', 'profitDividends', 'profitCapital']) {
+      await client.cancelQueries({queryKey: [key, accountId, today], exact: true});
+      await client.invalidateQueries({queryKey: [key, accountId, today], exact: true, refetchType: 'none'});
+    }
+    await query.refetch();
+  };
   const error = failed ? <AppCard sx={card}><Typography role="alert" sx={muted}>조회에 실패했습니다.{data ? ' 기존 데이터를 표시합니다.' : ''}</Typography><Button onClick={retry} sx={{ fontSize: 11, minHeight: 28 }}>재시도</Button></AppCard> : null;
   const loading = <AppCard sx={card}><Skeleton height={72} /></AppCard>;
   const empty = (detail = false) => <AppCard data-testid={detail ? 'profit-detail-empty' : 'profit-empty'} sx={{ ...card, height: 160, display: 'grid', placeItems: 'center' }}><Typography role="status" sx={{ fontSize: 14 }}>{detail ? '내역이 없습니다.' : '내용이 없습니다.'}</Typography></AppCard>;
