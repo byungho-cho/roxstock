@@ -1,5 +1,6 @@
 import { ArrowBackRounded } from '@mui/icons-material';
 import { AppBar, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
+import {appMenuItems,menuIconSource} from './menuItems';
 import { HeaderAddButton } from './HeaderAddButton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createContext, useContext, type ReactNode } from 'react';
@@ -58,19 +59,7 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
   return embedded ? slot ? createPortal(header, slot) : null : header;
 }
 
-const menuItems = [
-  { label: '종목목록', path: '/stocks', asset: 'stocks' },
-  { label: '매매일지', path: '/journal', asset: 'journal' },
-  { label: '예수금', path: '/detail/cash', asset: 'cash' },
-  { label: '자산분석', path: '/assets', asset: 'analysis' },
-  { label: '투자금', path: '/detail/investment', asset: 'financials' },
-  { label: '투자손익', path: '/detail/investment-profit', asset: 'financials' },
-  { label: '가치분석', path: '/detail/value', asset: 'financials' },
-  { label: '재무제표', path: '/detail/financials', asset: 'financials' },
-  { label: '복리계획', path: '/detail/compound', asset: 'financials' },
-  { label: '모니터링', path: '/detail/collection-monitoring', asset: 'financials' },
-  { label: '설정', path: '/detail/settings', asset: 'financials' },
-];
+const menuItems=appMenuItems.filter(item=>item.path!=='/');
 export function BottomNav() {
   const navigate = useNavigate(), location = useLocation();
   const path = location.pathname;
@@ -79,11 +68,11 @@ export function BottomNav() {
     : /\/stocks\/[^/]+\/financials$/.test(path) ? '/detail/financials'
     : [...menuItems].sort((a,b)=>b.path.length-a.path.length).find(item=>path.startsWith(item.path))?.path
     ?? (path === '/more' ? '/more' : '/');
-  const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(/navigation-v16/${asset}.svg)`,maskSize:'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={`/navigation-v16/${asset}.svg`} alt="" sx={{width:18,height:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
+  const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(${asset})`,maskSize:'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={asset} alt="" sx={{width:18,height:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
   const divider = <Box sx={{width:'1px',height:28,my:'8px',bgcolor:'#334155',flexShrink:0}}/>;
   return <Box component="nav" className="MuiBottomNavigation-root" aria-label="하단 메뉴" sx={{position:'fixed',inset:'auto 0 0',height:44,zIndex:10,display:'flex',bgcolor:'#0B1220',borderTop:`1px solid ${colors.border}`}}>
-    {item('홈','/','home',true)}{divider}
-    <Box data-testid="bottom-menu-scroll" sx={{display:'flex',minWidth:0,flex:1,overflowX:'auto',overflowY:'hidden',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}>{menuItems.map(entry=>item(entry.label,entry.path,entry.asset))}</Box>
-    {divider}{item('더보기','/more','more',true)}
+    {item('홈','/',menuIconSource('home'),true)}{divider}
+    <Box data-testid="bottom-menu-scroll" sx={{display:'flex',minWidth:0,flex:1,overflowX:'auto',overflowY:'hidden',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}>{menuItems.map(entry=>item(entry.label,entry.path,menuIconSource(entry.icon)))}</Box>
+    {divider}{item('더보기','/more','/navigation-v16/more.svg',true)}
   </Box>;
 }

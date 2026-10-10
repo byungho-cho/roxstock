@@ -1,3 +1,4 @@
+import {accountUpdatedAt} from '../../utils/accountUpdatedAt';
 import { AndroidDownload } from './AndroidDownload';
 import {ApiError} from '../../data/apiClient';
 import {useAccountAllocation} from '../../hooks/useAccountAllocation';
@@ -109,11 +110,13 @@ export function AccountManagement(_props: { openReset?: () => void }) {
 }
 function AccountCard({item,active,select}:{item:AccountDto;active:boolean;select:()=>void}) {
  const navigate=useNavigate();const allocation=useAccountAllocation(item.id);const cash=allocation.query.data?allocation.query.data.cashBalance:item.cashBalance;
- return <Box data-testid={'account-card-'+item.id} sx={{...settingsPanel,p:'8px 15px',border:'2px solid',borderColor:active?'#FACC15':'#21304A',display:'flex',flexDirection:'column',gap:'8px',position:'relative'}}>
+ return <Box data-testid={'account-card-'+item.id} sx={{...settingsPanel,p:'6px 15px',border:'2px solid',borderColor:active?'#FACC15':'#21304A',display:'flex',flexDirection:'column',gap:'4px',position:'relative'}}>
  <ButtonBase aria-label={item.name+' 계좌 선택'} aria-pressed={active} onClick={select} sx={{position:'absolute',inset:0,borderRadius:'inherit','&.Mui-focusVisible':{outline:'2px solid #60A5FA',outlineOffset:2}}}/>
- <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:1,pointerEvents:'none'}}><Typography sx={{fontSize:16,color:active?'#FACC15':colors.textPrimary,overflowWrap:'anywhere',minWidth:0}}>{item.name} <Box component="span" data-testid="account-number" sx={{...hint,fontWeight:400}}>({item.accountNumber??'—'})</Box></Typography><IconButton aria-label={item.name+' 계좌 정보 수정'} sx={{p:0,width:20,height:20,flexShrink:0,pointerEvents:'auto',zIndex:1}} onClick={event=>{event.stopPropagation();navigate('/detail/settings?view=edit&accountId='+item.id);}}><img src="/phase15/account-edit.svg" alt="" width="20" height="20"/></IconButton></Stack>
- <Typography data-testid="account-cash" sx={{fontSize:24,color:allocation.cashColor,textAlign:'right',overflowWrap:'anywhere'}}>{fmt(cash)}</Typography>
- <Typography sx={{...hint,fontWeight:400,pointerEvents:'none'}}>최근 수정 {item.updatedAt?new Date(item.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'—'}</Typography>
+ <Stack data-testid="account-title-row" direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:'4px',minHeight:20,pointerEvents:'none'}}><Typography sx={{fontSize:13,lineHeight:'20px',color:active?'#FACC15':colors.textPrimary,overflowWrap:'anywhere',minWidth:0}}>{item.name} <Box component="span" data-testid="account-number" sx={{...hint,fontWeight:400}}>({item.accountNumber??'—'})</Box></Typography><IconButton aria-label={item.name+' 계좌 정보 수정'} sx={{p:0,width:20,height:20,flexShrink:0,pointerEvents:'auto',zIndex:1}} onClick={event=>{event.stopPropagation();navigate('/detail/settings?view=edit&accountId='+item.id);}}><img src="/phase15/account-edit.svg" alt="" width="20" height="20"/></IconButton></Stack>
+ <Stack data-testid="account-detail-row" direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:'4px',minHeight:20,pointerEvents:'none'}}>
+ <Typography data-testid="account-updated-at" sx={{...hint,fontSize:10,lineHeight:'20px',fontWeight:400,flexShrink:0}}>{accountUpdatedAt(item.updatedAt)}</Typography>
+ <Typography data-testid="account-cash" sx={{fontSize:16,lineHeight:'20px',color:allocation.cashColor,textAlign:'right',overflowWrap:'anywhere',minWidth:0}}>{fmt(cash)}</Typography>
+ </Stack>
  </Box>;
 }
 
