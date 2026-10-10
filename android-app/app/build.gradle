@@ -1,0 +1,58 @@
+plugins { id 'com.android.application' }
+
+def site = providers.gradleProperty('roxstockUrl').getOrElse('https://newrox.cafe24.com')
+if (!(site ==~ /https:\/\/[A-Za-z0-9.-]+(:[0-9]+)?/)) throw new GradleException('roxstockUrl must be an HTTPS origin without a path')
+
+android {
+    namespace 'com.roxstock.app'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.roxstock.app'
+        minSdk 24
+        targetSdk 35
+        versionCode 3
+        versionName '0.1.2'
+        resValue 'string', 'app_name', 'RoxStock'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'String', 'SITE_ORIGIN', '"' + site + '"'
+    }
+    buildFeatures { buildConfig true }
+    flavorDimensions += 'capability'
+    productFlavors {
+        webOnly {
+            dimension 'capability'
+            applicationIdSuffix '.webonly'
+            versionNameSuffix '-webonly'
+            resValue 'string', 'app_name', 'RoxStock 웹 시험'
+        }
+        notifications { dimension 'capability' }
+    }
+    signingConfigs {
+        if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) {
+            stable {
+                storeFile file(System.getenv('ROXSTOCK_SIGNING_KEYSTORE'))
+                storePassword System.getenv('ROXSTOCK_SIGNING_PASSWORD')
+                keyAlias 'roxstock'
+                keyPassword System.getenv('ROXSTOCK_SIGNING_PASSWORD')
+                storeType 'PKCS12'
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'; versionNameSuffix '-test'
+            if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
+        }
+        release {
+            minifyEnabled false
+            if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError true }
+}
+dependencies {
+    notificationsImplementation 'androidx.webkit:webkit:1.12.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}
