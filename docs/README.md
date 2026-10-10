@@ -151,3 +151,8 @@ RoxStock의 기획, 설계, 개발 규칙 및 운영 문서를 관리합니다.
 - [14차 종목 보고서·가치지표 팝업](development/stock-value-popup14.md) · [QA](qa/stock-value-popup14.md)
 
 - [15.1차 최종 3안 개발현황](development/asset-composition15-1.md) · [QA](qa/asset-composition15-1.md)
+
+
+## 17차 통합 후속 · 2026-10-10
+
+[기획](planning/phase17-integrated.md) · [구현](development/phase17-integrated.md) · [검증](qa/phase17-integrated.md). 기존 17차 화면·종목코드 개선을 유지하며 공통 차트 선택 해제, 날짜 표시 및 수동 수집 분리/시간 제한/복구를 작업 브랜치에서 검증 중. 운영 반영은 PR·배포 확인 후 별도 기록.

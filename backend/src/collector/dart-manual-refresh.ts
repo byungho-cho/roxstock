@@ -1,3 +1,4 @@
+import {processIndependentRefresh,expireManualRun,type ManualTaskResult} from './manual-refresh-jobs.js';
 import {recordDartFailure} from './dart-diagnostics.js';
 import { refreshManualAnnual } from './manual-annual-prototype.js';
 import { NaverAnnualProvider } from './naver-annual.js';
@@ -13,18 +14,19 @@ import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartPe
 import { getCfsThenOfs, parseDartDate, endOfFiscalPeriod, type DartCollectorConfig } from './dart-collector.js';
 
 export const manualReports: Record<DartPeriodType, DartReportCode> = { Q1: '11013', Q2: '11012', Q3: '11014', ANNUAL: '11011' };
-export interface ManualRefreshMetadata { phase: 'MANUAL'; executionMode?: 'MANUAL_PROTOTYPE'; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ fiscalYear?: number; kind?:string; collectionState?:string; financialComplete?:boolean; disclosureChecked?:boolean; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
-export function parseManualRefresh(body: unknown): { fiscalYear: number; startYear: number; endYear: number; period: DartPeriodType | 'ALL' } {
+export interface ManualRefreshMetadata { phase: 'MANUAL'; executionMode?: 'MANUAL_PROTOTYPE'; refreshMode?:'FULL'|'SUPPLEMENT';clientRequestId?:string;deadlineAt?:string;lockOwner?:string;terminalCode?:string; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult};stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult}; fiscalYear?: number; kind?:string; collectionState?:string; financialComplete?:boolean; disclosureChecked?:boolean; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
+export function parseManualRefresh(body: unknown): { fiscalYear: number; startYear: number; endYear: number; period: DartPeriodType | 'ALL'; refreshMode:'FULL'|'SUPPLEMENT';clientRequestId?:string } {
   const b = body as Record<string, unknown> | null;
   const startYear = b?.startYear ?? b?.fiscalYear, endYear = b?.endYear ?? b?.fiscalYear;
   const currentYear = Number(getSeoulClock(new Date()).dateKey.slice(0,4));
   if ([startYear,endYear].some(y=>typeof y !== 'number' || !Number.isInteger(y) || y < 2015 || y > currentYear) || Number(startYear)>Number(endYear))
     throw new ApiError(400,'INVALID_INPUT','시작연도·종료연도는 2015년부터 현재 연도까지이며 시작연도가 종료연도보다 늦을 수 없습니다.');
   if (typeof b?.period !== 'string' || !['Q1','Q2','Q3','ANNUAL','ALL'].includes(b.period)) throw new ApiError(400,'INVALID_INPUT','갱신범위를 확인해 주세요.');
-  return {fiscalYear:Number(startYear),startYear:Number(startYear),endYear:Number(endYear),period:b.period as DartPeriodType|'ALL'};
+  if(b?.refreshMode!==undefined&&!['FULL','SUPPLEMENT'].includes(String(b.refreshMode)))throw new ApiError(400,'INVALID_INPUT','갱신 방식을 확인해 주세요.');
+  if(b?.clientRequestId!==undefined&&(typeof b.clientRequestId!=='string'||!/^[-a-zA-Z0-9]{16,80}$/.test(b.clientRequestId)))throw new ApiError(400,'INVALID_INPUT','요청 식별자를 확인해 주세요.');
+  return {...(typeof b?.clientRequestId==='string'?{clientRequestId:b.clientRequestId}:{}),refreshMode:b?.refreshMode==='SUPPLEMENT'?'SUPPLEMENT':'FULL',fiscalYear:Number(startYear),startYear:Number(startYear),endYear:Number(endYear),period:b.period as DartPeriodType|'ALL'};
 }
 export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint, input: ReturnType<typeof parseManualRefresh>) {
-  if (!process.env.DART_API_KEY?.trim() || process.env.DART_COLLECTOR_ENABLED === 'false') throw new ApiError(503, 'DART_NOT_CONFIGURED', 'DART 수집 설정을 확인해 주세요.');
   const security = await db.security.findUnique({ where: { id: securityId }, select: { id: true, isActive: true, securityType: true } });
   if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
   if (security.securityType !== 'STOCK') throw new ApiError(422, 'DART_NOT_APPLICABLE', '재무제표 수집 대상 주식이 아닙니다.');
@@ -33,7 +35,9 @@ export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint,
   const lock = 'dart-manual-enqueue';
   if (!await repo.acquireLock(owner, 30, lock)) throw new ApiError(409, 'DART_REFRESH_BUSY', '요청 접수 중입니다. 잠시 후 다시 시도해 주세요.');
   try {
-    const existing = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', AND: [{ metadata: { path: '$.phase', equals: 'MANUAL' } }, { metadata: { path: '$.securityId', equals: securityId.toString() } }] }, orderBy: { startedAt: 'desc' } });
+    if(input.clientRequestId){const previous=await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',AND:[{metadata:{path:'$.phase',equals:'MANUAL'}},{metadata:{path:'$.securityId',equals:securityId.toString()}},{metadata:{path:'$.clientRequestId',equals:input.clientRequestId}}]},orderBy:{startedAt:'desc'}});if(previous)return previous;}
+    let existing = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', AND: [{ metadata: { path: '$.phase', equals: 'MANUAL' } }, { metadata: { path: '$.securityId', equals: securityId.toString() } }] }, orderBy: { startedAt: 'desc' } });
+    if(existing&&(existing.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE'&&await expireManualRun(db,existing))existing=null;
     if (existing) throw new ApiError(409, 'DART_REFRESH_IN_PROGRESS', '이 종목의 업데이트가 이미 진행 중입니다.');
     const pending = await db.collectorRun.count({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } } });
     if (pending >= 20) throw new ApiError(429, 'DART_REFRESH_QUEUE_FULL', '업데이트 요청이 많습니다. 잠시 후 다시 시도해 주세요.');
@@ -46,6 +50,7 @@ export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint,
 export async function processManualRefresh(db: PrismaClient, config: DartCollectorConfig) {
   const run = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } }, orderBy: { startedAt: 'asc' } });
   if (!run) return false;
+  if((run.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE')return processIndependentRefresh(db,config,run);
   const repo = new PrismaDartRepository(db);
   const owner = randomUUID();
   if (!await repo.acquireLock(owner, 900)) return true;

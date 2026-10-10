@@ -2,7 +2,7 @@ import {FairPriceCard} from './FairPriceCard';
 import {StockNavigation as StockHeaderNavigation} from '../stocks/StockNavigation';
 import {FinancialPeriodHeader} from './FinancialPeriodHeader';
 import {ActionButton} from '../../components/common/Common';
-import {FinancialRefreshDialog,FinancialRefreshButton} from '../stocks/FinancialRefreshControls';
+import {FinancialRefreshDialog,FinancialRefreshButton,hasSavedFinancialData,type RefreshPeriod} from '../stocks/FinancialRefreshControls';
 import {useFinancialCondition,useFinancialCenterYear} from './useFinancialCondition';
 import {colors,pageMetrics} from '../../styles/tokens';
 import {largeMoney} from '../../utils/largeMoney';
@@ -103,7 +103,7 @@ export function ValueAnalysisPage(){
  const stockNavigation=fromStockList?<StockHeaderNavigation symbol={currentSymbol} previousName={previous?.name} nextName={next?.name} onPrevious={()=>move(-1)} onNext={()=>move(1)}/>:undefined;
  return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
   <PageHeader embedded valueAnalysis title={fromStockList?currentName:detailHeader?<Box component="span" sx={{display:'flex',alignItems:'baseline',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false} stockNavigation={stockNavigation} variant={fromStockList?'detail':detailHeader?'standard':'detail'} showBackTablet={fromStockList||!detailHeader} onBack={headerBack} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>}/>
-  {selected&&<FinancialRefreshDialog open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
+  {selected&&<FinancialRefreshDialog hasExistingData={hasSavedFinancialData(shownDetail?.rows??[])} initialPeriod={(chart&&mode==='quarter'?`Q${startQuarter}`:'ANNUAL') as RefreshPeriod} open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
   {chart?<Box {...swipe} data-detail-swipe data-financial-chart sx={{touchAction:'pan-y'}}>
    <Box data-testid="financial-sticky-header" sx={{position:'sticky',top:0,zIndex:10,bgcolor:colors.canvas,pt:1,pb:0,mb:0,borderBottom:`1px solid ${colors.borderStrong}`}}>
    <Box sx={{display:'flex',gap:1,mb:1,height:28,alignItems:'center'}}>

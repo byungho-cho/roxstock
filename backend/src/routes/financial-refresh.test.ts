@@ -27,7 +27,7 @@ test('manual refresh POST validates, queues once and GET cannot access another s
     const active=await app.inject('/api/securities/1/financial-refresh/active');assert.equal(active.statusCode,200);assert.equal(active.json().data.requestId,'99');assert.equal(active.json().data.counts.disclosureCompleted,0);
     const other=await app.inject('/api/securities/2/financial-refresh/99');assert.equal(other.statusCode,404);
     delete process.env.DART_API_KEY;
-    const missing=await app.inject({method:'POST',url:'/api/securities/1/financial-refresh',payload:{fiscalYear:2024,period:'Q1'}});assert.equal(missing.statusCode,503);
+    const missing=await app.inject({method:'POST',url:'/api/securities/1/financial-refresh',payload:{fiscalYear:2024,period:'Q1'}});assert.equal(missing.statusCode,409);
   } finally {
     await app.close();prisma.security.findUnique=originals.security;prisma.collectorRun.findFirst=originals.first;prisma.collectorRun.count=originals.count;prisma.collectorRun.create=originals.create;prisma.collectorRun.findUnique=originals.unique;PrismaDartRepository.prototype.acquireLock=originals.acquire;PrismaDartRepository.prototype.releaseLock=originals.release;
     if(oldKey===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=oldKey;
