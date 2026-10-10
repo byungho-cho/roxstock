@@ -46,3 +46,15 @@ test('loading completion preserves quarter alignment and account data stays isol
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('stock-profit-summary')).not.toContainText('2,000원');
 });
+
+test('summary defers holding lots and stock trade detail; profit detail alone loads capital',async({page})=>{
+ await setup(page);const reads:URL[]=[];page.on('request',r=>{if(r.method()==='GET')reads.push(new URL(r.url()));});
+ await open(page);await expect(page.getByTestId('stock-profit-summary')).toContainText('2,000원');
+ expect(reads.filter(u=>u.pathname.endsWith('/buy-lots')&&u.searchParams.get('securityId')==='1')).toHaveLength(0);
+ expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.get('securityId')==='1')).toHaveLength(0);
+ expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
+ await page.getByRole('tab',{name:'보유 현황',exact:true}).click();await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/buy-lots')).length).toBeGreaterThan(0);
+ await page.getByRole('tab',{name:'요약',exact:true}).click();await page.getByTestId('stock-profit-summary').click();await expect(page.getByTestId('profit-detail-summary')).toBeVisible();
+ await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-capital')).length).toBe(1);
+ expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(1);
+});

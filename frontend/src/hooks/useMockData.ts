@@ -41,7 +41,7 @@ export function useStocks(listType?: StockListType, options: { enabled?: boolean
 
 }
 
-export function useBuyLots(stockId?: string) {
+export function useBuyLots(stockId?: string, options: { enabled?: boolean } = {}) {
   const { accountId } = useActiveAccount();
-  return useQuery({ staleTime: 30_000, queryKey: ['buyLots', stockId ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId], queryFn: () => liveApiEnabled ? fetchLiveBuyLots(stockId, accountId) : fetchBuyLots(stockId), enabled: !liveApiEnabled || !!accountId });
+  return useQuery({ staleTime: 30_000, queryKey: ['buyLots', stockId ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId], queryFn: () => liveApiEnabled ? fetchLiveBuyLots(stockId, accountId) : fetchBuyLots(stockId), enabled: options.enabled !== false && (!liveApiEnabled || !!accountId) });
 }
