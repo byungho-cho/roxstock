@@ -161,12 +161,14 @@ export function JournalPage() {
     const date = dateOf(next.getFullYear(), next.getMonth() + 1, next.getDate());
     setSelectedDate(date); setMonth(monthOf(date)); setSelectedTradeId(null);
   };
+  const datePickerRef=useRef<HTMLInputElement>(null);
+  const dateColor=holidays.has(selectedDate)||dayWeekday===0?colors.marketRise:dayWeekday===6?colors.marketFall:colors.textPrimary;
   const dayHeadingRef=useRef<HTMLDivElement>(null);
   const alignScroll=(heading:boolean)=>{requestAnimationFrame(()=>{const node=heading?dayHeadingRef.current:leftRef.current;if(!node)return;let parent=node.parentElement;while(parent&&getComputedStyle(parent).overflowY!=='auto'&&getComputedStyle(parent).overflowY!=='scroll')parent=parent.parentElement;if(parent)parent.scrollTo({top:heading?parent.scrollTop+node.getBoundingClientRect().top-parent.getBoundingClientRect().top:0,behavior:'auto'});});};
   const dayGesture=useDetailSwipe(offset=>{moveDay(offset);alignScroll(true);});
   const dayHeading = <Box ref={dayHeadingRef} data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
     <IconButton aria-label="거래내역 이전 날짜" onClick={() => moveDay(-1)} sx={{width:28,height:28}}><ChevronLeftRounded sx={{fontSize:18}}/></IconButton>
-    <Typography sx={{textAlign:'center',fontSize:14,fontWeight:600}}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</Typography>
+    <Box sx={{position:'relative',minWidth:0}}><ButtonBase aria-label="거래현황 날짜 선택" onClick={()=>{const input=datePickerRef.current;if(input?.showPicker)input.showPicker();else input?.click();}} sx={{width:'100%',textAlign:'center',fontSize:14,fontWeight:600,color:dateColor}}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</ButtonBase><input ref={datePickerRef} type="date" aria-label="거래현황 선택 날짜" value={selectedDate} onChange={event=>{if(event.target.value)selectDate(event.target.value);}} tabIndex={-1} style={{position:'absolute',width:1,height:1,opacity:0,pointerEvents:'none',left:'50%',bottom:0,colorScheme:'dark'}}/></Box>
     <IconButton aria-label="거래내역 다음 날짜" onClick={() => moveDay(1)} sx={{width:28,height:28}}><ChevronRightRounded sx={{fontSize:18}}/></IconButton>
   </Box>;
   const monthControls = <Box sx={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', width: tablet ? 250 : '100%', height: tablet ? 44 : 46, alignItems: 'center' }}>

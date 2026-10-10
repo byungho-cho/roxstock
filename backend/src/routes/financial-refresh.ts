@@ -1,3 +1,4 @@
+import {expireManualRun} from '../collector/manual-refresh-jobs.js';
 import { refreshSummary } from '../collector/refresh-summary.js';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
@@ -14,9 +15,10 @@ export async function financialRefreshRoutes(app: FastifyInstance) {
   });
   app.get<{ Params: { id: string; requestId: string } }>('/securities/:id/financial-refresh/:requestId', async (request) => {
     const securityId = id(request.params.id, 'id').toString();
-    const run = await prisma.collectorRun.findUnique({ where: { id: id(request.params.requestId, 'requestId') } });
+    let run = await prisma.collectorRun.findUnique({ where: { id: id(request.params.requestId, 'requestId') } });
+    if(run&&(run.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE'&&await expireManualRun(prisma,run))run=await prisma.collectorRun.findUnique({where:{id:run.id}});
     const m = run?.metadata as unknown as ManualRefreshMetadata | undefined;
     if (!run || run.jobType !== 'dart-financial-statements' || m?.phase !== 'MANUAL' || m.securityId !== securityId) throw new ApiError(404, 'REFRESH_NOT_FOUND', '업데이트 요청을 찾을 수 없습니다.');
-    return { data: { requestId: run.id.toString(), state: m.manualState, status: run.status, fiscalYear: m.fiscalYear, startYear:m.startYear??m.fiscalYear,endYear:m.endYear??m.fiscalYear, period: m.period, startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null, progress: m.progress ?? null, counts: refreshSummary(m.results??[]), results: m.results ?? [] } };
+    return { data: { requestId: run.id.toString(), state: m.manualState, status: run.status, fiscalYear: m.fiscalYear, startYear:m.startYear??m.fiscalYear,endYear:m.endYear??m.fiscalYear, period: m.period, refreshMode:m.refreshMode??'FULL', terminalCode:m.terminalCode??null, startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null, progress: m.progress ?? null, counts: refreshSummary(m.results??[]), results: m.results ?? [] } };
   });
 }

@@ -1,11 +1,14 @@
 import {Box} from '@mui/material';
-import {useState} from 'react';
+import {useRef,useState,type PointerEvent} from 'react';
+import {useChartDismiss} from '../../hooks/useChartDismiss';
 import {colors} from '../../styles/tokens';
 import {format,number} from '../value/valueApi';
 import type {Goal} from './compoundApi';
 
 export function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:number;assets:string|null}){
  const [selected,setSelected]=useState<number|null>(null);
+ const boundary=useRef<HTMLDivElement>(null),gesture=useRef<{x:number;y:number;vertical:boolean}|null>(null);
+ useChartDismiss({boundary,clear:()=>setSelected(null),resetKey:JSON.stringify([goal.id,goal.rows,currentYear,assets])});
  // One source for SVG, tooltip and table. A stale current-year row cannot override current assets.
  const rows=goal.rows.map(row=>({...row,realizedAsset:row.year>currentYear?null:row.year===currentYear?assets:row.realizedAsset??null}));
  const points=rows.map(row=>({year:row.year,value:number(row.asset),contributed:number(row.contributed),realized:number(row.realizedAsset)}));
@@ -14,29 +17,28 @@ export function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:num
  const scale=max>=1e12?1e12:max>=1e8?1e8:max>=1e4?1e4:1,unit=scale===1e12?'조':scale===1e8?'억':scale===1e4?'만':'원';
  const x=(index:number)=>32+(index/Math.max(1,points.length-1))*272,y=(value:number)=>118-(value-min)/span*100;
  const path=(key:'value'|'contributed'|'realized')=>{let started=false;return points.map((p,i)=>{const value=p[key];if(value===null){started=false;return '';}const command=(started?'L':'M')+x(i)+','+y(value);started=true;return command;}).join(' ');};
+ const selectAt=(event:PointerEvent<SVGSVGElement>)=>{const rect=event.currentTarget.getBoundingClientRect();setSelected(points.length?Math.max(0,Math.min(points.length-1,Math.round(((event.clientX-rect.left)/rect.width*320-32)/272*Math.max(1,points.length-1)))):null);};
  const currentIndex=points.findIndex(p=>p.year===currentYear),chosen=selected===null?null:rows[selected];
  return <Box sx={{bgcolor:'#0E1729',borderRadius:'8px',p:'10px 16px',minWidth:0}}>
   <Box sx={{fontSize:12,mb:'8px'}}>연도별 예상 자산</Box>
   <Box sx={{fontSize:10,color:colors.textMuted,display:'flex',flexWrap:'wrap',gap:'12px',mb:'4px'}}><span style={{color:goal.displayColor}}>예상 자산</span><span>누적 투입금</span><span style={{color:colors.marketRise}}>실현금액</span></Box>
-  <Box sx={{position:'relative',minWidth:0}}>
-   <svg role="img" aria-label="연도별 예상 자산과 누적 투입금 · 원" viewBox="0 0 320 150" width="100%" style={{display:'block',touchAction:'pan-y'}} onPointerMove={event=>{
-    if(event.pointerType==='touch')return;
-    const rect=event.currentTarget.getBoundingClientRect();setSelected(Math.max(0,Math.min(points.length-1,Math.round(((event.clientX-rect.left)/rect.width*320-32)/272*Math.max(1,points.length-1)))));
-   }} onPointerLeave={event=>{if(event.pointerType==='mouse')setSelected(null);}}>
+  <Box ref={boundary} data-no-detail-swipe data-no-pull-refresh sx={{position:'relative',minWidth:0}}>
+   <svg role="img" aria-label="연도별 예상 자산과 누적 투입금 · 원" viewBox="0 0 320 150" width="100%" style={{display:'block',touchAction:'pan-y'}} onPointerDown={event=>{gesture.current={x:event.clientX,y:event.clientY,vertical:false};event.currentTarget.setPointerCapture(event.pointerId);selectAt(event);}} onPointerMove={event=>{const g=gesture.current;if(!g){if(event.pointerType==='mouse')selectAt(event);return;}if(Math.abs(event.clientY-g.y)>8&&Math.abs(event.clientY-g.y)>Math.abs(event.clientX-g.x))g.vertical=true;if(!g.vertical)selectAt(event);}} onPointerUp={()=>{gesture.current=null;}} onPointerCancel={()=>{gesture.current=null;}}>
     {[0,0.5,1].map(f=><g key={f}><line x1="32" x2="304" y1={y(min+span*f)} y2={y(min+span*f)} stroke="#26354A"/><text x="0" y={y(min+span*f)+3} fill={colors.textMuted} fontSize="10">{format((min+span*f)/scale,1)}{unit}</text></g>)}
     <path d={path('contributed')} fill="none" stroke={colors.textMuted} strokeWidth="1.5" strokeDasharray="3 3"/>
     <path d={path('value')} fill="none" stroke={goal.displayColor} strokeWidth="2"/>
     <path data-testid="compound-realized-line" d={path('realized')} fill="none" stroke={colors.marketRise} strokeWidth="2"/>
     {points.map((p,i)=><g key={p.year}>
      {p.realized!==null&&<circle data-testid={'compound-realized-'+p.year} cx={x(i)} cy={y(p.realized)} r="3" fill={colors.marketRise}/>}
-     <rect role="button" tabIndex={0} aria-label={p.year+'년 자산 조회'} aria-describedby={selected===i?'compound-chart-tooltip':undefined} x={x(i)-Math.min(12,136/Math.max(1,points.length-1))} y="16" width={Math.min(24,272/Math.max(1,points.length-1))} height="110" fill="transparent" style={{cursor:'pointer',outline:selected===i?'1px solid #60A5FA':undefined}} onPointerDown={()=>setSelected(i)} onFocus={()=>setSelected(i)} onKeyDown={event=>{
+     <rect role="button" tabIndex={0} aria-label={p.year+'년 자산 조회'} aria-describedby={selected===i?'compound-chart-tooltip':undefined} x={x(i)-Math.min(12,136/Math.max(1,points.length-1))} y="16" width={Math.min(24,272/Math.max(1,points.length-1))} height="110" fill="transparent" style={{cursor:'pointer',outline:'none'}} onFocus={()=>setSelected(i)} onKeyDown={event=>{
       if(['ArrowLeft','ArrowRight','Home','End','Enter',' ','Escape'].includes(event.key)){event.preventDefault();if(event.key==='Escape')setSelected(null);else setSelected(current=>event.key==='Home'?0:event.key==='End'?points.length-1:event.key==='ArrowLeft'?Math.max(0,(current??i)-1):event.key==='ArrowRight'?Math.min(points.length-1,(current??i)+1):i);}
      }}/>
     </g>)}
+    {selected!==null&&points[selected]&&<g><line data-testid="compound-chart-guide" x1={x(selected)} x2={x(selected)} y1="16" y2="126" stroke={colors.warning}/>{points[selected].value!==null&&<circle data-testid="compound-selected-point" cx={x(selected)} cy={y(points[selected].value!)} r="4" fill={goal.displayColor}/>}</g>}
     {points.filter((_,i)=>i===0||i===points.length-1||i===currentIndex).map(p=><text key={p.year} x={x(points.indexOf(p))} y="144" textAnchor="middle" fontSize="10" fill={colors.textMuted}>{p.year}</text>)}
    </svg>
-   {chosen&&<Box id="compound-chart-tooltip" role="tooltip" sx={{position:'absolute',left:0,right:0,top:0,mx:'8px',p:'6px 8px',bgcolor:'#111827',border:'1px solid #334155',borderRadius:'4px',fontSize:10,pointerEvents:'none',overflowWrap:'anywhere',zIndex:1}}>
-    <Box>{chosen.year}년</Box>{[{label:'목표금액',value:chosen.asset},{label:'누적 투입금',value:chosen.contributed},{label:'실현금액',value:chosen.realizedAsset}].map(row=><Box key={row.label} sx={{display:'flex',justifyContent:'space-between',gap:'8px'}}><span>{row.label}</span><Box sx={{minWidth:0,textAlign:'right'}}>{row.value==null?'데이터 없음':format(row.value,0,'원')}</Box></Box>)}
+   {chosen&&<Box id="compound-chart-tooltip" data-chart-tooltip role="tooltip" sx={{position:'absolute',left:selected!==null&&x(selected)>160?undefined:0,right:selected!==null&&x(selected)>160?0:undefined,top:0,width:'max-content',maxWidth:'100%',boxSizing:'border-box',p:'4px 6px',bgcolor:'#111827',border:'1px solid #334155',borderRadius:'4px',fontSize:10,pointerEvents:'auto',overflowWrap:'anywhere',zIndex:1}}>
+    <Box>{chosen.year}년</Box>{[{label:'목표금액',value:chosen.asset},{label:'누적 투입금',value:chosen.contributed},{label:'실현금액',value:chosen.realizedAsset}].map(row=><Box key={row.label} sx={{display:'flex',justifyContent:'space-between',gap:'6px'}}><span>{row.label}</span><Box sx={{minWidth:0,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{row.value==null?'데이터 없음':format(row.value,0,'원')}</Box></Box>)}
    </Box>}
   </Box>
   <Box role="table" aria-label="연도별 실현금액과 목표금액" sx={{mt:'8px',fontSize:11}}>

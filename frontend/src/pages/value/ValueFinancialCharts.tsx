@@ -1,3 +1,4 @@
+import {useChartDismiss} from '../../hooks/useChartDismiss';
 import {colors} from '../../styles/tokens';
 import {collectionColor} from './collectionColor';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
@@ -23,16 +24,7 @@ function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof g
 }
 function Chart({rows,group,expanded=false,popup=false}:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean;popup?:boolean}) {
  const ref=useRef<HTMLDivElement>(null),[size,setSize]=useState({width:320,height:116}),[active,setActive]=useState<number|null>(null);
- useEffect(()=>{setActive(null);},[rows,group.title]);
- // Observe outside presses before bubbling, including card title/table and dialog chrome.
- useEffect(()=>{
-  const clearOutside=(event:PointerEvent)=>{
-   const plot=ref.current,rect=plot?.getBoundingClientRect();
-   if(!plot||!rect||!plot.contains(event.target as Node)||event.clientX<rect.left+38||event.clientX>rect.right-38||event.clientY<rect.top+12||event.clientY>rect.bottom-30)setActive(null);
-  };
-  document.addEventListener('pointerdown',clearOutside,true);
-  return()=>document.removeEventListener('pointerdown',clearOutside,true);
- },[]);
+ useChartDismiss({boundary:ref,clear:()=>setActive(null),resetKey:JSON.stringify([rows,group.title]),isInside:event=>inPlot(event.clientX,event.clientY)});
  useEffect(()=>{const el=ref.current;if(!el)return;const update=()=>setSize({width:el.clientWidth,height:expanded?Math.max(120,el.clientHeight):popup?88:116});const observer=new ResizeObserver(update);observer.observe(el);update();return()=>observer.disconnect();},[expanded,popup]);
  const {width,height}=size,top=popup?4:12,bottom=height-(popup?24:30),leftPadding=popup?28:38,plotWidth=Math.max(1,width-leftPadding*2);
  const rawValues=group.metrics.map(metric=>rows.map(row=>{const raw=row[metric.key];return typeof raw==='string'?number(raw):null;}));
@@ -54,7 +46,7 @@ function Chart({rows,group,expanded=false,popup=false}:{rows:FinancialRow[];grou
     {rows.map((row,i)=>(!expanded||i===0||i===rows.length-1||i%Math.max(1,Math.ceil(rows.length/(width/55)))===0&&x(rows.length-1)-x(i)>48)&&<text key={row.key} x={x(i)} y={height-7} textAnchor="middle" fontSize={popup?9:10} fill={popup?'#F8FAFC':collectionColor(row.collectionState)} fontWeight={row.isEstimated?700:400}>{row.quarter===null?`${row.year}${row.isEstimated?'E':''}`:String(row.year).slice(2)+'.'+row.quarter+'Q'}</text>)}
     {active!==null&&rows[active]&&<line data-testid="financial-drag-guide" x1={x(active)} x2={x(active)} y1={top} y2={bottom} stroke="#FBBF24" strokeDasharray="3 3"/>}
    </svg>
-   {expanded&&active!==null&&rows[active]&&<Box role="status" data-testid="financial-chart-tooltip" sx={{position:'absolute',top:4,left:Math.max(0,Math.min(width-133,x(active)-66.5)),width:133,boxSizing:'border-box',maxWidth:'100%',pointerEvents:'none',bgcolor:'#182232',border:'1px solid #334155',borderRadius:1,p:.5,fontSize:10}}><b>{rows[active].label}{rows[active].isEstimated&&!rows[active].label.endsWith('E')?'E':''}</b>{group.metrics.map((metric,i)=><Box key={metric.key} sx={{color:metric.color,display:'flex',justifyContent:'space-between',alignItems:'center',gap:.5}}><span>{metric.label} </span><Box component="span" sx={{textAlign:'right',whiteSpace:'nowrap'}}>{valueText(i,active)}</Box></Box>)}</Box>}
+   {expanded&&active!==null&&rows[active]&&<Box role="status" data-chart-tooltip data-testid="financial-chart-tooltip" sx={{position:'absolute',top:4,left:Math.max(0,Math.min(width-133,x(active)-66.5)),width:133,boxSizing:'border-box',maxWidth:'100%',pointerEvents:'auto',bgcolor:'#182232',border:'1px solid #334155',borderRadius:1,p:.5,fontSize:10}}><b>{rows[active].label}{rows[active].isEstimated&&!rows[active].label.endsWith('E')?'E':''}</b>{group.metrics.map((metric,i)=><Box key={metric.key} sx={{color:metric.color,display:'flex',justifyContent:'space-between',alignItems:'center',gap:.5}}><span>{metric.label} </span><Box component="span" sx={{textAlign:'right',whiteSpace:'nowrap'}}>{valueText(i,active)}</Box></Box>)}</Box>}
   </Box>
   {expanded&&<ChartLegend group={group}/>}
   {popup&&group.rightUnit&&<Typography data-testid="popup-chart-scale" sx={{fontSize:9,lineHeight:'14px',color:colors.textMuted}}>{first[0]>=0||first[1]>=0?'PER·PBR '+format(left.min,0)+'~'+format(left.max,1)+'배':'PER·PBR 미수집'} · {first[2]>=0?'ROE '+format(right.min,0)+'~'+format(right.max,1)+'%':'ROE 미수집'}{group.metrics.filter((_,i)=>first[i]<0).map(m=>' · '+m.label+' 미수집').join('')}</Typography>}

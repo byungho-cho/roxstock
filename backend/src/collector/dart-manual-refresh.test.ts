@@ -7,8 +7,8 @@ import type { DartCollectorConfig } from './dart-collector.js';
 
 const config: DartCollectorConfig = { enabled: true, apiKey: 'test-key', dailyCallLimit: 3000, minDelayMs: 0, backfillStartYear: 2015, backfillCompanyLimit: 100, universeBatchSize: 35, windowStartHour: 18, windowEndHour: 6, corpRefreshHours: 24 };
 test('manual period/year validation rejects invalid and future input', () => {
-  assert.deepEqual(parseManualRefresh({ fiscalYear: 2024, period: 'ALL' }), { fiscalYear: 2024, startYear:2024,endYear:2024,period: 'ALL' });
-  assert.deepEqual(parseManualRefresh({startYear:2015,endYear:2017,period:'ANNUAL'}),{fiscalYear:2015,startYear:2015,endYear:2017,period:'ANNUAL'});
+  assert.deepEqual(parseManualRefresh({ fiscalYear: 2024, period: 'ALL' }), { fiscalYear: 2024, startYear:2024,endYear:2024,period: 'ALL',refreshMode:'FULL' });
+  assert.deepEqual(parseManualRefresh({startYear:2015,endYear:2017,period:'ANNUAL'}),{fiscalYear:2015,startYear:2015,endYear:2017,period:'ANNUAL',refreshMode:'FULL'});
   assert.throws(()=>parseManualRefresh({startYear:2025,endYear:2024,period:'ALL'}));
   for (const body of [null, {fiscalYear:'2024',period:'Q1'}, {fiscalYear:2014,period:'Q1'}, {fiscalYear:9999,period:'Q1'}, {fiscalYear:2024,period:'Q4'}]) assert.throws(() => parseManualRefresh(body));
 });

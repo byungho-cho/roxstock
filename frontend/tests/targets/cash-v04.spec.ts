@@ -94,7 +94,7 @@ test('card geometry, amount baseline, type colors, independent scrolling, overla
   for (const value of ['출금', '입금', '배당', '−2,000,000원', '+20,000,000원', '+100,000원']) { const bounds = (await page.getByTestId('cash-summary').getByText(value, { exact: true }).boundingBox())!; expect(bounds.y + bounds.height).toBeLessThanOrEqual(summaryBounds.y + summaryBounds.height - 8); }
   const heading = (await page.getByTestId('cash-amount-heading').boundingBox())!, amount = (await page.getByTestId('cash-row-amount').first().boundingBox())!;
   expect(heading.x + heading.width).toBeCloseTo(amount.x + amount.width, 1);
-  await expect(page.getByTestId('cash-history-row').first()).toHaveCSS('height', '20px');
+  await expect(page.getByTestId('cash-history-row').first()).toHaveCSS('min-height', '24px');
   await expect(page.getByTestId('cash-history-row').first().locator('p').first()).toHaveCSS('color', 'rgb(248, 113, 113)');
   await expect(page.getByTestId('cash-history-row').filter({has:page.getByText('매수',{exact:true})}).first().locator('p').first()).toHaveCSS('color', 'rgb(96, 165, 250)');
   const clipped = await page.getByTestId('cash-page').locator('p').evaluateAll(els => els.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent)); expect(clipped).toEqual([]);
