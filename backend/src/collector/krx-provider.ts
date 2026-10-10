@@ -1,3 +1,4 @@
+import {manualScopedFetch} from './manual-job-budget.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { HistoricalPriceError } from './historical-price-error.js';
 import type { Supplemental } from '../domain/period-valuation.js';
@@ -27,7 +28,7 @@ export class KrxProvider {
   }
   private async request(market: KrxMarket, date: string, kind: 'daily' | 'master'): Promise<Row[]> {
     let response: Response;
-    try { response = await this.fetcher(`https://data-dbg.krx.co.kr/svc/apis/sto/${endpoints[market][kind]}?basDd=${date}`, { headers: { AUTH_KEY: this.key, accept: 'application/json' }, signal: AbortSignal.timeout(15000) }); }
+    try { response = await manualScopedFetch(this.fetcher)(`https://data-dbg.krx.co.kr/svc/apis/sto/${endpoints[market][kind]}?basDd=${date}`, { headers: { AUTH_KEY: this.key, accept: 'application/json' }, signal: AbortSignal.timeout(15000) }); }
     catch { throw new HistoricalPriceError('KRX_COMMUNICATION', 'COMMUNICATION'); }
     if (!response.ok) {
       const category = response.status === 401 ? 'AUTH' : response.status === 403 ? 'PERMISSION' : response.status === 429 ? 'RATE_LIMIT' : 'COMMUNICATION';

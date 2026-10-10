@@ -1,3 +1,4 @@
+import {manualFetch} from './manual-job-budget.js';
 import { Prisma, type PrismaClient, type DartFinancialFiling } from '../generated/prisma/index.js';
 import { calculatePeriod, metricKeys, type MetricValues, type Supplemental } from '../domain/period-valuation.js';
 import { valueCompletion, type CollectionState } from '../domain/collection-status.js';
@@ -18,10 +19,11 @@ const financialComplete=(f:DartFinancialFiling|null)=>!!f&&[f.revenueYtd,f.opera
 type Security={id:bigint;symbol:string;marketType:string;dartCorpMapping:{corpCode:string}|null};
 
 /** Reachable exclusively from a claimed MANUAL run; automatic collection never imports or calls this path. */
-export async function refreshManualAnnual(db:PrismaClient,security:Security,year:number,provider:OpenDartProvider,naver:NaverAnnualProvider,repo:PrismaDartRepository,runId:bigint) {
+export async function refreshManualAnnual(db:PrismaClient,security:Security,year:number,provider:OpenDartProvider,naver:NaverAnnualProvider,repo:PrismaDartRepository,runId:bigint,options:{storedOnly?:boolean;missingOnly?:boolean}={}) {
  const currentYear=Number(getSeoulClock().dateKey.slice(0,4)),estimated=year===currentYear,periodType=estimated?'ESTIMATE':'ANNUAL';
  const where={securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType}};
  const existing=await db.periodValuation.findUnique({where}),oldSupplement=(existing?.supplemental??{}) as Supplemental&Record<string,unknown>;
+ if(options.missingOnly&&existing&&valueCompletion(existing.values as Partial<MetricValues>).complete)return {fiscalYear:year,period:'ANNUAL' as const,status:'SUCCESS' as const,created:false,valuationStatus:'SUCCESS',valuationErrors:{} as Record<string,string>,valuationReasons:{} as Record<string,string>,collectionState:estimated?'ESTIMATE_READY' as const:'COMPLETE' as const,kind:estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',financialComplete:false,disclosureChecked:false};
  const startedAt=new Date().toISOString();
  await db.periodValuation.upsert({where,create:{securityId:security.id,fiscalYear:year,periodType,status:'PROCESSING',values:{},provenance:{},reasons:{},supplemental:json({manualAttempt:{runId:String(runId),version,startedAt,phase:'PROCESSING'}})},update:{supplemental:json({...oldSupplement,manualAttempt:{runId:String(runId),version,startedAt,phase:'PROCESSING'}})}});
  const errors:Record<string,string>={},reasons:Record<string,string>={};let source:NaverAnnual|undefined,filing:DartFinancialFiling|null=null,disclosureChecked=false;
@@ -36,7 +38,7 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
   disclosureChecked=!!filing;
   try{
    // Existing complete disclosures avoid broad list/refetch calls. Missing statements use normal shared-budget DART requests.
-   if(!financialComplete(filing)){
+   if(!options.storedOnly&&!financialComplete(filing)){
     if(!security.dartCorpMapping)throw new DartApiError('DART_CORP_CODE_NOT_MAPPED','DART 기업코드가 없습니다.');
     const reports=await provider.listPeriodicReports(security.dartCorpMapping.corpCode,year);disclosureChecked=true;
     const report=reports.find(r=>r.reportCode==='11011'&&!r.withdrawn);
@@ -54,12 +56,12 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
   }catch(e){errors.financials=safeCode(e);}
   if(source&&filing&&source.division!==filing.fsDivision){errors.naver='NAVER_DART_DIVISION_MISMATCH';source=undefined;freshValues=empty();perMetric={};}
   try{
-   if(!supplemental.price)supplemental.price=await historicalClose(security.symbol,new Date(`${year}-12-31`),fetch,security.marketType,'MANUAL_PROTOTYPE');
+   if(!supplemental.price)supplemental.price=await historicalClose(security.symbol,new Date(`${year}-12-31`),options.storedOnly?manualFetch:fetch,security.marketType,'MANUAL_PROTOTYPE');
    if(source&&supplemental.price)for(const key of Object.keys(perMetric))perMetric[key]={...(perMetric[key] as object),priceDate:supplemental.price.date,calendarVerification:'ACTUAL_LAST_TRADING_DAY',verificationClose:supplemental.price};
   }catch(e){errors.price=safeCode(e);}
   if(filing&&!valueCompletion(freshValues).complete&&security.dartCorpMapping){
    try{
-    supplemental=await loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping.corpCode,undefined,security.marketType,'MANUAL_PROTOTYPE')(filing,supplemental);
+    supplemental=await loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping.corpCode,undefined,security.marketType,'MANUAL_PROTOTYPE',options.storedOnly?{dartRequests:false,fetcher:manualFetch}:{})(filing,supplemental);
     const previous=await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year-1,periodType:'ANNUAL',isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
     const calculated=calculatePeriod(filing,previous??undefined,supplemental);
     const calculationEvidence=(key:typeof metricKeys[number])=>({...calculated.provenance,method:key==='eps'?'COLLECTED_DART_ACCOUNT':'CALCULATED',manualVersion:version,formula:{eps:'DISCLOSED_ANNUAL_BASIC_ORDINARY_EPS',bps:'OWNERS_EQUITY / PERIOD_END_OUTSTANDING_ORDINARY_SHARES',per:'LAST_TRADING_DAY_CLOSE / ANNUAL_EPS',pbr:'LAST_TRADING_DAY_CLOSE / YEAR_END_BPS',roe:'ANNUAL_PROFIT / AVERAGE_PREVIOUS_AND_CURRENT_YEAR_END_EQUITY * 100'}[key],accountEvidence:{stored:filing!.accountSources,supplement:supplemental.accounts?.sources??null},sharesEvidence:supplemental.shares??null,financialInputs:{netIncome:filing!.netIncomeYtd?.toString()??null,equity:filing!.totalEquity?.toString()??null,previousEquity:previous?.totalEquity?.toString()??null}});
@@ -84,16 +86,18 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
   statementsComplete&&completion.complete?'COMPLETE':'FINAL_FAILED';
  const oldValues=(existing?.values??{}) as Partial<MetricValues>,values=empty(),oldProvenance=(existing?.provenance??{}) as Record<string,unknown>,replacements:Record<string,unknown>={};
  for(const k of metricKeys){
-  values[k]=k in completion.notApplicable?null:freshValues[k]??oldValues[k]??null;
+  values[k]=options.missingOnly&&oldValues[k]!=null?oldValues[k]!:k in completion.notApplicable?null:freshValues[k]??oldValues[k]??null;
   if((freshValues[k]!=null||k in completion.notApplicable)&&oldValues[k]!=null&&values[k]!==oldValues[k])replacements[k]={before:oldValues[k],after:values[k],previousEvidence:(oldProvenance.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance,reason:k in completion.notApplicable?'VERIFIED_NON_POSITIVE_DENOMINATOR':'VERIFIED_SOURCE_GROUP_OR_DISCLOSURE_VERSION_REFRESH',version};
-  if(freshValues[k]==null&&oldValues[k]!=null)perMetric[k]=(oldProvenance.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance;
+  if((freshValues[k]==null||options.missingOnly)&&oldValues[k]!=null)perMetric[k]=(oldProvenance.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance;
  }
  for(const [base,ratio] of [['eps','per'],['bps','pbr']] as const)if(oldValues[ratio]!=null&&freshValues[ratio]==null&&!(ratio in completion.notApplicable)&&oldValues[base]!=null&&values[base]!==oldValues[base]){values[base]=oldValues[base]!;delete replacements[base];perMetric[base]=(oldProvenance.perMetric as Record<string,unknown>|undefined)?.[base]??oldProvenance;reasons[ratio]='NEW_DENOMINATOR_WITHOUT_MATCHING_RATIO_OLD_GROUP_PRESERVED';}
- const finishedAt=new Date().toISOString(),attempt={version,mode:'MANUAL_PROTOTYPE',runId:String(runId),startedAt,finishedAt,phase:'FINISHED',state,disclosureChecked,disclosureSource:filing?'STORED_DART_FILING':'DART_REQUEST',financialComplete:statementsComplete,valueComplete:completion.complete,notApplicable:completion.notApplicable,errors,reasons,replacements};
- const data={status:completion.complete?'SUCCESS':hasFresh?'PARTIAL':'FAILED',values:json(values),provenance:json({version,kind:estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',periodEnd:`${year}-12-31`,fsDivision:source?.division??filing?.fsDivision??null,roeBasis:(perMetric.roe as {roeBasis?:string}|undefined)?.roeBasis??((perMetric.roe as {source?:string}|undefined)?.source==='NAVER_FNGUIDE_ANNUAL'?'OWNERS_OF_PARENT':oldProvenance.roeBasis??null),perMetric}),reasons:json(reasons),supplemental:json({...supplemental,...(source?{manualSource:source}:{}),manualAttempt:attempt,manualHistory:[...((oldSupplement.manualHistory??[]) as unknown[]),...(oldSupplement.manualAttempt?[oldSupplement.manualAttempt]:[])].slice(-5),...(estimated&&source?{estimateFinancials:source.financials}:{} )}),attempts:{increment:1},nextAttemptAt:null};
+ for(const [base,ratio] of [['eps','per'],['bps','pbr']] as const)if(options.missingOnly&&oldValues[base]!=null&&oldValues[ratio]==null&&values[ratio]!=null&&values[base]!==freshValues[base]){values[ratio]=null;delete perMetric[ratio];reasons[ratio]='RETAINED_DENOMINATOR_AND_NEW_SOURCE_RATIO_BASIS_MISMATCH';}
+ const retainedCompletion=options.storedOnly?valueCompletion(values):completion,retainedState:CollectionState=estimated?(retainedCompletion.complete?'ESTIMATE_READY':state):statementsComplete&&retainedCompletion.complete?'COMPLETE':state;
+ const finishedAt=new Date().toISOString(),attempt={version,mode:'MANUAL_PROTOTYPE',runId:String(runId),startedAt,finishedAt,phase:'FINISHED',state:retainedState,disclosureChecked,disclosureSource:filing?'STORED_DART_FILING':'DART_REQUEST',financialComplete:statementsComplete,valueComplete:completion.complete,notApplicable:completion.notApplicable,errors,reasons,replacements};
+ const data={status:retainedCompletion.complete?'SUCCESS':metricKeys.some(k=>values[k]!=null)?'PARTIAL':'FAILED',values:json(values),provenance:json({version,kind:estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',periodEnd:`${year}-12-31`,fsDivision:source?.division??filing?.fsDivision??null,roeBasis:(perMetric.roe as {roeBasis?:string}|undefined)?.roeBasis??((perMetric.roe as {source?:string}|undefined)?.source==='NAVER_FNGUIDE_ANNUAL'?'OWNERS_OF_PARENT':oldProvenance.roeBasis??null),perMetric}),reasons:json(reasons),supplemental:json({...supplemental,...(source?{manualSource:source}:{}),manualAttempt:attempt,manualHistory:[...((oldSupplement.manualHistory??[]) as unknown[]),...(oldSupplement.manualAttempt?[oldSupplement.manualAttempt]:[])].slice(-5),...(estimated&&source?{estimateFinancials:source.financials}:{} )}),attempts:{increment:1},nextAttemptAt:null};
  await db.periodValuation.update({where,data});
  if(estimated&&source&&hasFresh){
   await db.annualConsensusSnapshot.upsert({where:{securityId_fiscalYear_source_asOf:{securityId:security.id,fiscalYear:year,source:source.source,asOf:new Date(source.collectedAt)}},create:{securityId:security.id,fiscalYear:year,source:source.source,asOf:new Date(source.collectedAt),data:json(source)},update:{}});
  }
- return {fiscalYear:year,period:'ANNUAL' as const,status:(estimated?hasFresh:disclosureChecked)?'SUCCESS' as const:Object.keys(errors).length?'FAILED' as const:'NO_DATA' as const,created:false,valuationStatus:completion.complete?'SUCCESS':'FAILED',valuationErrors:errors,valuationReasons:reasons,collectionState:state,kind:estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',financialComplete:statementsComplete,disclosureChecked};
+ return {fiscalYear:year,period:'ANNUAL' as const,status:(estimated?hasFresh:disclosureChecked)?'SUCCESS' as const:Object.keys(errors).length?'FAILED' as const:'NO_DATA' as const,created:false,valuationStatus:options.storedOnly&&!options.missingOnly&&!hasFresh&&Object.keys(errors).length?'FAILED':retainedCompletion.complete?'SUCCESS':'FAILED',valuationErrors:errors,valuationReasons:reasons,collectionState:state,kind:estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',financialComplete:statementsComplete,disclosureChecked};
 }
