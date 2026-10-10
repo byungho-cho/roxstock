@@ -5,9 +5,9 @@
 ## 로컬 확인
 
 - frontend/backend TypeScript 검사 및 두 빌드 통과.
-- 백엔드 unit/route/collector 회귀 171개 통과(자동 수집 기존 테스트 포함).
+- 백엔드 unit/route/collector 회귀 173개 통과(자동 수집 기존 테스트 포함).
 - 기존 복리 경계·계좌 한국시간 단위 검사 유지.
-- 독립 worker 장애 재현: DART 즉시 오류/무응답 + 가치지표 성공, SUPPLEMENT DART 요청 0, 양쪽 실패, 실제 0 유지, 자료 부족, 늦은 응답 DB/transaction 쓰기 차단, I/O abort, 고아 작업 종료.
+- 독립 worker 장애 재현: DART 즉시 오류/무응답 + 가치지표 성공, SUPPLEMENT DART 요청 0, 양쪽 실패, 실제 0 유지, 자료 부족·일부 지표 부분 성공, 전체 실행 전 DB 무응답, 늦은 응답 DB/transaction 쓰기 차단, I/O abort, 고아 작업 종료.
 - 로컬 Chromium 내려받기 실패: 화면 실행 검증은 GitHub CI에서 수행하고 결과를 추가 기록한다.
 
 ## CI/운영 확인 예정

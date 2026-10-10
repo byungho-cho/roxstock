@@ -14,7 +14,7 @@ import {valueCompletion} from '../domain/collection-status.js';
 import type {MetricValues} from '../domain/period-valuation.js';
 import {getSeoulClock} from './time.js';
 
-export type ManualTaskState='QUEUED'|'RUNNING'|'SUCCESS'|'FAILED'|'NO_DATA'|'UNAVAILABLE'|'SKIPPED';
+export type ManualTaskState='QUEUED'|'RUNNING'|'SUCCESS'|'PARTIAL'|'FAILED'|'NO_DATA'|'UNAVAILABLE'|'SKIPPED';
 export type ManualTaskResult={state:ManualTaskState;code?:string;durationMs?:number};
 export const manualLimits={requestMs:20_000,taskMs:120_000,runMs:600_000,queueMs:1_800_000};
 const codes={Q1:'11013',Q2:'11012',Q3:'11014',ANNUAL:'11011'} as const;
@@ -60,8 +60,9 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
  const start=m.startYear??m.fiscalYear,end=m.endYear??m.fiscalYear,periods=allPeriods(m),deadline=Date.now()+manualLimits.runMs;
  m.deadlineAt=new Date(deadline).toISOString();m.lockOwner=owner;m.manualState='PROCESSING';
  const signal=AbortSignal.timeout(manualLimits.runMs);
- const publish=()=>{const snapshot=json({...m,results:[...results]});publishTail=publishTail.then(async()=>{await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{metadata:snapshot}});});return publishTail;};
+ const publish=()=>{if(Date.now()>=deadline)return Promise.resolve();const snapshot=json({...m,results:[...results]});publishTail=publishTail.then(async()=>{await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{metadata:snapshot}});});return publishTail;};
  try{
+  await boundedManualJob(async()=>{
   await publish();
   const security=await db.security.findUnique({where:{id:BigInt(m.securityId)},include:{dartCorpMapping:true}});
   if(!security?.isActive||security.securityType!=='STOCK')throw new DartApiError('SECURITY_NOT_FOUND','수집 대상 종목을 확인해 주세요.');
@@ -94,36 +95,38 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      return {state:'SUCCESS'};
     },
     valuation:async()=>{
-     if(period==='ANNUAL'&&year>=2021){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
+     if(period==='ANNUAL'&&year>=2021){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':valuation.valuationStatus==='PARTIAL'?'PARTIAL':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
      const metric=await supplementStoredPeriod(scopedDb,security.id,year,period,{load:loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'MANUAL_PROTOTYPE',{dartRequests:false,fetcher:manualFetch})});
-     return {state:metric?.status==='SUCCESS'?'SUCCESS':metric?.status==='PARTIAL'?'UNAVAILABLE':'UNAVAILABLE',code:metric?.status==='SUCCESS'?undefined:'VALUATION_BASE_MISSING'};
+     return {state:metric?.status==='SUCCESS'?'SUCCESS':metric?.status==='PARTIAL'?'PARTIAL':'UNAVAILABLE',code:metric?.status==='SUCCESS'?undefined:'VALUATION_BASE_MISSING'};
     },
    },{signal,milliseconds:Math.max(1,Math.min(manualLimits.taskMs,deadline-Date.now())),onState:async(source,result)=>{
     m.progress!.tasks![source]=result;await publish();
     if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':'NAVER_AND_STORED_DATA',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
    }});
-   const saved=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
-   const stored=await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
+   const saved=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
+   const stored=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
    const financialComplete=Boolean(stored&&[stored.revenueYtd,stored.operatingProfitYtd,stored.netIncomeYtd,stored.totalAssets,stored.totalLiabilities,stored.totalEquity].every(v=>v!=null));
    if(saved&&period==='ANNUAL'){
     const supplemental=(saved.supplemental??{}) as Record<string,unknown>,attempt=(supplemental.manualAttempt??{}) as Record<string,unknown>;
     const complete=valueCompletion(saved.values as Partial<MetricValues>).complete;
     const state=year===currentYear?complete?'ESTIMATE_READY':attempt.state:financialComplete&&complete?'COMPLETE':financialComplete?'FINANCIAL_ONLY':'FINAL_FAILED';
-    await db.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks}})}});
+    await scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks}})}});
    }
    results.push({...valuation,fiscalYear:year,period,status:tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
    m.progress.completed=results.length;m.progress.stage='REPORT_DONE';await publish();
   }
+  },manualLimits.runMs,signal);
  }catch(error){
   const code=errorCode(error);for(let year=start;year<=end;year++)for(const period of periods)if(!results.some(r=>r.fiscalYear===year&&r.period===period))results.push({fiscalYear:year,period,status:'FAILED',code,valuationStatus:'FAILED'});
  }finally{
   try{
-   await publishTail;
-   const success=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='SUCCESS'):r.status==='SUCCESS').length;
-   const failed=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='FAILED'||t.state==='UNAVAILABLE'):r.status==='FAILED').length;
-   const skipped=results.filter(r=>r.tasks?!Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='FAILED'||t.state==='UNAVAILABLE'):r.status==='NO_DATA').length;
-   await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{status:success?failed||results.some(r=>r.tasks?.dart.state==='NO_DATA')?'PARTIAL':'SUCCESS':failed?'FAILED':'SKIPPED',finishedAt:new Date(),successCount:success,failureCount:failed,skippedCount:Math.max(0,skipped),metadata:json({...m,manualState:'FINISHED',results})}});
-  }finally{await repo.releaseLock(owner);}
+   await boundedManualJob(()=>publishTail,10_000).catch(()=>{});
+   const success=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'):r.status==='SUCCESS').length;
+   const failed=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='FAILED'||t.state==='UNAVAILABLE'||t.state==='PARTIAL'):r.status==='FAILED').length;
+   const skipped=results.filter(r=>r.tasks?!Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'||t.state==='FAILED'||t.state==='UNAVAILABLE'):r.status==='NO_DATA').length;
+   await boundedManualJob(()=>db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{status:success?failed||results.some(r=>r.tasks?.dart.state==='NO_DATA')?'PARTIAL':'SUCCESS':failed?'FAILED':'SKIPPED',finishedAt:new Date(),successCount:success,failureCount:failed,skippedCount:Math.max(0,skipped),metadata:json({...m,manualState:'FINISHED',results})}}),10_000);
+  }catch(error){console.warn(JSON.stringify({event:'manual_refresh_finalization_failed',jobId:String(run.id),code:errorCode(error)}));}
+  finally{await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});}
  }
  return true;
 }

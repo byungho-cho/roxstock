@@ -61,7 +61,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const reportCount=period==='ALL'?4:1;
   const completedYears=Array.from({length:endYear-startYear+1},(_,i)=>startYear+i).filter(y=>(status.data?.results??[]).filter(r=>(r.fiscalYear??status.data?.fiscalYear)===y).length===reportCount);
   const stageText:Record<string,string>={DISCLOSURE:'공시 확인 중',FINANCIALS:'재무제표 수집 중',VALUATION:'가치지표 보충 중',REPORT_DONE:'처리 중'};
-  const taskLabels:Record<string,string>={QUEUED:'대기',RUNNING:'중',SUCCESS:'완료',FAILED:'실패',NO_DATA:'미공시',UNAVAILABLE:'보완 불가',SKIPPED:'요청 없음'};
+  const taskLabels:Record<string,string>={QUEUED:'대기',RUNNING:'중',SUCCESS:'완료',PARTIAL:'부분 완료',FAILED:'실패',NO_DATA:'미공시',UNAVAILABLE:'보완 불가',SKIPPED:'요청 없음'};
   const taskText=progress?.tasks?`DART 수집 ${taskLabels[progress.tasks.dart.state]??progress.tasks.dart.state} · 가치지표 보완 ${taskLabels[progress.tasks.valuation.state]??progress.tasks.valuation.state}`:null;
   const progressText=taskText??([...completedYears.map(y=>`${y}년 처리 완료`),...(progress&&!completedYears.includes(progress.currentYear)?[`${progress.currentYear}년 ${progress.currentPeriod?labels[progress.currentPeriod]+' ':''}${stageText[progress.stage]??'처리 중'}`]:[])].join(' · ')||'서버 처리 대기 중');
   const completed=finished?.counts?.disclosureCompleted??finished?.results.filter(r=>r.status==='SUCCESS').length??0,noData=finished?.counts?.noDisclosure??finished?.results.filter(r=>r.status==='NO_DATA').length??0,failed=finished?.counts?.disclosureFailed??finished?.results.filter(r=>r.status==='FAILED').length??0;
