@@ -24,7 +24,7 @@ test('menu order, icons, screen references and home destinations stay distinct',
   await setup(page); await page.goto('/more');
   const menu = page.getByTestId('more-menu');
   expect(await menu.getByTestId('more-shortcut').allTextContents()).toEqual(['홈', '종목목록', '매매일지', '예수금', '자산분석', '투자금', '투자손익', '가치분석', '재무제표', '복리계획', '모니터링', '설정']);
-  for (const [name, number, icon] of [['예수금', '1300', 'cash'], ['자산분석', '1400', 'assets'], ['투자금', '1500', 'cash'], ['투자손익', '1600', 'investment-profit']]) {
+  for (const [name, number, icon] of [['예수금', '1300', 'cash'], ['자산분석', '1400', 'assets'], ['투자금', '1500', 'investment'], ['투자손익', '1600', 'investment-profit']]) {
     const button = menu.getByRole('button', { name, exact: true });
     await expect(button).toHaveAttribute('data-screen-number', number);
     await expect(button.locator('img')).toHaveAttribute('src', `/more-v03/${icon}.svg`);
