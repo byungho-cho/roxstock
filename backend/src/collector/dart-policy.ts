@@ -7,6 +7,11 @@ export function dartWindowOpen(now: Date, start: number, end: number, holidays: 
   return allDay && (weekday === 0 || weekday === 6 || holidays.includes(clock.dateKey)) || isHourInOvernightWindow(clock.hour, start, end);
 }
 
+// Priority collection has no weekend/holiday daytime exception.
+export function dartPriorityWindowOpen(now: Date, start = 16, end = 6) {
+  return isHourInOvernightWindow(getSeoulClock(now).hour, start, end);
+}
+
 export function dartFailure(error: unknown, stage: string, _apiKey = '') {
  const diagnostic=dartDiagnostic(error,stage);return {code:diagnostic.code,message:diagnostic.message};
 }

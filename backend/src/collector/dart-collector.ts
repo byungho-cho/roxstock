@@ -6,11 +6,12 @@ import { collectorLog as log } from './logger.js';
 import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartFinancialRow, type DartPeriodType, type DartReportCode } from './dart-provider.js';
 import { PrismaDartRepository, type DartBackfillTaskRecord, type DartSecurityRecord } from './dart-repository.js';
 import { getSeoulClock } from './time.js';
-import { dartWindowOpen, dartFailure, retryDecision } from './dart-policy.js';
+import { dartWindowOpen, dartPriorityWindowOpen, dartFailure, retryDecision } from './dart-policy.js';
 
 export interface DartCollectorConfig {
   apiKey: string; dailyCallLimit: number; minDelayMs: number; backfillStartYear: number;
   backfillCompanyLimit: number; universeBatchSize: number; windowStartHour: number; windowEndHour: number;
+  priorityWindowStartHour?: number; priorityWindowEndHour?: number;
   corpRefreshHours: number; enabled: boolean; restDayAllDay?: boolean; holidayDates?: string[];
 }
 
@@ -20,11 +21,14 @@ const reports: Record<string, { period: DartPeriodType; code: DartReportCode }> 
 };
 const activeWindow = (now: Date, config: DartCollectorConfig) => dartWindowOpen(now, config.windowStartHour, config.windowEndHour, config.holidayDates, config.restDayAllDay ?? true);
 
+const priorityWindow = (now: Date, config: DartCollectorConfig) => dartPriorityWindowOpen(now, config.priorityWindowStartHour, config.priorityWindowEndHour);
+
 export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCollectorConfig, now = new Date()) {
   const repo = new PrismaDartRepository(prisma);
   const owner = randomUUID();
   if (!config.enabled) return { status: 'DISABLED' as const };
   if (!config.apiKey) return { status: 'NOT_CONFIGURED' as const };
+  if (!activeWindow(now, config) && !priorityWindow(now, config)) return { status: 'OUTSIDE_WINDOW' as const };
   const dayKey = getSeoulClock(now).dateKey;
   const priorState = await repo.getState();
   const blockedCode = priorState?.lastError?.split(':', 1)[0];
@@ -37,12 +41,16 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   let succeeded=0,failures=0,skipped=0;
 
   let apiErrors = 0;
-  let outsideWindowAllowed = false;
+  let priorityLane = false;
+  const callAllowed = () => priorityLane ? priorityWindow(new Date(), config) : activeWindow(new Date(), config);
   let stoppedCode: string | null = null;
   const dart = new OpenDartProvider({
     apiKey: config.apiKey, dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs,
-    reserveCall: async (limit) => (outsideWindowAllowed || activeWindow(new Date(), config)) && repo.reserveApiCall(limit, new Date(), owner),
-    isCallAllowed: () => outsideWindowAllowed || activeWindow(new Date(), config),
+    reserveCall: async (limit) => {
+      if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
+      return repo.reserveApiCall(limit, new Date(), owner);
+    },
+    isCallAllowed: callAllowed,
     onApiStatus: async (status) => repo.recordApiResult(status === '013' ? 'NO_DATA' : 'ERROR'),
   });
 
@@ -55,8 +63,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     const mappingUpdatedAt = await repo.corpCodeMappingsSyncedAt();
     const refreshAfter = mappingUpdatedAt ? now.getTime() - mappingUpdatedAt.getTime() >= config.corpRefreshHours * 3_600_000 : true;
     let corpSyncSucceeded = false;
-    if (refreshAfter && (activeWindow(now, config) || priorityIds.length)) {
-      outsideWindowAllowed = priorityIds.length > 0;
+    if (refreshAfter && (activeWindow(now, config) || (priorityWindow(now, config) && priorityIds.length))) {
+      priorityLane = !activeWindow(now, config);
       try {
         stage='CORP_FETCH';
     const mappings = await dart.fetchCorporations();
@@ -83,8 +91,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     let companyChecks = 0;
     const latestState = await repo.getState();
     if (!latestState?.backfillCompletedAt) {
-      // Priority stocks are eligible throughout the day, including initial history collection.
-      if (activeWindow(now, config) || priorityIds.length) await repo.startUpToDailyCompanyLimit(config.backfillCompanyLimit, now, !activeWindow(now, config));
+      // Both initial history and current filings obey their lane-specific window.
+      if (activeWindow(now, config) || (priorityWindow(now, config) && priorityIds.length)) await repo.startUpToDailyCompanyLimit(config.backfillCompanyLimit, now, !activeWindow(now, config));
       stage='TASK_QUERY';
     const companies = await repo.listStartedBackfillSecurities();
       const rank = new Map(priorityIds.map((id,index)=>[String(id),index]));
@@ -94,8 +102,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
       const schedule=collectionPasses(priorityCompanies,companies,priorBusinessYear+1);
       for (const pass of schedule) {
       for (const security of pass.items) {
-        outsideWindowAllowed = prioritySet.has(String(security.id));
-        if (!outsideWindowAllowed && !activeWindow(new Date(), config)) continue;
+        priorityLane = prioritySet.has(String(security.id));
+        if (!callAllowed()) continue;
         await repo.markCompanyChecked(security.id, 'BACKFILL', new Date());
         companyChecks += 1;
         if (!security.corpCode) {
@@ -104,7 +112,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
           continue;
         }
         for (const task of (await repo.listTasksForSecurity(security.id)).filter(t=>t.fiscalYear===pass.year)) {
-          if (!outsideWindowAllowed && !activeWindow(new Date(), config)) break;
+          if (!callAllowed()) break;
           const taskNow = new Date();
           const spec = reports[task.reportCode];
           if (!spec) continue;
@@ -155,13 +163,15 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     } else {
       stage='TASK_QUERY';
     const priority = await repo.listPhase2Securities('PRIORITY', 500);
-      const priorityIds = new Set(priority.map((security) => security.id.toString()));
-      const universe = activeWindow(now, config) ? (await repo.listPhase2Securities('UNIVERSE', config.universeBatchSize)).filter((security) => !priorityIds.has(security.id.toString())) : [];
+      // Exclude every priority stock from the general lane, even when its window is closed.
+      const universe = activeWindow(now, config) ? (await repo.listPhase2Securities('UNIVERSE', config.universeBatchSize)).filter((security) => !prioritySet.has(security.id.toString())) : [];
       let quotaReached = false;
       for (const [phase, securities] of [['PRIORITY', priority], ['UNIVERSE', universe]] as const) {
-        outsideWindowAllowed = phase === 'PRIORITY';
+        priorityLane = phase === 'PRIORITY';
+        if (!callAllowed()) continue;
         for (let fiscalYear=priorBusinessYear+1;fiscalYear>=2015;fiscalYear--) {
         for (const security of securities) {
+          if (!callAllowed()) break;
           await repo.markCompanyChecked(security.id, phase, new Date());
           companyChecks += 1;
           try {
@@ -171,6 +181,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             for (const fiscalYear of businessYears) {
               stage='LIST'; const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
+                if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
                 if (await repo.hasStoredReceipt(report.receiptNo)) continue;
                 stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
                 if (!fetched.rows.length) continue;
@@ -187,15 +198,18 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             await repo.addPhase2RunItem(runId, security, 'SUCCESS', updated ? '신규 정정 또는 변경 보고서를 저장했습니다.' : '공시 목록에 변경은 없고 기존 판본을 유지했습니다.');
             if (updated) log('info', 'DART new filing stored', { symbol: security.symbol });
           } catch (error) {
+            if (error instanceof DartApiError && error.code === 'SCHEDULE_WINDOW_ENDED') {
+              stoppedCode = error.code; quotaReached = true; skipped += 1; break;
+            }
             const diagnostic=dartDiagnostic(error,stage);log('warn','DART phase2 failure',{runId,...diagnostic});
             failures += 1; apiErrors += 1;
             await repo.setPhase2Check(security.id, phase, new Date(), dartDiagnostic(error,stage).code);
             await repo.addPhase2RunItem(runId, security, 'FAILED', `${diagnostic.code}: ${diagnostic.message}`);
             if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
-          if (quotaReached || (phase === 'UNIVERSE' && !activeWindow(new Date(), config))) break;
+          if (quotaReached || !callAllowed()) break;
         }
-        if (quotaReached) break;
+        if (quotaReached || !callAllowed()) break;
         }
         if (quotaReached) break;
       }
