@@ -1,14 +1,14 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 
 export class ManualJobTimeout extends Error {readonly code='MANUAL_JOB_TIMEOUT';}
-const scope=new AsyncLocalStorage<AbortSignal>();
-export function checkManualJob(){scope.getStore()?.throwIfAborted();}
+const scope=new AsyncLocalStorage<{signal:AbortSignal;deadline:number}>();
+export function checkManualJob(){const job=scope.getStore();if(job&&Date.now()>=job.deadline)throw new ManualJobTimeout('수집 작업 시간 제한을 초과했습니다.');job?.signal.throwIfAborted();}
 /** Scope is absent for automatic collection: its schedule, retries and request budgets stay intact. */
 export function manualScopedFetch(fetcher:typeof fetch):typeof fetch {
  return (input,init)=>{
-  const signal=scope.getStore();
-  if(!signal)return fetcher(input,init);
-  signal.throwIfAborted();
+  const job=scope.getStore();
+  if(!job)return fetcher(input,init);
+  checkManualJob();const signal=job.signal;
   return fetcher(input,{...init,signal:AbortSignal.any([signal,AbortSignal.timeout(20_000),...(init?.signal?[init.signal]:[])])});
  };
 }
@@ -20,7 +20,7 @@ export async function boundedManualJob<T>(work:()=>Promise<T>,milliseconds:numbe
  const signal=outer?AbortSignal.any([controller.signal,outer]):controller.signal;
  let rejectAbort:()=>void=()=>{};
  const expired=new Promise<never>((_,reject)=>{rejectAbort=()=>reject(signal.reason??timeout);signal.addEventListener('abort',rejectAbort,{once:true});if(signal.aborted)rejectAbort();});
- try{signal.throwIfAborted();return await scope.run(signal,()=>Promise.race([work(),expired]));}
+ try{signal.throwIfAborted();return await scope.run({signal,deadline:Date.now()+Math.max(1,milliseconds)},()=>Promise.race([work(),expired]));}
  finally{clearTimeout(timer);signal.removeEventListener('abort',rejectAbort);controller.abort(timeout);}
 }
 /** Only manual workers use this proxy. Reads may complete late; every subsequent write is fenced. */

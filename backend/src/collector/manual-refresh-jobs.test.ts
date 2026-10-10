@@ -60,3 +60,12 @@ test('orphan expiration is terminal and releases only its persisted owner',async
  assert.equal(await expireManualRun(f.db,f.run),true);assert.equal(f.run.status,'FAILED');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).manualState,'FINISHED');
  assert.equal(await expireManualRun(f.db,f.run),false);
 });
+
+test('whole-run timeout also bounds a hanging pre-collection database read',async()=>{
+ const old={acquire:PrismaDartRepository.prototype.acquireLock,limit:manualLimits.runMs};const f=fixture();PrismaDartRepository.prototype.acquireLock=async()=>true;manualLimits.runMs=25;f.db.security.findUnique=(()=>new Promise(()=>{})) as unknown as typeof f.db.security.findUnique;
+ try{await processIndependentRefresh(f.db,config,f.run);assert.equal(f.run.status,'FAILED');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).manualState,'FINISHED');assert.equal(f.releases(),1);}finally{PrismaDartRepository.prototype.acquireLock=old.acquire;manualLimits.runMs=old.limit;}
+});
+test('supplement retains normal denominator and actual zero; partial new items stay a partial success',async()=>{
+ const old={acquire:PrismaDartRepository.prototype.acquireLock,naver:NaverAnnualProvider.prototype.annual};const f=fixture('SUPPLEMENT',{eps:'99',roe:'0'});PrismaDartRepository.prototype.acquireLock=async()=>true;NaverAnnualProvider.prototype.annual=async()=>source();
+ try{await processIndependentRefresh(f.db,config,f.run);assert.equal(f.record().values.eps,'99');assert.equal(f.record().values.per,null);assert.equal(f.record().values.roe,'0');assert.equal(f.record().values.bps,'1000');assert.equal(f.run.status,'PARTIAL');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).results?.[0]?.tasks?.valuation.state,'PARTIAL');}finally{PrismaDartRepository.prototype.acquireLock=old.acquire;NaverAnnualProvider.prototype.annual=old.naver;}
+});
