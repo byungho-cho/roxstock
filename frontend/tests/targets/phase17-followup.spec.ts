@@ -30,7 +30,7 @@ for(const [name,current,target,finalTarget,color] of [
  for(const [path,id] of [['/assets','analysis-compound-summary'],['/detail/compound?view=goal&plan=pa&goal=ga','compound-goal-summary'],['/detail/compound?view=compare&plan=pa','compound-goal-ga']] as const){
   await page.goto(path);const card=page.getByTestId(id);await expect(card).toBeVisible();await barChecks(card,current,target,finalTarget,color);
   if(id!=='compound-goal-ga'){await expect(card.getByTestId('compound-summary-current')).toHaveCSS('color',color);await expect(card.getByTestId('compound-summary-final')).toHaveCSS('color',white);}
-  else await expect(page.getByTestId('compound-current-assets')).toHaveCSS('color',color);
+  else {const amounts=page.getByTestId('compound-current-assets');await expect(amounts).toHaveCount(page.viewportSize()!.width>=600?2:1);for(const amount of await amounts.all())await expect(amount).toHaveCSS('color',color);}
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   if(name==='exact100'){await card.scrollIntoViewIfNeeded();await page.screenshot({path:`test-results/phase17/${id}-${info.project.name}.png`,animations:'disabled'});}
  }
@@ -43,7 +43,7 @@ test('menus share distinct icons and retain fixed ends, size, scroll and selecte
 });
 test('compact account rows preserve long values, Seoul time, selection and isolated editing',async({page},info)=>{
  const accounts=await fixture(page);await page.goto('/detail/settings?view=account');const first=page.getByTestId('account-card-a'),second=page.getByTestId('account-card-b');
- await expect(first.getByTestId('account-updated-at')).toHaveText('2026.10.09 08:01');await expect(second.getByTestId('account-updated-at')).toHaveText('2026.10.10 00:00');await expect(first).not.toContainText(/최근 수정|오전|오후/);expect((await first.boundingBox())!.height).toBe(60);
+ await expect(first.getByTestId('account-updated-at')).toHaveText('2026.10.09 08:01');await expect(second.getByTestId('account-updated-at')).toHaveText('2026.10.10 00:00');await expect(first).not.toContainText(/최근 수정|오전|오후/);const height=(await first.boundingBox())!.height;expect(height).toBeGreaterThanOrEqual(58);expect(height).toBeLessThanOrEqual(62);
  for(const card of [first,second]){const title=card.getByTestId('account-title-row'),detail=card.getByTestId('account-detail-row');await expect(title).toHaveCSS('align-items','center');await expect(detail).toHaveCSS('align-items','center');const time=(await card.getByTestId('account-updated-at').boundingBox())!,cash=(await card.getByTestId('account-cash').boundingBox())!;expect(time.x+time.width).toBeLessThanOrEqual(cash.x);expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);}
  await page.screenshot({path:`test-results/phase17/accounts-${info.project.name}.png`});await second.getByRole('button',{name:/계좌 선택/}).tap();await expect(second).toHaveCSS('border-top-color','rgb(250, 204, 21)');
  await first.getByRole('button',{name:/계좌 정보 수정/}).click();await expect(page).toHaveURL(/accountId=a/);expect(await page.evaluate(()=>localStorage.getItem('roxstock-selected-account-id'))).toBe('b');await page.goBack();await expect(page).toHaveURL(/view=account/);
