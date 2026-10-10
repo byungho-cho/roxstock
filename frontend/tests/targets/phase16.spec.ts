@@ -49,11 +49,13 @@ test('late home response cannot replace the last selected account',async({page})
  await fixture(page);
  await page.route('**/api/accounts',route=>route.fulfill({json:{data:['a','b','c'].map((id,index)=>({id,name:'계좌 '+id,accountNumber:id,isActive:true,isDefault:index===0}))}}));
  let release:()=>void=()=>{};const pending=new Promise<void>(resolve=>{release=resolve;});
+ let started:()=>void=()=>{};const firstRequest=new Promise<void>(resolve=>{started=resolve;});
  await page.route('**/api/accounts/*/dashboard',async route=>{
-  const id=new URL(route.request().url()).pathname.split('/')[3];if(id==='a')await pending;
+  const id=new URL(route.request().url()).pathname.split('/')[3];if(id==='a'){started();await pending;}
   return route.fulfill({json:{data:{account:{id,name:'계좌 '+id},cashBalance:'0',purchaseAmount:'0',stockValue:id==='c'?'300':'100',totalAssetValue:id==='c'?'300':'100',holdings:[],pricingComplete:true}}});
  });
  await page.goto('/');const open=page.getByRole('button',{name:'계좌 선택',exact:true});
+ await firstRequest;
  for(const id of ['b','c']){await open.click();await page.getByRole('dialog').getByRole('button',{name:`계좌 ${id}(${id})`,exact:true}).click();await expect(open).toContainText('계좌 '+id);}
  const response=page.waitForResponse(r=>r.url().includes('/accounts/a/dashboard'));release();await response;
  await expect(page.getByTestId('home-summary-area')).toContainText('300원');await expect(open).toContainText('계좌 c');
