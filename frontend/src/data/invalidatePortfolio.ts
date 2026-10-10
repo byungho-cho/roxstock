@@ -3,12 +3,17 @@ import type { QueryClient } from '@tanstack/react-query';
 // Keep cached values visible while refreshing active screens; inactive screens refresh after invalidation on their next visit.
 const portfolioQueryKeys = [
   'account-data-state', 'accounts', 'dashboard', 'analysis-dashboard', 'analysis-history', 'assetHistory',
-  'investment', 'investment-profit', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
+  'investment', 'investment-profit', 'investment-profit-summary', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
   'accountTradesSummary', 'stocks', 'accountTrades', 'buyLots', 'allBuyLots', 'stockTrades', 'journalTrades', 'tradeDetail',
   'targetArrivals', 'recentBuys', 'compound-plans', 'securityAnalysis',
 ] as const;
 
-export function invalidatePortfolio(client: QueryClient) {
+export async function invalidatePortfolio(client: QueryClient) {
+  // Mark raw inputs stale before active derived queries refetch, otherwise they could reuse old data.
+  await Promise.all(['profitTrades', 'profitDividends', 'profitCapital'].map(key =>
+    client.cancelQueries({ queryKey: [key] })));
+  await Promise.all(['profitTrades', 'profitDividends', 'profitCapital'].map(key =>
+    client.invalidateQueries({ queryKey: [key], refetchType: 'none' })));
   return Promise.all(portfolioQueryKeys.map(key =>
     client.invalidateQueries({ queryKey: [key], refetchType: 'active' })));
 }

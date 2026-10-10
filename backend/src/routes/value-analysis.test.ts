@@ -39,3 +39,16 @@ test('initial search filters full master without changing live-price or year sel
   const empty=await app.inject('/api/value-analysis?query='+encodeURIComponent('ㅂㅂㅂ'));assert.equal(empty.json().data.total,0);
  }finally{await app.close();prisma.security.findMany=original;}
 });
+
+test('list excludes unused source JSON and historical quarters but retains annual fallback and current-year share basis',async()=>{
+ const original=prisma.security.findMany;let join:any;
+ prisma.security.findMany=(async(input:any)=>{if(input.include)join=input;return [];}) as any;
+ const app=buildApp();try{
+  assert.equal((await app.inject('/api/value-analysis?year=2025')).statusCode,200);
+  assert.deepEqual(join.include.fundamentals,{select:{updatedAt:true}});
+  assert.deepEqual(join.include.dartFinancialFilings.omit,{accountSources:true});
+  assert.deepEqual(join.include.dartFinancialFilings.where.OR,[{fiscalYear:2025},{periodType:'ANNUAL'}]);
+  assert.equal(join.include.dartFinancialFilings.where.isWithdrawn,false);
+  assert.equal(join.include.dartShareSnapshots.where.fiscalYear,2025);
+ }finally{await app.close();prisma.security.findMany=original;}
+});

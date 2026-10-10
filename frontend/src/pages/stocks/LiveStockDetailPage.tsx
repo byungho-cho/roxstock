@@ -51,12 +51,12 @@ function AccountStockDetail({stock,initialTab='holding'}:{stock:StockItem;initia
  const setTab=(value:'summary'|'holding'|'trades')=>{setSavedTab(value);const next=new URLSearchParams(detailParams);next.set('detailTab',value);setDetailParams(next,{replace:true,state:{...detailLocation.state,listEntryKey:detailLocation.state?.listEntryKey??detailLocation.key}});};
  // Persist even the default tab so the next stock cannot restore a different saved tab.
  useEffect(()=>{if(requestedTab!==tab&&(stock.listType==='holding'||stock.listType==='traded'))setTab(tab);},[requestedTab,tab,stock.listType]);
- const {data:lots,isPending:lotsPending,isError:lotsError,refetch:reloadLots}=useBuyLots(stock.id);
- const trades=useQuery({queryKey:['stockTrades',accountId,stock.id],...storedQueryOptions,enabled:!!accountId,queryFn:({signal})=>getTrades(accountId!,{securityId:stock.id},signal)});
+ const {data:lots,isPending:lotsPending,isError:lotsError,refetch:reloadLots}=useBuyLots(stock.id,{enabled:tab==='holding'});
+ const trades=useQuery({queryKey:['stockTrades',accountId,stock.id],...storedQueryOptions,enabled:!!accountId&&(tab==='trades'||stock.hasTradeHistory===undefined),queryFn:({signal})=>getTrades(accountId!,{securityId:stock.id},signal)});
  const allLots=useQuery({queryKey:['allBuyLots',accountId,stock.id],...storedQueryOptions,enabled:!!accountId&&tab==='trades',queryFn:()=>getBuyLots(accountId!,stock.id,false)});
  const deletion=useQuery({queryKey:['tradeDetail',accountId,remove?.type,remove?.id],enabled:!!accountId&&!!remove,queryFn:()=>getTradeDetail(remove!.type,remove!.id,accountId)});
  const holding=stock.listType==='holding',traded=stock.listType==='traded',valuation=stockValuation(stock);
- const canChangeCategory=!!stock.watchlistItemId&&stock.hasTradeHistory!==true&&!traded&&!!trades.data&&!trades.isError&&trades.data.data.length===0;
+ const canChangeCategory=!!stock.watchlistItemId&&stock.hasTradeHistory!==true&&!traded&&(stock.hasTradeHistory===false||!!trades.data&&!trades.isError&&trades.data.data.length===0);
  useEffect(()=>{if(!canChangeCategory)setCategoryOpen(false);},[canChangeCategory]);
  const [visibleYears,setVisibleYears]=usePageMemory('stockTradeYears:'+stock.id,1);
  useEffect(()=>{setError('');setRemove(null);setPriceOpen(false);setCategoryOpen(false);setListDeleteOpen(false);},[stock.id,accountId]);
