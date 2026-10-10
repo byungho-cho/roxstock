@@ -73,14 +73,16 @@ public class WebOnlySmokeTest {
             assertTrue(bridge.await(5, TimeUnit.SECONDS));
             loaded.set(new CountDownLatch(1));
             expectedPath.set("/test-menu");
-            int[] location = new int[2];
-            scenario.onActivity(activity -> web.get().getLocationOnScreen(location));
-            long downTime = SystemClock.uptimeMillis();
-            MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, location[0] + 40, location[1] + 40, 0);
-            MotionEvent up = MotionEvent.obtain(downTime, downTime + 100, MotionEvent.ACTION_UP, location[0] + 40, location[1] + 40, 0);
-            InstrumentationRegistry.getInstrumentation().sendPointerSync(down);
-            InstrumentationRegistry.getInstrumentation().sendPointerSync(up);
-            down.recycle(); up.recycle();
+            // Native WebView touch events preserve user-gesture history semantics without
+            // depending on emulator/system-window focus during a cold application launch.
+            scenario.onActivity(activity -> {
+                long downTime = SystemClock.uptimeMillis();
+                MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 40, 40, 0);
+                MotionEvent up = MotionEvent.obtain(downTime, downTime + 100, MotionEvent.ACTION_UP, 40, 40, 0);
+                web.get().dispatchTouchEvent(down);
+                web.get().dispatchTouchEvent(up);
+                down.recycle(); up.recycle();
+            });
             assertTrue("Menu navigation failed", loaded.get().await(20, TimeUnit.SECONDS));
             scenario.onActivity(activity -> { assertTrue("Menu URL: " + web.get().getUrl(), web.get().getUrl().endsWith("/test-menu")); assertTrue("Menu must create browser history", web.get().canGoBack()); });
             loaded.set(new CountDownLatch(1));
