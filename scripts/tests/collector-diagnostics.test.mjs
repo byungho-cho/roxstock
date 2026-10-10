@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';
+test('collector diagnostic output allowlists fields and never prints raw requests, keys or stack',()=>{
+ const secret='secret-query-token';const input=[JSON.stringify({event:'DART collector failure',timestamp:'2026-10-10T11:00:00.000Z',runId:'12',code:'NETWORK_ERROR',category:'DART_API',stage:'FINANCIALS',message:secret,apiKey:secret,url:secret,stack:secret}),secret,JSON.stringify({event:'unknown',code:secret}),JSON.stringify({event:'manual_refresh_task',jobId:'13',source:'OPEN_DART',period:'ANNUAL',fiscalYear:2025,durationMs:20000,code:'DART_TIMEOUT',request:secret})].join('\n');
+ const result=spawnSync(process.execPath,['scripts/filter-collector-diagnostics.mjs'],{input,encoding:'utf8'});assert.equal(result.status,0);assert.ok(!result.stdout.includes(secret));assert.match(result.stdout,/NETWORK_ERROR/);assert.match(result.stdout,/DART_TIMEOUT/);assert.match(result.stdout,/"count":2/);
+});

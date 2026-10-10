@@ -126,6 +126,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.TARGET_SHA }}
+      - name: Read safe collector diagnostics before deployment
+        continue-on-error: true
+        shell: bash
+        run: |
+          timeout 45s ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker logs --since 24h --tail 500 roxstock-dart-collector 2>&1" | node scripts/filter-collector-diagnostics.mjs
       - name: Deploy immutable backend image
         shell: bash
         run: |

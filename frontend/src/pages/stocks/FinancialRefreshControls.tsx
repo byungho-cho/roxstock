@@ -10,7 +10,7 @@ import { apiRequest, ApiError } from '../../data/apiClient';
 import { FormSelect } from '../../components/forms/Fields';
 import { colors, radius } from '../../styles/tokens';
 
-export const hasSavedFinancialData=(rows:readonly unknown[])=>rows.some(row=>{const data=row as Record<string,unknown>;return ['revenue','operatingProfit','netIncome','eps','bps','per','pbr','roe'].some(key=>data[key]!=null);});
+export const hasSavedFinancialData=(rows:readonly unknown[])=>rows.some(row=>{const data=row as Record<string,unknown>;return Boolean(data.values&&typeof data.values==='object'&&Object.values(data.values).some(value=>value!=null))||['revenue','operatingProfit','netIncome','eps','bps','per','pbr','roe'].some(key=>data[key]!=null);});
 export type RefreshPeriod = 'Q1' | 'Q2' | 'Q3' | 'ANNUAL' | 'ALL';
 type RefreshCounts = { processed:number; disclosureCompleted:number; valuationCompleted:number; noDisclosure:number; disclosureFailed:number; supplementFailed:number };
 type Task={state:string;code?:string};
@@ -33,7 +33,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const [chooseMode,setChooseMode]=useState(false),[uncertain,setUncertain]=useState(false),[toast,setToast]=useState('');
   const token=useRef<string|null>(null),toastHandled=useRef('');
   const client=useQueryClient(),submitLock=useRef(false),handled=useRef<string|null>(null),callback=useRef(onComplete);callback.current=onComplete;
-  const mutation=useMutation({mutationFn:(refreshMode:'FULL'|'SUPPLEMENT')=>{token.current??=crypto.randomUUID();return apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period,refreshMode,clientRequestId:token.current}),signal:AbortSignal.timeout(15000)});},onSuccess:data=>{setUncertain(false);token.current=null;sessionStorage.setItem(`financialRefresh:${stockId}`,data.requestId);setRequestId(data.requestId);void active.refetch();},onError:()=>{setUncertain(true);void active.refetch().then(result=>{if(!result.isError)setUncertain(false);});},onSettled:()=>{submitLock.current=false;}});
+  const mutation=useMutation({mutationFn:(refreshMode:'FULL'|'SUPPLEMENT')=>{token.current??=crypto.randomUUID();return apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period,refreshMode,clientRequestId:token.current}),signal:AbortSignal.timeout(15000)});},onSuccess:data=>{setUncertain(false);token.current=null;sessionStorage.setItem(`financialRefresh:${stockId}`,data.requestId);setRequestId(data.requestId);void active.refetch();},onError:error=>{if(error instanceof ApiError&&error.code==='REFRESH_REQUEST_MISMATCH')token.current=null;setUncertain(true);void active.refetch().then(result=>{if(!result.isError)setUncertain(false);});},onSettled:()=>{submitLock.current=false;}});
   const active=useQuery({queryKey:['financialRefreshActive',stockId],queryFn:({signal})=>apiRequest<RefreshStatus|null>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/active`,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])}),staleTime:0,retry:1,refetchInterval:q=>visible&&(q.state.data?.requestId||q.state.error)?3000:false});
   useEffect(()=>{if(visible)void active.refetch();},[visible,stockId]);
   useEffect(()=>{if(active.data?.requestId&&active.data.state!=='FINISHED'){
