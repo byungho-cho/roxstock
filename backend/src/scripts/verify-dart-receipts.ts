@@ -30,7 +30,7 @@ try {
    const provider=new OpenDartProvider({apiKey:process.env.DART_API_KEY?.trim()??'',dailyCallLimit:limit,minDelayMs:Math.max(config.dartBackfillMinDelayMs,config.dartMinDelayMs),
     reserveCall:async l=>{if(calls>=maxCalls)throw new DartApiError('REPRESENTATIVE_CALL_LIMIT','Bounded request limit reached',false,true);if(!await repo.reserveApiCall(l,new Date(),owner))return false;calls++;return true;},
     onApiStatus:status=>repo.recordApiResult(status==='013'?'NO_DATA':'ERROR')});
-   const results:Array<Record<string,unknown>>=[];
+   const results:Array<Record<string,unknown>>=[];let stopped=false;
    for(const symbol of ['900290','000120','005930']){
     const security=await db.security.findFirst({where:{symbol,isActive:true},include:{dartCorpMapping:true}});
     if(!security?.dartCorpMapping){results.push({symbol,code:'DART_CORP_CODE_NOT_MAPPED'});continue;}
@@ -66,6 +66,7 @@ try {
      }catch(e){
       const diagnostic=dartDiagnostic(e,'REPRESENTATIVE_VERIFY');
       result={...result,...diagnostic,stored:false};
+      if(e instanceof DartApiError&&(e.quotaExceeded||['010','011','012','API_KEY_MISSING'].includes(e.code)))stopped=true;
       if(eligible&&task){
        // No financial write. Only these two authorized attempted tasks receive a classified failure.
        const retry=retryDecision(diagnostic.code,task.attempts+1,new Date());
@@ -75,7 +76,9 @@ try {
       }
      }
      results.push(result);emit('DART representative result',result);
+     if(stopped)break;
     }
+    if(stopped)break;
    }
    await repo.finishRun(runId,results.some(r=>r.code)?'PARTIAL':'SUCCESS',{success:results.filter(r=>r.validation==='VERIFIED').length,failed:results.filter(r=>r.code).length,skipped:results.filter(r=>r.validation==='VERIFIED'&&!r.stored).length},undefined,{version,calls,maxCalls,results,completedAt:new Date().toISOString(),allFailuresResolved:false});
    emit('DART representative summary',{runId:String(runId),calls,maxCalls,results});
