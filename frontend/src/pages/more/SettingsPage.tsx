@@ -1,12 +1,18 @@
-import { TargetArrivalSettings } from './TargetArrivalSettings';
 import '../dashboard/home-font.css';
-import { Box, useMediaQuery } from '@mui/material';
-import { useEffect, useRef } from 'react';
+import { Box, Skeleton, useMediaQuery } from '@mui/material';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { AccountResetFlow } from './AccountResetFlow';
-import { AccountForm, AccountManagement, CashAdjustment, CollectionSettings, SettingsMenu, ThemeSettings, type MoreView } from './MoreScreens';
+import type {MoreView} from './MoreScreens';
+import {SettingsMenu} from './SettingsMenu';
+const AccountForm=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountForm})));
+const AccountManagement=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountManagement})));
+const CashAdjustment=lazy(()=>import('./MoreScreens').then(m=>({default:m.CashAdjustment})));
+const CollectionSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.CollectionSettings})));
+const ThemeSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.ThemeSettings})));
+const AccountResetFlow=lazy(()=>import('./AccountResetFlow').then(m=>({default:m.AccountResetFlow})));
+const TargetArrivalSettings=lazy(()=>import('./TargetArrivalSettings').then(m=>({default:m.TargetArrivalSettings})));
 
 const labels: Record<MoreView, string> = { 'target-arrival': '목표가 도래 조건', settings: '설정', account: '계좌 관리', add: '계좌 추가', edit: '계좌 정보 수정', cash: '예수금 수정', collection: '시세 수집', theme: '테마 설정', reset: '계좌 데이터 초기화' };
 export function SettingsPage() {
@@ -26,6 +32,7 @@ export function SettingsPage() {
       <Box ref={menuRef} data-scroll-region="settings-menu" data-testid="settings-menu" sx={{ display: { xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: '80px' }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
       {detailView !== 'settings' && <Box ref={detailRef} data-scroll-region="settings-detail" data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0, '& .MuiButton-root': { borderRadius: '8px' }, '& .settings-condition-delete': { borderRadius: '2px' } }}>
         <Box sx={{ px: 0, pt: detailView === 'target-arrival' ? 0 : '14px', pb: '80px' }}>
+          <Suspense fallback={<Skeleton aria-label="설정 상세 코드 불러오는 중" height={100}/>} >
           {detailView === 'target-arrival' && <TargetArrivalSettings />}
           {detailView === 'account' && <AccountManagement openReset={() => navigate('/detail/settings?view=reset')} />}
           {detailView === 'add' && <AccountForm key={'add'} add />}
@@ -34,6 +41,7 @@ export function SettingsPage() {
           {detailView === 'collection' && <CollectionSettings />}
           {detailView === 'theme' && <ThemeSettings />}
           {detailView === 'reset' && <AccountResetFlow key={detailView} />}
+          </Suspense>
         </Box>
       </Box>}
       {tablet && <><OverlayRegionScrollbar scrollRef={menuRef} label="설정 메뉴 스크롤" offset={0} /><OverlayRegionScrollbar scrollRef={detailRef} label="설정 상세 스크롤" offset={0} /></>}

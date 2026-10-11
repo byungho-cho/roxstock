@@ -36,3 +36,7 @@
 ## 운영 권한 복구
 
 첫 운영 배포 d3df7bc/run38104560924는 TRIGGER 권한1142로 migration4번째 문장에서 중단됐다. 기존 서비스 교체 전 중단, 프론트 미배포. 복구 PR은 기존 백업 뒤 DB 컨테이너 관리자 세션으로 이 실패만 식별하여 초기 집계가 비어 있을 때 DDL을 재실행한다. 기존 migration/checksum과 사업 원장은 수정·삭제하지 않는다. 테이블/trigger는 IF NOT EXISTS, 초기 revision은 INSERT IGNORE, 모든 trigger 개수를 확인한 후 Prisma resolve --applied와 정상 migrate deploy를 실행한다. 실행 계정의 권한은 기존대로 유지한다. 다른 실패 사유나 이미 집계가 채워진 미완료 상태는 자동 복구하지 않는다. 제한된 권한의 실제 MariaDB에서 실패→복구→재실행, 원장 보존, 동일 계산·무효화를 검증한다.
+
+## 기본 화면 코드 추가 분리
+
+b6cccfeb 운영 n3 중간 측정에서 설정/복리 기본 표시가 기존 표본보다 느렸다. 환경·부하 차이가 있어 인과 효과로 단정하지 않으며, 남아 있던 코드 의존성을 수정한다. SettingsMenu를 계좌 편집/초기화 모듈에서 분리하고 설정 상세는 해당 view에서만 lazy load하며 자체 Suspense 영역을 사용한다. 복리 편집 폼·연도 달력도 편집을 열 때만 다운로드한다. 기존 헤더·메뉴·입력/저장/포커스는 유지한다. 화면 timing 원본에 JS resource duration/bytes도 기록하여 API 대기와 분리하며 CPU 실행 비용 자체는 별도 profile이 필요하다.
