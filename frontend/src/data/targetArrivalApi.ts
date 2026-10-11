@@ -14,4 +14,4 @@ export type TargetReport = { data: TargetLot[]; meta: {
 const path = (accountId: string) => `/accounts/${encodeURIComponent(accountId)}`;
 export const getTargetSettings = (accountId: string) => apiRequest<TargetSettings>(`${path(accountId)}/target-arrival-conditions`);
 export const saveTargetSettings = (accountId: string, body: Pick<TargetSettings, 'conditions' | 'version'>) => apiRequest<TargetSettings>(`${path(accountId)}/target-arrival-conditions`, { method: 'PUT', body: JSON.stringify(body) });
-export const getTargetArrivals = (accountId: string) => apiEnvelope<TargetReport>(`${path(accountId)}/target-arrivals`);
+export const getTargetArrivals = (accountId: string, signal?:AbortSignal) => apiEnvelope<TargetReport>(`${path(accountId)}/target-arrivals`,{signal});

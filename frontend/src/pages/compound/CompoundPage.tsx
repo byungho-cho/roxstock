@@ -38,12 +38,12 @@ function FormDialog({title,children,busy,close,compact=false}:{title:string;chil
 }
 export function CompoundPage(){
  const {accountId,accounts}=useActiveAccount();
- if(!accountId)return <Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?<Skeleton height={30}/>:'계좌를 선택해 주세요.'}</Box>;
+ if(!accountId)return <><PageHeader embedded title="복리계획" variant="detail" showBackTablet showAdd={false}/><Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?<Skeleton height={30}/>:'계좌를 선택해 주세요.'}</Box></>;
  return <AccountPlans key={accountId} accountId={accountId}/>;
 }
 function AccountPlans({accountId}:{accountId:string}){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search);
- const query=useCompoundPlans(accountId),client=useQueryClient(),returnBack=useReturnNavigation('/more');
+ const query=useCompoundPlans(accountId,{splitLoading:true}),client=useQueryClient(),returnBack=useReturnNavigation('/more');
  const data=query.data,pending=query.isFetching,error=query.error?.message??'';
  const [busy,setBusy]=useState(false),formEntry=useRef(location.key);
  formEntry.current=location.key;
@@ -83,9 +83,9 @@ function AccountPlans({accountId}:{accountId:string}){
  const planColor=(p:Plan)=>p.displayColor??p.goals[0]?.displayColor??colors[0];
  const actions=(p:Plan,g?:Goal)=><Box sx={{display:'flex',gap:'8px',mt:'4px'}}>{(['edit','delete'] as const).map(action=><IconButton key={action} disabled={busy} aria-label={(g?.goalName??p.planName)+(action==='edit'?' 수정':' 삭제')} onClick={event=>{event.stopPropagation();if(action==='edit')openForm(g?'goal-edit':'plan-edit',p,g);else{setMutationError('');setConfirm({type:g?'goal-delete':'plan-delete',plan:p,goal:g});}}} sx={{p:0,width:24,height:24}}><img src={'/stocks-v03/'+action+'.svg'} alt="" width="16" height="16"/></IconButton>)}</Box>;
  const assetCard=(showSelect=false)=><Box sx={{...card,p:'14px 16px',minHeight:95,boxSizing:'border-box'}}><Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',fontSize:14,fontWeight:600,lineHeight:'20px',minHeight:20,color:plan?planColor(plan):blue}}><span>현재 자산</span>{showSelect&&plan&&<select aria-label="계획 선택" value={plan.id} onChange={e=>{const p=plans.find(p=>p.id===e.target.value);if(p)choose(p);}} style={{background:'transparent',color:muted,border:0,fontSize:10,maxWidth:'55%',fontFamily:'inherit'}}>{plans.map(p=><option key={p.id} value={p.id} style={{background:'#0E1729'}}>{p.planName} · {p.startYear}–{p.endYear}</option>)}</select>}</Box>
-  <Box data-testid="compound-current-assets" sx={{textAlign:'right',fontSize:24,lineHeight:'29px',fontWeight:600,color:compoundAssetColor(data?.pricingComplete===false?null:data?.currentAssets,goal?goal.yearTarget:plan?.goals.find(g=>g.isDefault)?.yearTarget),overflowWrap:'anywhere',my:'3px'}}>{format(data?.currentAssets,0,'원')}</Box>
+  <Box data-testid="compound-current-assets" sx={{textAlign:'right',fontSize:24,lineHeight:'29px',fontWeight:600,color:compoundAssetColor(data?.pricingComplete===false?null:data?.currentAssets,goal?goal.yearTarget:plan?.goals.find(g=>g.isDefault)?.yearTarget),overflowWrap:'anywhere',my:'3px'}}>{query.assetsPending?<Skeleton aria-label="현재 자산 계산 중" height={29} sx={{transform:'none'}}/>:query.assetsError?<Button onClick={refresh}>현재 자산 조회 실패 · 재시도</Button>:format(data?.currentAssets,0,'원')}</Box>
   <Box sx={{fontSize:10,lineHeight:'12px',color:muted,textAlign:'right'}}>{data?.asOf?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'}).format(new Date(data.asOf)):'—'}</Box>
-  {data&&!data.pricingComplete&&<Box sx={{fontSize:10,color:muted}}>미수집 주가가 있어 현재 자산과 진행률을 계산할 수 없습니다.</Box>}
+  {data&&!query.assetsPending&&!query.assetsError&&!data.pricingComplete&&<Box sx={{fontSize:10,color:muted}}>미수집 주가가 있어 현재 자산과 진행률을 계산할 수 없습니다.</Box>}
  </Box>;
  const sortedPlans=[...plans].sort((a,b)=>Number(b.status==='ACTIVE')-Number(a.status==='ACTIVE')||b.startYear-a.startYear||a.id.localeCompare(b.id));
  const list=<Box sx={{display:'grid',gap:'10px'}}>{status}{data&&plans.length>0&&assetCard()}{sortedPlans.map(p=>{const defaultGoal=p.goals.find(g=>g.isDefault),ended=p.status==='ENDED',achievement=number(defaultGoal?.finalAchievementRate),stateColor=ended?achievement===null?muted:achievement>=100?'#F76B73':'#60A5FA':'#33D199';return <Box key={p.id} role="link" tabIndex={0} aria-label={p.planName+' 상세'} onClick={()=>choose(p)} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();choose(p);}}} data-scroll-item={p.id} data-testid={'compound-plan-'+p.id} sx={{...card,p:'10px 14px',cursor:'pointer',boxSizing:'border-box',bgcolor:ended?'#0E1012':'#0E1729',border:p.startYear<=(data?.currentYear??seoulYear())&&p.endYear>=(data?.currentYear??seoulYear())?'2px solid #FACC15':'2px solid transparent','&:focus-visible':{outline:'2px solid #5EA1F0'}}}>

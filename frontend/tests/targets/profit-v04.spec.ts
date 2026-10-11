@@ -1,3 +1,4 @@
+import {profitFixture} from './profit-aggregate-fixture';
 import { expect, test, type Page } from '@playwright/test';
 import { amount, calculateProfit, rate, won } from '../../src/pages/investment-profit/profitData';
 import type { TradeDto } from '../../src/data/roxstockApi';
@@ -16,6 +17,14 @@ async function fixture(page: Page, initial: Mode = 'normal') {
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url()), path = url.pathname;
     if (path === '/api/accounts') return route.fulfill({ json: { data: [{ id: '1', name: '기본', isDefault: true, isActive: true }, { id: '2', name: '빈 계좌', isActive: true }] } });
+    if(path.endsWith('/investment-profit')){
+      offsets.push(0);
+      if(hold&&path.includes('/1/'))await new Promise<void>(resolve=>releases.push(resolve));
+      if(mode==='error'||mode==='changing')return route.fulfill({status:mode==='changing'?409:503,json:{error:{message:'조회 중 데이터가 변경되었습니다.'}}});
+      const empty=mode==='empty'||path.includes('/2/');
+      const records=empty?[]:trades.map(row=>mode==='missing'&&row.type==='SELL'?{...row,realizedProfitLoss:null}:mode==='large'&&row.type==='SELL'?{...row,amount:'999999999999999.99999999',realizedProfitLoss:'99999999999999.99999999'}:row);
+      return route.fulfill({json:profitFixture(path.includes('/2/')?'2':'1',records,empty?[]:dividends,[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}],'2026-10-05')});
+    }
     if (path.endsWith('/investment-capital')) return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}]}});
     if (path.endsWith('/trades')) {
       if (hold && path.includes('/1/')) await new Promise<void>(resolve => releases.push(resolve));
@@ -48,7 +57,7 @@ test('exact realized-cost aggregation, net dividends, KST boundary and weighted 
   expect(amount('0.00000001')).toBe(1n);
 });
 test('all stock results include losses and synchronize cumulative/detail sums', async ({ page }, info) => {
-  const f = await fixture(page); await ready(page); expect(f.offsets).toContain(100);
+  const f = await fixture(page); await ready(page); expect(f.offsets).toEqual([0]);
   await page.getByRole('button', { name: '종목별', exact: true }).click();
   await expect(page.getByTestId('profit-count')).toHaveText('총 14개'); await expect(page.getByTestId('profit-list-row')).toHaveCount(14);
   const loss = page.getByTestId('profit-list-row').filter({ hasText: '종목01' }); await expect(loss).toContainText('-100원'); await expect(loss).toContainText('-10.0%');
@@ -103,13 +112,12 @@ test('stored profit does not poll/focus-refresh; account switch rejects the old 
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');f.release();await expect(page.getByTestId('profit-total')).toHaveCount(0);
 });
-test('empty missing failed and changing-pagination results remain distinct', async ({ page }, info) => {
+test('empty missing failed and changing-source results remain distinct', async ({ page }, info) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');
   if (page.viewportSize()!.width >= 600) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
   f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
-  // A cash page from the previous failed trades request may still arrive. Observe the retry fixture, not that older response.
-  f.mode('changing'); const changedPage=page.waitForResponse(r=>r.url().includes('/cash-transactions')&&new URL(r.url()).searchParams.get('offset')==='100'&&r.headers()['x-fixture-mode']==='changing'); await page.getByRole('button', { name: '재시도' }).first().click(); expect((await (await changedPage).json()).meta.total).toBe(112); await expect(page.getByRole('alert').first()).toBeVisible(); await expect(page.getByTestId('profit-total')).toHaveCount(0);
+  f.mode('changing');const changedPage=page.waitForResponse(r=>r.url().includes('/investment-profit')&&r.status()===409);await page.getByRole('button',{name:'재시도'}).first().click();await changedPage;await expect(page.getByRole('alert').first()).toBeVisible();await expect(page.getByTestId('profit-total')).toHaveCount(0);
   f.mode('normal'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
 });
 test('long amounts never invade adjacent columns', async ({ page }) => {

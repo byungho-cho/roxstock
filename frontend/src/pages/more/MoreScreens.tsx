@@ -1,3 +1,5 @@
+import {useMoreAccounts} from '../../hooks/useMoreAccounts';
+export {useMoreAccounts} from '../../hooks/useMoreAccounts';
 import {accountUpdatedAt} from '../../utils/accountUpdatedAt';
 import { AndroidDownload } from './AndroidDownload';
 import {ApiError} from '../../data/apiClient';
@@ -5,12 +7,13 @@ import {useAccountAllocation} from '../../hooks/useAccountAllocation';
 import {ActionButton} from '../../components/common/Common';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { Box, Button, ButtonBase, IconButton, Dialog, Skeleton, Stack, Typography } from '@mui/material';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { getAccountDataState, deleteAccount, chooseAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { getAccountDataState, deleteAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
@@ -22,31 +25,6 @@ const settingsPanel = { ...panel, bgcolor: '#090F1C', border: '1px solid #21304A
 const hint = { fontSize: 11, color: '#7A859E' } as const;
 const heading = { fontSize: 18, fontWeight: 600, lineHeight: '26px' } as const;
 
-export function useMoreAccounts() {
-  const client = useQueryClient();
-  const [version, setVersion] = useState(0);
-  useEffect(() => {
-    const listener = () => setVersion((value) => value + 1);
-    window.addEventListener('roxstock-demo-settings', listener);
-    window.addEventListener('roxstock-selected-account', listener);
-    return () => { window.removeEventListener('roxstock-demo-settings', listener); window.removeEventListener('roxstock-selected-account', listener); };
-  }, []);
-  const query = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, enabled: liveApiEnabled });
-  void version;
-  const demo = readDemoSettings();
-  const accounts = liveApiEnabled ? (query.data ?? []).filter(a=>a.isActive) : demo.accounts;
-  const selected = liveApiEnabled ? chooseAccount(accounts) : accounts.find((item) => item.id === demo.selectedId) ?? accounts[0];
-  const refresh = async () => {
-    if (!liveApiEnabled) return;
-    await client.invalidateQueries({ predicate: (item) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys'].includes(String(item.queryKey[0])) });
-  };
-  const select = async (id: string) => {
-    if (selected?.id === id) return;
-    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); await refresh(); }
-    else saveDemoSettings({ selectedId: id });
-  };
-  return { accounts, selected, query, demo, refresh, select };
-}
 
 function LabelledCard({ title, description, children, sx }: { title?: string; description?: string; children: ReactNode; sx?: object }) {
   return <Box sx={{ ...settingsPanel, ...sx }}>
@@ -67,12 +45,12 @@ function LinkRow({ title, caption, value, onClick, active = false }: { title: st
 export function SettingsMenu({ active }: { active?: MoreView }) {
   const navigate = useNavigate();
   const { accounts, query } = useMoreAccounts();
-  const status = useQuery({ queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, enabled: liveApiEnabled, refetchInterval: 60_000 });
+  const status = useQuery({ ...storedQueryOptions, staleTime:60_000, queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, enabled: liveApiEnabled, refetchInterval: 60_000 });
   const selected = ['add','edit','cash','reset'].includes(active ?? '') ? 'account' : active;
   const items = [
     { view: 'account', title: '계좌 관리', caption: '계좌 정보와 현재 예수금을 관리합니다.', value: query.isError ? '조회 실패' : `${accounts.length}개 계좌` },
     { view: 'target-arrival', title: '목표가 도래 조건', caption: '보유기간별 목표수익률 조건을 편집합니다.', value: '계좌별' },
-    { view: 'collection', title: '시세 수집', caption: '수집 주기와 최근 수집 상태를 확인합니다.', value: status.isError ? '조회 실패' : ({ OK: '정상', SUCCESS: '완료', RUNNING: '진행 중', PARTIAL: '일부 실패', FAILED: '실패', DELAYED: '지연', WAITING: '대기', NOT_IMPLEMENTED: '미구현', NO_DATA: '미수집', NOT_CONFIGURED: '설정 필요', NO_FILING: '미공시' } as Record<string,string>)[status.data?.features.find(item => item.id === 'realtime-prices')?.status ?? ''] ?? '상태 조회' },
+    { view: 'collection', title: '시세 수집', caption: '수집 주기와 최근 수집 상태를 확인합니다.', value: status.isError ? '조회 실패' : ({ OK: '정상', SUCCESS: '완료', RUNNING: '진행 중', PARTIAL: '일부 실패', FAILED: '실패', DELAYED: '지연', WAITING: '대기', NOT_IMPLEMENTED: '미구현', NO_DATA: '미수집', NOT_CONFIGURED: '설정 필요', NO_FILING: '미공시' } as Record<string,string>)[status.data?.features?.find(item => item.id === 'realtime-prices')?.status ?? ''] ?? '상태 조회' },
     { view: 'theme', title: '테마 설정', caption: '앱 화면의 테마를 선택합니다.', value: '' },
   ];
   return <Stack component="nav" aria-label="설정 메뉴" spacing="12px">{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(`/detail/settings?view=${item.view}`)} sx={{ ...row, bgcolor: '#090F1C', borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 72 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
@@ -158,7 +136,7 @@ function AccountFormContent({ add }: { add: boolean }) {
         const result = add ? await createAccount(input) : await updateAccount(selected!.id, input);
         if (add) { localStorage.setItem(selectedAccountStorageKey, result.id); window.dispatchEvent(new Event('roxstock-selected-account')); }
         await refresh();
-        await client.fetchQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, staleTime: 0 });
+        await client.fetchQuery({ queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), staleTime: 0 });
       } else if (add) addDemoAccount(input); else editDemoAccount(selected!.id, input);
       navigate('/detail/settings?view=account');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '계좌 변경에 실패했습니다.'); }

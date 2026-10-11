@@ -9,7 +9,7 @@ async function fixture(page:Page,current='100000000',target:string|null=annual,f
  await page.route('**/api/accounts',r=>r.fulfill({json:{data:accounts.map(account=>({...account,brokerName:'테스트 증권사'}))}}));
  await page.route('**/api/accounts/*/data-state',r=>r.fulfill({json:{data:{hasData:true,counts:{}}}}));
  await page.route('**/api/accounts/*/dashboard',r=>r.fulfill({json:{data:{stockValue:'78000000',cashBalance:new URL(r.request().url()).pathname.includes('/b/')?'123456789012345678':'22000000',holdings:[],pricingComplete:true}}}));
- await page.route('**/api/accounts/*/compound-plans',r=>{const id=new URL(r.request().url()).pathname.split('/')[3],assets=id==='b'?'50000000':current;return r.fulfill({json:{data:{accountId:id,currentAssets:assets,currentYear:2026,pricingComplete:true,asOf:'2026-10-10T00:00:00Z',plans:[{id:'p'+id,planName:'복리계획 '+id,startYear:2025,endYear:2027,duration:3,initialAssetValue:'0',annualContributionAmount:'0',status:'ACTIVE',goals:[goal(id,assets)]}]}}});});
+ await page.route('**/api/accounts/*/compound-plans*',r=>{const id=new URL(r.request().url()).pathname.split('/')[3],assets=id==='b'?'50000000':current;return r.fulfill({json:{data:{accountId:id,currentAssets:assets,currentYear:2026,pricingComplete:true,asOf:'2026-10-10T00:00:00Z',plans:[{id:'p'+id,planName:'복리계획 '+id,startYear:2025,endYear:2027,duration:3,initialAssetValue:'0',annualContributionAmount:'0',status:'ACTIVE',goals:[goal(id,assets)]}]}}});});
  await page.route('**/api/accounts/*/asset-history**',r=>{const id=new URL(r.request().url()).pathname.split('/')[3];return r.fulfill({json:{data:[],summary:{},compoundPlan:{id:'p'+id}}});});
  return accounts;
 }

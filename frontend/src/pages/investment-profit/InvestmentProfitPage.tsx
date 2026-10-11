@@ -66,7 +66,7 @@ export function InvestmentProfitPage() {
   const toggle = <Button aria-label={ascending ? '손익액 내림차순 정렬' : '손익액 오름차순 정렬'} onClick={() => setAscending(!ascending)} sx={{minWidth:32,p:0,fontSize:11}}>{ascending ? '↑' : '↓'}</Button>;
   const left = useRef<HTMLDivElement>(null), right = useRef<HTMLDivElement>(null);
   const today = seoulToday(), currentYear = Number(today.slice(0, 4));
-  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment-profit', accountId, currentYear], queryFn: ({ signal }) => loadProfit(accountId!, today, signal, {client}), enabled: !!accountId, retry: false });
+  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment-profit', accountId, currentYear], queryFn: ({ signal }) => loadProfit(accountId!, today, signal, {client,aggregate:true}), enabled: !!accountId, retry: false });
   const data = query.data, pending = accounts.isPending || (!!accountId && query.isPending), failed = accounts.isError || query.isError;
   const list = tab === 'year' ? data?.years ?? [] : sortProfit(data?.stocks ?? [], ascending);
   const capitalFor = (year: string) => data?.capital?.find(row => String(row.year) === year);
@@ -98,7 +98,7 @@ export function InvestmentProfitPage() {
     if (accounts.isError) void accounts.refetch();
     if (!accountId) return;
     // Explicit retry must refresh every source, including a successful sibling of a failed request.
-    for (const key of ['profitTrades', 'profitDividends', 'profitCapital']) {
+    for (const key of ['profitAggregate', 'profitTrades', 'profitDividends', 'profitCapital']) {
       await client.cancelQueries({queryKey: [key, accountId, today], exact: true});
       await client.invalidateQueries({queryKey: [key, accountId, today], exact: true, refetchType: 'none'});
     }

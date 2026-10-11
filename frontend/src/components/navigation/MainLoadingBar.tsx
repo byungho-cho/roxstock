@@ -13,7 +13,7 @@ export function MainLoadingBar() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const cache = client.getQueryCache();
     const update = () => {
-      const busy = manual > 0 || cache.getAll().some(query => query.isActive() && query.state.fetchStatus === 'fetching'
+      const busy = manual > 0 || cache.getAll().some(query => query.isActive() && query.queryKey[0] !== 'recentBuys' && query.queryKey[0] !== 'compound-assets' && query.state.fetchStatus === 'fetching'
         && (query.state.data === undefined || !query.observers.some(observer => !!observer.options.refetchInterval)));
       if (!busy) { clearTimeout(timer); timer = undefined; setVisible(false); }
       else if (!timer) timer = setTimeout(() => setVisible(true), 150);
