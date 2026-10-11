@@ -21,7 +21,7 @@
 - React API 모드 / Vite / Playwright Chromium 153, 커버 370×465·태블릿 725×396 CSS px, 서울 시간대. API는 격리된 모의 응답이며 실제 DB/운영 계좌 검증과 구분한다.
 - 최초 계좌 대기·빠른 응답·유효 캐시 재진입·기간 변경·빈 결과·부분 실패/지역 재시도·계좌 전환을 검사한다. 코드 모듈을 보류한 동안 검색/탭/기간을 조작하고 다운로드 후 같은 조건인지 확인한다.
 - 로딩/정상 달력과 자산분석 차트의 실제 bounding box가 일치한다. 커버 종목 기본 행 139px/태블릿 28px, 계좌 기본 행 61px가 일치한다. 목록 개수/긴 텍스트에 따른 높이는 실제 콘텐츠 기준이며 가상의 계좌/종목/금액은 넣지 않는다.
-- TypeScript·프론트 production build와 20차 단위/브라우저 검사 결과는 PR 검사 완료 후 아래 기록을 확정한다.
+- TypeScript·프론트 production build·20차 단위 검사 통과. 최종 브라우저/필수 CI 결과는 아래 기록 및 PR의 Checks로 확인한다.
 - 실기기 Android/WebView, 실제 운영 DB 쓰기, 지연 상태의 전 기기 네트워크 측정은 미검증이다. 추가 조회 엔드포인트/폴링은 도입하지 않았고 캐시 재진입 요청 수와 기존 홈 후속 호출 검사로 회귀를 확인한다.
 
 명령: `npm run typecheck:frontend`, `npm run build:frontend`, `node --import tsx --test frontend/tests/unit/phase20.test.ts`, `npm exec --workspace frontend -- playwright test --config playwright.phase20.config.ts`. 로컬 Chromium 실행 경로만 환경변수로 지정하며 패키지/잠금파일은 변경하지 않는다.
@@ -38,6 +38,13 @@
 | 종목목록 | [전](assets/phase20-screens/before/stocks-cover-loading.png) · [후](assets/phase20-screens/after/stocks-cover-loading.png) | [전](assets/phase20-screens/before/stocks-tablet-loading.png) · [후](assets/phase20-screens/after/stocks-tablet-loading.png) | [커버](assets/phase20-screens/after/stocks-cover-ready.png) · [태블릿](assets/phase20-screens/after/stocks-tablet-ready.png) |
 
 기준 main의 ready 캡처도 before 디렉터리에 보존한다. CI `Phase20 Input and Loading` artifact에는 지연/실패 추적과 captures를 보관한다.
+
+## 검사 기록
+
+- 초기 탐색 검사에서 출력 디렉터리 공유 충돌을 분리했고, 코드 대기→실제 화면/첫 계좌 전환 시 검색·정렬 메뉴·선택값 유실을 수정했다. API 응답 이후 검사용 일시 정지 시계를 재개하도록 보정했다. 실패를 통과로 집계하지 않는다.
+- 최종 로컬 화면별 검사 32개 통과(2.0분), 정렬/화면 교체 경계는 커버·태블릿·큰 화면에서 각 3회 반복해 9개 통과. 추가 코드 대기/계좌 대기/시계 검사 8개 통과. 전체 회귀는 최종 PR Checks에서 재확인한다.
+- 전체 20차 CI에는 기존 홈·18차·16차·가치분석 회귀를 포함한 114개 검사를 사용한다. 최종 상태는 [PR #190 Checks](https://github.com/byungho-cho/roxstock/pull/190/checks)를 기준으로 하며, 모든 필수 검사 통과 전에는 병합하지 않는다.
+- 구조 조기 표시를 위해 공통 Select/화면 틀을 초기 번들에 포함한다. 기준 main의 entry gzip 109.14kB → 수정 build 139.75kB (+30.61kB). 실제 기기 다운로드/paint 시간은 미측정이며 화면 본체·편집기는 lazy loading을 유지한다.
 
 ## 병합·운영
 
