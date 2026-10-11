@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {mapPeriodicReports,DartApiError,OpenDartProvider,type RawReport,type DartFinancialRow,type DartReport} from './dart-provider.js';
 import {validateDartFiling,validateStoredDartRows} from './dart-filing-validation.js';
+import {retryDecision} from './dart-policy.js';
 import {safeDartContext,dartDiagnostic} from './dart-diagnostics.js';
 const corpCode='00126380';
 export const disclosure=(period:string,title='사업보고서',receiptNo='20250311001085',extra:Partial<RawReport>={}):RawReport=>({corp_code:corpCode,report_nm:`${title} (${period})`,rcept_no:receiptNo,rcept_dt:receiptNo.slice(0,8),...extra});
@@ -73,4 +74,10 @@ test('allowlisted diagnostic preserves original reason without secrets or arbitr
  const safe=safeDartContext({corpCode,returnedReceiptNos:['20250311001085',secret],selectedReceiptNo:'20250311001086',validationResult:'MIXED_RECEIPTS',apiKey:secret,url:secret,headers:{secret},message:secret});
  assert.ok(!JSON.stringify(safe).includes(secret));assert.equal(safe.validationResult,'MIXED_RECEIPTS');
  assert.deepEqual(dartDiagnostic(new DartApiError('RECEIPT_MISMATCH',secret,false,false,safe),'VERIFY_SOURCE').context,safe);
+});
+
+test('uncertain timeline/explicit-source cases stay in review immediately without repeated financial calls',()=>{
+ assert.throws(()=>mapPeriodicReports([{corp_code:corpCode,report_nm:'사업보고서',rcept_no:'20250311001085',rcept_dt:'20250311'}],2024),(e:unknown)=>e instanceof DartApiError&&e.code==='DART_SOURCE_REVIEW'&&e.diagnostics.validationResult==='DISCLOSURE_PERIOD_UNPARSEABLE');
+ for(const code of ['DART_SOURCE_REVIEW','STORED_FILING_CONFLICT'])assert.deepEqual(retryDecision(code,1,new Date()),{status:'FAILED',code:'REVIEW_REQUIRED',nextAttemptAt:null,stop:false});
+ assert.equal(retryDecision('RECEIPT_MISMATCH',1,new Date()).code,'RECEIPT_MISMATCH');
 });

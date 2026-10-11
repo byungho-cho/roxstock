@@ -6,6 +6,7 @@ import {getCfsThenOfs} from '../collector/dart-collector.js';
 import {validateDartFiling,requireDartReportPeriod} from '../collector/dart-filing-validation.js';
 import {auditDartReceipts} from '../collector/dart-receipt-audit.js';
 import {dartDiagnostic,safeDartContext} from '../collector/dart-diagnostics.js';
+import {retryDecision} from '../collector/dart-policy.js';
 import {loadCollectorConfig} from '../collector/config.js';
 const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID();
 const version='DART_SOURCE_V2',maxCalls=12;
@@ -38,8 +39,13 @@ try {
     try{reports=await provider.listPeriodicReports(corpCode,2024);}catch(e){results.push({symbol,...dartDiagnostic(e,'LIST')});if(e instanceof DartApiError&&e.quotaExceeded)break;continue;}
     for(const reportCode of (symbol==='900290'?['11011','11013','11012','11014']:['11011']) as DartReportCode[]){
      const task=await db.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId:security.id,fiscalYear:2024,reportCode}}});
-     const eligible=task?.status==='FAILED'&&['RECEIPT_MISMATCH','REVIEW_REQUIRED'].includes(task.errorCode??'')&&((symbol==='900290'&&reportCode==='11012')||(symbol==='000120'&&reportCode==='11011'));
+     const periodType=reportCode==='11011'?'ANNUAL':reportCode==='11013'?'Q1':reportCode==='11012'?'Q2':'Q3';
+     const eligible=task?.status==='FAILED'&&(task.errorCode==='RECEIPT_MISMATCH'||task.errorCode==='REVIEW_REQUIRED'&&(/^RECEIPT_MISMATCH:/.test(task.errorMessage??'')||(task.diagnostics as {originalCode?:string}|null)?.originalCode==='RECEIPT_MISMATCH'))&&((symbol==='900290'&&reportCode==='11012')||(symbol==='000120'&&reportCode==='11011'));
      let result:Record<string,unknown>={symbol,corpCode,taskFiscalYear:2024,apiFiscalYear:2024,reportCode,retryEligible:eligible,beforeStatus:task?.status,beforeAttempt:task?.attempts};
+     if(eligible&&task){
+      const originalCode=task.errorCode==='REVIEW_REQUIRED'?(/^([A-Z0-9_]+):/.exec(task.errorMessage??'')?.[1]??'UNKNOWN'):task.errorCode;
+      await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED','Prior error preserved before limited verification',json({...safeDartContext(task.diagnostics),originalCode,attempt:task.attempts,runId:String(runId)}));
+     }
      try{
       const report=reports.find(r=>r.reportCode===reportCode);if(!report)throw new DartApiError('NO_PERIODIC_FILING','No candidate disclosure');
       requireDartReportPeriod(report,corpCode,2024);
@@ -47,8 +53,6 @@ try {
       const verified=validateDartFiling({corpCode,taskFiscalYear:2024,report,rows:response.rows,fsDivision:response.division});
       result={...result,source:verified.sourceValidation,validation:'VERIFIED',stored:false};
       if(eligible&&task){
-       // Preserve the pre-retry error and attempt in an append-only run item before the bounded retry.
-       await repo.addRunItem(runId, {id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType:report.periodType},'FAILED','Prior error preserved before limited retry',json({...safeDartContext(task.diagnostics),originalCode:task.errorCode==='REVIEW_REQUIRED'?(/^([A-Z0-9_]+):/.exec(task.errorMessage??'')?.[1]??'UNKNOWN'):task.errorCode,attempt:task.attempts,runId:String(runId)}));
        // Shared lock excludes workers; transaction couples filing and task success without clearing other work.
        const saved=await db.$transaction(async tx=>{
         const filing=await new PrismaDartRepository(tx as unknown as PrismaClient).saveFiling({securityId:security.id,fiscalYear:2024,periodType:report.periodType,reportCode,fsDivision:response.division,...verified,collectedAt:new Date(),values:normalizeDartFinancialRows(response.rows)});
@@ -59,7 +63,17 @@ try {
        result={...result,stored:true,created:saved.created};
        await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType:report.periodType},'SUCCESS','Bounded representative source validated',json(verified.sourceValidation));
       }
-     }catch(e){result={...result,...dartDiagnostic(e,'REPRESENTATIVE_VERIFY'),stored:false};}
+     }catch(e){
+      const diagnostic=dartDiagnostic(e,'REPRESENTATIVE_VERIFY');
+      result={...result,...diagnostic,stored:false};
+      if(eligible&&task){
+       // No financial write. Only these two authorized attempted tasks receive a classified failure.
+       const retry=retryDecision(diagnostic.code,task.attempts+1,new Date());
+       const detail={...diagnostic.context,originalCode:diagnostic.code,attempt:task.attempts+1,runId:String(runId),stage:'REPRESENTATIVE_VERIFY',symbol,corpCode};
+       if(!(e instanceof DartApiError&&e.quotaExceeded))await db.dartBackfillTask.updateMany({where:{id:task.id,status:'FAILED',attempts:task.attempts},data:{attempts:task.attempts+1,errorCode:retry.code,errorMessage:`${diagnostic.code}: 검증된 출처 또는 기간 확인이 필요합니다.`,diagnostics:json(detail),lastAttemptAt:new Date(),nextAttemptAt:retry.nextAttemptAt}});
+       await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED',diagnostic.code,json(detail));
+      }
+     }
      results.push(result);emit('DART representative result',result);
     }
    }

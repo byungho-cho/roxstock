@@ -19,7 +19,8 @@ export function dartFailure(error: unknown, stage: string, _apiKey = '') {
 export function retryDecision(code: string, attempts: number, now: Date) {
   const paused = ['020', 'DAILY_CALL_LIMIT', 'SCHEDULE_WINDOW_ENDED'].includes(code);
   if (paused) return { status: 'PENDING' as const, code, nextAttemptAt: null, stop: true };
-  const permanent = code.startsWith('P2') || ['RECEIPT_MISMATCH', 'DATABASE_ERROR', 'NORMALIZE_ERROR', 'RESPONSE_ERROR', 'INVALID_JSON', '100', '101'].includes(code);
+  if(['DART_SOURCE_REVIEW','STORED_FILING_CONFLICT'].includes(code))return {status:'FAILED' as const,code:'REVIEW_REQUIRED',nextAttemptAt:null,stop:false};
+  const permanent = code.startsWith('P2') || ['RECEIPT_MISMATCH', 'FINANCIAL_IDENTITY_MISMATCH', 'DISCLOSURE_COMPANY_MISMATCH', 'DATABASE_ERROR', 'NORMALIZE_ERROR', 'RESPONSE_ERROR', 'INVALID_JSON', '100', '101'].includes(code);
   const review = attempts >= (permanent ? 3 : 5);
   const delay = permanent ? 6 * 3_600_000 : Math.min(6 * 3_600_000, 15 * 60_000 * 2 ** Math.min(attempts - 1, 5));
   return { status: 'FAILED' as const, code: review ? 'REVIEW_REQUIRED' : code, nextAttemptAt: review ? null : new Date(now.getTime() + delay), stop: false };

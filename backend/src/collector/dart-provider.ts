@@ -182,6 +182,8 @@ const orderDisclosure = (a: DartDisclosure, b: DartDisclosure) =>
  * reverse-validated against the retained same-company, same-period disclosure candidates.
  */
 export const mapPeriodicReports = (reports: RawReport[], fiscalYear: number): DartReport[] => {
+  if(reports.some(raw=>/(사업|반기|분기)보고서/.test(raw.report_nm??'')&&!dateInReportName(raw.report_nm??'')))
+    throw new DartApiError('DART_SOURCE_REVIEW','Disclosure period cannot be parsed.',false,false,{taskFiscalYear:fiscalYear,apiFiscalYear:fiscalYear,validationResult:'DISCLOSURE_PERIOD_UNPARSEABLE'});
   const disclosures: DartDisclosure[] = reports.flatMap(raw => {
     const date = dateInReportName(raw.report_nm ?? '');
     if (!date || !/^\d{14}$/.test(raw.rcept_no ?? '') || !/^\d{8}$/.test(raw.rcept_dt ?? '')) return [];
