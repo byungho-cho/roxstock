@@ -1,0 +1,635 @@
+{
+  "observed_at_utc": "2026-10-11T02:43:53.454944+00:00",
+  "deployment_commit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+  "realtime_container": {
+    "name": "roxstock-realtime-collector",
+    "created": "2026-10-11T02:34:08.587063774Z",
+    "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+    "image_id": "sha256:9fd1f08cf5240fe49a3aee6eeec7abacb6d6c335291e2d5cd2594a916018f1c1",
+    "restart_count": 25,
+    "restart_policy": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "state": {
+      "Status": "running",
+      "StartedAt": "2026-10-11T02:41:36.893546467Z",
+      "FinishedAt": "2026-10-11T02:41:22.950260327Z",
+      "ExitCode": 0,
+      "OOMKilled": false,
+      "Restarting": false
+    },
+    "health": {
+      "status": "healthy",
+      "history": [
+        {
+          "Start": "2026-10-11T02:41:43.064615121Z",
+          "End": "2026-10-11T02:41:43.593580295Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:42:13.636790167Z",
+          "End": "2026-10-11T02:42:14.175843803Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:42:44.203750762Z",
+          "End": "2026-10-11T02:42:44.307699627Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:43:14.312821343Z",
+          "End": "2026-10-11T02:43:14.48025428Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:43:44.499173232Z",
+          "End": "2026-10-11T02:43:44.72591963Z",
+          "ExitCode": 0
+        }
+      ]
+    }
+  },
+  "process_roles": [
+    {
+      "container": "roxstock-frontend",
+      "roles": {},
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-collector",
+      "roles": {
+        "collector/worker": 1
+      },
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-realtime-collector",
+      "roles": {
+        "realtime-worker": 1
+      },
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-dart-collector",
+      "roles": {
+        "dart-worker": 1
+      },
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-backend",
+      "roles": {
+        "backend/dist/server": 1
+      },
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-mariadb",
+      "roles": {},
+      "top_exit_code": 0
+    },
+    {
+      "container": "roxstock-proxy",
+      "roles": {},
+      "top_exit_code": 0
+    }
+  ],
+  "timeline": [
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:22.322198810Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:22 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:23.517159334Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:23 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:24.353444464Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:24 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:25.676504982Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:25 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:27.120801453Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:27 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:29.282750642Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:29 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:33.319853879Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:33 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:40.505958720Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:34:40 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:34:54.523744676Z",
+      "event": "realtime price collector started",
+      "intervalSeconds": 60,
+      "dbFlushSeconds": 60,
+      "at_kst": "2026-10-11 11:34:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:54.982785625Z",
+      "event": "initial_upsert",
+      "at_kst": "2026-10-11 11:38:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:54.982793900Z",
+      "event": "db1020",
+      "at_kst": "2026-10-11 11:38:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:54.982811126Z",
+      "event": "heartbeat_stack",
+      "line_column": "realtime-worker.js:28:9",
+      "at_kst": "2026-10-11 11:38:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:54.982812709Z",
+      "event": "loop_stack",
+      "line_column": "realtime-price-collector.js:123:17",
+      "at_kst": "2026-10-11 11:38:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:54.982818749Z",
+      "event": "node_version",
+      "at_kst": "2026-10-11 11:38:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:56.171055637Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:38:56 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:56.751059546Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:38:56 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:57.631604251Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:38:57 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:38:59.326954769Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:38:59 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:39:02.022884526Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:39:02 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:39:06.169547248Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:39:06 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:39:13.423025268Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:39:13 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:39:26.915165458Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:39:26 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:39:54.141149323Z",
+      "event": "realtime price collector started",
+      "intervalSeconds": 60,
+      "dbFlushSeconds": 60,
+      "at_kst": "2026-10-11 11:39:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:40:54.817890306Z",
+      "event": "initial_upsert",
+      "at_kst": "2026-10-11 11:40:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:40:54.817896278Z",
+      "event": "db1020",
+      "at_kst": "2026-10-11 11:40:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:40:54.817909419Z",
+      "event": "heartbeat_stack",
+      "line_column": "realtime-worker.js:28:9",
+      "at_kst": "2026-10-11 11:40:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:40:54.817911025Z",
+      "event": "loop_stack",
+      "line_column": "realtime-price-collector.js:123:17",
+      "at_kst": "2026-10-11 11:40:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:40:54.817917433Z",
+      "event": "node_version",
+      "at_kst": "2026-10-11 11:40:54 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:00.649616098Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:00 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:03.043792353Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:03 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:04.554130+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:04 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:04.788903990Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:04 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:05.136800+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "die",
+      "exit_code": "1",
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:05 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:06.182573+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:06 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:06.608660530Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:06 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:07.190794+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "die",
+      "exit_code": "1",
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:07 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:08.871318+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:08 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:09.185275374Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:09 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:09.577683+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "die",
+      "exit_code": "1",
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:09 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:13.627840+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:13 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:13.875155931Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:13 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:14.561659+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "die",
+      "exit_code": "1",
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:14 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:22.195608+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:22 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:22.941343472Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:41:22 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:23.695002+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "die",
+      "exit_code": "1",
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:23 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:38.062901+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "start",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:38 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:41:38.636079690Z",
+      "event": "realtime price collector started",
+      "intervalSeconds": 60,
+      "dbFlushSeconds": 60,
+      "at_kst": "2026-10-11 11:41:38 KST"
+    },
+    {
+      "kind": "docker",
+      "at_utc": "2026-10-11T02:41:43.633884+00:00",
+      "name": "roxstock-realtime-collector",
+      "action": "health_status: healthy",
+      "exit_code": null,
+      "signal": null,
+      "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+      "at_kst": "2026-10-11 11:41:43 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:41.208738642Z",
+      "event": "initial_upsert",
+      "at_kst": "2026-10-11 11:50:41 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:41.208744823Z",
+      "event": "db1020",
+      "at_kst": "2026-10-11 11:50:41 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:41.208759436Z",
+      "event": "heartbeat_stack",
+      "line_column": "realtime-worker.js:28:9",
+      "at_kst": "2026-10-11 11:50:41 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:41.208761016Z",
+      "event": "loop_stack",
+      "line_column": "realtime-price-collector.js:123:17",
+      "at_kst": "2026-10-11 11:50:41 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:41.208767089Z",
+      "event": "node_version",
+      "at_kst": "2026-10-11 11:50:41 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:43.668888638Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:43 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:45.255995898Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:45 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:46.632648330Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:46 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:48.860807105Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:48 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:51.477815021Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:51 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:50:55.704965161Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:50:55 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:51:03.431812965Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:51:03 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:51:21.228205272Z",
+      "event": "lock_failed",
+      "at_kst": "2026-10-11 11:51:21 KST"
+    },
+    {
+      "kind": "log",
+      "at_utc": "2026-10-11T02:51:50.169132102Z",
+      "event": "realtime price collector started",
+      "intervalSeconds": 60,
+      "dbFlushSeconds": 60,
+      "at_kst": "2026-10-11 11:51:50 KST"
+    }
+  ],
+  "isolated_reproduction": {
+    "at_utc": "2026-10-11T02:49:32.867Z",
+    "runtime": "v20.20.2",
+    "kind": "mock_fault_injection_no_native_db",
+    "ok": true,
+    "outcomes": [
+      {
+        "scenario": "initial_fault",
+        "exit_code": 1,
+        "error_present": true,
+        "outer_catch_logged": false,
+        "lock_denied_logged": false,
+        "actual_loop_stack": false
+      },
+      {
+        "scenario": "loop_fault",
+        "exit_code": 1,
+        "error_present": true,
+        "outer_catch_logged": false,
+        "lock_denied_logged": false,
+        "actual_loop_stack": true
+      },
+      {
+        "scenario": "lock_denied",
+        "exit_code": 1,
+        "error_present": false,
+        "outer_catch_logged": false,
+        "lock_denied_logged": true,
+        "actual_loop_stack": false
+      },
+      {
+        "scenario": "two_heartbeat_callers",
+        "max_concurrent_upserts": 2,
+        "renewals": 2
+      },
+      {
+        "scenario": "old_owner_heartbeat",
+        "overwrote_new_owner": true,
+        "returned_success_despite_zero_lock_renewal": true
+      },
+      {
+        "scenario": "old_owner_stop",
+        "new_owner_lock_deleted": false
+      },
+      {
+        "scenario": "timer_catch_pattern",
+        "error_swallowed": true,
+        "lock_renewal_attempted": false
+      }
+    ]
+  },
+  "followup_observed_at_utc": "2026-10-11T02:58:18.274361+00:00",
+  "followup_realtime_container": {
+    "name": "roxstock-realtime-collector",
+    "created": "2026-10-11T02:34:08.587063774Z",
+    "image": "newrox/roxstock-backend:sha-b6cccfebb435db0da816ad2da320c4714c25c152",
+    "image_id": "sha256:9fd1f08cf5240fe49a3aee6eeec7abacb6d6c335291e2d5cd2594a916018f1c1",
+    "restart_count": 34,
+    "restart_policy": {
+      "Name": "unless-stopped",
+      "MaximumRetryCount": 0
+    },
+    "state": {
+      "Status": "running",
+      "StartedAt": "2026-10-11T02:51:48.170016442Z",
+      "FinishedAt": "2026-10-11T02:51:21.434673294Z",
+      "ExitCode": 0,
+      "OOMKilled": false,
+      "Restarting": false
+    },
+    "health": {
+      "status": "healthy",
+      "history": [
+        {
+          "Start": "2026-10-11T02:56:00.363380511Z",
+          "End": "2026-10-11T02:56:00.645314246Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:56:30.677820167Z",
+          "End": "2026-10-11T02:56:30.89736628Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:57:00.904551514Z",
+          "End": "2026-10-11T02:57:01.515906466Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:57:31.58760029Z",
+          "End": "2026-10-11T02:57:31.894507239Z",
+          "ExitCode": 0
+        },
+        {
+          "Start": "2026-10-11T02:58:01.91252636Z",
+          "End": "2026-10-11T02:58:02.372457264Z",
+          "ExitCode": 0
+        }
+      ]
+    }
+  }
+}
