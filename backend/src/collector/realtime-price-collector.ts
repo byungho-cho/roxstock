@@ -1,3 +1,4 @@
+import { RealtimeLockLostError, safeErrorCode } from './realtime-lifecycle.js';
 import { collectorLog as log } from './logger.js';
 import { getSeoulClock } from './time.js';
 import type {
@@ -8,7 +9,6 @@ import type {
   SecurityTarget,
 } from './types.js';
 
-const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const messageOf = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 export interface RealtimeCollectorOptions {
@@ -23,7 +23,10 @@ export interface RealtimeCollectorOptions {
   apiUrl: string;
   internalToken: string;
   requestTimeoutMs: number;
+  externalHeartbeat?: boolean;
+  onFatal?: (error: unknown) => void;
   monitor?: {
+    assertLease?: () => Promise<void>;
     heartbeat: (status: { workerStatus: string; marketSession: string; at: Date }) => Promise<void>;
     cycle: (data: { startedAt: Date; finishedAt: Date; session: string; targetCount: number; receivedCount: number; sourceFailureCount: number; staleCount: number; publishedCount: number; publishFailureCount: number; savedCount: number; saveFailureCount: number; lastSourcePriceAt: Date | null; sourceError?: string; sourceIssues?: Array<{ symbol: string; reason: string }>; publishError?: string; saveError?: string }) => Promise<void>;
     stopped: (at: Date) => Promise<void>;
@@ -93,12 +96,15 @@ export const collectRealtimeCycle = async (
   cache: Map<string, RealtimePriceValue>,
   concurrency: number,
   publish: RealtimePublisher,
+  assertLease: () => Promise<void> = async () => undefined,
+  beforeFetch: () => void = () => undefined,
 ): Promise<RealtimeCycleResult> => {
   const currentValues: RealtimePriceValue[] = [];
   const failures: Array<{ symbol: string; reason: string }> = [];
   let stale = 0;
 
   await mapConcurrent(targets, concurrency, async (target) => {
+    beforeFetch();
     try {
       const observation = await provider.fetchPrice(target);
       if (observation.freshness === 'STALE') {
@@ -119,6 +125,7 @@ export const collectRealtimeCycle = async (
   let published = 0;
   let publishError: string | undefined;
   if (currentValues.length > 0) {
+    await assertLease();
     try {
       await publish(currentValues);
       published = currentValues.length;
@@ -175,6 +182,17 @@ export const runRealtimeCollector = async (
   let dbFlushAt = 0;
   let staleBackoffUntil = 0;
   const cache = new Map<string, RealtimePriceValue>();
+  let wake: (() => void) | undefined;
+  const wait = (ms: number) => new Promise<void>((resolve) => {
+    const timer = setTimeout(() => { wake = undefined; resolve(); }, ms);
+    wake = () => { clearTimeout(timer); wake = undefined; resolve(); };
+  });
+  const assertLease = async () => {
+    if (stopped) throw new RealtimeLockLostError();
+    try { await options.monitor?.assertLease?.(); }
+    catch (error) { log('error', 'realtime lease verification failed', { code: safeErrorCode(error) }); throw new RealtimeLockLostError(); }
+    if (stopped) throw new RealtimeLockLostError();
+  };
   const publish = createHttpRealtimePublisher(options.apiUrl, options.internalToken, options.requestTimeoutMs);
 
   const loop = async () => {
@@ -191,13 +209,13 @@ export const runRealtimeCollector = async (
       const cycleStartedAt = Date.now();
       const marketSession = getRealtimeMarketSession(new Date(cycleStartedAt), options.marketSessions);
       if (!options.enabled || marketSession === null) {
-        await options.monitor?.heartbeat({ workerStatus: options.enabled ? 'RUNNING' : 'DISABLED', marketSession: marketSession ?? 'OUT_OF_SESSION', at: new Date() });
-        await sleep(options.intervalSeconds * 1000);
+        if (!options.externalHeartbeat) await options.monitor?.heartbeat({ workerStatus: options.enabled ? 'RUNNING' : 'DISABLED', marketSession: marketSession ?? 'OUT_OF_SESSION', at: new Date() });
+        await wait(options.intervalSeconds * 1000);
         continue;
       }
       if (cycleStartedAt < staleBackoffUntil) {
-        await options.monitor?.heartbeat({ workerStatus: 'RUNNING', marketSession, at: new Date() });
-        await sleep(Math.min(options.intervalSeconds * 1000, staleBackoffUntil - cycleStartedAt));
+        if (!options.externalHeartbeat) await options.monitor?.heartbeat({ workerStatus: 'RUNNING', marketSession, at: new Date() });
+        await wait(Math.min(options.intervalSeconds * 1000, staleBackoffUntil - cycleStartedAt));
         continue;
       }
       let result: RealtimeCycleResult | undefined;
@@ -205,11 +223,12 @@ export const runRealtimeCollector = async (
       let saveError: string | undefined;
       let targetRefreshError: string | undefined;
       try {
+        await assertLease();
         if (cycleStartedAt >= targetRefreshAt) {
           targets = await repository.listRealtimeSecurities(options.maxSecurities);
           targetRefreshAt = cycleStartedAt + options.targetRefreshSeconds * 1000;
         }
-        result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish);
+        result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish, assertLease, () => { if (stopped) throw new RealtimeLockLostError(); });
         if (result.targetCount > 0 && result.stale === result.targetCount) {
           staleBackoffUntil = cycleStartedAt + options.staleBackoffSeconds * 1000;
           log('warn', 'all realtime prices are stale; applying source backoff', {
@@ -218,10 +237,12 @@ export const runRealtimeCollector = async (
         }
         if (cycleStartedAt >= dbFlushAt && cache.size > 0) {
           try {
+            await assertLease();
             savedCount = await repository.upsertRealtimeMarketPrices([...cache.values()]);
             dbFlushAt = cycleStartedAt + options.dbFlushSeconds * 1000;
             log('info', 'realtime price cache flushed', { cached: cache.size, stored: savedCount });
           } catch (error) {
+            if (error instanceof RealtimeLockLostError) throw error;
             saveError = messageOf(error).slice(0, 1000);
             log('error', 'realtime price cache flush failed', { reason: saveError });
           }
@@ -236,6 +257,7 @@ export const runRealtimeCollector = async (
           log('error', 'realtime price failed for security', failure);
         }
       } catch (error) {
+        if (error instanceof RealtimeLockLostError) throw error;
         targetRefreshError = messageOf(error).slice(0, 1000);
         log('error', 'realtime price cycle aborted', { reason: messageOf(error) });
       }
@@ -249,18 +271,27 @@ export const runRealtimeCollector = async (
           lastSourcePriceAt: result?.success ? new Date(Math.max(...cacheValuesObservedAt(cache))) : null,
           ...(targetRefreshError && { sourceError: targetRefreshError }), ...(result?.failures.length && { sourceIssues: result.failures }), ...(result?.publishError && { publishError: result.publishError }), ...(saveError && { saveError }),
         });
-      } catch (error) { log('error', 'realtime monitoring state write failed', { reason: messageOf(error).slice(0, 300) }); }
+      } catch (error) { if (error instanceof RealtimeLockLostError) throw error; log('error', 'realtime monitoring state write failed', { code: safeErrorCode(error) }); }
       const remaining = options.intervalSeconds * 1000 - (Date.now() - cycleStartedAt);
-      if (remaining > 0) await sleep(remaining);
+      if (remaining > 0) await wait(remaining);
     }
-    if (cache.size > 0) await repository.upsertRealtimeMarketPrices([...cache.values()]);
-    await options.monitor?.stopped(new Date());
+    // Preserve the normal shutdown flush only while this worker still owns a live lease.
+    if (cache.size > 0) {
+      await options.monitor?.assertLease?.();
+      await repository.upsertRealtimeMarketPrices([...cache.values()]);
+    }
     log('info', 'realtime price collector stopped');
   };
 
-  const running = loop();
+  const running = loop().catch((error: unknown) => {
+    stopped = true;
+    wake?.();
+    log('error', 'realtime background loop failed', { code: safeErrorCode(error) });
+    options.onFatal?.(error);
+  });
   return async () => {
     stopped = true;
+    wake?.();
     await running;
   };
 };
