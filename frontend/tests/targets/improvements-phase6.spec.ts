@@ -1,12 +1,14 @@
+import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import { fixture } from './phase3-fixture';
 async function setup(page:Page) {
  const control=await fixture(page);
  await page.route('**/api/**',async route=>{
-  const u=new URL(route.request().url());if(!u.pathname.endsWith('/trades'))return route.fallback();
+  const u=new URL(route.request().url());if(!/\/(trades|investment-profit)$/.test(u.pathname))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));
+  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[])});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
  });return control;
 }
@@ -47,7 +49,7 @@ test('loading completion preserves quarter alignment and account data stays isol
  await expect(page.getByTestId('stock-profit-summary')).not.toContainText('2,000원');
 });
 
-test('summary defers holding lots and stock trade detail; profit detail alone loads capital',async({page})=>{
+test('summary defers holding lots and stock trade detail; profit detail loads annual aggregate',async({page})=>{
  await setup(page);const reads:URL[]=[];page.on('request',r=>{if(r.method()==='GET')reads.push(new URL(r.url()));});
  await open(page);await expect(page.getByTestId('stock-profit-summary')).toContainText('2,000원');
  expect(reads.filter(u=>u.pathname.endsWith('/buy-lots')&&u.searchParams.get('securityId')==='1')).toHaveLength(0);
@@ -55,6 +57,7 @@ test('summary defers holding lots and stock trade detail; profit detail alone lo
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  await page.getByRole('tab',{name:'보유 현황',exact:true}).click();await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/buy-lots')).length).toBeGreaterThan(0);
  await page.getByRole('tab',{name:'요약',exact:true}).click();await page.getByTestId('stock-profit-summary').click();await expect(page.getByTestId('profit-detail-summary')).toBeVisible();
- await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-capital')).length).toBe(1);
+ await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).length).toBe(1);
+ expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(1);
 });
