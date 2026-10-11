@@ -14,7 +14,7 @@ import {usePageMemory,useReturnNavigation} from '../../hooks/navigation/usePageM
 import {useMainLoading} from '../../hooks/useMainLoading';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
 import {format,number,seoulYear} from '../value/valueApi';
-const CompoundForm=lazy(()=>import('./CompoundForm').then(m=>({default:m.CompoundForm}))); 
+const CompoundForm=lazy(()=>import('./CompoundForm').then(m=>({default:m.CompoundForm})));
 import {mutate,root,colors,type Plan,type Goal,type FormValues} from './compoundApi';
 const muted='#94A3B8',blue='#5EA1F0',card={bgcolor:'#0E1729',borderRadius:'8px',p:'10px 16px',minWidth:0};
 const button={height:28,minHeight:28,borderRadius:'8px',fontSize:11,minWidth:0,p:'0 8px',color:'#F8FAFC',bgcolor:'#1E293B'};
