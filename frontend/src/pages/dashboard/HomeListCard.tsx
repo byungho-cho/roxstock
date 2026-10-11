@@ -1,21 +1,22 @@
-import { Box, Button, ButtonBase, CardActionArea, Typography } from '@mui/material';
+import {DelayedSkeleton, useDelayedIndicator} from '../../components/common/DelayedSkeleton';
+import { Box, Button, ButtonBase, CardActionArea, Skeleton, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { colors } from '../../styles/tokens';
 
-export function HomeListCard({ title, count, testId, action, children, timestamp, more, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false }: {
+export function HomeListCard({ title, count, testId, action, children, timestamp, more, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false, stable = false, pending=false }: {
   title: string; titleHint?: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
-  timestamp?: string | null; updating?: boolean; more?: () => void; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean;
+  timestamp?: string | null; updating?: boolean; more?: () => void; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean; stable?:boolean; pending?:boolean;
 }) {
-  return <AppCard data-testid={testId} sx={{ minWidth: 0, height: compactFooter ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
+  return <AppCard data-testid={testId} sx={{ minWidth: 0, height: compactFooter || stable ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
       <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={titleHint ? `${title} ${titleHint}` : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit', gap: '6px' }}>{title}{titleHint && <Box component="span" data-testid="home-title-hint" sx={{fontSize:11,color:colors.textMuted,fontWeight:400}}>{titleHint}</Box>}</ButtonBase> : title}</Typography>
-      <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{count ?? '—'}</Typography>{action}</Box>
+      <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{pending ? <DelayedSkeleton width={30} height={14}/> : count ?? '—'}</Typography>{action}</Box>
     </Box>
-    <Box sx={{ flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
+    <Box data-testid="home-list-region" aria-busy={pending} sx={{ flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
     <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
       <Box sx={{ minWidth: 0 }}><Typography title={timestamp ?? undefined} sx={{ minWidth: 0, fontSize: 9, lineHeight: notice ? '12px' : '16px', color: colors.textMuted }}>
-        {timestampLabel}{homeTimestamp(timestamp)}
+        {pending ? <DelayedSkeleton width={90} height={12}/> : <>{timestampLabel}{homeTimestamp(timestamp)}</>}
       </Typography>{notice && <Box role="status" sx={{ fontSize: 8, lineHeight: '10px', color: colors.warning }}>{notice}</Box>}</Box>
       {more && <Button onClick={more} sx={{ minHeight: 24, minWidth: 48, p: 0, fontSize: 11, lineHeight: '20px', fontWeight: 400, color: colors.focus }}>더보기</Button>}
     </Box>
@@ -42,4 +43,10 @@ export function HomeTwoLineRow({ testId, onClick, first, second, color = colors.
       {second.map((cell, i) => <Box key={`second-${i}`}>{cell}</Box>)}
     </Box>
   </CardActionArea>;
+}
+
+/** Five two-line rows reserve the same body as the normal compact home list. */
+export function HomeListLoading() {
+  const visible=useDelayedIndicator();
+  return <Box aria-label="목록 조회 중" data-loading-indicator={visible?'visible':'waiting'} sx={{visibility:visible?'visible':'hidden'}}>{Array.from({length:5},(_,i)=><Box key={i} sx={{height:i===4?38:43,px:'8px',display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',alignContent:'center',gap:'2px 8px'}}>{Array.from({length:6},(_,j)=><Skeleton key={j} height={j<3?16:12} sx={{transform:'none'}}/>)}</Box>)}</Box>;
 }

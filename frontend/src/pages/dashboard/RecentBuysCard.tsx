@@ -1,4 +1,3 @@
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { Box, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getRecentBuys } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { colors } from '../../styles/tokens';
-import { HomeEmpty, HomeListCard, HomeTwoLineRow } from './HomeListCard';
+import { HomeEmpty, HomeListCard, HomeListLoading, HomeTwoLineRow } from './HomeListCard';
 import { targetWon, lotMarketColor, lotRate } from './TargetArrivalCard';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { seoulToday } from '../investment/investmentData';
@@ -29,9 +28,9 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
     setExpanded(previous => ({ accountId, months: (previous.accountId === accountId ? previous.months : 0) + 1 }));
     timer.current=setTimeout(() => { lock.current=false; }, 200);
   };
-  return <HomeListCard testId="recent-buys-card" title="최근 매수" count={query.data ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={failed ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void query.refetch()}>재시도</Button></> : undefined} updating={query.isFetching} more={view?.more ? more : undefined} height={290 + Math.max(0, rows.length-5)*43}>
+  return <HomeListCard stable pending={!query.data&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={query.data ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={failed&&query.data ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void query.refetch()}>재시도</Button></> : undefined} updating={query.isFetching} more={view?.more ? more : undefined} height={290 + Math.max(0, rows.length-5)*43}>
     {failed && !query.data && <HomeEmpty>최근 매수 조회 실패{query.data && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void query.refetch(); void accounts.refetch(); }}>재시도</Button></HomeEmpty>}
-    {!query.data && !failed && (accountId || accounts.isPending ? <Skeleton height={70} /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
+    {!query.data && !failed && (accountId || accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {!failed && query.data && rows.length === 0 && <HomeEmpty />}
     {rows.map(row => <HomeTwoLineRow key={row.id} testId="recent-buy-lot" onClick={() => { if (!lock.current) navigate(`/stocks/${row.security.id}?detailTab=holding`); }}
       first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
