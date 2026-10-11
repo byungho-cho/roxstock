@@ -31,6 +31,16 @@ test('actual MariaDB stores GRT/CJ/Samsung source, period, units; duplicate atte
   assert.equal((await repo.saveFiling({...input,values:{...input.values,revenueYtd:'999'}})).created,false);
   assert.equal(await db.dartFinancialFiling.count({where:{receiptNo}}),1);
   assert.equal((await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo}})).revenueYtd!.toString(),'200');
+  if(corpCode==='00113410'){
+   const later='20250318001021';
+   const updated=mapPeriodicReports([...evidence.find(r=>r.path==='list.json'&&r.corpCode===corpCode)!.rows,{corp_code:corpCode,rcept_no:later,rcept_dt:'20250318',report_nm:'[첨부추가]사업보고서 (2024.12)'}],2024).find(r=>r.reportCode===reportCode)!;
+   const proof=validateDartFiling({corpCode,taskFiscalYear:2024,report:updated,rows,fsDivision:'CFS'});
+   assert.equal((await repo.saveFiling({...input,...proof})).created,false);
+   assert.equal(await repo.hasStoredReceipt(later),true);
+   assert.equal(await repo.hasStoredReceipt('20250318009999'),false);
+   const metadata=(await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo}})).sourceValidation as any;
+   assert.equal(metadata.returnedReceiptNo,receiptNo);assert.ok(metadata.priorSelectedReceiptNos.includes('20250317001020'));
+  }
   const stable=await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo}});
   await assert.rejects(repo.saveFiling({...input,periodEndDate:new Date('2024-06-30')}),(e:unknown)=>e instanceof DartApiError&&e.code==='STORED_FILING_CONFLICT');
   await assert.rejects(repo.saveFiling({...input,fiscalYear:2023}),DartApiError);

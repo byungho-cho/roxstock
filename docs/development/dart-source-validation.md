@@ -30,7 +30,7 @@ DART [공시검색](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&ap
 
 ## 보존과 진단
 
-기존 SUCCESS/PENDING/NO_FILING/FAILED 작업을 삭제/일괄 초기화하지 않는다. 자료 기간·기업·연결/별도·작업 연도가 기존 receipt 행과 충돌하면 `STORED_FILING_CONFLICT`로 중단하고 기존 행을 보존한다. 동일 receipt는 하나만 저장하며 기존 금액은 자동 중복 저장 시 덮어쓰지 않는다. 경쟁 insert도 기존 행을 같은 식별 검증으로 다시 확인한다.
+기존 SUCCESS/PENDING/NO_FILING/FAILED 작업을 삭제/일괄 초기화하지 않는다. 자료 기간·기업·연결/별도·작업 연도가 기존 receipt 행과 충돌하면 `STORED_FILING_CONFLICT`로 중단하고 기존 행을 보존한다. 동일 receipt는 하나만 저장하며 기존 금액은 자동 중복 저장 시 덮어쓰지 않는다. 경쟁 insert도 기존 행을 같은 식별 검증으로 다시 확인한다. 검증된 선택 번호는 출처 행의 별도 alias로 인식해 현재 연도 경로에서 첨부정정을 매 주기 반복 요청하지 않는다. 출처 번호는 바꾸지 않으며 이전 선택 번호도 메타데이터에 보존한다.
 
 작업·실행 항목의 nullable `diagnostics`에 공개 식별자·원래 코드·검증 하위 사유·단계·시도·runId를 기록한다. REVIEW_REQUIRED는 원래 오류와 하위 사유를 잃지 않는다. 근거 부족·원문 검증 필요·외화(`DART_SOURCE_REVIEW`)·기존 저장 충돌은 첫 시도부터 검토 대기로 두며 자동 반복 재요청하지 않는다. 실제 접수번호 불일치의 기존 3회 정책과 통신 재시도 정책은 유지한다. 공시 제목 기간을 파싱할 수 없을 때도 NO_FILING으로 단정하지 않는다. 로그·필터는 allowlist만 직렬화하고 인증키·URL·헤더·SQL·원문 예외·cause를 출력하지 않는다.
 

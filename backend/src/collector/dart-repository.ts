@@ -254,7 +254,7 @@ export class PrismaDartRepository {
         if(!old)return [key,incoming];
         return [key,{...incoming,...old,amount:old.amount??incoming.amount,ytdAmount:old.ytdAmount??incoming.ytdAmount}];
       }));
-      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{...(input.sourceValidation && !current.sourceValidation ? {sourceValidation: input.sourceValidation as unknown as Prisma.InputJsonValue}:{}),normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{sourceValidation:{...input.sourceValidation,priorSelectedReceiptNos:[...new Set([...((current.sourceValidation as {priorSelectedReceiptNos?:string[]}|null)?.priorSelectedReceiptNos??[]),...(current.sourceValidation && (current.sourceValidation as {selectedReceiptNo?:string}).selectedReceiptNo!==input.sourceValidation.selectedReceiptNo?[(current.sourceValidation as {selectedReceiptNo:string}).selectedReceiptNo]:[])])].filter(n=>/^\d{14}$/.test(n))} as unknown as Prisma.InputJsonValue,normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
@@ -396,7 +396,7 @@ export class PrismaDartRepository {
   }
 
   async hasStoredReceipt(receiptNo: string): Promise<boolean> {
-    return (await this.prisma.dartFinancialFiling.count({ where: { receiptNo } })) > 0;
+    return (await this.prisma.dartFinancialFiling.count({where:{isWithdrawn:false,OR:[{receiptNo},{AND:[{sourceValidation:{path:'$.version',equals:2}},{sourceValidation:{path:'$.selectedReceiptNo',equals:receiptNo}}]}]}}))>0;
   }
 
   async setPhase2Check(securityId: bigint, phase: 'PRIORITY' | 'UNIVERSE', now = new Date(), error?: string): Promise<void> {
