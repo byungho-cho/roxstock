@@ -16,7 +16,6 @@ async function setup(page:Page){
  return {state,release(){state.holdSummary=false;state.holdDetail=false;releases.splice(0).forEach(r=>r());}};
 }
 async function capture(page:Page,name:string,project:string){const root=process.env.ROX_PHASE20_CAPTURE_DIR;if(root)await page.screenshot({path:path.join(root,`monitor-${project}-${name}.png`)});}
-async function select(page:Page,id:string){if(page.viewportSize()!.width>=600)await page.getByTestId(`monitor-feature-${id}`).click();else await page.goto(`/detail/collection-monitoring/${id}`);}
 const boxes=async(page:Page)=>page.locator('[data-testid^="monitor-"]').evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-testid'),width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,top:n.getBoundingClientRect().top})));
 test('summary slow first load keeps all cards, labels and geometry',async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto('/detail/collection-monitoring');
@@ -40,7 +39,7 @@ test('initial query failure never reports an empty result; retry shows collector
  const f=await setup(page);f.state.failDetail=true;f.state.failSummary=true;await page.goto('/detail/collection-monitoring/realtime-prices');await expect(page.getByRole('alert').first()).toContainText('조회 실패',{timeout:15000});await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('정상');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);const before=await boxes(page);
  f.state.failDetail=false;f.state.failSummary=false;f.state.collectorError=true;await page.getByRole('button',{name:'다시 시도',exact:true}).last().click();await expect(page.getByTestId('monitor-current')).toContainText('오류');await expect(page.getByTestId('monitor-history-data')).toContainText('실제 수집 실패');await expect(page.getByRole('alert')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,'collector-error',info.project.name);
 });
-test('detail waiting does not hide ready summary and empty results appear only after success',async({page})=>{
+test('detail waiting does not hide ready summary or show fake progress',async({page})=>{
  const f=await setup(page);f.state.holdDetail=true;await page.goto('/detail/collection-monitoring/dart-financial-statements');await expect(page.getByTestId('monitor-current')).toContainText('완료');await expect(page.getByTestId('monitor-history-data').locator('[data-loading-indicator="visible"]').first()).toBeVisible();await expect(page.locator('main')).not.toContainText('완료 0');f.release();await expect(page.getByTestId('monitor-history-data')).toContainText('123');
 });
 test('fast response and fresh cache never paint skeletons',async({page})=>{

@@ -56,8 +56,9 @@ function DataValue({ children, width = 80 }: { children?: ReactNode; width?: num
   if (pending && failed) return <Box component="span" aria-label="조회 실패">—</Box>;
   return pending ? <Box component="span" aria-label="데이터 조회 중" sx={{ display: 'inline-flex', verticalAlign: 'baseline', width, maxWidth: '100%', height: '0.8em' }}><DelayedSkeleton variant="rounded" width="100%" height="100%" /></Box> : <>{children}</>;
 }
-function Updating() {
+function Updating({ initialIcon = false }: { initialIcon?: boolean }) {
   const visible = useDelayedIndicator();
+  if (!visible && initialIcon) return <RefreshRounded sx={{ fontSize: 16 }} />;
   return <CircularProgress aria-label="갱신 중" size={13} color="inherit" sx={{ visibility: visible ? 'visible' : 'hidden' }} />;
 }
 function QueryNotice({ error, retry }: { error: boolean; retry: () => void }) {
@@ -80,7 +81,7 @@ function StatusPill({ feature, compact = false }: { feature: Feature; compact?: 
 
 function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: () => void }) {
   return <Button aria-label="통계 새로고침" onClick={onClick} disabled={refreshing} sx={{ minWidth: 20, minHeight: 20, width: 20, height: 20, p: 0, color: '#7A8CA8', flexShrink: 0 }}>
-    {refreshing ? <Updating /> : <RefreshRounded sx={{ fontSize: 16 }} />}
+    {refreshing ? <Updating initialIcon /> : <RefreshRounded sx={{ fontSize: 16 }} />}
   </Button>;
 }
 
@@ -99,7 +100,7 @@ function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { featu
       <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, width: 82, height: 19, borderRadius: '999px', bgcolor: pending ? 'transparent' : badge.background, color: badge.foreground, fontSize: 10, fontWeight: 600 }}><DataValue width={60}>{badge.label}</DataValue></Box>
 
     </Stack>
-    <Typography sx={{ color: needsAttention ? '#FAB83B' : '#7A8CA8', fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <Typography sx={{ color: !pending && needsAttention ? '#FAB83B' : '#7A8CA8', fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       오류 <DataValue width={15}>{failed}</DataValue> · 지연 <DataValue width={15}>{delayed}</DataValue><DataValue>{unavailable > 0 ? ` · 미설정/미구현/미수집 ${unavailable}` : ''}</DataValue>
     </Typography>
     <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
@@ -145,7 +146,7 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
     ['실패', failed, failed ? '#F26A6F' : '#F2F7FC'],
     ['건너뜀', skipped, '#F2F7FC'],
   ] as const;
-  return <Box sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
+  return <Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
     {values.map(([label, value, color]) => <Stack key={label} spacing={0.15} sx={{ minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
       <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '11px' }}>{label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
@@ -245,7 +246,7 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
     : disabled ? '1단계 후 대기' : status === 'RUNNING' ? '진행 중' : '상시 수집';
   const badge = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo : disabled ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
-  return <Box sx={{ ...cardSx, p: '12px', minHeight: 55, opacity: disabled ? 0.86 : 1 }}>
+  return <Box data-testid="monitor-dart-current" sx={{ ...cardSx, p: '12px', minHeight: 55, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
       <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, justifyContent: 'center', alignItems: 'center', fontSize: 12, fontWeight: 600 }}><DataValue width={65}>{label}</DataValue></Box>
@@ -355,7 +356,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <Box sx={{ display: 'block' }}><CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} /></Box>
-        <Box sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 } }}>
+        <Box data-testid="monitor-dart-backfill" sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 } }}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>1단계 · 과거 자료 최초 수집</Typography>
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}><DataValue width={60}>{stageOneLabel}</DataValue></Box>
@@ -376,7 +377,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
         <CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
-        <Box sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', height: 94, overflowY: 'auto' }}>
+        <Box data-testid="monitor-realtime-diagnostics" sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', height: 94, overflowY: 'auto' }}>
           <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px' }}>워커 <DataValue>{dateText(current.realtime?.heartbeatAt)}</DataValue> · <DataValue>{current.realtime?.session ?? '세션 기록 없음'}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 <DataValue>{dateText(current.realtime?.lastPriceReceivedAt)}</DataValue> · 원천 <DataValue>{dateText(current.realtime?.lastSourcePriceAt)}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE <DataValue>{dateText(current.realtime?.lastSsePublishedAt)}</DataValue> · DB <DataValue>{dateText(current.realtime?.lastDbSavedAt)}</DataValue></Typography>
@@ -390,12 +391,12 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
 }
 
 function CollectionProgress({planned,counts,label,review=0,securities}:{planned:number|null;counts:DataRecord;label:string;review?:number;securities?:number}) {
-  const pendingData=useContext(PendingData);
+  const pendingData=useContext(PendingData), queryFailed=useContext(FailedData);
   const total=Math.max(0,planned??0),success=Number(counts.SUCCESS??0),missing=Number(counts.NO_FILING??0)+Number(counts.NOT_APPLICABLE??0),failed=Number(counts.FAILED??0),processing=Number(counts.PROCESSING??0),pending=Number(counts.PENDING??0);
   const done=success+missing,percent=total?Math.min(100,done*100/total):0;
   const segments=[{name:'성공',count:success,color:'#34D399'},{name:'미공시·대상 아님',count:missing,color:'#7A8CA8'},{name:'실패',count:failed,color:'#F26A6F'},{name:'처리 중',count:processing,color:'#FAB83B'}];
   return <Box sx={{mt:'8px'}}><Box sx={{display:'flex',justifyContent:'space-between',gap:'8px',fontSize:11,fontWeight:700,mb:'4px'}}><span>{label}{securities != null && !pendingData ? ` (${numberText(securities)}개)` : ''}</span><span><DataValue width={35}>{planned==null?'—':percent.toFixed(1)+'%'}</DataValue></span></Box>
-    <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pendingData || planned==null ? undefined : Number(percent.toFixed(1))} aria-valuetext={pendingData ? '조회 중' : `${done.toLocaleString()} / ${total.toLocaleString()}개 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color,transition:'width 250ms ease'}}/>)}</Box>
+    <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pendingData || planned==null ? undefined : Number(percent.toFixed(1))} aria-valuetext={pendingData ? (queryFailed ? '조회 실패' : '조회 중') : `${done.toLocaleString()} / ${total.toLocaleString()}개 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color,transition:'width 250ms ease'}}/>)}</Box>
     <Typography sx={{fontSize:10,color:'#7A8CA8',mt:'4px'}}>완료 <DataValue width={70}>{done.toLocaleString()} / {planned==null?'—':total.toLocaleString()}</DataValue>개 · 대기 <DataValue width={25}>{pending.toLocaleString()}</DataValue></Typography>
     <Box sx={{display:'flex',flexWrap:'wrap',gap:'4px 10px',mt:'4px'}}>{segments.map(item=><Typography key={item.name} sx={{fontSize:10,color:item.color}}>{item.name} <DataValue width={20}>{item.count.toLocaleString()}</DataValue></Typography>)}</Box>
     <Typography sx={{fontSize:10,color:'#F26A6F',mt:'4px',height:28,overflowY:'auto'}}>{!pendingData && review>0 ? `검토 필요 ${review.toLocaleString()}건 · 자동 재시도 중단, 완료에 포함하지 않음` : ''}</Typography>

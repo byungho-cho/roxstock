@@ -32,3 +32,11 @@ APK HEAD HTTP 200, Content-Type `application/vnd.android.package-archive`, 길�
 PR 필수 검사 통과 후 기존 PR 자동 병합·Production Deploy 경로를 이용한다. 완료 보고에 병합 SHA·배포 실행·운영 읽기 검증 결과를 기록한다.
 
 실제 Android 기기/WebView에서 신규 설치·업데이트는 이번 범위에서 재실행하지 않는다. 인위적 지연/실패는 모의 API 검사이며 실제 네트워크 지연의 전 기기 측정은 미실시다. 운영 수집 상태는 읽기만 확인한다.
+
+## 최종 로컬 검사 기록
+
+- 전체 관련 회귀 **136개 통과 (4.3분)**.
+- DART 과거/현재 단계, 처리건수, 실시간 진단 카드까지 크기 비교를 확대한 최종 신규 검사 **22개 통과 (40.4초)**.
+- 최종 타입 검사·production build 통과. entry gzip 139.73kB, 모니터링 lazy chunk gzip 10.10kB. 응답을 기다리는 초기 번들/API 순서는 유지한다.
+- 실제 화면 캡처: [커버 조회 중](assets/phase20-monitor/monitor-cover-loading.png) · [커버 완료](assets/phase20-monitor/monitor-cover-ready.png) · [태블릿 조회 중](assets/phase20-monitor/monitor-tablet-loading.png) · [태블릿 완료](assets/phase20-monitor/monitor-tablet-ready.png).
+- 최종 서버 CI와 병합·운영 배포 SHA/실행 결과는 [작업 PR #191](https://github.com/byungho-cho/roxstock/pull/191)의 Checks 및 완료 기록을 기준으로 한다. 운영 배포는 성공 상태와 실제 서비스 읽기 확인 후에만 완료로 보고한다.
