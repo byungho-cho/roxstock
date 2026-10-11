@@ -32,3 +32,7 @@
 외부 API 전후 표본: `docs/qa/phase18-api-before.json`/after.json. 실행시각, base commit, HTTPS 포함 external환경, n3 각 round 병렬, median/min/max 및 decoded bytes 기록. 사용자 제공 오전 표본과 별도 표본이며 서버처리시간/화면성능과 혼합하지 않는다. 실제 화면 표시 시간은 별도 browser artifact. 모의 held-route UI 시간은 CI runner/fixture 측정이며 운영 개선 수치가 아니다.
 
 배포 전/후 확인 항목: cold/warm 요청수와 주요/최근/전체 표시시간, 설정 기본/복리 기본/자산 계산 영역, 계좌 전환/페이지 이동/기간/오류/재시도, 집계 없는 과거 연도와 수정/삭제/이후 연도/CAS, 높이/버튼/하단위치. 운영 데이터 수정 테스트는 하지 않고 격리 DB에서 검증한다. 생산 API는 read-only 계산 대조만 한다.
+
+## 운영 권한 복구
+
+첫 운영 배포 d3df7bc/run38104560924는 TRIGGER 권한1142로 migration4번째 문장에서 중단됐다. 기존 서비스 교체 전 중단, 프론트 미배포. 복구 PR은 기존 백업 뒤 DB 컨테이너 관리자 세션으로 이 실패만 식별하여 초기 집계가 비어 있을 때 DDL을 재실행한다. 기존 migration/checksum과 사업 원장은 수정·삭제하지 않는다. 테이블/trigger는 IF NOT EXISTS, 초기 revision은 INSERT IGNORE, 모든 trigger 개수를 확인한 후 Prisma resolve --applied와 정상 migrate deploy를 실행한다. 실행 계정의 권한은 기존대로 유지한다. 다른 실패 사유나 이미 집계가 채워진 미완료 상태는 자동 복구하지 않는다. 제한된 권한의 실제 MariaDB에서 실패→복구→재실행, 원장 보존, 동일 계산·무효화를 검증한다.
