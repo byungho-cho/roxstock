@@ -73,6 +73,9 @@ jobs:
       - name: Phase18 aggregate invalidation and recent-buy equivalence (real MariaDB)
         run: node --import tsx --test backend/tests/phase18.integration.ts
 
+      - name: Realtime lifecycle ownership and snapshot conflict (real MariaDB)
+        run: node --import tsx --test backend/tests/realtime-lifecycle.integration.ts
+
       - name: Changed compound-plan real database functions
         run: node --import tsx --test backend/tests/compound-growth.integration.ts
 
