@@ -1,4 +1,5 @@
-import {Box,Button,Skeleton,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import {Box,Button,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {lazy,Suspense,useEffect,useRef,useState,type ReactNode} from 'react';
 import {useLocation,useNavigate} from 'react-router-dom';
 import {PageHeader} from '../../components/navigation/Navigation';

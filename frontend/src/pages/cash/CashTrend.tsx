@@ -1,4 +1,5 @@
-import { Box, Button, Skeleton, Typography } from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import { Box, Button, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { AppCard } from '../../components/common/Common';
 import { getAssetHistory } from '../../data/roxstockApi';

@@ -1,6 +1,7 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {ReportButton} from './ReportButton';
 import {PriceTimestamp} from './PriceTimestamp';
-import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import { useRef, type ReactNode } from 'react';
 import { useCardNavigation } from '../../hooks/useCardNavigation';
 import type { StockItem, StockListType } from '../../types/models';

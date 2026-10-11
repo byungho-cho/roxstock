@@ -1,3 +1,4 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useMoreAccounts} from '../../hooks/useMoreAccounts';
 export {useMoreAccounts} from '../../hooks/useMoreAccounts';
 import {accountUpdatedAt} from '../../utils/accountUpdatedAt';
@@ -5,7 +6,7 @@ import {ApiError} from '../../data/apiClient';
 import {useAccountAllocation} from '../../hooks/useAccountAllocation';
 import {ActionButton} from '../../components/common/Common';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
-import { Box, Button, ButtonBase, IconButton, Dialog, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, ButtonBase, IconButton, Dialog, Stack, Typography } from '@mui/material';
 import {storedQueryOptions} from '../../data/storedQueryOptions';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -44,26 +45,7 @@ function LinkRow({ title, caption, value, onClick, active = false }: { title: st
 import {SettingsMenu} from './SettingsMenu';
 export {SettingsMenu};
 
-export function SettingsOverview({ compact = false }: { compact?: boolean }) {
-  const navigate = useNavigate();
-  const { accounts } = useMoreAccounts();
-  const [theme, setTheme] = useState(readDemoSettings().theme);
-  const chooseTheme = (value: 'dark' | 'light' | 'system') => { setTheme(value); saveDemoSettings({ theme: value }); };
-  const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
-  if (compact) return <Box data-testid="more-settings-panel" sx={{ ...panel, height: 300, p: '13px', boxSizing: 'border-box' }}>
-    <Typography sx={{ ...heading, lineHeight: '28px', mb: '6px' }}>설정</Typography>
-    <Stack spacing="16px">
-      <LinkRow title="계좌 관리" onClick={() => go('account')} />
-      <LinkRow title="시세 수집" value="상태 조회" onClick={() => go('collection')} />
-      <LinkRow title="테마 설정" value={theme === 'dark' ? '다크' : theme === 'light' ? '라이트' : '시스템 설정'} onClick={() => go('theme')} active />
-      <Box data-testid="theme-buttons" sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '8px' }}>{(['dark', 'light', 'system'] as const).map(value => <ButtonBase key={value} aria-label={value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'} aria-pressed={theme === value} onClick={() => chooseTheme(value)} sx={{ ...row, flex: 1, minWidth: 0, height: 56, display: 'flex', flexDirection: 'column', gap: '4px', bgcolor: theme === value ? '#3C85F2' : '#0B111B', borderColor: '#1F2B42', color: '#E8EDF7' }}>
-        <Typography sx={{ fontSize: 12, lineHeight: '19px', fontWeight: theme === value ? 600 : 400, whiteSpace: 'nowrap' }}>{value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'}</Typography>
-        <Typography sx={{ fontSize: 10, lineHeight: '14px', height: 14 }}>{theme === value ? '선택됨' : ''}</Typography>
-      </ButtonBase>)}</Box>
-    </Stack>
-  </Box>;
-  return <SettingsMenu />;
-}
+export {SettingsOverview} from './SettingsOverview';
 
 export function AccountManagement(_props: { openReset?: () => void }) {
  const navigate=useNavigate();const {accounts,selected,query,select}=useMoreAccounts();

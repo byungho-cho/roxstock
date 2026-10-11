@@ -1,4 +1,5 @@
-import { Box, Button, ButtonBase, Card, Skeleton, Stack, Typography } from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import { Box, Button, ButtonBase, Card, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';

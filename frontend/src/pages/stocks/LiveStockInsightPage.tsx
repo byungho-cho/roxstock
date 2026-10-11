@@ -1,7 +1,8 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {usePageMemory,useReturnNavigation} from '../../hooks/navigation/usePageMemory';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { FinancialRefreshControls,hasSavedFinancialData } from './FinancialRefreshControls';
-import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
