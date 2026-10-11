@@ -36,7 +36,7 @@ try {
     if(!security?.dartCorpMapping){results.push({symbol,code:'DART_CORP_CODE_NOT_MAPPED'});continue;}
     const corpCode=security.dartCorpMapping.corpCode;
     let reports;
-    try{reports=await provider.listPeriodicReports(corpCode,2024);}catch(e){results.push({symbol,...dartDiagnostic(e,'LIST')});if(e instanceof DartApiError&&e.quotaExceeded)break;continue;}
+    try{reports=await provider.listPeriodicReports(corpCode,2024);}catch(e){results.push({symbol,...dartDiagnostic(e,'LIST')});if(e instanceof DartApiError&&(e.quotaExceeded||['010','011','012','API_KEY_MISSING'].includes(e.code)))break;continue;}
     for(const reportCode of (symbol==='900290'?['11011','11013','11012','11014']:['11011']) as DartReportCode[]){
      const task=await db.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId:security.id,fiscalYear:2024,reportCode}}});
      const periodType=reportCode==='11011'?'ANNUAL':reportCode==='11013'?'Q1':reportCode==='11012'?'Q2':'Q3';
