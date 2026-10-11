@@ -1,4 +1,5 @@
 import '../dashboard/home-font.css';
+import {collectionTaskLabel} from './collectionTaskLabel';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
 import { ArrowDropDownRounded, FilterListRounded, RefreshRounded } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
@@ -187,7 +188,7 @@ function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, show
     <Collapse in={filtersOpen} unmountOnExit>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', sm: '1fr' }, gap: 0.5, mb: 1 }}>{filterControls}</Box>
     </Collapse>
-    <Box data-testid="monitor-history-data" sx={{ height: 96, overflowY: 'auto' }}>
+    <Box data-testid="monitor-history-data" sx={{ height: 240, flexShrink: 0, overflowY: 'auto' }}>
     {pending ? <Stack spacing={1}><DataValue width={200} /><DataValue width={240} /></Stack> : visibleRuns.length ? <Stack spacing={0.35}>{visibleRuns.map((run) => {
       const status = statusStyle[String(run.status)] ?? unknownStatus;
       const metadata = asRecord(run.metadata);
@@ -214,7 +215,7 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>대상별 상태</Typography>
       <Typography sx={{ ...mutedText, fontSize: 10 }}>확인 <DataValue width={24}>{numberText(entries.length)}</DataValue></Typography>
     </Stack>
-    <Box data-testid="monitor-results-data" sx={{ height: 120, overflowY: 'auto' }}>
+    <Box data-testid="monitor-results-data" sx={{ height: 300, flexShrink: 0, overflowY: 'auto' }}>
     {pending ? <Stack spacing={1}><DataValue width={180} /><DataValue width={220} /></Stack> : entries.length ? <Stack spacing={0} sx={{ minWidth: 0, flex: 1 }}>
       {entries.map((item, index) => {
         const resultStyle = statusStyle[String(item.status)] ?? unknownStatus;
@@ -222,10 +223,10 @@ function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[
         const outcome = item.reason ?? resultStyle.label;
         return <Box key={`${item.symbol ?? 'result'}-${index}`} sx={{ py: '3px', minWidth: 0, borderBottom: index === entries.length - 1 ? 0 : '1px solid #26334A' }}>
         <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline' }}>
-            <Typography sx={{ color: resultStyle.background, fontSize: 10, fontWeight: 500, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}</Typography>
+            <Typography sx={{ color: resultStyle.background, fontSize: 10, fontWeight: 500, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}{collectionTaskLabel(item) && <Box component="span" sx={{color:'#7A8CA8',ml:'6px'}}>{collectionTaskLabel(item)}</Box>}</Typography>
             <Typography sx={{ color: resultStyle.background, fontSize: 10, flexShrink: 0 }}>{resultStyle.label}</Typography>
           </Stack>
-          <Box sx={{pl:'8px',position:'relative',minHeight:20}}><Typography sx={{color:'#7A8CA8',fontSize:10,lineHeight:'20px'}}>실행시간 : {dateText(item.occurredAt)}</Typography>{item.reason&&item.reason!==resultStyle.label&&<Box component="details" sx={{mt:'-20px',fontSize:10,color:'#7A8CA8'}}><Box component="summary" sx={{cursor:'pointer',textAlign:'right',listStyle:'none',height:20,lineHeight:'20px'}}>상세내용 ›</Box><Typography sx={{fontSize:10,py:'4px',overflowWrap:'anywhere'}}>{outcome}</Typography></Box>}</Box>
+          <Box sx={{pl:'8px',position:'relative',minHeight:20}}><Typography sx={{color:'#7A8CA8',fontSize:10,lineHeight:'20px'}}>실행시간 : {dateText(item.occurredAt)}</Typography>{item.reason&&item.reason!==resultStyle.label&&<Box component="details" sx={{fontSize:10,color:'#7A8CA8'}}><Box component="summary" sx={{cursor:'pointer',textAlign:'left',height:20,lineHeight:'20px'}}>상세내용 ›</Box><Typography sx={{fontSize:10,py:'4px',overflowWrap:'anywhere'}}>{outcome}</Typography></Box>}</Box>
         </Box>;
       })}
     </Stack> : <Box sx={{ flex: 1, display: 'grid', placeItems: 'center' }}><Typography sx={{ ...mutedText, fontSize: 10 }}>확인할 대상 결과가 없습니다.</Typography></Box>}

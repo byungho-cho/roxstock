@@ -1,0 +1,40 @@
+name: Monitor and financial estimates
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/src/domain/stored-analysis.ts, backend/src/routes/financial-statements*, backend/src/routes/value-analysis*, backend/src/routes/stored-analysis.test.ts, .github/workflows/monitor-financial-check.yml]
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+      ROX_COMPARE_MAIN: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: node --import tsx --test backend/src/routes/stored-analysis.test.ts backend/src/routes/financial-statements.test.ts backend/src/routes/value-analysis.test.ts backend/src/domain/value-analysis.test.ts backend/src/domain/financial-statements.test.ts
+      - name: Prepare immutable previous UI for measured heights
+        run: |
+          git worktree add --detach monitor-baseline f16cd801236d5247358ee45c4bc7341de90dab1e
+          ln -s ../node_modules monitor-baseline/node_modules
+          ln -s ../../frontend/node_modules monitor-baseline/frontend/node_modules
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test -c playwright.monitor-financial.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monitor-financial-evidence
+          path: frontend/test-results/monitor-financial/
+          retention-days: 14
