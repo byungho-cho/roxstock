@@ -1,0 +1,100 @@
+{
+  "checkedAt": "2026-10-11T23:06:56.915064+00:00",
+  "productionCommit": "ea64d6defca5d468410233baf082960aa501eda2",
+  "api": [
+    "/api/financial-statements",
+    "/api/value-analysis"
+  ],
+  "cases": [
+    {
+      "symbol": "005930",
+      "year": 2026,
+      "priceBasisMatch": true,
+      "matches": {
+        "eps": true,
+        "epsYield": true,
+        "roe": true,
+        "w": true,
+        "value": true,
+        "capital": true,
+        "capitalYear": true,
+        "netIncome": true,
+        "metricBasis": true,
+        "capitalBasis": true,
+        "netIncomeBasis": true,
+        "targetPrice": true
+      },
+      "metricLabel": "2026E",
+      "estimated": true,
+      "capitalYear": 2025,
+      "netIncomeSource": "NAVER_FNGUIDE_ANNUAL",
+      "netIncomeEstimated": true,
+      "unit": "KRW"
+    },
+    {
+      "symbol": "035420",
+      "year": 2026,
+      "priceBasisMatch": true,
+      "matches": {
+        "eps": true,
+        "epsYield": true,
+        "roe": true,
+        "w": true,
+        "value": true,
+        "capital": true,
+        "capitalYear": true,
+        "netIncome": true,
+        "metricBasis": true,
+        "capitalBasis": true,
+        "netIncomeBasis": true,
+        "targetPrice": true
+      },
+      "metricLabel": "2026E",
+      "estimated": true,
+      "capitalYear": 2025,
+      "netIncomeSource": "NAVER_FNGUIDE_ANNUAL",
+      "netIncomeEstimated": true,
+      "unit": "KRW"
+    },
+    {
+      "symbol": "005380",
+      "year": 2025,
+      "priceBasisMatch": true,
+      "matches": {
+        "eps": true,
+        "epsYield": true,
+        "roe": true,
+        "w": true,
+        "value": true,
+        "capital": true,
+        "capitalYear": true,
+        "netIncome": true,
+        "metricBasis": true,
+        "capitalBasis": true,
+        "netIncomeBasis": true,
+        "targetPrice": true
+      },
+      "metricLabel": "2025 연간",
+      "estimated": false,
+      "capitalYear": 2025,
+      "netIncomeSource": "DART:CFS",
+      "netIncomeEstimated": false,
+      "unit": "KRW"
+    }
+  ],
+  "partialStoredCase": {
+    "symbol": "005930",
+    "year": 2015,
+    "missingReasons": {
+      "eps": "NOT_PROVIDED",
+      "roe": "NOT_PROVIDED",
+      "targetPrice": "RIM_BASIS_UNCONFIRMED",
+      "epsYield": "EPS_MISSING",
+      "capital": "NOT_PROVIDED",
+      "w": "VALUATION_MISSING",
+      "value": "VALUATION_MISSING",
+      "netIncome": "NOT_PROVIDED"
+    },
+    "nullPreserved": true
+  }
+}
