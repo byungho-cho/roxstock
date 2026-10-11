@@ -1,8 +1,10 @@
+import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
+import {dartDiagnostic} from './dart-diagnostics.js';
 import {randomUUID} from 'node:crypto';
 import type {PrismaClient,Prisma,CollectorRun} from '../generated/prisma/index.js';
 import type {ManualRefreshMetadata} from './dart-manual-refresh.js';
 import type {DartCollectorConfig} from './dart-collector.js';
-import {getCfsThenOfs,endOfFiscalPeriod,parseDartDate} from './dart-collector.js';
+import {getCfsThenOfs} from './dart-collector.js';
 import {DartApiError,OpenDartProvider,type DartPeriodType} from './dart-provider.js';
 import {PrismaDartRepository} from './dart-repository.js';
 import {normalizeManualDartAccounts} from './manual-dart-accounts.js';
@@ -29,7 +31,7 @@ export async function runIndependentPeriod(tasks:{dart:()=>Promise<ManualTaskRes
   const started=Date.now();await options.onState?.(source,{state:'RUNNING'});
   let result:ManualTaskResult;
   try{result=await boundedManualJob(tasks[source],options.milliseconds??manualLimits.taskMs,options.signal);}
-  catch(error){const code=errorCode(error);result={state:'FAILED',code:code==='MANUAL_JOB_TIMEOUT'?source==='dart'?'DART_TIMEOUT':'VALUATION_TIMEOUT':code};}
+  catch(error){console.warn(JSON.stringify({event:'DART manual source failure',source,...dartDiagnostic(error,'MANUAL_SOURCE')}));const code=errorCode(error);result={state:'FAILED',code:code==='MANUAL_JOB_TIMEOUT'?source==='dart'?'DART_TIMEOUT':'VALUATION_TIMEOUT':code};}
   result={...result,durationMs:Date.now()-started};await options.onState?.(source,result);return result;
  };
  const [dart,valuation]=await Promise.all([execute('dart'),execute('valuation')]);return {dart,valuation};
@@ -81,18 +83,19 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      const mapping=security.dartCorpMapping;if(!mapping)throw new DartApiError('DART_CORP_CODE_NOT_MAPPED','DART 기업코드 없음');
      const reports=await provider.listPeriodicReports(mapping.corpCode,year),report=reports.find(r=>r.reportCode===codes[period]&&!r.withdrawn);
      if(!report)return {state:'NO_DATA',code:'NO_PERIODIC_FILING'};
+     requireDartReportPeriod(report,mapping.corpCode,year);
      const filing=await getCfsThenOfs(provider,mapping.corpCode,year,codes[period]);
      if(!filing.rows.length)return {state:'NO_DATA',code:'FINANCIAL_ROWS_NOT_PUBLISHED'};
-     if(filing.rows.some(row=>row.receiptNo!==report.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','공시번호 불일치');
+     const source=validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:year,report,rows:filing.rows,fsDivision:filing.division});
      const values=normalizeManualDartAccounts(filing.rows);
      if(Object.entries(values).filter(([key])=>key!=='accountSources').every(([,value])=>value==null))return {state:'NO_DATA',code:'FINANCIAL_VALUES_EMPTY'};
      // Missing fields retain the last verified value in the same statement division. Actual zero remains zero.
      const previous=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,fsDivision:filing.division,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
      for(const key of Object.keys(values) as (keyof typeof values)[])if(key!=='accountSources'&&values[key]==null&&previous?.[key]!=null){values[key]=String(previous[key]);const evidence=previous.accountSources as Record<string,unknown>|null;values.accountSources[key]={...(evidence?.[key] as typeof values.accountSources[string]),retainedFromReceipt:previous.receiptNo} as typeof values.accountSources[string];}
      values.accountSources={...((previous?.accountSources??{}) as typeof values.accountSources),...values.accountSources};
-     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,receiptNo:report.receiptNo,reportName:report.reportName,receiptDate:parseDartDate(report.receiptDate),periodEndDate:endOfFiscalPeriod(year,period),collectedAt:new Date(),values});
+     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt:new Date(),values});
      const {accountSources,...amounts}=values;
-     await scopedDb.dartFinancialFiling.update({where:{receiptNo:report.receiptNo},data:{...amounts,accountSources:json(accountSources)}});
+     await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources)}});
      return {state:'SUCCESS'};
     },
     valuation:async()=>{
