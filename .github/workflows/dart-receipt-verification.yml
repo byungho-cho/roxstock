@@ -1,0 +1,77 @@
+name: DART Receipt Representative Verification
+on:
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Audit is SELECT-only; representative is capped once per validation version'
+        type: choice
+        options: [audit, representative]
+        default: audit
+permissions:
+  contents: read
+concurrency:
+  group: dart-receipt-representative-verification
+  cancel-in-progress: false
+jobs:
+  scope:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.scope.outputs.enabled }}
+      sha: ${{ steps.scope.outputs.sha }}
+    steps:
+      - uses: actions/github-script@v7
+        id: scope
+        with:
+          script: |
+            const sha = context.payload.workflow_run?.head_sha || context.sha;
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+            core.setOutput('sha', sha);
+            const {data: commit} = await github.rest.repos.getCommit({...context.repo, ref: sha});
+            const changed = commit.files.some(f => ['backend/src/collector/dart-filing-validation.ts', 'backend/src/scripts/verify-dart-receipts.ts'].includes(f.filename));
+            core.setOutput('enabled', String(sha === branch.commit.sha && (context.eventName === 'workflow_dispatch' || changed)));
+  verify:
+    needs: scope
+    if: needs.scope.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      TARGET_SHA: ${{ needs.scope.outputs.sha }}
+      VERIFY_MODE: ${{ inputs.mode || 'representative' }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+      - name: Audit first and verify only bounded representative cases
+        shell: bash
+        run: |
+          set -o pipefail
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$VERIFY_MODE" =~ ^(audit|representative)$ ]]
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- '$TARGET_SHA' '$VERIFY_MODE'" <<'REMOTE' | tee dart-receipt-verification.jsonl
+          set -Eeuo pipefail
+          sha="$1"; mode="$2"
+          test "$(docker inspect --format '{{.Config.Image}}' roxstock-backend)" = "newrox/roxstock-backend:sha-$sha"
+          test "$(docker inspect --format '{{.State.Health.Status}}' roxstock-backend)" = healthy
+          docker exec -e DART_RECEIPT_RETRY_ALLOWED=DART_SOURCE_V2 roxstock-backend node backend/dist/scripts/verify-dart-receipts.js "$mode"
+          docker inspect --format '{{.Name}} {{.Config.Image}} {{.State.Health.Status}}' roxstock-backend roxstock-dart-collector
+          REMOTE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dart-receipt-verification-${{ needs.scope.outputs.sha }}
+          path: dart-receipt-verification.jsonl
+          retention-days: 30

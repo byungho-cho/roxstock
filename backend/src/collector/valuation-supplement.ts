@@ -1,3 +1,4 @@
+import {validateStoredDartRows} from './dart-filing-validation.js';
 import { normalizeProviderSymbol } from '../domain/security-symbol.js';
 import { configuredKrx, type KrxMarket } from './krx-provider.js';
 import { collectAnnualConsensus, settleAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
@@ -72,7 +73,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   if(options.dartRequests!==false&&sourceAllowed&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
-    if(rows.some(row=>row.receiptNo!==f.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','보충 기초계정의 공시번호 불일치');
+    validateStoredDartRows(rows,f,corpCode,f.fsDivision);
     const normalized=mode==='MANUAL_PROTOTYPE'?normalizeManualDartAccounts(rows):normalizeDartFinancialRows(rows);
     accounts={receiptNo:f.receiptNo,fsDivision:f.fsDivision,collectedAt:new Date().toISOString(),sources:normalized.accountSources};
    }catch(error){errors.accounts=error instanceof DartApiError?error.code:'ACCOUNTS_COMMUNICATION';}

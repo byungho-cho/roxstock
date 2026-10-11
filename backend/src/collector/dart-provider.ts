@@ -19,6 +19,17 @@ export interface DartReport {
   reportCode: DartReportCode;
   periodType: DartPeriodType;
   withdrawn: boolean;
+  selection?: DartReportSelection;
+}
+export type DartCorrectionType = 'ORIGINAL' | 'CONTENT' | 'ATTACHMENT' | 'ADDITION' | 'WITHDRAWAL' | 'UNKNOWN';
+export interface DartDisclosure {
+  receiptNo: string; receiptDate: string; reportName: string; corpCode: string;
+  reportPeriod: string; correctionType: DartCorrectionType; remarks: string;
+}
+export interface DartReportSelection {
+  version: 2; taskFiscalYear: number; apiFiscalYear: number; periodEndDate: string;
+  fiscalYearEndMonth: number | null; annualPeriods: string[]; periodError?: string;
+  candidates: DartDisclosure[];
 }
 
 export interface DartFinancialRow {
@@ -53,7 +64,7 @@ export interface DartFinancialValues {
 }
 
 export class DartApiError extends Error {
-  constructor(readonly code: string, message: string, readonly noData = false, readonly quotaExceeded = false) {
+  constructor(readonly code: string, message: string, readonly noData = false, readonly quotaExceeded = false, readonly diagnostics: Record<string, unknown> = {}) {
     super(message);
     this.name = 'DartApiError';
   }
@@ -72,7 +83,7 @@ export interface DartRequestOptions {
 
 interface DartEnvelope<T> { status: string; message?: string; list?: T[]; total_page?: string | number; }
 interface RawCorp { corp_code?: string; corp_name?: string; stock_code?: string; modify_date?: string; }
-interface RawReport { rcept_no?: string; rcept_dt?: string; report_nm?: string; corp_code?: string; rm?: string; }
+export interface RawReport { rcept_no?: string; rcept_dt?: string; report_nm?: string; corp_code?: string; rm?: string; }
 interface RawFinancial extends Record<string, unknown> {
   rcept_no?: string; bsns_year?: string; reprt_code?: string; corp_code?: string;
   sj_div?: string; sj_nm?: string; account_id?: string; account_nm?: string;
@@ -155,38 +166,64 @@ const dateInReportName = (name: string): { year: number; month: number } | null 
   return month >= 1 && month <= 12 ? { year, month } : null;
 };
 
-const expectedPeriod = (fiscalYear: number, fiscalYearEndMonth: number, monthsBeforeEnd: number) => {
-  const date = new Date(Date.UTC(fiscalYear, fiscalYearEndMonth - 1, 1));
-  date.setUTCMonth(date.getUTCMonth() - monthsBeforeEnd);
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1 };
+export const dartCorrectionType = (name: string, remarks = ''): DartCorrectionType => {
+  if (name.includes('철회') || remarks.includes('철')) return 'WITHDRAWAL';
+  if (name.includes('[기재정정]')) return 'CONTENT';
+  if (name.includes('[첨부정정]')) return 'ATTACHMENT';
+  if (name.includes('[첨부추가]')) return 'ADDITION';
+  return name.includes('[') ? 'UNKNOWN' : 'ORIGINAL';
 };
+const orderDisclosure = (a: DartDisclosure, b: DartDisclosure) =>
+  b.receiptDate.localeCompare(a.receiptDate) || b.receiptNo.localeCompare(a.receiptNo);
 
-/** Maps report titles to DART reprt_code using the displayed reporting-period date. */
+/** Request year is not the annual closing year for non-December interim reports.
+ * Derive a company-specific timeline from public annual titles, never default to December.
+ * Changed/absent closing-month evidence is deliberately review-only. API receipts are later
+ * reverse-validated against the retained same-company, same-period disclosure candidates.
+ */
 export const mapPeriodicReports = (reports: RawReport[], fiscalYear: number): DartReport[] => {
-  const parsed = reports.map((raw) => ({ raw, date: dateInReportName(raw.report_nm ?? '') }));
-  const annual = parsed.find((item) => item.raw.report_nm?.includes('사업보고서') && item.date?.year === fiscalYear);
-  const yearEndMonth = annual?.date?.month ?? 12;
-  const targets: Array<{ code: DartReportCode; period: DartPeriodType; months: number; title: string }> = [
-    { code: '11013', period: 'Q1', months: 9, title: '분기보고서' },
-    { code: '11012', period: 'Q2', months: 6, title: '반기보고서' },
-    { code: '11014', period: 'Q3', months: 3, title: '분기보고서' },
-    { code: '11011', period: 'ANNUAL', months: 0, title: '사업보고서' },
+  const disclosures: DartDisclosure[] = reports.flatMap(raw => {
+    const date = dateInReportName(raw.report_nm ?? '');
+    if (!date || !/^\d{14}$/.test(raw.rcept_no ?? '') || !/^\d{8}$/.test(raw.rcept_dt ?? '')) return [];
+    return [{receiptNo: raw.rcept_no!, receiptDate: raw.rcept_dt!, reportName: raw.report_nm ?? '',
+      corpCode: raw.corp_code ?? '', reportPeriod: `${date.year}-${String(date.month).padStart(2,'0')}`,
+      correctionType: dartCorrectionType(raw.report_nm ?? '', raw.rm), remarks: raw.rm ?? ''}];
+  });
+  const annuals = disclosures.filter(d => d.reportName.includes('사업보고서') && d.correctionType !== 'WITHDRAWAL');
+  const relevant = annuals.filter(d => Math.abs(Number(d.reportPeriod.slice(0,4)) - fiscalYear) <= 1);
+  const annualPeriods = [...new Set(relevant.map(d=>d.reportPeriod))].sort();
+  const months = [...new Set(annualPeriods.map(d=>Number(d.slice(5))))];
+  const month = months.length === 1 ? months[0]! : null;
+  const periodError = !months.length ? 'CLOSING_MONTH_UNAVAILABLE' : months.length > 1 ? 'CLOSING_MONTH_CHANGED' : undefined;
+  const targets: Array<{code: DartReportCode; period: DartPeriodType; quarter: number; title: string}> = [
+    {code:'11013',period:'Q1',quarter:1,title:'분기보고서'},
+    {code:'11012',period:'Q2',quarter:2,title:'반기보고서'},
+    {code:'11014',period:'Q3',quarter:3,title:'분기보고서'},
+    {code:'11011',period:'ANNUAL',quarter:4,title:'사업보고서'},
   ];
-  return targets.flatMap((target) => {
-    const expected = expectedPeriod(fiscalYear, yearEndMonth, target.months);
-    const matches = parsed.filter((item) => item.date?.year === expected.year && item.date.month === expected.month && item.raw.report_nm?.includes(target.title));
-    const latest = matches
-      .filter((item) => !item.raw.rm?.includes('철'))
-      .sort((a, b) => (b.raw.rcept_dt ?? '').localeCompare(a.raw.rcept_dt ?? '') || (b.raw.rcept_no ?? '').localeCompare(a.raw.rcept_no ?? ''))[0];
-    if (!latest?.raw.rcept_no || !/^\d{14}$/.test(latest.raw.rcept_no) || !/^\d{8}$/.test(latest.raw.rcept_dt ?? '')) return [];
-    return [{
-      receiptNo: latest.raw.rcept_no,
-      receiptDate: latest.raw.rcept_dt!,
-      reportName: latest.raw.report_nm ?? '',
-      reportCode: target.code,
-      periodType: target.period,
-      withdrawn: false,
-    }];
+  return targets.flatMap(target => {
+    // Annual closing date comes directly from its own title, including transition years.
+    const annualTargets = [...new Set(annuals.filter(d=>Number(d.reportPeriod.slice(0,4))===fiscalYear).map(d=>d.reportPeriod))];
+    let expected = '';
+    let error = target.period === 'ANNUAL' ? (annualTargets.length > 1 ? 'MULTIPLE_ANNUAL_PERIODS' : undefined) : periodError;
+    if (target.period === 'ANNUAL') expected = annualTargets.length === 1 ? annualTargets[0]! : '';
+    else if (month !== null) {
+      const date = new Date(Date.UTC(fiscalYear, month === 12 ? 0 : month, 1));
+      date.setUTCMonth(date.getUTCMonth() + target.quarter * 3 - 1);
+      expected = date.toISOString().slice(0,7);
+    }
+    let matches = disclosures.filter(d=>d.reportName.includes(target.title) && d.reportPeriod===expected).sort(orderDisclosure);
+    if (error) matches = disclosures.filter(d=>d.reportName.includes(target.title) && Math.abs(Number(d.reportPeriod.slice(0,4))-fiscalYear)<=1).sort(orderDisclosure);
+    if (!matches.length) return [];
+    const latest = matches[0]!;
+    if (matches.some(d=>d.correctionType==='WITHDRAWAL')) error ??= 'WITHDRAWN_PERIOD_REQUIRES_REVIEW';
+    if (matches.some(d=>d.correctionType==='UNKNOWN')) error ??= 'UNKNOWN_CORRECTION';
+    const [year, endMonth] = latest.reportPeriod.split('-').map(Number);
+    const periodEndDate = new Date(Date.UTC(year!, endMonth!, 0)).toISOString().slice(0,10);
+    return [{receiptNo:latest.receiptNo,receiptDate:latest.receiptDate,reportName:latest.reportName,
+      reportCode:target.code,periodType:target.period,withdrawn:false,
+      selection:{version:2,taskFiscalYear:fiscalYear,apiFiscalYear:fiscalYear,periodEndDate,
+        fiscalYearEndMonth:month,annualPeriods,...(error?{periodError:error}:{}),candidates:matches}}];
   });
 };
 
@@ -343,6 +380,7 @@ export class OpenDartProvider {
       total = Math.max(1, Number(body.total_page ?? 1));
       page += 1;
     }
+    if (all.some(row => row.corp_code !== corpCode)) throw new DartApiError('DISCLOSURE_COMPANY_MISMATCH', 'Disclosure company identity failed validation.', false, false, {corpCode, taskFiscalYear:fiscalYear, apiFiscalYear:fiscalYear});
     return mapPeriodicReports(all, fiscalYear);
   }
 
@@ -357,7 +395,9 @@ export class OpenDartProvider {
       const year = Number(row.bsns_year);
       const code = String(row.reprt_code ?? '') as DartReportCode;
       const corp = String(row.corp_code ?? '');
-      if (!/^\d{14}$/.test(receiptNo) || year !== fiscalYear || code !== reportCode || corp !== corpCode) return [];
+      if (!/^\d{14}$/.test(receiptNo) || year !== fiscalYear || code !== reportCode || corp !== corpCode)
+        throw new DartApiError('FINANCIAL_IDENTITY_MISMATCH', 'Financial response identity failed validation.', false, false,
+          {corpCode,taskFiscalYear:fiscalYear,apiFiscalYear:fiscalYear,reportCode,fsDivision:fsDiv,returnedReceiptNo:receiptNo,validationResult:'FINANCIAL_IDENTITY_MISMATCH'});
       return [{
         receiptNo, fiscalYear: year, reportCode: code, corpCode: corp,
         statementDivision: String(row.sj_div ?? ''), statementName: String(row.sj_nm ?? ''),
