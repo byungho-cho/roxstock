@@ -1,0 +1,6885 @@
+{
+  "measurementRun": 38106347477,
+  "attempt": 1,
+  "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+  "nPerViewport": 3,
+  "environment": "Production intermediate b6cccfeb, Chromium GitHub runner; same resource-timing harness as final post-deploy run",
+  "samples": [
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:36.021Z",
+      "project": "cover",
+      "round": 1,
+      "homeMajorMs": 3750,
+      "homeRecentMs": 4054,
+      "homeAllMs": 4054,
+      "homeWarmMs": 73,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 721.652,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=15.52"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 662.843,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=463.83"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 691.916,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=463.97"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 829.988,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=633.26"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 288.606,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=98.13"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 806,
+          "durationMs": 945,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 807,
+          "durationMs": 201,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 807,
+          "durationMs": 944,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 807,
+          "durationMs": 386,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 807,
+          "durationMs": 762,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 807,
+          "durationMs": 387,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 807,
+          "durationMs": 388,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 808,
+          "durationMs": 387,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 808,
+          "durationMs": 201,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 808,
+          "durationMs": 388,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 808,
+          "durationMs": 943,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 808,
+          "durationMs": 943,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1821,
+          "durationMs": 268,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1822,
+          "durationMs": 201,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1822,
+          "durationMs": 199,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1822,
+          "durationMs": 278,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1822,
+          "durationMs": 274,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1822,
+          "durationMs": 267,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1822,
+          "durationMs": 212,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1822,
+          "durationMs": 278,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1823,
+          "durationMs": 277,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1823,
+          "durationMs": 384,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1823,
+          "durationMs": 391,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1823,
+          "durationMs": 392,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1823,
+          "durationMs": 399,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1823,
+          "durationMs": 394,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1823,
+          "durationMs": 394,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:38.975Z",
+      "project": "cover",
+      "round": 2,
+      "homeMajorMs": 2513,
+      "homeRecentMs": 2699,
+      "homeAllMs": 2699,
+      "homeWarmMs": 80,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 348.579,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=15.83"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 355.943,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=74.08"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 359.211,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=162.10"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 364.361,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=175.85"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 211.562,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=20.27"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 615,
+          "durationMs": 943,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 615,
+          "durationMs": 388,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 615,
+          "durationMs": 198,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 615,
+          "durationMs": 757,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 616,
+          "durationMs": 197,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 616,
+          "durationMs": 385,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 616,
+          "durationMs": 385,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 616,
+          "durationMs": 386,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 616,
+          "durationMs": 386,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 616,
+          "durationMs": 572,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 616,
+          "durationMs": 572,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 616,
+          "durationMs": 572,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1621,
+          "durationMs": 195,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1621,
+          "durationMs": 192,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1621,
+          "durationMs": 194,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1621,
+          "durationMs": 191,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1622,
+          "durationMs": 193,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1622,
+          "durationMs": 193,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1622,
+          "durationMs": 195,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1622,
+          "durationMs": 198,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1622,
+          "durationMs": 197,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1622,
+          "durationMs": 196,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1622,
+          "durationMs": 196,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1623,
+          "durationMs": 194,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1623,
+          "durationMs": 200,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1623,
+          "durationMs": 199,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1623,
+          "durationMs": 200,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:41.884Z",
+      "project": "cover",
+      "round": 3,
+      "homeMajorMs": 2498,
+      "homeRecentMs": 2679,
+      "homeAllMs": 2679,
+      "homeWarmMs": 74,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 342.517,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=4.23"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 298.192,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=60.36"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 296.725,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=101.69"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 313.255,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=122.85"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 201.073,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=11.15"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 578,
+          "durationMs": 957,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 578,
+          "durationMs": 210,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 578,
+          "durationMs": 775,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 578,
+          "durationMs": 772,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 578,
+          "durationMs": 775,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 578,
+          "durationMs": 209,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 578,
+          "durationMs": 771,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 578,
+          "durationMs": 770,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 579,
+          "durationMs": 772,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 579,
+          "durationMs": 771,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 579,
+          "durationMs": 771,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 579,
+          "durationMs": 772,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1602,
+          "durationMs": 194,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1602,
+          "durationMs": 195,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1602,
+          "durationMs": 197,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1603,
+          "durationMs": 199,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1603,
+          "durationMs": 198,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1603,
+          "durationMs": 198,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1603,
+          "durationMs": 194,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1603,
+          "durationMs": 195,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1603,
+          "durationMs": 197,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1603,
+          "durationMs": 381,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1604,
+          "durationMs": 384,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1604,
+          "durationMs": 386,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1604,
+          "durationMs": 382,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1604,
+          "durationMs": 381,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1604,
+          "durationMs": 387,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 1,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:45.209Z",
+      "basicMs": 2441,
+      "calculatedMs": 2513,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 343.676,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=8.98"
+        },
+        {
+          "name": "monitoring",
+          "ms": 300.987,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=89.29"
+        },
+        {
+          "name": "dashboard",
+          "ms": 203.641,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=13.39"
+        },
+        {
+          "name": "dashboard",
+          "ms": 205.887,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=17.62"
+        },
+        {
+          "name": "dashboard",
+          "ms": 207.408,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=18.79"
+        },
+        {
+          "name": "dashboard",
+          "ms": 216.838,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=28.53"
+        },
+        {
+          "name": "dashboard",
+          "ms": 237.699,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=48.81"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 570,
+          "durationMs": 937,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 570,
+          "durationMs": 384,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 570,
+          "durationMs": 937,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 570,
+          "durationMs": 607,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 570,
+          "durationMs": 752,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 571,
+          "durationMs": 751,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 571,
+          "durationMs": 567,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 571,
+          "durationMs": 752,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1564,
+          "durationMs": 218,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1565,
+          "durationMs": 218,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1565,
+          "durationMs": 217,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1565,
+          "durationMs": 217,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1565,
+          "durationMs": 222,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1565,
+          "durationMs": 220,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1566,
+          "durationMs": 219,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1566,
+          "durationMs": 221,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1566,
+          "durationMs": 219,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1566,
+          "durationMs": 217,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1566,
+          "durationMs": 376,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1566,
+          "durationMs": 385,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1566,
+          "durationMs": 385,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1567,
+          "durationMs": 385,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1567,
+          "durationMs": 381,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1567,
+          "durationMs": 381,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 570,
+          "durationMs": 937,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 570,
+          "durationMs": 384,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 570,
+          "durationMs": 937,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 570,
+          "durationMs": 607,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 570,
+          "durationMs": 752,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 571,
+          "durationMs": 566,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 571,
+          "durationMs": 751,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 571,
+          "durationMs": 567,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 571,
+          "durationMs": 752,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1564,
+          "durationMs": 218,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1565,
+          "durationMs": 218,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1565,
+          "durationMs": 217,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1565,
+          "durationMs": 217,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1565,
+          "durationMs": 222,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1565,
+          "durationMs": 220,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1566,
+          "durationMs": 219,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1566,
+          "durationMs": 221,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1566,
+          "durationMs": 219,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1566,
+          "durationMs": 217,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1566,
+          "durationMs": 376,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1566,
+          "durationMs": 385,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1566,
+          "durationMs": 385,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1567,
+          "durationMs": 385,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1567,
+          "durationMs": 381,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1567,
+          "durationMs": 381,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 1,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:48.400Z",
+      "basicMs": 2461,
+      "calculatedMs": 2644,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 340.281,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=8.15"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 306.301,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=117.25"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 263.388,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=75.08"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 571,
+          "durationMs": 946,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 571,
+          "durationMs": 385,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 574,
+          "durationMs": 754,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 574,
+          "durationMs": 751,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 574,
+          "durationMs": 752,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 574,
+          "durationMs": 194,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 574,
+          "durationMs": 565,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 575,
+          "durationMs": 380,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 575,
+          "durationMs": 566,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 575,
+          "durationMs": 752,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 575,
+          "durationMs": 753,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 575,
+          "durationMs": 753,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1573,
+          "durationMs": 200,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1573,
+          "durationMs": 201,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1573,
+          "durationMs": 199,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1573,
+          "durationMs": 200,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1573,
+          "durationMs": 198,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1574,
+          "durationMs": 200,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1574,
+          "durationMs": 198,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 571,
+          "durationMs": 946,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 571,
+          "durationMs": 385,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 574,
+          "durationMs": 754,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 574,
+          "durationMs": 751,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 574,
+          "durationMs": 752,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 574,
+          "durationMs": 194,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 574,
+          "durationMs": 565,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 575,
+          "durationMs": 380,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 575,
+          "durationMs": 566,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 575,
+          "durationMs": 752,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 575,
+          "durationMs": 753,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 575,
+          "durationMs": 753,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1573,
+          "durationMs": 200,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1573,
+          "durationMs": 201,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1573,
+          "durationMs": 199,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1573,
+          "durationMs": 200,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1573,
+          "durationMs": 198,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1574,
+          "durationMs": 200,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1574,
+          "durationMs": 198,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 2,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:51.861Z",
+      "basicMs": 2495,
+      "calculatedMs": 2581,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 342.675,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=4.32"
+        },
+        {
+          "name": "monitoring",
+          "ms": 563.621,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=91.63"
+        },
+        {
+          "name": "dashboard",
+          "ms": 230.817,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=39.82"
+        },
+        {
+          "name": "dashboard",
+          "ms": 308.137,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=115.23"
+        },
+        {
+          "name": "dashboard",
+          "ms": 307.965,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=115.70"
+        },
+        {
+          "name": "dashboard",
+          "ms": 310.028,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=116.59"
+        },
+        {
+          "name": "dashboard",
+          "ms": 313.29,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=116.67"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 609,
+          "durationMs": 946,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 609,
+          "durationMs": 577,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 610,
+          "durationMs": 576,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 610,
+          "durationMs": 758,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 610,
+          "durationMs": 577,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 610,
+          "durationMs": 577,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1618,
+          "durationMs": 195,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1618,
+          "durationMs": 194,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1618,
+          "durationMs": 196,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1619,
+          "durationMs": 197,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1619,
+          "durationMs": 192,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1619,
+          "durationMs": 197,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1619,
+          "durationMs": 198,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1619,
+          "durationMs": 198,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1620,
+          "durationMs": 194,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1620,
+          "durationMs": 198,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1620,
+          "durationMs": 199,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1620,
+          "durationMs": 377,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1620,
+          "durationMs": 377,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1620,
+          "durationMs": 384,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1620,
+          "durationMs": 379,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1621,
+          "durationMs": 382,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 609,
+          "durationMs": 946,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 609,
+          "durationMs": 577,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 609,
+          "durationMs": 760,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 609,
+          "durationMs": 576,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 610,
+          "durationMs": 576,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 610,
+          "durationMs": 758,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 610,
+          "durationMs": 577,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 610,
+          "durationMs": 577,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1618,
+          "durationMs": 195,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1618,
+          "durationMs": 194,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1618,
+          "durationMs": 196,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1619,
+          "durationMs": 197,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1619,
+          "durationMs": 192,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1619,
+          "durationMs": 197,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1619,
+          "durationMs": 198,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1619,
+          "durationMs": 198,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1620,
+          "durationMs": 194,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1620,
+          "durationMs": 198,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1620,
+          "durationMs": 199,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1620,
+          "durationMs": 377,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1620,
+          "durationMs": 377,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1620,
+          "durationMs": 384,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1620,
+          "durationMs": 379,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1621,
+          "durationMs": 382,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 2,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:55.046Z",
+      "basicMs": 2462,
+      "calculatedMs": 2645,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 348.398,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=11.53"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 250.345,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=61.53"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 328.483,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=136.48"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 585,
+          "durationMs": 940,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 586,
+          "durationMs": 384,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 586,
+          "durationMs": 754,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 586,
+          "durationMs": 571,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 587,
+          "durationMs": 572,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 587,
+          "durationMs": 754,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1583,
+          "durationMs": 188,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1583,
+          "durationMs": 202,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1583,
+          "durationMs": 206,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1583,
+          "durationMs": 208,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1583,
+          "durationMs": 210,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1584,
+          "durationMs": 207,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1584,
+          "durationMs": 209,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 585,
+          "durationMs": 940,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 586,
+          "durationMs": 384,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 586,
+          "durationMs": 754,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 586,
+          "durationMs": 571,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 586,
+          "durationMs": 755,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 586,
+          "durationMs": 572,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 587,
+          "durationMs": 572,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 587,
+          "durationMs": 754,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1583,
+          "durationMs": 188,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1583,
+          "durationMs": 202,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1583,
+          "durationMs": 206,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1583,
+          "durationMs": 208,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1583,
+          "durationMs": 210,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1584,
+          "durationMs": 207,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1584,
+          "durationMs": 209,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 3,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:49:58.468Z",
+      "basicMs": 2453,
+      "calculatedMs": 2554,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 345.308,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=4.17"
+        },
+        {
+          "name": "monitoring",
+          "ms": 496.547,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=125.94"
+        },
+        {
+          "name": "dashboard",
+          "ms": 226.18,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=30.43"
+        },
+        {
+          "name": "dashboard",
+          "ms": 228.235,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=26.07"
+        },
+        {
+          "name": "dashboard",
+          "ms": 230.589,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=35.49"
+        },
+        {
+          "name": "dashboard",
+          "ms": 243.373,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=46.66"
+        },
+        {
+          "name": "dashboard",
+          "ms": 310.749,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=112.98"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 573,
+          "durationMs": 941,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 573,
+          "durationMs": 199,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 573,
+          "durationMs": 941,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 573,
+          "durationMs": 199,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 573,
+          "durationMs": 614,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 573,
+          "durationMs": 760,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 574,
+          "durationMs": 197,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 574,
+          "durationMs": 198,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 574,
+          "durationMs": 760,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 574,
+          "durationMs": 754,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 574,
+          "durationMs": 755,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 574,
+          "durationMs": 755,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1574,
+          "durationMs": 194,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1574,
+          "durationMs": 196,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1574,
+          "durationMs": 198,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1575,
+          "durationMs": 197,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1575,
+          "durationMs": 194,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1575,
+          "durationMs": 195,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1575,
+          "durationMs": 192,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1575,
+          "durationMs": 198,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1575,
+          "durationMs": 198,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1575,
+          "durationMs": 194,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1575,
+          "durationMs": 377,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1576,
+          "durationMs": 378,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1576,
+          "durationMs": 379,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1576,
+          "durationMs": 385,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1576,
+          "durationMs": 382,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1576,
+          "durationMs": 382,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 573,
+          "durationMs": 941,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 573,
+          "durationMs": 199,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 573,
+          "durationMs": 941,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 573,
+          "durationMs": 199,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 573,
+          "durationMs": 614,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 573,
+          "durationMs": 760,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 574,
+          "durationMs": 197,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 574,
+          "durationMs": 198,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 574,
+          "durationMs": 760,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 574,
+          "durationMs": 754,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 574,
+          "durationMs": 755,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 574,
+          "durationMs": 755,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1574,
+          "durationMs": 194,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1574,
+          "durationMs": 196,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1574,
+          "durationMs": 198,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1575,
+          "durationMs": 197,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1575,
+          "durationMs": 194,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1575,
+          "durationMs": 195,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1575,
+          "durationMs": 192,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1575,
+          "durationMs": 198,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1575,
+          "durationMs": 198,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1575,
+          "durationMs": 194,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1575,
+          "durationMs": 377,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1576,
+          "durationMs": 378,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1576,
+          "durationMs": 379,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1576,
+          "durationMs": 385,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1576,
+          "durationMs": 382,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1576,
+          "durationMs": 382,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 3,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:03.361Z",
+      "basicMs": 3142,
+      "calculatedMs": 4437,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 761.46,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=159.37"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 571.325,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=351.27"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 1193.151,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=987.67"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 611,
+          "durationMs": 951,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 611,
+          "durationMs": 386,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 612,
+          "durationMs": 950,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 612,
+          "durationMs": 759,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 612,
+          "durationMs": 798,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1617,
+          "durationMs": 201,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1617,
+          "durationMs": 202,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1617,
+          "durationMs": 202,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1618,
+          "durationMs": 199,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1618,
+          "durationMs": 203,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1618,
+          "durationMs": 202,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1618,
+          "durationMs": 203,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 611,
+          "durationMs": 951,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 611,
+          "durationMs": 386,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 612,
+          "durationMs": 950,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 612,
+          "durationMs": 759,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 612,
+          "durationMs": 949,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 612,
+          "durationMs": 760,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 612,
+          "durationMs": 798,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1617,
+          "durationMs": 201,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1617,
+          "durationMs": 202,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1617,
+          "durationMs": 202,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1618,
+          "durationMs": 199,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1618,
+          "durationMs": 203,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1618,
+          "durationMs": 202,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1618,
+          "durationMs": 203,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:08.205Z",
+      "project": "tablet",
+      "round": 1,
+      "homeMajorMs": 3641,
+      "homeRecentMs": 3922,
+      "homeAllMs": 3922,
+      "homeWarmMs": 75,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 517.995,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=27.82"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 820.961,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=626.98"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 1082.342,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=891.98"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 1093.347,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=904.10"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 322.831,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=133.42"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 693,
+          "durationMs": 952,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 693,
+          "durationMs": 396,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 693,
+          "durationMs": 767,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 693,
+          "durationMs": 209,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 693,
+          "durationMs": 395,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 693,
+          "durationMs": 580,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 693,
+          "durationMs": 583,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 693,
+          "durationMs": 583,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 693,
+          "durationMs": 766,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 693,
+          "durationMs": 766,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 693,
+          "durationMs": 767,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 693,
+          "durationMs": 767,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1714,
+          "durationMs": 192,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1715,
+          "durationMs": 195,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1715,
+          "durationMs": 198,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1715,
+          "durationMs": 208,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1715,
+          "durationMs": 196,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1715,
+          "durationMs": 197,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1715,
+          "durationMs": 208,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1716,
+          "durationMs": 198,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1716,
+          "durationMs": 208,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1716,
+          "durationMs": 409,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1716,
+          "durationMs": 408,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1716,
+          "durationMs": 486,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1716,
+          "durationMs": 486,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1716,
+          "durationMs": 383,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1717,
+          "durationMs": 396,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:11.281Z",
+      "project": "tablet",
+      "round": 2,
+      "homeMajorMs": 2532,
+      "homeRecentMs": 2811,
+      "homeAllMs": 2811,
+      "homeWarmMs": 71,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 352.659,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=11.12"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 315.479,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=34.27"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 313.981,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=69.17"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 315.336,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=91.74"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 306.904,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=113.15"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 587,
+          "durationMs": 946,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 587,
+          "durationMs": 762,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 587,
+          "durationMs": 947,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 587,
+          "durationMs": 760,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 587,
+          "durationMs": 762,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 587,
+          "durationMs": 763,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 587,
+          "durationMs": 760,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 587,
+          "durationMs": 760,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 587,
+          "durationMs": 762,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 588,
+          "durationMs": 760,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 588,
+          "durationMs": 761,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 588,
+          "durationMs": 761,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1598,
+          "durationMs": 200,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1599,
+          "durationMs": 195,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1599,
+          "durationMs": 197,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1599,
+          "durationMs": 197,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1599,
+          "durationMs": 195,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1599,
+          "durationMs": 201,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1599,
+          "durationMs": 197,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1599,
+          "durationMs": 195,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1600,
+          "durationMs": 201,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1600,
+          "durationMs": 199,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1600,
+          "durationMs": 203,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1600,
+          "durationMs": 201,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1600,
+          "durationMs": 202,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1600,
+          "durationMs": 203,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1601,
+          "durationMs": 200,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:14.334Z",
+      "project": "tablet",
+      "round": 3,
+      "homeMajorMs": 2619,
+      "homeRecentMs": 2822,
+      "homeAllMs": 2822,
+      "homeWarmMs": 75,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 547.231,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=13.09"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 254.75,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=65.51"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 275.56,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=84.78"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 345.63,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=143.52"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 207.313,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=17.59"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 577,
+          "durationMs": 947,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 577,
+          "durationMs": 385,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 577,
+          "durationMs": 948,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 577,
+          "durationMs": 762,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 577,
+          "durationMs": 767,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 577,
+          "durationMs": 583,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 578,
+          "durationMs": 583,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 578,
+          "durationMs": 760,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 578,
+          "durationMs": 767,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 578,
+          "durationMs": 760,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 578,
+          "durationMs": 761,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 578,
+          "durationMs": 761,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/DashboardPage-Bx2emFx0.js",
+          "startMs": 1592,
+          "durationMs": 197,
+          "transferBytes": 6003,
+          "encodedBytes": 5703,
+          "decodedBytes": 15212
+        },
+        {
+          "file": "/assets/CardActionArea-DfHvwMNd.js",
+          "startMs": 1593,
+          "durationMs": 200,
+          "transferBytes": 1163,
+          "encodedBytes": 863,
+          "decodedBytes": 1714
+        },
+        {
+          "file": "/assets/TargetArrivalCard-Omn34YZ9.js",
+          "startMs": 1593,
+          "durationMs": 201,
+          "transferBytes": 4603,
+          "encodedBytes": 4303,
+          "decodedBytes": 10818
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1593,
+          "durationMs": 200,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1593,
+          "durationMs": 201,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1593,
+          "durationMs": 203,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1594,
+          "durationMs": 200,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/useTargetArrivals-iFcFF3Xy.js",
+          "startMs": 1594,
+          "durationMs": 198,
+          "transferBytes": 750,
+          "encodedBytes": 450,
+          "decodedBytes": 450
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1594,
+          "durationMs": 198,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1594,
+          "durationMs": 201,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1594,
+          "durationMs": 390,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/investmentData-W4Vt-p_g.js",
+          "startMs": 1594,
+          "durationMs": 389,
+          "transferBytes": 3592,
+          "encodedBytes": 3292,
+          "decodedBytes": 7804
+        },
+        {
+          "file": "/assets/mockData-C0krjaMA.js",
+          "startMs": 1595,
+          "durationMs": 386,
+          "transferBytes": 3099,
+          "encodedBytes": 2799,
+          "decodedBytes": 10562
+        },
+        {
+          "file": "/assets/useMockData-BsYzc1b8.js",
+          "startMs": 1595,
+          "durationMs": 395,
+          "transferBytes": 1633,
+          "encodedBytes": 1333,
+          "decodedBytes": 2630
+        },
+        {
+          "file": "/assets/mockSellTrades-CTAnVA21.js",
+          "startMs": 1595,
+          "durationMs": 390,
+          "transferBytes": 1412,
+          "encodedBytes": 1112,
+          "decodedBytes": 2756
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 1,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:19.076Z",
+      "basicMs": 2446,
+      "calculatedMs": 2457,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 358.954,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=11.05"
+        },
+        {
+          "name": "dashboard",
+          "ms": 404.842,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=58.63"
+        },
+        {
+          "name": "dashboard",
+          "ms": 403.747,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=124.59"
+        },
+        {
+          "name": "dashboard",
+          "ms": 403.199,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=143.21"
+        },
+        {
+          "name": "dashboard",
+          "ms": 402.641,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=164.87"
+        },
+        {
+          "name": "dashboard",
+          "ms": 594.997,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=361.14"
+        },
+        {
+          "name": "monitoring",
+          "ms": 2081.181,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=1892.01"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 575,
+          "durationMs": 945,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 576,
+          "durationMs": 758,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 576,
+          "durationMs": 943,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 576,
+          "durationMs": 390,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 576,
+          "durationMs": 387,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 576,
+          "durationMs": 386,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 577,
+          "durationMs": 572,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 577,
+          "durationMs": 388,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 577,
+          "durationMs": 387,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 577,
+          "durationMs": 389,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 577,
+          "durationMs": 389,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 577,
+          "durationMs": 388,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1578,
+          "durationMs": 230,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1578,
+          "durationMs": 210,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1578,
+          "durationMs": 247,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1579,
+          "durationMs": 249,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1579,
+          "durationMs": 248,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1579,
+          "durationMs": 245,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1579,
+          "durationMs": 245,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1580,
+          "durationMs": 248,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1580,
+          "durationMs": 249,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1580,
+          "durationMs": 245,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1580,
+          "durationMs": 388,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1580,
+          "durationMs": 385,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1580,
+          "durationMs": 393,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 575,
+          "durationMs": 945,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 576,
+          "durationMs": 758,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 576,
+          "durationMs": 943,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 576,
+          "durationMs": 390,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 576,
+          "durationMs": 387,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 576,
+          "durationMs": 386,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 577,
+          "durationMs": 572,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 577,
+          "durationMs": 388,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 577,
+          "durationMs": 387,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 577,
+          "durationMs": 389,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 577,
+          "durationMs": 389,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 577,
+          "durationMs": 388,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1578,
+          "durationMs": 230,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1578,
+          "durationMs": 210,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1578,
+          "durationMs": 247,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1579,
+          "durationMs": 249,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1579,
+          "durationMs": 247,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1579,
+          "durationMs": 248,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1579,
+          "durationMs": 245,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1579,
+          "durationMs": 245,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1580,
+          "durationMs": 248,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1580,
+          "durationMs": 249,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1580,
+          "durationMs": 245,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1580,
+          "durationMs": 388,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1580,
+          "durationMs": 385,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1580,
+          "durationMs": 393,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 1,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:22.395Z",
+      "basicMs": 2464,
+      "calculatedMs": 2752,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 405.457,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=43.07"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 240.215,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=45.05"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 392.643,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=195.36"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 580,
+          "durationMs": 942,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 580,
+          "durationMs": 199,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 581,
+          "durationMs": 943,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 581,
+          "durationMs": 755,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 581,
+          "durationMs": 198,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 581,
+          "durationMs": 383,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 581,
+          "durationMs": 199,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 581,
+          "durationMs": 199,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 581,
+          "durationMs": 757,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 581,
+          "durationMs": 758,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 581,
+          "durationMs": 571,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 581,
+          "durationMs": 758,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1582,
+          "durationMs": 231,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1582,
+          "durationMs": 288,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1582,
+          "durationMs": 256,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1583,
+          "durationMs": 304,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1583,
+          "durationMs": 231,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1583,
+          "durationMs": 304,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1583,
+          "durationMs": 256,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 580,
+          "durationMs": 942,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 580,
+          "durationMs": 199,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 581,
+          "durationMs": 943,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 581,
+          "durationMs": 755,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 581,
+          "durationMs": 198,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 581,
+          "durationMs": 383,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 581,
+          "durationMs": 199,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 581,
+          "durationMs": 199,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 581,
+          "durationMs": 757,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 581,
+          "durationMs": 758,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 581,
+          "durationMs": 571,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 581,
+          "durationMs": 758,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1582,
+          "durationMs": 231,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1582,
+          "durationMs": 288,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1582,
+          "durationMs": 256,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1583,
+          "durationMs": 304,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1583,
+          "durationMs": 231,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1583,
+          "durationMs": 304,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1583,
+          "durationMs": 256,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 2,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:25.719Z",
+      "basicMs": 2478,
+      "calculatedMs": 2492,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 382.054,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=15.25"
+        },
+        {
+          "name": "dashboard",
+          "ms": 399.101,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=81.11"
+        },
+        {
+          "name": "dashboard",
+          "ms": 396.552,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=154.27"
+        },
+        {
+          "name": "dashboard",
+          "ms": 585.598,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=181.08"
+        },
+        {
+          "name": "dashboard",
+          "ms": 587.678,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=204.59"
+        },
+        {
+          "name": "dashboard",
+          "ms": 588.877,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=289.97"
+        },
+        {
+          "name": "monitoring",
+          "ms": 621.679,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=422.55"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 582,
+          "durationMs": 955,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 582,
+          "durationMs": 585,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 582,
+          "durationMs": 581,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 582,
+          "durationMs": 768,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 582,
+          "durationMs": 394,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 582,
+          "durationMs": 202,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 582,
+          "durationMs": 202,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 582,
+          "durationMs": 393,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 582,
+          "durationMs": 393,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 582,
+          "durationMs": 394,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 583,
+          "durationMs": 583,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 583,
+          "durationMs": 583,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1599,
+          "durationMs": 201,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1600,
+          "durationMs": 212,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1600,
+          "durationMs": 206,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1601,
+          "durationMs": 206,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1601,
+          "durationMs": 209,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1601,
+          "durationMs": 209,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1601,
+          "durationMs": 409,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1601,
+          "durationMs": 409,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1601,
+          "durationMs": 410,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1602,
+          "durationMs": 406,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1602,
+          "durationMs": 406,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 582,
+          "durationMs": 955,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 582,
+          "durationMs": 585,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 582,
+          "durationMs": 581,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 582,
+          "durationMs": 768,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 582,
+          "durationMs": 394,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 582,
+          "durationMs": 202,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 582,
+          "durationMs": 202,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 582,
+          "durationMs": 393,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 582,
+          "durationMs": 393,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 582,
+          "durationMs": 394,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 583,
+          "durationMs": 583,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 583,
+          "durationMs": 583,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1599,
+          "durationMs": 201,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1600,
+          "durationMs": 212,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1600,
+          "durationMs": 211,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1600,
+          "durationMs": 206,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1601,
+          "durationMs": 206,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1601,
+          "durationMs": 209,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1601,
+          "durationMs": 209,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1601,
+          "durationMs": 409,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1601,
+          "durationMs": 409,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1601,
+          "durationMs": 410,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1602,
+          "durationMs": 406,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1602,
+          "durationMs": 406,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 2,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:28.950Z",
+      "basicMs": 2478,
+      "calculatedMs": 2663,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 353.9,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=10.65"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 309.377,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=117.02"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 261.137,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=69.04"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 596,
+          "durationMs": 941,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 597,
+          "durationMs": 198,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 597,
+          "durationMs": 577,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 597,
+          "durationMs": 580,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 597,
+          "durationMs": 577,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 597,
+          "durationMs": 206,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 597,
+          "durationMs": 205,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 597,
+          "durationMs": 578,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 597,
+          "durationMs": 390,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 598,
+          "durationMs": 384,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 598,
+          "durationMs": 579,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 598,
+          "durationMs": 579,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1599,
+          "durationMs": 247,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1599,
+          "durationMs": 246,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1599,
+          "durationMs": 245,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1599,
+          "durationMs": 246,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1599,
+          "durationMs": 231,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1600,
+          "durationMs": 246,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1600,
+          "durationMs": 244,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 596,
+          "durationMs": 941,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 597,
+          "durationMs": 198,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 597,
+          "durationMs": 577,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 597,
+          "durationMs": 580,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 597,
+          "durationMs": 577,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 597,
+          "durationMs": 206,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 597,
+          "durationMs": 205,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 597,
+          "durationMs": 578,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 597,
+          "durationMs": 390,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 598,
+          "durationMs": 384,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 598,
+          "durationMs": 579,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 598,
+          "durationMs": 579,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1599,
+          "durationMs": 247,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1599,
+          "durationMs": 246,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1599,
+          "durationMs": 245,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1599,
+          "durationMs": 246,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1599,
+          "durationMs": 231,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1600,
+          "durationMs": 246,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1600,
+          "durationMs": 244,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 3,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:33.854Z",
+      "basicMs": 1898,
+      "calculatedMs": 2029,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 400.692,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=15.26"
+        },
+        {
+          "name": "dashboard",
+          "ms": 424.917,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=31.64"
+        },
+        {
+          "name": "dashboard",
+          "ms": 428.565,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=85.34"
+        },
+        {
+          "name": "dashboard",
+          "ms": 426.959,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=88.50"
+        },
+        {
+          "name": "dashboard",
+          "ms": 456.398,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=231.51"
+        },
+        {
+          "name": "dashboard",
+          "ms": 756.853,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=494.85"
+        },
+        {
+          "name": "monitoring",
+          "ms": 2447.881,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=2257.39"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 660,
+          "durationMs": 802,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 661,
+          "durationMs": 573,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 662,
+          "durationMs": 799,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 662,
+          "durationMs": 796,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 662,
+          "durationMs": 755,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 662,
+          "durationMs": 755,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 662,
+          "durationMs": 796,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 663,
+          "durationMs": 755,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 663,
+          "durationMs": 796,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1520,
+          "durationMs": 213,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1520,
+          "durationMs": 214,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1520,
+          "durationMs": 211,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1520,
+          "durationMs": 210,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1520,
+          "durationMs": 220,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1521,
+          "durationMs": 218,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1521,
+          "durationMs": 214,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1521,
+          "durationMs": 211,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1521,
+          "durationMs": 214,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1521,
+          "durationMs": 212,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1521,
+          "durationMs": 226,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1521,
+          "durationMs": 219,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1522,
+          "durationMs": 248,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1522,
+          "durationMs": 226,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1522,
+          "durationMs": 227,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1522,
+          "durationMs": 231,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 660,
+          "durationMs": 802,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 661,
+          "durationMs": 573,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 662,
+          "durationMs": 799,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 662,
+          "durationMs": 796,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 662,
+          "durationMs": 755,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 662,
+          "durationMs": 755,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 662,
+          "durationMs": 796,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 663,
+          "durationMs": 755,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 663,
+          "durationMs": 796,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 663,
+          "durationMs": 797,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/SettingsPage-BcQTCnIy.js",
+          "startMs": 1520,
+          "durationMs": 213,
+          "transferBytes": 6581,
+          "encodedBytes": 6281,
+          "decodedBytes": 18144
+        },
+        {
+          "file": "/assets/Alert-BOyPp8mh.js",
+          "startMs": 1520,
+          "durationMs": 214,
+          "transferBytes": 2366,
+          "encodedBytes": 2066,
+          "decodedBytes": 4971
+        },
+        {
+          "file": "/assets/Fields-B-ZTgcZL.js",
+          "startMs": 1520,
+          "durationMs": 211,
+          "transferBytes": 3367,
+          "encodedBytes": 3067,
+          "decodedBytes": 8141
+        },
+        {
+          "file": "/assets/FormControl-B3JAjros.js",
+          "startMs": 1520,
+          "durationMs": 210,
+          "transferBytes": 1472,
+          "encodedBytes": 1172,
+          "decodedBytes": 2335
+        },
+        {
+          "file": "/assets/Select-DifKSkO6.js",
+          "startMs": 1520,
+          "durationMs": 220,
+          "transferBytes": 14597,
+          "encodedBytes": 14297,
+          "decodedBytes": 46336
+        },
+        {
+          "file": "/assets/useRovingTabIndex-CSIGZA6x.js",
+          "startMs": 1521,
+          "durationMs": 218,
+          "transferBytes": 2461,
+          "encodedBytes": 2161,
+          "decodedBytes": 4944
+        },
+        {
+          "file": "/assets/FormHelperText-DxKNuINu.js",
+          "startMs": 1521,
+          "durationMs": 214,
+          "transferBytes": 1247,
+          "encodedBytes": 947,
+          "decodedBytes": 1906
+        },
+        {
+          "file": "/assets/MenuItem-CkQBgw6z.js",
+          "startMs": 1521,
+          "durationMs": 211,
+          "transferBytes": 2038,
+          "encodedBytes": 1738,
+          "decodedBytes": 4091
+        },
+        {
+          "file": "/assets/Common-CZweH34q.js",
+          "startMs": 1521,
+          "durationMs": 214,
+          "transferBytes": 1273,
+          "encodedBytes": 973,
+          "decodedBytes": 1949
+        },
+        {
+          "file": "/assets/Card-DKcg_PPd.js",
+          "startMs": 1521,
+          "durationMs": 212,
+          "transferBytes": 881,
+          "encodedBytes": 581,
+          "decodedBytes": 581
+        },
+        {
+          "file": "/assets/format-DN4PrR2u.js",
+          "startMs": 1521,
+          "durationMs": 226,
+          "transferBytes": 815,
+          "encodedBytes": 515,
+          "decodedBytes": 515
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1521,
+          "durationMs": 219,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/targetArrivalApi-5pOiMT_c.js",
+          "startMs": 1522,
+          "durationMs": 248,
+          "transferBytes": 607,
+          "encodedBytes": 307,
+          "decodedBytes": 307
+        },
+        {
+          "file": "/assets/MoreScreens-C73J1qw8.js",
+          "startMs": 1522,
+          "durationMs": 226,
+          "transferBytes": 6784,
+          "encodedBytes": 6484,
+          "decodedBytes": 17822
+        },
+        {
+          "file": "/assets/useAccountAllocation-CpXgyH4B.js",
+          "startMs": 1522,
+          "durationMs": 227,
+          "transferBytes": 639,
+          "encodedBytes": 339,
+          "decodedBytes": 339
+        },
+        {
+          "file": "/assets/cashAllocation-lGCvkfOG.js",
+          "startMs": 1522,
+          "durationMs": 231,
+          "transferBytes": 1170,
+          "encodedBytes": 870,
+          "decodedBytes": 870
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 3,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:50:40.237Z",
+      "basicMs": 3389,
+      "calculatedMs": 6188,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 689.081,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=241.51"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 620.069,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=403.03"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 2727.584,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=2173.02"
+        }
+      ],
+      "code": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 625,
+          "durationMs": 588,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 625,
+          "durationMs": 965,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 625,
+          "durationMs": 780,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 626,
+          "durationMs": 781,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 626,
+          "durationMs": 781,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 626,
+          "durationMs": 963,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 626,
+          "durationMs": 962,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 626,
+          "durationMs": 775,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 626,
+          "durationMs": 962,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1649,
+          "durationMs": 365,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1649,
+          "durationMs": 323,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1649,
+          "durationMs": 332,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1649,
+          "durationMs": 332,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1649,
+          "durationMs": 389,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1649,
+          "durationMs": 335,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1650,
+          "durationMs": 405,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ],
+      "basicCode": [
+        {
+          "file": "/assets/index-CrtGVqDJ.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 105430,
+          "encodedBytes": 105130,
+          "decodedBytes": 336057
+        },
+        {
+          "file": "/assets/rolldown-runtime-hePW80VL.js",
+          "startMs": 625,
+          "durationMs": 588,
+          "transferBytes": 1016,
+          "encodedBytes": 716,
+          "decodedBytes": 716
+        },
+        {
+          "file": "/assets/tokens-CV1_bcM4.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 5317,
+          "encodedBytes": 5017,
+          "decodedBytes": 13509
+        },
+        {
+          "file": "/assets/chunk-OB3PAWPO-CXOHfPIK.js",
+          "startMs": 625,
+          "durationMs": 965,
+          "transferBytes": 54942,
+          "encodedBytes": 54642,
+          "decodedBytes": 162592
+        },
+        {
+          "file": "/assets/useMediaQuery-BAt-i1mA.js",
+          "startMs": 625,
+          "durationMs": 780,
+          "transferBytes": 1182,
+          "encodedBytes": 882,
+          "decodedBytes": 1619
+        },
+        {
+          "file": "/assets/roxstockApi-BBqu9ej-.js",
+          "startMs": 625,
+          "durationMs": 964,
+          "transferBytes": 9535,
+          "encodedBytes": 9235,
+          "decodedBytes": 28270
+        },
+        {
+          "file": "/assets/menuItems-i9JW4z8z.js",
+          "startMs": 626,
+          "durationMs": 781,
+          "transferBytes": 2077,
+          "encodedBytes": 1777,
+          "decodedBytes": 4122
+        },
+        {
+          "file": "/assets/contains-NFpkzM7h.js",
+          "startMs": 626,
+          "durationMs": 781,
+          "transferBytes": 505,
+          "encodedBytes": 205,
+          "decodedBytes": 205
+        },
+        {
+          "file": "/assets/Modal-DY1VmVhc.js",
+          "startMs": 626,
+          "durationMs": 963,
+          "transferBytes": 5243,
+          "encodedBytes": 4943,
+          "decodedBytes": 12913
+        },
+        {
+          "file": "/assets/Dialog-BXjvBVrP.js",
+          "startMs": 626,
+          "durationMs": 962,
+          "transferBytes": 2113,
+          "encodedBytes": 1813,
+          "decodedBytes": 4768
+        },
+        {
+          "file": "/assets/liveData-DCT-k5b1.js",
+          "startMs": 626,
+          "durationMs": 775,
+          "transferBytes": 2634,
+          "encodedBytes": 2334,
+          "decodedBytes": 6235
+        },
+        {
+          "file": "/assets/useActiveAccount-CK9P1zEW.js",
+          "startMs": 626,
+          "durationMs": 962,
+          "transferBytes": 964,
+          "encodedBytes": 664,
+          "decodedBytes": 664
+        },
+        {
+          "file": "/assets/CompoundPage-ARnhGL44.js",
+          "startMs": 1649,
+          "durationMs": 365,
+          "transferBytes": 11205,
+          "encodedBytes": 10905,
+          "decodedBytes": 33636
+        },
+        {
+          "file": "/assets/CompoundGoalSummary-C4yx9JQN.js",
+          "startMs": 1649,
+          "durationMs": 323,
+          "transferBytes": 2894,
+          "encodedBytes": 2594,
+          "decodedBytes": 5506
+        },
+        {
+          "file": "/assets/valueApi-CPlRxvve.js",
+          "startMs": 1649,
+          "durationMs": 332,
+          "transferBytes": 1310,
+          "encodedBytes": 1010,
+          "decodedBytes": 1010
+        },
+        {
+          "file": "/assets/useChartDismiss-ycsCO8sF.js",
+          "startMs": 1649,
+          "durationMs": 332,
+          "transferBytes": 1097,
+          "encodedBytes": 797,
+          "decodedBytes": 797
+        },
+        {
+          "file": "/assets/OverlayRegionScrollbar-BDHQcBK0.js",
+          "startMs": 1649,
+          "durationMs": 389,
+          "transferBytes": 1530,
+          "encodedBytes": 1230,
+          "decodedBytes": 2495
+        },
+        {
+          "file": "/assets/invalidatePortfolio-CA6_1ycW.js",
+          "startMs": 1649,
+          "durationMs": 335,
+          "transferBytes": 1098,
+          "encodedBytes": 798,
+          "decodedBytes": 798
+        },
+        {
+          "file": "/assets/HistoryDialog-DWWUW6mZ.js",
+          "startMs": 1650,
+          "durationMs": 405,
+          "transferBytes": 604,
+          "encodedBytes": 304,
+          "decodedBytes": 304
+        }
+      ]
+    }
+  ]
+}

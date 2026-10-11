@@ -1,0 +1,18 @@
+{
+  "utc": "2026-10-11T03:10:26.281Z",
+  "environment": "production read-only old/new endpoints; exact existing frontend bigint functions",
+  "profit": "global/year/month/stock and existing capital rows equal; extra absent-capital years explicit null YEAR_END_MISSING (same displayed dash)",
+  "recent": "0/1/4/24-month values IDs order count more equal",
+  "years": 16,
+  "stocks": 32,
+  "legacyLots": 684,
+  "defaultRecent": 5,
+  "sourceRevisionStable": true,
+  "deployedCommit": "19390ce7cb07fc4db5c480c589d9dc98f1f0b289",
+  "records": {
+    "trades": 1321,
+    "dividends": 21,
+    "buyLots": 684
+  },
+  "capitalMetadata": "Existing snapshot year rows exactly equal. Missing snapshot year2010 is explicit null/YEAR_END_MISSING; existing UI dash unchanged."
+}
