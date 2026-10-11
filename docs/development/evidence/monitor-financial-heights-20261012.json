@@ -1,0 +1,37 @@
+{
+  "baseline": "f16cd801236d5247358ee45c4bc7341de90dab1e",
+  "checkedHead": "0077e93a6bd77624c7b5948a8d61b46a4c1bf2a0",
+  "run": "https://github.com/byungho-cho/roxstock/actions/runs/38181364523",
+  "measurements": [
+    {
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "before": {
+        "history": 96,
+        "results": 120
+      },
+      "after": {
+        "history": 240,
+        "results": 300
+      },
+      "measuredBefore": true
+    },
+    {
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "before": {
+        "history": 96,
+        "results": 120
+      },
+      "after": {
+        "history": 240,
+        "results": 300
+      },
+      "measuredBefore": true
+    }
+  ]
+}
