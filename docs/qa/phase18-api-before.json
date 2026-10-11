@@ -1,0 +1,125 @@
+{
+  "utc": "2026-10-11T01:34:23.635167+00:00",
+  "environment": "Codex external HTTPS, urllib, decoded response, parallel per round",
+  "commit": "4db9b65a5468bc34cb139449cb60dc45468fb442",
+  "n": 3,
+  "samples": {
+    "accounts": [
+      {
+        "seconds": 6.083,
+        "bytes": 1421,
+        "status": 200
+      },
+      {
+        "seconds": 5.671,
+        "bytes": 1421,
+        "status": 200
+      },
+      {
+        "seconds": 7.839,
+        "bytes": 1421,
+        "status": 200
+      }
+    ],
+    "trend": [
+      {
+        "seconds": 6.926,
+        "bytes": 1642,
+        "status": 200
+      },
+      {
+        "seconds": 6.088,
+        "bytes": 1642,
+        "status": 200
+      },
+      {
+        "seconds": 7.773,
+        "bytes": 1642,
+        "status": 200
+      }
+    ],
+    "dashboard": [
+      {
+        "seconds": 6.938,
+        "bytes": 4055,
+        "status": 200
+      },
+      {
+        "seconds": 6.01,
+        "bytes": 4055,
+        "status": 200
+      },
+      {
+        "seconds": 7.85,
+        "bytes": 4055,
+        "status": 200
+      }
+    ],
+    "targets": [
+      {
+        "seconds": 6.955,
+        "bytes": 324,
+        "status": 200
+      },
+      {
+        "seconds": 5.784,
+        "bytes": 324,
+        "status": 200
+      },
+      {
+        "seconds": 7.802,
+        "bytes": 324,
+        "status": 200
+      }
+    ],
+    "recent_legacy": [
+      {
+        "seconds": 7.53,
+        "bytes": 430758,
+        "status": 200
+      },
+      {
+        "seconds": 6.672,
+        "bytes": 430758,
+        "status": 200
+      },
+      {
+        "seconds": 8.625,
+        "bytes": 430758,
+        "status": 200
+      }
+    ]
+  },
+  "summary": {
+    "accounts": {
+      "median_s": 6.083,
+      "min_s": 5.671,
+      "max_s": 7.839,
+      "median_bytes": 1421
+    },
+    "trend": {
+      "median_s": 6.926,
+      "min_s": 6.088,
+      "max_s": 7.773,
+      "median_bytes": 1642
+    },
+    "dashboard": {
+      "median_s": 6.938,
+      "min_s": 6.01,
+      "max_s": 7.85,
+      "median_bytes": 4055
+    },
+    "targets": {
+      "median_s": 6.955,
+      "min_s": 5.784,
+      "max_s": 7.802,
+      "median_bytes": 324
+    },
+    "recent_legacy": {
+      "median_s": 7.53,
+      "min_s": 6.672,
+      "max_s": 8.625,
+      "median_bytes": 430758
+    }
+  }
+}

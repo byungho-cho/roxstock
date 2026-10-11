@@ -1,3 +1,5 @@
+import {recentBuys} from '../../src/pages/dashboard/recentBuysData';
+import type {BuyLotDto} from '../../src/data/roxstockApi';
 import { expect, test, type Page } from '@playwright/test';
 const stamp = '2026-10-01T03:10:00Z';
 const holdings = [
@@ -12,12 +14,12 @@ async function fixture(page: Page, targetCount = 0) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname; second = path.includes('/2/');
     if (path === '/api/accounts') return route.fulfill({json:{data:[{id:'1',name:'기본',brokerName:'CI',isActive:true,isDefault:true,cashBalance:'203200000'},{id:'2',name:'다른 계좌',brokerName:'CI',isActive:true,cashBalance:'0'}]}});
-    if (fail && /target-arrivals|buy-lots/.test(path)) return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});
+    if (fail && /target-arrivals|buy-lots|recent-buys/.test(path)) return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});
     if (hold && path.endsWith('/target-arrivals')) await new Promise<void>(resolve => {release = resolve;});
     if(path.endsWith('/dashboard')) return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:'203200000',purchaseAmount:'542990800',stockValue:'651000000',totalAssetValue:'854200000',unrealizedProfitLoss:'49459200',unrealizedReturnRate:'15.8',dailyProfit:'12840000',dailyProfitRate:'1.5',stockMonthlyProfit:'20000000',cashMonthlyProfit:'20000000',pricingComplete:true,latestPriceUpdatedAt:stamp,holdings:second?[]:holdings.map(h=>({...h,symbol:'005380',marketType:'KOSPI',priceUpdatedAt:stamp,priceChangeRate:'0'}))}}});
     if(path.endsWith('/asset-history')) return route.fulfill({json:{data:Array.from({length:31},(_,i)=>({date:`2026-09-${String(i+1).padStart(2,'0')}`,totalAssetValue:String(800000000+i*1800000+Math.sin(i)*2500000)})),summary:{}}});
     if(path.endsWith('/target-arrivals')) return route.fulfill({json:{data:second?[]:Array.from({length:targetCount},(_,i)=>({lotId:String(i+1),securityId:'1',symbol:'005380',name:'현대차',buyDate:'2026-09-11',holdingDays:20,remainingQuantity:'10',unitPrice:'180000',currentPrice:'200000',returnRate:'11.1',profitLoss:'200000',priceUpdatedAt:stamp})),meta:{accountId:second?'2':'1',total:second?0:targetCount,enabled:true,conditionsVersion:0,unavailableCount:unavailable?1:0,calculatedAt:stamp,priceAsOf:stamp}}});
-    if(path.endsWith('/buy-lots')) return route.fulfill({json:{data:second?[]:Array.from({length:8},(_,i)=>({id:String(8-i),boughtAt:`2026-09-${String(30-i).padStart(2,'0')}T03:00:00Z`,buyDate:`2026-09-${30-i}`,holdingDays:i+1,security:{id:'1',symbol:'005380',name:i===4?'한국투자글로벌반도체장기종목':['삼성전자','현대차','현대차','SK하이닉스'][i%4]},quantity:'10',remainingQuantity:i===0?'0':'10',soldQuantity:i===0?'10':'0',unitPrice:'150000',currentPrice:unavailable?null:'200000',returnRate:unavailable?null:i===3?'-4':'33.33333',profitLoss:unavailable?null:i===3?'-20000':'500000',priceUpdatedAt:unavailable?null:stamp,valuationStatus:unavailable?'UNAVAILABLE':'AVAILABLE',sellTrades:[]}))}});
+    if(path.endsWith('/buy-lots')||path.endsWith('/recent-buys')){const rows=second?[]:Array.from({length:8},(_,i)=>({id:String(8-i),boughtAt:`2026-09-${String(30-i).padStart(2,'0')}T03:00:00Z`,buyDate:`2026-09-${30-i}`,holdingDays:i+1,security:{id:'1',symbol:'005380',name:i===4?'한국투자글로벌반도체장기종목':['삼성전자','현대차','현대차','SK하이닉스'][i%4]},quantity:'10',remainingQuantity:i===0?'0':'10',soldQuantity:i===0?'10':'0',unitPrice:'150000',currentPrice:unavailable?null:'200000',returnRate:unavailable?null:i===3?'-4':'33.33333',profitLoss:unavailable?null:i===3?'-20000':'500000',priceUpdatedAt:unavailable?null:stamp,valuationStatus:unavailable?'UNAVAILABLE':'AVAILABLE',sellTrades:[]}));if(path.endsWith('/buy-lots'))return route.fulfill({json:{data:rows}});const view=recentBuys(rows as BuyLotDto[],'2026-10-01',Number(new URL(route.request().url()).searchParams.get('months')));return route.fulfill({json:{data:view.rows,meta:{count:view.count,total:rows.length,more:view.more}}});}
     return route.fulfill({json:{data:[]}});
   });
   return {fail:()=>{fail=true;},unavailable:()=>{unavailable=true;},hold:()=>{hold=true;},release:()=>{hold=false;release?.();}};

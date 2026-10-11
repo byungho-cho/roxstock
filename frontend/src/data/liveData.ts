@@ -57,9 +57,9 @@ export async function fetchLiveStocks(listType?: StockListType, accountId?: stri
   return listType ? all.filter(stock => stock.listType === listType) : all;
 }
 
-export async function fetchLiveDashboard(selectedAccountId?: string, includeHistory = true): Promise<DashboardData> {
+export async function fetchLiveDashboard(selectedAccountId?: string, includeHistory = true, signal?:AbortSignal): Promise<DashboardData> {
   const accountId = selectedAccountId ?? await currentAccountId();
-  const [response, history] = await Promise.all([getAccountDashboard(accountId), includeHistory ? getAssetHistory(accountId) : Promise.resolve({data: []})]);
+  const [response, history] = await Promise.all([getAccountDashboard(accountId,signal), includeHistory ? getAssetHistory(accountId) : Promise.resolve({data: []})]);
   const holdings = response.holdings.map(mapHolding);
   const stockValue = decimal(response.stockValue);
   const totalAssets = decimal(response.totalAssetValue);

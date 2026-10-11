@@ -68,8 +68,16 @@ export function sortProfit(rows: Group[], ascending = false): Group[] {
     return x === y ? a.id.localeCompare(b.id, undefined, {numeric:true}) : (x < y ? -1 : 1) * (ascending ? 1 : -1);
   });
 }
-export async function loadProfit(accountId: string, today: string, signal: AbortSignal, options: { client?: QueryClient; includeCapital?: boolean } = {}): Promise<ProfitData> {
+export async function loadProfit(accountId: string, today: string, signal: AbortSignal, options: { client?: QueryClient; includeCapital?: boolean; aggregate?: boolean } = {}): Promise<ProfitData> {
   const prefix = `/accounts/${encodeURIComponent(accountId)}`;
+  if(options.aggregate){
+    type Event=Omit<ProfitEvent,'buy'|'sell'|'cost'|'trading'|'dividend'>&Record<'buy'|'sell'|'cost'|'trading'|'dividend',string|null>;
+    const result=await apiEnvelope<{data:{accountId:string;events:Event[];capital:Capital[]}}>(`${prefix}/investment-profit`,{signal});
+    if(result.data.accountId!==accountId)throw new Error('계좌가 일치하지 않습니다.');
+    const events=result.data.events.map(row=>({...row,buy:amount(row.buy),sell:amount(row.sell),cost:amount(row.cost),trading:amount(row.trading),dividend:amount(row.dividend)}));
+    return {events,totals:totals(events),years:groups(events,'year'),stocks:groups(events,'stock'),...(options.includeCapital===false?{}:{capital:result.data.capital})};
+  }
+
   const readDividends = async (signal: AbortSignal) => {
     const dividends: CashTransactionDto[] = [], ids = new Set<string>();
     let expected: number | undefined;
