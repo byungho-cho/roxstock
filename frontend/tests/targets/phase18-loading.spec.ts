@@ -42,3 +42,11 @@ test('settings menu paints during account wait; compound plans paint before port
  const compoundStart=Date.now();await page.goto('/detail/compound');await expect(page.getByText('기본 계획',{exact:false}).first()).toBeVisible();const compoundBasic=Date.now()-compoundStart;await expect.poll(()=>!!releaseAssets).toBe(true);await expect(page.getByLabel('현재 자산 계산 중').first()).toBeVisible();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);releaseAssets();await expect(page.getByTestId('compound-current-assets').first()).toHaveText('120원');
  console.log(JSON.stringify({kind:'phase18-mock-independent',project:info.project.name,settingsBasicMs:settingsBasic,compoundBasicMs:compoundBasic,compoundAssetsMs:Date.now()-compoundStart,utc:new Date().toISOString()}));await page.screenshot({path:info.outputPath('compound-ready.png')});
 });
+
+test('settings base menu does not wait for deferred account editor code',async({page})=>{
+ await fixture(page);let release!:()=>void,modules=0;
+ await page.route('**/src/pages/more/MoreScreens.tsx*',async route=>{modules++;await new Promise<void>(r=>{release=r;});return route.fallback();});
+ await page.goto('/detail/settings');await expect(page.getByTestId('settings-menu')).toContainText('계좌 관리');
+ if(page.viewportSize()!.width<600){expect(modules).toBe(0);await page.getByTestId('settings-menu').getByText('계좌 관리',{exact:true}).click();}
+ await expect.poll(()=>!!release).toBe(true);await expect(page.getByLabel('설정 상세 코드 불러오는 중')).toBeVisible();release();await expect(page.getByTestId('account-card-1')).toBeVisible();
+});
