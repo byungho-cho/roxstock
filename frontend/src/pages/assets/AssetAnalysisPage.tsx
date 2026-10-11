@@ -1,8 +1,9 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useCompoundPlans} from '../compound/useCompoundPlans';
 import {CompoundGoalSummary} from '../compound/CompoundGoalSummary';
 import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
-import { Box, Button, CardActionArea, Dialog, Skeleton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, CardActionArea, Dialog, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { AssetAnalysisChart } from './AssetAnalysisChart';
@@ -60,8 +61,7 @@ export function AssetAnalysisPage() {
   const header = <PageHeader title="자산분석" variant="detail" onBack={back} showBackTablet showAdd={false} embedded assetOverview backIcon={<Box component="span" sx={{ fontSize: 30 }}>‹</Box>} />;
   const failed = accounts.isError || dashboard.isError || history.isError;
   const retry = () => { void accounts.refetch(); void dashboard.refetch(); void history.refetch(); };
-  if (accounts.isPending || (accountId && dashboard.isPending)) return <>{header}<Skeleton variant="rounded" height={92} aria-label="자산분석 조회 중" /></>;
-  if (!accountId) return <>{header}<AppCard><Stack spacing={2} sx={{ p: 3, alignItems: 'center', textAlign: 'center' }}>
+  if (!accountId&&!accounts.isPending) return <>{header}<AppCard><Stack spacing={2} sx={{ p: 3, alignItems: 'center', textAlign: 'center' }}>
     {accounts.isError ? <>
       <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
       <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
@@ -71,8 +71,7 @@ export function AssetAnalysisPage() {
       <Button variant="contained" onClick={() => navigate('/detail/settings?view=add')}>계좌 추가</Button>
     </>}
   </Stack></AppCard></>;
-  if (!dashboard.data) return <>{header}<AppCard sx={cardStyle}><Typography>자산분석 조회에 실패했습니다.</Typography><Button onClick={retry}>다시 시도</Button></AppCard></>;
-  const current = dashboard.data, total = decimalValue(current.totalAssetValue), stock = decimalValue(current.stockValue), cash = decimalValue(current.cashBalance);
+  const current = dashboard.data??{totalAssetValue:null,stockValue:null,cashBalance:null,pricingComplete:false,latestPriceUpdatedAt:null}, total = decimalValue(current.totalAssetValue), stock = decimalValue(current.stockValue), cash = decimalValue(current.cashBalance);
   const rate = decimalValue(summary?.returnRate), profit = decimalValue(summary?.profitLoss);
   const {available,stockPercent:stockRatio,cashPercent:cashRatio,stockColor,cashColor,stockBarColor,cashBarColor}=cashAllocation(stock,cash,current.pricingComplete&&!dashboard.isError);
   const points = (data?.data ?? []).filter(point => Number.isFinite(decimalValue(point.totalAssetValue)));
@@ -101,7 +100,7 @@ export function AssetAnalysisPage() {
         {available && <><Box sx={{ width: `${stockRatio}%`, bgcolor: stockBarColor }} /><Box sx={{ width: `${cashRatio}%`, bgcolor: cashBarColor }} /></>}
       </Box>
       <Stack data-testid="composition-ratios" direction="row" sx={{ justifyContent: 'space-between', mt: '4px', fontSize: 11, lineHeight: '14px', fontWeight: 600, color: stockColor }}><span>{formatPercent(stockRatio)}</span><Box component="span" sx={{ color: cashColor }}>{formatPercent(cashRatio)}</Box></Stack>
-      {!available && <Typography role="status" sx={{ ...hintStyle, mt: '4px', whiteSpace: 'normal' }}>{current.pricingComplete === false ? '시세 미수집 · 구성 계산 불가' : '자산구성 계산 불가'}</Typography>}
+      {!available && dashboard.data && <Typography role="status" sx={{ ...hintStyle, mt: '4px', whiteSpace: 'normal' }}>{current.pricingComplete === false ? '시세 미수집 · 구성 계산 불가' : '자산구성 계산 불가'}</Typography>}
     </AppCard>
     <AppCard data-testid="analysis-trend" sx={{ ...cardStyle, pb: '2px' }}>
       <CardActionArea data-testid="analysis-trend-title" aria-label="자산추이 상세보기" onClick={openDetail} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', minHeight: 23 }}>
@@ -125,7 +124,7 @@ export function AssetAnalysisPage() {
       }}><CompoundGoalSummary testId="analysis-compound-summary" plan={compoundPlan} goal={defaultGoal} assets={compound.data?.pricingComplete===false?null:compound.data?.currentAssets??null}/></CardActionArea>:<AppCard sx={cardStyle}><Typography role="status" sx={{fontSize:12,color:colors.textMuted}}>{compoundPlan?'기본 목표가 없습니다.':'현재년도의 복리계획이 없습니다.'}</Typography></AppCard>}
     </Box>
   </>;
-  return <>{header}<Snackbar open={failed && !!dashboard.data} message="최신 조회에 실패했습니다. 다시 시도해 주세요." action={<Button onClick={retry}>재시도</Button>} />
+  return <>{header}<Snackbar open={failed} message="최신 조회에 실패했습니다. 다시 시도해 주세요." action={<Button onClick={retry}>재시도</Button>} />
     <Box className="rox-home" data-testid="asset-analysis" data-list-condition={period} data-screen-id={tablet ? 'T1400' : 'C1400'} data-restoration-ready={!history.isPending} sx={{ height: { sm: '100%' }, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px' }}>
       <Stack ref={leftRef} data-scroll-region="analysis-left" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{left}</Stack>
       <Stack ref={rightRef} data-scroll-region="analysis-right" spacing="8px" sx={{ minWidth: 0, minHeight: 0, overflowY: { xs: 'visible', sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: { xs: 0, sm: '80px' } }}>{right}</Stack>

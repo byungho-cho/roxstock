@@ -1,3 +1,4 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {ReportButton} from './ReportButton';
 import { stockMatches } from '../../utils/stockSearch';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
@@ -6,7 +7,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {HeaderAddButton} from '../../components/navigation/HeaderAddButton';
 import {PriceTimestamp} from './PriceTimestamp';
 import {CloseRounded,FavoriteBorderRounded,FavoriteRounded} from '@mui/icons-material';
-import {Box,Button,Card,Dialog,IconButton,InputBase,MenuItem,Select,Skeleton,Stack,Tab,Tabs,Typography,useMediaQuery} from '@mui/material';
+import {Box,Button,Card,Dialog,IconButton,InputBase,MenuItem,Select,Stack,Tab,Tabs,Typography,useMediaQuery} from '@mui/material';
 import {useEffect,useMemo,useRef,useState,type Ref,type ReactNode} from 'react';
 import {useLocation,useSearchParams} from 'react-router-dom';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';

@@ -1,3 +1,4 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import { StockProfitSummary, stockProfitPath, profitEntryState } from './StockProfitSummary';
 import { StockNavigation } from './StockNavigation';
@@ -9,7 +10,7 @@ import {pageMetrics} from '../../styles/tokens';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import {useStockNeighbors} from '../../hooks/useStockNeighbors';
 import {FavoriteBorderRounded,FavoriteRounded} from '@mui/icons-material';
-import {Alert,Box,Button,Card,CardContent,Dialog,DialogActions,DialogContent,DialogTitle,IconButton,Skeleton,Stack,Tab,Tabs,Typography,useMediaQuery} from '@mui/material';
+import {Alert,Box,Button,Card,CardContent,Dialog,DialogActions,DialogContent,DialogTitle,IconButton,Stack,Tab,Tabs,Typography,useMediaQuery} from '@mui/material';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {useLocation,useNavigate,useParams,useSearchParams} from 'react-router-dom';
@@ -50,7 +51,7 @@ function AccountStockDetail({stock,initialTab='holding'}:{stock:StockItem;initia
  const tab=requestedTab==='summary'||requestedTab==='holding'||requestedTab==='trades'?requestedTab:savedTab;
  const setTab=(value:'summary'|'holding'|'trades')=>{setSavedTab(value);const next=new URLSearchParams(detailParams);next.set('detailTab',value);setDetailParams(next,{replace:true,state:{...detailLocation.state,listEntryKey:detailLocation.state?.listEntryKey??detailLocation.key}});};
  // Persist even the default tab so the next stock cannot restore a different saved tab.
- useEffect(()=>{if(requestedTab!==tab&&(stock.listType==='holding'||stock.listType==='traded'))setTab(tab);},[requestedTab,tab,stock.listType]);
+ useEffect(()=>{if(window.location.pathname===detailLocation.pathname&&requestedTab!==tab&&(stock.listType==='holding'||stock.listType==='traded'))setTab(tab);},[requestedTab,tab,stock.listType]);
  const {data:lots,isPending:lotsPending,isError:lotsError,refetch:reloadLots}=useBuyLots(stock.id,{enabled:tab==='holding'});
  const trades=useQuery({queryKey:['stockTrades',accountId,stock.id],...storedQueryOptions,enabled:!!accountId&&(tab==='trades'||stock.hasTradeHistory===undefined),queryFn:({signal})=>getTrades(accountId!,{securityId:stock.id},signal)});
  const allLots=useQuery({queryKey:['allBuyLots',accountId,stock.id],...storedQueryOptions,enabled:!!accountId&&tab==='trades',queryFn:()=>getBuyLots(accountId!,stock.id,false)});

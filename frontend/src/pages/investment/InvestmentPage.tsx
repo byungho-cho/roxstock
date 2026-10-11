@@ -1,9 +1,10 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { isMarketClosed } from '../../utils/marketCalendar';
 import { InvestmentChart } from './InvestmentChart';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { rate, won } from '../investment-profit/profitData';
 import '../dashboard/home-font.css';
-import { Box, Button, ButtonBase, Dialog, MenuItem, Select, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, Dialog, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';

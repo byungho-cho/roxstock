@@ -1,4 +1,5 @@
-import { Skeleton } from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import { } from '@mui/material';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {useRef,useState} from 'react';

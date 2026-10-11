@@ -1,5 +1,6 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { ArrowBackRounded, FavoriteRounded } from '@mui/icons-material';
-import { Box, Button, Card, CardContent, IconButton, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, IconButton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
