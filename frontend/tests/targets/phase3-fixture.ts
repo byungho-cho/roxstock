@@ -12,6 +12,7 @@ export async function fixture(page:Page, options: { names?: string[]; history?: 
   const lots=Array.from({length:11},(_,i)=>({id:String(i+1),buyDate:i<3?'2026-10-01':i<9?'2026-09-03':i===9?'2026-08-01':'2026-07-31',boughtAt:`${i<3?'2026-10-01':i<9?'2026-09-03':i===9?'2026-08-01':'2026-07-31'}T03:00:00Z`,holdingDays:6,currentPrice:'150',unitPrice:'100',quantity:'10',soldQuantity:'8',remainingQuantity:'2',remainingPurchaseAmount:'200',returnRate:'50',profitLoss:'100',valuationStatus:'AVAILABLE',priceUpdatedAt:'2026-10-07T03:00:00Z',security:{id:'1',symbol:'000001',name:'종목1',marketType:'KOSPI'},sellTrades:[]}));
   await page.route('**/api/**',async route=>{
     const url=new URL(route.request().url()),p=url.pathname;
+    if(p==='/api/collection/monitoring')return route.fulfill({json:{data:{features:[]}}});
     if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true},{id:'2',name:'다른',isActive:true}]}});
     if(hold && /asset-history|dashboard|buy-lots|recent-buys/.test(p))await new Promise<void>(resolve=>pending.push(resolve));
     if(fail && /asset-history|dashboard/.test(p))return route.fulfill({status:500,json:{error:{message:'테스트 조회 실패'}}});
