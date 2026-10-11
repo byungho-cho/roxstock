@@ -15,6 +15,7 @@ export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = 
   monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
   const from = monthAgo.toISOString().slice(0, 10);
   const history = useQuery({
+    ...storedQueryOptions,
     queryKey: ['assetHistory', accountId, 'dashboard', from, today],
     queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: liveApiEnabled && !!accountId,
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,

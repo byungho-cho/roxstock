@@ -7,8 +7,9 @@ import {calculateProfitYear,PROFIT_VERSION,type ProfitYear} from '../domain/inve
 const cache=new Map<string,{until:number;years:ProfitYear[];calculatedAt:string;bytes:number}>();
 const pending=new Map<string,Promise<ProfitYear[]>>();
 export async function publishProfitYear(accountId:bigint,revision:bigint,result:ProfitYear){
- // Current-read CAS + revision row lock serialize publication with invalidating triggers.
+ // Parent lock precedes revision/aggregate locks, matching cash writers and FK checks.
  return prisma.$transaction(async tx=>{
+  await tx.$queryRaw`SELECT id FROM accounts WHERE id=${accountId} LOCK IN SHARE MODE`;
   const rows=await tx.$queryRaw<Array<{revision:bigint}>>`SELECT revision FROM account_profit_revisions WHERE account_id=${accountId} FOR UPDATE`;
   if(rows[0]?.revision!==revision)return false;
   await tx.investmentYearAggregate.upsert({where:{accountId_year:{accountId,year:result.year}},create:{accountId,year:result.year,calculationVersion:PROFIT_VERSION,sourceRevision:revision,basisDate:new Date(`${result.year}-12-31T00:00:00Z`),state:'VALID',payload:result as unknown as Prisma.InputJsonValue,calculatedAt:new Date()},update:{calculationVersion:PROFIT_VERSION,sourceRevision:revision,basisDate:new Date(`${result.year}-12-31T00:00:00Z`),state:'VALID',payload:result as unknown as Prisma.InputJsonValue,calculatedAt:new Date()}});

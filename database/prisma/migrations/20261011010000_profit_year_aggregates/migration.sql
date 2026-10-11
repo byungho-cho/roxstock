@@ -24,13 +24,13 @@ CREATE TRIGGER profit_buy_trades_insert AFTER INSERT ON buy_trades FOR EACH ROW 
 END;
 CREATE TRIGGER profit_buy_trades_delete AFTER DELETE ON buy_trades FOR EACH ROW BEGIN
  INSERT INTO account_profit_revisions(account_id,revision) VALUES(OLD.account_id,1) ON DUPLICATE KEY UPDATE revision=revision+1;
- UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=OLD.account_id AND year>=YEAR(DATE_ADD(OLD.bought_at, INTERVAL 9 HOUR));
+ UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=OLD.account_id;
 END;
 CREATE TRIGGER profit_buy_trades_update AFTER UPDATE ON buy_trades FOR EACH ROW BEGIN
  INSERT INTO account_profit_revisions(account_id,revision) VALUES(OLD.account_id,1) ON DUPLICATE KEY UPDATE revision=revision+1;
- UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=OLD.account_id AND year>=YEAR(DATE_ADD(OLD.bought_at, INTERVAL 9 HOUR));
+ UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=OLD.account_id AND year>=LEAST(YEAR(DATE_ADD(OLD.bought_at, INTERVAL 9 HOUR)),COALESCE((SELECT MIN(YEAR(DATE_ADD(sold_at, INTERVAL 9 HOUR))) FROM sell_trades WHERE buy_trade_id=NEW.id),YEAR(DATE_ADD(OLD.bought_at, INTERVAL 9 HOUR))));
 INSERT INTO account_profit_revisions(account_id,revision) VALUES(NEW.account_id,1) ON DUPLICATE KEY UPDATE revision=revision+1;
- UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=NEW.account_id AND year>=YEAR(DATE_ADD(NEW.bought_at, INTERVAL 9 HOUR));
+ UPDATE investment_year_aggregates SET state='DIRTY' WHERE account_id=NEW.account_id AND year>=LEAST(YEAR(DATE_ADD(NEW.bought_at, INTERVAL 9 HOUR)),COALESCE((SELECT MIN(YEAR(DATE_ADD(sold_at, INTERVAL 9 HOUR))) FROM sell_trades WHERE buy_trade_id=NEW.id),YEAR(DATE_ADD(NEW.bought_at, INTERVAL 9 HOUR))));
 END;
 CREATE TRIGGER profit_cash_transactions_insert AFTER INSERT ON cash_transactions FOR EACH ROW BEGIN
  INSERT INTO account_profit_revisions(account_id,revision) VALUES(NEW.account_id,1) ON DUPLICATE KEY UPDATE revision=revision+1;

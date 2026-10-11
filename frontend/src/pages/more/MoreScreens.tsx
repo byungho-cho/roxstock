@@ -1,3 +1,5 @@
+import {useMoreAccounts} from '../../hooks/useMoreAccounts';
+export {useMoreAccounts} from '../../hooks/useMoreAccounts';
 import {accountUpdatedAt} from '../../utils/accountUpdatedAt';
 import { AndroidDownload } from './AndroidDownload';
 import {ApiError} from '../../data/apiClient';
@@ -11,7 +13,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { liveApiEnabled } from '../../data/liveData';
 import { addDemoAccount, changeDemoCash, editDemoAccount, readDemoSettings, saveDemoSettings } from '../../data/mockMoreSettings';
-import { getAccountDataState, deleteAccount, chooseAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
+import { getAccountDataState, deleteAccount, createAccount, getCollectionStatus, getCollectionMonitorSummary, listAccounts, selectedAccountStorageKey, updateAccount, type AccountDto } from '../../data/roxstockApi';
 import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
@@ -23,31 +25,6 @@ const settingsPanel = { ...panel, bgcolor: '#090F1C', border: '1px solid #21304A
 const hint = { fontSize: 11, color: '#7A859E' } as const;
 const heading = { fontSize: 18, fontWeight: 600, lineHeight: '26px' } as const;
 
-export function useMoreAccounts() {
-  const client = useQueryClient();
-  const [version, setVersion] = useState(0);
-  useEffect(() => {
-    const listener = () => setVersion((value) => value + 1);
-    window.addEventListener('roxstock-demo-settings', listener);
-    window.addEventListener('roxstock-selected-account', listener);
-    return () => { window.removeEventListener('roxstock-demo-settings', listener); window.removeEventListener('roxstock-selected-account', listener); };
-  }, []);
-  const query = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), enabled: liveApiEnabled });
-  void version;
-  const demo = readDemoSettings();
-  const accounts = liveApiEnabled ? (query.data ?? []).filter(a=>a.isActive) : demo.accounts;
-  const selected = liveApiEnabled ? chooseAccount(accounts) : accounts.find((item) => item.id === demo.selectedId) ?? accounts[0];
-  const refresh = async () => {
-    if (!liveApiEnabled) return;
-    await client.invalidateQueries({ predicate: (item) => ['accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys'].includes(String(item.queryKey[0])) });
-  };
-  const select = async (id: string) => {
-    if (selected?.id === id) return;
-    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); }
-    else saveDemoSettings({ selectedId: id });
-  };
-  return { accounts, selected, query, demo, refresh, select };
-}
 
 function LabelledCard({ title, description, children, sx }: { title?: string; description?: string; children: ReactNode; sx?: object }) {
   return <Box sx={{ ...settingsPanel, ...sx }}>
