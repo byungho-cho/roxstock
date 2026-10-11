@@ -6,13 +6,16 @@ for(let round=1;round<=3;round++)test(`live cold/warm screen timing ${round}`,as
  page.on('request',r=>{if(r.url().includes('/api/'))requests.push(stage+':'+new URL(r.url()).pathname.split('/').at(-1));});
  page.on('response',r=>{if(!r.url().includes('/api/'))return;const at=stage;tasks.push((async()=>{const data=await r.body().catch(()=>Buffer.alloc(0)),timing=r.request().timing();records.push({name:at+':'+new URL(r.url()).pathname.split('/').at(-1),ms:timing.responseEnd>=0?timing.responseEnd:timing.responseStart,bytes:data.length,status:r.status(),serverTiming:r.headers()['server-timing']??''});})());});
  const start=Date.now();await page.goto('/');
- await expect(page.getByTestId('home-summary-area')).toContainText('원',{timeout:90000});
- await expect(page.getByTestId('home-trend-loading')).toHaveCount(0,{timeout:90000});
- await expect(page.getByTestId('target-arrival-card').locator('.MuiSkeleton-root')).toHaveCount(0,{timeout:90000});
- const major=Date.now()-start;await expect(page.getByTestId('recent-buys-card').locator('.MuiSkeleton-root')).toHaveCount(0,{timeout:90000});const recent=Date.now()-start;
+ const majorReady=(async()=>{
+  await expect(page.getByTestId('home-summary-area')).toContainText('원',{timeout:90000});
+  await expect(page.getByTestId('home-trend-loading')).toHaveCount(0,{timeout:90000});
+  await expect(page.getByTestId('target-arrival-card').locator('.MuiSkeleton-root')).toHaveCount(0,{timeout:90000});return Date.now()-start;
+ })();
+ const recentReady=(async()=>{await expect(page.getByTestId('recent-buys-card')).toBeVisible({timeout:90000});await expect(page.getByTestId('recent-buys-card').locator('.MuiSkeleton-root')).toHaveCount(0,{timeout:90000});return Date.now()-start;})();
+ const [major,recent]=await Promise.all([majorReady,recentReady]);
  const coldRequests=requests.length;
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'더보기',exact:true}).click();stage='home-warm';const warmStart=Date.now();await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();await expect(page.getByTestId('home-summary-area')).toContainText('원');await expect(page.getByTestId('recent-buys-card').locator('.MuiSkeleton-root')).toHaveCount(0);const warm=Date.now()-warmStart,warmRequests=requests.length-coldRequests;
- await Promise.all(tasks);const result={kind:'phase18-live-screen',deployedCommit:process.env.DEPLOYED_SHA,runner:'GitHub ubuntu-latest Chromium HTTPS',utc:new Date().toISOString(),project:info.project.name,round,homeMajorMs:major,homeRecentMs:recent,homeAllMs:recent,homeWarmMs:warm,coldRequests,warmRequests,requests,api:records};
+ await Promise.all(tasks);const result={kind:'phase18-live-screen',deployedCommit:process.env.DEPLOYED_SHA,runner:'GitHub ubuntu-latest Chromium HTTPS',utc:new Date().toISOString(),project:info.project.name,round,homeMajorMs:major,homeRecentMs:recent,homeAllMs:Math.max(major,recent),homeWarmMs:warm,coldRequests,warmRequests,requests,api:records};
  fs.writeFileSync(info.outputPath('metrics.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));await page.screenshot({path:info.outputPath('home-live.png')});
 });
 

@@ -4,7 +4,7 @@ import {prisma} from '../lib/prisma.js';
 import {id} from '../lib/input.js';
 import {ApiError} from '../lib/api-error.js';
 import {calculateProfitYear,PROFIT_VERSION,type ProfitYear} from '../domain/investment-profit.js';
-const cache=new Map<string,{until:number;years:ProfitYear[];calculatedAt:string}>();
+const cache=new Map<string,{until:number;years:ProfitYear[];calculatedAt:string;bytes:number}>();
 const pending=new Map<string,Promise<ProfitYear[]>>();
 export async function publishProfitYear(accountId:bigint,revision:bigint,result:ProfitYear){
  // Current-read CAS + revision row lock serialize publication with invalidating triggers.
@@ -54,8 +54,11 @@ export async function investmentProfitRoutes(app:FastifyInstance){
    if((await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision!==revision||!years.length)continue;
    for(const [old,value] of cache)if(value.until<=Date.now()||old.startsWith(`${accountId}:`)&&old!==key)cache.delete(old);
    const calculatedAt=saved&&saved.until>Date.now()?saved.calculatedAt:new Date().toISOString();
-   if(cache.size>=128)cache.delete(cache.keys().next().value!);
-   cache.set(key,{until:Date.now()+5000,years,calculatedAt});
+   const bytes=Buffer.byteLength(JSON.stringify(years)),budget=8*1024*1024;
+   if(bytes<=budget){
+    while(cache.size>=128||[...cache.values()].reduce((sum,value)=>sum+value.bytes,0)-(cache.get(key)?.bytes??0)+bytes>budget)cache.delete(cache.keys().next().value!);
+    cache.set(key,{until:Date.now()+5000,years,calculatedAt,bytes});
+   }
    return {data:{accountId:String(accountId),events:years.flatMap(year=>year.events),capital:years.map(year=>year.capital)},meta:{basisDate:today,calculationVersion:PROFIT_VERSION,sourceRevision:String(revision),cacheHit:!!saved&&saved.until>Date.now(),state:'VALID',calculatedAt}};
   }
   throw new ApiError(409,'PROFIT_SOURCE_CHANGED','조회 중 데이터가 변경되었습니다. 다시 조회해 주세요.');

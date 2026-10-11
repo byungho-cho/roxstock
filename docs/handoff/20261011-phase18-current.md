@@ -15,13 +15,13 @@
 
 마이그레이션 `20261011010000_profit_year_aggregates`: account_profit_revisions와 investment_year_aggregates 실체 테이블. account/year PK, 계산 버전1, 기준일, source revision, DIRTY/VALID, payload 및 계산시각 관리. 일반 뷰가 아니다.
 
-원장·배당·예수금·계좌/종목 스냅샷 INSERT/UPDATE/DELETE DB trigger가 revision을 변경하고 영향 연도 이후를 DIRTY 처리한다. 날짜/계좌 이동은 OLD/NEW 모두 처리. 종목 이름 수정도 캐시 무효화. 배당의 cash 날짜와 received 날짜가 다르면 더 이른 연도부터 무효화한다. 올해는 저장 집계 없이 매번 최신 원본으로 계산하며 서버 cache5초, 모든 hit 전 revision 확인. 계좌별 singleflight, 메모리 cache 최대128개.
+원장·배당·예수금·계좌/종목 스냅샷 INSERT/UPDATE/DELETE DB trigger가 revision을 변경하고 영향 연도 이후를 DIRTY 처리한다. 날짜/계좌 이동은 OLD/NEW 모두 처리. 종목 이름 수정도 캐시 무효화. 배당의 cash 날짜와 received 날짜가 다르면 더 이른 연도부터 무효화한다. 올해는 저장 집계 없이 매번 최신 원본으로 계산하며 서버 cache5초, 모든 hit 전 revision 확인. 계좌별 singleflight, 메모리 cache 최대128개/8MiB.
 
 미집계/버전불일치/DIRTY는 동일 계산 경로로 응답 후 과거 연도 결과 저장. 전체 계좌 batch 없음. 기존 자료는 첫 계좌 조회 때 연도별 생성하므로 큰 계좌의 첫 계산은 느릴 수 있다. 계산은 RepeatableRead snapshot, 저장은 짧은 ReadCommitted revision-row FOR UPDATE + CAS. 계산 중 변경된 결과는 저장하지 않고 재시도(최대3, 이후409). 무효화 trigger와 publish의 lock 순서가 revision→aggregate로 같다. 운영 대량 사전계산 실행 금지. 재계산은 필요한 계좌의 정상 조회로 수행한다.
 
 ## 다른 API / 서버 진단
 
-계좌는 작은 응답+공유 캐시, 대시보드는 summary+보유 목록이 실제 필요하며 금액 계산식 유지. 홈 추이는 기존 trend 전용 계약 사용. 목표가의 전용 조회/부분 오류와 자체 polling 유지. 느린 항목이 다른 카드까지 막지 않도록 통합 API는 추가하지 않았다. buy(account_id,bought_at) 기존 인덱스를 사용하며 검증 없는 새 인덱스/풀/서버 RAM 변경 없음.
+계좌는 작은 응답+공유 캐시, 대시보드는 summary+보유 목록이 실제 필요하며 금액 계산식 유지. 홈 추이는 기존 trend 전용 계약 사용. 목표가의 전용 조회/부분 오류와 자체 polling 유지. 느린 항목이 다른 카드까지 막지 않도록 통합 API는 추가하지 않았다. 계좌/포트폴리오/목표가의 DB select도 실제 계산에 필요한 lot·cash·price 필드로 축소했다. buy(account_id,bought_at) 기존 인덱스를 사용하며 검증 없는 새 인덱스/풀/서버 RAM 변경 없음.
 
 서버 담당 [2026-10-11 09:48 KST 진단](https://github.com/byungho-cho/roxstock/blob/docs/collector-feedback-20261008-152215/docs/collector-feedback/20261011-094843-KST-home-server-performance-ram.md): 직접 내부 요청도 초 단위 지연, swap I/O와 I/O wait 동시 관측. RAM paging은 주요 후보지만 요청별 비용·GC·DB pool wait·lock attribution은 미확인. 메모리 누수/증설 효과/OOM으로 단정하지 않는다. OS/DB 설정과 collector 스케줄은 변경하지 않는다.
 
