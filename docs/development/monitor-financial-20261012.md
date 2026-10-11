@@ -25,3 +25,11 @@
 로컬 API/집계 회귀 18개 통과. TypeScript/빌드 및 CI 화면검사 결과/병합·운영 SHA는 작업 PR에 기록한다. 로컬 Chromium CDN ZIP 손상으로 설치 실패 후 반복 중단. GitHub Chromium에서 370×465/725×396 검사 및 기준 main/변경 후 높이를 DOM boundingBox로 각각 측정하도록 준비했다. heights.json 및 화면/실패 trace는 CI artifact에 보관한다.
 
 실제 Android 키보드/WebView·실기기 검증은 이 환경에서 미확인. 브라우저 input focus/blur/합성 composition 검사는 실제 한글 키보드 검증과 구분한다. 운영 배포 코드의 SHA는 Actions 이미지/원격 배포 단계로 확인하고 공개 API 숫자 대조로 동작을 재확인한다. 수집 원인 분석은 웹서버 담당 범위로 남긴다.
+
+### CI 수치 및 범위
+
+커버/태블릿 각각 변경 전 main과 변경 화면을 별도로 구동해 boundingBox 측정: 실행 이력 96→240px, 대상별 상태 120→300px. 측정 원본: `evidence/monitor-financial-heights-20261012.json`. 두 크기의 신규 화면 검사 6개 모두 통과: https://github.com/byungho-cho/roxstock/actions/runs/38181364523 . 화면 이미지/trace: https://github.com/byungho-cho/roxstock/actions/runs/38181364523/artifacts/11718451195 . 모니터링·재무제표 CI 이미지도 직접 확인했다.
+
+운영 배포 전 삼성전자/NAVER 2026 API에서 같은 ESTIMATE 누락 차이를 재현했고, 현대차 2025 실제 결산 지표는 두 화면이 일치했다. 기존 운영 main f16cd80의 Production Deploy 성공 확인: https://github.com/byungho-cho/roxstock/actions/runs/38142448945 .
+
+첫 CI 화면 비교는 기준 worktree에서 Vite 의존성을 찾지 못한 검사 환경 오류였으며 frontend node_modules 연결을 보완해 통과했다. 당기순이익 추정값은 원천 저장본과 값이 일치하는지도 확인하며 불일치면 ESTIMATE_SOURCE_MISMATCH로 표시한다. 지표 출처 명칭은 중복만 합치고 원천 항목별 provenance는 유지한다. 최종 코드 검사·배포 결과는 PR에 추가한다.
