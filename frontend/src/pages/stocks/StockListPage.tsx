@@ -1,3 +1,7 @@
+import {StockTabs} from './StockTabs';
+import {StockLoadingRows} from './StockLoadingRows';
+import {StockToolbar} from './StockToolbar';
+export {StockToolbar} from './StockToolbar';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {ReportButton} from './ReportButton';
 import { stockMatches } from '../../utils/stockSearch';
@@ -34,7 +38,7 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const active=stockTabs.find(t=>t.value===params.get('tab'))?.value??initialTab??'holding';
  const {accountId,accounts}=useActiveAccount();const previousAccount=useRef(accountId);
  const {data,isPending,isError,refetch}=useStocks();const {favoriteIds,toggleFavorite}=useFavoriteStocks();
- const [query,setQuery]=usePageMemory('stockQuery',''),[sorting,setSorting]=usePageMemory<Partial<Record<StockListType,{key:StockSort;descending:boolean}>>>('stockSorting',{});
+ const [query,setQuery]=usePageMemory('stockQuery','',{adoptInitialAccount:true}),[sorting,setSorting]=usePageMemory<Partial<Record<StockListType,{key:StockSort;descending:boolean}>>>('stockSorting',{},{adoptInitialAccount:true});
  const selected=params.get('selected')??initialSelectedId??null;
  const [valueStock,setValueStock]=useState<StockItem|null>(null),[priceStock,setPriceStock]=useState<StockItem|null>(null);const right=useRef<HTMLDivElement>(null),left=useRef<HTMLDivElement>(null);
  const sort=sorting[active]??defaultSort(active),all=data??[];
@@ -51,31 +55,21 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const select=(s:StockItem)=>{if(s.listType==='watchlist'||s.listType==='recommended'){navigate(`/stocks/${s.id}/value`,{state:{stockNavigation:navigationState}});return;}if(tablet){setParams({tab:active,selected:s.id},{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,stockNavigation:navigationState,returnTo:location.state?.returnTo??{pathname:location.pathname,search:location.search,index:window.history.state?.idx}}});}else navigate(`/stocks/${s.id}${s.listType==='traded'?'?tab=trades':''}`,{state:{stockNavigation:navigationState}});};
  const add=()=>navigate(`/stocks/add?type=${active==='traded'?'watchlist':active}`,{state:{backgroundLocation:location}});
  const toolbar=<StockToolbar query={query} onQuery={setQuery} sort={sort.key} descending={sort.descending} tab={active} onSort={key=>setSorting({...sorting,[active]:{...sort,key}})} onDirection={()=>setSorting({...sorting,[active]:{...sort,descending:!sort.descending}})} compact={tablet&&!split}/>;
- const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>총 {items.length}개</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{isPending?'—':won(total)}</Typography>}</Stack>;
+ const loading=liveApiEnabled&&(accounts.isPending||(!!accountId&&isPending));
+ const unavailable=liveApiEnabled&&!data;
+ const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>{unavailable?(loading?<Skeleton width={64} height={18} sx={{transform:'none'}}/>:'—'):`총 ${items.length}개`}</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{unavailable?(loading?<Skeleton width={100} height={18} sx={{transform:'none'}}/>:'—'):won(total)}</Typography>}</Stack>;
  const cards=<Stack spacing="8px" sx={{pb:tablet?'80px':0}}>{items.map(s=><StockCard key={s.id} stock={s} isFavorite={favoriteIds.has(s.id)} onToggleFavorite={()=>toggleFavorite(s.id)} onValue={()=>setValueStock(s)} onClick={()=>select(s)} onEditPrice={()=>tablet?setPriceStock(s):navigate(`/stocks/${s.id}/price`)}/>)}</Stack>;
- if(liveApiEnabled&&!accountId) return <Stack spacing={1}>
-  <PageHeader embedded title="종목목록" showAdd={false}/>
-  {accounts.isPending?<Skeleton variant="rounded" height={160}/>:accounts.isError?<AppCard><Stack spacing={2} sx={{p:3}}>
-   <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
-   <Button variant="outlined" onClick={()=>void accounts.refetch()}>다시 시도</Button>
-  </Stack></AppCard>:<AppCard><Stack spacing={2} sx={{p:3,alignItems:'center',textAlign:'center'}}>
-   <Typography sx={{fontWeight:700}}>등록된 계좌가 없습니다.</Typography>
-   <Typography color="text.secondary">계좌를 추가하면 자산과 보유종목을 확인할 수 있어요.</Typography>
-   <Button variant="contained" onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button>
-  </Stack></AppCard>}
- </Stack>;
  return <Stack spacing={split?0:1} data-testid="stock-list" data-restoration-ready={!isPending||isError} data-list-condition={JSON.stringify([active,query,sort])} sx={{height:tablet?'100%':undefined,minHeight:0,fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded title={split?`종목목록(${stockTabs.find(t=>t.value===active)!.label})`:'종목목록'} showAdd={false} onBack={split?back:undefined} showBackTablet action={<HeaderAddButton label="종목 추가" onClick={add}/>}/>
+  {accounts.isError&&<Button role="alert" onClick={()=>void accounts.refetch()}>계좌 조회 실패 · 다시 시도</Button>}
+  {liveApiEnabled&&!accountId&&!accounts.isPending&&!accounts.isError&&<AppCard sx={{p:2}}><Typography>등록된 계좌가 없습니다.</Typography><Button onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button></AppCard>}
   {isError&&<Button role="alert" onClick={()=>void refetch()}>{data?'최신 조회 실패 · 기존 목록 표시':'종목 목록 조회 실패 · 다시 시도'}</Button>}
   {split?<Stack direction="row" spacing="8px" sx={{height:'100%',minHeight:0}}><Box ref={left} data-testid="stock-left" data-scroll-region="stock-left" sx={{width:'calc((100% - 8px)/2)',minHeight:0,p:0,overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}><Stack spacing={1}>{toolbar}{summary}{cards}</Stack></Box><OverlayRegionScrollbar scrollRef={left} label="종목목록 열 스크롤"/><Box ref={right} {...detailSwipe} data-detail-swipe data-testid="stock-right" data-scroll-region="stock-right" data-list-condition={chosen?.id} sx={{touchAction:'pan-y',flex:1,minWidth:0,p:0,overflowY:'auto',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}><StockDetailContent key={chosen.id} stock={chosen} initialTab={active==='traded'?'trades':'holding'}/></Box><OverlayRegionScrollbar scrollRef={right} label="종목 상세 열 스크롤"/></Stack>:<>
-   <Stack direction={tablet?'row':'column'} spacing={1} sx={{flexShrink:0}}><Tabs value={active} onChange={(_,value:StockListType)=>changeTab(value)} variant="fullWidth" aria-label="종목 목록 구분" sx={{width:tablet?270:'100%',minHeight:tablet?36:42,p:'4px',bgcolor:colors.surface,borderRadius:'8px','& .MuiTabs-indicator':{display:'none'},'& .MuiTab-root':{p:0,minWidth:0,minHeight:tablet?28:34,fontSize:tablet?10:13,fontWeight:400,borderRadius:'8px',color:colors.textMuted},'& .Mui-selected':{bgcolor:colors.buttonPrimary,color:'#fff !important',fontWeight:600}}}>{stockTabs.map(t=><Tab key={t.value} value={t.value} label={t.label}/>)}</Tabs><Box sx={{flex:tablet?1:undefined,minWidth:0}}>{toolbar}</Box></Stack>
-   {tablet?<Box sx={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}><TabletStockTable stocks={items} activeTab={active} loading={isPending} error={isError&&!data} favoriteIds={favoriteIds} onSelect={select} onValue={s=>setValueStock(s)} onFavorite={s=>toggleFavorite(s.id)}/></Box>:<>{summary}{isPending?<Skeleton variant="rounded" height={139}/>:items.length?cards:!isError&&<Typography sx={{py:5,textAlign:'center',fontSize:13,color:colors.textMuted}}>내용이 없습니다.</Typography>}</>}
+   <Stack direction={tablet?'row':'column'} spacing={1} sx={{flexShrink:0}}><StockTabs active={active} changeTab={changeTab} tablet={tablet}/><Box sx={{flex:tablet?1:undefined,minWidth:0}}>{toolbar}</Box></Stack>
+   {tablet?<Box sx={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}><TabletStockTable stocks={items} activeTab={active} loading={loading} error={(isError||accounts.isError||!accountId)&&!data} favoriteIds={favoriteIds} onSelect={select} onValue={s=>setValueStock(s)} onFavorite={s=>toggleFavorite(s.id)}/></Box>:<>{summary}{loading?<StockLoadingRows active={active}/>:items.length?cards:!isError&&(!liveApiEnabled||!!accountId)&&<Typography sx={{py:5,textAlign:'center',fontSize:13,color:colors.textMuted}}>내용이 없습니다.</Typography>}</>}
   </>}
   <ValueIndicatorDialog navigationState={navigationState} stock={valueStock} onClose={()=>setValueStock(null)}/><PriceDialog stock={priceStock} onClose={()=>setPriceStock(null)}/>
  </Stack>;
-}
-export function StockToolbar({query,onQuery,sort,descending,tab,onSort,onDirection,compact=false}:{query:string;onQuery:(s:string)=>void;sort:StockSort;descending:boolean;tab:StockListType;onSort:(s:StockSort)=>void;onDirection:()=>void;compact?:boolean}) {
- return <Stack direction="row" spacing="8px" sx={{height:compact?36:40,alignItems:'flex-start','& > *':{height:36}}}><Box sx={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:1,pl:'8px',pr:'4px',bgcolor:colors.surface,border:`1px solid ${colors.border}`,borderRadius:'8px'}}><Box component="img" src="/stocks-v03/search.svg" alt=""/><InputBase aria-label="목록 종목 검색" value={query} onFocus={e=>e.target.select()} onChange={e=>onQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing){e.preventDefault();onQuery(e.currentTarget.querySelector('input')?.value??query);}}} placeholder="종목명·코드 검색" sx={{minWidth:0,flex:1,fontSize:12}}/>{query && <IconButton aria-label="검색어 지우기" onClick={()=>onQuery('')} sx={{width:24,height:28,p:0}}><CloseRounded sx={{fontSize:16}}/></IconButton>}</Box><IconButton aria-label={descending?'내림차순 · 오름차순으로 변경':'오름차순 · 내림차순으로 변경'} onClick={onDirection} sx={{width:32,border:`1px solid ${colors.border}`,bgcolor:colors.surface,borderRadius:'8px'}}><Box component="img" src="/stocks-v03/direction.svg" alt="" sx={{transform:descending?'none':'rotate(180deg)'}}/></IconButton><Select aria-label="정렬 기준" value={sort} onChange={e=>onSort(e.target.value as StockSort)} IconComponent={props=><Box component="img" {...props} src="/stocks-v03/chevron.svg" alt=""/>} sx={{width:96,bgcolor:colors.surface,borderRadius:'8px',fontSize:12,'& .MuiSelect-select':{pl:'8px',pr:'24px !important',py:0},'& .MuiSelect-icon':{right:8}}} MenuProps={{slotProps:{paper:{sx:{'& li':{fontSize:12,textAlign:'left',minHeight:36}}}}}}>{sortOptions[tab].map(([key,label])=><MenuItem key={key} value={key}>{label}</MenuItem>)}</Select></Stack>;
 }
 export function StockCard({stock:s,isFavorite,onToggleFavorite,onValue,onClick,onEditPrice}:{stock:StockItem;isFavorite:boolean;onToggleFavorite:()=>void;onValue:()=>void;onClick:()=>void;onEditPrice:()=>void}) {
  const client=useQueryClient(),{accountId}=useActiveAccount();

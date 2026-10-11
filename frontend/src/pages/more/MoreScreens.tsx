@@ -47,23 +47,7 @@ export {SettingsMenu};
 
 export {SettingsOverview} from './SettingsOverview';
 
-export function AccountManagement(_props: { openReset?: () => void }) {
- const navigate=useNavigate();const {accounts,selected,query,select}=useMoreAccounts();
- if(liveApiEnabled&&query.isPending)return <Skeleton height={100}/>;
- if(liveApiEnabled&&query.isError)return <Button role="alert" onClick={()=>void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
- return <Stack spacing="8px">{!accounts.length&&<Typography>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography>}{accounts.map(item=><AccountCard key={item.id} item={item} active={selected?.id===item.id} select={()=>void select(item.id)}/>)}<Button fullWidth variant="contained" sx={{height:42,bgcolor:colors.buttonPrimary,color:'#fff'}} onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button></Stack>;
-}
-function AccountCard({item,active,select}:{item:AccountDto;active:boolean;select:()=>void}) {
- const navigate=useNavigate();const allocation=useAccountAllocation(item.id);const cash=allocation.query.data?allocation.query.data.cashBalance:item.cashBalance;
- return <Box data-testid={'account-card-'+item.id} sx={{...settingsPanel,p:'6px 15px',border:'2px solid',borderColor:active?'#FACC15':'#21304A',display:'flex',flexDirection:'column',gap:'4px',position:'relative'}}>
- <ButtonBase aria-label={item.name+' 계좌 선택'} aria-pressed={active} onClick={select} sx={{position:'absolute',inset:0,borderRadius:'inherit','&.Mui-focusVisible':{outline:'2px solid #60A5FA',outlineOffset:2}}}/>
- <Stack data-testid="account-title-row" direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:'4px',minHeight:20,pointerEvents:'none'}}><Typography sx={{fontSize:13,lineHeight:'20px',color:active?'#FACC15':colors.textPrimary,overflowWrap:'anywhere',minWidth:0}}>{item.name} <Box component="span" data-testid="account-number" sx={{...hint,fontWeight:400}}>({item.accountNumber??'—'})</Box></Typography><IconButton aria-label={item.name+' 계좌 정보 수정'} sx={{p:0,width:20,height:20,flexShrink:0,pointerEvents:'auto',zIndex:1}} onClick={event=>{event.stopPropagation();navigate('/detail/settings?view=edit&accountId='+item.id);}}><img src="/phase15/account-edit.svg" alt="" width="20" height="20"/></IconButton></Stack>
- <Stack data-testid="account-detail-row" direction="row" sx={{justifyContent:'space-between',alignItems:'center',gap:'4px',minHeight:20,pointerEvents:'none'}}>
- <Typography data-testid="account-updated-at" sx={{...hint,fontSize:10,lineHeight:'20px',fontWeight:400,flexShrink:0}}>{accountUpdatedAt(item.updatedAt)}</Typography>
- <Typography data-testid="account-cash" sx={{fontSize:16,lineHeight:'20px',color:allocation.cashColor,textAlign:'right',overflowWrap:'anywhere',minWidth:0}}>{fmt(cash)}</Typography>
- </Stack>
- </Box>;
-}
+export {AccountManagement} from './AccountManagement';
 
 export function useTargetAccount(){const state=useMoreAccounts();const [params]=useSearchParams();const target=params.get('accountId');return {...state,selected:target?state.accounts.find(a=>a.id===target):state.selected};}
 

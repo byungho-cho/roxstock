@@ -1,15 +1,12 @@
-import {DelayedSkeleton as Skeleton,useDelayedIndicator} from './DelayedSkeleton';
-import { Box, Button, Typography } from '@mui/material';
+import {useDelayedIndicator} from './DelayedSkeleton';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Component, Suspense, type ReactNode } from 'react';
+import {PriorityRouteShell} from './PriorityRouteShell';
 
 export function RouteLoading() {
   const visible=useDelayedIndicator();
-  return <Box role={visible?'status':undefined} aria-label={visible?'화면 불러오는 중':undefined} sx={{ p: 1 }}>
-    <Skeleton variant="rounded" height={76} />
-    <Skeleton variant="rounded" height={148} sx={{ mt: 1 }} />
-  </Box>;
+  return <><PriorityRouteShell/><Box role={visible?'status':undefined} aria-label={visible?'화면 불러오는 중':undefined} sx={{height:24,display:'flex',justifyContent:'center',visibility:visible?'visible':'hidden'}}><CircularProgress size={16}/></Box></>;
 }
-
 export class RouteContent extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
