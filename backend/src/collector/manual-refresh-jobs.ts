@@ -90,7 +90,11 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      const values=normalizeManualDartAccounts(filing.rows);
      if(Object.entries(values).filter(([key])=>key!=='accountSources').every(([,value])=>value==null))return {state:'NO_DATA',code:'FINANCIAL_VALUES_EMPTY'};
      // Missing fields retain the last verified value in the same statement division. Actual zero remains zero.
-     const previous=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,fsDivision:filing.division,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
+     const candidate=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,fsDivision:filing.division,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
+     // Never fill a new source with a legacy filing whose actual period or currency is unverified.
+     const oldPeriod=candidate?.periodEndDate.toISOString().slice(0,10);
+     const declared=candidate?.reportName.match(/\((\d{4})\.(\d{2})\)/)?.slice(1).join('-');
+     const previous=candidate&&(candidate.receiptNo===source.receiptNo||oldPeriod===source.periodEndDate.toISOString().slice(0,10)&&declared===source.sourceValidation.reportPeriod&&(candidate.sourceValidation as {currency?:string}|null)?.currency==='KRW')?candidate:null;
      for(const key of Object.keys(values) as (keyof typeof values)[])if(key!=='accountSources'&&values[key]==null&&previous?.[key]!=null){values[key]=String(previous[key]);const evidence=previous.accountSources as Record<string,unknown>|null;values.accountSources[key]={...(evidence?.[key] as typeof values.accountSources[string]),retainedFromReceipt:previous.receiptNo} as typeof values.accountSources[string];}
      values.accountSources={...((previous?.accountSources??{}) as typeof values.accountSources),...values.accountSources};
      await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt:new Date(),values});

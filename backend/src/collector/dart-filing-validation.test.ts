@@ -67,6 +67,8 @@ test('stored-value supplement never treats a different source as existing source
  const report=mapPeriodicReports([disclosure('2024.12')],2024)[0]!;
  const filing={receiptNo:report.receiptNo,fiscalYear:2024,reportCode:'11011',periodEndDate:new Date('2024-12-31')};
  validateStoredDartRows([row(report)],filing,corpCode,'CFS');
+ rejects(()=>validateStoredDartRows([{...row(report),currency:'CNY'}],filing,corpCode,'CFS'),'NON_KRW_STORAGE_UNSUPPORTED');
+ rejects(()=>validateStoredDartRows([row(report)],{...filing,reportName:'사업보고서 (2024.06)'},corpCode,'CFS'),'STORED_FILING_CONFLICT');
  rejects(()=>validateStoredDartRows([row(report,'20250311001086')],filing,corpCode,'CFS'),'STORED_SOURCE_IDENTITY_MISMATCH');
 });
 test('allowlisted diagnostic preserves original reason without secrets or arbitrary objects',()=>{

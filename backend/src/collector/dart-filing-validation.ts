@@ -66,8 +66,15 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
 }
 
 /** Supplements cannot relabel a new API version as the existing filing. */
-export function validateStoredDartRows(rows:DartFinancialRow[], filing:{receiptNo:string;fiscalYear:number;reportCode:string;periodEndDate:Date},corpCode:string,fsDivision:'CFS'|'OFS') {
+export function validateStoredDartRows(rows:DartFinancialRow[], filing:{receiptNo:string;fiscalYear:number;reportCode:string;periodEndDate:Date;reportName?:string},corpCode:string,fsDivision:'CFS'|'OFS') {
   const receipts=[...new Set(rows.map(r=>r.receiptNo))];
+  const context={corpCode,taskFiscalYear:filing.fiscalYear,apiFiscalYear:filing.fiscalYear,reportCode:filing.reportCode,fsDivision,reportPeriod:filing.periodEndDate.toISOString().slice(0,7),selectedReceiptNo:filing.receiptNo,returnedReceiptNos:receipts};
+  if(rows.some(r=>r.currency!=='KRW'))throw new DartApiError('DART_SOURCE_REVIEW','Stored-source currency requires review.',false,false,{...context,validationResult:'NON_KRW_STORAGE_UNSUPPORTED'});
+  if(filing.reportName){
+    const period=/\((\d{4})\.(\d{2})\)/.exec(filing.reportName);
+    const declared=period?new Date(Date.UTC(Number(period[1]),Number(period[2]),0)).toISOString().slice(0,10):null;
+    if(declared!==filing.periodEndDate.toISOString().slice(0,10))throw new DartApiError('STORED_FILING_CONFLICT','Stored-source period requires review.',false,false,{...context,validationResult:'STORED_FILING_CONFLICT'});
+  }
   if(!rows.length||receipts.length!==1||receipts[0]!==filing.receiptNo||rows.some(r=>r.corpCode!==corpCode||r.fiscalYear!==filing.fiscalYear||r.reportCode!==filing.reportCode))
     throw new DartApiError('RECEIPT_MISMATCH','Stored-source supplement identity failed.',false,false,{corpCode,taskFiscalYear:filing.fiscalYear,apiFiscalYear:filing.fiscalYear,reportCode:filing.reportCode,fsDivision,reportPeriod:filing.periodEndDate.toISOString().slice(0,7),selectedReceiptNo:filing.receiptNo,returnedReceiptNos:receipts,validationResult:'STORED_SOURCE_IDENTITY_MISMATCH'});
 }
