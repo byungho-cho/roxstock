@@ -70,6 +70,9 @@ jobs:
       - name: Account classification and trade consistency (real MariaDB API)
         run: node --import tsx --test backend/tests/account-classification.integration.ts
 
+      - name: Phase18 aggregate invalidation and recent-buy equivalence (real MariaDB)
+        run: node --import tsx --test backend/tests/phase18.integration.ts
+
       - name: Changed compound-plan real database functions
         run: node --import tsx --test backend/tests/compound-growth.integration.ts
 

@@ -1,3 +1,4 @@
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import {useEffect,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {listPlans} from './compoundApi';
@@ -11,9 +12,9 @@ export function useSeoulYear(){
   return()=>{clearInterval(timer);window.removeEventListener('focus',check);document.removeEventListener('visibilitychange',check);};},[]);
  return year;
 }
-export function useCompoundPlans(accountId:string|null|undefined){
+export function useCompoundPlans(accountId:string|null|undefined,{splitLoading=false}:{splitLoading?:boolean}={}){
  const year=useSeoulYear();
- return useQuery({queryKey:['compound-plans',accountId,year],queryFn:({signal})=>listPlans(accountId!,signal),enabled:!!accountId,
-  placeholderData:(previous,previousQuery)=>previousQuery?.queryKey[1]===accountId?previous:undefined,
-  retry:false,staleTime:30_000,refetchOnWindowFocus:'always',refetchInterval:60_000});
+ const basic=useQuery({...storedQueryOptions,queryKey:['compound-plans',accountId,year,splitLoading?'basic':'full'],queryFn:({signal})=>listPlans(accountId!,signal,splitLoading),enabled:!!accountId,retry:false});
+ const assets=useQuery({...storedQueryOptions,queryKey:['compound-assets',accountId,year,JSON.stringify(basic.data?.plans??[])],queryFn:({signal})=>listPlans(accountId!,signal),enabled:splitLoading&&!!accountId&&!!basic.data,retry:false,staleTime:30_000,refetchInterval:60_000,refetchIntervalInBackground:false});
+ return {...basic,data:splitLoading?(assets.data??basic.data):basic.data,assetsPending:splitLoading&&assets.isPending,assetsError:splitLoading?assets.error:null,refetch:async()=>{const result=await basic.refetch();return splitLoading?assets.refetch():result;}};
 }

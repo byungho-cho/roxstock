@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/performance',testMatch:'phase18-live.spec.ts',workers:1,retries:0,timeout:120000,reporter:[['list']],outputDir:'test-results/phase18-live',use:{baseURL:'https://newrox.cafe24.com',locale:'ko-KR',timezoneId:'Asia/Seoul'},projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}}]});

@@ -88,7 +88,7 @@ export function InvestmentPage() {
     <AppCard data-testid="investment-trend" sx={{ ...card, bgcolor: '#111927', pt: '6px', pb: '8px' }}>
       <Stack ref={chartHeading} data-testid="investment-chart-heading" direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>일별 평가금액 · 추이</Typography>{enableChartDetail && <Button onClick={openDetail} sx={{ fontSize: 10, minHeight: 28 }}>상세보기 ›</Button>}</Stack>
 
-      {pending && !data ? <Skeleton height={200} /> : !points.length ? <Typography role="status" sx={{ ...small, minHeight:200, display:'grid', placeItems:'center', textAlign: 'center' }}>{status}</Typography> : <InvestmentChart points={points} from={range.from} to={range.to} />}
+      <Box data-testid="investment-chart-region" sx={{height:188,display:"flow-root"}}>{pending && !data ? <Skeleton variant="rounded" height={188} sx={{transform:"none"}} /> : !points.length ? <Typography role="status" sx={{ ...small, height:188, display:'grid', placeItems:'center', textAlign: 'center' }}>{status}</Typography> : <InvestmentChart points={points} from={range.from} to={range.to} />}</Box>
       <Stack direction="row" spacing="4px" data-testid="investment-quarters" sx={{ mt: '8px' }}>{quarters.map(value => <Button key={value} aria-pressed={quarter === value} disabled={!quarterAvailable(year, value, today)} onClick={() => changeQuarter(value)} sx={{ flex: 1, minWidth: 0, p: 0, height: 28, minHeight: 28, borderRadius: '8px', fontSize: 11, fontWeight: 600, bgcolor: quarter === value ? '#337DF5' : '#1A2433', color: quarter === value ? 'white' : '#A6B2C4' }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack>
     </AppCard>
   </>;

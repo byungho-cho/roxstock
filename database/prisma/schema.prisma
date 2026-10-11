@@ -85,6 +85,8 @@ model Account {
   updatedAt               DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
   targetArrivalConditions Json?                   @map("target_arrival_conditions")
   targetArrivalVersion    Int                     @default(0) @map("target_arrival_version") @db.UnsignedInt
+  profitRevision          AccountProfitRevision?
+  profitAggregates        InvestmentYearAggregate[]
   buyTrades               BuyTrade[]
   watchlistItems          AccountWatchlistItem[]
   tradeRequests           TradeRequest[]
@@ -701,4 +703,24 @@ model AnnualConsensusSnapshot {
   @@unique([securityId,fiscalYear,source,asOf])
   @@index([securityId,fiscalYear,state])
   @@map("annual_consensus_snapshots")
+}
+
+model AccountProfitRevision {
+ accountId BigInt @id @map("account_id") @db.UnsignedBigInt
+ revision BigInt @default(0) @db.UnsignedBigInt
+ account Account @relation(fields:[accountId], references:[id], onDelete:Cascade)
+ @@map("account_profit_revisions")
+}
+model InvestmentYearAggregate {
+ accountId BigInt @map("account_id") @db.UnsignedBigInt
+ year Int @db.UnsignedSmallInt
+ calculationVersion Int @map("calculation_version") @db.UnsignedInt
+ sourceRevision BigInt @map("source_revision") @db.UnsignedBigInt
+ basisDate DateTime @map("basis_date") @db.Date
+ state String @default("DIRTY") @db.VarChar(16)
+ payload Json
+ calculatedAt DateTime @map("calculated_at") @db.DateTime(3)
+ account Account @relation(fields:[accountId], references:[id], onDelete:Cascade)
+ @@id([accountId,year])
+ @@map("investment_year_aggregates")
 }

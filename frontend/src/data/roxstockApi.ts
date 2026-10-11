@@ -121,7 +121,7 @@ export interface SecuritySearch { includeInactive?: boolean;
   offset?: number;
 }
 
-export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
+export const listAccounts = (signal?:AbortSignal) => apiRequest<AccountDto[]>('/accounts',{signal});
 export type AccountWriteInput = { name: string; brokerName: string; accountNumber?: string | null; isDefault?: boolean };
 export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string | null; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
 export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -144,7 +144,7 @@ export async function currentAccountId(): Promise<string> {
   return account.id;
 }
 
-export const getAccountDashboard = (accountId: string) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`);
+export const getAccountDashboard = (accountId: string,signal?:AbortSignal) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`,{signal});
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
 export const getDashboardTrend = (accountId: string, range: { from: string; to: string }, signal?: AbortSignal) =>
@@ -156,7 +156,7 @@ export interface AssetHistoryDto {
   compoundPlan?: {id:string;name:string;assetBasis:string;initialAssetValue:string;yearTarget:string|null;goalName:string|null;targetYear:number} | null;
   summary: { calculationUnavailableReason?:string|null;unrealizedChange?:string|null;realizedProfitLoss?:string|null;dividendIncome?:string|null;feeTaxAmount?:string|null;detailedProfitLoss?:string|null;reconciliationDifference?:string|null;ledgerFrom?:string|null;ledgerTo?:string|null;profitLoss: string | null; returnRate: string | null; from?: string | null; to?: string | null; openingAssetValue?: string | null; closingAssetValue?: string | null; depositAmount?: string | null; withdrawalAmount?: string | null };
 }
-export const getAssetHistory = (accountId: string, range?: { from?: string; to?: string }) => apiEnvelope<AssetHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/asset-history${range ? `?${new URLSearchParams(Object.entries(range).filter((entry): entry is [string, string] => entry[1] !== undefined))}` : ''}`);
+export const getAssetHistory = (accountId: string, range?: { from?: string; to?: string }, signal?:AbortSignal) => apiEnvelope<AssetHistoryDto>(`/accounts/${encodeURIComponent(accountId)}/asset-history${range ? `?${new URLSearchParams(Object.entries(range).filter((entry): entry is [string, string] => entry[1] !== undefined))}` : ''}`,{signal});
 
 export interface CashTransactionDto {
   id: string; transactionType: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAWAL' | 'DIVIDEND';
@@ -309,6 +309,13 @@ export const getTrades = (accountId: string, search: { from?: string; to?: strin
   for (const [key, value] of Object.entries(search)) if (value) params.set(key, value);
   return apiEnvelope<TradeReport>(`/accounts/${encodeURIComponent(accountId)}/trades${params.size ? `?${params}` : ''}`, { signal });
 };
+export type RecentBuysDto = {data:BuyLotDto[];meta:{accountId:string;count:number;total:number;more:boolean;months:number}};
+export async function getRecentBuys(accountId:string,months:number,signal?:AbortSignal){
+ const result=await apiEnvelope<RecentBuysDto>(`/accounts/${encodeURIComponent(accountId)}/recent-buys?months=${months}`,{signal});
+ if(!Array.isArray(result.data)||!Number.isInteger(result.meta?.count)||!Number.isInteger(result.meta?.total)||typeof result.meta?.more!=='boolean'||result.meta.count!==result.data.length||result.meta.accountId&&result.meta.accountId!==accountId)throw new Error('최근 매수 응답을 확인할 수 없습니다.');
+ return result;
+}
+
 export const getBuyLots = (accountId: string, securityId?: string, remainingOnly = true, signal?: AbortSignal) => {
   const params = new URLSearchParams({ remainingOnly: String(remainingOnly) });
   if (securityId) params.set('securityId', securityId);

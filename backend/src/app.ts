@@ -1,7 +1,9 @@
+import {investmentProfitRoutes} from './routes/investment-profit.js';
+import {recentBuysRoutes} from './routes/recent-buys.js';
 import { annualConsensusRoutes } from './routes/annual-consensus.js';
 import { compoundGrowthRoutes } from './routes/compound-growth.js';
 import { financialStatementRoutes } from './routes/financial-statements.js';
-import Fastify from 'fastify';
+import Fastify, {type FastifyRequest} from 'fastify';
 import { valueAnalysisRoutes } from './routes/value-analysis.js';
 import { financialRefreshActiveRoutes } from './routes/financial-refresh-active.js';
 import { financialRefreshRoutes } from './routes/financial-refresh.js';
@@ -20,6 +22,13 @@ import { collectionStatusRoutes } from './routes/collection-status.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
+  const started=new WeakMap<FastifyRequest,bigint>();
+  app.addHook('onRequest',async request=>{started.set(request,process.hrtime.bigint());});
+  app.addHook('onSend',async(request,reply,payload)=>{
+    const start=started.get(request);
+    if(start!==undefined)reply.header('Server-Timing',`app;dur=${(Number(process.hrtime.bigint()-start)/1e6).toFixed(2)}`);
+    return payload;
+  });
 
   app.get('/health', async () => ({ status: 'ok' }));
 
@@ -50,6 +59,8 @@ export function buildApp() {
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });
+  void app.register(investmentProfitRoutes, {prefix:'/api'});
+  void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });

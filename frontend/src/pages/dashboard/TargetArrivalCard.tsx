@@ -67,6 +67,6 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
 }
 
 export function TargetArrivalPage() {
-  const { accountId } = useTargetArrivals();
+  const { accountId } = useTargetArrivals({poll:false});
   return <><PageHeader embedded compact title="목표가 도래" backPath="/" showAdd={false} showBackTablet /><TargetArrivalCard key={accountId} full /></>;
 }
