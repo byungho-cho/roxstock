@@ -1,3 +1,4 @@
+import {selectStoredAnalysis,storedAnalysisInclude} from '../domain/stored-analysis.js';
 import {displayShares} from '../domain/share-counts.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
@@ -15,18 +16,18 @@ export async function financialStatementRoutes(app:FastifyInstance){
  app.get<{Querystring:Query}>('/financial-statements',async request=>{
   const year=integer(request.query.year,currentYear(),2015,currentYear()),query=request.query.query?.trim()??'',market=request.query.market??'KOSPI',sort=request.query.sort??'w',direction=request.query.direction??'desc';
   if(query.length>100||!['KOSPI','KOSDAQ'].includes(market)||!orderKeys.includes(sort as typeof orderKeys[number])||!['asc','desc'].includes(direction))throw new ApiError(400,'INVALID_INPUT','조회 조건을 확인해 주세요.');
-  const securities=await prisma.security.findMany({where:{isActive:true,marketType:market as 'KOSPI'|'KOSDAQ',...(query?{OR:[{name:{contains:query}},{symbol:{contains:query}}]}:{})},include:{marketPrice:true,fundamentals:true,dartShareSnapshots:{where:{fiscalYear:year}},periodValuations:{where:{fiscalYear:year,periodType:'ANNUAL'}},financialStatements:{where:{fiscalYear:year,periodType:'ANNUAL'}},dartFinancialFilings:{where:{fiscalYear:year,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]},valuationMetrics:{where:{metricDate:{gte:new Date(Date.UTC(year,0,1)),lt:new Date(Date.UTC(year+1,0,1))}},orderBy:{metricDate:'desc'},take:1}}});
+  const securities=await prisma.security.findMany({where:{isActive:true,marketType:market as 'KOSPI'|'KOSDAQ',...(query?{OR:[{name:{contains:query}},{symbol:{contains:query}}]}:{})},include:{marketPrice:true,fundamentals:true,dartShareSnapshots:{where:{fiscalYear:year}},...storedAnalysisInclude(year)}});
   const rows=securities.map(s=>{
-   const metric=combinedValuation(valuation(s.valuationMetrics[0]),s.periodValuations??[]),currentPrice=s.marketPrice?.currentPrice.toString()??null,annual=storedFinancials(s.financialStatements,s.dartFinancialFilings).find(r=>r.periodType==='ANNUAL');
-   const eps=metric?.eps??null,epsYield=eps!==null&&currentPrice!==null&&new Prisma.Decimal(currentPrice).gt(0)?new Prisma.Decimal(eps).div(currentPrice).mul(100).toString():null;
-   return {id:s.id.toString(),name:s.name,symbol:s.symbol,market:s.marketType,currentPrice,previousClosePrice:s.marketPrice?.previousClosePrice?.toString()??null,priceUpdatedAt:s.marketPrice?.priceUpdatedAt.toISOString()??null,targetPrice:fairPrice(metric,'0.8'),w:weight(metric,currentPrice),value:weight(metric,currentPrice),eps,epsYield,roe:metric?.roe??null,...displayShares(s.dartShareSnapshots??[],s.dartFinancialFilings??[],year),capital:annual?.totalEquity??null,netIncome:annual?.netIncome??null,statementBasis:annual?.basis??null,statementYear:annual?.fiscalYear??null,metricDate:metric?.metricDate??null};
+   const currentPrice=s.marketPrice?.currentPrice.toString()??null,analysis=selectStoredAnalysis({year,price:currentPrice,metrics:s.valuationMetrics,periods:s.periodValuations??[],manual:s.financialStatements,filings:s.dartFinancialFilings});
+   const {metric,...selected}=analysis;
+   return {id:s.id.toString(),name:s.name,symbol:s.symbol,market:s.marketType,currentPrice,previousClosePrice:s.marketPrice?.previousClosePrice?.toString()??null,priceUpdatedAt:s.marketPrice?.priceUpdatedAt.toISOString()??null,...selected,...displayShares(s.dartShareSnapshots??[],s.dartFinancialFilings??[],year),statementBasis:analysis.netIncomeBasis?.source??null,statementYear:analysis.netIncomeBasis?.year??null,metricDate:metric?.metricDate??null};
   });
   const key=sort as typeof orderKeys[number];rows.sort((a,b)=>{
    const left=a[key],right=b[key];if(left===null&&right!==null)return 1;if(right===null&&left!==null)return -1;
    const compared=left===null||right===null?0:key==='name'||key==='priceUpdatedAt'?String(left).localeCompare(String(right),'ko'):new Prisma.Decimal(left).cmp(right);
    return compared*(direction==='asc'?1:-1)||a.symbol.localeCompare(b.symbol);
   });
-  return {data:{year,market,query,sort,direction,rows,total:rows.length,basis:{targetPrice:'RIM_W_0.8',w:'RIM_W_0.8_DIV_CURRENT_PRICE',value:'RIM_W_0.8_DIV_CURRENT_PRICE',epsYield:'STORED_EPS_DIV_CURRENT_PRICE_PERCENT',statementPeriod:'SELECTED_YEAR_ANNUAL',flow:'INDIVIDUAL_QUARTER',source:'STORED_ONLY'}}};
+  return {data:{year,market,query,sort,direction,rows,total:rows.length,basis:{targetPrice:'RIM_W_0.8',w:'RIM_W_0.8_DIV_CURRENT_PRICE',value:'RIM_W_0.8_DIV_CURRENT_PRICE',epsYield:'STORED_EPS_DIV_CURRENT_PRICE_PERCENT',statementPeriod:'EXPLICIT_PER_FIELD_BASIS',flow:'INDIVIDUAL_QUARTER',source:'STORED_ONLY'}}};
  });
  app.get<{Params:{id:string};Querystring:Query}>('/financial-statements/:id',async request=>{
   const securityId=id(request.params.id,'id'),mode=request.query.mode??'annual';
