@@ -38,7 +38,7 @@ function FormDialog({title,children,busy,close,compact=false}:{title:string;chil
 }
 export function CompoundPage(){
  const {accountId,accounts}=useActiveAccount();
- if(!accountId)return <Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?<Skeleton height={30}/>:'계좌를 선택해 주세요.'}</Box>;
+ if(!accountId)return <><PageHeader embedded title="복리계획" variant="detail" showBackTablet showAdd={false}/><Box sx={{fontSize:12,color:muted}}>{accounts.isError?<><span>계좌 조회에 실패했습니다.</span><Button onClick={()=>void accounts.refetch()}>재시도</Button></>:accounts.isPending?<Skeleton height={30}/>:'계좌를 선택해 주세요.'}</Box></>;
  return <AccountPlans key={accountId} accountId={accountId}/>;
 }
 function AccountPlans({accountId}:{accountId:string}){

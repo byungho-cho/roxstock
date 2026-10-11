@@ -98,7 +98,7 @@ export function InvestmentProfitPage() {
     if (accounts.isError) void accounts.refetch();
     if (!accountId) return;
     // Explicit retry must refresh every source, including a successful sibling of a failed request.
-    for (const key of ['profitTrades', 'profitDividends', 'profitCapital']) {
+    for (const key of ['profitAggregate', 'profitTrades', 'profitDividends', 'profitCapital']) {
       await client.cancelQueries({queryKey: [key, accountId, today], exact: true});
       await client.invalidateQueries({queryKey: [key, accountId, today], exact: true, refetchType: 'none'});
     }

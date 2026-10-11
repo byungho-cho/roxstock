@@ -37,7 +37,7 @@ export async function targetArrivalRoutes(app: FastifyInstance) {
     const accountId = id(request.params.accountId, 'accountId');
     // One DB read gives settings + trades + persisted prices a single snapshot.
     const account = await prisma.account.findUnique({ where: { id: accountId }, include: {
-      buyTrades: { include: { sellTrades: { select: { quantity: true } }, security: { include: { marketPrice: true } } } },
+      buyTrades: { select: { id:true,securityId:true,boughtAt:true,quantity:true,unitPrice:true,sellTrades: { select: { quantity: true } }, security: { select: { symbol:true,name:true,marketPrice:{select:{currentPrice:true,priceUpdatedAt:true}} } } } },
     } });
     if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
     const settings = settingsFor(account);

@@ -64,11 +64,12 @@ export const loadPortfolio = async (accountId: bigint, reader:Prisma.Transaction
   const account = await reader.account.findUnique({
     where: { id: accountId },
     include: {
-      cashTransactions: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
+      cashTransactions: { select:{id:true,balanceAfter:true,updatedAt:true},orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
       buyTrades: {
-        include: {
+        select: {
+          securityId:true,quantity:true,unitPrice:true,
           sellTrades: { select: { quantity: true } },
-          security: { include: { marketPrice: true } },
+          security: { select: { symbol:true,name:true,marketType:true,marketPrice:{select:{currentPrice:true,previousClosePrice:true,priceUpdatedAt:true}} } },
         },
         orderBy: [{ boughtAt: 'asc' }, { id: 'asc' }],
       },
