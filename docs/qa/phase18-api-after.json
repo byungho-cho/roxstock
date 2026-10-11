@@ -1,0 +1,140 @@
+{
+  "utc": "2026-10-11T03:06:32.622026+00:00",
+  "environment": "Codex external HTTPS, urllib, decoded response, parallel per round",
+  "commit": "19390ce7cb07fc4db5c480c589d9dc98f1f0b289",
+  "n": 3,
+  "samples": {
+    "accounts": [
+      {
+        "seconds": 8.894,
+        "bytes": 1421,
+        "status": 200,
+        "serverTiming": "app;dur=12.85"
+      },
+      {
+        "seconds": 8.331,
+        "bytes": 1421,
+        "status": 200,
+        "serverTiming": "app;dur=40.39"
+      },
+      {
+        "seconds": 8.821,
+        "bytes": 1421,
+        "status": 200,
+        "serverTiming": "app;dur=19.51"
+      }
+    ],
+    "recent": [
+      {
+        "seconds": 9.074,
+        "bytes": 2781,
+        "status": 200,
+        "serverTiming": "app;dur=172.19"
+      },
+      {
+        "seconds": 8.43,
+        "bytes": 2781,
+        "status": 200,
+        "serverTiming": "app;dur=102.47"
+      },
+      {
+        "seconds": 8.993,
+        "bytes": 2781,
+        "status": 200,
+        "serverTiming": "app;dur=26.82"
+      }
+    ],
+    "dashboard": [
+      {
+        "seconds": 9.419,
+        "bytes": 4055,
+        "status": 200,
+        "serverTiming": "app;dur=340.54"
+      },
+      {
+        "seconds": 9.024,
+        "bytes": 4055,
+        "status": 200,
+        "serverTiming": "app;dur=571.81"
+      },
+      {
+        "seconds": 9.252,
+        "bytes": 4055,
+        "status": 200,
+        "serverTiming": "app;dur=225.57"
+      }
+    ],
+    "trend": [
+      {
+        "seconds": 9.585,
+        "bytes": 1642,
+        "status": 200,
+        "serverTiming": "app;dur=462.81"
+      },
+      {
+        "seconds": 8.99,
+        "bytes": 1642,
+        "status": 200,
+        "serverTiming": "app;dur=550.54"
+      },
+      {
+        "seconds": 9.22,
+        "bytes": 1642,
+        "status": 200,
+        "serverTiming": "app;dur=221.15"
+      }
+    ],
+    "targets": [
+      {
+        "seconds": 9.977,
+        "bytes": 324,
+        "status": 200,
+        "serverTiming": "app;dur=705.81"
+      },
+      {
+        "seconds": 8.425,
+        "bytes": 324,
+        "status": 200,
+        "serverTiming": "app;dur=150.00"
+      },
+      {
+        "seconds": 8.875,
+        "bytes": 324,
+        "status": 200,
+        "serverTiming": "app;dur=71.43"
+      }
+    ]
+  },
+  "summary": {
+    "accounts": {
+      "median_s": 8.821,
+      "min_s": 8.331,
+      "max_s": 8.894,
+      "median_bytes": 1421
+    },
+    "recent": {
+      "median_s": 8.993,
+      "min_s": 8.43,
+      "max_s": 9.074,
+      "median_bytes": 2781
+    },
+    "dashboard": {
+      "median_s": 9.252,
+      "min_s": 9.024,
+      "max_s": 9.419,
+      "median_bytes": 4055
+    },
+    "trend": {
+      "median_s": 9.22,
+      "min_s": 8.99,
+      "max_s": 9.585,
+      "median_bytes": 1642
+    },
+    "targets": {
+      "median_s": 8.875,
+      "min_s": 8.425,
+      "max_s": 9.977,
+      "median_bytes": 324
+    }
+  }
+}
