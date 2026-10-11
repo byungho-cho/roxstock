@@ -1,6 +1,7 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
-import { Box, Button, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button, Snackbar, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';

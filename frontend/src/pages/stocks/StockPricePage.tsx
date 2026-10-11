@@ -1,4 +1,5 @@
-import { Skeleton } from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import { } from '@mui/material';
 import {Box,Button,Stack,Typography,useMediaQuery} from '@mui/material';
 import {useNavigate,useParams} from 'react-router-dom';
 import {useStocks} from '../../hooks/useMockData';

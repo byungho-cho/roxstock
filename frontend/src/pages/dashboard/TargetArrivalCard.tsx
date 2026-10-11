@@ -1,5 +1,6 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { SettingsOutlined } from '@mui/icons-material';
-import { Alert, Box, Button, IconButton, Skeleton, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, IconButton, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';

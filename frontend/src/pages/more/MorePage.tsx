@@ -2,7 +2,7 @@ import '../dashboard/home-font.css';
 import { Box, ButtonBase, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {appMenuItems,menuIconSource} from '../../components/navigation/menuItems';
-import { SettingsOverview } from './MoreScreens';
+import { SettingsOverview } from './SettingsOverview';
 
 export function MorePage() {
   const navigate = useNavigate();

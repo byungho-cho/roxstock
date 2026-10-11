@@ -1,3 +1,4 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useAccountAllocation} from '../../hooks/useAccountAllocation';
 import { useMainLoading } from '../../hooks/useMainLoading';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
@@ -5,7 +6,7 @@ import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, MenuItem, Select, IconButton, Skeleton,  Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, MenuItem, Select, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ActionButton, AppCard } from '../../components/common/Common';

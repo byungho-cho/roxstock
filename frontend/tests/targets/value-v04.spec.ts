@@ -27,7 +27,7 @@ async function fixture(page:Page,small=false){
 }
 async function ready(page:Page){await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();}
 test('whole master searchable on Enter, current Seoul year, all 120 results accessible and price colors',async({page})=>{
- await fixture(page);await ready(page);await expect(page.getByRole('textbox',{name:'종목 검색'})).toBeFocused();await expect(page.getByLabel('기준연도')).toHaveValue('2026');await expect(page.getByText('120개',{exact:true})).toBeVisible();
+ await fixture(page);await ready(page);await expect(page.getByRole('textbox',{name:'종목 검색'})).not.toBeFocused();await expect(page.getByLabel('기준연도')).toHaveValue('2026');await expect(page.getByText('120개',{exact:true})).toBeVisible();
  const loss=page.getByTestId('value-row-000002');expect(await loss.getByTestId('value-current-price').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(94, 161, 240)');
  await page.getByRole('button',{name:/더 보기/}).click();await expect(page.getByTestId('value-row-000120')).toContainText('W —');
  await page.getByLabel('종목 검색').fill('둘째');await page.getByLabel('종목 검색').press('Enter');await expect(page.getByTestId('value-row-000001')).toHaveCount(0);await expect(page.getByTestId('value-row-000002')).toBeVisible();await expect(page.getByText('1개',{exact:true})).toBeVisible();
@@ -95,4 +95,11 @@ test('fresh value cache survives menu reentry without refetching list or detail'
  await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'더보기',exact:true}).click();
  await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'가치분석',exact:true}).click();
  await expect(page.getByTestId('value-row-000001')).toBeVisible();expect(listReads()).toBe(initialReads);
+});
+test('value list return keeps keyboard closed until explicit search interaction',async({page})=>{
+ await fixture(page);await ready(page);const search=page.getByRole('textbox',{name:'종목 검색'});
+ await expect(search).not.toBeFocused();await page.getByTestId('value-row-000001').click();
+ await page.goBack();await expect(search).toBeVisible();await expect(search).not.toBeFocused();
+ await search.click();await expect(search).toBeFocused();await search.fill('둘째');await search.press('Enter');
+ await expect(page.getByTestId('value-row-000002')).toBeVisible();await expect(page.getByTestId('value-row-000001')).toHaveCount(0);
 });

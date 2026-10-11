@@ -1,8 +1,10 @@
-import { Box, Button, Skeleton, Typography } from '@mui/material';
+import {DelayedSkeleton as Skeleton,useDelayedIndicator} from './DelayedSkeleton';
+import { Box, Button, Typography } from '@mui/material';
 import { Component, Suspense, type ReactNode } from 'react';
 
 export function RouteLoading() {
-  return <Box role="status" aria-label="화면 불러오는 중" sx={{ p: 1 }}>
+  const visible=useDelayedIndicator();
+  return <Box role={visible?'status':undefined} aria-label={visible?'화면 불러오는 중':undefined} sx={{ p: 1 }}>
     <Skeleton variant="rounded" height={76} />
     <Skeleton variant="rounded" height={148} sx={{ mt: 1 }} />
   </Box>;

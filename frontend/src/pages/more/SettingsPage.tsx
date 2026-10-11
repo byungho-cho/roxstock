@@ -1,5 +1,6 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import '../dashboard/home-font.css';
-import { Box, Skeleton, useMediaQuery } from '@mui/material';
+import { Box, useMediaQuery } from '@mui/material';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';

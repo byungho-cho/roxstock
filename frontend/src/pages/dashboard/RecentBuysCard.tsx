@@ -1,4 +1,5 @@
-import { Box, Button, Skeleton } from '@mui/material';
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import { Box, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';

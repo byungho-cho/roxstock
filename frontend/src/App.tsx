@@ -30,8 +30,8 @@ const AssetOverviewPage = lazy(() => import('./pages/assets/AssetOverviewPage').
 const CashPage = lazy(() => import('./pages/cash/CashPage').then(module => ({ default: module.CashPage })));
 const LiveCashPage = lazy(() => import('./pages/cash/LiveCashPage').then(module => ({ default: module.LiveCashPage })));
 const JournalPage = lazy(() => import('./pages/journal/JournalPage').then(module => ({ default: module.JournalPage })));
-const MorePage = lazy(() => import('./pages/more/MorePage').then(module => ({ default: module.MorePage })));
-const SettingsPage = lazy(() => import('./pages/more/SettingsPage').then(module => ({ default: module.SettingsPage })));
+import {MorePage} from './pages/more/MorePage';
+import {SettingsPage} from './pages/more/SettingsPage';
 const CollectionMonitoringPage = lazy(() => import('./pages/more/CollectionMonitoringPage').then(module => ({ default: module.CollectionMonitoringPage })));
 
 export function App() {
