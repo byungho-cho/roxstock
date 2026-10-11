@@ -8,7 +8,7 @@
 - 홈 추이 정상 높이 커버87/태블릿171px (그래프64/148+윗여백7+날짜16), 투자금 요약188px도 모든 상태에 적용한다. 확대 차트는 기존 flex 영역 유지.
 - 홈 최초 요청: 계좌 → 대시보드·추이·목표가 병렬 → 세 조회의 성공/최종 실패 UI commit 이후 최근 매수. 고정 지연 없음. 최근 매수는 카드만 로딩하며 공통 로딩바 대상에서 제외. 동일 Query key 공유로 목표가 중복 호출 방지, 계좌별 키와 AbortSignal로 이전 요청 보호. 캐시: 대시보드/추이30초, 목표가/최근매수60초, 계좌는 기존 변경 후 무효화 정책.
 - 홈 전용 `GET /accounts/:id/recent-buys?months=0`은 최초5건, 더보기는 기존 ‘최초5건 + 해당 월부터’ 합집합. 서버 account/date/index/order/take/select 사용. 기존 buy-lots 상세 API 유지. 총건수는 표시 범위 count, 전체건수 total, more는 범위 밖 유무. Decimal·실시간 시세 우선순위·잔여수량 손익 계산 동일. sold-out lot도 포함한다.
-- 복리 `?view=basic`: 계획/목표/기존 연말 스냅샷/예상값 우선, 원장 기반 포트폴리오 계산 생략. 별도 compound-assets 조회로 현재 자산/진행률 보완. 저장 후 두 키 모두 무효화, 계좌별 키 분리. 설정 메뉴는 계좌 대기와 독립이며 공유 계좌 캐시의 불필요한 mount/focus 재조회 제거. 공통 헤더의 계좌 훅을 설정 모듈에서 분리해 설정 편집 코드의 초기 다운로드/실행을 줄인다. 로컬 production entry raw335794B, gzip 파일105033B(이전 운영364824B/113512B; 운영 재검증 예정).
+- 복리 `?view=basic`: 계획/목표/기존 연말 스냅샷/예상값 우선, 원장 기반 포트폴리오 계산 생략. 별도 compound-assets 조회로 현재 자산/진행률 보완. 저장 후 두 키 모두 무효화, 계좌별 키 분리. 설정 메뉴는 계좌 대기와 독립이며 공유 계좌 캐시의 불필요한 mount/focus 재조회 제거. 공통 헤더의 계좌 훅을 설정 모듈에서 분리해 설정 편집 코드의 초기 다운로드/실행을 줄인다. 실제 운영 번들 및 기본 표시 JS의 최종 전후 수치는 QA 완료 보고서 참조.
 - 투자손익 `GET /accounts/:id/investment-profit`: 연도별 indexed 거래·배당·연말 투자금 조회, 같은 날짜/종목/종류 이벤트 압축, 기존 Decimal 곱셈 후 8자리 정수 합산. 기존 전체 원장 API는 유지.
 
 ## 집계 / 무효화 / 배포
@@ -27,7 +27,7 @@
 
 ## 검증 기록
 
-로컬 프론트/백엔드 TypeScript 및 production build 통과. backend 단위 회귀는 로그 기준. 실제 MariaDB migration+집계 무효화/CAS/동일 계산과 기존 원장 대비 최근매수 값·순서 대조는 Backend Check에 추가. 커버370×465·태블릿725×396 및 기존 큰 화면에서 phase18 slow-route 테스트와 홈 회귀 실행. CI 결과/배포/운영 수치는 확정 후 이 문서에 보완한다.
+로컬 프론트/백엔드 TypeScript 및 production build 통과. backend 단위 회귀는 로그 기준. 실제 MariaDB migration+집계 무효화/CAS/동일 계산과 기존 원장 대비 최근매수 값·순서 대조는 Backend Check에 추가. 커버370×465·태블릿725×396 및 기존 큰 화면에서 phase18 slow-route 테스트와 홈 회귀 실행. CI와 운영 검증이 완료됐으며 최신 수치/범위는 최종 QA를 따른다.
 
 외부 API 전후 표본: `docs/qa/phase18-api-before.json`/after.json. 실행시각, base commit, HTTPS 포함 external환경, n3 각 round 병렬, median/min/max 및 decoded bytes 기록. 사용자 제공 오전 표본과 별도 표본이며 서버처리시간/화면성능과 혼합하지 않는다. 실제 화면 표시 시간은 별도 browser artifact. 모의 held-route UI 시간은 CI runner/fixture 측정이며 운영 개선 수치가 아니다.
 
@@ -40,3 +40,7 @@
 ## 기본 화면 코드 추가 분리
 
 b6cccfeb 운영 n3 중간 측정에서 설정/복리 기본 표시가 기존 표본보다 느렸다. 환경·부하 차이가 있어 인과 효과로 단정하지 않으며, 남아 있던 코드 의존성을 수정한다. SettingsMenu를 계좌 편집/초기화 모듈에서 분리하고 설정 상세는 해당 view에서만 lazy load하며 자체 Suspense 영역을 사용한다. 복리 편집 폼·연도 달력도 편집을 열 때만 다운로드한다. 기존 헤더·메뉴·입력/저장/포커스는 유지한다. 화면 timing 원본에 JS resource duration/bytes도 기록하여 API 대기와 분리하며 CPU 실행 비용 자체는 별도 profile이 필요하다.
+
+## 완료 상태
+
+#183·#184·#185 자동 병합, 운영 최종 커밋과 배포 run은 최종 QA 참조. 모든 선택 회귀/PR Gate 및 실제 DB 복구 검증 통과. 운영 API·화면 n3, 계산 대조와 미확인은 [최종 QA](../qa/phase18-results.md)를 따른다.

@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-11T03:07:40.198112+00:00",
+  "deployedCommit": "19390ce7cb07fc4db5c480c589d9dc98f1f0b289",
+  "before": {
+    "decodedBytes": 364824,
+    "gzipBytes": 113512,
+    "asset": "/assets/index-CM4d_P5e.js",
+    "deployedCommit": "4db9b65a5468bc34cb139449cb60dc45468fb442"
+  },
+  "after": {
+    "asset": "/assets/index-DXb8ooWB.js",
+    "decodedBytes": 337329,
+    "gzipBytes": 105571,
+    "contentEncoding": "gzip"
+  },
+  "intermediate": {
+    "asset": "/assets/index-CrtGVqDJ.js",
+    "decodedBytes": 336057,
+    "gzipBytes": 105130,
+    "contentEncoding": "gzip"
+  }
+}
