@@ -182,8 +182,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
               stage='LIST'; const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
-                if (await repo.hasStoredReceipt(report.receiptNo)) continue;
                 requireDartReportPeriod(report,security.corpCode,fiscalYear);
+                if (await repo.hasStoredReceipt(report.receiptNo)) continue;
                 stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
                 if (!fetched.rows.length) continue;
                 stage='VERIFY_SOURCE'; const source=validateDartFiling({corpCode:security.corpCode,taskFiscalYear:fiscalYear,report,rows:fetched.rows,fsDivision:fetched.division});
