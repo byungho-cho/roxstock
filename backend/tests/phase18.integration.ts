@@ -4,7 +4,7 @@ import {buildApp} from '../src/app.js';
 import {prisma} from '../src/lib/prisma.js';
 import {readProfitYears,publishProfitYear} from '../src/routes/investment-profit.js';
 import {recentBuys} from '../../frontend/src/pages/dashboard/recentBuysData.js';
-import {calculateProfit,amount,totals} from '../../frontend/src/pages/investment-profit/profitData.js';
+import {calculateProfit,amount,totals,groups} from '../../frontend/src/pages/investment-profit/profitData.js';
 import type {TradeDto,CashTransactionDto,BuyLotDto} from '../../frontend/src/data/roxstockApi.js';
 
 test('real DB: recent ranges equal legacy; annual aggregates invalidate, reject stale publication and reuse unaffected years',async()=>{
@@ -32,6 +32,7 @@ test('real DB: recent ranges equal legacy; annual aggregates invalidate, reject 
   const legacy=calculateProfit((await get(`trades?to=${today}`)).data as TradeDto[],(await get(`cash-transactions?types=DIVIDEND&to=${today}&limit=100`)).data as CashTransactionDto[],today);
   const events=years.flatMap(y=>y.events).map(e=>({...e,buy:amount(e.buy),sell:amount(e.sell),cost:amount(e.cost),trading:amount(e.trading),dividend:amount(e.dividend)}));
   assert.deepEqual(totals(events),legacy.totals);
+  for(const by of ['year','stock','month'] as const){const summary=(rows:typeof events)=>groups(rows,by).map(({id,label,totals})=>({id,label,totals}));assert.deepEqual(summary(events),summary(legacy.events));}
   const persisted=await prisma.investmentYearAggregate.findMany({where:{accountId:account.id},orderBy:{year:'asc'}});assert.equal(persisted.length,2);assert.ok(persisted.every(x=>x.state==='VALID'));
   await prisma.dividend.update({where:{id:dividend.id},data:{netAmount:'81'}});
   assert.ok(await revision()>source);assert.equal(await publishProfitYear(account.id,source,years.find(x=>x.year===year-1)!),false);
