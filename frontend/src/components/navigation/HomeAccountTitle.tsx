@@ -1,6 +1,6 @@
 import { Box, Button, ButtonBase, Dialog, IconButton, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
-import { useMoreAccounts } from '../../pages/more/MoreScreens';
+import { useMoreAccounts } from '../../hooks/useMoreAccounts';
 import { usePopupHistory } from '../../hooks/usePopupHistory';
 
 export function HomeAccountTitle() {

@@ -21,7 +21,7 @@ export function DashboardPage() {
   const navigate = useListNavigation();
   const { data, isPending, isError, isFetching, refetch, historyPending, historyError, historySettled } = useDashboard({ pollPrices: true });
   const { accountId, accounts } = useActiveAccount();
-  const targets = useTargetArrivals();
+  const targets = useTargetArrivals({poll:false});
   const [recentReady,setRecentReady] = useState<string>();
   const prioritiesSettled = !isPending && historySettled && !targets.isPending;
   // Start after the commit which paints the primary cards (including terminal errors).

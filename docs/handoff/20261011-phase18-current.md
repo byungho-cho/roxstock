@@ -8,16 +8,16 @@
 - 홈 추이 정상 높이 커버87/태블릿171px (그래프64/148+윗여백7+날짜16), 투자금 요약188px도 모든 상태에 적용한다. 확대 차트는 기존 flex 영역 유지.
 - 홈 최초 요청: 계좌 → 대시보드·추이·목표가 병렬 → 세 조회의 성공/최종 실패 UI commit 이후 최근 매수. 고정 지연 없음. 최근 매수는 카드만 로딩하며 공통 로딩바 대상에서 제외. 동일 Query key 공유로 목표가 중복 호출 방지, 계좌별 키와 AbortSignal로 이전 요청 보호. 캐시: 대시보드/추이30초, 목표가/최근매수60초, 계좌는 기존 변경 후 무효화 정책.
 - 홈 전용 `GET /accounts/:id/recent-buys?months=0`은 최초5건, 더보기는 기존 ‘최초5건 + 해당 월부터’ 합집합. 서버 account/date/index/order/take/select 사용. 기존 buy-lots 상세 API 유지. 총건수는 표시 범위 count, 전체건수 total, more는 범위 밖 유무. Decimal·실시간 시세 우선순위·잔여수량 손익 계산 동일. sold-out lot도 포함한다.
-- 복리 `?view=basic`: 계획/목표/기존 연말 스냅샷/예상값 우선, 원장 기반 포트폴리오 계산 생략. 별도 compound-assets 조회로 현재 자산/진행률 보완. 저장 후 두 키 모두 무효화, 계좌별 키 분리. 설정 메뉴는 계좌 대기와 독립이며 공유 계좌 캐시의 불필요한 mount/focus 재조회 제거.
+- 복리 `?view=basic`: 계획/목표/기존 연말 스냅샷/예상값 우선, 원장 기반 포트폴리오 계산 생략. 별도 compound-assets 조회로 현재 자산/진행률 보완. 저장 후 두 키 모두 무효화, 계좌별 키 분리. 설정 메뉴는 계좌 대기와 독립이며 공유 계좌 캐시의 불필요한 mount/focus 재조회 제거. 공통 헤더의 계좌 훅을 설정 모듈에서 분리해 설정 편집 코드의 초기 다운로드/실행을 줄인다. 로컬 production entry raw335794B, gzip 파일105033B(이전 운영364824B/113512B; 운영 재검증 예정).
 - 투자손익 `GET /accounts/:id/investment-profit`: 연도별 indexed 거래·배당·연말 투자금 조회, 같은 날짜/종목/종류 이벤트 압축, 기존 Decimal 곱셈 후 8자리 정수 합산. 기존 전체 원장 API는 유지.
 
 ## 집계 / 무효화 / 배포
 
 마이그레이션 `20261011010000_profit_year_aggregates`: account_profit_revisions와 investment_year_aggregates 실체 테이블. account/year PK, 계산 버전1, 기준일, source revision, DIRTY/VALID, payload 및 계산시각 관리. 일반 뷰가 아니다.
 
-원장·배당·예수금·계좌/종목 스냅샷 INSERT/UPDATE/DELETE DB trigger가 revision을 변경하고 영향 연도 이후를 DIRTY 처리한다. 날짜/계좌 이동은 OLD/NEW 모두 처리. 종목 이름 수정도 캐시 무효화. 배당의 cash 날짜와 received 날짜가 다르면 더 이른 연도부터 무효화한다. 올해는 저장 집계 없이 매번 최신 원본으로 계산하며 서버 cache5초, 모든 hit 전 revision 확인. 계좌별 singleflight, 메모리 cache 최대128개/8MiB.
+원장·배당·예수금·계좌/종목 스냅샷 INSERT/UPDATE/DELETE DB trigger가 revision을 변경하고 영향 연도 이후를 DIRTY 처리한다. 날짜/계좌 이동은 OLD/NEW 모두 처리. 매수 원가 보정은 연결 매도의 더 이른 연도도 포함하며, 매수 삭제는 해당 계좌의 저장 연도를 모두 보수적으로 무효화한다. 종목 이름 수정도 캐시 무효화. 배당의 cash 날짜와 received 날짜가 다르면 더 이른 연도부터 무효화한다. 올해는 저장 집계 없이 매번 최신 원본으로 계산하며 서버 cache5초, 모든 hit 전 revision 확인. 계좌별 singleflight, 메모리 cache 최대128개/8MiB.
 
-미집계/버전불일치/DIRTY는 동일 계산 경로로 응답 후 과거 연도 결과 저장. 전체 계좌 batch 없음. 기존 자료는 첫 계좌 조회 때 연도별 생성하므로 큰 계좌의 첫 계산은 느릴 수 있다. 계산은 RepeatableRead snapshot, 저장은 짧은 ReadCommitted revision-row FOR UPDATE + CAS. 계산 중 변경된 결과는 저장하지 않고 재시도(최대3, 이후409). 무효화 trigger와 publish의 lock 순서가 revision→aggregate로 같다. 운영 대량 사전계산 실행 금지. 재계산은 필요한 계좌의 정상 조회로 수행한다.
+미집계/버전불일치/DIRTY는 동일 계산 경로로 응답 후 과거 연도 결과 저장. 전체 계좌 batch 없음. 기존 자료는 첫 계좌 조회 때 연도별 생성하므로 큰 계좌의 첫 계산은 느릴 수 있다. 계산은 RepeatableRead snapshot, 저장은 짧은 ReadCommitted revision-row FOR UPDATE + CAS. 계산 중 변경된 결과는 저장하지 않고 재시도(최대3, 이후409). publish는 account 공유 잠금→revision→aggregate 순서로, account 잠금을 먼저 잡는 예수금 writer 및 FK 확인과 순서를 맞춘다. 운영 대량 사전계산 실행 금지. 재계산은 필요한 계좌의 정상 조회로 수행한다.
 
 ## 다른 API / 서버 진단
 

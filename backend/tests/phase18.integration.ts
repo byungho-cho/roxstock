@@ -36,12 +36,24 @@ test('real DB: recent ranges equal legacy; annual aggregates invalidate, reject 
   await prisma.dividend.update({where:{id:dividend.id},data:{netAmount:'81'}});
   assert.ok(await revision()>source);assert.equal(await publishProfitYear(account.id,source,years.find(x=>x.year===year-1)!),false);
   assert.equal((await prisma.investmentYearAggregate.findUniqueOrThrow({where:{accountId_year:{accountId:account.id,year:year-1}}})).state,'DIRTY');
-  const updated=await get('investment-profit');assert.equal(updated.meta.state,'VALID');assert.ok(updated.data.events.some((e:{dividend:string})=>amount(e.dividend)===amount('81')));
+  const updated=await get('investment-profit');assert.equal(updated.meta.state,'VALID');assert.equal((await get('investment-profit')).meta.cacheHit,true);assert.ok(updated.data.events.some((e:{dividend:string})=>amount(e.dividend)===amount('81')));
   const unaffected=await prisma.investmentYearAggregate.findUniqueOrThrow({where:{accountId_year:{accountId:account.id,year:year-2}}});assert.equal(unaffected.calculatedAt.getTime(),persisted[0]!.calculatedAt.getTime());
   await prisma.dailyAccountSnapshot.update({where:{id:snap.id},data:{investmentAmount:'91'}});assert.equal((await get('investment-profit')).data.capital.find((x:{year:number})=>x.year===year-1).investmentAmount,'91');
   await prisma.buyTrade.update({where:{id:historical.id},data:{unitPrice:'101.1234'}});assert.ok((await prisma.investmentYearAggregate.findMany({where:{accountId:account.id}})).every(x=>x.state==='DIRTY'));await get('investment-profit');
   await prisma.cashTransaction.update({where:{id:cash.id},data:{transactionDate:new Date(`${year-2}-06-01T00:00:00Z`)}});await get('investment-profit');
   await prisma.dividend.delete({where:{id:dividend.id}});await prisma.cashTransaction.delete({where:{id:cash.id}});assert.ok(!(await get('investment-profit')).data.events.some((e:{kind:string})=>e.kind==='DIVIDEND'));
+  // Legacy backdated sells can precede a corrected buy date; connected cost changes must dirty that earlier year too.
+  const future=await prisma.buyTrade.create({data:{accountId:account.id,securityId:security.id,boughtAt:new Date(`${year+1}-01-01T00:00:00Z`),quantity:'2',unitPrice:'100'}});
+  const backdated=await prisma.sellTrade.create({data:{buyTradeId:future.id,soldAt:new Date(`${year-3}-01-01T00:00:00Z`),quantity:'1',unitPrice:'110'}});
+  await get('investment-profit');
+  await prisma.buyTrade.update({where:{id:future.id},data:{unitPrice:'101'}});
+  assert.equal((await prisma.investmentYearAggregate.findUniqueOrThrow({where:{accountId_year:{accountId:account.id,year:year-3}}})).state,'DIRTY');
+  const corrected=await get('investment-profit');assert.ok(corrected.data.events.some((e:{date:string;trading:string})=>e.date.startsWith(String(year-3))&&amount(e.trading)===amount('9')));
+  await prisma.sellTrade.delete({where:{id:backdated.id}});await prisma.buyTrade.delete({where:{id:future.id}});await get('investment-profit');
+  const raceRevision=await revision(),raceYears=await readProfitYears(account.id,today,raceRevision);assert.ok(raceYears);
+  let locked!:()=>void,release!:()=>void;const lockReady=new Promise<void>(r=>{locked=r;}),resume=new Promise<void>(r=>{release=r;});
+  const writer=prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT id FROM accounts WHERE id=${account.id} FOR UPDATE`;locked();await resume;await tx.cashTransaction.create({data:{accountId:account.id,transactionType:'DEPOSIT',transactionDate:new Date(`${year-1}-01-01`),amount:'1',balanceAfter:'1'}});});
+  await lockReady;const publication=publishProfitYear(account.id,raceRevision,raceYears.find(y=>y.year===year-1)!);release();await writer;assert.equal(await publication,false);
   const basic=await get('compound-plans?view=basic');assert.equal(basic.data.currentAssets,null);
  }finally{
   await prisma.dividend.deleteMany({where:{accountId:account.id}});await prisma.cashTransaction.deleteMany({where:{accountId:account.id}});await prisma.sellTrade.deleteMany({where:{buyTrade:{accountId:account.id}}});await prisma.buyTrade.deleteMany({where:{accountId:account.id}});await prisma.dailyAccountSnapshot.deleteMany({where:{accountId:account.id}});await prisma.account.delete({where:{id:account.id}});await prisma.marketPrice.deleteMany({where:{securityId:security.id}});await prisma.security.delete({where:{id:security.id}});await app.close();await prisma.$disconnect();
