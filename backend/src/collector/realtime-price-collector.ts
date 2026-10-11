@@ -275,7 +275,11 @@ export const runRealtimeCollector = async (
       const remaining = options.intervalSeconds * 1000 - (Date.now() - cycleStartedAt);
       if (remaining > 0) await wait(remaining);
     }
-    // Shutdown never flushes an old cache after lease loss. Regular cycles already flush it.
+    // Preserve the normal shutdown flush only while this worker still owns a live lease.
+    if (cache.size > 0) {
+      await options.monitor?.assertLease?.();
+      await repository.upsertRealtimeMarketPrices([...cache.values()]);
+    }
     log('info', 'realtime price collector stopped');
   };
 
