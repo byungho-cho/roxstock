@@ -46,7 +46,7 @@ export function HomeTwoLineRow({ testId, onClick, first, second, color = colors.
 }
 
 /** Five two-line rows reserve the same body as the normal compact home list. */
-export function HomeListLoading() {
+export function HomeListLoading({rowCount=5}:{rowCount?:number}={}) {
   const visible=useDelayedIndicator();
-  return <Box aria-label="목록 조회 중" data-loading-indicator={visible?'visible':'waiting'} sx={{visibility:visible?'visible':'hidden'}}>{Array.from({length:5},(_,i)=><Box key={i} sx={{height:i===4?38:43,px:'8px',display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',alignContent:'center',gap:'2px 8px'}}>{Array.from({length:6},(_,j)=><Skeleton key={j} height={j<3?16:12} sx={{transform:'none'}}/>)}</Box>)}</Box>;
+  return <Box aria-label="목록 조회 중" data-loading-indicator={visible?'visible':'waiting'} sx={{visibility:visible?'visible':'hidden'}}>{Array.from({length:rowCount},(_,i)=><Box key={i} sx={{height:i===rowCount-1?38:43,px:'8px',display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',alignContent:'center',gap:'2px 8px'}}>{Array.from({length:6},(_,j)=><Skeleton key={j} height={j<3?16:12} sx={{transform:'none'}}/>)}</Box>)}</Box>;
 }

@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, useNavigate, type NavigateOptions, type To } from 'react-router-dom';
 import { useActiveAccount } from '../useActiveAccount';
 import { readPageMemory, writePageMemory } from './pageMemory';
@@ -8,18 +8,50 @@ export function usePageMemoryKey() {
   const { accountId } = useActiveAccount();
   return JSON.stringify([accountId ?? 'unselected', location.state?.listEntryKey ?? location.key, location.pathname]);
 }
-export function usePageMemory<T>(name: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
-  const key = usePageMemoryKey() + ':' + name;
-  const read = () => readPageMemory<T>(key) ?? (typeof initial === 'function' ? (initial as () => T)() : initial);
+export function usePageMemory<T>(name: string, initial: T | (() => T), options: {adoptInitialAccount?:boolean} = {}): [T, Dispatch<SetStateAction<T>>] {
+  const scope=usePageMemoryKey(),key=scope+':'+name;
+  const read=()=>{
+    let saved=readPageMemory<T>(key);
+    if(options.adoptInitialAccount){
+      const [account,entry,route]=JSON.parse(scope) as string[];
+      if(account!=='unselected'){
+        const pendingScope=JSON.stringify(['unselected',entry,route]);
+        const ownerKey=pendingScope+':'+name+':initial-account-owner';
+        const owner=readPageMemory<string>(ownerKey);
+        // Consume pre-account UI input once for this history entry, never for a later account.
+        if(owner===undefined){
+          writePageMemory(ownerKey,account);
+          const pending=readPageMemory<T>(pendingScope+':'+name);
+          if(saved===undefined&&pending!==undefined){saved=pending;writePageMemory(key,pending);}
+        }
+      }
+    }
+    return saved??(typeof initial==='function'?(initial as ()=>T)():initial);
+  };
   const [slot, setSlot] = useState(() => ({ key, value: read() }));
-  const value = slot.key === key ? slot.value : read();
+  useEffect(()=>{
+    if(!options.adoptInitialAccount)return;
+    const receive=(event:Event)=>{const detail=(event as CustomEvent<{key:string;value:T}>).detail;if(detail.key===key)setSlot({key,value:detail.value});};
+    window.addEventListener('roxstock-page-memory',receive);
+    return()=>window.removeEventListener('roxstock-page-memory',receive);
+  },[key,options.adoptInitialAccount]);
+  const value = options.adoptInitialAccount ? readPageMemory<T>(key) ?? (slot.key === key ? slot.value : read()) : slot.key === key ? slot.value : read();
   if (slot.key !== key) setSlot({ key, value });
-  const setValue: Dispatch<SetStateAction<T>> = update => setSlot(previous => {
-    const current = previous.key === key ? previous.value : read();
+  const setValue: Dispatch<SetStateAction<T>> = update => {
+    // Persist the event before a Suspense replacement can unmount its sender.
+    const current = readPageMemory<T>(key) ?? value;
     const next = typeof update === 'function' ? (update as (value: T) => T)(current) : update;
     writePageMemory(key, next);
-    return { key, value: next };
-  });
+    if(options.adoptInitialAccount){
+      const [account,entry,route]=JSON.parse(scope) as string[];
+      // An event from the pending shell can finish just after the first account mounts.
+      const owner=account==='unselected'?readPageMemory<string>(scope+':'+name+':initial-account-owner'):undefined;
+      const target=owner?JSON.stringify([owner,entry,route])+':'+name:key;
+      if(target!==key)writePageMemory(target,next);
+      window.dispatchEvent(new CustomEvent('roxstock-page-memory',{detail:{key:target,value:next}}));
+    }
+    setSlot({ key, value: next });
+  };
   return [value, setValue];
 }
 export function useListNavigation(inheritReturn = false) {
