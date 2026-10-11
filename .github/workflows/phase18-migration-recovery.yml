@@ -36,7 +36,7 @@ jobs:
         run: |
           printf "REVOKE TRIGGER ON roxstock.* FROM 'roxstock'@'%%';\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
           if npm run prisma:migrate:deploy > /tmp/restricted-migration.log 2>&1; then echo 'Expected permission failure'; exit 1; fi
-          rg '1142|TRIGGER command denied' /tmp/restricted-migration.log
+          grep -E '1142|TRIGGER command denied' /tmp/restricted-migration.log
           printf "INSERT INTO accounts(name,broker_name,cash_balance,updated_at) VALUES('preserve-test','test',123.1234,NOW());\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
       - name: Recover complete DDL, retain runtime grants and original migration checksum
         env:
