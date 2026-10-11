@@ -1,5 +1,7 @@
 # DART recovery QA — 2026-10-09
 
+> 2026-10-12 접수번호·보고기간 v2 후속 수정은 [dart-source-validation.md](dart-source-validation.md)에 기록합니다. 기존 기업코드 복구 이력과 별개입니다.
+
 - Backend TypeScript: pass; backend build: pass.
 - Backend unit/route suite: 151 pass. XML/ZIP success, 010/011/020 error XML, empty/malformed response, safe error classification, distinct long codes, secondary persistence failure and secret redaction covered.
 - Local isolated MariaDB 13.0.2: migrations applied, exact 21/24-character codes stored, SUCCESS/NO_FILING and filing contents preserved, empty/invalid/no-match mapping input rejected, transaction failure after mapping insert rolls back mappings and timestamp; normal replacement succeeds.

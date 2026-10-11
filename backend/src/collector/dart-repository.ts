@@ -1,4 +1,5 @@
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
+import type {DartSourceValidation} from './dart-filing-validation.js';
 import {storedDartCode} from './dart-diagnostics.js';
 import {DartApiError, validateDartCorporations} from './dart-provider.js';
 import { Prisma, PrismaClient } from '../generated/prisma/index.js';
@@ -152,7 +153,7 @@ export class PrismaDartRepository {
   async cachedReports(corpCode: string, fiscalYear: number, load: () => Promise<DartReport[]>, force = false): Promise<DartReport[]> {
     const now = new Date();
     const cached = await this.prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode,fiscalYear}}});
-    if (!force && cached && cached.expiresAt > now && Array.isArray(cached.reports)) return cached.reports as unknown as DartReport[];
+    if (!force && cached && cached.expiresAt > now && Array.isArray(cached.reports) && cached.reports.every(r=>r && typeof r==='object' && !Array.isArray(r) && (r.selection as {version?:number}|undefined)?.version===2)) return cached.reports as unknown as DartReport[];
     const reports = await load();
     await this.prisma.dartReportCache.upsert({where:{corpCode_fiscalYear:{corpCode,fiscalYear}},create:{corpCode,fiscalYear,reports:reports as unknown as Prisma.InputJsonValue,expiresAt:new Date(now.getTime()+86400000)},update:{reports:reports as unknown as Prisma.InputJsonValue,expiresAt:new Date(now.getTime()+86400000)}});
     return reports;
@@ -226,7 +227,7 @@ export class PrismaDartRepository {
     return this.prisma.dartApiDailyUsage.findUnique({ where: { usageDate: toDatabaseDate(getSeoulClock(now).dateKey) } });
   }
 
-  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null }) {
+  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
     return this.prisma.dartBackfillTask.update({ where: { id: taskId }, data: {...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})} });
   }
 
@@ -241,18 +242,19 @@ export class PrismaDartRepository {
 
   async saveFiling(input: {
     securityId: bigint; fiscalYear: number; periodType: DartPeriodType; reportCode: DartReportCode; fsDivision: 'CFS' | 'OFS';
-    receiptNo: string; reportName: string; receiptDate: Date; periodEndDate: Date; collectedAt: Date; values: DartFinancialValues;
+    receiptNo: string; reportName: string; receiptDate: Date; periodEndDate: Date; collectedAt: Date; values: DartFinancialValues; sourceValidation: DartSourceValidation;
   }): Promise<{ created: boolean; supersedesReceiptNo: string | null }> {
-    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true, securityId:true,fsDivision:true,accountSources:true } });
+    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true, securityId:true,fsDivision:true,fiscalYear:true,reportCode:true,periodType:true,periodEndDate:true,accountSources:true,sourceValidation:true } });
     if (current) {
-      if(current.securityId!==input.securityId||current.fsDivision!==input.fsDivision)return {created:false,supersedesReceiptNo:null};
+      if(current.securityId!==input.securityId||current.fsDivision!==input.fsDivision||current.fiscalYear!==input.fiscalYear||current.reportCode!==input.reportCode||current.periodType!==input.periodType||current.periodEndDate.toISOString().slice(0,10)!==input.periodEndDate.toISOString().slice(0,10))
+        throw new DartApiError('STORED_FILING_CONFLICT','Existing filing identity/period is preserved for review.',false,false,{...input.sourceValidation,validationResult:'STORED_FILING_CONFLICT'});
       const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
       const additions=Object.fromEntries(Object.entries(input.values.accountSources).map(([key,incoming])=>{
         const old=existing[key] as Record<string,unknown>|undefined;
         if(!old)return [key,incoming];
         return [key,{...incoming,...old,amount:old.amount??incoming.amount,ytdAmount:old.ytdAmount??incoming.ytdAmount}];
       }));
-      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{sourceValidation:{...input.sourceValidation,priorSelectedReceiptNos:[...new Set([...((current.sourceValidation as {priorSelectedReceiptNos?:string[]}|null)?.priorSelectedReceiptNos??[]),...(current.sourceValidation && (current.sourceValidation as {selectedReceiptNo?:string}).selectedReceiptNo!==input.sourceValidation.selectedReceiptNo?[(current.sourceValidation as {selectedReceiptNo:string}).selectedReceiptNo]:[])])].filter(n=>/^\d{14}$/.test(n))} as unknown as Prisma.InputJsonValue,normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
@@ -265,7 +267,7 @@ export class PrismaDartRepository {
         securityId: input.securityId, fiscalYear: input.fiscalYear, periodType: input.periodType, reportCode: input.reportCode,
         fsDivision: input.fsDivision, receiptNo: input.receiptNo, supersedesReceiptNo: previous?.receiptNo ?? null,
         reportName: input.reportName.slice(0, 300), receiptDate: input.receiptDate, periodEndDate: input.periodEndDate,
-        collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false, normalizationVersion:3,
+        sourceValidation:input.sourceValidation as unknown as Prisma.InputJsonValue,collectedAt: input.collectedAt, source: 'OPEN_DART', isWithdrawn: false, normalizationVersion:3,
         revenueQuarter: values.revenueQuarter === null ? null : new Prisma.Decimal(values.revenueQuarter),
         revenueYtd: values.revenueYtd === null ? null : new Prisma.Decimal(values.revenueYtd),
         operatingProfitQuarter: values.operatingProfitQuarter === null ? null : new Prisma.Decimal(values.operatingProfitQuarter),
@@ -283,7 +285,10 @@ export class PrismaDartRepository {
       } });
     return { created: true, supersedesReceiptNo: previous?.receiptNo ?? null };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return { created: false, supersedesReceiptNo: null };
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        // Resolve the winning row through the same identity guard, never report a foreign receipt as success.
+        if(await this.prisma.dartFinancialFiling.findUnique({where:{receiptNo:input.receiptNo}}))return this.saveFiling(input);
+      }
       throw error;
     }
   }
@@ -344,12 +349,12 @@ export class PrismaDartRepository {
     await this.prisma.collectorRun.update({ where: { id: runId }, data: { status, finishedAt: new Date(), successCount: counts.success, failureCount: counts.failed, skippedCount: counts.skipped, failureReason, ...(metadata && { metadata: metadata as Prisma.InputJsonValue }) } });
   }
 
-  async addRunItem(runId: bigint, security: DartSecurityRecord, task: DartBackfillTaskRecord, status: 'SUCCESS' | 'FAILED' | 'NO_DATA' | 'NOT_APPLICABLE', message?: string) {
-    await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: `${security.symbol}:${task.fiscalYear}:${task.reportCode}`, status, message: message?.slice(0, 1000) } });
+  async addRunItem(runId: bigint, security: DartSecurityRecord, task: DartBackfillTaskRecord, status: 'SUCCESS' | 'FAILED' | 'NO_DATA' | 'NOT_APPLICABLE', message?: string, diagnostics?: Prisma.InputJsonValue) {
+    await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: `${security.symbol}:${task.fiscalYear}:${task.reportCode}`, status, diagnostics, message: message?.slice(0, 1000) } });
   }
 
-  async addPhase2RunItem(runId: bigint, security: DartSecurityRecord, status: 'SUCCESS' | 'FAILED' | 'NOT_APPLICABLE', message?: string) {
-    await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: security.symbol, status, message: message?.slice(0, 1000) } });
+  async addPhase2RunItem(runId: bigint, security: DartSecurityRecord, status: 'SUCCESS' | 'FAILED' | 'NOT_APPLICABLE', message?: string, diagnostics?: Prisma.InputJsonValue) {
+    await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: security.symbol, status, diagnostics, message: message?.slice(0, 1000) } });
   }
 
   async markUniverseNoMapping(now = new Date()): Promise<number> {
@@ -391,7 +396,7 @@ export class PrismaDartRepository {
   }
 
   async hasStoredReceipt(receiptNo: string): Promise<boolean> {
-    return (await this.prisma.dartFinancialFiling.count({ where: { receiptNo } })) > 0;
+    return (await this.prisma.dartFinancialFiling.count({where:{isWithdrawn:false,OR:[{receiptNo},{AND:[{sourceValidation:{path:'$.version',equals:2}},{sourceValidation:{path:'$.selectedReceiptNo',equals:receiptNo}}]}]}}))>0;
   }
 
   async setPhase2Check(securityId: bigint, phase: 'PRIORITY' | 'UNIVERSE', now = new Date(), error?: string): Promise<void> {

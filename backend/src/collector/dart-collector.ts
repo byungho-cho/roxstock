@@ -1,3 +1,4 @@
+import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {dartDiagnostic, recordDartFailure} from './dart-diagnostics.js';
 import {collectionPasses} from './dart-order.js';
 import { randomUUID } from 'node:crypto';
@@ -126,31 +127,30 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
               await repo.updateTask(task.id,{status:'NO_FILING',processedAt:new Date(),selectedReceiptNo:null,errorCode:'NO_PERIODIC_FILING',errorMessage:null,nextAttemptAt:null});
               await repo.addRunItem(runId,security,task,'NO_DATA','공시 목록에 대상 보고서가 없습니다.'); noFiling += 1; continue;
             }
+            requireDartReportPeriod(report,security.corpCode,task.fiscalYear);
             stage = 'FETCH';
             const filing = await getCfsThenOfs(dart,security.corpCode,task.fiscalYear,spec.code);
-            if (filing.rows.some(row=>row.receiptNo!==report.receiptNo)) {
-              await prisma.dartReportCache.deleteMany({where:{corpCode:security.corpCode,fiscalYear:task.fiscalYear}});
-              throw new DartApiError('RECEIPT_MISMATCH', `Selected ${report.receiptNo}; financial response ${filing.rows[0]?.receiptNo ?? 'empty'}.`);
-            }
             if (!filing.rows.length) {
               await repo.updateTask(task.id,{status:'NO_FILING',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:'ROWS_NOT_PUBLISHED',errorMessage:null,nextAttemptAt:null});
               await repo.addRunItem(runId,security,task,'NO_DATA','보고서는 있으나 재무자료가 없습니다.'); noFiling += 1; continue;
             }
+            stage = 'VERIFY_SOURCE';
+            const source = validateDartFiling({corpCode:security.corpCode,taskFiscalYear:task.fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
             stage = 'NORMALIZE';
             const values = normalizeDartFinancialRows(filing.rows);
             stage = 'SAVE';
-            const saved = await repo.saveFiling({securityId:security.id,fiscalYear:task.fiscalYear,periodType:report.periodType,reportCode:spec.code,fsDivision:filing.division,receiptNo:report.receiptNo,reportName:report.reportName,receiptDate:parseDartDate(report.receiptDate),periodEndDate:endOfFiscalPeriod(task.fiscalYear,task.periodType),collectedAt:new Date(),values});
-            await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
+            const saved = await repo.saveFiling({securityId:security.id,fiscalYear:task.fiscalYear,periodType:report.periodType,reportCode:spec.code,fsDivision:filing.division,...source,collectedAt:new Date(),values});
+            await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:report.receiptNo,diagnostics:source.sourceValidation as unknown as import('../generated/prisma/index.js').Prisma.InputJsonValue,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
             await repo.addRunItem(runId,security,task,'SUCCESS',saved.created?undefined:'동일 접수번호 저장됨'); succeeded += 1;
           } catch(error) {
             log('warn','DART task primary failure',{runId,...dartDiagnostic(error,stage)});
             const failure = dartFailure(error,stage,config.apiKey);
             const retry = retryDecision(failure.code,task.attempts+1,new Date());
-            await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
+            await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,diagnostics:{...dartDiagnostic(error,stage).context,originalCode:failure.code,stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol,corpCode:security.corpCode,taskFiscalYear:task.fiscalYear,apiFiscalYear:task.fiscalYear,reportCode:task.reportCode},errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
             await repo.markSecurityError(security.id,`${failure.code}: ${failure.message}`);
             if (retry.stop) { stoppedCode = failure.code; stop = true; skipped += 1; break; }
             apiErrors += 1; failures += 1;
-            await repo.addRunItem(runId,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`);
+            await repo.addRunItem(runId,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`,{...dartDiagnostic(error,stage).context,originalCode:failure.code,stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol});
             log('warn','DART task failed',{runId,...dartDiagnostic(error,stage),symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
           }
         }
@@ -182,15 +182,15 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
               stage='LIST'; const filings = await repo.cachedReports(security.corpCode, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
+                requireDartReportPeriod(report,security.corpCode,fiscalYear);
                 if (await repo.hasStoredReceipt(report.receiptNo)) continue;
                 stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
                 if (!fetched.rows.length) continue;
-                if (fetched.rows.some((row) => row.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', 'Financial statement response did not match the selected disclosure receipt number.');
+                stage='VERIFY_SOURCE'; const source=validateDartFiling({corpCode:security.corpCode,taskFiscalYear:fiscalYear,report,rows:fetched.rows,fsDivision:fetched.division});
                 const spec = reports[report.reportCode]!;
                 stage='NORMALIZE'; const values=normalizeDartFinancialRows(fetched.rows);
                 stage='SAVE'; await repo.saveFiling({ securityId: security.id, fiscalYear, periodType: spec.period, reportCode: spec.code,
-                  fsDivision: fetched.division, receiptNo: report.receiptNo, reportName: report.reportName,
-                  receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, spec.period), collectedAt: new Date(), values });
+                  fsDivision: fetched.division, ...source, collectedAt: new Date(), values });
                 updated = true;
               }
             }
@@ -204,7 +204,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const diagnostic=dartDiagnostic(error,stage);log('warn','DART phase2 failure',{runId,...diagnostic});
             failures += 1; apiErrors += 1;
             await repo.setPhase2Check(security.id, phase, new Date(), dartDiagnostic(error,stage).code);
-            await repo.addPhase2RunItem(runId, security, 'FAILED', `${diagnostic.code}: ${diagnostic.message}`);
+            await repo.addPhase2RunItem(runId, security, 'FAILED', `${diagnostic.code}: ${diagnostic.message}`,{...diagnostic.context,originalCode:diagnostic.code,stage,runId:String(runId),symbol:security.symbol});
             if (error instanceof DartApiError && (error.quotaExceeded || error.code === 'SCHEDULE_WINDOW_ENDED')) { stoppedCode = error.code; quotaReached = true; break; }
           }
           if (quotaReached || !callAllowed()) break;
@@ -244,8 +244,3 @@ export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string
 export function parseDartDate(value: string): Date {
   return new Date(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00.000Z`);
 }
-export function endOfFiscalPeriod(year: number, period: DartPeriodType): Date {
-  const month = period === 'Q1' ? 3 : period === 'Q2' ? 6 : period === 'Q3' ? 9 : 12;
-  return new Date(Date.UTC(year, month, 0, 12));
-}
-
