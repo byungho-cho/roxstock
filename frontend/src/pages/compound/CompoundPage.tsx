@@ -1,5 +1,5 @@
 import {Box,Button,Skeleton,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
-import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {lazy,Suspense,useEffect,useRef,useState,type ReactNode} from 'react';
 import {useLocation,useNavigate} from 'react-router-dom';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {OverlayRegionScrollbar} from '../../components/navigation/OverlayRegionScrollbar';
@@ -14,7 +14,7 @@ import {usePageMemory,useReturnNavigation} from '../../hooks/navigation/usePageM
 import {useMainLoading} from '../../hooks/useMainLoading';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
 import {format,number,seoulYear} from '../value/valueApi';
-import {CompoundForm} from './CompoundForm';
+const CompoundForm=lazy(()=>import('./CompoundForm').then(m=>({default:m.CompoundForm}))); 
 import {mutate,root,colors,type Plan,type Goal,type FormValues} from './compoundApi';
 const muted='#94A3B8',blue='#5EA1F0',card={bgcolor:'#0E1729',borderRadius:'8px',p:'10px 16px',minWidth:0};
 const button={height:28,minHeight:28,borderRadius:'8px',fontSize:11,minWidth:0,p:'0 8px',color:'#F8FAFC',bgcolor:'#1E293B'};
@@ -111,7 +111,7 @@ function AccountPlans({accountId}:{accountId:string}){
   {!(view==='goal'&&goal)&&planActions}
  </Box>:<Box role="status">{status}해당 계획을 찾을 수 없습니다.</Box>;
  const formTargetValid=formKind==='plan-add'||!!plan&&(formKind!=='goal-edit'||!!goal);
- const content=formKind?(formTargetValid?<CompoundForm key={formKind+':'+plan?.id+':'+goal?.id} initial={initial} goalMode={formKind.startsWith('goal')} busy={busy} onSave={save} onCancel={closeForm}/>:<Box role="status">수정할 계획·목표를 찾을 수 없습니다.</Box>):null;
+ const content=formKind?(formTargetValid?<Suspense fallback={<Skeleton aria-label="복리 편집 코드 불러오는 중" height={100}/>}><CompoundForm key={formKind+':'+plan?.id+':'+goal?.id} initial={initial} goalMode={formKind.startsWith('goal')} busy={busy} onSave={save} onCancel={closeForm}/></Suspense>:<Box role="status">수정할 계획·목표를 찾을 수 없습니다.</Box>):null;
  return <Box className="rox-home" data-testid={tablet?'T1900':'C1900'} data-restoration-ready={pending&&!data?'false':'true'} data-list-condition={JSON.stringify([accountId,view])} sx={{height:tablet||(!formKind&&data?.plans.length===0)?'100%':undefined,minHeight:!tablet?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F8FAFC'}}>
   <PageHeader embedded title={!tablet&&formKind?formTitle:!tablet&&view==='goal'?goal?.goalName??'목표 상세':!tablet&&view==='compare'?plan?.planName??'복리계획':'복리계획'} variant="detail" showBackTablet onBack={!formKind&&view==='list'?undefined:back} backIcon={<img src="/stocks-v03/back.svg" alt=""/>} action={!tablet&&!formKind&&view==='goal'&&goal?<Button sx={{...button,height:24,minHeight:24,bgcolor:'#3B82F6'}} onClick={()=>openForm('goal-edit')}>수정</Button>:undefined} showAdd={!formKind&&view!=='goal'} showAddMobile addLabel="계획 추가" onAdd={()=>openForm('plan-add')}/>
   {!tablet&&formKind?content:!data?<>{status}</>:plans.length===0?<Box sx={{height:'100%',display:'flex',flexDirection:'column'}}>{status}<Empty onlyMessage label="첫 계획 추가" onAdd={()=>openForm('plan-add')}/></Box>:tablet?<Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',height:'100%',minHeight:0}}>
