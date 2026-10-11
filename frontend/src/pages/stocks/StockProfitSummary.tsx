@@ -1,5 +1,5 @@
 import { Box, Button, ButtonBase, Card, Skeleton, Stack, Typography } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
@@ -13,8 +13,8 @@ const heading={fontSize:14,fontWeight:700};
 const hint={fontSize:10,fontWeight:400,color:'#9CA3AF'};
 const card={borderRadius:'8px',border:'1px solid '+colors.border,bgcolor:colors.surface};
 export function StockProfitSummary({stockId}:{stockId:string}) {
- const {accountId}=useActiveAccount(),go=useListNavigation(),today=seoulToday();
- const query=useQuery({...storedQueryOptions,queryKey:['investment-profit',accountId,Number(today.slice(0,4))],queryFn:({signal})=>loadProfit(accountId!,today,signal),enabled:!!accountId,retry:false});
+ const client=useQueryClient(),{accountId}=useActiveAccount(),go=useListNavigation(),today=seoulToday();
+ const query=useQuery({...storedQueryOptions,queryKey:['investment-profit-summary',accountId,Number(today.slice(0,4))],queryFn:({signal})=>loadProfit(accountId!,today,signal,{client,includeCapital:false}),enabled:!!accountId,retry:false});
  const open=(url:string)=>go(url,{state:profitEntryState});
  if(!query.data)return query.isError?<Button role="alert" onClick={()=>query.refetch()}>손익 조회 실패 · 다시 시도</Button>:<Skeleton data-restoration-ready="false" height={180}/>;
  const stock=query.data.stocks.find(row=>row.id===stockId);

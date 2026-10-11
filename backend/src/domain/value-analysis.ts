@@ -29,9 +29,9 @@ export type Statement = {
   totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null; basis: string; collectedAt: string | null; isDerived: boolean;
 };
 // Reuse existing analysis precedence: manual non-null values, latest non-withdrawn DART, same-basis Q4 = annual YTD - Q3 YTD.
-export function mergeStatements(manual: FinancialStatement[], filings: DartFinancialFiling[]): Statement[] {
+export function mergeStatements(manual: FinancialStatement[], filings: Omit<DartFinancialFiling, 'accountSources'>[]): Statement[] {
   const manualMap = new Map(manual.map(row => [row.fiscalYear + ':' + row.periodType, row]));
-  const filingMap = new Map<string, DartFinancialFiling>();
+  const filingMap = new Map<string, Omit<DartFinancialFiling, 'accountSources'>>();
   for (const row of filings) { const key = row.fiscalYear + ':' + row.periodType; if (!filingMap.has(key)) filingMap.set(key, row); }
   const keys = new Set([...manualMap.keys(), ...filingMap.keys()]);
   for (const row of filings.filter(row => row.periodType === 'ANNUAL')) {

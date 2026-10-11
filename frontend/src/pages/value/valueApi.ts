@@ -5,7 +5,13 @@ export type FinancialRow = { isEstimated?:boolean; collectionState?:string; late
 export type ValueDetail = { security:Pick<ValueRow,'id'|'name'|'symbol'|'currentPrice'|'previousClosePrice'|'priceUpdatedAt'>; year:number; valuation:{ kind?:string; fiscalYear?:number; periodType?:string; metricDate:string; bps:string|null; eps:string|null; per:string|null; pbr:string|null; roe:string|null }|null; w:string|null; fairPrices:{persistence:string;price:string|null}[]; issuedShares?:string|null;treasuryShares?:string|null;outstandingShares?:string|null;shareBasis?:{receiptNo:string;stockKind:string;periodEndDate:string}|null; requiredReturn:string; equity:string|null; closingDate:string|null; rows:FinancialRow[]; mode:'annual'|'quarter'; startYear:number; startQuarter:number|null; count:number; notices:string[] };
 export const seoulYear = () => Number(new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));
 export const number = (value:string|number|null|undefined) => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
-export const format = (value:string|number|null|undefined, digits=0, suffix='') => { const n=number(value); return n===null?'—':n.toLocaleString('ko-KR',{maximumFractionDigits:digits,minimumFractionDigits:digits})+suffix; };
+const numberFormats = new Map<number, Intl.NumberFormat>();
+export const format = (value:string|number|null|undefined, digits=0, suffix='') => {
+ const n=number(value);if(n===null)return '—';
+ let formatter=numberFormats.get(digits);
+ if(!formatter){formatter=new Intl.NumberFormat('ko-KR',{maximumFractionDigits:digits,minimumFractionDigits:digits});numberFormats.set(digits,formatter);}
+ return formatter.format(n)+suffix;
+};
 export const movement = (value:number|null) => value===null||value===0?'#94A3B8':value>0?'#FA616E':'#60A5FA';
 export const listValues = (year:number,query:string,signal:AbortSignal) => apiRequest<ValueList>('/value-analysis?'+new URLSearchParams({year:String(year),query}),{signal});
 export const detailValues = (id:string,year:number,mode:string,startYear:number,startQuarter:number,count:number,signal:AbortSignal) => apiRequest<ValueDetail>('/value-analysis/'+encodeURIComponent(id)+'?'+new URLSearchParams({year:String(year),mode,startYear:String(startYear),startQuarter:String(startQuarter),count:String(count)}),{signal});
