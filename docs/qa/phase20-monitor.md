@@ -40,3 +40,5 @@ PR 필수 검사 통과 후 기존 PR 자동 병합·Production Deploy 경로를
 - 최종 타입 검사·production build 통과. entry gzip 139.73kB, 모니터링 lazy chunk gzip 10.10kB. 응답을 기다리는 초기 번들/API 순서는 유지한다.
 - 실제 화면 캡처: [커버 조회 중](assets/phase20-monitor/monitor-cover-loading.png) · [커버 완료](assets/phase20-monitor/monitor-cover-ready.png) · [태블릿 조회 중](assets/phase20-monitor/monitor-tablet-loading.png) · [태블릿 완료](assets/phase20-monitor/monitor-tablet-ready.png).
 - 최종 서버 CI와 병합·운영 배포 SHA/실행 결과는 [작업 PR #191](https://github.com/byungho-cho/roxstock/pull/191)의 Checks 및 완료 기록을 기준으로 한다. 운영 배포는 성공 상태와 실제 서비스 읽기 확인 후에만 완료로 보고한다.
+
+운영 응답의 DART 과거 수집 대상 127,488개 규모를 확인한 후 진행률 범례를 고정 2열로 구성했다. 수치 자릿수 증가로 범례가 줄바꿈되어 카드 높이가 바뀌는 것을 방지한다. 같은 규모(완료 120,000·실패 448·대기 7,040)의 모의 응답으로 커버·태블릿 상세 크기/독립 로딩 검사 4개를 추가 실행하여 모두 통과했다. 상태 판정과 수치 계산은 변경하지 않았다.
