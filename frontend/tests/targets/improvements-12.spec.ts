@@ -84,7 +84,7 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();
  await expect(page).toHaveURL(/\/$/);
  await page.goBack();await expect(page.getByTestId('profit-selected')).toHaveText(names[0]);
- expect(f.requests.filter(r=>r.includes('investment-capital'))).toHaveLength(1);
+ expect(f.requests.filter(r=>r.endsWith('/investment-profit'))).toHaveLength(1);
 });
 test('annual realized summary is independent of evaluation and quarterly chart filter',async({page},info)=>{
  await fixture(page);await page.goto('/detail/investment');await expect(page.getByTestId('investment-value')).toHaveText('81,845,732원');

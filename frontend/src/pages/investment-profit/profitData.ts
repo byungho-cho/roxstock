@@ -72,7 +72,8 @@ export async function loadProfit(accountId: string, today: string, signal: Abort
   const prefix = `/accounts/${encodeURIComponent(accountId)}`;
   if(options.aggregate){
     type Event=Omit<ProfitEvent,'buy'|'sell'|'cost'|'trading'|'dividend'>&Record<'buy'|'sell'|'cost'|'trading'|'dividend',string|null>;
-    const result=await apiEnvelope<{data:{accountId:string;events:Event[];capital:Capital[]}}>(`${prefix}/investment-profit`,{signal});
+    const request=(sourceSignal:AbortSignal)=>apiEnvelope<{data:{accountId:string;events:Event[];capital:Capital[]}}>(`${prefix}/investment-profit`,{signal:sourceSignal});
+    const result=options.client?await options.client.fetchQuery({...storedQueryOptions,staleTime:30_000,queryKey:['profitAggregate',accountId,today],queryFn:({signal})=>request(signal)}):await request(signal);
     if(result.data.accountId!==accountId)throw new Error('계좌가 일치하지 않습니다.');
     const events=result.data.events.map(row=>({...row,buy:amount(row.buy),sell:amount(row.sell),cost:amount(row.cost),trading:amount(row.trading),dividend:amount(row.dividend)}));
     return {events,totals:totals(events),years:groups(events,'year'),stocks:groups(events,'stock'),...(options.includeCapital===false?{}:{capital:result.data.capital})};

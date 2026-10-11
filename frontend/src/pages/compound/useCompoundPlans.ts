@@ -12,9 +12,9 @@ export function useSeoulYear(){
   return()=>{clearInterval(timer);window.removeEventListener('focus',check);document.removeEventListener('visibilitychange',check);};},[]);
  return year;
 }
-export function useCompoundPlans(accountId:string|null|undefined){
+export function useCompoundPlans(accountId:string|null|undefined,{splitLoading=false}:{splitLoading?:boolean}={}){
  const year=useSeoulYear();
- const basic=useQuery({...storedQueryOptions,queryKey:['compound-plans',accountId,year,'basic'],queryFn:({signal})=>listPlans(accountId!,signal,true),enabled:!!accountId,retry:false});
- const assets=useQuery({...storedQueryOptions,queryKey:['compound-assets',accountId,year],queryFn:({signal})=>listPlans(accountId!,signal),enabled:!!accountId&&!!basic.data,retry:false,staleTime:30_000,refetchInterval:60_000,refetchIntervalInBackground:false});
- return {...basic,data:assets.data??basic.data,assetsPending:assets.isPending,assetsError:assets.error,refetch:async()=>{await basic.refetch();return assets.refetch();}};
+ const basic=useQuery({...storedQueryOptions,queryKey:['compound-plans',accountId,year,splitLoading?'basic':'full'],queryFn:({signal})=>listPlans(accountId!,signal,splitLoading),enabled:!!accountId,retry:false});
+ const assets=useQuery({...storedQueryOptions,queryKey:['compound-assets',accountId,year,JSON.stringify(basic.data?.plans??[])],queryFn:({signal})=>listPlans(accountId!,signal),enabled:splitLoading&&!!accountId&&!!basic.data,retry:false,staleTime:30_000,refetchInterval:60_000,refetchIntervalInBackground:false});
+ return {...basic,data:splitLoading?(assets.data??basic.data):basic.data,assetsPending:splitLoading&&assets.isPending,assetsError:splitLoading?assets.error:null,refetch:async()=>{const result=await basic.refetch();return splitLoading?assets.refetch():result;}};
 }

@@ -43,7 +43,7 @@ export function useMoreAccounts() {
   };
   const select = async (id: string) => {
     if (selected?.id === id) return;
-    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); await refresh(); }
+    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); }
     else saveDemoSettings({ selectedId: id });
   };
   return { accounts, selected, query, demo, refresh, select };
@@ -68,7 +68,7 @@ function LinkRow({ title, caption, value, onClick, active = false }: { title: st
 export function SettingsMenu({ active }: { active?: MoreView }) {
   const navigate = useNavigate();
   const { accounts, query } = useMoreAccounts();
-  const status = useQuery({ queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, enabled: liveApiEnabled, refetchInterval: 60_000 });
+  const status = useQuery({ ...storedQueryOptions, staleTime:60_000, queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, enabled: liveApiEnabled, refetchInterval: 60_000 });
   const selected = ['add','edit','cash','reset'].includes(active ?? '') ? 'account' : active;
   const items = [
     { view: 'account', title: '계좌 관리', caption: '계좌 정보와 현재 예수금을 관리합니다.', value: query.isError ? '조회 실패' : `${accounts.length}개 계좌` },

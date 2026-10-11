@@ -8,7 +8,7 @@ async function setup(page:Page){
  let assets:string|null='117',fail=false,empty=false,noDefault=false,year=2026,hold:string|null=null,target:string|null|undefined=undefined;
  const releases:(()=>void)[]=[],reads:string[]=[];
  await page.route('**/api/accounts',route=>route.fulfill({json:{data:[{id:'a',name:'계좌 A',isActive:true,isDefault:true},{id:'b',name:'계좌 B',isActive:true}]}}));
- await page.route('**/api/accounts/*/compound-plans',async route=>{
+ await page.route('**/api/accounts/*/compound-plans*',async route=>{
   const id=new URL(route.request().url()).pathname.split('/')[3];reads.push(id);
   if(id===hold)await new Promise<void>(resolve=>releases.push(resolve));
   if(fail)return route.fulfill({status:503,json:{error:{message:'조회 실패 검사'}}});
@@ -91,6 +91,6 @@ test('back during a late save does not consume the goal entry twice',async({page
 });
 
 test('malformed or mismatched account responses show an error without breaking analysis',async({page})=>{
- await setup(page);await page.route('**/api/accounts/a/compound-plans',route=>route.fulfill({json:{data:[]}}));await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.route('**/api/accounts/a/compound-plans',route=>route.fulfill({json:{data:{accountId:'b',currentAssets:'999',currentYear:2026,plans:[plan]}}}));await page.getByRole('button',{name:'복리계획 다시 시도'}).click();await expect(page.getByTestId('analysis-compound-summary')).toHaveCount(0);await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');
+ await setup(page);await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:[]}}));await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:{accountId:'b',currentAssets:'999',currentYear:2026,plans:[plan]}}}));await page.getByRole('button',{name:'복리계획 다시 시도'}).click();await expect(page.getByTestId('analysis-compound-summary')).toHaveCount(0);await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');
 });
