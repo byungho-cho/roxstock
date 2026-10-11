@@ -65,12 +65,12 @@ test('fixed more/settings menus paint without account API or deferred editor cod
  await expect.poll(()=>!!release).toBe(true);release();
 });
 test('fast data hides indicator, slow data shows it without moving chart or metrics',async({page})=>{
- await fixture(page);await page.goto('/assets');await expect(page.getByTestId('analysis-chart')).toBeVisible();
+ await fixture(page);await page.goto('/assets');await expect(page.getByTestId('analysis-chart')).toBeVisible();await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획이 없습니다.');
  await expect(page.locator('[data-loading-indicator="visible"]')).toHaveCount(0);
  const region=page.getByTestId('analysis-chart-region'),metrics=page.getByTestId('analysis-performance');
  const before={height:(await region.boundingBox())!.height,y:(await metrics.boundingBox())!.y};let release!:()=>void;
  await page.route('**/api/accounts/*/asset-history**',async r=>{await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
- await page.clock.install();await page.getByRole('button',{name:'3개월',exact:true}).click();await expect.poll(()=>!!release).toBe(true);
+ await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});await page.clock.pauseAt(new Date('2026-10-07T03:00:01Z'));await page.getByRole('button',{name:'3개월',exact:true}).click();await expect.poll(()=>!!release).toBe(true);
  const skeleton=region.locator('[data-loading-indicator]');await expect(skeleton).toHaveAttribute('data-loading-indicator','waiting');await expect(skeleton).toBeHidden();
  await page.clock.runFor(250);await expect(skeleton).toBeVisible();expect((await region.boundingBox())!.height).toBe(before.height);expect((await metrics.boundingBox())!.y).toBe(before.y);
  release();await expect(page.getByTestId('analysis-chart')).toBeVisible();expect((await metrics.boundingBox())!.y).toBe(before.y);

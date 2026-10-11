@@ -138,6 +138,7 @@ export function JournalPage() {
   const dayEntries = entries.filter((entry) => entry.date === selectedDate);
   const monthEntries = entries.filter((entry) => monthOf(entry.date) === month);
   const monthTotals = journalTotals(monthEntries), dayTotals = journalTotals(dayEntries);
+  const pending=liveApiEnabled&&(accounts.isPending||(!!accountId&&tradesPending));
   const unavailable = liveApiEnabled && !remoteReport;
   const monthProfit = unavailable ? undefined : monthTotals.profit;
   const monthBuy = monthTotals.buy;
@@ -176,19 +177,18 @@ export function JournalPage() {
     <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronLeftRounded sx={{ fontSize: 18 }}/></IconButton>
     <Box sx={{ textAlign: 'center', minWidth: 0 }}>
       <ButtonBase aria-label={`${year}년 ${value}월, 월 선택`} onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} sx={{ display: 'block', mx: 'auto' }}><Typography sx={{ fontSize: 14, lineHeight: '22px', fontWeight: 600 }}>{year}년 {value}월</Typography></ButtonBase>
-      <Box sx={{ fontSize: 10, lineHeight: '14px', color: getProfitColor(monthProfit), overflowWrap: 'anywhere' }}>월손익 {liveApiEnabled ? '—' : monthBuy && monthProfit !== undefined ? journalRate(monthProfit / monthBuy * 100) : '0.0%'} {signedWon(monthProfit)}</Box>
+      <Box sx={{ fontSize: 10, lineHeight: '14px', color: getProfitColor(monthProfit), overflowWrap: 'anywhere' }}>월손익 {pending?<Skeleton component="span" width={70} height={10} sx={{display:'inline-block',verticalAlign:'top',transform:'none'}}/>:<>{liveApiEnabled?'—':monthBuy&&monthProfit!==undefined?journalRate(monthProfit/monthBuy*100):'0.0%'} {signedWon(monthProfit)}</>}</Box>
     </Box>
     <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronRightRounded sx={{ fontSize: 18 }}/></IconButton>
   </Box>;
-  const status = liveApiEnabled && tradesPending ? <Stack role="status" aria-label="선택한 날짜의 거래를 불러오는 중" spacing={1}><Skeleton variant="rounded" height={28}/><Skeleton variant="rounded" height={28}/></Stack>
-    : liveApiEnabled && tradesError && !remoteReport ? <Button role="alert" onClick={() => void reloadTrades()}>거래 조회 실패 · 다시 시도</Button> : null;
-  const transactions = <>{status ?? <JournalTransactions entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
+  const status=liveApiEnabled&&tradesError&&!remoteReport?<Button role="alert" onClick={()=>void reloadTrades()}>거래 조회 실패 · 다시 시도</Button>:null;
+  const transactions=<>{status??<JournalTransactions loading={pending} entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
   const titleRow = <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: '4px' }}>
-    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{unavailable ? '—' : `총 ${dayEntries.length}건`}</Typography>
+    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{pending?<Skeleton width={40} height={10} sx={{transform:'none'}}/>:unavailable?'—':`총 ${dayEntries.length}건`}</Typography>
   </Stack>;
   const summary = <Box data-testid="journal-day-summary" sx={{ bgcolor: colors.raised, borderRadius: '8px', p: '8px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '4px', textAlign: 'right' }}>
     {[['매수', unavailable ? undefined : dayBuy], ['매도', unavailable ? undefined : daySell], [journalRate(dayTotals.cost && dayProfit !== undefined ? dayProfit / dayTotals.cost * 100 : undefined), dayProfit]].map(([label, amount], index) =>
-      <Box key={index}><Typography sx={{ fontSize: 10, lineHeight: '14px', color: index === 2 ? getProfitColor(dayProfit) : colors.textMuted }}>{label}</Typography><Typography sx={{ fontSize: 12, lineHeight: '18px', fontWeight: 600, overflowWrap: 'anywhere', color: index === 2 ? getProfitColor(dayProfit) : colors.textSecondary }}>{index === 2 ? signedWon(amount as number | undefined) : won(amount as number | undefined)}</Typography></Box>)}
+      <Box key={index}><Typography sx={{ fontSize: 10, lineHeight: '14px', color: index === 2 ? getProfitColor(dayProfit) : colors.textMuted }}>{pending&&index===2?<Skeleton height={10} width={40} sx={{ml:'auto',transform:'none'}}/>:label}</Typography><Typography sx={{ fontSize: 12, lineHeight: '18px', fontWeight: 600, overflowWrap: 'anywhere', color: index === 2 ? getProfitColor(dayProfit) : colors.textSecondary }}>{pending?<Skeleton width="80%" height={12} sx={{transform:'none',ml:'auto'}}/>:index === 2 ? signedWon(amount as number | undefined) : won(amount as number | undefined)}</Typography></Box>)}
   </Box>;
   const profitCards = <Stack spacing="8px">
     <Box sx={{ ...panel, p: '8px 16px' }}><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12 }}>전체 손익</Typography><Typography sx={{ fontSize: 12, color: getProfitColor(dayProfit) }}>{unavailable ? '—' : `매도 ${dayTotals.sellCount}건`}</Typography></Stack><Typography data-testid="journal-total-profit" sx={{ textAlign: 'right', fontSize: 30, lineHeight: '41px', fontWeight: 700, color: getProfitColor(dayProfit) }}>{signedWon(dayProfit)}</Typography></Box>
@@ -224,10 +224,10 @@ export function JournalPage() {
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 22, alignItems: 'start' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 10, lineHeight: '14px', fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
           <Box data-testid="journal-calendar-grid" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: 'repeat(6, 44px)' }}>{calendar.map(({ date, day, adjacent }, index) => {
             const count = counts.get(date), selected = selectedDate === date, holiday = holidays.get(date);
-            return <ButtonBase key={date} aria-label={`${date}${holiday ? ` ${holiday}` : ''} 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`} aria-pressed={selected} onClick={() => selectDate(date)}
+            return <ButtonBase key={date} aria-label={`${date}${holiday ? ` ${holiday}` : ''}${unavailable?' 거래 조회 중':` 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`}`} aria-busy={pending} aria-pressed={selected} onClick={() => selectDate(date)}
               sx={{ minWidth: 0, height: 44, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start', pt: 0, bgcolor: 'transparent', outline: selected ? '1.5px solid #EDBF40' : 'none', outlineOffset: '-1px', borderRadius: '4px', color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
               <Typography component="span" sx={{ fontSize: 10, lineHeight: '14px', textAlign: 'center', fontWeight: selected ? 600 : 400 }}>{day}</Typography>
-              {(['buy', 'sell'] as const).map(type => count?.[type] ? <Typography component="span" data-testid={`journal-chip-${type}`} key={type} sx={{ mx: '4px', px: '2px', mt: '1px', borderRadius: '2px', bgcolor: type === 'buy' ? 'rgba(64,134,87,0.7)' : 'rgba(207,74,83,0.7)', color: '#fff', border: 0, fontSize: 10, lineHeight: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>{type === 'buy' ? '매수' : '매도'} {count[type]}</Typography> : null)}
+              {pending?<Skeleton width="75%" height={10} sx={{mx:'auto',mt:'2px',transform:'none'}}/>:(['buy', 'sell'] as const).map(type => count?.[type] ? <Typography component="span" data-testid={`journal-chip-${type}`} key={type} sx={{ mx: '4px', px: '2px', mt: '1px', borderRadius: '2px', bgcolor: type === 'buy' ? 'rgba(64,134,87,0.7)' : 'rgba(207,74,83,0.7)', color: '#fff', border: 0, fontSize: 10, lineHeight: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>{type === 'buy' ? '매수' : '매도'} {count[type]}</Typography> : null)}
             </ButtonBase>;
           })}</Box>
         </Box>
@@ -237,7 +237,7 @@ export function JournalPage() {
         sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {liveApiEnabled && tradesError && !!remoteReport && <Button role="alert" onClick={() => void reloadTrades()}>최신 거래 조회 실패 · 다시 시도</Button>}
         {liveApiEnabled && lotsQuery.isError && <Button role="alert" onClick={() => void lotsQuery.refetch()}>연결 Lot 조회 실패 · 다시 시도</Button>}
-        {liveApiEnabled && !accountId ? <Stack spacing={2} sx={{ ...calendarPanel, p: 3, alignItems: 'center', textAlign: 'center' }}>
+        {liveApiEnabled && !accountId && !accounts.isPending ? <Stack spacing={2} sx={{ ...calendarPanel, p: 3, alignItems: 'center', textAlign: 'center' }}>
           {accounts.isPending ? <Skeleton variant="rounded" width="100%" height={80}/> : accounts.isError ? <>
             <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
             <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
