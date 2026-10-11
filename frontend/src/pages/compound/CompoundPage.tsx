@@ -43,7 +43,7 @@ export function CompoundPage(){
 }
 function AccountPlans({accountId}:{accountId:string}){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search);
- const query=useCompoundPlans(accountId),client=useQueryClient(),returnBack=useReturnNavigation('/more');
+ const query=useCompoundPlans(accountId,{splitLoading:true}),client=useQueryClient(),returnBack=useReturnNavigation('/more');
  const data=query.data,pending=query.isFetching,error=query.error?.message??'';
  const [busy,setBusy]=useState(false),formEntry=useRef(location.key);
  formEntry.current=location.key;

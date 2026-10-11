@@ -1,0 +1,38 @@
+name: Phase18 Production Measurements
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/tests/performance/phase18-live.spec.ts, frontend/playwright.phase18-live.config.ts, .github/workflows/phase18-live-check.yml]
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  measure:
+    if: github.event_name == 'pull_request' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Record actual deployed main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {data}=await github.rest.repos.getBranch({...context.repo,branch:'main'});
+            core.exportVariable('DEPLOYED_SHA',data.commit.sha);
+      - run: npx playwright test --config=playwright.phase18-live.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase18-production-metrics
+          path: frontend/test-results/phase18-live/

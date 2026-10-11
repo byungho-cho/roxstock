@@ -30,7 +30,7 @@ export async function fixture(page:Page, options: { names?: string[]; history?: 
     if(p.endsWith('/investment-baseline'))return route.fulfill({json:{data:null}});
     if(p.endsWith('/cash-transactions'))return route.fulfill({json:{data:[],meta:{total:0}}});
     if(p.endsWith('/dashboard'))return route.fulfill({json:{data:{account:{id:second?'2':'1',name:'기본'},totalAssetValue:'165000',stockValue:'100000',cashBalance:'65000',purchaseAmount:'100000',unrealizedProfitLoss:'1000',unrealizedReturnRate:'1',pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z',holdings:second?[]:holdings}}});
-    if(p.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{total:0,unavailableCount:0,calculatedAt:'2026-10-07T03:00:00Z',priceAsOf:null}}});
+    if(p.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:second?'2':'1',enabled:true,total:0,unavailableCount:0,calculatedAt:'2026-10-07T03:00:00Z',priceAsOf:null}}});
     return route.fulfill({json:{data:[]}});
   });
   return {missing:()=>{missing=true;},hold:()=>{hold=true;},release:()=>{hold=false;pending.splice(0).forEach(resolve=>resolve());},fail:()=>{fail=true;},success:()=>{fail=false;}};

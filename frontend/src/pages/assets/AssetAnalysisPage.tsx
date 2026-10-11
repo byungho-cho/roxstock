@@ -41,11 +41,11 @@ export function AssetAnalysisPage() {
   const range = analysisRange(period, today);
   const [detailPeriod,setDetailPeriod]=useState<AnalysisPeriod>(period);
   const detailRange=analysisRange(detailPeriod,today);
-  const detailHistory=useQuery({queryKey:['analysis-history',accountId,detailRange.from,detailRange.to],queryFn:()=>getAssetHistory(accountId!,detailRange),enabled:!!accountId&&detail});
+  const detailHistory=useQuery({queryKey:['analysis-history',accountId,detailRange.from,detailRange.to],queryFn:({signal})=>getAssetHistory(accountId!,detailRange,signal),enabled:!!accountId&&detail});
   const detailData=detailHistory.data;
   const detailLabel=periodLabel(detailData?.summary?.from??detailData?.data.at(0)?.date,detailData?.summary?.to??detailData?.data.at(-1)?.date);
-  const dashboard = useQuery({ queryKey: ['analysis-dashboard', accountId], queryFn: () => getAccountDashboard(accountId!), enabled: !!accountId });
-  const history = useQuery({ queryKey: ['analysis-history', accountId, range.from, range.to], queryFn: () => getAssetHistory(accountId!, range), enabled: !!accountId });
+  const dashboard = useQuery({ queryKey: ['analysis-dashboard', accountId], queryFn: ({signal}) => getAccountDashboard(accountId!,signal), enabled: !!accountId });
+  const history = useQuery({ queryKey: ['analysis-history', accountId, range.from, range.to], queryFn: ({signal}) => getAssetHistory(accountId!, range,signal), enabled: !!accountId });
   const compound=useCompoundPlans(accountId);
   const compoundPlan=compound.data?.plans.find(plan=>plan.id===history.data?.compoundPlan?.id);
   const defaultGoal=compoundPlan?.goals.find(goal=>goal.isDefault);
@@ -108,7 +108,7 @@ export function AssetAnalysisPage() {
         <Stack direction="row" sx={{ gap: '4px', alignItems: 'center', flexShrink: 0 }}><Typography sx={titleStyle}>자산추이</Typography><Typography sx={{ ...hintStyle, fontWeight: 400 }}>(상세보기)</Typography></Stack>
         <Typography data-testid="analysis-trend-period" sx={{ ...hintStyle, color: colors.warning, textAlign: 'right', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{label}</Typography>
       </CardActionArea>
-      <Box data-testid="analysis-chart-region" aria-busy={history.isFetching} sx={{height:224,position:"relative"}}>{history.isFetching&&data&&<Typography role="status" sx={{position:"absolute",right:0,top:0,fontSize:10,color:colors.textMuted,zIndex:1}}>갱신 중</Typography>}{history.isPending ? <Skeleton variant="rounded" height={224} sx={{transform:"none"}} /> : history.isError && !data ? <Box sx={{height:"100%",display:"grid",placeContent:"center"}}><Typography sx={hintStyle}>자산 이력 조회에 실패했습니다.</Typography><Button onClick={() => history.refetch()}>다시 시도</Button></Box> : !data?.data.length ? <Typography sx={{ ...hintStyle, height: 224, display: 'grid', placeItems: 'center' }}>내용이 없습니다.</Typography> : !points.length ? <Typography sx={{ ...hintStyle, height: 224, display: 'grid', placeItems: 'center' }}>기간 계산 불가 · 유효한 스냅샷이 부족합니다.</Typography> : <Box data-testid="analysis-chart"><AssetAnalysisChart points={data.data} period={period} /></Box>}</Box>
+      <Box data-testid="analysis-chart-region" aria-busy={history.isFetching} sx={{height:224,position:"relative",display:"flow-root"}}>{history.isFetching&&data&&<Typography role="status" sx={{position:"absolute",right:0,top:0,fontSize:10,color:colors.textMuted,zIndex:1}}>갱신 중</Typography>}{history.isPending ? <Skeleton variant="rounded" height={224} sx={{transform:"none"}} /> : history.isError && !data ? <Box sx={{height:"100%",display:"grid",placeContent:"center"}}><Typography role="alert" sx={hintStyle}>자산 이력 조회에 실패했습니다.</Typography><Button onClick={() => history.refetch()}>다시 시도</Button></Box> : !data?.data.length ? <Typography sx={{ ...hintStyle, height: 224, display: 'grid', placeItems: 'center' }}>내용이 없습니다.</Typography> : !points.length ? <Typography sx={{ ...hintStyle, height: 224, display: 'grid', placeItems: 'center' }}>기간 계산 불가 · 유효한 스냅샷이 부족합니다.</Typography> : <Box data-testid="analysis-chart"><AssetAnalysisChart points={data.data} period={period} /></Box>}</Box>
       <Stack direction="row" sx={{ gap: '4px', my: '8px' }}>{analysisPeriods.map(item => <Button key={item.value} aria-pressed={item.value === period} onClick={event => { event.stopPropagation(); setPeriod(item.value); }} sx={{ flex: 1, minWidth: 0, height: 24, minHeight: 24, p: 0, borderRadius: '4px', fontSize: 10, bgcolor: item.value === period ? colors.buttonPrimary : colors.raised, color: item.value === period ? colors.textPrimary : colors.textSecondary }}>{item.label}</Button>)}</Stack>
     </AppCard>
   </>;
