@@ -5,7 +5,7 @@ export async function auditDartReceipts(db:PrismaClient) {
  const [tasks,filings,states,usage,runs]=await Promise.all([
   db.dartBackfillTask.findMany({where:{status:'FAILED'},include:{security:{select:{symbol:true,dartCorpMapping:{select:{corpCode:true}}}}},orderBy:[{securityId:'asc'},{fiscalYear:'asc'}]}),
   db.dartFinancialFiling.findMany({select:{receiptNo:true,fiscalYear:true,reportCode:true,periodType:true,periodEndDate:true,reportName:true,sourceValidation:true,security:{select:{symbol:true}}}}),
-  db.dartBackfillTask.groupBy({by:['status'],_count:true}),
+  db.dartBackfillTask.groupBy({by:['status'],_count:{_all:true}}),
   db.dartApiDailyUsage.findFirst({orderBy:{usageDate:'desc'}}),
   db.collectorRun.findMany({where:{jobType:'dart-financial-statements',NOT:{metadata:{path:'$.phase',equals:'MANUAL'}}},orderBy:{startedAt:'desc'},take:3,select:{id:true,status:true,startedAt:true,finishedAt:true,successCount:true,failureCount:true,skippedCount:true,metadata:true}}),
  ]);
@@ -23,7 +23,7 @@ export async function auditDartReceipts(db:PrismaClient) {
  });
  const receipts=filings.map(f=>f.receiptNo);
  return {version:'DART_SOURCE_V2',observedAt:new Date().toISOString(),readOnly:true,apiCalls:0,
-  taskStates:states.map(s=>({status:s.status,count:s._count})),failed,
+  taskStates:states.map(s=>({status:s.status,count:s._count._all})),failed,
   periodInventory,filingCount:filings.length,duplicateReceipts:receipts.length-new Set(receipts).size,
   dailyUsage:usage?{date:usage.usageDate.toISOString().slice(0,10),calls:usage.apiCallCount,errors:usage.errorCount,noData:usage.noDataCount}:null,
   recentRuns:runs.map(r=>({runId:String(r.id),status:r.status,startedAt:r.startedAt,finishedAt:r.finishedAt,success:r.successCount,failed:r.failureCount,skipped:r.skippedCount,phase:(r.metadata as {phase?:string}|null)?.phase})),
