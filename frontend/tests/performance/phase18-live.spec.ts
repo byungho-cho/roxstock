@@ -26,17 +26,17 @@ for(let round=1;round<=3;round++)for(const screen of ['settings','compound'] as 
  page.on('request',r=>{if(r.url().includes('/api/'))requests.push(new URL(r.url()).pathname.split('/').at(-1)!);});
  page.on('response',r=>{if(!r.url().includes('/api/'))return;tasks.push((async()=>{const body=await r.body().catch(()=>Buffer.alloc(0)),timing=r.request().timing();api.push({name:new URL(r.url()).pathname.split('/').at(-1)!,ms:timing.responseEnd,bytes:body.length,status:r.status(),serverTiming:r.headers()['server-timing']??''});})());});
  const start=Date.now();await page.goto('/detail/'+screen);
- let basic:number,calculated:number;
+ let basic:number,calculated:number,basicCode:Awaited<ReturnType<typeof codeTimings>>=[];
  if(screen==='settings'){
-  await expect(page.getByTestId('settings-menu')).toContainText('계좌 관리');basic=Date.now()-start;
+  await expect(page.getByTestId('settings-menu')).toContainText('계좌 관리');basic=Date.now()-start;basicCode=await codeTimings(page);
   if(info.project.name==='tablet'){await expect.poll(()=>page.locator('[data-testid^="account-card-"]').count(),{timeout:90000}).toBeGreaterThan(0);}
   else await page.getByTestId('settings-menu').getByText('계좌 관리',{exact:true}).click();
   await expect.poll(()=>page.locator('[data-testid^="account-card-"]').count(),{timeout:90000}).toBeGreaterThan(0);calculated=Date.now()-start;
  }else{
   const root=page.getByTestId(/^[CT]1900$/);await expect(root).toBeVisible();
-  await expect.poll(()=>page.locator('[data-testid^="compound-plan-"]').count(),{timeout:90000}).toBeGreaterThan(0);basic=Date.now()-start;
+  await expect.poll(()=>page.locator('[data-testid^="compound-plan-"]').count(),{timeout:90000}).toBeGreaterThan(0);basic=Date.now()-start;basicCode=await codeTimings(page);
   await expect(page.getByLabel('현재 자산 계산 중')).toHaveCount(0,{timeout:90000});calculated=Date.now()-start;
  }
  await page.waitForLoadState('networkidle');await Promise.all(tasks);const code=await codeTimings(page);
- const result={kind:'phase18-live-independent',screen,round,project:info.project.name,deployedCommit:process.env.DEPLOYED_SHA,runner:'GitHub ubuntu-latest Chromium HTTPS',utc:new Date().toISOString(),basicMs:basic,calculatedMs:calculated,requests,api,code};fs.writeFileSync(info.outputPath('metrics.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));await page.screenshot({path:info.outputPath(screen+'-live.png')});
+ const result={kind:'phase18-live-independent',screen,round,project:info.project.name,deployedCommit:process.env.DEPLOYED_SHA,runner:'GitHub ubuntu-latest Chromium HTTPS',utc:new Date().toISOString(),basicMs:basic,calculatedMs:calculated,requests,api,code,basicCode};fs.writeFileSync(info.outputPath('metrics.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));await page.screenshot({path:info.outputPath(screen+'-live.png')});
 });
