@@ -47,6 +47,11 @@ echo "[1/5] Pulling backend image"
 "${COMPOSE[@]}" pull backend collector realtime-collector dart-collector
 
 echo "[2/5] Applying Prisma migrations safely (deploy is idempotent)"
+recovery="$(bash "$PROJECT_DIR/scripts/recover-profit-migration.sh")"
+if [[ "$recovery" == "RECOVERED" ]]; then
+  echo "Verified Phase18 DDL recovery through the database administrator session."
+  "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate resolve --applied 20261011010000_profit_year_aggregates --schema database/prisma/schema.prisma'
+fi
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate deploy --schema database/prisma/schema.prisma'
 
 echo "[3/5] Confirming Prisma migration status"

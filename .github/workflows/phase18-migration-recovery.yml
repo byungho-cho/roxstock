@@ -1,0 +1,53 @@
+name: Phase18 Migration Recovery
+on:
+  pull_request:
+    branches: [main]
+    paths: [scripts/recover-profit-migration.sh, scripts/profit-migration-replay.awk, scripts/deploy-backend.sh, .github/workflows/phase18-migration-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: mysql://roxstock:roxstock@127.0.0.1:3306/roxstock
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: roxstock
+          MARIADB_USER: roxstock
+          MARIADB_PASSWORD: roxstock
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: Reproduce production restricted migration failure
+        env:
+          DB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: |
+          printf "REVOKE TRIGGER ON roxstock.* FROM 'roxstock'@'%%';\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
+          if npm run prisma:migrate:deploy > /tmp/restricted-migration.log 2>&1; then echo 'Expected permission failure'; exit 1; fi
+          rg '1142|TRIGGER command denied' /tmp/restricted-migration.log
+          printf "INSERT INTO accounts(name,broker_name,cash_balance,updated_at) VALUES('preserve-test','test',123.1234,NOW());\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
+      - name: Recover complete DDL, retain runtime grants and original migration checksum
+        env:
+          DB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: |
+          before=$(sha256sum database/prisma/migrations/20261011010000_profit_year_aggregates/migration.sql)
+          test "$(bash scripts/recover-profit-migration.sh "$DB_CONTAINER")" = RECOVERED
+          npx prisma migrate resolve --applied 20261011010000_profit_year_aggregates --schema database/prisma/schema.prisma
+          test "$(bash scripts/recover-profit-migration.sh "$DB_CONTAINER")" = UNCHANGED
+          test "$(sha256sum database/prisma/migrations/20261011010000_profit_year_aggregates/migration.sql)" = "$before"
+          npm run prisma:migrate:deploy
+          test "$(printf "SELECT Trigger_priv FROM mysql.db WHERE Db='roxstock' AND User='roxstock' AND Host='%%';\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot --batch --skip-column-names roxstock')" = N
+          test "$(printf "SELECT COUNT(*) FROM accounts WHERE name='preserve-test' AND cash_balance=123.1234;\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot --batch --skip-column-names roxstock')" = 1
+          node --import tsx --test backend/tests/phase18.integration.ts
