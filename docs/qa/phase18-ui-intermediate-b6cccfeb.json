@@ -1,0 +1,1017 @@
+{
+  "measurementRun": 38104220872,
+  "attempt": 2,
+  "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+  "environment": "GitHub ubuntu-latest Chromium production HTTPS; read-only harness re-run after successful deployment; cold contexts per test, warm in-app home return",
+  "nPerViewport": 3,
+  "samples": [
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:40:44.892Z",
+      "project": "cover",
+      "round": 1,
+      "homeMajorMs": 4540,
+      "homeRecentMs": 4817,
+      "homeAllMs": 4817,
+      "homeWarmMs": 78,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 892.76,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=493.29"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 746.85,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=513.79"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 1025.225,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=819.68"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 1152.151,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=948.29"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 451.082,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=254.23"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:40:49.989Z",
+      "project": "cover",
+      "round": 2,
+      "homeMajorMs": 4632,
+      "homeRecentMs": 4908,
+      "homeAllMs": 4908,
+      "homeWarmMs": 60,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 752.42,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=150.49"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 1094.628,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=866.62"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 1318.742,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=1124.17"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 1731.31,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=1499.95"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 267.393,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=69.52"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:40:53.705Z",
+      "project": "cover",
+      "round": 3,
+      "homeMajorMs": 2897,
+      "homeRecentMs": 3500,
+      "homeAllMs": 3500,
+      "homeWarmMs": 74,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 367.265,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=8.98"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 357.273,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=88.06"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 361.417,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=160.17"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 582.604,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=380.92"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 222.835,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=25.16"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 1,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:10.682Z",
+      "basicMs": 2582,
+      "calculatedMs": 3017,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 1076.61,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=447.20"
+        },
+        {
+          "name": "dashboard",
+          "ms": 333.979,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=73.36"
+        },
+        {
+          "name": "dashboard",
+          "ms": 579.085,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=332.88"
+        },
+        {
+          "name": "dashboard",
+          "ms": 584.073,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=348.99"
+        },
+        {
+          "name": "dashboard",
+          "ms": 625.965,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=363.11"
+        },
+        {
+          "name": "dashboard",
+          "ms": 1267.418,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=1017.60"
+        },
+        {
+          "name": "monitoring",
+          "ms": 14287.24,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=13963.56"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 1,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:14.830Z",
+      "basicMs": 3531,
+      "calculatedMs": 3609,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 587.257,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=185.68"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 609.807,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=399.76"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 497.871,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=302.79"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 2,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:27.773Z",
+      "basicMs": 2586,
+      "calculatedMs": 2677,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 523.534,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=123.73"
+        },
+        {
+          "name": "dashboard",
+          "ms": 483.551,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=271.37"
+        },
+        {
+          "name": "dashboard",
+          "ms": 514.587,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=296.23"
+        },
+        {
+          "name": "dashboard",
+          "ms": 796.102,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=574.96"
+        },
+        {
+          "name": "dashboard",
+          "ms": 855.741,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=620.96"
+        },
+        {
+          "name": "dashboard",
+          "ms": 2821.448,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=2604.09"
+        },
+        {
+          "name": "monitoring",
+          "ms": 10153.74,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=9873.18"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 2,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:34.284Z",
+      "basicMs": 3481,
+      "calculatedMs": 6277,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 602.249,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=192.25"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 857.188,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=648.33"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 2642.171,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=1338.33"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 3,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:42.499Z",
+      "basicMs": 2540,
+      "calculatedMs": 2630,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 640.382,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=249.96"
+        },
+        {
+          "name": "dashboard",
+          "ms": 338.865,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=124.37"
+        },
+        {
+          "name": "dashboard",
+          "ms": 428.14,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=200.21"
+        },
+        {
+          "name": "dashboard",
+          "ms": 434.498,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=200.04"
+        },
+        {
+          "name": "dashboard",
+          "ms": 453.926,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=210.18"
+        },
+        {
+          "name": "dashboard",
+          "ms": 1486.973,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=1263.19"
+        },
+        {
+          "name": "monitoring",
+          "ms": 5476.494,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=5278.85"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 3,
+      "project": "cover",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:46.357Z",
+      "basicMs": 3041,
+      "calculatedMs": 3327,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 543.384,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=135.73"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 393.49,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=192.53"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 448.976,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=246.47"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:51.673Z",
+      "project": "tablet",
+      "round": 1,
+      "homeMajorMs": 4141,
+      "homeRecentMs": 4426,
+      "homeAllMs": 4426,
+      "homeWarmMs": 73,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 537.867,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=49.62"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 1165.998,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=965.02"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 1265.658,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=1053.58"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 1266.98,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=1059.49"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 288.963,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=89.42"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:55.520Z",
+      "project": "tablet",
+      "round": 2,
+      "homeMajorMs": 2921,
+      "homeRecentMs": 3619,
+      "homeAllMs": 3619,
+      "homeWarmMs": 75,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 538.319,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=21.27"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 735.061,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=518.36"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 782.25,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=576.10"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 836.88,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=633.37"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 219.93,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=21.76"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-screen",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:41:59.068Z",
+      "project": "tablet",
+      "round": 3,
+      "homeMajorMs": 3080,
+      "homeRecentMs": 3334,
+      "homeAllMs": 3334,
+      "homeWarmMs": 70,
+      "coldRequests": 5,
+      "warmRequests": 0,
+      "requests": [
+        "home-cold:accounts",
+        "home-cold:target-arrivals",
+        "home-cold:asset-history",
+        "home-cold:dashboard",
+        "home-cold:recent-buys"
+      ],
+      "api": [
+        {
+          "name": "home-cold:accounts",
+          "ms": 590.532,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=30.61"
+        },
+        {
+          "name": "home-cold:target-arrivals",
+          "ms": 342.804,
+          "bytes": 324,
+          "status": 200,
+          "serverTiming": "app;dur=141.07"
+        },
+        {
+          "name": "home-cold:asset-history",
+          "ms": 425.764,
+          "bytes": 1591,
+          "status": 200,
+          "serverTiming": "app;dur=221.29"
+        },
+        {
+          "name": "home-cold:dashboard",
+          "ms": 678.381,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=472.64"
+        },
+        {
+          "name": "home-cold:recent-buys",
+          "ms": 248.229,
+          "bytes": 2781,
+          "status": 200,
+          "serverTiming": "app;dur=48.54"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 1,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:04.602Z",
+      "basicMs": 2482,
+      "calculatedMs": 2488,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 409.018,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=64.59"
+        },
+        {
+          "name": "dashboard",
+          "ms": 531.255,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=325.17"
+        },
+        {
+          "name": "dashboard",
+          "ms": 550.495,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=352.18"
+        },
+        {
+          "name": "dashboard",
+          "ms": 564.88,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=361.71"
+        },
+        {
+          "name": "dashboard",
+          "ms": 572.139,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=366.56"
+        },
+        {
+          "name": "dashboard",
+          "ms": 586.997,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=381.48"
+        },
+        {
+          "name": "monitoring",
+          "ms": 2855.279,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=2651.60"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 1,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:08.263Z",
+      "basicMs": 2504,
+      "calculatedMs": 3290,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 411.567,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=44.80"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 341.23,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=138.14"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 604.644,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=408.14"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 2,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:13.003Z",
+      "basicMs": 2785,
+      "calculatedMs": 2791,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 415.615,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=44.26"
+        },
+        {
+          "name": "dashboard",
+          "ms": 563.166,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=106.03"
+        },
+        {
+          "name": "dashboard",
+          "ms": 566.946,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=113.73"
+        },
+        {
+          "name": "dashboard",
+          "ms": 565.989,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=115.00"
+        },
+        {
+          "name": "dashboard",
+          "ms": 564.185,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=257.87"
+        },
+        {
+          "name": "dashboard",
+          "ms": 658.714,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=408.49"
+        },
+        {
+          "name": "monitoring",
+          "ms": 1739.55,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=1465.64"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 2,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:16.233Z",
+      "basicMs": 2492,
+      "calculatedMs": 2671,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 359.828,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=17.53"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 245.595,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=54.03"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 298.205,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=106.68"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "settings",
+      "round": 3,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:19.602Z",
+      "basicMs": 2511,
+      "calculatedMs": 2518,
+      "requests": [
+        "accounts",
+        "monitoring",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard",
+        "dashboard"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 380.362,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=16.63"
+        },
+        {
+          "name": "dashboard",
+          "ms": 577.891,
+          "bytes": 2276,
+          "status": 200,
+          "serverTiming": "app;dur=134.85"
+        },
+        {
+          "name": "dashboard",
+          "ms": 576.916,
+          "bytes": 3022,
+          "status": 200,
+          "serverTiming": "app;dur=140.13"
+        },
+        {
+          "name": "dashboard",
+          "ms": 577.187,
+          "bytes": 3095,
+          "status": 200,
+          "serverTiming": "app;dur=101.70"
+        },
+        {
+          "name": "dashboard",
+          "ms": 579.683,
+          "bytes": 4055,
+          "status": 200,
+          "serverTiming": "app;dur=340.06"
+        },
+        {
+          "name": "dashboard",
+          "ms": 578.51,
+          "bytes": 2328,
+          "status": 200,
+          "serverTiming": "app;dur=306.66"
+        },
+        {
+          "name": "monitoring",
+          "ms": 625.899,
+          "bytes": 3236,
+          "status": 200,
+          "serverTiming": "app;dur=409.45"
+        }
+      ]
+    },
+    {
+      "kind": "phase18-live-independent",
+      "screen": "compound",
+      "round": 3,
+      "project": "tablet",
+      "deployedCommit": "b6cccfebb435db0da816ad2da320c4714c25c152",
+      "runner": "GitHub ubuntu-latest Chromium HTTPS",
+      "utc": "2026-10-11T02:42:23.445Z",
+      "basicMs": 2537,
+      "calculatedMs": 3323,
+      "requests": [
+        "accounts",
+        "compound-plans",
+        "compound-plans"
+      ],
+      "api": [
+        {
+          "name": "accounts",
+          "ms": 409.232,
+          "bytes": 1421,
+          "status": 200,
+          "serverTiming": "app;dur=49.81"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 249.414,
+          "bytes": 13326,
+          "status": 200,
+          "serverTiming": "app;dur=51.34"
+        },
+        {
+          "name": "compound-plans",
+          "ms": 828.868,
+          "bytes": 15729,
+          "status": 200,
+          "serverTiming": "app;dur=632.24"
+        }
+      ]
+    }
+  ]
+}
