@@ -11,6 +11,7 @@ const input={year,price:'100',metrics:[],periods:[estimate],manual:[],filings:[f
 test('estimate ratios and prior capital have explicit independent bases; never derive income from EPS/shares',()=>{
  const r=selectStoredAnalysis(input);assert.equal(r.eps,'10');assert.equal(r.epsYield,'10');assert.equal(r.targetPrice,'440');assert.equal(r.w,'4.4');assert.equal(r.capital,'1000');assert.equal(r.capitalBasis?.year,year-1);assert.equal(r.capitalBasis?.source,'DART:CFS');assert.equal(r.netIncome,'700');assert.equal(r.netIncomeBasis?.isEstimated,true);assert.equal(r.netIncomeBasis?.unit,'KRW');assert.equal(r.metricBasis.label,`${year}E`);
  const incomplete=selectStoredAnalysis({...input,periods:[{...estimate,supplemental:{estimateFinancials:{netIncome:'999'}}}]});assert.equal(incomplete.netIncome,null);assert.equal(incomplete.missingReasons.netIncome,'ESTIMATE_BASIS_UNCONFIRMED');
+ const mismatch=selectStoredAnalysis({...input,periods:[{...estimate,supplemental:{...estimate.supplemental,estimateFinancials:{netIncome:'900'}}}]});assert.equal(mismatch.netIncome,null);assert.equal(mismatch.missingReasons.netIncome,'ESTIMATE_SOURCE_MISMATCH');
  const missing=selectStoredAnalysis({...input,periods:[{...estimate,supplemental:{...estimate.supplemental,estimateFinancials:{}}}]});assert.equal(missing.netIncome,null);assert.equal(missing.missingReasons.netIncome,'NOT_PROVIDED');
 });
 test('prior annual income and interim YTD cannot fill selected annual income, zero and no price are distinct',()=>{

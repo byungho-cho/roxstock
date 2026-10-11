@@ -27,6 +27,7 @@ jobs:
         run: |
           git worktree add --detach monitor-baseline f16cd801236d5247358ee45c4bc7341de90dab1e
           ln -s ../node_modules monitor-baseline/node_modules
+          ln -s ../../frontend/node_modules monitor-baseline/frontend/node_modules
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: npx playwright test -c playwright.monitor-financial.config.ts
