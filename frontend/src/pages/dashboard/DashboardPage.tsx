@@ -1,9 +1,10 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import './home-font.css';
 import {useEffect,useState} from 'react';
 import {useTargetArrivals} from '../../hooks/useTargetArrivals';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
-import { Box, Button, CardActionArea, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
+import { Box, Button, CardActionArea, Snackbar, Stack, Typography } from '@mui/material';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { useDashboard } from '../../hooks/useMockData';
 import { useActiveAccount } from '../../hooks/useActiveAccount';

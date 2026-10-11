@@ -1,6 +1,7 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { useTargetArrivals } from '../../hooks/useTargetArrivals';
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';

@@ -1,5 +1,6 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
-import { Button, Skeleton, Stack, TextField, Typography } from '@mui/material';
+import { Button, Stack, TextField, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

@@ -1,9 +1,10 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import { usePageMemory, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ArrowBackRounded, ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, ButtonBase, DialogActions, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';

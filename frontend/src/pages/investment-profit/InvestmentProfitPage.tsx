@@ -1,9 +1,10 @@
+import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { stockProfitPath, yearProfitPath } from './profitNavigation';
 import { ProfitMetric as Metric, StockProfitMetrics } from './ProfitSummaryMetrics';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { useDetailSwipe } from '../../hooks/useDetailSwipe';
 import '../dashboard/home-font.css';
-import { Box, Button, ButtonBase, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
