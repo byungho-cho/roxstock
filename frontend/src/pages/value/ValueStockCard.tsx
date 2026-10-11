@@ -20,6 +20,7 @@ export function ValueStockCard({row,selected,disabled,onClick}:{row:ValueRow;sel
   <Box sx={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))',gap:0,minHeight:32}}>
    {values.map(([label,value])=><Box key={label} sx={{display:'flex',flexDirection:'column',fontSize:10,minWidth:0}}><Box component="span" sx={{color:'#94A3BA',lineHeight:'16px'}}>{label}</Box><Box component="span" sx={{lineHeight:'16px',overflowWrap:'anywhere'}}>{value}</Box></Box>)}
   </Box>
+  {(row.metricBasis||row.capitalBasis)&&<Typography component="span" sx={{fontSize:10,color:'#94A3B8',lineHeight:'16px'}}>{row.metricBasis?.label}{row.metricBasis?.isEstimated?' · 연간 추정':''}{row.capitalBasis?` · 자본 ${row.capitalBasis.year}년 결산 · ${row.capitalBasis.source}`:''}</Typography>}
   <Box sx={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:0,borderTop:'1px solid rgba(89,117,143,.65)',pt:'2px',minHeight:32}}>
    {['0.7','0.8','0.9','1.0'].map(persistence=>{const fair=row.fairPrices?.find(f=>f.persistence===persistence)?.price??null,value=number(fair);return <Box key={persistence} sx={{display:'flex',flexDirection:'column',minWidth:0}}><Box component="span" sx={{fontSize:10,color:'#94A3BA',lineHeight:'16px'}}>지속계수 {persistence}</Box><Box component="span" sx={{fontSize:11,lineHeight:'16px',overflowWrap:'anywhere',color:color(price===null||value===null?null:value-price)}}>{format(fair,0,'원')}</Box></Box>;})}
   </Box>
