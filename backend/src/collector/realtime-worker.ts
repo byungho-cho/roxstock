@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { createRealtimeMonitor } from './realtime-monitor.js';
+import { safeErrorCode } from './realtime-lifecycle.js';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import { loadCollectorConfig } from './config.js';
@@ -14,113 +16,69 @@ const provider = config.provider === 'mock'
   ? new MockPriceProvider()
   : new NaverPriceProvider(config.requestTimeoutMs);
 const token = randomUUID();
-const monitor = {
-  async acquire() {
-    const result = await prisma.$executeRaw`
-      INSERT INTO collector_locks (job_name, owner_token, locked_until, created_at, updated_at)
-      VALUES ('selected-realtime-prices', ${token}, DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 45 SECOND), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
-      ON DUPLICATE KEY UPDATE owner_token=IF(locked_until < UTC_TIMESTAMP(3), VALUES(owner_token), owner_token), locked_until=IF(locked_until < UTC_TIMESTAMP(3), VALUES(locked_until), locked_until), updated_at=IF(locked_until < UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), updated_at)
-    `;
-    const rows = await prisma.$queryRaw<Array<{ owner_token: string }>>`SELECT owner_token FROM collector_locks WHERE job_name='selected-realtime-prices'`;
-    return result > 0 && rows[0]?.owner_token === token;
-  },
-  async heartbeat(status: { workerStatus: string; marketSession: string; at: Date }) {
-    const prior = await prisma.realtimeWorkerState.findUnique({ where: { id: 'selected-prices' }, select: { workerToken: true } });
-    await prisma.realtimeWorkerState.upsert({
-      where: { id: 'selected-prices' },
-      create: { id: 'selected-prices', workerToken: token, workerStatus: status.workerStatus, startedAt: status.at, heartbeatAt: status.at, marketSession: status.marketSession },
-      update: { workerToken: token, workerStatus: status.workerStatus, heartbeatAt: status.at, marketSession: status.marketSession, ...(prior?.workerToken !== token ? { startedAt: status.at } : {}) },
-    });
-    await prisma.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 45 SECOND), updated_at=UTC_TIMESTAMP(3) WHERE job_name='selected-realtime-prices' AND owner_token=${token}`;
-  },
-  async cycle(data: Parameters<NonNullable<Parameters<typeof runRealtimeCollector>[2]['monitor']>['cycle']>[0]) {
-    const minute = new Date(Math.floor(data.startedAt.getTime() / 60_000) * 60_000);
-    const counts = { cycleCount: 1, targetCount: data.targetCount, receivedCount: data.receivedCount, sourceFailureCount: data.sourceFailureCount, staleCount: data.staleCount,
-      publishedCount: data.publishedCount, publishFailureCount: data.publishFailureCount, savedCount: data.savedCount, saveFailureCount: data.saveFailureCount, lastCycleFinishedAt: data.finishedAt };
-    await prisma.realtimeCycleAggregate.upsert({ where: { minuteStartedAt: minute }, create: { minuteStartedAt: minute, ...counts }, update: {
-      cycleCount: { increment: 1 }, targetCount: { increment: data.targetCount }, receivedCount: { increment: data.receivedCount }, sourceFailureCount: { increment: data.sourceFailureCount }, staleCount: { increment: data.staleCount },
-      publishedCount: { increment: data.publishedCount }, publishFailureCount: { increment: data.publishFailureCount }, savedCount: { increment: data.savedCount }, saveFailureCount: { increment: data.saveFailureCount }, lastCycleFinishedAt: data.finishedAt,
-    } });
-    await prisma.realtimeWorkerState.update({ where: { id: 'selected-prices' }, data: {
-      heartbeatAt: data.finishedAt, marketSession: data.session, lastCycleStartedAt: data.startedAt, lastCycleFinishedAt: data.finishedAt,
-      targetCount: data.targetCount, receivedCount: data.receivedCount, sourceFailureCount: data.sourceFailureCount, staleCount: data.staleCount,
-      publishedCount: data.publishedCount, publishFailureCount: data.publishFailureCount, savedCount: data.savedCount, saveFailureCount: data.saveFailureCount,
-      ...(data.receivedCount ? { lastPriceReceivedAt: data.finishedAt } : {}), ...(data.lastSourcePriceAt ? { lastSourcePriceAt: data.lastSourcePriceAt } : {}),
-      ...(data.publishedCount ? { lastSsePublishedAt: data.finishedAt } : {}), ...(data.savedCount ? { lastDbSavedAt: data.finishedAt } : {}),
-      lastSourceError: data.sourceError ?? null, lastPublishError: data.publishError ?? null, lastSaveError: data.saveError ?? null,
-    } });
-    const issues = [
-      ...(data.sourceError ? [{ stage: 'SOURCE', message: data.sourceError }] : []),
-      ...(data.sourceIssues ?? []).map((issue) => ({ stage: 'SOURCE', symbol: issue.symbol, message: issue.reason })),
-      ...(data.publishError ? [{ stage: 'PUBLISH', message: data.publishError }] : []),
-      ...(data.saveError ? [{ stage: 'DATABASE', message: data.saveError }] : []),
-    ];
-    if (issues.length) await prisma.realtimeCollectorIssue.createMany({ data: issues.map((issue) => ({ stage: issue.stage, symbol: 'symbol' in issue ? issue.symbol : null, message: issue.message.slice(0, 1000), occurredAt: data.finishedAt })) });
-    await prisma.realtimeCollectorIssue.deleteMany({ where: { id: { notIn: (await prisma.realtimeCollectorIssue.findMany({ orderBy: { occurredAt: 'desc' }, take: 1000, select: { id: true } })).map((x) => x.id) } } });
-    await prisma.realtimeCollectorIssue.deleteMany({ where: { occurredAt: { lt: new Date(data.finishedAt.getTime() - 30 * 86_400_000) } } });
-    await prisma.realtimeCycleAggregate.deleteMany({ where: { minuteStartedAt: { lt: new Date(data.finishedAt.getTime() - 7 * 86_400_000) } } });
-  },
-  async stopped(at: Date) {
-    await prisma.realtimeWorkerState.updateMany({ where: { id: 'selected-prices', workerToken: token }, data: { workerStatus: 'STOPPED', heartbeatAt: at, marketSession: 'STOPPED' } });
-    await prisma.collectorLock.deleteMany({ where: { jobName: 'selected-realtime-prices', ownerToken: token } });
-  },
-};
+const monitor = createRealtimeMonitor(prisma, token);
+let stopping = false;
+let stopCollector: (() => Promise<void>) | undefined;
+let heartbeatTimer: ReturnType<typeof setTimeout> | undefined;
+let heartbeatInFlight: Promise<void> = Promise.resolve();
+let wakeStandby: (() => void) | undefined;
+let shutdownPromise: Promise<void> | undefined;
 
-if (!await monitor.acquire()) {
-  console.error('A realtime collector already holds the worker lock.');
-  await prisma.$disconnect();
-  process.exit(1);
-}
-await monitor.heartbeat({ workerStatus: 'RUNNING', marketSession: 'OUT_OF_SESSION', at: new Date() });
-const heartbeatTimer = setInterval(() => {
-  const now = new Date();
-  const session = getRealtimeMarketSession(now, {
-    preMarketOpen: config.realtimePreMarketOpen, preMarketClose: config.realtimePreMarketClose,
-    regularMarketOpen: config.realtimeRegularMarketOpen, regularMarketClose: config.realtimeRegularMarketClose,
-    afterMarketOpen: config.realtimeAfterMarketOpen, afterMarketClose: config.realtimeAfterMarketClose,
-  });
-  void monitor.heartbeat({ workerStatus: config.realtimeEnabled ? 'RUNNING' : 'DISABLED', marketSession: session ?? 'OUT_OF_SESSION', at: now }).catch(() => {});
-}, 15_000);
-
-try {
-  const stopCollector = await runRealtimeCollector(repository, provider, {
-    enabled: config.realtimeEnabled,
-    intervalSeconds: config.realtimeIntervalSeconds,
-    dbFlushSeconds: config.realtimeDbFlushSeconds,
-    targetRefreshSeconds: config.realtimeTargetRefreshSeconds,
-    staleBackoffSeconds: config.realtimeStaleBackoffSeconds,
-    maxSecurities: config.realtimeMaxSecurities,
-    concurrency: config.realtimeConcurrency,
-    marketSessions: {
-      preMarketOpen: config.realtimePreMarketOpen,
-      preMarketClose: config.realtimePreMarketClose,
-      regularMarketOpen: config.realtimeRegularMarketOpen,
-      regularMarketClose: config.realtimeRegularMarketClose,
-      afterMarketOpen: config.realtimeAfterMarketOpen,
-      afterMarketClose: config.realtimeAfterMarketClose,
-    },
-    apiUrl: config.realtimeApiUrl,
-    internalToken: config.realtimeInternalToken,
-    requestTimeoutMs: config.requestTimeoutMs,
-    monitor,
-  });
-  const stop = async () => {
-    clearInterval(heartbeatTimer);
+const shutdown = (failed = false): Promise<void> => {
+  if (shutdownPromise) return shutdownPromise;
+  stopping = true;
+  clearTimeout(heartbeatTimer);
+  wakeStandby?.();
+  shutdownPromise = (async () => {
+    const collectorDrain = stopCollector?.();
     try {
-      await stopCollector();
+      await heartbeatInFlight.catch((error: unknown) => { log('warn', 'realtime heartbeat drained with failure', { code: safeErrorCode(error) }); });
+      await collectorDrain;
+    } catch (error) {
+      log('error', 'realtime shutdown drain failed', { code: safeErrorCode(error) });
     } finally {
-      await monitor.stopped(new Date());
-      await prisma.$disconnect();
-      process.exit(0);
+      try { await monitor.stopped(new Date()); }
+      catch (error) { log('error', 'realtime lock release failed', { code: safeErrorCode(error) }); }
+      finally { await prisma.$disconnect(); process.exitCode = failed ? 1 : 0; }
     }
-  };
-  process.on('SIGTERM', () => void stop());
-  process.on('SIGINT', () => void stop());
-} catch (error) {
-  clearInterval(heartbeatTimer);
-  log('error', 'realtime collector process failed', {
-    reason: error instanceof Error ? error.message : String(error),
-  });
-  await prisma.$disconnect();
-  process.exitCode = 1;
-}
+  })();
+  return shutdownPromise;
+};
+process.once('SIGTERM', () => { void shutdown(); });
+process.once('SIGINT', () => { void shutdown(); });
+const fail = (error: unknown) => {
+  log('error', 'realtime worker degraded; stopping safely', { code: safeErrorCode(error) });
+  void shutdown(true);
+};
+const sessions = {
+  preMarketOpen: config.realtimePreMarketOpen, preMarketClose: config.realtimePreMarketClose,
+  regularMarketOpen: config.realtimeRegularMarketOpen, regularMarketClose: config.realtimeRegularMarketClose,
+  afterMarketOpen: config.realtimeAfterMarketOpen, afterMarketClose: config.realtimeAfterMarketClose,
+};
+const heartbeat = () => {
+  if (stopping) return;
+  heartbeatInFlight = monitor.heartbeat({ workerStatus: config.realtimeEnabled ? 'RUNNING' : 'DISABLED', marketSession: getRealtimeMarketSession(new Date(), sessions) ?? 'OUT_OF_SESSION', at: new Date() });
+  void heartbeatInFlight.then(() => {
+    if (!stopping) heartbeatTimer = setTimeout(heartbeat, 15_000);
+  }, fail);
+};
+try {
+  // A valid competing lease is normal standby, not a process crash.
+  while (!stopping && !await monitor.acquire()) {
+    log('info', 'realtime worker waiting for existing lease');
+    await new Promise<void>((resolve) => { wakeStandby = resolve; heartbeatTimer = setTimeout(() => { wakeStandby = undefined; resolve(); }, 5000 + Math.floor(Math.random() * 1000)); });
+  }
+  if (!stopping) {
+    await monitor.heartbeat({ workerStatus: 'RUNNING', marketSession: 'OUT_OF_SESSION', at: new Date() });
+    stopCollector = await runRealtimeCollector(repository, provider, {
+      enabled: config.realtimeEnabled, intervalSeconds: config.realtimeIntervalSeconds,
+      dbFlushSeconds: config.realtimeDbFlushSeconds, targetRefreshSeconds: config.realtimeTargetRefreshSeconds,
+      staleBackoffSeconds: config.realtimeStaleBackoffSeconds, maxSecurities: config.realtimeMaxSecurities,
+      concurrency: config.realtimeConcurrency, marketSessions: sessions, apiUrl: config.realtimeApiUrl,
+      internalToken: config.realtimeInternalToken, requestTimeoutMs: config.requestTimeoutMs,
+      monitor, externalHeartbeat: true, onFatal: fail,
+    });
+    if (stopping) await stopCollector();
+    else heartbeatTimer = setTimeout(heartbeat, 15_000);
+  }
+} catch (error) { fail(error); }
