@@ -8,9 +8,26 @@ export function usePageMemoryKey() {
   const { accountId } = useActiveAccount();
   return JSON.stringify([accountId ?? 'unselected', location.state?.listEntryKey ?? location.key, location.pathname]);
 }
-export function usePageMemory<T>(name: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
-  const key = usePageMemoryKey() + ':' + name;
-  const read = () => readPageMemory<T>(key) ?? (typeof initial === 'function' ? (initial as () => T)() : initial);
+export function usePageMemory<T>(name: string, initial: T | (() => T), options: {adoptInitialAccount?:boolean} = {}): [T, Dispatch<SetStateAction<T>>] {
+  const scope=usePageMemoryKey(),key=scope+':'+name;
+  const read=()=>{
+    let saved=readPageMemory<T>(key);
+    if(options.adoptInitialAccount){
+      const [account,entry,route]=JSON.parse(scope) as string[];
+      if(account!=='unselected'){
+        const pendingScope=JSON.stringify(['unselected',entry,route]);
+        const ownerKey=pendingScope+':'+name+':initial-account-owner';
+        const owner=readPageMemory<string>(ownerKey);
+        // Consume pre-account UI input once for this history entry, never for a later account.
+        if(owner===undefined){
+          writePageMemory(ownerKey,account);
+          const pending=readPageMemory<T>(pendingScope+':'+name);
+          if(saved===undefined&&pending!==undefined){saved=pending;writePageMemory(key,pending);}
+        }
+      }
+    }
+    return saved??(typeof initial==='function'?(initial as ()=>T)():initial);
+  };
   const [slot, setSlot] = useState(() => ({ key, value: read() }));
   const value = slot.key === key ? slot.value : read();
   if (slot.key !== key) setSlot({ key, value });

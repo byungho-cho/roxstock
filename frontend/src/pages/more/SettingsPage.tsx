@@ -8,7 +8,7 @@ import { PageHeader } from '../../components/navigation/Navigation';
 import type {MoreView} from './MoreScreens';
 import {SettingsMenu} from './SettingsMenu';
 const AccountForm=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountForm})));
-const AccountManagement=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountManagement})));
+import {AccountManagement} from './AccountManagement';
 const CashAdjustment=lazy(()=>import('./MoreScreens').then(m=>({default:m.CashAdjustment})));
 const CollectionSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.CollectionSettings})));
 const ThemeSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.ThemeSettings})));
