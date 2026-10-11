@@ -1,3 +1,4 @@
+import { RouteContent } from '../components/common/RouteLoading';
 import { HomeAccountTitle } from '../components/navigation/HomeAccountTitle';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useActiveAccount } from '../hooks/useActiveAccount';
@@ -62,7 +63,7 @@ export function AppLayout() {
     <MainLoadingBar />
     <PullRefreshIndicator distance={pull.distance} refreshing={pull.refreshing} />
     <Snackbar open={pull.error} autoHideDuration={5000} onClose={pull.dismissError} message="새로고침에 실패했습니다. 기존 데이터를 표시합니다." action={<Button onClick={pull.retry}>재시도</Button>} />
-    <PageLayout valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><Outlet /></PageLayout>
+    <PageLayout valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><RouteContent><Outlet /></RouteContent></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
     {<><Zoom in={!isCash && showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
