@@ -70,6 +70,7 @@ try {
   }
   if (!stopping) {
     await monitor.heartbeat({ workerStatus: 'RUNNING', marketSession: 'OUT_OF_SESSION', at: new Date() });
+    if (stopping) throw new Error('STARTUP_STOPPED');
     stopCollector = await runRealtimeCollector(repository, provider, {
       enabled: config.realtimeEnabled, intervalSeconds: config.realtimeIntervalSeconds,
       dbFlushSeconds: config.realtimeDbFlushSeconds, targetRefreshSeconds: config.realtimeTargetRefreshSeconds,
