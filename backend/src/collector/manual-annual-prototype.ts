@@ -1,3 +1,4 @@
+import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {manualFetch} from './manual-job-budget.js';
 import { Prisma, type PrismaClient, type DartFinancialFiling } from '../generated/prisma/index.js';
 import { calculatePeriod, metricKeys, type MetricValues, type Supplemental } from '../domain/period-valuation.js';
@@ -8,7 +9,7 @@ import { loadPeriodSupplement } from './valuation-supplement.js';
 import { OpenDartProvider, DartApiError } from './dart-provider.js';
 import { normalizeManualDartAccounts } from './manual-dart-accounts.js';
 import { PrismaDartRepository } from './dart-repository.js';
-import { getCfsThenOfs, parseDartDate, endOfFiscalPeriod } from './dart-collector.js';
+import { getCfsThenOfs } from './dart-collector.js';
 import { getSeoulClock } from './time.js';
 
 const version='MANUAL_ANNUAL_V1';
@@ -44,12 +45,13 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
     const report=reports.find(r=>r.reportCode==='11011'&&!r.withdrawn);
     if(!report)reasons.financials='NO_PERIODIC_FILING';
     else{
+     requireDartReportPeriod(report,security.dartCorpMapping.corpCode,year);
      const response=await getCfsThenOfs(provider,security.dartCorpMapping.corpCode,year,'11011');
      if(!response.rows.length)reasons.financials='FINANCIAL_ROWS_NOT_PUBLISHED';
      else{
-      if(response.rows.some(r=>r.receiptNo!==report.receiptNo))throw new DartApiError('RECEIPT_MISMATCH','공시번호 불일치');
-      await repo.saveFiling({securityId:security.id,fiscalYear:year,periodType:'ANNUAL',reportCode:'11011',fsDivision:response.division,receiptNo:report.receiptNo,reportName:report.reportName,receiptDate:parseDartDate(report.receiptDate),periodEndDate:endOfFiscalPeriod(year,'ANNUAL'),collectedAt:new Date(),values:normalizeManualDartAccounts(response.rows)});
-      filing=await db.dartFinancialFiling.findFirst({where:{receiptNo:report.receiptNo}});
+      const verified=validateDartFiling({corpCode:security.dartCorpMapping.corpCode,taskFiscalYear:year,report,rows:response.rows,fsDivision:response.division});
+      await repo.saveFiling({securityId:security.id,fiscalYear:year,periodType:'ANNUAL',reportCode:'11011',fsDivision:response.division,...verified,collectedAt:new Date(),values:normalizeManualDartAccounts(response.rows)});
+      filing=await db.dartFinancialFiling.findFirst({where:{receiptNo:verified.receiptNo}});
      }
     }
    }

@@ -3,3 +3,8 @@ test('collector diagnostic output allowlists fields and never prints raw request
  const secret='secret-query-token';const input=[JSON.stringify({event:'DART collector failure',timestamp:'2026-10-10T11:00:00.000Z',runId:'12',code:'NETWORK_ERROR',category:'DART_API',stage:'FINANCIALS',message:secret,apiKey:secret,url:secret,stack:secret}),secret,JSON.stringify({event:'unknown',code:secret}),JSON.stringify({event:'manual_refresh_task',jobId:'13',source:'OPEN_DART',period:'ANNUAL',fiscalYear:2025,durationMs:20000,code:'DART_TIMEOUT',request:secret})].join('\n');
  const result=spawnSync(process.execPath,['scripts/filter-collector-diagnostics.mjs'],{input,encoding:'utf8'});assert.equal(result.status,0);assert.ok(!result.stdout.includes(secret));assert.match(result.stdout,/NETWORK_ERROR/);assert.match(result.stdout,/DART_TIMEOUT/);assert.match(result.stdout,/"count":2/);
 });
+
+test('source-validation context survives safe filtering; raw exception/request fields do not',()=>{
+ const input=JSON.stringify({event:'DART task failed',runId:'4780',attempt:3,context:{corpCode:'01170962',taskFiscalYear:2024,apiFiscalYear:2024,reportCode:'11012',fsDivision:'CFS',reportPeriod:'2024-12',selectedReceiptNo:'20240229002271',returnedReceiptNos:['20250304000174','secret-fixture'],validationResult:'RECEIPT_NOT_IN_EXPECTED_PERIOD',originalCode:'RECEIPT_MISMATCH',url:'secret-fixture'},message:'secret-fixture'});
+ const result=spawnSync(process.execPath,['scripts/filter-collector-diagnostics.mjs'],{input,encoding:'utf8'});assert.equal(result.status,0);assert.match(result.stdout,/01170962/);assert.match(result.stdout,/20250304000174/);assert.match(result.stdout,/RECEIPT_NOT_IN_EXPECTED_PERIOD/);assert.ok(!result.stdout.includes('secret-fixture'));
+});

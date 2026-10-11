@@ -1,3 +1,4 @@
+import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {processIndependentRefresh,expireManualRun,type ManualTaskResult} from './manual-refresh-jobs.js';
 import {recordDartFailure} from './dart-diagnostics.js';
 import { refreshManualAnnual } from './manual-annual-prototype.js';
@@ -11,7 +12,7 @@ import { ApiError } from '../lib/api-error.js';
 import { getSeoulClock } from './time.js';
 import { PrismaDartRepository } from './dart-repository.js';
 import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartPeriodType, type DartReportCode } from './dart-provider.js';
-import { getCfsThenOfs, parseDartDate, endOfFiscalPeriod, type DartCollectorConfig } from './dart-collector.js';
+import { getCfsThenOfs, type DartCollectorConfig } from './dart-collector.js';
 
 export const manualReports: Record<DartPeriodType, DartReportCode> = { Q1: '11013', Q2: '11012', Q3: '11014', ANNUAL: '11011' };
 export interface ManualRefreshMetadata { phase: 'MANUAL'; executionMode?: 'MANUAL_PROTOTYPE'; refreshMode?:'FULL'|'SUPPLEMENT';clientRequestId?:string;deadlineAt?:string;lockOwner?:string;terminalCode?:string; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult};stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult}; fiscalYear?: number; kind?:string; collectionState?:string; financialComplete?:boolean; disclosureChecked?:boolean; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
@@ -98,13 +99,14 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
         reports??=await provider.listPeriodicReports(mapping.corpCode,fiscalYear);
         const report = reports.find((r) => r.reportCode === manualReports[period] && !r.withdrawn);
         if (!report) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'NO_PERIODIC_FILING' }); continue; }
+        requireDartReportPeriod(report,mapping.corpCode,fiscalYear);
         const stored=await db.dartFinancialFiling.findUnique({where:{receiptNo:report.receiptNo},select:{securityId:true,fiscalYear:true,periodType:true,isWithdrawn:true,normalizationVersion:true}});
         if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){await publish(fiscalYear,'VALUATION',period);const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
         const filing = await getCfsThenOfs(provider, mapping.corpCode, fiscalYear, manualReports[period]);
         if (!filing.rows.length) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'FINANCIAL_ROWS_NOT_PUBLISHED' }); continue; }
-        if (filing.rows.some((r) => r.receiptNo !== report.receiptNo)) throw new DartApiError('RECEIPT_MISMATCH', '공시 목록과 재무제표 접수번호가 일치하지 않습니다.');
+        const source=validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
         const saved = await repo.saveFiling({ securityId, fiscalYear: fiscalYear, periodType: period, reportCode: manualReports[period], fsDivision: filing.division,
-          receiptNo: report.receiptNo, reportName: report.reportName, receiptDate: parseDartDate(report.receiptDate), periodEndDate: endOfFiscalPeriod(fiscalYear, period), collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
+          ...source, collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
         await publish(fiscalYear,'VALUATION',period);
         const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));
         results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });

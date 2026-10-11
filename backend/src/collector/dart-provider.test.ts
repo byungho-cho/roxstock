@@ -50,7 +50,7 @@ test('Open DART corporation-code ZIP maps only exact six-digit listed stock code
   assert.deepEqual(result, [{ corpCode: '00126380', corpName: '삼성전자&Co', stockCode: '005930', modifiedDate: '20260930' }]);
 });
 
-test('periodic report matching preserves amended receipt and drops withdrawn latest copy', () => {
+test('periodic report matching retains withdrawal for review instead of silently selecting old values', () => {
   const reports = [
     { rcept_no: '20250314001001', rcept_dt: '20250314', report_nm: '사업보고서 (2024.12)' },
     { rcept_no: '20250314001002', rcept_dt: '20250314', report_nm: '분기보고서 (2024.09)' },
@@ -64,7 +64,7 @@ test('periodic report matching preserves amended receipt and drops withdrawn lat
     ['11013', 'Q1', '20250314001004'],
     ['11012', 'Q2', '20250314001003'],
     ['11014', 'Q3', '20250314001002'],
-    ['11011', 'ANNUAL', '20250315001001'],
+    ['11011', 'ANNUAL', '20250316001001'],
   ]);
 });
 
@@ -75,7 +75,8 @@ test('period matching supports fiscal years ending in March', () => {
     { rcept_no: '20240801000001', rcept_dt: '20240801', report_nm: '반기보고서 (2024.09)' },
     { rcept_no: '20240501000001', rcept_dt: '20240501', report_nm: '분기보고서 (2024.06)' },
   ];
-  assert.deepEqual(mapPeriodicReports(reports, 2025).map((item) => item.reportCode), ['11013', '11012', '11014', '11011']);
+  assert.deepEqual(mapPeriodicReports(reports, 2024).map((item) => item.reportCode), ['11013', '11012', '11014']);
+  assert.deepEqual(mapPeriodicReports(reports, 2025).map((item) => item.reportCode), ['11011']);
 });
 
 test('financial mapping keeps source accounts, signed amounts, and unknown metrics null', () => {
@@ -152,7 +153,7 @@ test('historical report search includes late amendments after the following June
   let end='';
   const provider = new OpenDartProvider({apiKey:'test',dailyCallLimit:10000,minDelayMs:2000,reserveCall:async()=>true,fetchFn:async(url)=>{
     end = new URL(String(url)).searchParams.get('end_de')??'';
-    return new Response(JSON.stringify({status:'000',total_page:1,list:[{rcept_no:'20260901000001',rcept_dt:'20260901',report_nm:'[기재정정] 사업보고서 (2015.12)'}]}));
+    return new Response(JSON.stringify({status:'000',total_page:1,list:[{corp_code:'00126380',rcept_no:'20260901000001',rcept_dt:'20260901',report_nm:'[기재정정] 사업보고서 (2015.12)'}]}));
   }});
   const reports = await provider.listPeriodicReports('00126380',2015);
   assert.ok(end>'20160630');

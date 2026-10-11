@@ -26,7 +26,7 @@ test('manual annual request uses shared quota/lock, CFS fallback, preserves no-d
   PrismaDartRepository.prototype.finishRun = async (...args) => {final=args;};
   globalThis.fetch = (async (input) => {
     const u = new URL(String(input));
-    if(u.pathname.endsWith('list.json')) return Response.json({status:'000',total_page:1,list:[{rcept_no:'20250301000001',rcept_dt:'20250301',report_nm:'사업보고서 (2024.12)'},{rcept_no:'20240501000001',rcept_dt:'20240501',report_nm:'분기보고서 (2024.03)'},{rcept_no:'20240801000001',rcept_dt:'20240801',report_nm:'반기보고서 (2024.06)'}]});
+    if(u.pathname.endsWith('list.json')) return Response.json({status:'000',total_page:1,list:[{corp_code:'001',rcept_no:'20250301000001',rcept_dt:'20250301',report_nm:'사업보고서 (2024.12)'},{corp_code:'001',rcept_no:'20240501000001',rcept_dt:'20240501',report_nm:'분기보고서 (2024.03)'},{corp_code:'001',rcept_no:'20240801000001',rcept_dt:'20240801',report_nm:'반기보고서 (2024.06)'}]});
     const code=u.searchParams.get('reprt_code');
     if(code==='11012')return Response.json({status:'020'});
     if(u.searchParams.get('fs_div')==='CFS')return Response.json({status:'013'});

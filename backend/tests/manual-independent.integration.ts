@@ -5,7 +5,7 @@ import {buildApp} from '../src/app.js';
 import {enqueueManualRefresh,parseManualRefresh,type ManualRefreshMetadata} from '../src/collector/dart-manual-refresh.js';
 import {processIndependentRefresh,manualLimits} from '../src/collector/manual-refresh-jobs.js';
 import {NaverAnnualProvider,NaverAnnualError,type NaverAnnual} from '../src/collector/naver-annual.js';
-import {OpenDartProvider,DartApiError,type DartFinancialRow} from '../src/collector/dart-provider.js';
+import {OpenDartProvider,DartApiError,mapPeriodicReports,type DartFinancialRow} from '../src/collector/dart-provider.js';
 import type {DartCollectorConfig} from '../src/collector/dart-collector.js';
 import {getSeoulClock} from '../src/collector/time.js';
 
@@ -18,7 +18,7 @@ test('independent manual API/job real DB: idempotency, faults, zero preservation
  const old={list:OpenDartProvider.prototype.listPeriodicReports,financials:OpenDartProvider.prototype.fetchFinancials,naver:NaverAnnualProvider.prototype.annual,limit:manualLimits.taskMs};
  let failure:'error'|'timeout'|'none'='error',naverFailed=false,dartCalls=0;
  const source:NaverAnnual={fiscalYear:year,kind:'FINAL_ANNUAL',division:'CFS',values:{eps:'10',bps:'100',per:'10',pbr:'1',roe:'0'},financials:{},source:'NAVER_FNGUIDE_ANNUAL',sourceUrl:'https://example.invalid',collectedAt:new Date().toISOString(),pricePolicy:'ADJUSTED_ORDINARY_YEAR_END',priceDate:null,sharePolicy:'PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR',formulas:{}};
- OpenDartProvider.prototype.listPeriodicReports=async()=>{dartCalls++;if(failure==='timeout')return new Promise(()=>{});if(failure==='error')throw new DartApiError('HTTP_ERROR','Injected failure');return [{receiptNo:receipt,receiptDate:`${year+1}0301`,reportName:'사업보고서',reportCode:'11011',periodType:'ANNUAL',withdrawn:false}];};
+ OpenDartProvider.prototype.listPeriodicReports=async()=>{dartCalls++;if(failure==='timeout')return new Promise(()=>{});if(failure==='error')throw new DartApiError('HTTP_ERROR','Injected failure');return mapPeriodicReports([{corp_code:mapping.corpCode,rcept_no:receipt,rcept_dt:`${year+1}0301`,report_nm:`사업보고서 (${year}.12)`}],year);};
  OpenDartProvider.prototype.fetchFinancials=async()=>[{receiptNo:receipt,statementDivision:'IS',statementName:'손익계산서',accountId:'ifrs-full_Revenue',accountName:'매출액',currentAmount:'0',currentYtdAmount:'0',currency:'KRW',fiscalYear:year,reportCode:'11011',corpCode:mapping.corpCode}] as DartFinancialRow[];
  NaverAnnualProvider.prototype.annual=async()=>{if(naverFailed)throw new NaverAnnualError('NAVER_COMMUNICATION');return [source];};
  manualLimits.taskMs=1000;
