@@ -1,0 +1,30 @@
+{
+  "n": 3,
+  "samples": [
+    {
+      "api": "accounts",
+      "beforeSampleStddevSeconds": 1.151,
+      "afterSampleStddevSeconds": 0.306
+    },
+    {
+      "api": "dashboard",
+      "beforeSampleStddevSeconds": 0.92,
+      "afterSampleStddevSeconds": 0.198
+    },
+    {
+      "api": "trend",
+      "beforeSampleStddevSeconds": 0.843,
+      "afterSampleStddevSeconds": 0.3
+    },
+    {
+      "api": "targets",
+      "beforeSampleStddevSeconds": 1.013,
+      "afterSampleStddevSeconds": 0.798
+    },
+    {
+      "api": "recent",
+      "beforeSampleStddevSeconds": 0.979,
+      "afterSampleStddevSeconds": 0.351
+    }
+  ]
+}

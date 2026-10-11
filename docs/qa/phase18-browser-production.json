@@ -1,0 +1,17 @@
+{
+  "utc": "2026-10-11T03:11:38.845758+00:00",
+  "deployedCommit": "19390ce7cb07fc4db5c480c589d9dc98f1f0b289",
+  "environment": "Cloud Chromium production, supplementary read-only UI smoke; viewport not a minimum-device measurement",
+  "asset": "/assets/index-DXb8ooWB.js",
+  "assetAnalysis": {
+    "periodChange": "1month to3months",
+    "beforeHeightPx": 224,
+    "afterClickHeightPx": 224,
+    "beforeFollowingCardTopPx": 44,
+    "afterClickFollowingCardTopPx": 44
+  },
+  "settingsMenuVisible": true,
+  "compoundBasicVisible": true,
+  "compoundPlans": 5,
+  "compoundCalculationLoading": false
+}
