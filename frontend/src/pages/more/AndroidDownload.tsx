@@ -16,9 +16,9 @@ export function AndroidDownload() {
     return () => controller.abort();
   }, []);
   return <Box sx={{ p: 2, border: '1px solid #21304A', borderRadius: 2 }}>
-    <Typography sx={{ fontWeight: 600 }}>안드로이드 앱 다운로드</Typography>
-    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>RoxStock 웹 시험 · 체결 알림 수집 제외</Typography>
+    <Typography sx={{ fontWeight: 600 }}>APK 다운로드</Typography>
+    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>RoxStock 안드로이드 앱 · 웹 기능 제공, 체결 알림 수집 제외</Typography>
     <Typography variant="caption" sx={{ display: 'block', color: '#94A3B8' }}>{release ? `버전 ${release.version} · 업데이트 ${release.updatedAt}` : '다운로드 정보를 불러올 수 없습니다.'}</Typography>
-    {release && <Button component="a" href={release.url} download sx={{ mt: 1 }}>시험용 APK 다운로드</Button>}
+    {release && <Button component="a" href={release.url} download sx={{ mt: 1 }}>APK 다운로드</Button>}
   </Box>;
 }
