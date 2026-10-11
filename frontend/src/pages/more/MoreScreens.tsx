@@ -5,6 +5,7 @@ import {useAccountAllocation} from '../../hooks/useAccountAllocation';
 import {ActionButton} from '../../components/common/Common';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { Box, Button, ButtonBase, IconButton, Dialog, Skeleton, Stack, Typography } from '@mui/material';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -31,7 +32,7 @@ export function useMoreAccounts() {
     window.addEventListener('roxstock-selected-account', listener);
     return () => { window.removeEventListener('roxstock-demo-settings', listener); window.removeEventListener('roxstock-selected-account', listener); };
   }, []);
-  const query = useQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, enabled: liveApiEnabled });
+  const query = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), enabled: liveApiEnabled });
   void version;
   const demo = readDemoSettings();
   const accounts = liveApiEnabled ? (query.data ?? []).filter(a=>a.isActive) : demo.accounts;
@@ -158,7 +159,7 @@ function AccountFormContent({ add }: { add: boolean }) {
         const result = add ? await createAccount(input) : await updateAccount(selected!.id, input);
         if (add) { localStorage.setItem(selectedAccountStorageKey, result.id); window.dispatchEvent(new Event('roxstock-selected-account')); }
         await refresh();
-        await client.fetchQuery({ queryKey: ['accounts', 'api'], queryFn: listAccounts, staleTime: 0 });
+        await client.fetchQuery({ queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), staleTime: 0 });
       } else if (add) addDemoAccount(input); else editDemoAccount(selected!.id, input);
       navigate('/detail/settings?view=account');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '계좌 변경에 실패했습니다.'); }

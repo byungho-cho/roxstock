@@ -20,13 +20,14 @@ export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = 
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   const summary = useQuery({
+    ...storedQueryOptions, staleTime:30_000,
     queryKey: ['dashboard', liveApiEnabled ? 'api' : 'mock', accountId],
-    queryFn: () => liveApiEnabled ? fetchLiveDashboard(accountId, false) : fetchDashboard(),
+    queryFn: ({signal}) => liveApiEnabled ? fetchLiveDashboard(accountId, false, signal) : fetchDashboard(),
     enabled: !liveApiEnabled || !!accountId,
     refetchInterval: liveApiEnabled && pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
-  return { ...summary, historyPending: history.isPending, historyError: history.isError, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: point.totalAssetValue == null ? Number.NaN : Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
+  return { ...summary, historyPending: history.isPending, historyError: history.isError, historySettled: !history.isPending, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: point.totalAssetValue == null ? Number.NaN : Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
 }
 
 export function useStocks(listType?: StockListType, options: { enabled?: boolean } = {}) {

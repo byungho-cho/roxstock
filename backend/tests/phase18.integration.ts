@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {buildApp} from '../src/app.js';
+import {prisma} from '../src/lib/prisma.js';
+import {readProfitYears,publishProfitYear} from '../src/routes/investment-profit.js';
+import {recentBuys} from '../../frontend/src/pages/dashboard/recentBuysData.js';
+import {calculateProfit,amount,totals} from '../../frontend/src/pages/investment-profit/profitData.js';
+import type {TradeDto,CashTransactionDto,BuyLotDto} from '../../frontend/src/data/roxstockApi.js';
+
+test('real DB: recent ranges equal legacy; annual aggregates invalidate, reject stale publication and reuse unaffected years',async()=>{
+ const app=buildApp(),account=await prisma.account.create({data:{name:'Phase18 test',brokerName:'test',cashBalance:'0'}}),security=await prisma.security.create({data:{symbol:'989118',name:'Phase18 stock',marketType:'OTHER'}});
+ const get=async(path:string)=>{const r=await app.inject({method:'GET',url:`/api/accounts/${account.id}/${path}`});assert.equal(r.statusCode,200,r.body);return r.json();};
+ try{
+  await prisma.marketPrice.create({data:{securityId:security.id,currentPrice:'150.1234',previousClosePrice:'100',priceUpdatedAt:new Date()}});
+  const now=new Date(),kst=new Date(now.getTime()+9*3600000),year=kst.getUTCFullYear(),today=kst.toISOString().slice(0,10);
+  const buys=[];
+  for(let i=0;i<12;i++)buys.push(await prisma.buyTrade.create({data:{accountId:account.id,securityId:security.id,boughtAt:new Date(Date.UTC(year,kst.getUTCMonth()-i,3)),quantity:'10.1234',unitPrice:'100.1234'}}));
+  const historical=await prisma.buyTrade.create({data:{accountId:account.id,securityId:security.id,boughtAt:new Date(`${year-2}-01-01T00:00:00Z`),quantity:'10.1234',unitPrice:'100.1234'}});
+  await prisma.sellTrade.create({data:{buyTradeId:historical.id,soldAt:new Date(`${year-1}-12-31T14:59:59Z`),quantity:'2.1234',unitPrice:'90.1234'}});
+  const cash=await prisma.cashTransaction.create({data:{accountId:account.id,transactionType:'DIVIDEND',transactionDate:new Date(`${year-1}-01-01T00:00:00Z`),amount:'80',balanceAfter:'0'}});
+  const dividend=await prisma.dividend.create({data:{accountId:account.id,securityId:security.id,cashTransactionId:cash.id,receivedDate:new Date(`${year-1}-01-01`),grossAmount:'100',netAmount:'80'}});
+  const snap=await prisma.dailyAccountSnapshot.create({data:{accountId:account.id,snapshotDate:new Date(`${year-1}-12-31`),cashBalance:'0',stockValue:'100',totalAssetValue:'100',investmentAmount:'90'}});
+  const all=await get('buy-lots?remainingOnly=false');
+  for(const months of [0,1,4,24]){
+   const expected=recentBuys(all.data as BuyLotDto[],today,months),actual=await get(`recent-buys?months=${months}`);
+   assert.deepEqual(actual.data.map((x:BuyLotDto)=>x.id),expected.rows.map(x=>x.id));assert.equal(actual.meta.count,expected.count);assert.equal(actual.meta.more,expected.more);assert.equal(actual.meta.total,all.data.length);
+   for(let i=0;i<actual.data.length;i++)for(const field of ['quantity','remainingQuantity','unitPrice','currentPrice','profitLoss','returnRate','remainingPurchaseAmount'] as const)assert.equal(actual.data[i][field],expected.rows[i]![field]);
+   if(months===0){assert.equal(actual.data.length,5);assert.ok(JSON.stringify(actual).length<JSON.stringify(all).length);}
+  }
+  const revision=async()=> (await prisma.accountProfitRevision.findUniqueOrThrow({where:{accountId:account.id}})).revision;
+  const source=await revision(),years=await readProfitYears(account.id,today,source);assert.ok(years);
+  const legacy=calculateProfit((await get(`trades?to=${today}`)).data as TradeDto[],(await get(`cash-transactions?types=DIVIDEND&to=${today}&limit=100`)).data as CashTransactionDto[],today);
+  const events=years.flatMap(y=>y.events).map(e=>({...e,buy:amount(e.buy),sell:amount(e.sell),cost:amount(e.cost),trading:amount(e.trading),dividend:amount(e.dividend)}));
+  assert.deepEqual(totals(events),legacy.totals);
+  const persisted=await prisma.investmentYearAggregate.findMany({where:{accountId:account.id},orderBy:{year:'asc'}});assert.equal(persisted.length,2);assert.ok(persisted.every(x=>x.state==='VALID'));
+  await prisma.dividend.update({where:{id:dividend.id},data:{netAmount:'81'}});
+  assert.ok(await revision()>source);assert.equal(await publishProfitYear(account.id,source,years.find(x=>x.year===year-1)!),false);
+  assert.equal((await prisma.investmentYearAggregate.findUniqueOrThrow({where:{accountId_year:{accountId:account.id,year:year-1}}})).state,'DIRTY');
+  const updated=await get('investment-profit');assert.equal(updated.meta.state,'VALID');assert.ok(updated.data.events.some((e:{dividend:string})=>amount(e.dividend)===amount('81')));
+  const unaffected=await prisma.investmentYearAggregate.findUniqueOrThrow({where:{accountId_year:{accountId:account.id,year:year-2}}});assert.equal(unaffected.calculatedAt.getTime(),persisted[0]!.calculatedAt.getTime());
+  await prisma.dailyAccountSnapshot.update({where:{id:snap.id},data:{investmentAmount:'91'}});assert.equal((await get('investment-profit')).data.capital.find((x:{year:number})=>x.year===year-1).investmentAmount,'91');
+  await prisma.buyTrade.update({where:{id:historical.id},data:{unitPrice:'101.1234'}});assert.ok((await prisma.investmentYearAggregate.findMany({where:{accountId:account.id}})).every(x=>x.state==='DIRTY'));await get('investment-profit');
+  await prisma.cashTransaction.update({where:{id:cash.id},data:{transactionDate:new Date(`${year-2}-06-01T00:00:00Z`)}});await get('investment-profit');
+  await prisma.dividend.delete({where:{id:dividend.id}});await prisma.cashTransaction.delete({where:{id:cash.id}});assert.ok(!(await get('investment-profit')).data.events.some((e:{kind:string})=>e.kind==='DIVIDEND'));
+  const basic=await get('compound-plans?view=basic');assert.equal(basic.data.currentAssets,null);
+ }finally{
+  await prisma.dividend.deleteMany({where:{accountId:account.id}});await prisma.cashTransaction.deleteMany({where:{accountId:account.id}});await prisma.sellTrade.deleteMany({where:{buyTrade:{accountId:account.id}}});await prisma.buyTrade.deleteMany({where:{accountId:account.id}});await prisma.dailyAccountSnapshot.deleteMany({where:{accountId:account.id}});await prisma.account.delete({where:{id:account.id}});await prisma.marketPrice.deleteMany({where:{securityId:security.id}});await prisma.security.delete({where:{id:security.id}});await app.close();await prisma.$disconnect();
+ }
+});

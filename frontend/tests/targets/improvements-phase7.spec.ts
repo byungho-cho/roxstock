@@ -1,10 +1,12 @@
+import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
 import {test,expect,type Page,type Locator} from '@playwright/test';
 import {fixture} from './phase3-fixture';
 async function setup(page:Page){
  const f=await fixture(page);await page.route('**/api/**',async route=>{
-  const u=new URL(route.request().url());if(!u.pathname.endsWith('/trades'))return route.fallback();
+  const u=new URL(route.request().url());if(!u.pathname.endsWith('/trades')&&!u.pathname.endsWith('/investment-profit'))return route.fallback();
   const data=u.pathname.includes('/2/')?[]:[2024,2025,2026].flatMap(year=>[1,2,3,4,5,6].map(id=>({id:`${year}${id}`,type:'SELL',security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:'150',amount:'1500',realizedProfitLoss:'500',buyTradeId:'1'})));
+  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[])});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'500',buyAmount:'1000',sellAmount:'1500'},daily:[]}});
  });return f;
 }

@@ -1,4 +1,6 @@
 import './home-font.css';
+import {useEffect,useState} from 'react';
+import {useTargetArrivals} from '../../hooks/useTargetArrivals';
 import { TargetArrivalCard } from './TargetArrivalCard';
 import { RecentBuysCard } from './RecentBuysCard';
 import { Box, Button, CardActionArea, Skeleton, Snackbar, Stack, Typography } from '@mui/material';
@@ -17,8 +19,13 @@ import { colors } from '../../styles/tokens';
 
 export function DashboardPage() {
   const navigate = useListNavigation();
-  const { data, isPending, isError, isFetching, refetch, historyPending, historyError } = useDashboard({ pollPrices: true });
+  const { data, isPending, isError, isFetching, refetch, historyPending, historyError, historySettled } = useDashboard({ pollPrices: true });
   const { accountId, accounts } = useActiveAccount();
+  const targets = useTargetArrivals();
+  const [recentReady,setRecentReady] = useState<string>();
+  const prioritiesSettled = !isPending && historySettled && !targets.isPending;
+  // Start after the commit which paints the primary cards (including terminal errors).
+  useEffect(()=>{if(accountId&&prioritiesSettled)setRecentReady(accountId);},[accountId,prioritiesSettled]);
   if (liveApiEnabled && !accountId) {
     if (accounts.isPending) return <DashboardLoading />;
     if (accounts.isError) return <AppCard><Stack spacing={2} sx={{ p: 3 }}>
@@ -44,7 +51,7 @@ export function DashboardPage() {
           <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600, lineHeight: '24px' }}>자산추이 <Box component="span" sx={{ fontSize: 11, color: colors.textMuted, fontWeight: 400 }}>(상세보기)</Box></Typography>
           <Typography sx={{ fontSize: { xs: 10, sm: 11 }, lineHeight: '14px', fontWeight: 500, color: colors.focus }}>{homeTrend.length > 1 ? '1개월' : '—'}</Typography>
         </CardActionArea>
-        {liveApiEnabled && historyPending ? <Skeleton data-testid="home-trend-loading" height={50}/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <AssetTrendChart points={homeTrend.map(item => ({date: item.label, value: item.value}))} height={{xs:64,sm:148}} dateMode="day" /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}
+        <Box data-testid="home-chart-region" sx={{height:{xs:87,sm:171},display:"flex",alignItems:"center","& > *":{width:"100%"}}}>{liveApiEnabled && historyPending ? <Skeleton variant="rounded" sx={{transform:"none",height:"100%"}} data-testid="home-trend-loading"/> : historyError ? <Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography> : homeTrend.length > 1 ? <AssetTrendChart points={homeTrend.map(item => ({date: item.label, value: item.value}))} height={{xs:64,sm:148}} dateMode="day" /> : <Box sx={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 11, textAlign: 'center' }}>내용이 없습니다.</Typography></Box>}</Box>
       </Box></AppCard>
     </Stack>
     <Box sx={{ gridArea: { sm: 'holdings' } }}>{holdings && summary ? <HomeListCard testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={`${holdings.length}종목`} notice={summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary.collectedAt} updating={isFetching}>
@@ -52,7 +59,7 @@ export function DashboardPage() {
       {holdings.length === 0 && <HomeEmpty />}
     </HomeListCard> : <Skeleton variant="rounded" height={156}/>}</Box>
     <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
-    <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard /></Box>
+    <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard enabled={!liveApiEnabled||recentReady===accountId} /></Box>
   </Box>;
 }
 

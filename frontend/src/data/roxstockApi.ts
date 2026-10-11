@@ -121,7 +121,7 @@ export interface SecuritySearch { includeInactive?: boolean;
   offset?: number;
 }
 
-export const listAccounts = () => apiRequest<AccountDto[]>('/accounts');
+export const listAccounts = (signal?:AbortSignal) => apiRequest<AccountDto[]>('/accounts',{signal});
 export type AccountWriteInput = { name: string; brokerName: string; accountNumber?: string | null; isDefault?: boolean };
 export const createAccount = (body: AccountWriteInput) => apiRequest<{ id: string; cashBalance: string | null; isDefault: boolean }>('/accounts', { method: 'POST', body: JSON.stringify(body) });
 export const updateAccount = (accountId: string, body: Partial<AccountWriteInput>) => apiRequest<AccountDto>(`/accounts/${encodeURIComponent(accountId)}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -144,7 +144,7 @@ export async function currentAccountId(): Promise<string> {
   return account.id;
 }
 
-export const getAccountDashboard = (accountId: string) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`);
+export const getAccountDashboard = (accountId: string,signal?:AbortSignal) => apiRequest<AccountDashboardDto>(`/accounts/${encodeURIComponent(accountId)}/dashboard`,{signal});
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
 export const getDashboardTrend = (accountId: string, range: { from: string; to: string }, signal?: AbortSignal) =>
@@ -309,6 +309,9 @@ export const getTrades = (accountId: string, search: { from?: string; to?: strin
   for (const [key, value] of Object.entries(search)) if (value) params.set(key, value);
   return apiEnvelope<TradeReport>(`/accounts/${encodeURIComponent(accountId)}/trades${params.size ? `?${params}` : ''}`, { signal });
 };
+export type RecentBuysDto = {data:BuyLotDto[];meta:{accountId:string;count:number;total:number;more:boolean;months:number}};
+export const getRecentBuys=(accountId:string,months:number,signal?:AbortSignal)=>apiEnvelope<RecentBuysDto>(`/accounts/${encodeURIComponent(accountId)}/recent-buys?months=${months}`,{signal});
+
 export const getBuyLots = (accountId: string, securityId?: string, remainingOnly = true, signal?: AbortSignal) => {
   const params = new URLSearchParams({ remainingOnly: String(remainingOnly) });
   if (securityId) params.set('securityId', securityId);

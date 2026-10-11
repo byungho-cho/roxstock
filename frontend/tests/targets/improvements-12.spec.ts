@@ -1,3 +1,4 @@
+import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
 import { expect, test, type Page, type Locator } from '@playwright/test';
 import { fixture as stockFixture } from './stock-input-fixture';
@@ -18,8 +19,10 @@ async function fixture(page:Page){
   const url=new URL(route.request().url()),path=url.pathname;requests.push(url.pathname+url.search);
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',isActive:true,isDefault:true,name:'기본'},{id:'2',isActive:true,name:'다른 계좌'}]}});
   if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{account:{id:'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});
+  if(path.endsWith('/recent-buys'))return route.fulfill({json:{data:[],meta:{count:0,total:0,more:false}}});
   if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:'1',total:0,enabled:true,unavailableCount:0,priceAsOf:'2026-10-07T03:00:00Z'}}});
-  if(held&&path.includes('/1/')&&path.endsWith('/trades'))await new Promise<void>(r=>{release=r;});
+  if(held&&path.includes('/1/')&&(path.endsWith('/trades')||path.endsWith('/investment-profit')))await new Promise<void>(r=>{release=r;});
+  if(path.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(path.includes('/2/')?'2':'1',path.includes('/2/')?[]:trades,path.includes('/2/')?[]:[{transactionDate:'2026-10-01T03:00:00Z',dividend:{securityId:'0',securityName:names[0],netAmount:'10'}}],[{year:2026,date:'2026-10-01',investmentAmount:'107317732',status:'AVAILABLE'},{year:2024,date:null,investmentAmount:null,status:'YEAR_END_MISSING'}])});
   if(path.endsWith('/investment-capital'))return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'107317732',status:'AVAILABLE'},{year:2024,date:null,investmentAmount:null,status:'YEAR_END_MISSING'}]}});
   if(path.endsWith('/trades')){const empty=path.includes('/2/');let records=empty?[]:trades;
    if(url.searchParams.has('from'))records=records.filter(r=>r.tradedAt.slice(0,10)>=url.searchParams.get('from')!&&r.tradedAt.slice(0,10)<=url.searchParams.get('to')!);
@@ -124,11 +127,12 @@ test('home shows ready cards while history loads, preserves account isolation an
   const second=path.includes('/2/');
   if(path.endsWith('/dashboard')){if(second)await new Promise<void>(r=>{releaseSecond=r;});return route.fulfill({json:{data:{account:{id:second?'2':'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:second?'9000':'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});}
   if(path.endsWith('/asset-history')){if(!second)await new Promise<void>(r=>{releaseHistory=r;});return route.fulfill({json:{data:[{date:'2026-10-06',totalAssetValue:'3900'},{date:'2026-10-07',totalAssetValue:'4000'}],summary:{}}});}
+  if(path.endsWith('/recent-buys'))return route.fulfill({json:{data:[],meta:{count:0,total:0,more:false}}});
   if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:second?'2':'1',total:0,enabled:true,unavailableCount:0,priceAsOf:'2026-10-07T03:00:00Z'}}});
   return route.fulfill({json:{data:[]}});
  });
  await page.goto('/');await expect(page.getByTestId('home-summary-area')).toContainText('4,000원');
- await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');await expect(page.getByTestId('recent-buys-card')).toContainText('내용이 없습니다.');
+ await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
  await expect(page.getByTestId('home-trend-loading')).toBeVisible();
  expect(reads.filter(p=>p.endsWith('/dashboard'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

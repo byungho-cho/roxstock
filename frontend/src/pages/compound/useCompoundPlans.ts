@@ -1,3 +1,4 @@
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import {useEffect,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {listPlans} from './compoundApi';
@@ -13,7 +14,7 @@ export function useSeoulYear(){
 }
 export function useCompoundPlans(accountId:string|null|undefined){
  const year=useSeoulYear();
- return useQuery({queryKey:['compound-plans',accountId,year],queryFn:({signal})=>listPlans(accountId!,signal),enabled:!!accountId,
-  placeholderData:(previous,previousQuery)=>previousQuery?.queryKey[1]===accountId?previous:undefined,
-  retry:false,staleTime:30_000,refetchOnWindowFocus:'always',refetchInterval:60_000});
+ const basic=useQuery({...storedQueryOptions,queryKey:['compound-plans',accountId,year,'basic'],queryFn:({signal})=>listPlans(accountId!,signal,true),enabled:!!accountId,retry:false});
+ const assets=useQuery({...storedQueryOptions,queryKey:['compound-assets',accountId,year],queryFn:({signal})=>listPlans(accountId!,signal),enabled:!!accountId&&!!basic.data,retry:false,staleTime:30_000,refetchInterval:60_000,refetchIntervalInBackground:false});
+ return {...basic,data:assets.data??basic.data,assetsPending:assets.isPending,assetsError:assets.error,refetch:async()=>{await basic.refetch();return assets.refetch();}};
 }

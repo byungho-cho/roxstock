@@ -6,8 +6,8 @@ export type Plans={accountId:string;currentAssets:string|null;asOf:string;calcul
 export type FormValues={planName:string;goalName:string;startYear:number;endYear:number;initialAssetValue:string;annualContributionAmount:string;annualTargetRate:string;displayColor:string};
 export const colors=['#5EA1F0','#FFC21A','#2DCCA4','#FA616E','#A87AF4','#29BEC8','#CBD5E1'];
 export const root=(accountId:string)=>'/accounts/'+encodeURIComponent(accountId)+'/compound-plans';
-export async function listPlans(accountId:string,signal?:AbortSignal){
- const value=await apiRequest<Plans>(root(accountId),{signal});
+export async function listPlans(accountId:string,signal?:AbortSignal,basic=false){
+ const value=await apiRequest<Plans>(root(accountId)+(basic?'?view=basic':''),{signal});
  if(!value||value.accountId!==accountId||!Number.isInteger(value.currentYear)||!Array.isArray(value.plans)||value.plans.some(plan=>!Array.isArray(plan.goals)||plan.goals.some(goal=>!Array.isArray(goal.rows))))throw new Error('복리계획 조회 응답을 확인할 수 없습니다. 다시 조회해 주세요.');
  return value;
 }

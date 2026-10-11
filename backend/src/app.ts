@@ -1,3 +1,5 @@
+import {investmentProfitRoutes} from './routes/investment-profit.js';
+import {recentBuysRoutes} from './routes/recent-buys.js';
 import { annualConsensusRoutes } from './routes/annual-consensus.js';
 import { compoundGrowthRoutes } from './routes/compound-growth.js';
 import { financialStatementRoutes } from './routes/financial-statements.js';
@@ -50,6 +52,8 @@ export function buildApp() {
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });
+  void app.register(investmentProfitRoutes, {prefix:'/api'});
+  void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });

@@ -5,7 +5,7 @@ const portfolioQueryKeys = [
   'account-data-state', 'accounts', 'dashboard', 'analysis-dashboard', 'analysis-history', 'assetHistory',
   'investment', 'investment-profit', 'investment-profit-summary', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
   'accountTradesSummary', 'stocks', 'accountTrades', 'buyLots', 'allBuyLots', 'stockTrades', 'journalTrades', 'tradeDetail',
-  'targetArrivals', 'recentBuys', 'compound-plans', 'securityAnalysis',
+  'targetArrivals', 'recentBuys', 'compound-plans', 'compound-assets', 'securityAnalysis',
 ] as const;
 
 export async function invalidatePortfolio(client: QueryClient) {
