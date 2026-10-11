@@ -40,3 +40,30 @@ test('profit load makes one trades request, parallel paginated dividends and pas
  return {ok:true,json:async()=>path.includes('cash-transactions')?{data:[],meta:{total:0}}:path.includes('investment-capital')?{data:[{year:2026,date:'2026-10-01',investmentAmount:'50',status:'AVAILABLE'}]}:{data:[],summary:{}}} as any;}) as any;
  try {const data=await loadProfit('7','2026-10-07',signal);assert.equal(paths.length,3);assert.equal(paths.filter(p=>p.includes('/trades?')).length,1);assert.equal(data.capital?.[0]?.date,'2026-10-01');} finally {globalThis.fetch=original;}
 });
+
+test('summary skips capital, shares raw reads with profit detail, and refreshes them after mutation', async()=>{
+ const original=globalThis.fetch,client=new QueryClient(),signal=new AbortController().signal,paths:string[]=[];
+ let value='100';
+ globalThis.fetch=(async(url:any)=>{const path=String(url);paths.push(path);return {ok:true,json:async()=>path.includes('cash-transactions')?{data:[],meta:{total:0}}:path.includes('investment-capital')?{data:[]}:{data:[{id:'1',type:'BUY',tradedAt:'2026-01-01T00:00:00Z',amount:value,security:{id:'1',name:'A'}}],summary:{}}} as any;}) as any;
+ try {
+  const summary=await loadProfit('1','2026-10-11',signal,{client,includeCapital:false});assert.equal(summary.capital,undefined);assert.equal(paths.length,2);
+  const detail=await loadProfit('1','2026-10-11',signal,{client});assert.equal(paths.length,3);assert.deepEqual(summary.totals,detail.totals);assert.deepEqual(summary.years,detail.years);
+  await loadProfit('1','2026-10-11',signal,{client,includeCapital:false});assert.equal(paths.length,3);
+  value='200';await invalidatePortfolio(client);const refreshed=await loadProfit('1','2026-10-11',signal,{client,includeCapital:false});assert.equal(refreshed.totals.buy,amount('200'));assert.equal(paths.length,5);
+  await loadProfit('2','2026-10-11',signal,{client,includeCapital:false});assert.equal(paths.length,7);
+ }finally{globalThis.fetch=original;client.clear();}
+});
+
+test('raw profit sources are stale before active derived queries are refreshed',async()=>{
+ const client=new QueryClient();await client.fetchQuery({...storedQueryOptions,queryKey:['profitTrades','1'],queryFn:async()=>[]});
+ const original=client.invalidateQueries.bind(client);let checked=false;
+ client.invalidateQueries=((filters:any,...args:any[])=>{if(filters.queryKey[0]==='investment-profit-summary'){checked=true;assert.equal(client.getQueryState(['profitTrades','1'])?.isInvalidated,true);}return original(filters,...args);}) as any;
+ await invalidatePortfolio(client);assert.equal(checked,true);client.clear();
+});
+
+test('portfolio invalidation cancels an in-flight raw source before a fresh read',async()=>{
+ const client=new QueryClient();let aborted=false;
+ const pending=client.fetchQuery({...storedQueryOptions,queryKey:['profitTrades','1','2026-10-11'],queryFn:({signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>{aborted=true;reject(new Error('aborted'));}))}).catch(()=>undefined);
+ await invalidatePortfolio(client);await pending;assert.equal(aborted,true);
+ assert.equal(await client.fetchQuery({...storedQueryOptions,queryKey:['profitTrades','1','2026-10-11'],queryFn:async()=>'new'}),'new');client.clear();
+});

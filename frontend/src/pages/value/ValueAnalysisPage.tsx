@@ -21,10 +21,10 @@ import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePa
 import { ValueFinancialCharts } from './ValueFinancialCharts';
 import { detailValues,listValues,format,movement,number,seoulYear,type ValueDetail,type ValueList } from './valueApi';
 const muted='#94A3B8',cardStyle={bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
-function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>) {
- const {accountId}=useActiveAccount(),latest=useRef(request);latest.current=request;
- const query=useQuery({queryKey:['valueStored',accountId,key],queryFn:({signal})=>latest.current(signal),staleTime:30_000,gcTime:30*60_000,refetchOnMount:'always'});
- return {data:query.data,pending:query.isFetching,error:query.error?.message,retry:()=>void query.refetch()};
+function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>,enabled=true) {
+ const {accountId,accounts}=useActiveAccount(),latest=useRef(request);latest.current=request;
+ const query=useQuery({queryKey:['valueStored',accountId,key],queryFn:({signal})=>latest.current(signal),enabled:enabled&&!accounts.isLoading,staleTime:30_000,gcTime:30*60_000,refetchOnMount:true});
+ return {data:query.data,pending:enabled&&(query.isFetching||accounts.isLoading),error:query.error?.message,retry:()=>void query.refetch()};
 }
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
  return <>{error&&<Box role="alert" sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}>조회에 실패했습니다. {error}<Button onClick={retry} sx={{fontSize:10,minWidth:0,p:'2px 8px'}}>재시도</Button></Box>}</>;
@@ -59,7 +59,8 @@ export function ValueAnalysisPage(){
  useEffect(()=>{if(mode==='annual'&&(params.get('centerYear')!==String(centerYear)||params.has('annualStart')||params.has('endYear')))setCenterYear(centerYear);},[endYear,mode,location.search]);
  const [visibleCount,setVisibleCount]=usePageMemory('value-visible-count',100);
  const view=params.get('view')??(stockId?'detail':'list'),chart=view==='chart',coverDetail=(!tablet||fromStockList)&&view==='detail';
- const listKey=JSON.stringify([year,query]),list=useStoredQuery<ValueList>(listKey,signal=>listValues(year,query,signal));
+ const needsList=!fromStockList||(!chart&&!coverDetail);
+ const listKey=JSON.stringify([year,query]),list=useStoredQuery<ValueList>(listKey,signal=>listValues(year,query,signal),needsList);
  const [retainedList,setRetainedList]=useState<ValueList>();
  useEffect(()=>{if(list.data)setRetainedList(list.data);},[list.data]);
  const listData=list.data??retainedList,listCurrent=!!list.data;
@@ -101,7 +102,7 @@ export function ValueAnalysisPage(){
  const detailHeader=chart||coverDetail||(tablet&&!!selected);
  const headerBack=fromStockList?()=>chart?goView('detail',selected,true):returnToSource():detailHeader?undefined:returnToSource;
  const stockNavigation=fromStockList?<StockHeaderNavigation symbol={currentSymbol} previousName={previous?.name} nextName={next?.name} onPrevious={()=>move(-1)} onNext={()=>move(1)}/>:undefined;
- return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
+ return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={needsList&&list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
   <PageHeader embedded valueAnalysis title={fromStockList?currentName:detailHeader?<Box component="span" sx={{display:'flex',alignItems:'baseline',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false} stockNavigation={stockNavigation} variant={fromStockList?'detail':detailHeader?'standard':'detail'} showBackTablet={fromStockList||!detailHeader} onBack={headerBack} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>}/>
   {selected&&<FinancialRefreshDialog hasExistingData={hasSavedFinancialData(shownDetail?.rows??[])} initialPeriod={(chart&&mode==='quarter'?`Q${startQuarter}`:'ANNUAL') as RefreshPeriod} open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
   {chart?<Box {...swipe} data-detail-swipe data-financial-chart sx={{touchAction:'pan-y'}}>

@@ -1,3 +1,5 @@
+import type { QueryClient } from '@tanstack/react-query';
+import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { apiEnvelope } from '../../data/apiClient';
 import type { CashHistoryDto, CashTransactionDto, TradeDto, TradeReport } from '../../data/roxstockApi';
 
@@ -27,7 +29,8 @@ export type Group = { id: string; label: string; totals: Totals; events: ProfitE
 export type Capital = { year: number; date: string | null; investmentAmount: string | null; status: string };
 export type ProfitData = { capital?: Capital[]; totals: Totals; years: Group[]; stocks: Group[]; events: ProfitEvent[] };
 const add = (a: bigint | null, b: bigint | null) => a === null || b === null ? null : a + b;
-const seoulDate = (value: string) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date(value));
+const seoulFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' });
+const seoulDate = (value: string) => seoulFormatter.format(new Date(value));
 export function totals(events: ProfitEvent[]): Totals {
   const sum = (key: 'buy' | 'sell' | 'cost' | 'trading' | 'dividend') => events.reduce<bigint | null>((sum, row) => add(sum, row[key]), 0n);
   const trading = sum('trading'), dividend = sum('dividend');
@@ -65,9 +68,9 @@ export function sortProfit(rows: Group[], ascending = false): Group[] {
     return x === y ? a.id.localeCompare(b.id, undefined, {numeric:true}) : (x < y ? -1 : 1) * (ascending ? 1 : -1);
   });
 }
-export async function loadProfit(accountId: string, today: string, signal: AbortSignal): Promise<ProfitData> {
+export async function loadProfit(accountId: string, today: string, signal: AbortSignal, options: { client?: QueryClient; includeCapital?: boolean } = {}): Promise<ProfitData> {
   const prefix = `/accounts/${encodeURIComponent(accountId)}`;
-  const readDividends = async () => {
+  const readDividends = async (signal: AbortSignal) => {
     const dividends: CashTransactionDto[] = [], ids = new Set<string>();
     let expected: number | undefined;
     for (let offset = 0; ; offset += 100) {
@@ -79,10 +82,14 @@ export async function loadProfit(accountId: string, today: string, signal: Abort
       if (!page.data.length || dividends.length > expected) throw new Error('배당 내역을 모두 조회하지 못했습니다.');
     }
   };
+  // Cache raw sources across the stock summary and profit detail; invalidate all after mutations.
+  const read = <T>(key: string, request: (signal: AbortSignal) => Promise<T>): Promise<T> => options.client
+    ? options.client.fetchQuery({ ...storedQueryOptions, queryKey: [key, accountId, today], queryFn: ({signal}) => request(signal) })
+    : request(signal);
   const [trades, capital, dividends] = await Promise.all([
-    apiEnvelope<TradeReport>(`${prefix}/trades?to=${today}`, { signal }),
-    apiEnvelope<{data: Capital[]}>(`${prefix}/investment-capital`, { signal }),
-    readDividends(),
+    read('profitTrades', signal => apiEnvelope<TradeReport>(`${prefix}/trades?to=${today}`, { signal })),
+    options.includeCapital === false ? Promise.resolve(undefined) : read('profitCapital', signal => apiEnvelope<{data: Capital[]}>(`${prefix}/investment-capital`, { signal })),
+    read('profitDividends', readDividends),
   ]);
-  return { ...calculateProfit(trades.data, dividends, today), capital: capital.data };
+  return { ...calculateProfit(trades.data, dividends, today), ...(capital ? {capital: capital.data} : {}) };
 }

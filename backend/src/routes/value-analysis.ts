@@ -19,9 +19,9 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   // Cache slow financial joins briefly; never cache the live price used for W/order.
   const loadFinancials = (year: number, query: string) => prisma.security.findMany({
     where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-    include: { fundamentals: true, dartShareSnapshots:{where:{fiscalYear:year}}, periodValuations:{where:{fiscalYear:year},orderBy:{periodType:'asc'}},
+    include: { fundamentals: {select:{updatedAt:true}}, dartShareSnapshots:{where:{fiscalYear:year}}, periodValuations:{where:{fiscalYear:year},orderBy:{periodType:'asc'}},
       financialStatements: {where:{fiscalYear:{lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'},take:1},
-      dartFinancialFilings: {where:{fiscalYear:{lte:year},isWithdrawn:false},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]},
+      dartFinancialFilings: {where:{fiscalYear:{lte:year},isWithdrawn:false,OR:[{fiscalYear:year},{periodType:'ANNUAL'}]},omit:{accountSources:true},orderBy:[{fiscalYear:'desc'},{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]},
       valuationMetrics: { where: { metricDate: yearRange(year) }, orderBy: { metricDate: 'desc' }, take: 1 } },
   });
   const cache = new Map<string, { expires: number; result: ReturnType<typeof loadFinancials> }>();

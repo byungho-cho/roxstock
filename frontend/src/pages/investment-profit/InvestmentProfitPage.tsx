@@ -4,7 +4,7 @@ import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { useDetailSwipe } from '../../hooks/useDetailSwipe';
 import '../dashboard/home-font.css';
 import { Box, Button, ButtonBase, Skeleton, Stack, Typography, useMediaQuery } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
@@ -54,7 +54,7 @@ function NeighborName({name}: {name: string}) {
   return <><Box component="span" ref={measure} aria-hidden sx={{position:'absolute',visibility:'hidden',width:'max-content',pointerEvents:'none'}}>{name}</Box>{short && Array.from(name).length > 5 ? Array.from(name).slice(0,5).join('') + '…' : name}</>;
 }
 export function InvestmentProfitPage() {
-  const { accountId, accounts } = useActiveAccount(), tablet = useMediaQuery('(min-width:600px)');
+  const client = useQueryClient(), { accountId, accounts } = useActiveAccount(), tablet = useMediaQuery('(min-width:600px)');
   const navigate = useNavigate(), location = useLocation(), outerBack = useReturnNavigation('/assets');
   const go=useListNavigation();
   const openLinked=(path:string)=>go(path,{state:{profitLinkedEntry:true}});
@@ -66,7 +66,7 @@ export function InvestmentProfitPage() {
   const toggle = <Button aria-label={ascending ? '손익액 내림차순 정렬' : '손익액 오름차순 정렬'} onClick={() => setAscending(!ascending)} sx={{minWidth:32,p:0,fontSize:11}}>{ascending ? '↑' : '↓'}</Button>;
   const left = useRef<HTMLDivElement>(null), right = useRef<HTMLDivElement>(null);
   const today = seoulToday(), currentYear = Number(today.slice(0, 4));
-  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment-profit', accountId, currentYear], queryFn: ({ signal }) => loadProfit(accountId!, today, signal), enabled: !!accountId, retry: false });
+  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment-profit', accountId, currentYear], queryFn: ({ signal }) => loadProfit(accountId!, today, signal, {client}), enabled: !!accountId, retry: false });
   const data = query.data, pending = accounts.isPending || (!!accountId && query.isPending), failed = accounts.isError || query.isError;
   const list = tab === 'year' ? data?.years ?? [] : sortProfit(data?.stocks ?? [], ascending);
   const capitalFor = (year: string) => data?.capital?.find(row => String(row.year) === year);
@@ -94,7 +94,16 @@ export function InvestmentProfitPage() {
   };
   // All stock events and adjacent details are fetched in one account result; no per-swipe requests.
   const swipe = useDetailSwipe(step, tab === 'stock' && !!group);
-  const retry = () => { if (accounts.isError) void accounts.refetch(); if (accountId) void query.refetch(); };
+  const retry = async () => {
+    if (accounts.isError) void accounts.refetch();
+    if (!accountId) return;
+    // Explicit retry must refresh every source, including a successful sibling of a failed request.
+    for (const key of ['profitTrades', 'profitDividends', 'profitCapital']) {
+      await client.cancelQueries({queryKey: [key, accountId, today], exact: true});
+      await client.invalidateQueries({queryKey: [key, accountId, today], exact: true, refetchType: 'none'});
+    }
+    await query.refetch();
+  };
   const error = failed ? <AppCard sx={card}><Typography role="alert" sx={muted}>조회에 실패했습니다.{data ? ' 기존 데이터를 표시합니다.' : ''}</Typography><Button onClick={retry} sx={{ fontSize: 11, minHeight: 28 }}>재시도</Button></AppCard> : null;
   const loading = <AppCard sx={card}><Skeleton height={72} /></AppCard>;
   const empty = (detail = false) => <AppCard data-testid={detail ? 'profit-detail-empty' : 'profit-empty'} sx={{ ...card, height: 160, display: 'grid', placeItems: 'center' }}><Typography role="status" sx={{ fontSize: 14 }}>{detail ? '내역이 없습니다.' : '내용이 없습니다.'}</Typography></AppCard>;
