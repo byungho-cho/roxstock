@@ -9,3 +9,5 @@
 - DB 스키마·백엔드·계산식·자동 수집 스케줄 변경 없음. PR 필수 검사 후 자동 병합하고 기존 운영 배포 경로 사용. 운영 배포 완료 대기는 기존 사용자 지시에 따라 별도 상태로 보고한다.
 
 검사: `npm run typecheck:frontend`, `npm run build:frontend`, `node --import tsx --test frontend/tests/unit/phase20.test.ts`, `npm exec --workspace frontend -- playwright test --config playwright.phase20.config.ts`.
+
+홈 후속: DashboardPage가 기존 history query 데이터를 직접 읽고, 신규 API 없이 차트의 summary 의존을 제거한다. HomeListCard stable 옵션은 홈의 290px/5행 공간만 고정한다. AssetSummaryCards loading 옵션은 홈만 활성화한다. 상세 페이지의 기본 옵션과 계산 로직은 유지한다. 지역 재시도는 해당 query의 refetch를 사용한다.
