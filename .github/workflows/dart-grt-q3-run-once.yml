@@ -1,0 +1,25 @@
+name: DART GRT Q3 Verify Once
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/dart-grt-q3-run-once.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch-reviewed-main:
+    if: github.head_ref == 'ops/dart-grt-q3-check-once-20261012' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # Dispatch reviewed main only; no checkout, SSH, secrets or PR code on production.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const expected = '0f660310ceec289228497a60cec338849d641963';
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+            if (branch.commit.sha !== expected) throw new Error('Reviewed main changed');
+            const {data: deploy} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: 38187816934});
+            if (deploy.head_sha !== expected || deploy.conclusion !== 'success') throw new Error('Matching successful production required');
+            await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'dart-receipt-verification.yml', ref: 'main', inputs: {mode: 'grt-q3'}});
+            core.notice('GRT Q3 only: main runtime enforces 2 calls, version marker and financial/task writes=0');
