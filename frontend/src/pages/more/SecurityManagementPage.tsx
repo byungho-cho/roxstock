@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {Box,Button,ButtonBase,InputBase,Stack,TextField,Typography} from '@mui/material';
+import {Box,Button,ButtonBase,InputBase,Stack,Typography} from '@mui/material';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useSearchParams} from 'react-router-dom';
 import {apiRequest} from '../../data/apiClient';
@@ -9,7 +9,8 @@ import {StockSearchFrame} from '../../components/common/StockSearchFrame';
 import {StockIdentity} from '../stocks/StockIdentity';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import {DelayedSkeleton} from '../../components/common/DelayedSkeleton';
-import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
+import {type ManagedSecurity} from './CollectionSettingToggle';
+import {CollectionSettingsCard} from './CollectionSettingsCard';
 import {colors} from '../../styles/tokens';
 const sourceLabel=(value:string)=>({MANUAL:'사용자 등록',DART:'DART 등록',SECURITY_MASTER:'종목 마스터 수집',UNKNOWN:'출처 미확인'}[value]??'출처 미확인');
 type Page={rows:ManagedSecurity[];hasNext:boolean;nextCursor:string|null};
@@ -21,9 +22,9 @@ export function SecurityManagementPage(){
  const search=()=>{const next=new URLSearchParams(params);next.set('query',input.trim());next.delete('selected');setParams(next);(document.activeElement as HTMLElement)?.blur();};
  const more=async()=>{if(lock.current||list.isFetching||!list.hasNextPage)return;lock.current=true;try{await list.fetchNextPage();}finally{lock.current=false;}};
  const rows=list.data?.pages.flatMap(p=>p.rows)??[];
- return <><PageHeader embedded variant="more" compact title="종목 관리" showAdd={false} showBackTablet backPath={selected?`/detail/security-management?query=${encodeURIComponent(query)}`:'/detail/settings?view=settings'}/><Box sx={{pb:4}} data-testid="security-management" data-list-condition={`master:${query}`} data-restoration-ready={list.isPending?'false':'true'}>
+ return <><PageHeader embedded variant="more" compact title={selected?"종목 정보 수정":"종목 관리"} showAdd={false} showBackTablet backPath={selected?`/detail/security-management?query=${encodeURIComponent(query)}`:'/detail/settings?view=settings'}/><Box sx={{pb:4}} data-testid="security-management" data-list-condition={`master:${query}`} data-restoration-ready={list.isPending?'false':'true'}>
  <StockSearchFrame><Box component="img" src="/stocks-v03/search.svg" alt=""/><InputBase aria-label="종목 관리 검색" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();search();}}} placeholder="종목명·코드 검색" sx={{fontSize:12,flex:1,minWidth:0}}/><Button onClick={search} sx={{minWidth:40,fontSize:12}}>검색</Button></StockSearchFrame>
- <Typography sx={{fontSize:11,color:colors.textMuted,my:1}}>종목명 오름차순 · 등록 출처와 수집 설정</Typography>
+ {!selected&&<Typography sx={{fontSize:11,color:colors.textMuted,my:1}}>종목명 오름차순 · 등록 출처와 수집 설정</Typography>}
  {selected?<SecurityEditor key={selected} securityId={selected} onDeleted={()=>{const next=new URLSearchParams(params);next.delete('selected');setParams(next,{replace:true});}}/>:<>
  {list.isPending?<DelayedSkeleton height={64}/>:<Stack spacing={1}>{rows.map(s=><AppCard key={s.id} sx={{p:0}}><ButtonBase data-testid="security-master-row" data-scroll-item={s.id} onClick={()=>{const next=new URLSearchParams(params);next.set('selected',s.id);setParams(next);}} sx={{display:'block',textAlign:'left',width:'100%',p:1.5}}><Typography sx={{fontSize:15,fontWeight:700,overflowWrap:'anywhere'}}><StockIdentity name={s.name} symbol={s.symbol}/></Typography><Typography sx={{fontSize:11,color:colors.textMuted,mt:0.5}}>{sourceLabel(s.registrationSource)} · {s.exclusionReason??(s.excludedFeatures.length?'일부 기능 수집 제외':'수집 활성')}</Typography></ButtonBase></AppCard>)}</Stack>}
  {!list.isPending&&!list.isError&&rows.length===0&&<Typography sx={{fontSize:12}}>검색 결과가 없습니다.</Typography>}
@@ -55,14 +56,19 @@ function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>
   try{await apiRequest(`/security-management/${securityId}`,{method:'DELETE',body:JSON.stringify({confirmed:true})});await client.invalidateQueries({queryKey:['security-management']});setAction(null);onDeleted();}catch(e){setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;setBusy(false);}
  };
  if(!s)return <Box>{detail.isError?<Typography role="alert">종목 정보 조회 실패<Button onClick={()=>void detail.refetch()}>다시 시도</Button></Typography>:<DelayedSkeleton height={180}/>}</Box>;
- return <Stack spacing={1.5} sx={{mt:1}}><Typography sx={{fontSize:12,color:colors.textMuted}}>등록 출처: {sourceLabel(s.registrationSource)}</Typography>
- <TextField label="종목명" value={value.name} size="small" onChange={e=>update('name',e.target.value)}/>
- <TextField label="종목코드" value={value.symbol} size="small" disabled={!s.canCorrectCode} onChange={e=>update('symbol',e.target.value)} helperText={s.canCorrectCode?'직접 등록 시 잘못 입력한 코드 정정':'등록 출처가 확인된 사용자 종목만 코드 정정 가능'}/>
- <TextField label="상장연도" value={value.listingYear} size="small" onChange={e=>update('listingYear',e.target.value)}/>
+ return <Stack spacing="8px" sx={{mt:'8px'}}>
+ <Box sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,1fr))'},gap:'8px',alignItems:'start'}}>
+ <Stack spacing="8px" sx={{minWidth:0}}>
+ <AppCard sx={{p:'8px',borderRadius:'8px'}}><Stack spacing="8px">
+ <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',minHeight:20}}><Typography sx={{fontSize:13,fontWeight:600}}>종목 정보</Typography><Typography sx={{fontSize:11,color:colors.textSecondary}}>{sourceLabel(s.registrationSource)}</Typography></Stack>
+ {(['name','symbol','listingYear'] as const).map(key=><Box key={key}><Box sx={{display:'flex',gap:'8px',alignItems:'center',height:36,px:'8px',borderRadius:'8px',border:`1px solid ${colors.border}`,bgcolor:key==='symbol'&&!s.canCorrectCode?colors.canvas:colors.raised}}><Typography component="label" htmlFor={`security-${key}`} sx={{width:60,flexShrink:0,fontSize:11,color:colors.textSecondary}}>{{name:'종목명',symbol:'종목코드',listingYear:'상장연도'}[key]}</Typography><InputBase id={`security-${key}`} value={value[key]} disabled={key==='symbol'&&!s.canCorrectCode} onChange={e=>update(key,e.target.value)} sx={{flex:1,minWidth:0,fontSize:13,'& input':{p:0}}}/></Box>{key==='symbol'&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary,mt:'8px'}}>{s.canCorrectCode?'오입력 정정 가능 · 변경 시 확인':`종목코드 변경 불가 · ${sourceLabel(s.registrationSource)} 종목`}</Typography>}</Box>)}
+ </Stack></AppCard>
+ {!!s.deleteBlockedReasons?.length&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary}}>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능<br/>사용 중인 종목은 삭제할 수 없습니다.</Typography>}
  {error&&!action&&<Typography role="alert" sx={{color:colors.error,fontSize:12}}>{error}</Typography>}
- <Stack direction="row" spacing={1}><Button disabled={busy} variant="contained" onClick={()=>void save()}>정보 저장</Button><Button disabled={busy||!!s.deleteBlockedReasons?.length} color="error" onClick={()=>openAction('delete')}>종목 삭제</Button></Stack>
- {!!s.deleteBlockedReasons?.length&&<Typography sx={{fontSize:12,color:colors.warning}}>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능</Typography>}
- <AppCard><Typography sx={{fontWeight:600,fontSize:13,mb:1}}>수집 대상 설정</Typography><Stack spacing={1}>{Object.entries(featureLabels).map(([feature,label])=><Stack key={feature} direction="row" sx={{alignItems:'center',gap:1}}><Typography sx={{fontSize:12,flex:1}}>{label}</Typography><CollectionSettingToggle security={s} feature={feature} showReason/></Stack>)}</Stack></AppCard>
+ <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,borderRadius:'8px',fontSize:12}}>정보 저장</Button></Stack>
+ </Stack>
+ <CollectionSettingsCard security={s}/>
+ </Box>
  {!!s.codeHistory?.length&&<AppCard><Typography sx={{fontSize:12}}>코드 정정 이력 · 이전 코드 자료는 보존되며 현재 코드 자료로 표시하지 않습니다.</Typography>{s.codeHistory.map(h=><Typography key={h.id} sx={{fontSize:11}}>{h.previousSymbol} → {h.newSymbol} · {new Date(h.createdAt).toLocaleDateString('ko-KR')}</Typography>)}</AppCard>}
  <ConfirmActionDialog open={!!action} title={dialogAction==='code'?'종목코드를 변경하시겠습니까?':'종목을 삭제하시겠습니까?'} name={s.name} danger={dialogAction==='delete'} disabled={!action} confirmLabel={dialogAction==='delete'?'삭제':'저장'} busy={busy} onClose={()=>{setAction(null);setError('');}} onConfirm={()=>{if(!action)return;if(action==='delete')void remove();else void save(true);}}>{dialogAction==='code'?<Box sx={{whiteSpace:'pre-line'}}>변경 이후 수집은 새 코드를 사용합니다.{'\n'}변경 전 수집 자료는 새 코드 기준으로 변환하거나 재연결하지 않습니다.{'\n'}Z99로 시작하는 코드는 모든 수집에서 제외됩니다.</Box>:'종목 목록에서 비활성화하며 기존 수집 자료는 보존합니다.'}{error&&<Typography role="alert">{error}</Typography>}</ConfirmActionDialog>
  </Stack>;
