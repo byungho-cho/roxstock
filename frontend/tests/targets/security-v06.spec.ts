@@ -22,7 +22,7 @@ async function setup(page:Page,kind:'DART'|'MANUAL'|'Z99'|'MIXED'|'OFF'='DART'){
  return {s,writes,reads,fail(mode:typeof failure){failure=mode;},hold(){hold=true;},release(){hold=false;release?.();}};
 }
 const card=(page:Page)=>page.getByTestId('collection-settings-card');
-const master=(page:Page)=>card(page).getByRole('switch',{name:/^전체 수집/});
+const master=(page:Page)=>card(page).getByRole('switch',{name:/^전체 수집/,hidden:true});
 async function open(page:Page){await page.goto('/detail/security-management?selected=1');await expect(card(page)).toBeVisible();}
 test('Figma geometry and one-body scrolling preserve every control and footer',async({page},info)=>{
  await setup(page);await open(page);await expect(page.getByRole('heading',{name:'종목 정보 수정'})).toBeVisible();await expect(page.getByLabel('종목코드',{exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'종목 삭제'})).toBeDisabled();
@@ -53,9 +53,9 @@ test('Z99 keeps all switches disabled OFF and reason below the final separator',
  await expect(page.getByLabel('종목코드',{exact:true})).toBeEnabled();await card(page).getByTestId('collection-setting-guide').scrollIntoViewIfNeeded();await expect(card(page).getByTestId('collection-setting-guide')).toContainText('Z99 코드 · 전체 수집 자동 제외');expect(f.writes).toHaveLength(0);await page.screenshot({path:info.outputPath('automatic-exclusion.png')});
 });
 test('failed save reloads the actual server state, including uncertain successful commit',async({page})=>{
- const f=await setup(page);await open(page);f.fail('before');await master(page).click();await page.getByRole('button',{name:'확인',exact:true}).click();await expect(card(page).getByRole('alert')).toContainText('서버 상태를 다시 조회');await expect(master(page)).toHaveAttribute('aria-checked','true');await page.getByRole('button',{name:'취소',exact:true}).click();
- f.fail('after');await master(page).click();await page.getByRole('button',{name:'확인',exact:true}).click();await expect(master(page)).toHaveAttribute('aria-checked','false');await expect(card(page).getByRole('alert')).toBeVisible();await page.getByRole('button',{name:'취소',exact:true}).click();await expect(master(page)).toHaveAttribute('aria-checked','false');
+ const f=await setup(page);await open(page);f.fail('before');await master(page).click();await page.getByRole('button',{name:'확인',exact:true}).click();await expect(page.getByRole('dialog').getByRole('alert')).toContainText('서버 상태를 다시 조회');await expect(master(page)).toHaveAttribute('aria-checked','true');await page.getByRole('button',{name:'취소',exact:true}).click();
+ f.fail('after');await master(page).click();await page.getByRole('button',{name:'확인',exact:true}).click();await expect(master(page)).toHaveAttribute('aria-checked','false');await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();await page.getByRole('button',{name:'취소',exact:true}).click();await expect(master(page)).toHaveAttribute('aria-checked','false');
 });
 test('pending whole save blocks duplicate submissions and individual changes',async({page})=>{
- const f=await setup(page);await open(page);f.hold();await master(page).click();const confirm=page.getByRole('button',{name:'확인',exact:true});await confirm.evaluate((b:HTMLButtonElement)=>{b.click();b.click();});await expect(master(page)).toBeDisabled();await expect(card(page).getByRole('switch',{name:'컨센서스 활성',exact:true})).toBeDisabled();expect(f.writes).toHaveLength(1);f.release();await expect(master(page)).toBeEnabled();await expect(master(page)).toHaveAttribute('aria-checked','false');
+ const f=await setup(page);await open(page);f.hold();await master(page).click();const confirm=page.getByRole('button',{name:'확인',exact:true});await confirm.evaluate((b:HTMLButtonElement)=>{b.click();b.click();});await expect(master(page)).toBeDisabled();await expect(card(page).getByRole('switch',{name:'컨센서스 활성',exact:true,hidden:true})).toBeDisabled();await expect.poll(()=>f.writes.length).toBe(1);f.release();await expect(master(page)).toBeEnabled();await expect(master(page)).toHaveAttribute('aria-checked','false');
 });

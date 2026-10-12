@@ -55,6 +55,6 @@ export function CollectionSettingsCard({security}:{security:ManagedSecurity}){
     {error&&<Typography role="alert" sx={{fontSize:11,color:colors.error,mt:.5}}>{error}</Typography>}
    </Box>
   </Stack>
-  <ConfirmActionDialog open={!!confirm} title={title} name={security.name} danger={false} confirmLabel="확인" disabled={!confirm} busy={busy} onClose={()=>{setConfirm(null);setError('');}} onConfirm={()=>{if(confirm)void save(confirm);}}>종목과 기존 자료·이력은 유지됩니다. 자동 제외 규칙은 변경하지 않습니다.</ConfirmActionDialog>
+  <ConfirmActionDialog open={!!confirm} title={title} name={security.name} danger={false} confirmLabel="확인" disabled={!confirm} busy={busy} onClose={()=>{setConfirm(null);setError('');}} onConfirm={()=>{if(confirm)void save(confirm);}}>종목과 기존 자료·이력은 유지됩니다. 자동 제외 규칙은 변경하지 않습니다.{error&&<Typography role="alert" sx={{color:colors.error,fontSize:12,mt:1}}>{error}</Typography>}</ConfirmActionDialog>
  </AppCard>;
 }
