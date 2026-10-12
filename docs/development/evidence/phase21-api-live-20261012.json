@@ -1,0 +1,92 @@
+{
+  "checkedAt": "2026-10-12T01:03:31Z",
+  "deploymentSha": "f4bd59abdb8a43d5d9239a06b8c8be2b35872962",
+  "origin": "https://newrox.cafe24.com",
+  "readOnly": true,
+  "requests": [
+    {
+      "feature": "dart-financial-statements",
+      "stream": "runs",
+      "limit": 3,
+      "cursor": false,
+      "returned": 3,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 7517
+    },
+    {
+      "feature": "dart-financial-statements",
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 7461
+    },
+    {
+      "feature": "dart-financial-statements",
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 50,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 6630,
+      "overlapWithFirst": 0,
+      "crossPageOrdered": true
+    },
+    {
+      "feature": "dart-financial-statements",
+      "stream": "items",
+      "limit": 3,
+      "cursor": false,
+      "returned": 3,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 8974
+    },
+    {
+      "feature": "dart-financial-statements",
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 6739
+    },
+    {
+      "feature": "dart-financial-statements",
+      "stream": "items",
+      "limit": 50,
+      "cursor": true,
+      "returned": 50,
+      "hasNext": true,
+      "ordered": true,
+      "elapsedMs": 6029,
+      "overlapWithFirst": 0,
+      "crossPageOrdered": true
+    },
+    {
+      "feature": "security-master",
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 22,
+      "hasNext": false,
+      "ordered": true,
+      "elapsedMs": 5017
+    },
+    {
+      "feature": "security-master",
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 22,
+      "hasNext": false,
+      "ordered": true,
+      "elapsedMs": 6100
+    }
+  ]
+}

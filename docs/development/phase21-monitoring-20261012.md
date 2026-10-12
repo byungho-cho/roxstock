@@ -22,13 +22,40 @@ backend/src/routes/collection-pages.ts (독립 조회), collection-status.ts (�
 
 ## 검증 계획·현황
 
-- 로컬: 프런트/백엔드 TypeScript 및 빌드, 커서/조건/정렬/제한 API 단위 검사. 새 테스트의 optional 배열 타입 오류는 수정 후 재검사한다.
+- 로컬: 프런트/백엔드 TypeScript 및 빌드, 커서/조건/정렬/제한 API 단위 검사. 새 테스트의 optional 배열 타입 오류는 수정 후 검사 통과했다.
 - 실제 MariaDB: 격리된 CI DB에서 0/49/50/51/105 실행과 대상 기록을 생성한다. API inject로 각50건·hasNext·이후 커서·같은 시각 ID 보조정렬·중복/누락·새 기록 삽입·필터 불일치 거절·최근 실행 종속 없는 대상 관계를 검사하고 검증용 기록만 정리한다. 운영 원본은 수정하지 않는다.
 - Chromium: 커버370×465/태블릿725×396, 요약0/1/3, 상세 각0/49/50/51/105, 색상 일치/노란 PARTIAL, 내부 스크롤 없음, URL 요청 limit/cursor 증거, 연속 클릭/추가 실패/재시도/필터/복귀/느린 최초 로딩/지연 응답 격리.
 - 동일 fixture를 기준 main(240px/300px 고정)과 변경 화면에 적용해 DOM 높이 JSON 및 전후 PNG를 보관한다. 실제 표시건수에 맞는 가변 높이이며2.5배 비교는 더 이상 유효하지 않다.
 - 로컬 Chromium 설치 환경 문제가 기존에 확인되어 반복하지 않고 CI Chromium으로 확인한다. 실제 Android/WebView 기기 검증은 이 환경에서 수행할 수 없으며 별도 미확인으로 기록한다.
-- 병합/배포 SHA, 워크플로 결과, 운영 API 근거는 완료 후 이 문서와 PR에 갱신한다. 검증 통과 전 draft를 유지한다.
+- 병합/배포 SHA, 워크플로 결과, 운영 API 근거는 아래 최종 기록과 PR에 반영했다. 검증 통과 후 PR로 병합했다.
 
 ## 최초 CI 원인 분류
 
 Backend Check의 실제 MariaDB 페이지 검증 통과. 신규 UI 최초 검사는 개발 StrictMode의 취소된 최초 요청을 완료 요청으로 세는 검사 오류와 본문/하단 메뉴의 동명 더보기 버튼 선택 오류가 있었다. 배포용 production preview로 검사하고 본문 버튼으로 범위를 한정한다. 기존 phase20 회귀132개 통과/4개 실패는 독립 조회로 나뉜 재시도 버튼 중 다른 영역을 누른 검사 선택 오류였으며 해당 기능의 통계 재시도로 명시한다. 필터 변경 시 과거 조건의 여러 페이지 캐시를 재사용하지 않고 첫50건을 재조회하도록 제품 동작도 보완한다. 원인 없는 재실행은 하지 않는다.
+
+## 최종 검사·병합
+
+최종 검증 head1935834d318696734e0ed9c5b1fc62155762a004. 최신 main0f66031(#196 포함)과 충돌 없이 동기화했다. 모든 선택 검사16개 성공/요청 화면 전용6개 정상 skip, PR Gate 통과: https://github.com/byungho-cho/roxstock/actions/runs/38188441535 . 기존 입력/로딩 회귀136개 통과: https://github.com/byungho-cho/roxstock/actions/runs/38188441261 . 취소된 요청/동명 버튼/기록 저장/재시도 순서의 검사 코드 오류를 수정해 완료했다.
+
+- 실제 MariaDB/API: https://github.com/byungho-cho/roxstock/actions/runs/38188441245 . [20회 페이지 조회 원본](evidence/phase21-api-ci-20261012.json).
+- production Chromium38개: https://github.com/byungho-cho/roxstock/actions/runs/38188441218 . [28개 뷰포트별 JSON](evidence/phase21-ui-ci-20261012.json). [전후 PNG·QA](../qa/phase21-monitoring-20261012.md).
+- PR198 병합 완료: https://github.com/byungho-cho/roxstock/pull/198 . main 애플리케이션 커밋4b9dc682972cab70cedc56ab7005eda151bcf136. main 직접 push/PR137 병합 없음. 별도 문서 초안PR197은 병합하지 않았다.
+- Production Deploy: https://github.com/byungho-cho/roxstock/actions/runs/38189052305 . 배포 결과 및 운영 API 확인은 완료 후 아래에 기록한다.
+
+## 배포 중 확인한 운영 보호 규칙 오류
+
+PR198의 최초 Production Deploy38189052305는 성공으로 종료됐으나 서버 단계의 `Superseded deployment skipped` 때문에 실제 기능 적용은 생략됐다. 그 사이 문서 PR200이 main을30d2181로 변경했고, 새 API는 실제404였다. 문서 PR은 앱 배포를 시작하지 않으므로 기능 배포가 누락되는 경우였다. 성공 상태만으로 완료 처리하지 않았다.
+
+별도 PR202로 서버 보호 규칙을 보완했다. 최신 main이 요청 SHA와 같거나 요청 SHA의 후손이며 차이가 docs/**/루트README.md뿐인 경우만 같은 런타임 코드의 배포를 허용한다. 앱/설정 변경, 원본 코드의 docs 이동, 무관한 이력은 차단한다. 임시 실제 Git 저장소로 검증한 보호 규칙과 기존 자동화31개 및 PR Gate 통과: https://github.com/byungho-cho/roxstock/actions/runs/38189652741 . PR202 병합mainf4bd59abdb8a43d5d9239a06b8c8be2b35872962. 이 SHA의 새 Production Deploy38189809433으로 실제 적용/조회까지 확인한다. 수집기·DB 원본·비밀번호 변경 없음.
+
+## 운영 API 실제 확인
+
+2026-10-12T01:03:31Z, f4bd59a 백엔드 실제 적용 후 GET8회 확인. DART 실행/대상 요약 각각3건, 상세 각각50→50건이며 두 페이지 중복0/페이지 간 시각+ID 내림차순 통과. 종목 마스터 실행/대상은22건/hasNext=false로 마지막 페이지를 확인했다. [운영 API 근거](evidence/phase21-api-live-20261012.json). 서버 원본 조회만 수행했으며 실제 데이터 본문/계좌 정보는 증거 파일에 복사하지 않았다. 응답시간5–9초는 이 실행환경 외부 요청의 네트워크 포함 측정이며 서버 처리시간으로 해석하지 않는다.
+
+## 최종 운영 배포 완료
+
+- 적용 버전 f4bd59abdb8a43d5d9239a06b8c8be2b35872962 (#202 포함). 자동 배포38189809433 success: https://github.com/byungho-cho/roxstock/actions/runs/38189809433 . 백엔드/프런트 이미지 모두 Docker Hub에 푸시하고 서버에 적용됐다. 실제 컨테이너 태그 sha-f4bd59abdb8a43d5d9239a06b8c8be2b35872962 및 healthy를 로그에서 확인했다. 기존 수집기3개도 같은 이미지로 healthy. 서버의 최신 .env.production을600권한으로 복사하는 기존 방식 유지/DB 인증 정상/비밀번호 재설정 없음.
+- 실제 새 API GET8회와 페이지 간 중복0/최신순/마지막 페이지 확인 완료. 프런트도 index-CkqcpB7r.js→CollectionMonitoringPage-Bx-XbKCT.js에서 새 페이지 캐시 키/nextCursor 코드를 확인했다. [프런트 실제 배포 근거](evidence/phase21-frontend-live-20261012.json).
+- 초기4b9dc68 이미지는 생성·푸시됐지만 문서 커밋 때문에 서버 적용이 생략됐다. 해당 워크플로의 success를 실제 적용 완료로 보고하지 않았다. 최종 실제 배포는f4bd59a이다.
+- [21차 전후 화면·전체 검증 보고](../qa/phase21-monitoring-20261012.md). 검증 기록 문서만 후속 PR로 저장하며 앱의 추가 재배포는 필요하지 않다.
+- 미확인: 실제 Android/WebView 하드웨어. 커서의 상태값은 과거 시점의 DB 스냅샷이 아니며, 진행 중 실행의 완료 상태 변경은 이후 조회에 반영한다. 수집 오류 원인 분석/대량 재수집/원본 수정은 이번 범위에 포함하지 않았다.
