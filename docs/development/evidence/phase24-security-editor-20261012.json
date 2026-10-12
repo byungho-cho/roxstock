@@ -242,5 +242,27 @@
       "concurrentSnapshot": true,
       "legacyAllPreservesFeatures": true
     }
-  }
+  },
+  "verifiedCode": "7ab77246fe6e64b6439bd911b474dfbd25d1ce4e",
+  "ci": [
+    {
+      "runId": 38247697647,
+      "name": "Frontend Check",
+      "conclusion": "success"
+    },
+    {
+      "runId": 38247697750,
+      "name": "Backend Check",
+      "conclusion": "success",
+      "backendRegressionPassed": 212,
+      "realMariaDB": true
+    },
+    {
+      "runId": 38247698194,
+      "name": "Phase23 Management and Exclusions",
+      "conclusion": "success",
+      "previousRegressionPassed": 14,
+      "phase24BrowserPassed": 20
+    }
+  ]
 }
