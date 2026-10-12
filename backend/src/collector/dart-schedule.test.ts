@@ -40,7 +40,7 @@ test('weekend general collection cannot collect priority stocks through the univ
     updateStateError: async () => {}, cleanupRealtimeRetention: async () => {},
   };
   for (const [name, fn] of Object.entries(mocks)) t.mock.method(repo, name as keyof typeof repo, fn);
-  const result = await runDartCollectorCycle({} as PrismaClient, config, now);
+  const result = await runDartCollectorCycle({security:{findUnique:async({where}:any)=>({...general,id:where.id,symbol:where.id===1n?priority.symbol:general.symbol,isActive:true,collectionExcluded:false,excludedFeatures:[],collectionRevision:0})}} as unknown as PrismaClient, config, now);
   assert.equal(result.status, 'SUCCESS');
   assert.ok(checked.length > 0);
   assert.ok(checked.every(id => id === 2n));

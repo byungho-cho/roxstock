@@ -131,8 +131,8 @@ export async function securityRoutes(app: FastifyInstance) {
         const year = new Date().getUTCFullYear();
         await tx.financialStatement.upsert({
           where: { securityId_fiscalYear_periodType: { securityId, fiscalYear: year, periodType: 'ANNUAL' } },
-          create: { securityId, fiscalYear: year, periodType: 'ANNUAL', periodEndDate: new Date(Date.UTC(year, 11, 31)), operatingProfit, totalAssets: assets, totalLiabilities: liabilities, totalEquity: equity },
-          update: { operatingProfit, totalAssets: assets, totalLiabilities: liabilities, totalEquity: equity },
+          create: { securityId, collectionSymbol:security.symbol, fiscalYear: year, periodType: 'ANNUAL', periodEndDate: new Date(Date.UTC(year, 11, 31)), operatingProfit, totalAssets: assets, totalLiabilities: liabilities, totalEquity: equity },
+          update: { collectionSymbol:security.symbol,operatingProfit, totalAssets: assets, totalLiabilities: liabilities, totalEquity: equity },
         });
       }
       if (dividend !== undefined) {
@@ -140,15 +140,15 @@ export async function securityRoutes(app: FastifyInstance) {
         const latest = await tx.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } });
         await tx.valuationMetric.upsert({
           where: { securityId_metricDate: { securityId, metricDate: today } },
-          create: { securityId, metricDate: today, eps: latest?.eps, bps: latest?.bps, per: latest?.per, pbr: latest?.pbr, roe: latest?.roe, dividendYield: latest?.dividendYield, marketCap: latest?.marketCap, dividendPerShare: dividend },
-          update: { dividendPerShare: dividend },
+          create: { securityId, collectionSymbol:security.symbol,metricDate: today, eps: latest?.eps, bps: latest?.bps, per: latest?.per, pbr: latest?.pbr, roe: latest?.roe, dividendYield: latest?.dividendYield, marketCap: latest?.marketCap, dividendPerShare: dividend },
+          update: { collectionSymbol:security.symbol,dividendPerShare: dividend },
         });
       }
       if ([controllingProfit, issuedShares, treasuryShares, previousEquity].some((value) => value !== undefined)) {
         await tx.securityFundamentals.upsert({
           where: { securityId },
-          create: { securityId, controllingProfit, issuedShares, treasuryShares, previousEquity },
-          update: { controllingProfit, issuedShares, treasuryShares, previousEquity },
+          create: { securityId, collectionSymbol:security.symbol,controllingProfit, issuedShares, treasuryShares, previousEquity },
+          update: { collectionSymbol:security.symbol,controllingProfit, issuedShares, treasuryShares, previousEquity },
         });
       }
       if ([controllingProfit, issuedShares, treasuryShares, previousEquity, equity, dividend].some((value) => value !== undefined)) {
@@ -174,7 +174,7 @@ export async function securityRoutes(app: FastifyInstance) {
         };
         await tx.valuationMetric.upsert({
           where: { securityId_metricDate: { securityId, metricDate: today } },
-          create: { securityId, metricDate: today, ...calculated, dividendPerShare: latest?.dividendPerShare ?? null },
+          create: { securityId, collectionSymbol:security.symbol,metricDate: today, ...calculated, dividendPerShare: latest?.dividendPerShare ?? null },
           update: calculated,
         });
       }
@@ -268,8 +268,8 @@ export async function securityRoutes(app: FastifyInstance) {
     const result = await serializable(async tx => {
       await requireActiveAccount(tx, accountId);
       const existing = await tx.security.findFirst({ where: { symbol } });
-      if (existing) throw new ApiError(409, 'SECURITY_ALREADY_EXISTS', '이미 등록된 종목입니다. 검색에서 분류를 선택하세요.');
-      const security = await tx.security.create({ data: { symbol, name, marketType: selectedMarket, listingYear } });
+      if (existing) throw new ApiError(409, 'SECURITY_ALREADY_EXISTS', '이미 등록된 종목코드입니다.');
+      const security = await tx.security.create({ data: { symbol, name, marketType: selectedMarket, listingYear, registrationSource: 'MANUAL' } });
       const item = await tx.accountWatchlistItem.create({ data: { accountId, securityId: security.id, listType: selectedList } });
       return serializeSecurity({ ...security, marketPrice: null, watchlistItem: item });
     });
@@ -285,8 +285,8 @@ export async function securityRoutes(app: FastifyInstance) {
     const previous = await prisma.marketPrice.findUnique({ where: { securityId } });
     const marketPrice = await prisma.marketPrice.upsert({
       where: { securityId },
-      create: { securityId, currentPrice, previousClosePrice: previous?.previousClosePrice ?? null, priceUpdatedAt: new Date() },
-      update: { currentPrice, priceUpdatedAt: new Date() },
+      create: { securityId, collectionSymbol: security.symbol, currentPrice, previousClosePrice: previous?.previousClosePrice ?? null, priceUpdatedAt: new Date() },
+      update: { collectionSymbol: security.symbol, currentPrice, previousClosePrice:previous?.previousClosePrice??null,priceUpdatedAt: new Date() },
     });
     const latest = await prisma.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } });
     if (latest) {

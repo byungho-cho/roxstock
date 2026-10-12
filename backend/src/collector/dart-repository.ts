@@ -1,3 +1,4 @@
+import {eligibleWhere,withoutCollection} from './collection-policy.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import type {DartSourceValidation} from './dart-filing-validation.js';
 import {storedDartCode} from './dart-diagnostics.js';
@@ -22,7 +23,7 @@ export interface DartBackfillTaskRecord {
   attempts: number;
 }
 
-export interface DartSecurityRecord { id: bigint; symbol: string; securityType: string; marketType?: string; corpCode: string | null; }
+export interface DartSecurityRecord { id: bigint; symbol: string; securityType: string; marketType?: string; collectionRevision?:number; corpCode: string | null; }
 
 export class PrismaDartRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -69,7 +70,7 @@ export class PrismaDartRepository {
   async syncCorporations(corporations: DartCorporation[], syncedAt = new Date()): Promise<{ matched: number; unmatched: number; ambiguous: number }> {
     validateDartCorporations(corporations);
     const securities = await this.prisma.security.findMany({
-      where: { securityType:'STOCK' }, select: { id: true, symbol: true },
+      where: { ...eligibleWhere('dart-financial-statements'),securityType:'STOCK' }, select: { id: true, symbol: true },
     });
     const bySymbol = new Map(securities.map((item) => [normalizeProviderSymbol(item.symbol), item.id]));
     const corpBySymbol = new Map<string, DartCorporation[]>();
@@ -82,17 +83,17 @@ export class PrismaDartRepository {
     const mapped = candidates.flatMap(([symbol, entries]) => {
       const corp = entries[0]!;
       const securityId = bySymbol.get(symbol);
-      return securityId === undefined ? [] : [{ securityId, corpCode: corp.corpCode, stockCode: symbol, corpName: corp.corpName, sourceModifiedAt: corp.modifiedDate || null, syncedAt }];
+      return securityId === undefined ? [] : [{ securityId, collectionSymbol:symbol, corpCode: corp.corpCode, stockCode: symbol, corpName: corp.corpName, sourceModifiedAt: corp.modifiedDate || null, syncedAt }];
     });
     if (!mapped.length || ambiguous) throw new DartApiError(ambiguous?'CORP_MAPPING_AMBIGUOUS':'CORP_MAPPING_EMPTY','Corporate mapping validation failed.');
-    await this.prisma.$transaction(async (tx) => {
-      // Replace the full, successfully parsed DART list so removed or changed mappings cannot linger.
-      await tx.dartCorpMapping.deleteMany({});
-      for (let i = 0; i < mapped.length; i += 500) {
-        await tx.dartCorpMapping.createMany({ data: mapped.slice(i, i + 500) });
-      }
+    await withoutCollection(()=>this.prisma.$transaction(async tx=>{
+      // Lock current master identities; a late universe response cannot attach an old code mapping.
+      const current=await tx.$queryRaw<Array<{id:bigint;symbol:string;collection_excluded:number;excluded_features:string|null}>>`SELECT id,symbol,collection_excluded,excluded_features FROM securities WHERE id IN (${Prisma.join(mapped.map(m=>m.securityId))}) FOR UPDATE`;
+      const byId=new Map(current.map(s=>[String(s.id),s]));
+      const accepted=mapped.filter(m=>{const s=byId.get(String(m.securityId));const features=typeof s?.excluded_features==='string'?JSON.parse(s.excluded_features):s?.excluded_features;return s?.symbol===m.stockCode&&!s.collection_excluded&&!s.symbol.toUpperCase().startsWith('Z99')&&!(Array.isArray(features)&&features.includes('dart-financial-statements'));});
+      for(const mapping of accepted)await tx.dartCorpMapping.upsert({where:{securityId:mapping.securityId},create:mapping,update:mapping});
       await tx.dartCollectorState.upsert({where:{id:1},create:{id:1,phase:'BACKFILL',backfillStartYear:2015,corpCodeSyncedAt:syncedAt},update:{corpCodeSyncedAt:syncedAt}});
-    },{timeout:60000});
+    },{timeout:60000}));
     return { matched: mapped.length, unmatched: securities.length - mapped.length, ambiguous };
   }
 
@@ -103,7 +104,7 @@ export class PrismaDartRepository {
     const historicalPlanActive = !existing?.backfillCompletedAt || extendsPlan;
     if (!existing?.backfillInitializedAt) await this.setState({ phase: 'BACKFILL', backfillStartYear: startYear, backfillEndYear: endYear });
     const priorityIds=await this.prioritySecurityIds();
-    const securities = await this.prisma.security.findMany({ where: { OR:[{isActive:true},{id:{in:priorityIds}}] }, select: { id: true } });
+    const securities = await this.prisma.security.findMany({ where: {...eligibleWhere('dart-financial-statements'),OR:[{isActive:true},{id:{in:priorityIds}}]}, select: { id: true } });
     const known = await this.prisma.dartSecurityState.findMany({ select: { securityId: true } });
     const knownIds = new Set(known.map((item) => item.securityId.toString()));
     const missingSecurities = securities.filter(({ id }) => !knownIds.has(id.toString()));
@@ -164,7 +165,7 @@ export class PrismaDartRepository {
     const alreadyStartedToday = await this.prisma.dartSecurityState.count({ where: { backfillStartedAt: { gte: day, lt: new Date(day.getTime() + 86_400_000) } } });
     const slots = Math.max(0, limit - alreadyStartedToday);
     const candidates = await this.prisma.dartSecurityState.findMany({
-      where: { backfillStartedAt: null, backfillCompletedAt: null, security: { isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } } },
+      where: { backfillStartedAt: null, backfillCompletedAt: null, security: { ...eligibleWhere('dart-financial-statements'), isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } } },
       select: { securityId: true }, orderBy: { securityId: 'asc' },
     });
     const priority = await this.prioritySecurityIds();
@@ -179,11 +180,11 @@ export class PrismaDartRepository {
   async listStartedBackfillSecurities(now = new Date()): Promise<DartSecurityRecord[]> {
     const states = await this.prisma.dartSecurityState.findMany({
       where: { backfillStartedAt: { not: null }, backfillCompletedAt: null,
-        security: { isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
-      select: { securityId: true, security: { select: { symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
+        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
+      select: { securityId: true, security: { select: { collectionRevision:true,symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
       orderBy: { backfillStartedAt: 'asc' },
     });
-    return states.map((item) => ({ id: item.securityId, symbol: item.security.symbol, marketType: item.security.marketType, securityType: item.security.securityType, corpCode: item.security.dartCorpMapping?.corpCode ?? null }));
+    return states.map((item) => ({ id: item.securityId, symbol: item.security.symbol,collectionRevision:item.security.collectionRevision, marketType: item.security.marketType, securityType: item.security.securityType, corpCode: item.security.dartCorpMapping?.corpCode ?? null }));
   }
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
@@ -228,7 +229,7 @@ export class PrismaDartRepository {
   }
 
   async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
-    return this.prisma.dartBackfillTask.update({ where: { id: taskId }, data: {...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})} });
+    return this.prisma.$transaction(tx=>tx.dartBackfillTask.update({ where: { id: taskId }, data: {...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})} }));
   }
 
   async markTasks(securityId: bigint, fiscalYear: number, reportCode: string, status: 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED', now: Date, errorCode?: string, errorMessage?: string) {
@@ -301,7 +302,7 @@ export class PrismaDartRepository {
   }
 
   async markSecurityError(securityId: bigint, message: string): Promise<void> {
-    await this.prisma.dartSecurityState.update({ where: { securityId }, data: { lastError: message.slice(0, 1000) } });
+    await this.prisma.$transaction(tx=>tx.dartSecurityState.update({ where: { securityId }, data: { lastError: message.slice(0, 1000) } }));
   }
 
   async backfillProgress() {
@@ -316,7 +317,7 @@ export class PrismaDartRepository {
   }
 
   async markBackfillCompleteIfReady(now = new Date()): Promise<boolean> {
-    const remaining = await this.prisma.dartBackfillTask.count({ where: { fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const remaining = await this.prisma.dartBackfillTask.count({ where: { security:{...eligibleWhere('dart-financial-statements')},fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
     if (remaining) return false;
     await this.setState({ phase: 'CURRENT', backfillCompletedAt: now, phase2StartedAt: now, lastError: null });
     return true;
@@ -325,13 +326,13 @@ export class PrismaDartRepository {
   async cleanupRealtimeRetention(now = new Date()): Promise<void> {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60_000);
-    await this.prisma.$transaction([
-      this.prisma.realtimeCycleAggregate.deleteMany({ where: { minuteStartedAt: { lt: sevenDaysAgo } } }),
-      this.prisma.realtimeCollectorIssue.deleteMany({ where: { occurredAt: { lt: thirtyDaysAgo } } }),
-      this.prisma.realtimeCollectorIssue.deleteMany({ where: { id: { notIn: (await this.prisma.realtimeCollectorIssue.findMany({ orderBy: { occurredAt: 'desc' }, take: 1000, select: { id: true } })).map((x) => x.id) } } }),
-      this.prisma.dartDailyCompanyCheck.deleteMany({ where: { usageDate: { lt: toDatabaseDate(getSeoulClock(new Date(now.getTime() - 90 * 24 * 60 * 60_000)).dateKey) } } }),
-      this.prisma.dartApiDailyUsage.deleteMany({ where: { usageDate: { lt: toDatabaseDate(getSeoulClock(new Date(now.getTime() - 90 * 24 * 60 * 60_000)).dateKey) } } }),
-    ]);
+    await this.prisma.$transaction(async tx => {
+      await tx.realtimeCycleAggregate.deleteMany({ where: { minuteStartedAt: { lt: sevenDaysAgo } } });
+      await tx.realtimeCollectorIssue.deleteMany({ where: { occurredAt: { lt: thirtyDaysAgo } } });
+      await tx.realtimeCollectorIssue.deleteMany({ where: { id: { notIn: (await tx.realtimeCollectorIssue.findMany({ orderBy: { occurredAt: 'desc' }, take: 1000, select: { id: true } })).map((x) => x.id) } } });
+      await tx.dartDailyCompanyCheck.deleteMany({ where: { usageDate: { lt: toDatabaseDate(getSeoulClock(new Date(now.getTime() - 90 * 24 * 60 * 60_000)).dateKey) } } });
+      await tx.dartApiDailyUsage.deleteMany({ where: { usageDate: { lt: toDatabaseDate(getSeoulClock(new Date(now.getTime() - 90 * 24 * 60 * 60_000)).dateKey) } } });
+    });
   }
 
   async countRunsForDate(jobType: string, dateKey: string) {
@@ -349,11 +350,11 @@ export class PrismaDartRepository {
     await this.prisma.collectorRun.update({ where: { id: runId }, data: { status, finishedAt: new Date(), successCount: counts.success, failureCount: counts.failed, skippedCount: counts.skipped, failureReason, ...(metadata && { metadata: metadata as Prisma.InputJsonValue }) } });
   }
 
-  async addRunItem(runId: bigint, security: DartSecurityRecord, task: DartBackfillTaskRecord, status: 'SUCCESS' | 'FAILED' | 'NO_DATA' | 'NOT_APPLICABLE', message?: string, diagnostics?: Prisma.InputJsonValue) {
+  async addRunItem(runId: bigint, security: DartSecurityRecord, task: DartBackfillTaskRecord, status: 'SUCCESS' | 'FAILED' | 'NO_DATA' | 'NOT_APPLICABLE' | 'SKIPPED', message?: string, diagnostics?: Prisma.InputJsonValue) {
     await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: `${security.symbol}:${task.fiscalYear}:${task.reportCode}`, status, diagnostics, message: message?.slice(0, 1000) } });
   }
 
-  async addPhase2RunItem(runId: bigint, security: DartSecurityRecord, status: 'SUCCESS' | 'FAILED' | 'NOT_APPLICABLE', message?: string, diagnostics?: Prisma.InputJsonValue) {
+  async addPhase2RunItem(runId: bigint, security: DartSecurityRecord, status: 'SUCCESS' | 'FAILED' | 'NOT_APPLICABLE' | 'SKIPPED', message?: string, diagnostics?: Prisma.InputJsonValue) {
     await this.prisma.collectorRunItem.create({ data: { runId, securityId: security.id, symbol: security.symbol, status, diagnostics, message: message?.slice(0, 1000) } });
   }
 
@@ -416,16 +417,16 @@ export class PrismaDartRepository {
       ? { OR: [{ priorityCheckedAt: null }, { priorityCheckedAt: { lt: today } }] }
       : { OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: today } }] };
     const items = await this.prisma.security.findMany({
-      where: { ...(phase==='UNIVERSE'?{isActive:true}:{}), securityType: 'STOCK', dartCorpMapping: { isNot: null },
+      where: { ...eligibleWhere('dart-financial-statements'), ...(phase==='UNIVERSE'?{isActive:true}:{}), securityType: 'STOCK', dartCorpMapping: { isNot: null },
         ...(phase === 'PRIORITY' ? { id: { in: priorityIds } } : {}),
         ...(phase === 'UNIVERSE' ? { dartDailyCompanyChecks: { none: { usageDate: today } } } : {}),
         ...(ignoreChecked?{}:{dartSecurityState: { is: filterTime }}) },
-      select: { id: true, symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
+      select: { id: true, collectionRevision:true, symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } },
       orderBy: [{ id: 'asc' }],
       ...(phase === 'UNIVERSE' ? { take: limit } : {}),
     });
     if (phase === 'PRIORITY') items.sort((a, b) => (priorities.get(b.id) ?? 0) - (priorities.get(a.id) ?? 0) || (a.id < b.id ? -1 : 1));
-    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, marketType: item.marketType, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
+    return (phase === 'PRIORITY' ? items : items.slice(0, limit)).map((item) => ({ id: item.id, symbol: item.symbol, collectionRevision:item.collectionRevision, marketType: item.marketType, securityType: item.securityType, corpCode: item.dartCorpMapping?.corpCode ?? null }));
   }
 
   async updateStateError(error: string | null): Promise<void> {

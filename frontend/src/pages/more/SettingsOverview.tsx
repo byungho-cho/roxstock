@@ -25,10 +25,11 @@ export function SettingsOverview({ compact = false }: { compact?: boolean }) {
   const go = (view: MoreView) => navigate(`/detail/settings?view=${view}`);
   if (compact) return <Box data-testid="more-settings-panel" sx={{ ...panel, height: 300, p: '13px', boxSizing: 'border-box' }}>
     <Typography sx={{ ...heading, lineHeight: '28px', mb: '6px' }}>설정</Typography>
-    <Stack spacing="16px">
+    <Stack spacing="6px">
       <LinkRow title="계좌 관리" onClick={() => go('account')} />
       <LinkRow title="시세 수집" value="상태 조회" onClick={() => go('collection')} />
       <LinkRow title="테마 설정" value={theme === 'dark' ? '다크' : theme === 'light' ? '라이트' : '시스템 설정'} onClick={() => go('theme')} active />
+      <LinkRow title="종목 관리" onClick={()=>navigate('/detail/security-management')} />
       <Box data-testid="theme-buttons" sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '8px' }}>{(['dark', 'light', 'system'] as const).map(value => <ButtonBase key={value} aria-label={value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'} aria-pressed={theme === value} onClick={() => chooseTheme(value)} sx={{ ...row, flex: 1, minWidth: 0, height: 56, display: 'flex', flexDirection: 'column', gap: '4px', bgcolor: theme === value ? '#3C85F2' : '#0B111B', borderColor: '#1F2B42', color: '#E8EDF7' }}>
         <Typography sx={{ fontSize: 12, lineHeight: '19px', fontWeight: theme === value ? 600 : 400, whiteSpace: 'nowrap' }}>{value === 'dark' ? '다크' : value === 'light' ? '라이트' : '시스템 설정'}</Typography>
         <Typography sx={{ fontSize: 10, lineHeight: '14px', height: 14 }}>{theme === value ? '선택됨' : ''}</Typography>

@@ -1,3 +1,4 @@
+import {CollectionExcluded,checkCollection} from './collection-policy.js';
 import { RealtimeLockLostError, safeErrorCode } from './realtime-lifecycle.js';
 import { collectorLog as log } from './logger.js';
 import { getSeoulClock } from './time.js';
@@ -28,7 +29,7 @@ export interface RealtimeCollectorOptions {
   monitor?: {
     assertLease?: () => Promise<void>;
     heartbeat: (status: { workerStatus: string; marketSession: string; at: Date }) => Promise<void>;
-    cycle: (data: { startedAt: Date; finishedAt: Date; session: string; targetCount: number; receivedCount: number; sourceFailureCount: number; staleCount: number; publishedCount: number; publishFailureCount: number; savedCount: number; saveFailureCount: number; lastSourcePriceAt: Date | null; sourceError?: string; sourceIssues?: Array<{ symbol: string; reason: string }>; publishError?: string; saveError?: string }) => Promise<void>;
+    cycle: (data: { startedAt: Date; finishedAt: Date; session: string; targetCount: number; receivedCount: number; sourceFailureCount: number; staleCount: number; publishedCount: number; publishFailureCount: number; savedCount: number; saveFailureCount: number; lastSourcePriceAt: Date | null; sourceError?: string; sourceIssues?: Array<{ symbol: string; reason: string }>; results?:Array<{securityId:bigint;symbol:string;status:'SUCCESS'|'FAILED'|'STALE'|'SKIPPED';message?:string}>; publishError?: string; saveError?: string }) => Promise<void>;
     stopped: (at: Date) => Promise<void>;
   };
 }
@@ -50,6 +51,7 @@ export interface RealtimeCycleResult {
   stale: number;
   published: number;
   publishError?: string;
+  results?:Array<{securityId:bigint;symbol:string;status:'SUCCESS'|'FAILED'|'STALE'|'SKIPPED';message?:string}>;
   failures: Array<{ symbol: string; reason: string }>;
 }
 
@@ -98,17 +100,21 @@ export const collectRealtimeCycle = async (
   publish: RealtimePublisher,
   assertLease: () => Promise<void> = async () => undefined,
   beforeFetch: () => void = () => undefined,
+  withTarget?: CollectorRepository['withTarget'],
 ): Promise<RealtimeCycleResult> => {
   const currentValues: RealtimePriceValue[] = [];
   const failures: Array<{ symbol: string; reason: string }> = [];
   let stale = 0;
+  const results:NonNullable<RealtimeCycleResult['results']>=[];
 
   await mapConcurrent(targets, concurrency, async (target) => {
     beforeFetch();
     try {
-      const observation = await provider.fetchPrice(target);
+     const work=async()=>{
+      if(target.symbol.toUpperCase().startsWith('Z99'))throw new CollectionExcluded('Z99 코드: 수집 제외');
+      const observation = await provider.fetchPrice(target);await checkCollection();
       if (observation.freshness === 'STALE') {
-        stale += 1;
+        stale += 1;results.push({securityId:target.id,symbol:target.symbol,status:'STALE'});
         return;
       }
       const value: RealtimePriceValue = { ...observation, securityId: target.id, name: target.name };
@@ -117,7 +123,12 @@ export const collectRealtimeCycle = async (
         cache.set(target.symbol, value);
         currentValues.push(value);
       }
+      results.push({securityId:target.id,symbol:target.symbol,status:'SUCCESS'});
+     };
+     if(withTarget)await withTarget(target,'realtime-prices',work);else await work();
     } catch (error) {
+      results.push({securityId:target.id,symbol:target.symbol,status:error instanceof CollectionExcluded?'SKIPPED':'FAILED',message:messageOf(error).slice(0,1000)});
+      if(error instanceof CollectionExcluded){cache.delete(target.symbol);return;}
       failures.push({ symbol: target.symbol, reason: messageOf(error).slice(0, 1000) });
     }
   });
@@ -140,7 +151,7 @@ export const collectRealtimeCycle = async (
     stale,
     published,
     ...(publishError && { publishError }),
-    failures,
+    failures,results,
   };
 };
 
@@ -158,7 +169,7 @@ export const createHttpRealtimePublisher = (
       authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ prices: values.map((value) => ({
-      securityId: value.securityId.toString(),
+      securityId: value.securityId.toString(),collectionRevision:value.collectionRevision,
       symbol: value.symbol,
       name: value.name,
       currentPrice: value.currentPrice,
@@ -226,9 +237,11 @@ export const runRealtimeCollector = async (
         await assertLease();
         if (cycleStartedAt >= targetRefreshAt) {
           targets = await repository.listRealtimeSecurities(options.maxSecurities);
+          const currentTargets=new Map(targets.map(t=>[t.symbol,t]));
+          for(const [symbol,value] of cache){const target=currentTargets.get(symbol);if(!target||target.id!==value.securityId||target.collectionRevision!==value.collectionRevision)cache.delete(symbol);}
           targetRefreshAt = cycleStartedAt + options.targetRefreshSeconds * 1000;
         }
-        result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish, assertLease, () => { if (stopped) throw new RealtimeLockLostError(); });
+        result = await collectRealtimeCycle(targets, provider, cache, options.concurrency, publish, assertLease, () => { if (stopped) throw new RealtimeLockLostError(); },repository.withTarget?.bind(repository));
         if (result.targetCount > 0 && result.stale === result.targetCount) {
           staleBackoffUntil = cycleStartedAt + options.staleBackoffSeconds * 1000;
           log('warn', 'all realtime prices are stale; applying source backoff', {
@@ -267,6 +280,7 @@ export const runRealtimeCollector = async (
           targetCount: result?.targetCount ?? targets.length, receivedCount: result?.success ?? 0,
           sourceFailureCount: result?.failed ?? (targetRefreshError ? targets.length || 1 : 0), staleCount: result?.stale ?? 0,
           publishedCount: result?.published ?? 0, publishFailureCount: result?.publishError ? 1 : 0,
+          results:result?.results,
           savedCount, saveFailureCount: saveError ? 1 : 0,
           lastSourcePriceAt: result?.success ? new Date(Math.max(...cacheValuesObservedAt(cache))) : null,
           ...(targetRefreshError && { sourceError: targetRefreshError }), ...(result?.failures.length && { sourceIssues: result.failures }), ...(result?.publishError && { publishError: result.publishError }), ...(saveError && { saveError }),

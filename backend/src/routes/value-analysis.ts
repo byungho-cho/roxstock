@@ -1,3 +1,4 @@
+import {securityCacheRevision} from '../domain/security-cache-revision.js';
 import {selectStoredAnalysis,storedAnalysisInclude} from '../domain/stored-analysis.js';
 import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
 import {displayShares} from '../domain/share-counts.js';
@@ -24,7 +25,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   });
   const cache = new Map<string, { expires: number; result: ReturnType<typeof loadFinancials> }>();
   function financials(year: number, query: string) {
-    const key = JSON.stringify([year, query]), existing = cache.get(key);
+    const key = JSON.stringify([year, query,securityCacheRevision()]), existing = cache.get(key);
     if (existing && existing.expires > Date.now()) return existing.result;
     if (cache.size >= 16) cache.delete(cache.keys().next().value!);
     const entry = { expires: Infinity, result: loadFinancials(year, query) };
@@ -42,11 +43,11 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       financials(year, hasInitialQuery(query) ? '' : query),
       prisma.security.findMany({
         where: { isActive: true, ...(query && !hasInitialQuery(query) ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-        select: { id: true, marketPrice: true },
+        select: { id: true, symbol:true,codeRevision:true, marketPrice: true },
       }),
     ]);
     const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));
-    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString()) && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
+    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString()) && (()=>{const current=live.find(r=>r.id===security.id);return current?.symbol===undefined||current.symbol===security.symbol&&current.codeRevision===security.codeRevision;})() && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
       const marketPrice = prices.get(security.id.toString());
       const price=marketPrice?.currentPrice.toString()??null,analysis=selectStoredAnalysis({year,price,metrics:security.valuationMetrics,periods:security.periodValuations??[],manual:security.financialStatements??[],filings:security.dartFinancialFilings??[]}),{metric,...selected}=analysis;
       const fundamentals=security.fundamentals;

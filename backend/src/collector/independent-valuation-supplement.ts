@@ -1,3 +1,5 @@
+import {CollectionExcluded,withCollection,eligibleWhere} from './collection-policy.js';
+import {collectionClient} from '../lib/collection-client.js';
 import {randomUUID} from 'node:crypto';
 import {Prisma,type PrismaClient} from '../generated/prisma/index.js';
 import {PrismaDartRepository} from './dart-repository.js';
@@ -19,6 +21,7 @@ export function mergeAnnualSupplement(old:unknown,source:NaverAnnual,provenance:
  return preserveValues(old,fresh);
 }
 export async function runIndependentSupplement(db:PrismaClient,config:{windowStartHour:number;windowEndHour:number},now=new Date(),source=new NaverAnnualProvider()){
+ db=collectionClient(db);
  if(process.env.VALUATION_SUPPLEMENT_ENABLED==='false')return {status:'DISABLED'};
  if(!dartWindowOpen(now,config.windowStartHour,config.windowEndHour,[],true))return {status:'OUTSIDE_WINDOW'};
  const repo=new PrismaDartRepository(db),owner=randomUUID();if(!await repo.acquireLock(owner,900))return {status:'LOCKED'};
@@ -29,7 +32,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:{windowSta
   const usage=await db.collectorRun.findMany({where:{jobType,startedAt:{gte:dayStart}},select:{metadata:true}});
   const used=usage.reduce((n,r)=>n+Number((r.metadata as {reservedCalls?:number}|null)?.reservedCalls??0),0);
   const priority=new Set((await repo.prioritySecurityIds()).map(String));
-  const filings=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:year},security:{isActive:true,securityType:'STOCK'}},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true,security:{select:{symbol:true}}}});
+  const filings=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:year},security:{...eligibleWhere('valuation'),isActive:true,securityType:'STOCK'}},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true,security:{select:{symbol:true}}}});
   const metrics=await db.periodValuation.findMany({where:{fiscalYear:{gte:2015,lte:year}},select:{securityId:true,fiscalYear:true,periodType:true,values:true,nextAttemptAt:true}});
   const key=(r:{securityId:bigint;fiscalYear:number;periodType:string})=>String(r.securityId)+':'+r.fiscalYear+':'+r.periodType;
   const previous=new Map(metrics.map(r=>[key(r),r]));
@@ -44,6 +47,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:{windowSta
    const lease=await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner,lockedUntil:{gt:new Date()}},data:{lockedUntil:new Date(Date.now()+900000)}});if(lease.count!==1)throw Error('SUPPLEMENT_LOCK_LOST');
    const where={securityId_fiscalYear_periodType:{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType}};
    try{
+    await withCollection(db,row.securityId,'valuation',async()=>{
     const annual=row.periodType==='ANNUAL'&&row.fiscalYear>=2021?(await source.annual(row.security.symbol)).find(r=>r.fiscalYear===row.fiscalYear&&r.kind==='FINAL_ANNUAL'):undefined;
     if(annual){
      const existing=await db.periodValuation.findUnique({where});const values=mergeAnnualSupplement(existing?.values,annual,existing?.provenance);
@@ -56,7 +60,8 @@ export async function runIndependentSupplement(db:PrismaClient,config:{windowSta
      const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType);
      if(result){await db.periodValuation.update({where,data:{nextAttemptAt:new Date(now.getTime()+86400000)}});}skipped++;
     }
-   }catch(error){failed++;const code=typeof error==='object'&&error&&'code'in error&&/^[A-Z0-9_]+$/.test(String(error.code))?String(error.code):'SUPPLEMENT_SOURCE_FAILED';
+    },{symbol:row.security.symbol});
+   }catch(error){if(error instanceof CollectionExcluded){skipped++;continue;}failed++;const code=typeof error==='object'&&error&&'code'in error&&/^[A-Z0-9_]+$/.test(String(error.code))?String(error.code):'SUPPLEMENT_SOURCE_FAILED';
     const existing=await db.periodValuation.findUnique({where});const data={nextAttemptAt:new Date(now.getTime()+86400000),supplemental:JSON.parse(JSON.stringify({...((existing?.supplemental??{}) as object),independentAttempt:{code,at:now.toISOString()}}))};
     if(existing)await db.periodValuation.update({where,data});else await db.periodValuation.create({data:{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType,status:'FAILED',values:{},provenance:{},reasons:{source:code},...data}});
    }

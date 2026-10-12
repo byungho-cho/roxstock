@@ -67,6 +67,14 @@ jobs:
       - name: Apply migrations to MariaDB
         run: npm run prisma:migrate:deploy
 
+      - name: Phase23 legacy migration backup and restore (isolated real MariaDB)
+        env:
+          PHASE23_DB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: node --import tsx --test backend/tests/phase23-migration.integration.ts
+
+      - name: Phase23 security management and collection fences (real MariaDB API)
+        run: node --import tsx --test backend/tests/security-management.integration.ts
+
       - name: Phase21 independent cursor pagination (real MariaDB API)
         run: node --import tsx --test backend/tests/monitoring-pages.integration.ts
 
