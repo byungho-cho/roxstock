@@ -21,3 +21,36 @@
 ## 검증·배포 상태
 
 별도 브랜치 `codex/phase23-management-20261012`. 로컬 타입/빌드·관련 단위 검사를 수행하며 실제 MariaDB 및 브라우저 검증은 CI에서 실행한다. PR·검증 SHA·배포 결과는 확정 후 이 문서와 QA 문서에 기록한다. Android 실기기·WebView는 현재 환경에서 확인할 수 없어 완료로 기록하지 않는다.
+
+## PR·변경 파일·운영 전 검사
+
+구현 PR #205는 main `08664e4482dd45a81a38cf1378cdd3f679830511`에 병합했다. 검증 SHA는 `6688341273503b939326a4a2bd88a3da039bc823`이며 최종 23개 검사 성공/범위 외 6개 제외/실패 0개다. 코드·설계·테스트 69개 파일 변경은 PR 파일 목록에서 확인할 수 있다.
+
+| 영역 | 핵심 파일 |
+| --- | --- |
+| 정책·식별 경계 | `backend/src/collector/collection-policy.ts`, `backend/src/lib/collection-client.ts`, `backend/src/lib/prisma.ts` |
+| 관리 API·저장 | `backend/src/routes/security-management.ts`, `securities.ts`, `database/prisma/schema.prisma`, 신규 마이그레이션 |
+| 모든 외부 경로 | 가격/실시간/DART/수동/컨센서스/주식수/가치지표 수집기·저장소·공급자 및 검증 CLI |
+| 결과 조회·보안 | `collection-pages.ts`, `collection-status.ts`, `prices.ts`, `collection-public-message.ts` |
+| 화면·캐시·다운로드 | `SecurityManagementPage.tsx`, `CollectionSettingToggle.tsx`, `CollectionMonitoringPage.tsx`, `AndroidDownload.tsx`, 설정 메뉴·공통 종목 표기·내비게이션 |
+| 실제 DB·화면 근거 | `security-management.integration.ts`, `phase23-migration.integration.ts`, `phase23-management.spec.ts`, CI·QA 문서 |
+
+코드 정정 후 프런트의 관련 이전 캐시는 제거하고 진행 요청은 취소한다. 일부 입력만 새 코드로 저장할 때 기존 코드의 다른 nullable 항목/JSON 값이 남지 않도록 현재 슬롯을 분리한다. `updateMany`는 현재 요청 코드에 속한 행만 대상으로 한다. 순이익·EPS·BPS·자기주식 혼입 차단을 실제 DB에서 확인했다.
+
+복구 기준은 기존 main/이미지 및 서버 내부 배포 전 검증된 DB 백업이다. 복구 시 서비스 쓰기를 통제하고 배포 후 신규 거래·변경을 별도 보존한 뒤 기준 백업과 대조해야 한다. 구 스키마 실제 복원 및 신규 마이그레이션 재적용은 격리 CI에서 확인했다.
+
+## 운영 배포·읽기 확인
+
+[Production Deploy 38203404392](https://github.com/byungho-cho/roxstock/actions/runs/38203404392)는 2026-10-12 13:29:22 KST 성공했다. 백엔드/프런트 Docker Hub 빌드·푸시와 실제 서버 배포 모두 수행됐고 건너뛴 배포가 아니다. 이미지 태그는 `sha-08664e4482dd45a81a38cf1378cdd3f679830511`이다. 백엔드·일반/실시간/DART 수집기 및 프런트 컨테이너 healthy를 배포 로그에서 확인했다. 운영 DB 비밀번호를 출력하거나 변경하지 않았다.
+
+배포 전 서버 내부 DB 백업을 gzip 검사 및 SHA256과 함께 저장한 뒤 신규 마이그레이션을 정상 적용했다. 이전 정상 이미지도 복귀용으로 기록했다.
+
+- 운영 종목 관리 API 첫 50개/다음 50개, 중복 0개 확인.
+- 같은 실행·상태 기준의 실시간 성공 37건/실패 1건, 계좌 스냅샷 성공 3건/실패 2건, DART 성공 3,377건·실패 97건의 첫 페이지(50건 한도)가 집계와 일치. DART 실패는 50→47, 중복 0개, 마지막 더보기 없음. 당시 실패들은 기존 이력이며 오류 원인 분석/원본 상태 소급 변경은 본 작업에서 하지 않았다.
+- 종목 마스터의 과거 실행은 개별 대상 기록이 없어 —와 미기록 사유를 유지하며 원본 실행 집계는 보존한다. 신규 실행부터 실제 대상별 결과를 기록한다.
+- 운영 `index-B5I-tAJ5.js` 및 `SecurityManagementPage-obMbqood.js`가 200으로 제공되고 관리 API·코드 경고·출처 권한·제외 설정 코드가 포함됨을 확인.
+- 기존 APK `0.1.2-webonly-test`/`roxstock-web-only-0.1.2.apk` 메타데이터·HEAD/GET 200, 61,360바이트, 공개 메타데이터 SHA256과 실제 다운로드 SHA256 일치. APK 파일·버전·URL은 변경하지 않음.
+
+근거: [운영 API](../development/evidence/phase23-api-live-20261012.json), [운영 프런트/APK](../development/evidence/phase23-frontend-live-20261012.json), [배포 로그 근거](../development/evidence/phase23-deploy-20261012.json). 공개 사이트 `/health/db`는 프런트 라우팅으로 노출되지 않아 DB 상태는 정상 운영 API 조회와 서버 내부 healthy 검사로 확인했다.
+
+남은 확인: 실제 Android 키보드·WebView·설치, 과거 등록 출처의 근거 확인. UNKNOWN 종목의 코드 수정은 차단된 상태이며 기존 값을 사용자 등록으로 임의 분류하지 않았다. 운영 원본에 테스트 거래·종목·제외 설정을 추가하거나 대량 수집을 실행하지 않았다. main 직접 push와 #137 병합은 하지 않았다.
