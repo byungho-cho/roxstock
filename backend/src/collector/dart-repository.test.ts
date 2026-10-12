@@ -26,7 +26,7 @@ test('a newly added priority stock starts despite the general daily cap and dayt
 
 test('report cache survives repository instances and expired entries reload', async () => {
   let value:any=null, calls=0;
-  const report:DartReport={receiptNo:'20260901000001',receiptDate:'20260901',reportName:'사업보고서 (2015.12)',reportCode:'11011',periodType:'ANNUAL',withdrawn:false,selection:{version:2,taskFiscalYear:2015,apiFiscalYear:2015,periodEndDate:'2015-12-31',fiscalYearEndMonth:12,annualPeriods:['2015-12'],candidates:[]}};
+  const report:DartReport={receiptNo:'20260901000001',receiptDate:'20260901',reportName:'사업보고서 (2015.12)',reportCode:'11011',periodType:'ANNUAL',withdrawn:false,selection:{version:2,yearMapping:'CALENDAR_REPORT_YEAR',taskFiscalYear:2015,apiFiscalYear:2015,periodEndDate:'2015-12-31',fiscalYearEndMonth:12,annualPeriods:['2015-12'],candidates:[]}};
   const db={dartReportCache:{findUnique:async()=>value,upsert:async(query:any)=>{value=query.create;}}} as unknown as PrismaClient;
   const load=async()=>{calls++;return [report];};
   assert.deepEqual(await new PrismaDartRepository(db).cachedReports('00126380',2015,load),[report]);

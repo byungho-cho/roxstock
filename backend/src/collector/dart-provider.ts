@@ -27,7 +27,7 @@ export interface DartDisclosure {
   reportPeriod: string; correctionType: DartCorrectionType; remarks: string;
 }
 export interface DartReportSelection {
-  version: 2; taskFiscalYear: number; apiFiscalYear: number; periodEndDate: string;
+  version: 2; yearMapping: 'CALENDAR_REPORT_YEAR'; taskFiscalYear: number; apiFiscalYear: number; periodEndDate: string;
   fiscalYearEndMonth: number | null; annualPeriods: string[]; periodError?: string;
   candidates: DartDisclosure[];
 }
@@ -225,7 +225,7 @@ export const mapPeriodicReports = (reports: RawReport[], fiscalYear: number): Da
     const periodEndDate = new Date(Date.UTC(year!, endMonth!, 0)).toISOString().slice(0,10);
     return [{receiptNo:latest.receiptNo,receiptDate:latest.receiptDate,reportName:latest.reportName,
       reportCode:target.code,periodType:target.period,withdrawn:false,
-      selection:{version:2,taskFiscalYear:fiscalYear,apiFiscalYear:fiscalYear,periodEndDate,
+      selection:{version:2,yearMapping:'CALENDAR_REPORT_YEAR',taskFiscalYear:fiscalYear,apiFiscalYear:fiscalYear,periodEndDate,
         fiscalYearEndMonth:month,annualPeriods,...(error?{periodError:error}:{}),candidates:matches}}];
   });
 };

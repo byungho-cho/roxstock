@@ -18,7 +18,7 @@ DART [공시검색](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&ap
 
 ## 원공시·정정·출처
 
-`DartReport.selection`은 동일 기업·실제 기간의 모든 원/정정 후보, 정정 유형, 결산월 근거를 보존한다. v1 캐시는 사용하지 않고 정상 요청 한도·간격 아래서 v2를 생성한다. 불일치 때 캐시를 삭제해 반복 목록 호출을 유도하던 동작은 제거했다.
+`DartReport.selection`은 동일 기업·실제 기간의 모든 원/정정 후보, 정정 유형, 결산월 근거를 보존한다. v1 및 초기 rollover 계약의 캐시는 사용하지 않고(CALENDAR_REPORT_YEAR 표식 검증) 정상 요청 한도·간격 아래서 v2를 생성한다. 불일치 때 캐시를 삭제해 반복 목록 호출을 유도하던 동작은 제거했다.
 
 `validateDartFiling`은 기업·API 연도·보고서·단일 접수번호·통화·공시 기간을 검증한다. 응답에 잘못된 식별 행이 하나라도 있으면 공급자에서 거절하며 해당 행을 버리고 CFS→OFS로 우회하지 않는다.
 

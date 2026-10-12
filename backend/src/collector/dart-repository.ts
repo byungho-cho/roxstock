@@ -153,7 +153,7 @@ export class PrismaDartRepository {
   async cachedReports(corpCode: string, fiscalYear: number, load: () => Promise<DartReport[]>, force = false): Promise<DartReport[]> {
     const now = new Date();
     const cached = await this.prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode,fiscalYear}}});
-    if (!force && cached && cached.expiresAt > now && Array.isArray(cached.reports) && cached.reports.every(r=>r && typeof r==='object' && !Array.isArray(r) && (r.selection as {version?:number}|undefined)?.version===2)) return cached.reports as unknown as DartReport[];
+    if (!force && cached && cached.expiresAt > now && Array.isArray(cached.reports) && cached.reports.every(r=>r && typeof r==='object' && !Array.isArray(r) && (r.selection as {version?:number;yearMapping?:string}|undefined)?.version===2 && (r.selection as {yearMapping?:string}|undefined)?.yearMapping==='CALENDAR_REPORT_YEAR')) return cached.reports as unknown as DartReport[];
     const reports = await load();
     await this.prisma.dartReportCache.upsert({where:{corpCode_fiscalYear:{corpCode,fiscalYear}},create:{corpCode,fiscalYear,reports:reports as unknown as Prisma.InputJsonValue,expiresAt:new Date(now.getTime()+86400000)},update:{reports:reports as unknown as Prisma.InputJsonValue,expiresAt:new Date(now.getTime()+86400000)}});
     return reports;
