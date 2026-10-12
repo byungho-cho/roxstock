@@ -1,3 +1,4 @@
+import {selectValueListAnalysis,orderValueGroups} from '../domain/value-list-analysis.js';
 import {securityCacheRevision} from '../domain/security-cache-revision.js';
 import {selectStoredAnalysis,storedAnalysisInclude} from '../domain/stored-analysis.js';
 import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
@@ -21,7 +22,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   // Cache slow financial joins briefly; never cache the live price used for W/order.
   const loadFinancials = (year: number, query: string) => prisma.security.findMany({
     where: { isActive: true, ...(query ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-    include: { fundamentals: {select:{updatedAt:true}}, dartShareSnapshots:{where:{fiscalYear:year}}, ...storedAnalysisInclude(year) },
+    include: { fundamentals: {select:{updatedAt:true}}, ...storedAnalysisInclude(year), financialStatements:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL'},orderBy:{fiscalYear:'desc'}}, periodValuations:{where:{fiscalYear:{gte:year-1,lte:year}},orderBy:{updatedAt:'desc'}}, valuationMetrics:{where:{metricDate:{gte:new Date(Date.UTC(year-1,0,1)),lt:new Date(Date.UTC(year+1,0,1))}},orderBy:{metricDate:'desc'}}, dartShareSnapshots:{where:{fiscalYear:{gte:year-1,lte:year}}}, dartFinancialFilings:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL',isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]} },
   });
   const cache = new Map<string, { expires: number; result: ReturnType<typeof loadFinancials> }>();
   function financials(year: number, query: string) {
@@ -47,21 +48,21 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       }),
     ]);
     const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));
-    const rows = orderByWeight(securities.filter(security => prices.has(security.id.toString()) && (()=>{const current=live.find(r=>r.id===security.id);return current?.symbol===undefined||current.symbol===security.symbol&&current.codeRevision===security.codeRevision;})() && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
+    const rows = orderValueGroups(securities.filter(security => prices.has(security.id.toString()) && (()=>{const current=live.find(r=>r.id===security.id);return current?.symbol===undefined||current.symbol===security.symbol&&current.codeRevision===security.codeRevision;})() && (!hasInitialQuery(query) || matchesStockSearch(security.name, query) || matchesStockSearch(security.symbol, query))).map(security => {
       const marketPrice = prices.get(security.id.toString());
-      const price=marketPrice?.currentPrice.toString()??null,analysis=selectStoredAnalysis({year,price,metrics:security.valuationMetrics,periods:security.periodValuations??[],manual:security.financialStatements??[],filings:security.dartFinancialFilings??[]}),{metric,...selected}=analysis;
+      const price=marketPrice?.currentPrice.toString()??null,analysis=selectValueListAnalysis({year,price,metrics:security.valuationMetrics,periods:security.periodValuations??[],manual:security.financialStatements??[],filings:security.dartFinancialFilings??[]}),{metric,...selected}=analysis;
       const fundamentals=security.fundamentals;
       // Fundamentals has no historical versions. Never associate a later edit with an earlier reference year.
-      const shareCounts=displayShares(security.dartShareSnapshots??[],security.dartFinancialFilings??[],year);
+      const shareCounts=displayShares(security.dartShareSnapshots??[],security.dartFinancialFilings??[],analysis.dataPriority===1?year:year-1);
       return { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price,
         previousClosePrice: marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice?.priceUpdatedAt.toISOString() ?? null,
         per: metric?.per ?? null, pbr: metric?.pbr ?? null, metricDate: metric?.metricDate ?? null,
         ...selected,...shareCounts,requiredReturn:'8.0',
-        excessEarnings:null,shareholderValue:null,fundamentalsUpdatedAt:fundamentals?.updatedAt.toISOString()??null,
+        fundamentalsUpdatedAt:fundamentals?.updatedAt.toISOString()??null,
         fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:fairPrice(metric,persistence)})),
-        notices:['초과이익·주주가치: 총액 집계 기준이 미확정되어 —로 표시합니다.','주식수: 선택연도 내 최근 공시의 보통주 저장값입니다. 미수집은 —입니다.'] };
-    }));
-    return { data: { rows, total: rows.length, year, query, timezone: 'Asia/Seoul', metricBasis: 'LATEST_STORED_DATE_WITHIN_YEAR' } };
+        notices:[...selected.notices,'발행주식수 표시는 해당 자료 연도의 보통주 공시값이며 RIM 계산 분모와 별도로 표시합니다.'] };
+    }).filter(row=>!!query||row.dataPriority!==3));
+    return { data: { rows, total: rows.length, year, query, timezone: 'Asia/Seoul', metricBasis: 'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL' } };
   });
   app.get<{ Params: { id: string }; Querystring: Query }>('/value-analysis/:id', async request => {
     const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
