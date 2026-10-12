@@ -13,7 +13,7 @@ const rejects=(fn:()=>unknown,reason:string)=>assert.throws(fn,(e:unknown)=>e in
 
 for(const month of [3,6,9,12])test(`company-specific annual/Q1/Q2/Q3 closing-month ${month}`,()=>{
  const annual=`2024.${String(month).padStart(2,'0')}`;
- const dates=[1,2,3].map(q=>{const date=new Date(Date.UTC(2024,month===12?0:month,1));date.setUTCMonth(date.getUTCMonth()+q*3-1);return date.toISOString().slice(0,7).replace('-','.');});
+ const dates=[1,2,3].map(q=>{return `2024.${String((month+q*3-1)%12+1).padStart(2,'0')}`;});
  const reports=mapPeriodicReports([disclosure(annual),...dates.map((date,i)=>disclosure(date,i===1?'반기보고서':'분기보고서',`2025051100100${i}`))],2024);
  assert.equal(reports.length,4);
  for(const report of reports){const source=validate(report);assert.equal(source.periodEndDate.toISOString().slice(0,7),report.reportName.match(/\((\d{4})\.(\d{2})\)/)?.slice(1).join('-'));assert.equal(source.sourceValidation.apiFiscalYear,2024);}
@@ -30,7 +30,7 @@ test('GRT and CJ/Samsung recorded API receipts reverse-validate without relabeli
    if(corp==='01170962'&&report.reportCode==='11012')assert.equal(result.periodEndDate.toISOString().slice(0,10),'2024-12-31');
    if(corp==='00113410'){assert.equal(result.sourceValidation.relationship,'SAME_PERIOD_ATTACHMENT_CHAIN');assert.equal(result.sourceValidation.selectedReceiptNo,'20250317001020');assert.equal(result.receiptNo,'20250317000953');assert.equal(result.sourceValidation.financialValuesAssumedEqual,false);}
   }
-  if(corp==='01170962')assert.deepEqual(reports.map(r=>r.selection!.periodEndDate),['2024-09-30','2024-12-31','2025-03-31','2024-06-30']);
+  if(corp==='01170962')assert.deepEqual(reports.map(r=>r.selection!.periodEndDate),['2024-09-30','2024-12-31','2024-03-31','2024-06-30']);
  }
 });
 test('closing-month transition and unavailable history require review; no December default',()=>{

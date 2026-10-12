@@ -1,0 +1,286 @@
+{
+  "deploySha": "031c0bd4de15687ed54984802d6f40747001f7e2",
+  "workflowRunId": 38186396085,
+  "before": {
+    "observedAt": "2026-10-12T00:01:07.067Z",
+    "taskStates": [
+      {
+        "status": "PENDING",
+        "count": 89492
+      },
+      {
+        "status": "SUCCESS",
+        "count": 31548
+      },
+      {
+        "status": "NO_FILING",
+        "count": 5807
+      },
+      {
+        "status": "NOT_APPLICABLE",
+        "count": 182
+      },
+      {
+        "status": "FAILED",
+        "count": 459
+      }
+    ],
+    "filingCount": 31548,
+    "duplicateReceipts": 0,
+    "dailyUsage": {
+      "date": "2026-10-12",
+      "calls": 5065,
+      "errors": 0,
+      "noData": 515
+    }
+  },
+  "after": {
+    "observedAt": "2026-10-12T00:01:54.145Z",
+    "taskStates": [
+      {
+        "status": "PENDING",
+        "count": 89492
+      },
+      {
+        "status": "SUCCESS",
+        "count": 31549
+      },
+      {
+        "status": "NO_FILING",
+        "count": 5807
+      },
+      {
+        "status": "NOT_APPLICABLE",
+        "count": 182
+      },
+      {
+        "status": "FAILED",
+        "count": 458
+      }
+    ],
+    "filingCount": 31549,
+    "duplicateReceipts": 0,
+    "dailyUsage": {
+      "date": "2026-10-12",
+      "calls": 5074,
+      "errors": 0,
+      "noData": 515
+    }
+  },
+  "representative": {
+    "runId": "4782",
+    "calls": 9,
+    "maxCalls": 12,
+    "results": [
+      {
+        "symbol": "900290",
+        "corpCode": "01170962",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11011",
+        "retryEligible": false,
+        "beforeStatus": "SUCCESS",
+        "beforeAttempt": 1,
+        "context": {
+          "corpCode": "01170962",
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "reportPeriod": "2024-06",
+          "selectedReceiptNo": "20241018000064",
+          "selectedCorrectionType": "ORIGINAL",
+          "sourceCorrectionType": "ORIGINAL",
+          "validationResult": "NON_KRW_STORAGE_UNSUPPORTED",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "returnedReceiptNos": [
+            "20241018000064"
+          ]
+        },
+        "stage": "REPRESENTATIVE_VERIFY",
+        "category": "DART_API",
+        "code": "DART_SOURCE_REVIEW",
+        "exceptionClass": "DartApiError",
+        "message": "REPRESENTATIVE_VERIFY: DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.",
+        "frames": [
+          "collector/dart-filing-validation.js:12:168",
+          "collector/dart-filing-validation.js:58:9"
+        ],
+        "stored": false
+      },
+      {
+        "symbol": "900290",
+        "corpCode": "01170962",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11013",
+        "retryEligible": false,
+        "beforeStatus": "FAILED",
+        "beforeAttempt": 3,
+        "context": {
+          "corpCode": "01170962",
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "reportPeriod": "2024-09",
+          "selectedReceiptNo": "20241125000285",
+          "selectedCorrectionType": "ORIGINAL",
+          "sourceCorrectionType": "ORIGINAL",
+          "validationResult": "NON_KRW_STORAGE_UNSUPPORTED",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "returnedReceiptNos": [
+            "20241125000285"
+          ]
+        },
+        "stage": "REPRESENTATIVE_VERIFY",
+        "category": "DART_API",
+        "code": "DART_SOURCE_REVIEW",
+        "exceptionClass": "DartApiError",
+        "message": "REPRESENTATIVE_VERIFY: DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.",
+        "frames": [
+          "collector/dart-filing-validation.js:12:168",
+          "collector/dart-filing-validation.js:58:9"
+        ],
+        "stored": false
+      },
+      {
+        "symbol": "900290",
+        "corpCode": "01170962",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11012",
+        "retryEligible": true,
+        "beforeStatus": "FAILED",
+        "beforeAttempt": 3,
+        "context": {
+          "corpCode": "01170962",
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "reportPeriod": "2024-12",
+          "selectedReceiptNo": "20250304000174",
+          "selectedCorrectionType": "ORIGINAL",
+          "sourceCorrectionType": "ORIGINAL",
+          "validationResult": "NON_KRW_STORAGE_UNSUPPORTED",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "returnedReceiptNos": [
+            "20250304000174"
+          ]
+        },
+        "stage": "REPRESENTATIVE_VERIFY",
+        "category": "DART_API",
+        "code": "DART_SOURCE_REVIEW",
+        "exceptionClass": "DartApiError",
+        "message": "REPRESENTATIVE_VERIFY: DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.",
+        "frames": [
+          "collector/dart-filing-validation.js:12:168",
+          "collector/dart-filing-validation.js:58:9"
+        ],
+        "stored": false
+      },
+      {
+        "symbol": "900290",
+        "corpCode": "01170962",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11014",
+        "retryEligible": false,
+        "beforeStatus": "SUCCESS",
+        "beforeAttempt": 1,
+        "context": {
+          "corpCode": "01170962",
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "reportPeriod": "2025-03",
+          "selectedReceiptNo": "20250616000355",
+          "validationResult": "RECEIPT_NOT_IN_EXPECTED_PERIOD",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "returnedReceiptNos": [
+            "20240530000884"
+          ]
+        },
+        "stage": "REPRESENTATIVE_VERIFY",
+        "category": "DART_API",
+        "code": "RECEIPT_MISMATCH",
+        "exceptionClass": "DartApiError",
+        "message": "REPRESENTATIVE_VERIFY: DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.",
+        "frames": [
+          "collector/dart-filing-validation.js:12:168",
+          "collector/dart-filing-validation.js:29:9"
+        ],
+        "stored": false
+      },
+      {
+        "symbol": "000120",
+        "corpCode": "00113410",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11011",
+        "retryEligible": true,
+        "beforeStatus": "FAILED",
+        "beforeAttempt": 6,
+        "source": {
+          "version": 2,
+          "corpCode": "00113410",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "reportPeriod": "2024-12",
+          "selectedReceiptNo": "20250317001020",
+          "returnedReceiptNo": "20250317000953",
+          "selectedCorrectionType": "ATTACHMENT",
+          "sourceCorrectionType": "ORIGINAL",
+          "relationship": "SAME_PERIOD_ATTACHMENT_CHAIN",
+          "annualPeriods": [
+            "2023-12",
+            "2024-12",
+            "2025-12"
+          ],
+          "fiscalYearEndMonth": 12,
+          "currency": "KRW",
+          "amountUnit": "CURRENCY_UNITS",
+          "financialValuesAssumedEqual": false
+        },
+        "validation": "VERIFIED",
+        "stored": true,
+        "created": true
+      },
+      {
+        "symbol": "005930",
+        "corpCode": "00126380",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "reportCode": "11011",
+        "retryEligible": false,
+        "beforeStatus": "SUCCESS",
+        "beforeAttempt": 1,
+        "source": {
+          "version": 2,
+          "corpCode": "00126380",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "reportPeriod": "2024-12",
+          "selectedReceiptNo": "20250311001085",
+          "returnedReceiptNo": "20250311001085",
+          "selectedCorrectionType": "ORIGINAL",
+          "sourceCorrectionType": "ORIGINAL",
+          "relationship": "EXACT",
+          "annualPeriods": [
+            "2023-12",
+            "2024-12",
+            "2025-12"
+          ],
+          "fiscalYearEndMonth": 12,
+          "currency": "KRW",
+          "amountUnit": "CURRENCY_UNITS",
+          "financialValuesAssumedEqual": false
+        },
+        "validation": "VERIFIED",
+        "stored": false
+      }
+    ]
+  }
+}
