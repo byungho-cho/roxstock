@@ -210,9 +210,10 @@ export const mapPeriodicReports = (reports: RawReport[], fiscalYear: number): Da
     let error = target.period === 'ANNUAL' ? (annualTargets.length > 1 ? 'MULTIPLE_ANNUAL_PERIODS' : undefined) : periodError;
     if (target.period === 'ANNUAL') expected = annualTargets.length === 1 ? annualTargets[0]! : '';
     else if (month !== null) {
-      const date = new Date(Date.UTC(fiscalYear, month === 12 ? 0 : month, 1));
-      date.setUTCMonth(date.getUTCMonth() + target.quarter * 3 - 1);
-      expected = date.toISOString().slice(0,7);
+      // Each API report code uses its actual closing month within bsns_year.
+      // Do not roll Q3 into the next year just because Q1/Q2 follow the annual closing month.
+      const endMonth = (month + target.quarter * 3 - 1) % 12 + 1;
+      expected = `${fiscalYear}-${String(endMonth).padStart(2,'0')}`;
     }
     let matches = disclosures.filter(d=>d.reportName.includes(target.title) && d.reportPeriod===expected).sort(orderDisclosure);
     if (error) matches = disclosures.filter(d=>d.reportName.includes(target.title) && Math.abs(Number(d.reportPeriod.slice(0,4))-fiscalYear)<=1).sort(orderDisclosure);
