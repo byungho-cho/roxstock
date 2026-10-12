@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import {collectionPageRoutes} from './collection-pages.js';
 import { prisma } from '../lib/prisma.js';
 import { getSeoulClock } from '../collector/time.js';
 import { PrismaDartRepository } from '../collector/dart-repository.js';
@@ -131,10 +132,11 @@ function emptyRun(jobType: string, now: Date): NonNullable<Run> {
   return { id: 0n, jobType, provider: '', status: 'SKIPPED', startedAt: now, finishedAt: null, successCount: 0, failureCount: 0, staleCount: 0, skippedCount: 0, failureReason: null, metadata: null } as NonNullable<Run>;
 }
 
-interface DetailQuery { from?: string; to?: string; result?: string; symbol?: string; market?: string; accountId?: string; phase?: string; limit?: number; offset?: number; }
+interface DetailQuery { from?: string; to?: string; result?: string; symbol?: string; market?: string; accountId?: string; phase?: string; limit?: number; offset?: number; overview?: string; }
 const dateFilter = (value: string | undefined) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00.000Z`) : undefined;
 
 export async function collectionStatusRoutes(app: FastifyInstance) {
+  await collectionPageRoutes(app);
   app.get('/collection/status', async () => {
     const [run, price] = await Promise.all([
       prisma.collectorRun.findFirst({ where: { jobType: 'market-prices' }, orderBy: { startedAt: 'desc' } }),
@@ -153,10 +155,10 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const validStatus = wantedStatus && ['SUCCESS', 'PARTIAL', 'FAILED', 'SKIPPED', 'RUNNING'].includes(wantedStatus) ? wantedStatus : undefined;
     const validMarket = q.market && ['KOSPI', 'KOSDAQ', 'KONEX', 'OTHER'].includes(q.market) ? q.market : undefined;
     const where = { jobType: feature.jobType, ...(dateFilter(q.from) || toExclusive ? { startedAt: { ...(dateFilter(q.from) ? { gte: dateFilter(q.from) } : {}), ...(toExclusive ? { lt: toExclusive } : {}) } } : {}), ...(q.phase ? { metadata: { path: ['phase'], equals: q.phase } } : {}), ...(validStatus ? { status: validStatus as never } : {}) };
-    const runs = await prisma.collectorRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: Math.min(100, Math.max(1, Number(q.limit ?? 30))), skip: Math.max(0, Number(q.offset ?? 0)) });
+    const runs = q.overview === '1' ? [] : await prisma.collectorRun.findMany({ where, orderBy: { startedAt: 'desc' }, take: Math.min(100, Math.max(1, Number(q.limit ?? 30))), skip: Math.max(0, Number(q.offset ?? 0)) });
     const filteredRuns = wantedStatus ? runs.filter((run) => run.status === wantedStatus) : runs;
     const runIds = filteredRuns.map((run) => run.id);
-    const items = await prisma.collectorRunItem.findMany({ where: { runId: { in: runIds }, ...(validStatus ? { status: validStatus as never } : {}), ...(q.symbol ? { symbol: { contains: q.symbol } } : {}), ...(validMarket ? { security: { is: { marketType: validMarket as never } } } : {}), ...(q.accountId && feature.id === 'account-snapshots' ? { symbol: `account:${q.accountId}` } : {}) }, orderBy: { createdAt: 'desc' }, take: 500, include: { security: { select: { symbol: true, name: true, marketType: true } } } });
+    const items = q.overview === '1' ? [] : await prisma.collectorRunItem.findMany({ where: { runId: { in: runIds }, ...(validStatus ? { status: validStatus as never } : {}), ...(q.symbol ? { symbol: { contains: q.symbol } } : {}), ...(validMarket ? { security: { is: { marketType: validMarket as never } } } : {}), ...(q.accountId && feature.id === 'account-snapshots' ? { symbol: `account:${q.accountId}` } : {}) }, orderBy: { createdAt: 'desc' }, take: 500, include: { security: { select: { symbol: true, name: true, marketType: true } } } });
     const now = new Date();
     const detail: Record<string, unknown> = { id: feature.id, name: feature.name, generatedAt: now.toISOString(), runs: filteredRuns.map((run) => ({ id: run.id.toString(), status: run.status, startedAt: iso(run.startedAt), finishedAt: iso(run.finishedAt), success: run.successCount, failed: run.failureCount, skipped: run.skippedCount, target: run.successCount + run.failureCount + run.staleCount + run.skippedCount, failureReason: safeReason(run.failureReason), metadata: run.metadata })),
       items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: item.status, reason: safeReason(item.message), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };

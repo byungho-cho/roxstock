@@ -1,11 +1,13 @@
 import '../dashboard/home-font.css';
 import {collectionTaskLabel} from './collectionTaskLabel';
-import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
-import { ArrowDropDownRounded, FilterListRounded, RefreshRounded } from '@mui/icons-material';
+import {colors} from '../../styles/tokens';
+import {useListNavigation} from '../../hooks/navigation/usePageMemory';
+import {apiRequest} from '../../data/apiClient';
+import { FilterListRounded, RefreshRounded } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { createContext, useContext, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { getCollectionMonitorDetail, getCollectionMonitorSummary, type CollectionMonitorSummary } from '../../data/roxstockApi';
 
 import { DelayedSkeleton, useDelayedIndicator } from '../../components/common/DelayedSkeleton';
@@ -17,7 +19,7 @@ type DataRecord = Record<string, any>;
 const statusStyle: Record<string, { label: string; background: string; foreground: string }> = {
   OK: { label: '완료', background: '#3D8CF5', foreground: '#050A12' },
   RUNNING: { label: '진행 중', background: '#34D399', foreground: '#050A12' },
-  PARTIAL: { label: '일부 실패', background: '#F26A6F', foreground: '#050A12' },
+  PARTIAL: { label: '일부 실패', background: colors.warning, foreground: '#050A12' },
   FAILED: { label: '오류', background: '#F26A6F', foreground: '#050A12' },
   DELAYED: { label: '지연', background: '#FAB83B', foreground: '#050A12' },
   WAITING: { label: '실행 전', background: '#111825', foreground: '#F2F7FC' },
@@ -142,14 +144,14 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
 
 function CountStrip({ target, success, failed, skipped }: { target?: number; success?: number; failed?: number; skipped?: number }) {
   const values = [
-    ['대상', target, '#F2F7FC'],
-    ['성공', success, '#F2F7FC'],
-    ['실패', failed, failed ? '#F26A6F' : '#F2F7FC'],
+    ['대상', target, colors.textPrimary],
+    ['성공', success, colors.positive],
+    ['실패', failed, colors.error],
     ['건너뜀', skipped, '#F2F7FC'],
   ] as const;
   return <Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
     {values.map(([label, value, color]) => <Stack key={label} spacing={0.15} sx={{ minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
-      <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '11px' }}>{label}</Typography>
+      <Typography sx={{ color, fontSize: 10, lineHeight: '11px' }}>{label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
     </Stack>)}
   </Box>;
@@ -172,68 +174,89 @@ function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Featur
   </Box>;
 }
 
-function RunHistory({ runs, loading, feature, filtersOpen, onToggleFilters, showAllRuns, onToggleRuns, filterControls }: {
-  runs: DataRecord[]; loading: boolean; feature: string; filtersOpen: boolean; onToggleFilters: () => void; showAllRuns: boolean; onToggleRuns: () => void; filterControls: ReactNode;
-}) {
-  const pending = useContext(PendingData);
-  const visibleRuns = showAllRuns ? runs : runs.slice(0, 2);
-  return <Box sx={{ ...cardSx, bgcolor: 'transparent', border: 0, p: '0 12px' }}>
-    <Stack direction="row" spacing={0.5} sx={{ mb: 0.75, alignItems: 'center' }}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>실행 이력</Typography>{loading && !pending && <Updating />}
-      <Button onClick={onToggleFilters} startIcon={<FilterListRounded sx={{ fontSize: '13px !important' }} />} endIcon={<ArrowDropDownRounded sx={{ fontSize: '15px !important' }} />} sx={{ minWidth: 0, minHeight: 20, height: 20, p: 0, color: '#7A8CA8', fontSize: 10, lineHeight: 1 }}>
-        필터
-      </Button>
-      {runs.length > 2 && <Button onClick={onToggleRuns} sx={{ minWidth: 0, minHeight: 20, height: 20, p: 0, color: '#7A8CA8', fontSize: 10 }}>{showAllRuns ? '최근 실행' : '전체 기록'}</Button>}
-    </Stack>
-    <Collapse in={filtersOpen} unmountOnExit>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', sm: '1fr' }, gap: 0.5, mb: 1 }}>{filterControls}</Box>
-    </Collapse>
-    <Box data-testid="monitor-history-data" sx={{ height: 240, flexShrink: 0, overflowY: 'auto' }}>
-    {pending ? <Stack spacing={1}><DataValue width={200} /><DataValue width={240} /></Stack> : visibleRuns.length ? <Stack spacing={0.35}>{visibleRuns.map((run) => {
-      const status = statusStyle[String(run.status)] ?? unknownStatus;
-      const metadata = asRecord(run.metadata);
-      return <Box key={run.id} sx={{ minWidth: 0, py: 0.25 }}>
-        <Typography sx={{ color: '#7A8CA8', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>
-          {dateText(run.startedAt)} · {feature === 'dart-financial-statements' ? (metadata.phase === 'BACKFILL' ? '1단계 과거 수집' : '2단계 현행 수집') : status.label}
-        </Typography>
-        <Typography sx={{ color: '#7A8CA8', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>
-          대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}
-        </Typography>
-        {run.failureReason && <Typography sx={{ color: '#F26A6F', fontSize: 10, lineHeight: '14px', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{run.failureReason}</Typography>}
-      </Box>;
-    })}</Stack> : <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '18px' }}>실행 이력이 없습니다.</Typography>}
+type MonitorPage = {rows: DataRecord[]; hasNext: boolean; nextCursor: string | null};
+function useMonitorPages(feature: string, stream: 'runs' | 'items', filters: Record<string,string> = {}, limit = 50) {
+  return useInfiniteQuery({
+    queryKey: ['collection-monitor-pages',feature,stream,filters,limit],
+    initialPageParam: null as string | null,
+    queryFn: ({pageParam,signal}) => {
+      const params = new URLSearchParams({...filters,limit:String(limit),...(pageParam ? {cursor:pageParam}: {})});
+      return apiRequest<MonitorPage>(`/collection/monitoring/${encodeURIComponent(feature)}/${stream}?${params}`,{signal});
+    },
+    getNextPageParam: last => last.hasNext ? last.nextCursor : undefined,
+    staleTime: Infinity, gcTime: 30*60_000, refetchOnWindowFocus: false, refetchOnMount: false, retry: false,
+  });
+}
+function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
+  const pending=useContext(PendingData);
+  return <Box sx={{...cardSx,border:0,bgcolor:'transparent',p:'0 12px'}}>
+    <Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,mb:0.75}}>실행 이력</Typography>
+    <Box data-testid="monitor-history-data" sx={{minHeight:pending?42:0}}>
+      {pending ? <Stack spacing={1}><DataValue width={200}/><DataValue width={240}/></Stack> : runs.length ? <Stack spacing={0.5}>{runs.map(run=>{
+        const style=statusStyle[String(run.status)]??unknownStatus;
+        const metadata=asRecord(run.metadata);
+        return <Box key={run.id} data-testid="monitor-run-row" data-scroll-item={`run-${run.id}`} sx={{py:0.5,minWidth:0,overflowWrap:'anywhere'}}>
+          <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='BACKFILL'?'1단계 과거 수집':'2단계 현행 수집'}`:''}</Typography>
+          <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}</Typography>
+          {run.failureReason && <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.error,fontSize:10,lineHeight:'14px',whiteSpace:'normal',overflowWrap:'anywhere'}}>{run.failureReason}</Typography>}
+        </Box>;
+      })}</Stack> : <Typography sx={{...mutedText,fontSize:10}}>실행 이력이 없습니다.</Typography>}
     </Box>
   </Box>;
 }
-
-function TargetResults({ items, runs }: { items: DataRecord[]; runs: DataRecord[] }) {
-  const pending = useContext(PendingData);
-  const fallbacks: DataRecord[] = runs.filter((run) => run.failureReason).slice(0, 3).map((run) => ({ symbol: '실행 오류', status: run.status, reason: run.failureReason, occurredAt: run.startedAt }));
-  const entries = items.length ? items.slice(0, 100) : fallbacks;
-  return <Box sx={{ ...cardSx, bgcolor: 'transparent', border: 0, display: 'flex', flexDirection: 'column', p: '0 12px', minHeight: 116 }}>
-    <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center', borderBottom: '1px solid #26334A', pb: '3px' }}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>대상별 상태</Typography>
-      <Typography sx={{ ...mutedText, fontSize: 10 }}>확인 <DataValue width={24}>{numberText(entries.length)}</DataValue></Typography>
-    </Stack>
-    <Box data-testid="monitor-results-data" sx={{ height: 300, flexShrink: 0, overflowY: 'auto' }}>
-    {pending ? <Stack spacing={1}><DataValue width={180} /><DataValue width={220} /></Stack> : entries.length ? <Stack spacing={0} sx={{ minWidth: 0, flex: 1 }}>
-      {entries.map((item, index) => {
-        const resultStyle = statusStyle[String(item.status)] ?? unknownStatus;
-        const title = item.security?.name ?? item.symbol ?? '대상';
-        const outcome = item.reason ?? resultStyle.label;
-        return <Box key={`${item.symbol ?? 'result'}-${index}`} sx={{ py: '3px', minWidth: 0, borderBottom: index === entries.length - 1 ? 0 : '1px solid #26334A' }}>
-        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline' }}>
-            <Typography sx={{ color: resultStyle.background, fontSize: 10, fontWeight: 500, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{title}{collectionTaskLabel(item) && <Box component="span" sx={{color:'#7A8CA8',ml:'6px'}}>{collectionTaskLabel(item)}</Box>}</Typography>
-            <Typography sx={{ color: resultStyle.background, fontSize: 10, flexShrink: 0 }}>{resultStyle.label}</Typography>
-          </Stack>
-          <Box sx={{pl:'8px',position:'relative',minHeight:20}}><Typography sx={{color:'#7A8CA8',fontSize:10,lineHeight:'20px'}}>실행시간 : {dateText(item.occurredAt)}</Typography>{item.reason&&item.reason!==resultStyle.label&&<Box component="details" sx={{fontSize:10,color:'#7A8CA8'}}><Box component="summary" sx={{cursor:'pointer',textAlign:'left',height:20,lineHeight:'20px'}}>상세내용 ›</Box><Typography sx={{fontSize:10,py:'4px',overflowWrap:'anywhere'}}>{outcome}</Typography></Box>}</Box>
+function TargetResults({items}: {items: DataRecord[]}) {
+  const pending=useContext(PendingData);
+  return <Box sx={{...cardSx,border:0,bgcolor:'transparent',p:'0 12px',minWidth:0}}>
+    <Stack direction="row" sx={{alignItems:'center',mb:0.5}}><Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,flex:1}}>대상별 상태</Typography><Typography sx={{...mutedText,fontSize:10}}>확인 <DataValue width={24}>{numberText(items.length)}</DataValue></Typography></Stack>
+    <Box data-testid="monitor-results-data" sx={{minHeight:pending?42:0}}>
+      {pending ? <Stack spacing={1}><DataValue width={180}/><DataValue width={220}/></Stack> : items.length ? items.map(item=>{
+        const style=statusStyle[String(item.status)]??unknownStatus;
+        return <Box key={item.id} data-testid="monitor-target-row" data-scroll-item={`item-${item.id}`} sx={{py:0.5,borderBottom:'1px solid #26334A',minWidth:0,overflowWrap:'anywhere'}}>
+          <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{style.label}</Typography></Stack>
+          <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
+          <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.reason??style.label}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
         </Box>;
-      })}
-    </Stack> : <Box sx={{ flex: 1, display: 'grid', placeItems: 'center' }}><Typography sx={{ ...mutedText, fontSize: 10 }}>확인할 대상 결과가 없습니다.</Typography></Box>}
+      }) : <Typography sx={{...mutedText,fontSize:10}}>대상 내역이 없습니다.</Typography>}
     </Box>
-    <Box sx={{ bgcolor: '#111825', borderRadius: '6px', px: '8px', py: '3px', mt: 1 }}>
-      <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '12px' }}>갱신 중에도 마지막 완료 결과를 유지합니다.</Typography>
-    </Box>
+  </Box>;
+}
+function SummaryRecords({feature,stream}: {feature:string;stream:'runs'|'items'}) {
+  const navigate=useListNavigation();
+  const query=useMonitorPages(feature,stream,{},3);
+  // Summary refresh does not invalidate a previously paged detail list.
+  useEffect(()=>{const timer=window.setInterval(()=>{void query.refetch();},60_000);return ()=>window.clearInterval(timer);},[query.refetch]);
+  const rows=query.data?.pages[0]?.rows??[];
+  return <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
+    <QueryNotice error={query.isError} retry={()=>{void query.refetch();}}/>
+    {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows}/>}
+    <Box sx={{display:'flex',justifyContent:'flex-end',px:'12px'}}><Button aria-label={`${stream==='runs'?'실행 이력':'대상별 상태'} 상세보기`} onClick={()=>navigate(`/detail/collection-monitoring/${feature}/${stream}`)} sx={{fontSize:11}}>상세보기</Button></Box>
+  </PendingData.Provider></FailedData.Provider>;
+}
+function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'items'}) {
+  const [params,setParams]=useSearchParams();
+  const location=useLocation();
+  const filters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>params.get(key)?[[key,params.get(key)!]]:[]));
+  const [filtersOpen,setFiltersOpen]=useState(params.size>0);
+  const query=useMonitorPages(feature,stream,filters);
+  const queryClient=useQueryClient();
+  const lock=useRef(false);
+  const rows=query.data?.pages.flatMap(page=>page.rows)??[];
+  const changeFilters=(next:URLSearchParams)=>{
+    const nextFilters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>next.get(key)?[[key,next.get(key)!]]:[]));
+    if(JSON.stringify(filters)===JSON.stringify(nextFilters))return;
+    void queryClient.resetQueries({queryKey:['collection-monitor-pages',feature,stream,nextFilters,50],exact:true});
+    setParams(next,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
+  };
+  const update=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);changeFilters(next);};
+  const loadMore=async()=>{if(lock.current || query.isFetching || !query.hasNextPage)return;lock.current=true;try{await query.fetchNextPage();}finally{lock.current=false;}};
+  return <Box sx={{pb:'32px'}} data-list-condition={`${feature}:${stream}:${JSON.stringify(filters)}`} data-restoration-ready={query.isPending?'false':'true'}>
+    <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
+    <Collapse in={filtersOpen}><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:0.5,mb:1}}><CollectionFilters itemStream={stream==='items'} feature={feature} resultFilter={filters.result??''} setResultFilter={v=>update('result',v)} phaseFilter={filters.phase??''} setPhaseFilter={v=>update('phase',v)} symbolFilter={filters.symbol??''} setSymbolFilter={v=>update('symbol',v)} marketFilter={filters.market??''} setMarketFilter={v=>update('market',v)} accountFilter={filters.accountId??''} setAccountFilter={v=>update('accountId',v)} from={filters.from??''} setFrom={v=>update('from',v)} to={filters.to??''} setTo={v=>update('to',v)}/></Box></Collapse>
+    <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
+      {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows}/>}
+    </PendingData.Provider></FailedData.Provider>
+    {query.isError && <Box role="alert" sx={{fontSize:11,color:colors.error,mt:1}}>조회 실패 · 기존 목록을 유지합니다.<Button onClick={()=>{if(query.isFetchNextPageError)void loadMore();else void query.refetch();}}>다시 시도</Button></Box>}
+    {query.hasNextPage && <Box sx={{textAlign:'center',mt:1}}><Button disabled={query.isFetching} onClick={()=>{void loadMore();}}>더보기</Button>{query.isFetchingNextPage && <Updating/>}</Box>}
   </Box>;
 }
 
@@ -262,15 +285,15 @@ function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, univers
   </Box>;
 }
 
-function CollectionFilters({ feature, resultFilter, setResultFilter, phaseFilter, setPhaseFilter, symbolFilter, setSymbolFilter, marketFilter, setMarketFilter, accountFilter, setAccountFilter, from, setFrom, to, setTo }: {
-  feature: string; resultFilter: string; setResultFilter: (value: string) => void; phaseFilter: string; setPhaseFilter: (value: string) => void;
+function CollectionFilters({ itemStream=false, feature, resultFilter, setResultFilter, phaseFilter, setPhaseFilter, symbolFilter, setSymbolFilter, marketFilter, setMarketFilter, accountFilter, setAccountFilter, from, setFrom, to, setTo }: {
+  itemStream?:boolean; feature: string; resultFilter: string; setResultFilter: (value: string) => void; phaseFilter: string; setPhaseFilter: (value: string) => void;
   symbolFilter: string; setSymbolFilter: (value: string) => void; marketFilter: string; setMarketFilter: (value: string) => void;
   accountFilter: string; setAccountFilter: (value: string) => void; from: string; setFrom: (value: string) => void; to: string; setTo: (value: string) => void;
 }) {
   const selectSx = { height: 30, color: '#CBD5E1', fontSize: 10, bgcolor: '#0B1220', borderRadius: '6px', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#26334A' }, '& .MuiSelect-select': { py: '5px', pl: '8px' }, minWidth: 0 };
   const inputSx = { width: '100%', minWidth: 0, height: 30, boxSizing: 'border-box', bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #26334A', borderRadius: '6px', px: '7px', fontSize: 10, outline: 'none', colorScheme: 'dark' };
   return <>
-    <FormControl size="small"><Select<string> value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터" sx={selectSx}><MenuItem value="">전체 결과</MenuItem>{['SUCCESS','PARTIAL','FAILED','SKIPPED'].map((value) => <MenuItem key={value} value={value}>{statusStyle[value]?.label ?? value}</MenuItem>)}</Select></FormControl>
+    <FormControl size="small"><Select<string> value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터" sx={selectSx}><MenuItem value="">전체 결과</MenuItem>{(itemStream?['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']:['SUCCESS','PARTIAL','FAILED','SKIPPED']).map((value) => <MenuItem key={value} value={value}>{statusStyle[value]?.label ?? value}</MenuItem>)}</Select></FormControl>
     {feature === 'dart-financial-statements' && <FormControl size="small"><Select<string> value={phaseFilter} displayEmpty onChange={(event) => setPhaseFilter(event.target.value)} aria-label="수집 단계 필터" sx={selectSx}><MenuItem value="">전체 단계</MenuItem><MenuItem value="BACKFILL">1단계 과거 구축</MenuItem><MenuItem value="CURRENT">2단계 상시</MenuItem></Select></FormControl>}
     <Box component="input" aria-label="종목 필터" placeholder="종목코드" value={symbolFilter} onChange={(event: ChangeEvent<HTMLInputElement>) => setSymbolFilter(event.target.value)} sx={inputSx} />
     {feature !== 'account-snapshots' && <FormControl size="small"><Select<string> value={marketFilter} displayEmpty onChange={(event) => setMarketFilter(event.target.value)} aria-label="시장 필터" sx={selectSx}><MenuItem value="">전체 시장</MenuItem>{['KOSPI','KOSDAQ','KONEX','OTHER'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>}
@@ -282,21 +305,9 @@ function CollectionFilters({ feature, resultFilter, setResultFilter, phaseFilter
 
 function MonitoringContent({ feature, selected, onOpen }: { feature?: string; selected?: string; onOpen?: (id: string) => void }) {
   const navigate = useNavigate();
-  const [resultFilter, setResultFilter] = useState('');
-  const [phaseFilter, setPhaseFilter] = useState('');
-  const [symbolFilter, setSymbolFilter] = useState('');
-  const [marketFilter, setMarketFilter] = useState('');
-  const [accountFilter, setAccountFilter] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [showAllRuns, setShowAllRuns] = useState(false);
+  const queryClient=useQueryClient();
   const summary = useQuery({ queryKey: ['collection-monitoring-summary'], queryFn: getCollectionMonitorSummary, refetchInterval: 60_000 });
-  const detailQueryParams = useMemo(() => ({
-    ...(resultFilter && { result: resultFilter }), ...(phaseFilter && { phase: phaseFilter }),
-    ...(symbolFilter && { symbol: symbolFilter }), ...(marketFilter && { market: marketFilter }),
-    ...(accountFilter && { accountId: accountFilter }), ...(from && { from }), ...(to && { to }),
-  }), [resultFilter, phaseFilter, symbolFilter, marketFilter, accountFilter, from, to]);
+  const detailQueryParams = {overview:'1'};
   const detail = useQuery({
     queryKey: ['collection-monitoring-detail', feature, detailQueryParams],
     queryFn: () => getCollectionMonitorDetail(feature ?? '', detailQueryParams),
@@ -307,19 +318,11 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const current = summary.data?.features.find((item) => item.id === feature) ?? featureShell(feature ?? '');
 
   const body = asRecord(detail.data);
-  const runs = Array.isArray(body.runs) ? body.runs as DataRecord[] : [];
-  const items = Array.isArray(body.items) ? body.items as DataRecord[] : [];
   const dart = asRecord(body.dart);
   const refreshStats = () => {
     void summary.refetch();
-    if (feature) void detail.refetch();
+    if (feature) {void detail.refetch();void queryClient.refetchQueries({predicate:q=>q.queryKey[0]==='collection-monitor-pages' && q.queryKey[1]===feature && q.queryKey[4]===3,type:'active'});}
   };
-  const filterControls = <CollectionFilters
-    feature={feature ?? ''} resultFilter={resultFilter} setResultFilter={setResultFilter}
-    phaseFilter={phaseFilter} setPhaseFilter={setPhaseFilter} symbolFilter={symbolFilter} setSymbolFilter={setSymbolFilter}
-    marketFilter={marketFilter} setMarketFilter={setMarketFilter} accountFilter={accountFilter} setAccountFilter={setAccountFilter}
-    from={from} setFrom={setFrom} to={to} setTo={setTo}
-  />;
 
   if (!feature) {
     const features = summary.data?.features ?? Object.keys(featureNames).map(featureShell);
@@ -352,7 +355,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const stageOneLabel = stageOneComplete ? '완료'
     : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
 
-  return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box sx={{ px: 0, pt: 0, pb: '80px' }}>
+  return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box data-testid="collection-feature-overview" sx={{ px: 0, pt: 0, pb: '80px' }}>
     <QueryNotice error={summary.isError || detail.isError} retry={refreshStats} />
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
@@ -371,22 +374,22 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
         <Typography sx={{...mutedText,fontSize:10,height:28}}>{dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' ? '공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용' : ''}</Typography>
         <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>
         <Box sx={{ display: 'block' }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
-        <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><RunHistory runs={runs} loading={detail.isFetching} feature={feature} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen((value) => !value)} showAllRuns={showAllRuns} onToggleRuns={() => setShowAllRuns((value) => !value)} filterControls={filterControls} /></PendingData.Provider></FailedData.Provider>
+        <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
-      <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><TargetResults items={items} runs={runs} /></PendingData.Provider></FailedData.Provider>
+      <SummaryRecords feature={feature} stream="items"/>
     </Box> : <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
         <CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
-        <Box data-testid="monitor-realtime-diagnostics" sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', height: 94, overflowY: 'auto' }}>
+        <Box data-testid="monitor-realtime-diagnostics" sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', minHeight: 94 }}>
           <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px' }}>워커 <DataValue>{dateText(current.realtime?.heartbeatAt)}</DataValue> · <DataValue>{current.realtime?.session ?? '세션 기록 없음'}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 <DataValue>{dateText(current.realtime?.lastPriceReceivedAt)}</DataValue> · 원천 <DataValue>{dateText(current.realtime?.lastSourcePriceAt)}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>SSE <DataValue>{dateText(current.realtime?.lastSsePublishedAt)}</DataValue> · DB <DataValue>{dateText(current.realtime?.lastDbSavedAt)}</DataValue></Typography>
           {[[current.realtime?.sourceError, '원천 가격'], [current.realtime?.publishError, 'SSE 전달'], [current.realtime?.saveError, 'DB 저장']].filter(([message]) => message).map(([message, label]) => <Typography key={label} sx={{ color: '#F26A6F', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}><DataValue width={230}>{label} 오류: {message}</DataValue></Typography>)}
         </Box>
-        <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><RunHistory runs={runs} loading={detail.isFetching} feature={feature} filtersOpen={filtersOpen} onToggleFilters={() => setFiltersOpen((value) => !value)} showAllRuns={showAllRuns} onToggleRuns={() => setShowAllRuns((value) => !value)} filterControls={filterControls} /></PendingData.Provider></FailedData.Provider>
+        <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
-      <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><TargetResults items={items} runs={runs} /></PendingData.Provider></FailedData.Provider>
+      <SummaryRecords feature={feature} stream="items"/>
     </Box>}
     </Box></PendingData.Provider></FailedData.Provider>;
 }
@@ -400,22 +403,19 @@ function CollectionProgress({planned,counts,label,review=0,securities}:{planned:
     <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pendingData || planned==null ? undefined : Number(percent.toFixed(1))} aria-valuetext={pendingData ? (queryFailed ? '조회 실패' : '조회 중') : `${done.toLocaleString()} / ${total.toLocaleString()}개 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color,transition:'width 250ms ease'}}/>)}</Box>
     <Typography sx={{fontSize:10,color:'#7A8CA8',mt:'4px'}}>완료 <DataValue width={70}>{done.toLocaleString()} / {planned==null?'—':total.toLocaleString()}</DataValue>개 · 대기 <DataValue width={25}>{pending.toLocaleString()}</DataValue></Typography>
     <Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'4px 10px',mt:'4px'}}>{segments.map(item=><Typography key={item.name} sx={{fontSize:10,color:item.color,whiteSpace:'nowrap'}}>{item.name} <DataValue width={20}>{item.count.toLocaleString()}</DataValue></Typography>)}</Box>
-    <Typography sx={{fontSize:10,color:'#F26A6F',mt:'4px',height:28,overflowY:'auto'}}>{!pendingData && review>0 ? `검토 필요 ${review.toLocaleString()}건 · 자동 재시도 중단, 완료에 포함하지 않음` : ''}</Typography>
+    <Typography sx={{fontSize:10,color:'#F26A6F',mt:'4px',minHeight:28,overflowWrap:'anywhere'}}>{!pendingData && review>0 ? `검토 필요 ${review.toLocaleString()}건 · 자동 재시도 중단, 완료에 포함하지 않음` : ''}</Typography>
   </Box>;
 }
 
 export function CollectionMonitoringPage() {
-  const tablet = useMediaQuery('(min-width:600px)');
-  const { feature } = useParams();
-  const [selected, setSelected] = useState(feature ?? 'security-master');
-  const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
-  const choose = (id: string) => { setSelected(id); rightRef.current?.scrollTo({ top: 0 }); };
-  if (!tablet) return <Box className="rox-home" data-testid="C2000"><MonitoringContent key={feature ?? 'summary'} feature={feature} /></Box>;
-  return <Box className="rox-home" data-testid="T2000" sx={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: '100%', minHeight: 0 }}>
-    <Box ref={leftRef} data-scroll-region="monitoring-list" sx={{ minWidth: 0, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}><MonitoringContent selected={selected} onOpen={choose} /></Box>
-    <Box ref={rightRef} data-scroll-region="monitoring-detail" sx={{ minWidth: 0, minHeight: 0, overflowY: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}><MonitoringContent key={selected} feature={selected} /></Box>
-    <OverlayRegionScrollbar scrollRef={leftRef} label="수집 목록 스크롤" offset={0} />
-    <OverlayRegionScrollbar scrollRef={rightRef} label="수집 상세 스크롤" offset={0} />
+  const tablet=useMediaQuery('(min-width:600px)');
+  const {feature,stream}=useParams();
+  const navigate=useNavigate();
+  if(feature && (stream==='runs'||stream==='items')) return <Box className="rox-home" data-testid={tablet?'T2000-detail':'C2000-detail'}><MonitorListDetail key={`${feature}:${stream}`} feature={feature} stream={stream}/></Box>;
+  if(!tablet) return <Box className="rox-home" data-testid="C2000"><MonitoringContent key={feature??'summary'} feature={feature}/></Box>;
+  const selected=feature??'security-master';
+  return <Box className="rox-home" data-testid="T2000" sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',alignItems:'start'}}>
+    <Box sx={{minWidth:0}}><MonitoringContent selected={selected} onOpen={id=>navigate(`/detail/collection-monitoring/${id}`)}/></Box>
+    <Box sx={{minWidth:0}}><MonitoringContent key={selected} feature={selected}/></Box>
   </Box>;
 }
-
