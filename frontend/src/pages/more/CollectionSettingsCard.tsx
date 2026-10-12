@@ -8,10 +8,10 @@ import {colors} from '../../styles/tokens';
 import {featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
 
 /** State-driven control: fixed design geometry, non-overlapping 44×24 touch target. */
-function CollectionSwitch({label,checked,mixed=false,disabled,onClick}:{label:string;checked:boolean;mixed?:boolean;disabled:boolean;onClick:()=>void}){
+function CollectionSwitch({label,checked,mixed=false,primary=false,disabled,onClick}:{label:string;checked:boolean;mixed?:boolean;primary?:boolean;disabled:boolean;onClick:()=>void}){
  return <ButtonBase role={mixed?'checkbox':'switch'} aria-label={label} aria-checked={mixed?'mixed':checked} disabled={disabled} onClick={onClick} sx={{width:44,height:24,minWidth:44,flexShrink:0,justifyContent:'flex-end',borderRadius:'4px','&.Mui-focusVisible':{outline:`2px solid ${colors.focus}`,outlineOffset:1}}}>
-  <Box data-testid="collection-switch-track" sx={{width:36,height:20,position:'relative',borderRadius:'10px',bgcolor:checked?colors.focus:mixed?colors.warning:colors.borderStrong,opacity:disabled ? .45 : 1}}>
-   <Box data-testid="collection-switch-thumb" sx={{position:'absolute',top:2,left:mixed?10:checked?18:2,width:16,height:16,borderRadius:'50%',bgcolor:disabled?colors.textMuted:colors.textPrimary,transition:'left 120ms ease','@media (prefers-reduced-motion: reduce)':{transition:'none'}}}/>
+  <Box data-testid="collection-switch-track" sx={{width:36,height:20,position:'relative',borderRadius:'10px',bgcolor:checked?(primary?colors.buttonPrimary:colors.focus):mixed?colors.warning:colors.borderStrong,opacity:disabled ? .45 : 1}}>
+   <Box data-testid="collection-switch-thumb" sx={{position:'absolute',top:2,left:mixed?10:checked?18:2,width:16,height:16,borderRadius:'50%',bgcolor:colors.textPrimary,transition:'left 120ms ease','@media (prefers-reduced-motion: reduce)':{transition:'none'}}}/>
    {mixed&&<Box sx={{position:'absolute',width:8,height:2,top:9,left:14,bgcolor:colors.canvas}}/>}
   </Box>
  </ButtonBase>;
@@ -45,7 +45,7 @@ export function CollectionSettingsCard({security}:{security:ManagedSecurity}){
  const title=confirm?.allFeatures?`전체 ${confirm.excluded?'비활성화':'활성화'} 하시겠습니까?`:'수집에서 제외하시겠습니까?';
  return <AppCard data-testid="collection-settings-card" sx={{p:'8px',borderRadius:'8px',alignSelf:'start',minWidth:0}}>
   <Stack spacing="4px">
-   <Stack direction="row" sx={{height:24,alignItems:'center',gap:1}}><Typography sx={{fontSize:13,fontWeight:600,flex:1}}>수집 대상 설정</Typography><CollectionSwitch label={mixed?'전체 수집 혼합 상태 · 전체 활성화':'전체 수집 '+(enabled===total?'활성':'비활성')} checked={enabled===total} mixed={mixed} disabled={disabled||busy} onClick={all}/></Stack>
+   <Stack direction="row" sx={{height:24,alignItems:'center',gap:1}}><Typography sx={{fontSize:13,fontWeight:600,flex:1}}>수집 대상 설정</Typography><CollectionSwitch label={mixed?'전체 수집 혼합 상태 · 전체 활성화':'전체 수집 '+(enabled===total?'활성':'비활성')} checked={enabled===total} mixed={mixed} primary disabled={disabled||busy} onClick={all}/></Stack>
    <Divider sx={{borderColor:colors.borderStrong}}/>
    {Object.entries(labels).map(([feature,label])=><Stack data-testid="collection-setting-row" key={feature} direction="row" sx={{height:24,alignItems:'center',gap:1}}><Typography sx={{fontSize:12,lineHeight:'20px',flex:1,minWidth:0}}>{label}</Typography><CollectionSwitch label={`${label} ${active(feature)?'활성':'비활성'}`} checked={active(feature)} disabled={disabled||busy} onClick={()=>toggle(feature)}/></Stack>)}
    <Divider sx={{borderColor:colors.borderStrong}}/>

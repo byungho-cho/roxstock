@@ -22,7 +22,7 @@ export function SecurityManagementPage(){
  const search=()=>{const next=new URLSearchParams(params);next.set('query',input.trim());next.delete('selected');setParams(next);(document.activeElement as HTMLElement)?.blur();};
  const more=async()=>{if(lock.current||list.isFetching||!list.hasNextPage)return;lock.current=true;try{await list.fetchNextPage();}finally{lock.current=false;}};
  const rows=list.data?.pages.flatMap(p=>p.rows)??[];
- return <><PageHeader embedded variant="more" compact title={selected?"종목 정보 수정":"종목 관리"} showAdd={false} showBackTablet backPath={selected?`/detail/security-management?query=${encodeURIComponent(query)}`:'/detail/settings?view=settings'}/><Box sx={{pb:4}} data-testid="security-management" data-list-condition={`master:${query}`} data-restoration-ready={list.isPending?'false':'true'}>
+ return <><PageHeader embedded variant="more" compact backIcon={selected?<Box component="span" aria-hidden sx={{fontSize:30,lineHeight:"36px"}}>‹</Box>:undefined} title={selected?"종목 정보 수정":"종목 관리"} showAdd={false} showBackTablet backPath={selected?`/detail/security-management?query=${encodeURIComponent(query)}`:'/detail/settings?view=settings'}/><Box sx={{pb:4}} data-testid="security-management" data-list-condition={`master:${query}`} data-restoration-ready={list.isPending?'false':'true'}>
  <StockSearchFrame><Box component="img" src="/stocks-v03/search.svg" alt=""/><InputBase aria-label="종목 관리 검색" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();search();}}} placeholder="종목명·코드 검색" sx={{fontSize:12,flex:1,minWidth:0}}/><Button onClick={search} sx={{minWidth:40,fontSize:12}}>검색</Button></StockSearchFrame>
  {!selected&&<Typography sx={{fontSize:11,color:colors.textMuted,my:1}}>종목명 오름차순 · 등록 출처와 수집 설정</Typography>}
  {selected?<SecurityEditor key={selected} securityId={selected} onDeleted={()=>{const next=new URLSearchParams(params);next.delete('selected');setParams(next,{replace:true});}}/>:<>
@@ -65,7 +65,7 @@ function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>
  </Stack></AppCard>
  {!!s.deleteBlockedReasons?.length&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary}}>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능<br/>사용 중인 종목은 삭제할 수 없습니다.</Typography>}
  {error&&!action&&<Typography role="alert" sx={{color:colors.error,fontSize:12}}>{error}</Typography>}
- <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,borderRadius:'8px',fontSize:12}}>정보 저장</Button></Stack>
+ <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,borderRadius:'8px',fontSize:12,bgcolor:colors.buttonPrimary,color:colors.textPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>정보 저장</Button></Stack>
  </Stack>
  <CollectionSettingsCard security={s}/>
  </Box>
