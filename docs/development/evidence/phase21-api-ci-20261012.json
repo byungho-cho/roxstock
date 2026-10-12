@@ -1,0 +1,146 @@
+{
+  "run": 38188441245,
+  "head": "1935834d318696734e0ed9c5b1fc62155762a004",
+  "reads": [
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 0,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 0,
+      "hasNext": false
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 49,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 49,
+      "hasNext": false
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": false
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 1,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": true,
+      "returned": 1,
+      "hasNext": false
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 5,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": true,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": true,
+      "returned": 5,
+      "hasNext": false
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 50,
+      "hasNext": true
+    },
+    {
+      "stream": "runs",
+      "limit": 50,
+      "cursor": true,
+      "returned": 5,
+      "hasNext": false
+    },
+    {
+      "stream": "items",
+      "limit": 50,
+      "cursor": false,
+      "returned": 50,
+      "hasNext": true
+    }
+  ]
+}

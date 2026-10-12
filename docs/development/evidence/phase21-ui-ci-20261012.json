@@ -1,0 +1,630 @@
+{
+  "head": "1935834d318696734e0ed9c5b1fc62155762a004",
+  "run": 38188441218,
+  "results": [
+    {
+      "file": "pages-items-49.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 49,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-3.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 3,
+      "heights": {
+        "history": 284,
+        "targets": 156
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-51.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 51,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-0.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 0,
+      "heights": {
+        "history": 15,
+        "targets": 15
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-105.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 105,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "100",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-105.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 105,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "100",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-50.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 50,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-51.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 51,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-0.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 0,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-1.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 1,
+      "heights": {
+        "history": 92,
+        "targets": 52
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-105.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 105,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "100",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-50.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 50,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-105.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 105,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": "100",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-0.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 0,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "heights.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "before": {
+        "history": 240,
+        "results": 300
+      },
+      "after": {
+        "history": 666,
+        "results": 104
+      },
+      "measuredBefore": true
+    },
+    {
+      "file": "pages-items-51.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 51,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-0.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 0,
+      "heights": {
+        "history": 15,
+        "targets": 15
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-50.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 50,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-0.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 0,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-49.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 49,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-49.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 49,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-items-51.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 51,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": "50",
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "heights.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "before": {
+        "history": 240,
+        "results": 300
+      },
+      "after": {
+        "history": 666,
+        "results": 104
+      },
+      "measuredBefore": true
+    },
+    {
+      "file": "pages-items-0.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 0,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-1.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 1,
+      "heights": {
+        "history": 92,
+        "targets": 52
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-50.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 50,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "summary-3.json",
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "total": 3,
+      "heights": {
+        "history": 284,
+        "targets": 156
+      },
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        },
+        {
+          "path": "/api/collection/monitoring/security-master/items",
+          "limit": 3,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    },
+    {
+      "file": "pages-runs-49.json",
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "total": 49,
+      "reads": [
+        {
+          "path": "/api/collection/monitoring/security-master/runs",
+          "limit": 50,
+          "cursor": null,
+          "symbol": null,
+          "result": null
+        }
+      ]
+    }
+  ]
+}
