@@ -1,3 +1,5 @@
+import {withCollection,CollectionExcluded} from './collection-policy.js';
+import {collectionClient} from '../lib/collection-client.js';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {dartDiagnostic} from './dart-diagnostics.js';
 import {randomUUID} from 'node:crypto';
@@ -31,7 +33,7 @@ export async function runIndependentPeriod(tasks:{dart:()=>Promise<ManualTaskRes
   const started=Date.now();await options.onState?.(source,{state:'RUNNING'});
   let result:ManualTaskResult;
   try{result=await boundedManualJob(tasks[source],options.milliseconds??manualLimits.taskMs,options.signal);}
-  catch(error){console.warn(JSON.stringify({event:'DART manual source failure',source,...dartDiagnostic(error,'MANUAL_SOURCE')}));const code=errorCode(error);result={state:'FAILED',code:code==='MANUAL_JOB_TIMEOUT'?source==='dart'?'DART_TIMEOUT':'VALUATION_TIMEOUT':code};}
+  catch(error){console.warn(JSON.stringify({event:'DART manual source failure',source,...dartDiagnostic(error,'MANUAL_SOURCE')}));const code=errorCode(error);result={state:error instanceof CollectionExcluded?'SKIPPED':'FAILED',code:code==='MANUAL_JOB_TIMEOUT'?source==='dart'?'DART_TIMEOUT':'VALUATION_TIMEOUT':code};}
   result={...result,durationMs:Date.now()-started};await options.onState?.(source,result);return result;
  };
  const [dart,valuation]=await Promise.all([execute('dart'),execute('valuation')]);return {dart,valuation};
@@ -51,6 +53,7 @@ export async function expireManualRun(db:PrismaClient,run:CollectorRun,now=Date.
 }
 
 export async function processIndependentRefresh(db:PrismaClient,config:DartCollectorConfig,run:CollectorRun){
+ db=collectionClient(db);
  if(await boundedManualJob(()=>expireManualRun(db,run),10_000))return true;
  const owner=randomUUID(),repo=new PrismaDartRepository(db);
  try{if(!await boundedManualJob(()=>repo.acquireLock(owner,660),10_000))return true;}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
@@ -77,7 +80,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
    m.progress={currentYear:year,currentPeriod:period,stage:'VALUATION',completed:results.length,total:(end-start+1)*periods.length,tasks:{dart:{state:'QUEUED'},valuation:{state:'QUEUED'}}};
    let valuation:Awaited<ReturnType<typeof refreshManualAnnual>>|undefined;
    const tasks=await runIndependentPeriod({
-    dart:async()=>{
+    dart:async()=>withCollection(scopedDb,security.id,'dart-financial-statements',async()=>{
      if(m.refreshMode==='SUPPLEMENT'||period==='ANNUAL'&&year===currentYear)return {state:'SKIPPED'};
      if(!config.enabled||!config.apiKey)throw new DartApiError('API_KEY_MISSING','DART 설정 없음');
      const mapping=security.dartCorpMapping;if(!mapping)throw new DartApiError('DART_CORP_CODE_NOT_MAPPED','DART 기업코드 없음');
@@ -100,13 +103,13 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt:new Date(),values});
      const {accountSources,...amounts}=values;
      await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources)}});
-     return {state:'SUCCESS'};
-    },
-    valuation:async()=>{
+     return {state:'SUCCESS' as const};
+    },m),
+    valuation:async()=>withCollection(scopedDb,security.id,'valuation',async()=>{
      if(period==='ANNUAL'&&year>=2021){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':valuation.valuationStatus==='PARTIAL'?'PARTIAL':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
      const metric=await supplementStoredPeriod(scopedDb,security.id,year,period,{load:loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'MANUAL_PROTOTYPE',{dartRequests:false,fetcher:manualFetch})});
      return {state:metric?.status==='SUCCESS'?'SUCCESS':metric?.status==='PARTIAL'?'PARTIAL':'UNAVAILABLE',code:metric?.status==='SUCCESS'?undefined:'VALUATION_BASE_MISSING'};
-    },
+    },m),
    },{signal,milliseconds:Math.max(1,Math.min(manualLimits.taskMs,deadline-Date.now())),onState:async(source,result)=>{
     m.progress!.tasks![source]=result;await publish();
     if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':'NAVER_AND_STORED_DATA',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
@@ -114,24 +117,24 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
    const saved=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
    const stored=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
    const financialComplete=Boolean(stored&&[stored.revenueYtd,stored.operatingProfitYtd,stored.netIncomeYtd,stored.totalAssets,stored.totalLiabilities,stored.totalEquity].every(v=>v!=null));
-   if(saved&&period==='ANNUAL'){
+   if(saved&&period==='ANNUAL'&&tasks.valuation.state!=='SKIPPED'){
     const supplemental=(saved.supplemental??{}) as Record<string,unknown>,attempt=(supplemental.manualAttempt??{}) as Record<string,unknown>;
     const complete=valueCompletion(saved.values as Partial<MetricValues>).complete;
     const state=year===currentYear?complete?'ESTIMATE_READY':attempt.state:financialComplete&&complete?'COMPLETE':financialComplete?'FINANCIAL_ONLY':'FINAL_FAILED';
-    await scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks}})}});
+    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks}})}}),m);
    }
-   results.push({...valuation,fiscalYear:year,period,status:tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
+   results.push({...valuation,fiscalYear:year,period,status:tasks.dart.code==='COLLECTION_EXCLUDED'&&tasks.valuation.state==='SKIPPED'?'SKIPPED':tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
    m.progress.completed=results.length;m.progress.stage='REPORT_DONE';await publish();
   }
   },manualLimits.runMs,signal);
  }catch(error){
-  const code=errorCode(error);for(let year=start;year<=end;year++)for(const period of periods)if(!results.some(r=>r.fiscalYear===year&&r.period===period))results.push({fiscalYear:year,period,status:'FAILED',code,valuationStatus:'FAILED'});
+  const code=errorCode(error);for(let year=start;year<=end;year++)for(const period of periods)if(!results.some(r=>r.fiscalYear===year&&r.period===period))results.push({fiscalYear:year,period,status:error instanceof CollectionExcluded?'SKIPPED':'FAILED',code,valuationStatus:error instanceof CollectionExcluded?'SKIPPED':'FAILED'});
  }finally{
   try{
    await boundedManualJob(()=>publishTail,10_000).catch(()=>{});
    const success=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'):r.status==='SUCCESS').length;
    const failed=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='FAILED'||t.state==='UNAVAILABLE'||t.state==='PARTIAL'):r.status==='FAILED').length;
-   const skipped=results.filter(r=>r.tasks?!Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'||t.state==='FAILED'||t.state==='UNAVAILABLE'):r.status==='NO_DATA').length;
+   const skipped=results.filter(r=>r.tasks?!Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'||t.state==='FAILED'||t.state==='UNAVAILABLE'):(r.status==='NO_DATA'||r.status==='SKIPPED')).length;
    await boundedManualJob(()=>db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{status:success?failed||results.some(r=>r.tasks?.dart.state==='NO_DATA')?'PARTIAL':'SUCCESS':failed?'FAILED':'SKIPPED',finishedAt:new Date(),successCount:success,failureCount:failed,skippedCount:Math.max(0,skipped),metadata:json({...m,manualState:'FINISHED',results})}}),10_000);
   }catch(error){console.warn(JSON.stringify({event:'manual_refresh_finalization_failed',jobId:String(run.id),code:errorCode(error)}));}
   finally{await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});}

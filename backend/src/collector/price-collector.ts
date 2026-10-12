@@ -1,3 +1,4 @@
+import {CollectionExcluded} from './collection-policy.js';
 import { normalizeProviderSymbol } from '../domain/security-symbol.js';
 import { randomUUID } from 'node:crypto';
 import { collectorLog as log } from './logger.js';
@@ -50,6 +51,8 @@ export const collectPrices = async (
     }
     for (const [index, security] of securities.entries()) {
       try {
+       const work=async()=>{
+        if(security.symbol.toUpperCase().startsWith('Z99'))throw new CollectionExcluded('Z99 코드: 수집 제외');
         const observation = await provider.fetchPrice(security);
         if (observation.freshness === 'STALE') {
           counters.stale += 1;
@@ -64,7 +67,10 @@ export const collectPrices = async (
           await repository.addRunItem(runId, { securityId: security.id, symbol: security.symbol, status: 'SUCCESS', observedAt: observation.observedAt });
           log('info', 'price stored', { runId, symbol: security.symbol, currentPrice: observation.currentPrice });
         }
+       };
+       if(repository.withTarget)await repository.withTarget(security,'market-prices',work);else await work();
       } catch (error) {
+        if(error instanceof CollectionExcluded){counters.skipped++;await repository.addRunItem(runId,{securityId:security.id,symbol:security.symbol,status:'SKIPPED',message:error.message});continue;}
         counters.failed += 1;
         failedSymbols.push(security.symbol);
         const reason = messageOf(error);
@@ -73,7 +79,7 @@ export const collectPrices = async (
       }
       if (index < securities.length - 1 && options.delayMs > 0) await sleep(options.delayMs);
     }
-    status = securities.length === 0 || (counters.stale > 0 && counters.success === 0 && counters.failed === 0) ? 'SKIPPED'
+    status = counters.success===0&&counters.failed===0&&counters.skipped>0 ? 'SKIPPED' : securities.length === 0 || (counters.stale > 0 && counters.success === 0 && counters.failed === 0) ? 'SKIPPED'
       : counters.success === securities.length && counters.skipped === 0 ? 'SUCCESS'
       : counters.success > 0 ? 'PARTIAL'
       : 'FAILED';

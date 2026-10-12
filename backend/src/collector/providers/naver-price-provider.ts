@@ -1,3 +1,4 @@
+import {collectionFetch,CollectionExcluded} from '../collection-policy.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../../domain/security-symbol.js';
 import type { PriceObservation, PriceProvider, SecurityTarget } from '../types.js';
 import { getSeoulClock } from '../time.js';
@@ -95,7 +96,8 @@ export class NaverPriceProvider implements PriceProvider {
 
   async fetchPrice(security: SecurityTarget): Promise<PriceObservation> {
     const symbol = normalizeSymbol(security.symbol);
-    const response = await this.fetchFn(`https://polling.finance.naver.com/api/realtime/domestic/stock/${symbol}`, {
+    if(symbol.startsWith('Z99'))throw new CollectionExcluded('Z99 코드: 수집 제외');
+    const response = await collectionFetch(this.fetchFn)(`https://polling.finance.naver.com/api/realtime/domestic/stock/${symbol}`, {
       headers: { accept: 'application/json', 'user-agent': 'RoxStockCollector/1.0' },
       signal: AbortSignal.timeout(this.requestTimeoutMs),
     });

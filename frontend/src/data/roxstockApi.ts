@@ -252,6 +252,7 @@ export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/colle
 export interface CollectionMonitorSummary {
   generatedAt: string; timezone: string;
   features: Array<{ id: string; name: string; schedule: string; status: string; lastAttemptAt: string | null; lastSuccessAt: string | null; lastDataAt: string | null; statsGeneratedAt: string; nextAt: string | null;
+    resultScope?:{runId:string;label:string;startedAt:string|null};
     recent: { target: number; processed: number; success: number; failed: number; skipped: number }; lastError?: string | null; failureReason?: string | null; phase?: string; backfillCompletedAt?: string | null; backfill?: { planned: number; success: number; noFiling: number; notApplicable: number; failed: number; pending: number }; priorityPending?: number; universePending?: number; dailyApiCalls?: number; dailyApiLimit?: number; companyChecks?: number; lastCollectedAt?: string | null; latestReceiptDate?: string | null;
     realtime?: { workerStatus: string; heartbeatAt: string | null; session: string; cycleStartedAt: string | null; cycleFinishedAt: string | null; lastPriceReceivedAt: string | null; lastSourcePriceAt: string | null; lastSsePublishedAt: string | null; lastDbSavedAt: string | null; sourceError: string | null; publishError: string | null; saveError: string | null; counts: Record<string, number> } }>;
 }

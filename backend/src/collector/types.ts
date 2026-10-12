@@ -5,6 +5,7 @@ export interface SecurityTarget {
   id: bigint;
   symbol: string;
   name: string;
+  collectionRevision?: number;
 }
 
 export type SupportedMarketType = 'KOSPI' | 'KOSDAQ';
@@ -37,6 +38,7 @@ export interface PriceObservation {
 
 export interface RealtimePriceValue extends PriceObservation {
   securityId: bigint;
+  collectionRevision?: number;
   name: string;
 }
 
@@ -83,6 +85,7 @@ export interface SnapshotValue {
 }
 
 export interface CollectorRepository {
+  withTarget?<T>(target: SecurityTarget, feature: import('./collection-policy.js').CollectionFeature, work:()=>Promise<T>):Promise<T>;
   acquireLock(jobName: string, ownerToken: string, ttlSeconds: number): Promise<boolean>;
   releaseLock(jobName: string, ownerToken: string): Promise<void>;
   createRun(jobType: string, provider: string, metadata?: Record<string, unknown>): Promise<bigint>;

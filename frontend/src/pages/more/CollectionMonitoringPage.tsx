@@ -1,10 +1,11 @@
+import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
 import '../dashboard/home-font.css';
 import {collectionTaskLabel} from './collectionTaskLabel';
 import {colors} from '../../styles/tokens';
 import {useListNavigation} from '../../hooks/navigation/usePageMemory';
 import {apiRequest} from '../../data/apiClient';
 import { FilterListRounded, RefreshRounded } from '@mui/icons-material';
-import { Box, Button, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, ButtonBase, CircularProgress, Collapse, FormControl, MenuItem, Select, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
@@ -142,7 +143,9 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
   </Box>;
 }
 
-function CountStrip({ target, success, failed, skipped }: { target?: number; success?: number; failed?: number; skipped?: number }) {
+function CountStrip({ target, success, failed, skipped,feature,runId }: { target?: number; success?: number; failed?: number; skipped?: number;feature:string;runId?:string }) {
+  const navigate=useListNavigation();const pending=useContext(PendingData);
+  const open=(result:string)=>navigate(`/detail/collection-monitoring/${feature}/items?${new URLSearchParams({result,...(runId?{runId}:{})})}`);
   const values = [
     ['대상', target, colors.textPrimary],
     ['성공', success, colors.positive],
@@ -150,10 +153,10 @@ function CountStrip({ target, success, failed, skipped }: { target?: number; suc
     ['건너뜀', skipped, '#F2F7FC'],
   ] as const;
   return <Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
-    {values.map(([label, value, color]) => <Stack key={label} spacing={0.15} sx={{ minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
+    {values.map(([label, value, color]) => <ButtonBase key={label} disabled={pending||!['성공','실패'].includes(label)} aria-label={['성공','실패'].includes(label)?`${label} 대상 목록`:undefined} onClick={()=>open(label==='성공'?'SUCCESS':'FAILED')} sx={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0.15,'&.Mui-disabled':{color}}}>
       <Typography sx={{ color, fontSize: 10, lineHeight: '11px' }}>{label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
-    </Stack>)}
+    </ButtonBase>)}
   </Box>;
 }
 
@@ -204,7 +207,7 @@ function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
     </Box>
   </Box>;
 }
-function TargetResults({items}: {items: DataRecord[]}) {
+function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
   const pending=useContext(PendingData);
   return <Box sx={{...cardSx,border:0,bgcolor:'transparent',p:'0 12px',minWidth:0}}>
     <Stack direction="row" sx={{alignItems:'center',mb:0.5}}><Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,flex:1}}>대상별 상태</Typography><Typography sx={{...mutedText,fontSize:10}}>확인 <DataValue width={24}>{numberText(items.length)}</DataValue></Typography></Stack>
@@ -212,8 +215,11 @@ function TargetResults({items}: {items: DataRecord[]}) {
       {pending ? <Stack spacing={1}><DataValue width={180}/><DataValue width={220}/></Stack> : items.length ? items.map(item=>{
         const style=statusStyle[String(item.status)]??unknownStatus;
         return <Box key={item.id} data-testid="monitor-target-row" data-scroll-item={`item-${item.id}`} sx={{py:0.5,borderBottom:'1px solid #26334A',minWidth:0,overflowWrap:'anywhere'}}>
-          <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{style.label}</Typography></Stack>
+          <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{feature==='realtime-prices'&&item.security?`${item.security.name}(${String(item.symbol).split(':')[0]})`:item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{style.label}</Typography>{item.status==='FAILED'&&item.security?.id&&featureLabels[feature]&&<CollectionSettingToggle security={item.security as ManagedSecurity} feature={feature}/>}</Stack>
           <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
+          {item.status==='FAILED'&&item.reason&&<Typography sx={{fontSize:10,lineHeight:'14px',color:colors.error,overflowWrap:'anywhere',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{item.reason}</Typography>}
+          {item.security?.exclusionReason&&<Typography sx={{fontSize:10,color:colors.warning,overflowWrap:'anywhere'}}>{item.security.exclusionReason}</Typography>}
+          {item.security&&/^[A-Z0-9]{6}:/.test(item.symbol)&&item.symbol.split(':')[0]!==item.security.symbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이전 코드 {item.symbol.split(':')[0]}의 기록 · 현재 코드 {item.security.symbol}</Typography>}
           <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.reason??style.label}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
         </Box>;
       }) : <Typography sx={{...mutedText,fontSize:10}}>대상 내역이 없습니다.</Typography>}
@@ -228,21 +234,21 @@ function SummaryRecords({feature,stream}: {feature:string;stream:'runs'|'items'}
   const rows=query.data?.pages[0]?.rows??[];
   return <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
     <QueryNotice error={query.isError} retry={()=>{void query.refetch();}}/>
-    {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows}/>}
+    {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows} feature={feature}/>}
     <Box sx={{display:'flex',justifyContent:'flex-end',px:'12px'}}><Button aria-label={`${stream==='runs'?'실행 이력':'대상별 상태'} 상세보기`} onClick={()=>navigate(`/detail/collection-monitoring/${feature}/${stream}`)} sx={{fontSize:11}}>상세보기</Button></Box>
   </PendingData.Provider></FailedData.Provider>;
 }
 function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'items'}) {
   const [params,setParams]=useSearchParams();
   const location=useLocation();
-  const filters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>params.get(key)?[[key,params.get(key)!]]:[]));
+  const filters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to','runId'].flatMap(key=>params.get(key)?[[key,params.get(key)!]]:[]));
   const [filtersOpen,setFiltersOpen]=useState(params.size>0);
   const query=useMonitorPages(feature,stream,filters);
   const queryClient=useQueryClient();
   const lock=useRef(false);
   const rows=query.data?.pages.flatMap(page=>page.rows)??[];
   const changeFilters=(next:URLSearchParams)=>{
-    const nextFilters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>next.get(key)?[[key,next.get(key)!]]:[]));
+    const nextFilters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to','runId'].flatMap(key=>next.get(key)?[[key,next.get(key)!]]:[]));
     if(JSON.stringify(filters)===JSON.stringify(nextFilters))return;
     void queryClient.resetQueries({queryKey:['collection-monitor-pages',feature,stream,nextFilters,50],exact:true});
     setParams(next,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
@@ -251,9 +257,10 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
   const loadMore=async()=>{if(lock.current || query.isFetching || !query.hasNextPage)return;lock.current=true;try{await query.fetchNextPage();}finally{lock.current=false;}};
   return <Box sx={{pb:'32px'}} data-list-condition={`${feature}:${stream}:${JSON.stringify(filters)}`} data-restoration-ready={query.isPending?'false':'true'}>
     <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
+    {filters.runId&&<Typography sx={{fontSize:10,color:colors.textMuted}}>최근 실행 대상 결과 · 실행 #{filters.runId}</Typography>}
     <Collapse in={filtersOpen}><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:0.5,mb:1}}><CollectionFilters itemStream={stream==='items'} feature={feature} resultFilter={filters.result??''} setResultFilter={v=>update('result',v)} phaseFilter={filters.phase??''} setPhaseFilter={v=>update('phase',v)} symbolFilter={filters.symbol??''} setSymbolFilter={v=>update('symbol',v)} marketFilter={filters.market??''} setMarketFilter={v=>update('market',v)} accountFilter={filters.accountId??''} setAccountFilter={v=>update('accountId',v)} from={filters.from??''} setFrom={v=>update('from',v)} to={filters.to??''} setTo={v=>update('to',v)}/></Box></Collapse>
     <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
-      {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows}/>}
+      {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows} feature={feature}/>}
     </PendingData.Provider></FailedData.Provider>
     {query.isError && <Box role="alert" sx={{fontSize:11,color:colors.error,mt:1}}>조회 실패 · 기존 목록을 유지합니다.<Button onClick={()=>{if(query.isFetchNextPageError)void loadMore();else void query.refetch();}}>다시 시도</Button></Box>}
     {query.hasNextPage && <Box sx={{textAlign:'center',mt:1}}><Button disabled={query.isFetching} onClick={()=>{void loadMore();}}>더보기</Button>{query.isFetchingNextPage && <Updating/>}</Box>}
@@ -373,14 +380,14 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
         </Box>
         <Typography sx={{...mutedText,fontSize:10,height:28}}>{dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' ? '공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용' : ''}</Typography>
         <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>
-        <Box sx={{ display: 'block' }}><CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
+        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
       <SummaryRecords feature={feature} stream="items"/>
     </Box> : <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
-        <CountStrip target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
+        <CountStrip feature={current.id} runId={current.resultScope?.runId} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
         <Box data-testid="monitor-realtime-diagnostics" sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', minHeight: 94 }}>
           <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px' }}>워커 <DataValue>{dateText(current.realtime?.heartbeatAt)}</DataValue> · <DataValue>{current.realtime?.session ?? '세션 기록 없음'}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 <DataValue>{dateText(current.realtime?.lastPriceReceivedAt)}</DataValue> · 원천 <DataValue>{dateText(current.realtime?.lastSourcePriceAt)}</DataValue></Typography>
