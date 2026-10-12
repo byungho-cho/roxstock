@@ -132,6 +132,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, lineHeight: 1.1, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</Typography>
       <StatusPill feature={item} compact />
     </Stack>
+    <ScheduleNotice feature={item} />
     <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px', mt: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {realtime ? '수신' : '시도'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastPriceReceivedAt : item.lastAttemptAt)}</DataValue> · {realtime ? '저장' : '성공'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastDbSavedAt : item.lastSuccessAt)}</DataValue>
     </Typography>
@@ -140,6 +141,16 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
         : realtime ? <>수신 <DataValue width={40}>{numberText(item.recent.processed)}</DataValue>건 · 다음 장중</>
         : <><DataValue width={65}>{numberText(item.recent.success)}/{numberText(item.recent.target)}</DataValue>건 성공 · 다음 <DataValue width={35}>{clockText(item.nextAt)}</DataValue></>}
     </Typography>
+  </Box>;
+}
+
+function ScheduleNotice({feature}:{feature:Feature}) {
+  if(!feature.scheduleState&&!feature.lastExecution)return null;
+  return <Box sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted,overflowWrap:'anywhere'}}>
+    {feature.lastExecution && <Typography sx={{fontSize:'inherit'}}>실행 #{feature.lastExecution.id} · 마지막 실행: {feature.lastExecution.status==='SUCCESS'&&feature.recent.success===0&&feature.recent.excluded? '정상 · 전체 수집 제외':statusStyle[feature.lastExecution.status]?.label??feature.lastExecution.status}</Typography>}
+    {feature.scheduleState && <Typography sx={{fontSize:'inherit',color:feature.scheduleState.status==='DELAYED'?colors.warning:colors.textMuted}}>스케줄: {feature.scheduleState.reason??(feature.scheduleState.status==='RUNNING'?'진행 중':'다음 회차 대기')} · 기준 {dateText(feature.scheduleState.dueAt)}</Typography>}
+    {feature.duplicateRequest && <Typography sx={{fontSize:'inherit'}}>별도 요청 #{feature.duplicateRequest.id}: {feature.duplicateRequest.reason}</Typography>}
+    {feature.recent.excluded!=null && <Typography sx={{fontSize:'inherit'}}>정상 제외 {feature.recent.excluded}건 · 기타 건너뜀 {Math.max(0,(feature.recent.skipped??0)-feature.recent.excluded)}건</Typography>}
   </Box>;
 }
 
@@ -167,6 +178,8 @@ function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Featur
       <StatusPill feature={feature} />
 
     </Stack>
+    <ScheduleNotice feature={feature} />
+    {feature.lastExecution && <Typography sx={{fontSize:10,color:colors.textMuted,overflowWrap:'anywhere'}}>원천 기준 {dateText(feature.lastDataAt)} · 수집 완료 {dateText(feature.lastCollectedAt)}</Typography>}
     {feature.id === 'realtime-prices' ? <><Box sx={{ position: 'absolute', right: 10, bottom: 0 }}><ManualRefresh refreshing={refreshing} onClick={onRefresh} /></Box>
       <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '18px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>워커 <DataValue>{dateText(feature.realtime?.heartbeatAt)}</DataValue> · <DataValue>{feature.realtime?.session ?? '세션 기록 없음'}</DataValue></Typography>
       <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '18px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>수신 <DataValue width={30}>{clockText(feature.realtime?.lastPriceReceivedAt)}</DataValue> · 발행 <DataValue width={30}>{clockText(feature.realtime?.lastSsePublishedAt)}</DataValue> · 저장 <DataValue width={30}>{clockText(feature.realtime?.lastDbSavedAt)}</DataValue></Typography>
@@ -193,14 +206,14 @@ function useMonitorPages(feature: string, stream: 'runs' | 'items', filters: Rec
 function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
   const pending=useContext(PendingData);
   return <Box sx={{...cardSx,border:0,bgcolor:'transparent',p:'0 12px'}}>
-    <Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,mb:0.75}}>실행 이력</Typography>
+    <Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,mb:0.75}}>과거 실행 이력</Typography>
     <Box data-testid="monitor-history-data" sx={{minHeight:pending?42:0}}>
       {pending ? <Stack spacing={1}><DataValue width={200}/><DataValue width={240}/></Stack> : runs.length ? <Stack spacing={0.5}>{runs.map(run=>{
         const style=statusStyle[String(run.status)]??unknownStatus;
         const metadata=asRecord(run.metadata);
         return <Box key={run.id} data-testid="monitor-run-row" data-scroll-item={`run-${run.id}`} sx={{py:0.5,minWidth:0,overflowWrap:'anywhere'}}>
           <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='BACKFILL'?'1단계 과거 수집':metadata.phase==='MANUAL'?'수동 갱신':'2단계 현행 수집'}`:''}</Typography>
-          <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}</Typography>
+          <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 정상 제외 {numberText(run.excluded)} · 건너뜀 {numberText(run.skipped)}</Typography>
           {run.failureReason && <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.error,fontSize:10,lineHeight:'14px',whiteSpace:'normal',overflowWrap:'anywhere'}}>{run.failureReason}</Typography>}
         </Box>;
       })}</Stack> : <Typography sx={{...mutedText,fontSize:10}}>실행 이력이 없습니다.</Typography>}
