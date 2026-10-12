@@ -1,0 +1,268 @@
+{
+  "baseMain": "09b82d732aff4c1efa9acf08cd027f56fea3ccd9",
+  "pr": 207,
+  "deployment": "not requested / not executed",
+  "local": {
+    "frontendTypecheck": true,
+    "backendTypecheck": true,
+    "frontendBuild": true,
+    "backendBuild": true,
+    "backendRegressionPassed": 212,
+    "browserPassed": 20,
+    "browser": "local Chrome / production preview / mocked API",
+    "realDatabase": "isolated localhost MariaDB roxstock_phase24_test",
+    "databaseIntegrationPassed": true
+  },
+  "geometry": {
+    "cover": {
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "metrics": [
+        {
+          "rowHeight": 24,
+          "rowTop": 416,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 444,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 472,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 500,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 528,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 556,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 584,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 612,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        }
+      ],
+      "bodyScrollTop": 329
+    },
+    "tablet": {
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "metrics": [
+        {
+          "rowHeight": 24,
+          "rowTop": 138,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 166,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 194,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 222,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 250,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 278,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 306,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 334,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        }
+      ],
+      "bodyScrollTop": 120
+    }
+  },
+  "databaseSummary": {
+    "phase": 23,
+    "pages": [
+      50,
+      50,
+      5
+    ],
+    "featuresChecked": [
+      "realtime-prices",
+      "market-prices",
+      "dart-financial-statements",
+      "share-counts",
+      "consensus",
+      "valuation",
+      "security-master"
+    ],
+    "excludedExternalCalls": 0,
+    "delayedRequests": 1,
+    "lateWrites": 0,
+    "oldBrokerDeliveries": 0,
+    "historyRetained": true,
+    "concurrentCodeStatuses": [
+      200,
+      409
+    ],
+    "actualDB": true,
+    "phase24": {
+      "wholeFeatureFlags": true,
+      "individualRestore": true,
+      "rollback": true,
+      "concurrentSnapshot": true,
+      "legacyAllPreservesFeatures": true
+    }
+  },
+  "verifiedCode": "7ab77246fe6e64b6439bd911b474dfbd25d1ce4e",
+  "ci": [
+    {
+      "runId": 38247697647,
+      "name": "Frontend Check",
+      "conclusion": "success"
+    },
+    {
+      "runId": 38247697750,
+      "name": "Backend Check",
+      "conclusion": "success",
+      "backendRegressionPassed": 212,
+      "realMariaDB": true
+    },
+    {
+      "runId": 38247698194,
+      "name": "Phase23 Management and Exclusions",
+      "conclusion": "success",
+      "previousRegressionPassed": 14,
+      "phase24BrowserPassed": 20
+    }
+  ]
+}
