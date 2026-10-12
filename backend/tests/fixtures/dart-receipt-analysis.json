@@ -420,5 +420,20 @@
         "rcept_no": "20250311001085"
       }
     ]
+  },
+  {
+    "corpCode": "01170962",
+    "fiscalYear": 2024,
+    "reportCode": "11014",
+    "path": "fnlttSinglAcntAll.json",
+    "rows": [
+      {
+        "rcept_no": "20240530000884",
+        "corp_code": "01170962",
+        "bsns_year": "2024",
+        "reprt_code": "11014"
+      }
+    ],
+    "evidence": "Production verification run4782, 2026-10-12T00:01:28Z. Identity only; test amounts/currency are synthetic."
   }
 ]

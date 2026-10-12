@@ -8,7 +8,7 @@ on:
       mode:
         description: 'Audit is SELECT-only; representative is capped once per validation version'
         type: choice
-        options: [audit, representative]
+        options: [audit, representative, grt-q3]
         default: audit
 permissions:
   contents: read
@@ -59,7 +59,7 @@ jobs:
         run: |
           set -o pipefail
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$VERIFY_MODE" =~ ^(audit|representative)$ ]]
+          [[ "$VERIFY_MODE" =~ ^(audit|representative|grt-q3)$ ]]
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "bash -s -- '$TARGET_SHA' '$VERIFY_MODE'" <<'REMOTE' | tee dart-receipt-verification.jsonl
           set -Eeuo pipefail

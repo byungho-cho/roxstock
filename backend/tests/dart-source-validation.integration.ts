@@ -31,6 +31,17 @@ test('actual MariaDB stores GRT/CJ/Samsung source, period, units; duplicate atte
   assert.equal((await repo.saveFiling({...input,values:{...input.values,revenueYtd:'999'}})).created,false);
   assert.equal(await db.dartFinancialFiling.count({where:{receiptNo}}),1);
   assert.equal((await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo}})).revenueYtd!.toString(),'200');
+  if(corpCode==='01170962'){
+   const expected={ANNUAL:'2024-06-30',Q1:'2024-09-30',Q3:'2024-03-31'};
+   for(const other of mapPeriodicReports(evidence.find(r=>r.path==='list.json'&&r.corpCode===corpCode)!.rows,2024).filter(r=>r.reportCode!==reportCode)){
+    // DB fixture units/amounts are synthetic KRW; real GRT foreign currency remains blocked in production.
+    const otherRows=[{...rows[0]!,receiptNo:other.receiptNo,reportCode:other.reportCode}];
+    const proof=validateDartFiling({corpCode,taskFiscalYear:2024,report:other,rows:otherRows,fsDivision:'CFS'});
+    await repo.saveFiling({...input,periodType:other.periodType,reportCode:other.reportCode,...proof,values:normalizeDartFinancialRows(otherRows)});
+    const stored=await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo:other.receiptNo}});
+    assert.equal(stored.periodEndDate.toISOString().slice(0,10),expected[other.periodType as keyof typeof expected]);
+   }
+  }
   if(corpCode==='00113410'){
    const later='20250318001021';
    const updated=mapPeriodicReports([...evidence.find(r=>r.path==='list.json'&&r.corpCode===corpCode)!.rows,{corp_code:corpCode,rcept_no:later,rcept_dt:'20250318',report_nm:'[첨부추가]사업보고서 (2024.12)'}],2024).find(r=>r.reportCode===reportCode)!;
