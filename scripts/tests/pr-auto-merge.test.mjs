@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,mkdirSync,rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import vm from 'node:vm';
 const workflow=readFileSync(new URL('../../.github/workflows/pr-auto-merge.yml',import.meta.url),'utf8');
 const source=workflow.split('          script: |\n')[1].split('\n').map(line=>line.replace(/^            /,'')).join('\n');
@@ -43,3 +46,20 @@ test('production has no push trigger; dispatch serialized across all PR events',
 });
 
 test('renamed source removed into docs still deploys',async()=>assert.equal((await run({paths:[{filename:'docs/retired.md',previous_filename:'backend/src/retired.ts'}]})).dispatches,1));
+
+
+test('server deployment guard allows only documentation descendants, never changed runtime or unrelated history',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'roxstock-deploy-guard-'));
+ const git=(...args)=>{const r=spawnSync('git',args,{cwd:dir,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
+ const guard=readFileSync(new URL('../deploy-production-component.sh',import.meta.url),'utf8').match(/deployment_revision_allowed\(\) \{[\s\S]*?\n\}/)[0];
+ const allowed=(sha,latest)=>spawnSync('bash',['-c',guard+'\ndeployment_revision_allowed "$1" "$2" "$3"','guard-test',dir,sha,latest],{encoding:'utf8'}).status===0;
+ const commit=()=>{git('add','.');git('commit','-qm','fixture');return git('rev-parse','HEAD');};
+ try{
+  git('init','-q');git('config','user.name','Fixture');git('config','user.email','fixture@example.invalid');
+  mkdirSync(join(dir,'backend'));writeFileSync(join(dir,'backend/server.js'),'runtime v1');const app=commit();assert.equal(allowed(app,app),true);
+  mkdirSync(join(dir,'docs/qa'),{recursive:true});writeFileSync(join(dir,'docs/qa/evidence.json'),'{}');writeFileSync(join(dir,'README.md'),'documentation');const docs=commit();assert.equal(allowed(app,docs),true);
+  writeFileSync(join(dir,'backend/server.js'),'runtime v2');const changed=commit();assert.equal(allowed(app,changed),false);
+  git('checkout','-q',docs);git('mv','backend/server.js','docs/server.js');const renamed=commit();assert.equal(allowed(app,renamed),false);
+  git('checkout','--orphan','unrelated');git('rm','-rf','.');writeFileSync(join(dir,'README.md'),'other history');const other=commit();assert.equal(allowed(app,other),false);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
