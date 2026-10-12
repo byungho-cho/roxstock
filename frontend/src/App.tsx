@@ -64,6 +64,7 @@ export function App() {
         <Route path="more" element={<MorePage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
+        <Route path="detail/collection-monitoring/:feature/:stream" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
         <Route path="detail/compound" element={<CompoundPage />} />
         <Route path="detail/financials" element={<FinancialPage />} />

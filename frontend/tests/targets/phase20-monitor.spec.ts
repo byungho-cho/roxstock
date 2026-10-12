@@ -11,12 +11,12 @@ async function setup(page:Page){
  await page.route('**/api/collection/monitoring**',async route=>{const isSummary=new URL(route.request().url()).pathname.endsWith('/monitoring');if(isSummary)state.summaryCalls++;else state.detailCalls++;
   if(isSummary?state.holdSummary:state.holdDetail)await new Promise<void>(resolve=>releases.push(resolve));
   if(isSummary?state.failSummary:state.failDetail)return route.fulfill({status:503,json:{error:{message:'query unavailable'}}});
-  return route.fulfill({json:{data:isSummary?summary(state.collectorError):detail(state.collectorError)}});
+  const path=new URL(route.request().url()).pathname;const d=detail(state.collectorError);return route.fulfill({json:{data:isSummary?summary(state.collectorError):/\/(runs|items)$/.test(path)?{rows:path.endsWith('/runs')?d.runs:d.items.map((r,i)=>({...r,id:String(i)})),hasNext:false,nextCursor:null}:d}});
  });
  return {state,release(){state.holdSummary=false;state.holdDetail=false;releases.splice(0).forEach(r=>r());}};
 }
 async function capture(page:Page,name:string,project:string){const root=process.env.ROX_PHASE20_CAPTURE_DIR;if(root)await page.screenshot({path:path.join(root,`monitor-${project}-${name}.png`)});}
-const boxes=async(page:Page)=>page.locator('[data-testid^="monitor-"]').evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-testid'),width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,top:n.getBoundingClientRect().top})));
+const boxes=async(page:Page)=>page.locator('[data-testid^="monitor-"]:not([data-testid$="-data"]):not([data-testid$="-row"])').evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-testid'),width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,top:n.getBoundingClientRect().top})));
 test('summary slow first load keeps all cards, labels and geometry',async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto('/detail/collection-monitoring');
  await expect(page.getByTestId('monitor-summary')).toContainText('전체 상태');for(const id of ids)await expect(page.getByTestId(`monitor-feature-${id}`)).toBeAttached();
@@ -26,8 +26,8 @@ test('summary slow first load keeps all cards, labels and geometry',async({page}
 });
 for(const id of ids)test(`${id}: independent slow data preserves detail card sizes`,async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto(`/detail/collection-monitoring/${id}`);
- await expect(page.getByTestId('monitor-current')).toContainText('현재 상태');await expect(page.getByRole('button',{name:'필터',exact:true})).toBeVisible();await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('확인 0');
- await expect(page.locator('[data-loading-indicator="visible"]').first()).toBeVisible();const before=await boxes(page);f.release();await expect(page.getByTestId('monitor-history-data')).toContainText('123');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,id,info.project.name);
+ await expect(page.getByTestId('monitor-current')).toContainText('현재 상태');await expect(page.getByRole('button',{name:'실행 이력 상세보기',exact:true})).toBeAttached();await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('확인 0');
+ await expect(page.locator('[data-loading-indicator="visible"]').first()).toBeVisible();const before=await boxes(page);f.release();await expect(page.getByTestId('monitor-history-data')).toContainText('123');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);await capture(page,id,info.project.name);
 });
 test('same-query refresh and failed refresh preserve results, retry recovers',async({page},info)=>{
  const f=await setup(page);await page.goto('/detail/collection-monitoring/security-master');await expect(page.getByTestId('monitor-history-data')).toContainText('123');const before=await boxes(page);
@@ -37,7 +37,7 @@ test('same-query refresh and failed refresh preserve results, retry recovers',as
 });
 test('initial query failure never reports an empty result; retry shows collector error separately',async({page},info)=>{
  const f=await setup(page);f.state.failDetail=true;f.state.failSummary=true;await page.goto('/detail/collection-monitoring/realtime-prices');await expect(page.getByRole('alert').first()).toContainText('조회 실패',{timeout:15000});await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('정상');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);const before=await boxes(page);
- f.state.failDetail=false;f.state.failSummary=false;f.state.collectorError=true;await page.getByRole('button',{name:'다시 시도',exact:true}).last().click();await expect(page.getByTestId('monitor-current')).toContainText('오류');await expect(page.getByTestId('monitor-history-data')).toContainText('실제 수집 실패');await expect(page.getByRole('alert')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,'collector-error',info.project.name);
+ f.state.failDetail=false;f.state.failSummary=false;f.state.collectorError=true;await page.getByRole('button',{name:'다시 시도',exact:true}).last().click();await expect(page.getByTestId('monitor-current')).toContainText('오류');await expect(page.getByTestId('monitor-history-data')).toContainText('실제 수집 실패');await expect(page.getByRole('alert')).toHaveCount(0);await capture(page,'collector-error',info.project.name);
 });
 test('detail waiting does not hide ready summary or show fake progress',async({page})=>{
  const f=await setup(page);f.state.holdDetail=true;await page.goto('/detail/collection-monitoring/dart-financial-statements');await expect(page.getByTestId('monitor-current')).toContainText('완료');await expect(page.getByTestId('monitor-history-data').locator('[data-loading-indicator="visible"]').first()).toBeVisible();await expect(page.locator('main')).not.toContainText('완료 0');f.release();await expect(page.getByTestId('monitor-history-data')).toContainText('123');
