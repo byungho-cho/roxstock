@@ -238,12 +238,19 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
   const filters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>params.get(key)?[[key,params.get(key)!]]:[]));
   const [filtersOpen,setFiltersOpen]=useState(params.size>0);
   const query=useMonitorPages(feature,stream,filters);
+  const queryClient=useQueryClient();
   const lock=useRef(false);
   const rows=query.data?.pages.flatMap(page=>page.rows)??[];
-  const update=(key:string,value:string)=>setParams(previous=>{const next=new URLSearchParams(previous);if(value)next.set(key,value);else next.delete(key);return next;},{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
+  const changeFilters=(next:URLSearchParams)=>{
+    const nextFilters=Object.fromEntries(['result','phase','symbol','market','accountId','from','to'].flatMap(key=>next.get(key)?[[key,next.get(key)!]]:[]));
+    if(JSON.stringify(filters)===JSON.stringify(nextFilters))return;
+    void queryClient.resetQueries({queryKey:['collection-monitor-pages',feature,stream,nextFilters,50],exact:true});
+    setParams(next,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});
+  };
+  const update=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);changeFilters(next);};
   const loadMore=async()=>{if(lock.current || query.isFetching || !query.hasNextPage)return;lock.current=true;try{await query.fetchNextPage();}finally{lock.current=false;}};
   return <Box sx={{pb:'32px'}} data-list-condition={`${feature}:${stream}:${JSON.stringify(filters)}`} data-restoration-ready={query.isPending?'false':'true'}>
-    <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>setParams({},{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}})} sx={{fontSize:11}}>전체 기록</Button></Stack>
+    <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
     <Collapse in={filtersOpen}><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:0.5,mb:1}}><CollectionFilters itemStream={stream==='items'} feature={feature} resultFilter={filters.result??''} setResultFilter={v=>update('result',v)} phaseFilter={filters.phase??''} setPhaseFilter={v=>update('phase',v)} symbolFilter={filters.symbol??''} setSymbolFilter={v=>update('symbol',v)} marketFilter={filters.market??''} setMarketFilter={v=>update('market',v)} accountFilter={filters.accountId??''} setAccountFilter={v=>update('accountId',v)} from={filters.from??''} setFrom={v=>update('from',v)} to={filters.to??''} setTo={v=>update('to',v)}/></Box></Collapse>
     <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
       {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows}/>}
@@ -348,7 +355,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const stageOneLabel = stageOneComplete ? '완료'
     : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
 
-  return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box sx={{ px: 0, pt: 0, pb: '80px' }}>
+  return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box data-testid="collection-feature-overview" sx={{ px: 0, pt: 0, pb: '80px' }}>
     <QueryNotice error={summary.isError || detail.isError} retry={refreshStats} />
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>

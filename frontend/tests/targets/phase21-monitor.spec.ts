@@ -23,6 +23,7 @@ async function setup(page:Page,total:number){
 for(const total of [0,1,3])test(`summary shows exactly ${total} rows with adaptive heights and matching count colors`,async({page},info)=>{
  const f=await setup(page,total);await page.goto('/detail/collection-monitoring/security-master');
  await expect(page.getByTestId('monitor-history-data')).toBeAttached();await expect(page.getByTestId('monitor-run-row')).toHaveCount(total);await expect(page.getByTestId('monitor-target-row')).toHaveCount(total);
+ if(!total)await expect(page.getByTestId('monitor-history-data')).toContainText('실행 이력이 없습니다.');
  expect(f.reads.filter(r=>r.limit===3)).toHaveLength(2);await expect(page.getByRole('button',{name:'필터',exact:true})).toHaveCount(0);
  const colors=await page.getByTestId('monitor-counts').locator('> div').evaluateAll(ns=>ns.map(n=>[...n.querySelectorAll('p')].map(p=>getComputedStyle(p).color)));
  expect(colors).toEqual([['rgb(248, 250, 252)','rgb(248, 250, 252)'],['rgb(52, 211, 153)','rgb(52, 211, 153)'],['rgb(248, 113, 113)','rgb(248, 113, 113)'],['rgb(242, 247, 252)','rgb(242, 247, 252)']]);
@@ -35,7 +36,8 @@ for(const stream of ['runs','items'])for(const total of [0,49,50,51,105])test(`$
  const f=await setup(page,total);await page.goto(`/detail/collection-monitoring/security-master/${stream}`);
  const rows=page.getByTestId(stream==='runs'?'monitor-run-row':'monitor-target-row');
  await expect.poll(()=>f.reads.length).toBe(1);await expect(rows).toHaveCount(Math.min(50,total));
- while(await page.getByRole('button',{name:'더보기',exact:true}).count())await page.getByRole('button',{name:'더보기',exact:true}).click();
+ for(let next=1;next<Math.ceil(total/50);next++){await page.locator('main').getByRole('button',{name:'더보기',exact:true}).click();await expect(rows).toHaveCount(Math.min(total,(next+1)*50));}
+ await expect(page.locator('main').getByRole('button',{name:'더보기',exact:true})).toHaveCount(0);
  await expect(rows).toHaveCount(total);expect(f.reads.every(r=>r.limit===50)).toBe(true);expect(f.reads.length).toBe(Math.max(1,Math.ceil(total/50)));
  expect(await rows.evaluateAll(ns=>new Set(ns.map(n=>n.getAttribute('data-scroll-item'))).size)).toBe(total);
  const nested=await page.locator('main').evaluate(n=>[...n.querySelectorAll('*')].filter(e=>getComputedStyle(e).overflowY==='auto'||getComputedStyle(e).overflowY==='scroll').map(e=>e.getAttribute('data-testid')));expect(nested).toEqual([]);
@@ -47,15 +49,15 @@ for(const stream of ['runs','items'])for(const total of [0,49,50,51,105])test(`$
 });
 test('duplicate more clicks, failed append retry and filters reset independently',async({page})=>{
  const f=await setup(page,105);await page.goto('/detail/collection-monitoring/security-master/runs');await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);
- f.state.holdNext=true;await page.getByRole('button',{name:'더보기',exact:true}).click();await page.getByRole('button',{name:'더보기',exact:true}).dispatchEvent('click');await expect.poll(()=>f.reads.length).toBe(2);await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);
+ f.state.holdNext=true;await page.locator('main').getByRole('button',{name:'더보기',exact:true}).click();await page.locator('main').getByRole('button',{name:'더보기',exact:true}).dispatchEvent('click');await expect.poll(()=>f.reads.length).toBe(2);await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);
  f.state.failNext=true;f.release();await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);
  f.state.failNext=false;await page.getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(100);
  await page.getByRole('button',{name:'필터',exact:true}).click();await page.getByLabel('종목 필터',{exact:true}).fill('000001');await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);await expect.poll(()=>f.reads.at(-1)?.symbol).toBe('000001');expect(f.reads.at(-1)?.cursor).toBeNull();
- await page.getByRole('button',{name:'전체 기록',exact:true}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(100);
+ await page.getByRole('button',{name:'전체 기록',exact:true}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);
 });
 test('back returns to original feature and body scroll; cached detail retains loaded rows',async({page})=>{
  await setup(page,105);await page.goto('/detail/collection-monitoring/security-master');await expect(page.getByTestId('monitor-run-row')).toHaveCount(3);
- await page.getByRole('button',{name:'실행 이력 상세보기'}).scrollIntoViewIfNeeded();const top=await page.locator('main').evaluate(n=>n.scrollTop);await page.getByRole('button',{name:'실행 이력 상세보기'}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);await page.getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(100);
+ await page.getByRole('button',{name:'실행 이력 상세보기'}).scrollIntoViewIfNeeded();const top=await page.locator('main').evaluate(n=>n.scrollTop);await page.getByRole('button',{name:'실행 이력 상세보기'}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(50);await page.locator('main').getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(100);
  await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/security-master$/);await expect(page.getByTestId('monitor-run-row')).toHaveCount(3);await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);
  await page.getByRole('button',{name:'실행 이력 상세보기'}).click();await expect(page.getByTestId('monitor-run-row')).toHaveCount(100);
 });
