@@ -1,0 +1,30 @@
+{
+  "origin": "https://newrox.cafe24.com",
+  "main": "08664e4482dd45a81a38cf1378cdd3f679830511",
+  "pageStatus": 200,
+  "indexAsset": "/assets/index-B5I-tAJ5.js",
+  "indexStatus": 200,
+  "managementChunk": "SecurityManagementPage-obMbqood.js",
+  "managementChunkStatus": 200,
+  "hasMasterAPI": true,
+  "hasCodeWarning": true,
+  "hasSourceGuard": true,
+  "hasExclusionSettings": true,
+  "apkMetadataStatus": 200,
+  "apk": {
+    "version": "0.1.2-webonly-test",
+    "updatedAt": "2026-10-10",
+    "url": "/downloads/android/roxstock-web-only-0.1.2.apk",
+    "sha256": "ba6f1199a8268bee63f867079d3e29fbd6aef3e52465507ddb929b1fcc4c00ad",
+    "certificateSha256": "0c419a20f4672e1829ad5427e9d7ea81d6f94f668729c045e564711dcda7ef86"
+  },
+  "apkHeadStatus": 200,
+  "apkBytes": 61360,
+  "readOnly": true,
+  "installationVerified": false,
+  "apkGetStatus": 200,
+  "downloadedBytes": 61360,
+  "downloadSHA256": "ba6f1199a8268bee63f867079d3e29fbd6aef3e52465507ddb929b1fcc4c00ad",
+  "matchesReleaseSHA256": true,
+  "apkZipMagic": true
+}

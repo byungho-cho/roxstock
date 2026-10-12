@@ -1,0 +1,25 @@
+{
+  "artifact": 11726113550,
+  "viewports": [
+    {
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "beforeHeight": 151.8125,
+      "afterHeight": 89.8125,
+      "keyboardDownload": true,
+      "nativeKeyboardWebView": false
+    },
+    {
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "beforeHeight": 151.8125,
+      "afterHeight": 89.8125,
+      "keyboardDownload": true,
+      "nativeKeyboardWebView": false
+    }
+  ]
+}
