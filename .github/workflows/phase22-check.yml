@@ -1,0 +1,28 @@
+name: Phase22 Value Analysis
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/src/domain/value-list-analysis*, backend/src/routes/value-analysis*, .github/workflows/phase22-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase22.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase22-screen-evidence
+          path: |
+            frontend/test-results/phase22/
+            docs/qa/assets/phase22/
