@@ -27,7 +27,9 @@ for(const scenario of ['dart-error','dart-timeout','supplement','both-fail'] as 
  PrismaDartRepository.prototype.acquireLock=async()=>true;
  OpenDartProvider.prototype.listPeriodicReports=async()=>{dartCalls++;if(scenario==='dart-timeout')return new Promise(()=>{});throw new DartApiError('HTTP_ERROR','unavailable');};
  NaverAnnualProvider.prototype.annual=async()=>{if(scenario==='both-fail')throw new NaverAnnualError('NAVER_COMMUNICATION');return source();};
- manualLimits.taskMs=30;
+ // Real parsing work must not share a 30ms CI scheduling deadline with the injected hang.
+ // The hanging DART request still times out; production limits are unchanged.
+ manualLimits.taskMs=1000;
  try{
   await processIndependentRefresh(f.db,config,f.run);
   const m=f.run.metadata as unknown as ManualRefreshMetadata,result=m.results![0];assert.ok(result);
