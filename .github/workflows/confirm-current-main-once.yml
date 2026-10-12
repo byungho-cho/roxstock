@@ -1,0 +1,27 @@
+name: Confirm Reviewed Current Main Deployment
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/confirm-current-main-once.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch-reviewed-main:
+    if: github.head_ref == 'ops/confirm-current-main-deploy-20261012' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # Dispatch existing production workflow only; no checkout/SSH or PR code on the server.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const expected = '30d2181535e51b34407670aa6f89f9ec9d169272';
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+            if (branch.commit.sha !== expected) throw new Error('Reviewed main changed');
+            const {data: diff} = await github.rest.repos.compareCommits({...context.repo, base: '4b9dc682972cab70cedc56ab7005eda151bcf136', head: expected});
+            if (!diff.files.every(f => f.filename.startsWith('docs/'))) throw new Error('Unexpected app changes');
+            const {data: existing} = await github.rest.actions.listWorkflowRuns({...context.repo, workflow_id: 'production-deploy.yml', head_sha: expected});
+            if (existing.workflow_runs.some(r => r.status !== 'completed' || r.conclusion === 'success')) return;
+            await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'production-deploy.yml', ref: 'main', inputs: {target_sha: expected}});
+            core.notice('Current main preserves reviewed app changes; no additional DART representative requests');
