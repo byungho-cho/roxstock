@@ -1,5 +1,7 @@
 # DART source v2 검증·운영 관측 — 2026-10-12
 
+> 최종 배포·11회 실제 DART·보존·미확인 사항은 [최종 결과](dart-source-validation-deployment-20261012.md)에 기록했습니다. 두 야간 창 관측은 미완료입니다.
+
 ## 완료 상태
 
 - 로컬 TypeScript·backend build 및 backend 단위/회귀 201개, 안전한 로그 필터 2개: 통과.
