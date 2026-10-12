@@ -32,7 +32,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:{windowSta
   const usage=await db.collectorRun.findMany({where:{jobType,startedAt:{gte:dayStart}},select:{metadata:true}});
   const used=usage.reduce((n,r)=>n+Number((r.metadata as {reservedCalls?:number}|null)?.reservedCalls??0),0);
   const priority=new Set((await repo.prioritySecurityIds()).map(String));
-  const filings=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:year},security:{...eligibleWhere('valuation'),securityType:'STOCK'}},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true,security:{select:{symbol:true}}}});
+  const filings=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:year},security:{...eligibleWhere('valuation'),isActive:true,securityType:'STOCK'}},distinct:['securityId','fiscalYear','periodType'],select:{securityId:true,fiscalYear:true,periodType:true,security:{select:{symbol:true}}}});
   const metrics=await db.periodValuation.findMany({where:{fiscalYear:{gte:2015,lte:year}},select:{securityId:true,fiscalYear:true,periodType:true,values:true,nextAttemptAt:true}});
   const key=(r:{securityId:bigint;fiscalYear:number;periodType:string})=>String(r.securityId)+':'+r.fiscalYear+':'+r.periodType;
   const previous=new Map(metrics.map(r=>[key(r),r]));

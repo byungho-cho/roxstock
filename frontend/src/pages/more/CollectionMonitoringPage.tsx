@@ -143,7 +143,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
   </Box>;
 }
 
-function CountStrip({ target, success, failed, skipped,feature,runId }: { target?: number; success?: number; failed?: number; skipped?: number;feature:string;runId?:string }) {
+function CountStrip({ target, success, failed, skipped,feature,runId,scopeLabel }: { target?: number|null; success?: number|null; failed?: number|null; skipped?: number|null;feature:string;runId?:string;scopeLabel?:string }) {
   const navigate=useListNavigation();const pending=useContext(PendingData);
   const open=(result:string)=>navigate(`/detail/collection-monitoring/${feature}/items?${new URLSearchParams({result,...(runId?{runId}:{})})}`);
   const values = [
@@ -152,12 +152,12 @@ function CountStrip({ target, success, failed, skipped,feature,runId }: { target
     ['실패', failed, colors.error],
     ['건너뜀', skipped, '#F2F7FC'],
   ] as const;
-  return <Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
+  return <><Typography sx={{fontSize:10,color:colors.textMuted,mb:0.5}}>{scopeLabel??'최근 실행 대상 결과'}</Typography><Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
     {values.map(([label, value, color]) => <ButtonBase key={label} disabled={pending||!['성공','실패'].includes(label)} aria-label={['성공','실패'].includes(label)?`${label} 대상 목록`:undefined} onClick={()=>open(label==='성공'?'SUCCESS':'FAILED')} sx={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0.15,'&.Mui-disabled':{color}}}>
       <Typography sx={{ color, fontSize: 10, lineHeight: '11px' }}>{label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
     </ButtonBase>)}
-  </Box>;
+  </Box></>;
 }
 
 function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
@@ -177,7 +177,7 @@ function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Featur
   </Box>;
 }
 
-type MonitorPage = {rows: DataRecord[]; hasNext: boolean; nextCursor: string | null};
+type MonitorPage = {note?:string;rows: DataRecord[]; hasNext: boolean; nextCursor: string | null};
 function useMonitorPages(feature: string, stream: 'runs' | 'items', filters: Record<string,string> = {}, limit = 50) {
   return useInfiniteQuery({
     queryKey: ['collection-monitor-pages',feature,stream,filters,limit],
@@ -199,7 +199,7 @@ function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
         const style=statusStyle[String(run.status)]??unknownStatus;
         const metadata=asRecord(run.metadata);
         return <Box key={run.id} data-testid="monitor-run-row" data-scroll-item={`run-${run.id}`} sx={{py:0.5,minWidth:0,overflowWrap:'anywhere'}}>
-          <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='BACKFILL'?'1단계 과거 수집':'2단계 현행 수집'}`:''}</Typography>
+          <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='BACKFILL'?'1단계 과거 수집':metadata.phase==='MANUAL'?'수동 갱신':'2단계 현행 수집'}`:''}</Typography>
           <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 건너뜀 {numberText(run.skipped)}</Typography>
           {run.failureReason && <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.error,fontSize:10,lineHeight:'14px',whiteSpace:'normal',overflowWrap:'anywhere'}}>{run.failureReason}</Typography>}
         </Box>;
@@ -219,7 +219,8 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
           <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
           {item.status==='FAILED'&&item.reason&&<Typography sx={{fontSize:10,lineHeight:'14px',color:colors.error,overflowWrap:'anywhere',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{item.reason}</Typography>}
           {item.security?.exclusionReason&&<Typography sx={{fontSize:10,color:colors.warning,overflowWrap:'anywhere'}}>{item.security.exclusionReason}</Typography>}
-          {item.security&&/^[A-Z0-9]{6}:/.test(item.symbol)&&item.symbol.split(':')[0]!==item.security.symbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이전 코드 {item.symbol.split(':')[0]}의 기록 · 현재 코드 {item.security.symbol}</Typography>}
+          {item.security&&item.recordedSymbol&&item.recordedSymbol!==item.security.symbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이전 코드 {item.recordedSymbol}의 기록 · 현재 코드 {item.security.symbol}</Typography>}
+          {/^\d+:\d{4}:(ANNUAL|Q[1-4])$/.test(item.symbol)&&!item.recordedSymbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이력의 종목코드 미기록 · 현재 코드의 수집 결과로 대체하지 않습니다.</Typography>}
           <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.reason??style.label}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
         </Box>;
       }) : <Typography sx={{...mutedText,fontSize:10}}>대상 내역이 없습니다.</Typography>}
@@ -259,6 +260,7 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
     <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
     {filters.runId&&<Typography sx={{fontSize:10,color:colors.textMuted}}>최근 실행 대상 결과 · 실행 #{filters.runId}</Typography>}
     <Collapse in={filtersOpen}><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:0.5,mb:1}}><CollectionFilters itemStream={stream==='items'} feature={feature} resultFilter={filters.result??''} setResultFilter={v=>update('result',v)} phaseFilter={filters.phase??''} setPhaseFilter={v=>update('phase',v)} symbolFilter={filters.symbol??''} setSymbolFilter={v=>update('symbol',v)} marketFilter={filters.market??''} setMarketFilter={v=>update('market',v)} accountFilter={filters.accountId??''} setAccountFilter={v=>update('accountId',v)} from={filters.from??''} setFrom={v=>update('from',v)} to={filters.to??''} setTo={v=>update('to',v)}/></Box></Collapse>
+    {query.data?.pages[0]?.note&&<Typography sx={{fontSize:11,color:colors.warning,my:1}}>{query.data.pages[0].note}</Typography>}
     <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
       {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows} feature={feature}/>}
     </PendingData.Provider></FailedData.Provider>
@@ -380,14 +382,14 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
         </Box>
         <Typography sx={{...mutedText,fontSize:10,height:28}}>{dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' ? '공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용' : ''}</Typography>
         <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>
-        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
+        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
         <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
       <SummaryRecords feature={feature} stream="items"/>
     </Box> : <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} />
-        <CountStrip feature={current.id} runId={current.resultScope?.runId} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
+        <CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} />
         <Box data-testid="monitor-realtime-diagnostics" sx={{ display: isRealtime ? 'block' : 'none', ...cardSx, p: '8px 9px', minHeight: 94 }}>
           <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px' }}>워커 <DataValue>{dateText(current.realtime?.heartbeatAt)}</DataValue> · <DataValue>{current.realtime?.session ?? '세션 기록 없음'}</DataValue></Typography>
           <Typography sx={{ color: '#3D8CF5', fontSize: 10, lineHeight: '14px', overflowWrap: 'anywhere' }}>수신 <DataValue>{dateText(current.realtime?.lastPriceReceivedAt)}</DataValue> · 원천 <DataValue>{dateText(current.realtime?.lastSourcePriceAt)}</DataValue></Typography>

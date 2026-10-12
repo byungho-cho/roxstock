@@ -1,4 +1,4 @@
-import {CollectionExcluded} from './collection-policy.js';
+import {CollectionExcluded,checkCollection} from './collection-policy.js';
 import { RealtimeLockLostError, safeErrorCode } from './realtime-lifecycle.js';
 import { collectorLog as log } from './logger.js';
 import { getSeoulClock } from './time.js';
@@ -112,7 +112,7 @@ export const collectRealtimeCycle = async (
     try {
      const work=async()=>{
       if(target.symbol.toUpperCase().startsWith('Z99'))throw new CollectionExcluded('Z99 코드: 수집 제외');
-      const observation = await provider.fetchPrice(target);
+      const observation = await provider.fetchPrice(target);await checkCollection();
       if (observation.freshness === 'STALE') {
         stale += 1;results.push({securityId:target.id,symbol:target.symbol,status:'STALE'});
         return;

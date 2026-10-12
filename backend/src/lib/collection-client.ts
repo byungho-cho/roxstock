@@ -1,3 +1,4 @@
+import {normalizeSecuritySymbol} from '../domain/security-symbol.js';
 import {Prisma,type PrismaClient} from '../generated/prisma/index.js';
 import {collectionContext,inCollectionTransaction,lockCollection} from '../collector/collection-policy.js';
 const collected=new Set(['marketPrice','financialStatement','valuationMetric','securityFundamentals','dartFinancialFiling','dartShareSnapshot','periodValuation','annualConsensusSnapshot','dartCorpMapping']);
@@ -25,7 +26,7 @@ function clean(model:string,value:any):any{
  for(const field of meta.fields.filter(f=>f.kind==='object'))if(field.name in result){
   const target=field.type.slice(0,1).toLowerCase()+field.type.slice(1);result[field.name]=clean(target,result[field.name]);
   if(model==='security'&&collected.has(target)&&typeof result.symbol==='string'){
-   const current=(row:any)=>(!result.codeRevision&&row?.collectionSymbol==null)||row?.collectionSymbol===result.symbol;
+   const current=(row:any)=>(!result.codeRevision&&row?.collectionSymbol==null)||typeof row?.collectionSymbol==='string'&&normalizeSecuritySymbol(row.collectionSymbol)===normalizeSecuritySymbol(result.symbol);
    result[field.name]=Array.isArray(result[field.name])?result[field.name].filter(current):current(result[field.name])?result[field.name]:null;
   }
  }
@@ -33,6 +34,20 @@ function clean(model:string,value:any):any{
 }
 function stamp(args:Obj,symbol:string){
  const result={...args};for(const key of ['data','create','update'])if(args[key])result[key]=Array.isArray(args[key])?args[key].map((d:Obj)=>({...d,collectionSymbol:symbol})):{...args[key],collectionSymbol:symbol};return result;
+}
+async function resetNamespace(model:string,delegate:Obj,args:Obj,op:string,root:PrismaClient){
+ const data=op==='upsert'?args.update:args.data;
+ const symbol=data?.collectionSymbol??args.create?.collectionSymbol;
+ if(!symbol||!['upsert','update'].includes(op))return args;
+ const previous=await delegate.findUnique({where:args.where});if(!previous)return args;
+ const normalized=typeof previous.collectionSymbol==='string'?normalizeSecuritySymbol(previous.collectionSymbol):null;
+ if(normalized===normalizeSecuritySymbol(symbol))return args;
+ if(normalized===null){const security=await root.security.findUnique({where:{id:previous.securityId??args.create?.securityId},select:{codeRevision:true}});if(!security?.codeRevision)return args;}
+ const fields=models.get(model)!.fields.filter(f=>f.kind!=='object');
+ const empty=Object.fromEntries(fields.filter(f=>!f.isRequired&&f.name!=='collectionSymbol').map(f=>[f.name,f.type==='Json'?Prisma.DbNull:null]));
+ const create=op==='upsert'?Object.fromEntries(Object.entries(args.create??{}).filter(([key,value])=>key!=='id'&&fields.some(f=>f.name===key)&&value!==undefined)):Object.fromEntries(fields.filter(f=>f.type==='Json'&&f.isRequired).map(f=>[f.name,{}]));
+ const provided=Object.fromEntries(Object.entries(data??{}).filter(([,v])=>v!==undefined));
+ return {...args,[op==='upsert'?'update':'data']:{...empty,...create,...provided}};
 }
 /** Central read identity boundary, and atomic collection write fence. No collected history is deleted on code edits. */
 const wrapped=new WeakSet<object>();
@@ -53,19 +68,21 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
     const model=String(key),op=String(operation),scope=collectionContext();let query=project(model,args);
     if(collected.has(model)&&writes.has(op)&&scope){
      const required=model==='dartShareSnapshot'?'share-counts':model==='annualConsensusSnapshot'?'consensus':undefined;
-     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(tx,key),operation).call(Reflect.get(tx,key),stamp(query,scope.identity.symbol)));});
+     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root),key),operation)(query));});
      if(required)await lockCollection(db as any,required);
      query=stamp(query,scope.identity.symbol);
+     if(op==='updateMany'){const security=await root.security.findUnique({where:{id:scope.identity.id},select:{codeRevision:true}});query.where={AND:[query.where??{},{securityId:scope.identity.id},security?.codeRevision?{collectionSymbol:scope.identity.symbol}:{OR:[{collectionSymbol:scope.identity.symbol},{collectionSymbol:null}]}]};}
     }
     if(collected.has(model)&&['findFirst','findMany','count','aggregate','groupBy'].includes(op)){
      const readDb=(db as any).security?.findMany?db as any:root;
      const changed=await readDb.security.findMany({where:{codeRevision:{gt:0}},select:{id:true,symbol:true}});
      if(changed.length)query.where={AND:[query.where??{},{OR:[{securityId:{notIn:changed.map((s:any)=>s.id)}},...changed.map((s:any)=>({securityId:s.id,collectionSymbol:s.symbol}))]}]};
     }
+    if(collected.has(model)&&writes.has(op))query=await resetNamespace(model,delegate,query,op,root);
     const result=await method.call(delegate,query);
     if(collected.has(model)&&['findUnique','findUniqueOrThrow'].includes(op)&&result){
      const sid=result.securityId??args.where?.securityId??args.where?.securityId_fiscalYear_periodType?.securityId;
-     if(sid){const s=await root.security.findUnique({where:{id:sid},select:{symbol:true,codeRevision:true}});if(s?.codeRevision&&result.collectionSymbol!==s.symbol)return null;}
+     if(sid){const s=await root.security.findUnique({where:{id:sid},select:{symbol:true,codeRevision:true}});if(s?.codeRevision&&(typeof result.collectionSymbol!=='string'||normalizeSecuritySymbol(result.collectionSymbol)!==normalizeSecuritySymbol(s.symbol)))return null;}
     }
     return clean(model,result);
    };

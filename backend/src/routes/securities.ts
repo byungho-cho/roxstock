@@ -286,7 +286,7 @@ export async function securityRoutes(app: FastifyInstance) {
     const marketPrice = await prisma.marketPrice.upsert({
       where: { securityId },
       create: { securityId, collectionSymbol: security.symbol, currentPrice, previousClosePrice: previous?.previousClosePrice ?? null, priceUpdatedAt: new Date() },
-      update: { collectionSymbol: security.symbol, currentPrice, priceUpdatedAt: new Date() },
+      update: { collectionSymbol: security.symbol, currentPrice, previousClosePrice:previous?.previousClosePrice??null,priceUpdatedAt: new Date() },
     });
     const latest = await prisma.valuationMetric.findFirst({ where: { securityId }, orderBy: { metricDate: 'desc' } });
     if (latest) {
