@@ -5,6 +5,7 @@ import {useSearchParams} from 'react-router-dom';
 import {apiRequest} from '../../data/apiClient';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {AppCard} from '../../components/common/Common';
+import {FormTextField} from '../../components/forms/Fields';
 import {StockSearchFrame} from '../../components/common/StockSearchFrame';
 import {StockIdentity} from '../stocks/StockIdentity';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
@@ -60,12 +61,15 @@ function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>
  <Box sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,1fr))'},gap:'8px',alignItems:'start'}}>
  <Stack spacing="8px" sx={{minWidth:0}}>
  <AppCard sx={{p:'8px',borderRadius:'8px'}}><Stack spacing="8px">
- <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',minHeight:20}}><Typography sx={{fontSize:13,fontWeight:600}}>종목 정보</Typography><Typography sx={{fontSize:11,color:colors.textSecondary}}>{sourceLabel(s.registrationSource)}</Typography></Stack>
- {(['name','symbol','listingYear'] as const).map(key=><Box key={key}><Box sx={{display:'flex',gap:'8px',alignItems:'center',height:36,px:'8px',borderRadius:'8px',border:`1px solid ${colors.border}`,bgcolor:key==='symbol'&&!s.canCorrectCode?colors.canvas:colors.raised}}><Typography component="label" htmlFor={`security-${key}`} sx={{width:60,flexShrink:0,fontSize:11,color:colors.textSecondary}}>{{name:'종목명',symbol:'종목코드',listingYear:'상장연도'}[key]}</Typography><InputBase id={`security-${key}`} value={value[key]} disabled={key==='symbol'&&!s.canCorrectCode} onChange={e=>update(key,e.target.value)} sx={{flex:1,minWidth:0,fontSize:13,'& input':{p:0}}}/></Box>{key==='symbol'&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary,mt:'8px'}}>{s.canCorrectCode?'오입력 정정 가능 · 변경 시 확인':`종목코드 변경 불가 · ${sourceLabel(s.registrationSource)} 종목`}</Typography>}</Box>)}
+ <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',minHeight:20,gap:1}}><Typography sx={{fontSize:13,fontWeight:600}}>종목 정보</Typography><Typography sx={{fontSize:11,color:colors.textSecondary,textAlign:'right',overflowWrap:'anywhere',minWidth:0}}>{sourceLabel(s.registrationSource)}</Typography></Stack>
+ {(['name','symbol','listingYear'] as const).map(key=><FormTextField key={key} label={{name:'종목명',symbol:'종목코드',listingYear:'상장연도'}[key]} size="small" labelWidth={60} textAlign="left" multiline={key==='name'} value={value[key]} disabled={key==='symbol'&&!s.canCorrectCode} onChange={v=>update(key,key==='name'?v.replace(/[\r\n]+/g,' '):v)}/>)}
  </Stack></AppCard>
- {!!s.deleteBlockedReasons?.length&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary}}>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능<br/>사용 중인 종목은 삭제할 수 없습니다.</Typography>}
- {error&&!action&&<Typography role="alert" sx={{color:colors.error,fontSize:12}}>{error}</Typography>}
  <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,minHeight:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,minHeight:36,borderRadius:'8px',fontSize:12,bgcolor:colors.buttonPrimary,color:colors.textPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>정보 저장</Button></Stack>
+ <Box data-testid="security-info-guide" sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary,overflowWrap:'anywhere'}}>
+ {s.canCorrectCode?'오입력 정정 가능 · 변경 시 확인':`종목코드 변경 불가 · ${sourceLabel(s.registrationSource)} 종목`}
+ {!!s.deleteBlockedReasons?.length&&<><br/>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능<br/>사용 중인 종목은 삭제할 수 없습니다.</>}
+ {error&&!action&&<Typography role="alert" sx={{color:colors.error,fontSize:11,lineHeight:'16px',mt:'4px'}}>{error}</Typography>}
+ </Box>
  </Stack>
  <CollectionSettingsCard security={s}/>
  </Box>

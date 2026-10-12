@@ -1,3 +1,5 @@
+> 이 문서는 PR #207의 초기 구현·검증 기록입니다. 현재 기준은 [24차 최종 문서](phase24-security-editor-20261012.md)이며, 아래 초기 확인 문구·전체 OFF 기능별 설정·개별 gate 복원·재조회 실패 처리 설명은 최신 명세로 대체됩니다.
+
 # 종목관리 편집 v0.6 검증 · 2026-10-12
 
 PR: https://github.com/byungho-cho/roxstock/pull/207

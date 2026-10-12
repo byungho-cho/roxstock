@@ -27,9 +27,28 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   assert.equal(whole.json().data.collectionExcluded,false);assert.deepEqual(whole.json().data.excludedFeatures,[]);
   const revision=whole.json().data.collectionRevision;
   whole=await patch(manual.id,{feature:'ALL',excluded:true,allFeatures:true,confirmed:true},'/collection');assert.equal(whole.statusCode,200,whole.body);
-  assert.equal(whole.json().data.collectionExcluded,true);assert.equal(whole.json().data.collectionRevision,revision+1);
+  assert.equal(whole.json().data.collectionExcluded,true);assert.deepEqual(whole.json().data.excludedFeatures,[...collectionFeatures]);assert.equal(whole.json().data.collectionRevision,revision+1);
   assert.equal((await patch(manual.id,{feature:'ALL',excluded:true,allFeatures:true},'/collection')).statusCode,400);
   assert.equal((await patch(manual.id,{feature:'consensus',excluded:false,allFeatures:true},'/collection')).statusCode,400);
+  // Opt-in individual activation behind ALL keeps the other effective OFF settings.
+  const single=await patch(manual.id,{feature:'consensus',excluded:false,restoreGlobal:true},'/collection');
+  assert.equal(single.statusCode,200,single.body);assert.equal(single.json().data.collectionExcluded,false);
+  assert.deepEqual(single.json().data.excludedFeatures,collectionFeatures.filter(f=>f!=='consensus'));
+  assert.equal((await patch(manual.id,{feature:'ALL',excluded:false,restoreGlobal:true},'/collection')).statusCode,400);
+  assert.equal((await patch(manual.id,{feature:'consensus',excluded:true,restoreGlobal:true,confirmed:true},'/collection')).statusCode,400);
+  await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection');
+  // Inject a failure after the security UPDATE into a real MariaDB transaction.
+  const beforeRollback=await raw.security.findUniqueOrThrow({where:{id:manual.id}});
+  const transaction=prisma.$transaction;
+  (prisma as any).$transaction=(work:any,options:any)=>transaction.call(prisma,async(tx:any)=>work(new Proxy(tx,{get(target,key){if(key==='dartBackfillTask')return {...target.dartBackfillTask,updateMany:async()=>{throw Error('phase24 injected write failure');}};return Reflect.get(target,key);}})),options);
+  try{assert.equal((await patch(manual.id,{feature:'ALL',excluded:true,allFeatures:true,confirmed:true},'/collection')).statusCode,500);}
+  finally{(prisma as any).$transaction=transaction;}
+  const rolledBack=await raw.security.findUniqueOrThrow({where:{id:manual.id}});
+  assert.equal(rolledBack.collectionRevision,beforeRollback.collectionRevision);assert.equal(rolledBack.collectionExcluded,false);assert.deepEqual(rolledBack.excludedFeatures,[]);
+  // Concurrent whole updates cannot expose a partial global/feature state to readers.
+  await Promise.all(Array.from({length:2},(_,i)=>patch(manual.id,{feature:'ALL',excluded:i%2===0,allFeatures:true,confirmed:true},'/collection').then(r=>assert.equal(r.statusCode,200,r.body))),
+   (async()=>{for(let i=0;i<12;i++){const snapshot=await raw.security.findUniqueOrThrow({where:{id:manual.id}});assert.deepEqual(snapshot.excludedFeatures,snapshot.collectionExcluded?[...collectionFeatures]:[]);}})());
+  await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection');
   await policy(manual.id,'consensus',true);await policy(manual.id,'ALL',false);
   assert.deepEqual((await prisma.security.findUnique({where:{id:manual.id}}))!.excludedFeatures,['consensus']);
   await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection');
@@ -92,7 +111,7 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   await prisma.accountWatchlistItem.create({data:{accountId:account.id,securityId:other.id,listType:'WATCHLIST'}});
   const denied=await app.inject({method:'DELETE',url:`/api/security-management/${other.id}`,payload:{confirmed:true}});assert.equal(denied.statusCode,409);assert.match(denied.json().error.message,/관심/);assert.equal((await patch(other.id,{name:'Phase23 editable used stock'})).statusCode,200);
   const deleted=await app.inject({method:'DELETE',url:`/api/security-management/${unused.id}`,payload:{confirmed:true}});assert.equal(deleted.statusCode,200);assert.equal((await raw.security.findUnique({where:{id:unused.id}}))!.isActive,false);assert.equal(await raw.collectorRunItem.count({where:{runId:run.id}}),2);
-  console.log(JSON.stringify({phase:23,pages:pageCounts,featuresChecked:collectionFeatures,excludedExternalCalls:0,delayedRequests:1,lateWrites:0,oldBrokerDeliveries:0,historyRetained:true,concurrentCodeStatuses:simultaneous.map(r=>r.statusCode),actualDB:true}));
+  console.log(JSON.stringify({phase:23,pages:pageCounts,featuresChecked:collectionFeatures,excludedExternalCalls:0,delayedRequests:1,lateWrites:0,oldBrokerDeliveries:0,historyRetained:true,concurrentCodeStatuses:simultaneous.map(r=>r.statusCode),actualDB:true,phase24:{wholeFeatureFlags:true,individualRestore:true,rollback:true,concurrentSnapshot:true,legacyAllPreservesFeatures:true}}));
  }finally{
   await raw.collectorRun.deleteMany({where:{id:{in:runs}}});await raw.buyTrade.deleteMany({where:{accountId:account.id}});await raw.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await raw.financialStatement.deleteMany({where:{securityId:{in:ids}}});await raw.valuationMetric.deleteMany({where:{securityId:{in:ids}}});await raw.securityFundamentals.deleteMany({where:{securityId:{in:ids}}});await raw.marketPrice.deleteMany({where:{securityId:{in:ids}}});await raw.securityCodeHistory.deleteMany({where:{securityId:{in:ids}}});await raw.security.deleteMany({where:{id:{in:ids}}});await raw.account.delete({where:{id:account.id}});await app.close();await raw.$disconnect();await prisma.$disconnect();
  }
