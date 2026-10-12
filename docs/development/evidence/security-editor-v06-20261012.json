@@ -1,0 +1,409 @@
+{
+  "dateKST": "2026-10-12",
+  "codeCommit": "50062cc65f3a3be8c1f9a5e4b283cea3a907e704",
+  "baseMain": "3d4eeb5a2c4703e32785448130b40cdb326980e9",
+  "pr": "https://github.com/byungho-cho/roxstock/pull/207",
+  "uiRun": 38222082689,
+  "uiJob": 114720505552,
+  "backendRun": 38222082784,
+  "backendJob": 114720506002,
+  "artifact": {
+    "id": 11734606627,
+    "node_id": "MDg6QXJ0aWZhY3QxMTczNDYwNjYyNw==",
+    "name": "phase23-screen-evidence",
+    "size_in_bytes": 1161761,
+    "url": "https://api.github.com/repos/byungho-cho/roxstock/actions/artifacts/11734606627",
+    "archive_download_url": "https://api.github.com/repos/byungho-cho/roxstock/actions/artifacts/11734606627/zip",
+    "expired": false,
+    "digest": "sha256:c1a63c025b7349c36a5cf7edb0744cad4008b99d54cb047214f9b835c445ac91",
+    "created_at": "2026-10-12T08:13:29Z",
+    "updated_at": "2026-10-12T08:13:29Z",
+    "expires_at": "2026-11-11T08:13:28Z",
+    "workflow_run": {
+      "id": 38222082689,
+      "repository_id": 1372274964,
+      "head_repository_id": 1372274964,
+      "head_branch": "codex/security-editor-v06-20261012",
+      "head_sha": "50062cc65f3a3be8c1f9a5e4b283cea3a907e704"
+    }
+  },
+  "uiEvidence": [
+    "2026-10-12T08:13:12.6935893Z   14 passed (14.6s)",
+    "2026-10-12T08:13:27.8235968Z   14 passed (13.9s)"
+  ],
+  "backendEvidence": [
+    "2026-10-12T08:12:40.6583048Z   PHASE23_DB_CONTAINER: 198cf74390f4799f4857aaa2f24d318e7791ac5251632d69c7d98b486671c65b",
+    "2026-10-12T08:12:47.1400420Z ok 1 - phase23 actual migration preserves legacy zero/code/data and restores a verified old-schema backup",
+    "2026-10-12T08:12:47.1566919Z # fail 0",
+    "2026-10-12T08:12:48.6385523Z ok 1 - phase23 real MariaDB: master pages, provenance, code/history preservation, exclusion fencing, concurrency and deletion",
+    "2026-10-12T08:12:48.6587794Z # fail 0",
+    "2026-10-12T08:12:49.5068694Z # fail 0",
+    "2026-10-12T08:12:50.5385339Z # fail 0",
+    "2026-10-12T08:12:51.6146106Z # fail 0",
+    "2026-10-12T08:12:52.0541184Z # fail 0",
+    "2026-10-12T08:12:52.7952490Z # fail 0",
+    "2026-10-12T08:12:53.5128276Z # fail 0",
+    "2026-10-12T08:12:55.7347049Z # fail 0",
+    "2026-10-12T08:12:56.8464786Z # fail 0",
+    "2026-10-12T08:12:59.0146464Z # fail 0",
+    "2026-10-12T08:13:02.4694673Z # fail 0",
+    "2026-10-12T08:13:08.9702760Z # fail 0",
+    "2026-10-12T08:13:22.2864548Z # tests 206",
+    "2026-10-12T08:13:22.2864956Z # pass 206",
+    "2026-10-12T08:13:22.2865147Z # fail 0"
+  ],
+  "validation": {
+    "frontendTypecheck": true,
+    "frontendBuild": true,
+    "backendTypecheck": true,
+    "backendBuild": true,
+    "backendRegressionPassed": 206,
+    "newScreenTestsPassed": 14,
+    "existingPhase23TestsPassed": 14,
+    "isolatedMariaDBAPI": true,
+    "nativeAndroidWebView": false,
+    "productionDeploy": false
+  },
+  "runs": [
+    {
+      "id": 38222082895,
+      "name": "Improvements phase 4",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082976,
+      "name": "PR Validation",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082671,
+      "name": "Navigation and trade flow phase 16",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082727,
+      "name": "Operating Fixes Function Check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082686,
+      "name": "October 7 improvements",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082810,
+      "name": "Stock Detail Refresh Check",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082832,
+      "name": "Settings Update Check (requested screen only)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082782,
+      "name": "Stocks Update Check (requested screen only)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082729,
+      "name": "More Update Check (requested screen only)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082714,
+      "name": "Account management phase 15",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082739,
+      "name": "October 7 handoff regression",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082732,
+      "name": "Phase18 Loading Performance",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082743,
+      "name": "Asset Update Check (requested screen only)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082789,
+      "name": "Phase20 Input and Loading",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082772,
+      "name": "Improvements phase 3",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082764,
+      "name": "Phase 17 UI follow-up",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38222082759,
+      "name": "Home Update Check (requested screen only)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 38222082720,
+      "name": "Frontend Check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082689,
+      "name": "Phase23 Management and Exclusions",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082771,
+      "name": "Utility v0.4 Scoped Check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082784,
+      "name": "Backend Check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082776,
+      "name": "Monitor and financial estimates",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222082681,
+      "name": "Journal v0.4 Function Check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 38222080382,
+      "name": "PR Auto Merge",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "geometry": {
+    "cover": {
+      "viewport": {
+        "width": 370,
+        "height": 465
+      },
+      "metrics": [
+        {
+          "rowHeight": 24,
+          "rowTop": 424,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 452,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 480,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 508,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 536,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 564,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 592,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 620,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 353,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        }
+      ],
+      "bodyScrollTop": 337
+    },
+    "tablet": {
+      "viewport": {
+        "width": 725,
+        "height": 396
+      },
+      "metrics": [
+        {
+          "rowHeight": 24,
+          "rowTop": 138,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 166,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 194,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 222,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 250,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 278,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 306,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        },
+        {
+          "rowHeight": 24,
+          "rowTop": 334,
+          "buttonWidth": 44,
+          "buttonHeight": 24,
+          "right": 708,
+          "trackWidth": 36,
+          "trackHeight": 20,
+          "thumbWidth": 16,
+          "thumbHeight": 16
+        }
+      ],
+      "bodyScrollTop": 120
+    }
+  }
+}
