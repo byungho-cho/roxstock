@@ -1,0 +1,85 @@
+{
+  "deploymentRun": 38203404392,
+  "main": "08664e4482dd45a81a38cf1378cdd3f679830511",
+  "status": "success",
+  "backendImage": "newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+  "frontendImage": "newrox/roxstock-frontend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+  "allJobs": [
+    {
+      "id": 114661514835,
+      "name": "revision",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114661535748,
+      "name": "backend / Backend Test",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114661706771,
+      "name": "backend / Backend Build",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114661839383,
+      "name": "backend / Backend Docker Build",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114662288414,
+      "name": "backend / Backend Deploy",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114662777779,
+      "name": "frontend / validate / scope",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114662802874,
+      "name": "frontend / validate / Frontend TypeScript",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114662802925,
+      "name": "frontend / validate / Frontend Build",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114662920434,
+      "name": "frontend / publish",
+      "status": "completed",
+      "result": "success"
+    },
+    {
+      "id": 114663151659,
+      "name": "frontend / deploy",
+      "status": "completed",
+      "result": "success"
+    }
+  ],
+  "backendEvidence": [
+    "2026-10-12T04:25:30.0351230Z Verified server-local pre-migration backup: /opt/roxstock/.deploy/backups/roxstock-before-08664e4482dd45a81a38cf1378cdd3f679830511-20261012T042458Z.sql.gz",
+    "2026-10-12T04:26:14.8563789Z All migrations have been successfully applied.",
+    "2026-10-12T04:26:43.6012414Z Collector deployment completed: newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+    "2026-10-12T04:26:43.6032366Z Realtime collector deployment completed: newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+    "2026-10-12T04:26:43.6033768Z DART collector deployment completed: newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+    "2026-10-12T04:26:43.6035063Z Backend deployment completed: newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+    "2026-10-12T04:26:43.9475774Z roxstock-backend              newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511   \"docker-entrypoint.s…\"   backend              20 seconds ago   Up 17 seconds (healthy)   3300/tcp",
+    "2026-10-12T04:26:43.9477951Z roxstock-collector            newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511   \"docker-entrypoint.s…\"   collector            9 seconds ago    Up 7 seconds (healthy)    3300/tcp",
+    "2026-10-12T04:26:43.9479818Z roxstock-dart-collector       newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511   \"docker-entrypoint.s…\"   dart-collector       9 seconds ago    Up 7 seconds (healthy)    3300/tcp",
+    "2026-10-12T04:26:43.9481927Z roxstock-realtime-collector   newrox/roxstock-backend:sha-08664e4482dd45a81a38cf1378cdd3f679830511   \"docker-entrypoint.s…\"   realtime-collector   9 seconds ago    Up 8 seconds (healthy)    3300/tcp"
+  ],
+  "frontendEvidence": [
+    "2026-10-12T04:29:17.6622735Z Deployment completed: newrox/roxstock-frontend:sha-08664e4482dd45a81a38cf1378cdd3f679830511",
+    "2026-10-12T04:29:18.6661740Z /roxstock-frontend newrox/roxstock-frontend:sha-08664e4482dd45a81a38cf1378cdd3f679830511 healthy"
+  ]
+}

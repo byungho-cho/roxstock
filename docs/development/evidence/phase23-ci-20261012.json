@@ -1,0 +1,76 @@
+{
+  "commit": "6688341273503b939326a4a2bd88a3da039bc823",
+  "main": "08664e4482dd45a81a38cf1378cdd3f679830511",
+  "pr": 205,
+  "backendRun": 38202728550,
+  "backendJob": 114659435471,
+  "uiRun": 38202728532,
+  "uiJob": 114659435613,
+  "gateRun": 38202728727,
+  "checks": {
+    "success": 23,
+    "scopeSkipped": 6,
+    "failed": 0
+  },
+  "database": [
+    {
+      "phase": 23,
+      "actualDB": true,
+      "legacyValues": {
+        "id": "23",
+        "symbol": "000023",
+        "price": "1234",
+        "previous": "1200",
+        "income": "0",
+        "equity": "1000000"
+      },
+      "backupBytes": 9727,
+      "backupSHA256": "aed27c194e9fe58574c6fe3ddd09e2d47202fbf7b73861af94673a2e9f529bcc",
+      "restoreOldSchema": true,
+      "reapplyIdempotent": true,
+      "originInference": false,
+      "duplicateBlocked": true
+    },
+    {
+      "phase": 23,
+      "pages": [
+        50,
+        50,
+        5
+      ],
+      "featuresChecked": [
+        "realtime-prices",
+        "market-prices",
+        "dart-financial-statements",
+        "share-counts",
+        "consensus",
+        "valuation",
+        "security-master"
+      ],
+      "excludedExternalCalls": 0,
+      "delayedRequests": 1,
+      "lateWrites": 0,
+      "oldBrokerDeliveries": 0,
+      "historyRetained": true,
+      "concurrentCodeStatuses": [
+        200,
+        409
+      ],
+      "actualDB": true
+    }
+  ],
+  "viewports": [
+    {
+      "width": 370,
+      "height": 465
+    },
+    {
+      "width": 725,
+      "height": 396
+    }
+  ],
+  "uiPassed": 14,
+  "unitPassed": 206,
+  "nativeKeyboardWebView": false,
+  "installationVerified": false
+}

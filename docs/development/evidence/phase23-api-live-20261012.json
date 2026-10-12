@@ -1,0 +1,190 @@
+{
+  "origin": "https://newrox.cafe24.com",
+  "readOnly": true,
+  "main": "08664e4482dd45a81a38cf1378cdd3f679830511",
+  "databaseProof": "Master/API queries returned data; internal /health/db is not exposed by frontend proxy",
+  "masterPages": [
+    50,
+    50
+  ],
+  "masterPageOverlap": 0,
+  "comparisons": [
+    {
+      "feature": "security-master",
+      "runId": "4781",
+      "result": "SUCCESS",
+      "aggregate": null,
+      "returned": 0,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": "이전 실행에는 개별 대상 결과가 기록되지 않았습니다. 원본 실행 집계는 실행 이력에서 확인할 수 있습니다."
+    },
+    {
+      "feature": "security-master",
+      "runId": "4781",
+      "result": "FAILED",
+      "aggregate": null,
+      "returned": 0,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": "이전 실행에는 개별 대상 결과가 기록되지 않았습니다. 원본 실행 집계는 실행 이력에서 확인할 수 있습니다."
+    },
+    {
+      "feature": "realtime-prices",
+      "runId": "4787",
+      "result": "SUCCESS",
+      "aggregate": 37,
+      "returned": 37,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "realtime-prices",
+      "runId": "4787",
+      "result": "FAILED",
+      "aggregate": 1,
+      "returned": 1,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "market-prices",
+      "runId": "4507",
+      "result": "SUCCESS",
+      "aggregate": 0,
+      "returned": 0,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "market-prices",
+      "runId": "4507",
+      "result": "FAILED",
+      "aggregate": 0,
+      "returned": 0,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "account-snapshots",
+      "runId": "4534",
+      "result": "SUCCESS",
+      "aggregate": 3,
+      "returned": 3,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "account-snapshots",
+      "runId": "4534",
+      "result": "FAILED",
+      "aggregate": 2,
+      "returned": 2,
+      "hasNext": false,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "dart-financial-statements",
+      "runId": "4780",
+      "result": "SUCCESS",
+      "aggregate": 3377,
+      "returned": 50,
+      "hasNext": true,
+      "match": true,
+      "legacyNote": null
+    },
+    {
+      "feature": "dart-financial-statements",
+      "runId": "4780",
+      "result": "FAILED",
+      "aggregate": 97,
+      "returned": 50,
+      "hasNext": true,
+      "match": true,
+      "legacyNote": null
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/security-management",
+      "status": 200,
+      "elapsedMs": 9158
+    },
+    {
+      "path": "/api/security-management?cursor=eyJuYW1lIjoiRFlQIiwiaWQiOiIxMzI2IiwicXVlcnkiOiIiLCJjZWlsaW5nIjoiMjY1NyJ9",
+      "status": 200,
+      "elapsedMs": 7575
+    },
+    {
+      "path": "/api/collection/monitoring",
+      "status": 200,
+      "elapsedMs": 10510
+    },
+    {
+      "path": "/api/collection/monitoring/security-master/items?limit=50&result=SUCCESS&runId=4781",
+      "status": 200,
+      "elapsedMs": 7893
+    },
+    {
+      "path": "/api/collection/monitoring/security-master/items?limit=50&result=FAILED&runId=4781",
+      "status": 200,
+      "elapsedMs": 7894
+    },
+    {
+      "path": "/api/collection/monitoring/realtime-prices/items?limit=50&result=FAILED&runId=4787",
+      "status": 200,
+      "elapsedMs": 8060
+    },
+    {
+      "path": "/api/collection/monitoring/realtime-prices/items?limit=50&result=SUCCESS&runId=4787",
+      "status": 200,
+      "elapsedMs": 8246
+    },
+    {
+      "path": "/api/collection/monitoring/market-prices/items?limit=50&result=SUCCESS&runId=4507",
+      "status": 200,
+      "elapsedMs": 7547
+    },
+    {
+      "path": "/api/collection/monitoring/account-snapshots/items?limit=50&result=SUCCESS&runId=4534",
+      "status": 200,
+      "elapsedMs": 7767
+    },
+    {
+      "path": "/api/collection/monitoring/market-prices/items?limit=50&result=FAILED&runId=4507",
+      "status": 200,
+      "elapsedMs": 7939
+    },
+    {
+      "path": "/api/collection/monitoring/account-snapshots/items?limit=50&result=FAILED&runId=4534",
+      "status": 200,
+      "elapsedMs": 7595
+    },
+    {
+      "path": "/api/collection/monitoring/dart-financial-statements/items?limit=50&result=FAILED&runId=4780",
+      "status": 200,
+      "elapsedMs": 7684
+    },
+    {
+      "path": "/api/collection/monitoring/dart-financial-statements/items?limit=50&result=SUCCESS&runId=4780",
+      "status": 200,
+      "elapsedMs": 8081
+    }
+  ],
+  "dartFailurePages": {
+    "runId": "4780",
+    "aggregate": 97,
+    "pages": [
+      50,
+      47
+    ],
+    "overlap": 0,
+    "hasNext": false
+  }
+}
