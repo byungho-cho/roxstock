@@ -9,7 +9,7 @@ test('manual refresh POST validates, queues once and GET cannot access another s
   const originals={security:prisma.security.findUnique,first:prisma.collectorRun.findFirst,count:prisma.collectorRun.count,create:prisma.collectorRun.create,unique:prisma.collectorRun.findUnique,acquire:PrismaDartRepository.prototype.acquireLock,release:PrismaDartRepository.prototype.releaseLock};
   let run: any=null; let creates=0;
   process.env.DART_API_KEY='test-key';process.env.DART_COLLECTOR_ENABLED='true';
-  prisma.security.findUnique=(async()=>({id:1n,isActive:true,securityType:'STOCK'})) as unknown as typeof originals.security;
+  prisma.security.findUnique=(async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],isActive:true,securityType:'STOCK'})) as unknown as typeof originals.security;
   prisma.collectorRun.findFirst=(async()=>run) as unknown as typeof originals.first;
   prisma.collectorRun.count=(async()=>run?1:0) as unknown as typeof originals.count;
   prisma.collectorRun.create=(async(args:any)=>{creates++;run={id:99n,...args.data,startedAt:new Date(),finishedAt:null};return run;}) as unknown as typeof originals.create;

@@ -1,12 +1,14 @@
+import {collectionPublicMessage} from '../domain/collection-public-message.js';
+import {exclusionReason,type CollectionFeature} from '../collector/collection-policy.js';
 import {createHash} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '../generated/prisma/index.js';
 import {prisma} from '../lib/prisma.js';
 
-type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string};
+type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string;runId?:string};
 type Cursor = {v: 1; scope: string; at: string; id: string; ceiling: string};
 const jobs: Record<string,string> = {'security-master':'security-master','realtime-prices':'realtime-selected-prices','market-prices':'market-prices','account-snapshots':'daily-account-snapshots','dart-financial-statements':'dart-financial-statements'};
-const reason = (s: string | null) => s?.replace(/(?:crtfc_key|api[_-]?key|token|secret)=?[^\s&]*/gi,'[redacted]') ?? null;
+const reason=collectionPublicMessage;
 const statuses = {runs:['SUCCESS','PARTIAL','FAILED','SKIPPED','RUNNING'],items:['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']};
 function date(value?: string) {
   if (!value) return undefined;
@@ -24,7 +26,7 @@ export function pageCondition(feature: string, stream: string, q: Query) {
   const from=date(q.from), to=date(q.to);
   if(from && to && from>to) throw Error('Invalid range');
   if(to) to.setUTCDate(to.getUTCDate()+1);
-  const scope=createHash('sha256').update(JSON.stringify([feature,stream,limit,status??'',q.phase??'',q.symbol??'',q.market??'',q.accountId??'',q.from??'',q.to??''])).digest('hex');
+  const scope=createHash('sha256').update(JSON.stringify([feature,stream,limit,status??'',q.phase??'',q.symbol??'',q.market??'',q.accountId??'',q.from??'',q.to??'',q.runId??''])).digest('hex');
   let cursor: Cursor | undefined;
   if(q.cursor) {
     if(q.cursor.length>2048) throw Error('Invalid cursor');
@@ -33,7 +35,8 @@ export function pageCondition(feature: string, stream: string, q: Query) {
   }
   const range = from || to ? {...(from && {gte:from}),...(to && {lt:to})} : undefined;
   const item: Prisma.CollectorRunItemWhereInput={...(q.symbol && {symbol:{contains:q.symbol}}),...(q.market && {security:{is:{marketType:q.market as never}}}),...(q.accountId && feature==='account-snapshots' && {symbol:`account:${q.accountId}`})};
-  const run: Prisma.CollectorRunWhereInput={jobType:jobs[feature],...(q.phase && {metadata:{path:'$.phase',equals:q.phase}})};
+  if(q.runId&&!/^\d{1,20}$/.test(q.runId))throw Error('Invalid run');
+  const run: Prisma.CollectorRunWhereInput={jobType:jobs[feature],...(q.runId?{id:BigInt(q.runId)}:{}),...(q.phase && {metadata:{path:'$.phase',equals:q.phase}})};
   const where: Prisma.CollectorRunWhereInput | Prisma.CollectorRunItemWhereInput = stream==='runs'
     ? {...run,...(range && {startedAt:range}),...(status && {status:status as never}),...(Object.keys(item).length>0 && {items:{some:item}})}
     : {...item,run:{is:run},...(range && {createdAt:range}),...(status && {status:status as never})};
@@ -58,11 +61,11 @@ export async function collectionPageRoutes(app: FastifyInstance) {
     // Only one lookahead row is read; entire historical collections are never materialized.
     const records=stream==='runs'
       ? await prisma.collectorRun.findMany({where:paged as Prisma.CollectorRunWhereInput,orderBy:[{startedAt:'desc'},{id:'desc'}],take:limit+1})
-      : await prisma.collectorRunItem.findMany({where:paged as Prisma.CollectorRunItemWhereInput,orderBy:[{createdAt:'desc'},{id:'desc'}],take:limit+1,include:{security:{select:{symbol:true,name:true,marketType:true}}}});
+      : await prisma.collectorRunItem.findMany({where:paged as Prisma.CollectorRunItemWhereInput,orderBy:[{createdAt:'desc'},{id:'desc'}],take:limit+1,include:{security:{select:{id:true,symbol:true,name:true,marketType:true,registrationSource:true,collectionExcluded:true,excludedFeatures:true,collectionRevision:true}}}});
     const hasNext=records.length>limit, visible=records.slice(0,limit);
     const rows=visible.map(record=> 'startedAt' in record
       ? {id:record.id.toString(),status:record.status,startedAt:record.startedAt.toISOString(),finishedAt:record.finishedAt?.toISOString()??null,target:record.successCount+record.failureCount+record.staleCount+record.skippedCount,success:record.successCount,failed:record.failureCount,skipped:record.skippedCount,failureReason:reason(record.failureReason),metadata:record.metadata}
-      : {id:record.id.toString(),symbol:record.symbol,security:'security' in record ? record.security : null,status:record.status,reason:reason(record.message),occurredAt:record.createdAt.toISOString(),observedAt:record.observedAt?.toISOString()??null});
+      : {id:record.id.toString(),symbol:record.symbol,security:'security' in record&&record.security ? {...record.security,id:String(record.security.id),automaticExclusion:record.security.symbol.toUpperCase().startsWith('Z99'),exclusionReason:exclusionReason(record.security,feature as CollectionFeature)} : null,status:record.status,reason:reason(record.message),occurredAt:record.createdAt.toISOString(),observedAt:record.observedAt?.toISOString()??null});
     const last=visible.at(-1);
     const nextCursor=hasNext && last ? Buffer.from(JSON.stringify({v:1,scope,at:('startedAt' in last?last.startedAt:last.createdAt).toISOString(),id:last.id.toString(),ceiling:ceiling.toString()} satisfies Cursor)).toString('base64url') : null;
     return {data:{rows,hasNext,nextCursor}};

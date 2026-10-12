@@ -1,3 +1,4 @@
+import {checkCollection,collectionFetch,CollectionExcluded} from './collection-policy.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { inflateRawSync } from 'node:zlib';
 import {shareClassOf} from '../domain/share-counts.js';
@@ -285,11 +286,12 @@ export class OpenDartProvider {
 
   constructor(private readonly options: DartRequestOptions) {
     if (!options.apiKey) throw new DartApiError('API_KEY_MISSING', 'DART_API_KEY is not configured.');
-    this.fetchFn = options.fetchFn ?? fetch;
+    this.fetchFn = collectionFetch(options.fetchFn ?? fetch,'dart-financial-statements');
     this.sleepFn = options.sleepFn ?? sleepDefault;
   }
 
   private async request(url: URL): Promise<Response> {
+    await checkCollection('dart-financial-statements');
     const remaining = this.options.minDelayMs - (Date.now() - this.lastResponseAt);
     if (this.lastResponseAt && remaining > 0) await this.sleepFn(remaining);
     if (this.options.isCallAllowed && !this.options.isCallAllowed()) {
@@ -307,7 +309,7 @@ export class OpenDartProvider {
       return response;
     } catch (error) {
       this.lastResponseAt = Date.now();
-      if (error instanceof DartApiError) throw error;
+      if (error instanceof CollectionExcluded || error instanceof DartApiError) throw error;
       await this.options.onApiStatus?.('NETWORK_ERROR');
       throw new DartApiError('NETWORK_ERROR', 'Open DART request failed due to a network or timeout error.');
     }
@@ -335,7 +337,9 @@ export class OpenDartProvider {
   }
 
   async fetchPeriodShares(corpCode:string,year:number,reportCode:DartReportCode,receiptNo:string) {
+    await checkCollection('share-counts');
     const body=await this.json<{rcept_no:string;se:string;istc_totqy:string;tesstk_co:string;distb_stock_co:string;stlm_dt:string}>('stockTotqySttus.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
+    await checkCollection('share-counts');
     if(body.status==='013')return undefined;
     if(!Array.isArray(body.list)||!body.list.length)throw new DartApiError('SHARES_EMPTY','주식수 응답이 비어 있습니다.');
     const matched=body.list.filter(r=>r.rcept_no===receiptNo);

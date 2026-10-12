@@ -1,6 +1,7 @@
 import { normalizeSecuritySymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 export interface RealtimePriceDto {
   securityId: string;
+  collectionRevision?:number;
   symbol: string;
   name: string;
   currentPrice: string;
@@ -28,7 +29,7 @@ const parsePrice = (value: unknown): RealtimePriceDto | null => {
     || typeof candidate.marketStatus !== 'string'
   ) return null;
   return {
-    securityId: candidate.securityId,
+    securityId: candidate.securityId,collectionRevision:candidate.collectionRevision,
     symbol: normalizeSecuritySymbol(candidate.symbol),
     name: candidate.name,
     currentPrice: candidate.currentPrice,
@@ -61,6 +62,8 @@ export class RealtimePriceCache {
       .filter((price) => !symbols || symbols.has(price.symbol))
       .sort((left, right) => left.symbol.localeCompare(right.symbol));
   }
+
+  removeSecurity(securityId:string) { for(const [symbol,value] of this.values)if(value.securityId===securityId)this.values.delete(symbol); }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);

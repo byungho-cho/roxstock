@@ -1,3 +1,4 @@
+import {collectionFetch,CollectionExcluded} from './collection-policy.js';
 import { normalizeProviderSymbol } from '../domain/security-symbol.js';
 import type { Supplemental } from '../domain/period-valuation.js';
 import { HistoricalPriceError } from './historical-price-error.js';
@@ -29,7 +30,7 @@ export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetc
  const url=new URL('https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo');
  url.search=new URLSearchParams({serviceKey:key,resultType:'json',numOfRows:'100',pageNo:'1',likeSrtnCd:normalized,beginBasDt:from,endBasDt:date(new Date(end.getTime()+86400000))}).toString();
  let response:Response;
- try { response=await fetcher(url,{signal:AbortSignal.timeout(15000)}); }
+ try { response=await collectionFetch(fetcher,'market-prices')(url,{signal:AbortSignal.timeout(15000)}); }
  catch { throw new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION'); }
  if(!response.ok)throw new HistoricalPriceError(response.status===401||response.status===403?'HISTORICAL_PRICE_AUTH':response.status===429?'HISTORICAL_PRICE_RATE_LIMIT':'HISTORICAL_PRICE_HTTP',response.status===401||response.status===403?'AUTH':response.status===429?'RATE_LIMIT':'COMMUNICATION',String(response.status));
  const raw=await response.text();

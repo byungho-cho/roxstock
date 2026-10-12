@@ -1,3 +1,4 @@
+import {CollectionExcluded,componentExcluded,checkCollection} from './collection-policy.js';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {manualFetch} from './manual-job-budget.js';
 import { Prisma, type PrismaClient, type DartFinancialFiling } from '../generated/prisma/index.js';
@@ -28,7 +29,7 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
  const startedAt=new Date().toISOString();
  await db.periodValuation.upsert({where,create:{securityId:security.id,fiscalYear:year,periodType,status:'PROCESSING',values:{},provenance:{},reasons:{},supplemental:json({manualAttempt:{runId:String(runId),version,startedAt,phase:'PROCESSING'}})},update:{supplemental:json({...oldSupplement,manualAttempt:{runId:String(runId),version,startedAt,phase:'PROCESSING'}})}});
  const errors:Record<string,string>={},reasons:Record<string,string>={};let source:NaverAnnual|undefined,filing:DartFinancialFiling|null=null,disclosureChecked=false;
- try{source=(await naver.annual(security.symbol)).find(r=>r.fiscalYear===year&&r.kind===(estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL'));if(!source)reasons.source=estimated?'CONSENSUS_NOT_PROVIDED':'NAVER_YEAR_NOT_PROVIDED';}catch(e){errors.naver=safeCode(e);}
+ try{if(estimated)await checkCollection('consensus');source=(await naver.annual(security.symbol)).find(r=>r.fiscalYear===year&&r.kind===(estimated?'ANNUAL_ESTIMATE':'FINAL_ANNUAL'));if(!source)reasons.source=estimated?'CONSENSUS_NOT_PROVIDED':'NAVER_YEAR_NOT_PROVIDED';}catch(e){if(e instanceof CollectionExcluded&&!componentExcluded(e))throw e;errors.naver=safeCode(e);}
  let supplemental:Supplemental={...oldSupplement};
  let freshValues=source?{...source.values}:empty();
  if(freshValues.eps!=null&&Number(freshValues.eps)<=0)freshValues.per=null;
@@ -55,12 +56,12 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
      }
     }
    }
-  }catch(e){errors.financials=safeCode(e);}
+  }catch(e){if(e instanceof CollectionExcluded&&!componentExcluded(e))throw e;errors.financials=safeCode(e);}
   if(source&&filing&&source.division!==filing.fsDivision){errors.naver='NAVER_DART_DIVISION_MISMATCH';source=undefined;freshValues=empty();perMetric={};}
   try{
    if(!supplemental.price)supplemental.price=await historicalClose(security.symbol,new Date(`${year}-12-31`),options.storedOnly?manualFetch:fetch,security.marketType,'MANUAL_PROTOTYPE');
    if(source&&supplemental.price)for(const key of Object.keys(perMetric))perMetric[key]={...(perMetric[key] as object),priceDate:supplemental.price.date,calendarVerification:'ACTUAL_LAST_TRADING_DAY',verificationClose:supplemental.price};
-  }catch(e){errors.price=safeCode(e);}
+  }catch(e){if(e instanceof CollectionExcluded&&!componentExcluded(e))throw e;errors.price=safeCode(e);}
   if(filing&&!valueCompletion(freshValues).complete&&security.dartCorpMapping){
    try{
     supplemental=await loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping.corpCode,undefined,security.marketType,'MANUAL_PROTOTYPE',options.storedOnly?{dartRequests:false,fetcher:manualFetch}:{})(filing,supplemental);
@@ -77,7 +78,7 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
     }
     if(freshValues.roe==null&&calculated.values.roe!=null){freshValues.roe=calculated.values.roe;perMetric.roe=calculationEvidence('roe');}
     Object.assign(reasons,calculated.reasons);Object.assign(errors,supplemental.errors??{});
-   }catch(e){errors.supplement=safeCode(e);}
+   }catch(e){if(e instanceof CollectionExcluded&&!componentExcluded(e))throw e;errors.supplement=safeCode(e);}
   }
  }
  const completion=valueCompletion(freshValues),hasFresh=metricKeys.some(k=>freshValues[k]!=null),statementsComplete=financialComplete(filing);

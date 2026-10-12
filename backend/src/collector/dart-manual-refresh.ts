@@ -1,3 +1,5 @@
+import {collectionIdentity,CollectionExcluded,withCollection} from './collection-policy.js';
+import {collectionClient} from '../lib/collection-client.js';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {processIndependentRefresh,expireManualRun,type ManualTaskResult} from './manual-refresh-jobs.js';
 import {recordDartFailure} from './dart-diagnostics.js';
@@ -15,7 +17,7 @@ import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartPe
 import { getCfsThenOfs, type DartCollectorConfig } from './dart-collector.js';
 
 export const manualReports: Record<DartPeriodType, DartReportCode> = { Q1: '11013', Q2: '11012', Q3: '11014', ANNUAL: '11011' };
-export interface ManualRefreshMetadata { phase: 'MANUAL'; executionMode?: 'MANUAL_PROTOTYPE'; refreshMode?:'FULL'|'SUPPLEMENT';clientRequestId?:string;deadlineAt?:string;lockOwner?:string;terminalCode?:string; securityId: string; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult};stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult}; fiscalYear?: number; kind?:string; collectionState?:string; financialComplete?:boolean; disclosureChecked?:boolean; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; created?: boolean }> }
+export interface ManualRefreshMetadata { phase: 'MANUAL'; executionMode?: 'MANUAL_PROTOTYPE'; refreshMode?:'FULL'|'SUPPLEMENT';clientRequestId?:string;deadlineAt?:string;lockOwner?:string;terminalCode?:string; securityId: string; symbol?:string;collectionRevision?:number; fiscalYear: number; startYear?: number; endYear?: number; period: DartPeriodType | 'ALL'; manualState: 'QUEUED' | 'PROCESSING' | 'FINISHED'; progress?: { currentYear: number; currentPeriod?: DartPeriodType; tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult};stage: 'DISCLOSURE' | 'FINANCIALS' | 'VALUATION' | 'REPORT_DONE'; completed: number; total: number }; results?: Array<{ tasks?:{dart:ManualTaskResult;valuation:ManualTaskResult}; fiscalYear?: number; kind?:string; collectionState?:string; financialComplete?:boolean; disclosureChecked?:boolean; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?: Record<string,string>; period: DartPeriodType; status: 'SUCCESS' | 'NO_DATA' | 'FAILED' | 'SKIPPED'; code?: string; created?: boolean }> }
 export function parseManualRefresh(body: unknown): { fiscalYear: number; startYear: number; endYear: number; period: DartPeriodType | 'ALL'; refreshMode:'FULL'|'SUPPLEMENT';clientRequestId?:string } {
   const b = body as Record<string, unknown> | null;
   const startYear = b?.startYear ?? b?.fiscalYear, endYear = b?.endYear ?? b?.fiscalYear;
@@ -28,6 +30,8 @@ export function parseManualRefresh(body: unknown): { fiscalYear: number; startYe
   return {...(typeof b?.clientRequestId==='string'?{clientRequestId:b.clientRequestId}:{}),refreshMode:b?.refreshMode==='SUPPLEMENT'?'SUPPLEMENT':'FULL',fiscalYear:Number(startYear),startYear:Number(startYear),endYear:Number(endYear),period:b.period as DartPeriodType|'ALL'};
 }
 export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint, input: ReturnType<typeof parseManualRefresh>) {
+  db=collectionClient(db);
+  let identity;try{identity=await collectionIdentity(db,securityId,input.refreshMode==='SUPPLEMENT'?'valuation':'dart-financial-statements');}catch(error){if(error instanceof CollectionExcluded)throw new ApiError(409,'COLLECTION_EXCLUDED',error.message);throw error;}
   const security = await db.security.findUnique({ where: { id: securityId }, select: { id: true, isActive: true, securityType: true } });
   if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
   if (security.securityType !== 'STOCK') throw new ApiError(422, 'DART_NOT_APPLICABLE', '재무제표 수집 대상 주식이 아닙니다.');
@@ -42,13 +46,14 @@ export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint,
     if (existing) throw new ApiError(409, 'DART_REFRESH_IN_PROGRESS', '이 종목의 업데이트가 이미 진행 중입니다.');
     const pending = await db.collectorRun.count({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } } });
     if (pending >= 20) throw new ApiError(429, 'DART_REFRESH_QUEUE_FULL', '업데이트 요청이 많습니다. 잠시 후 다시 시도해 주세요.');
-    const metadata: ManualRefreshMetadata = { phase: 'MANUAL', executionMode:'MANUAL_PROTOTYPE', securityId: securityId.toString(), ...input, manualState: 'QUEUED' };
+    const metadata: ManualRefreshMetadata = { phase: 'MANUAL', executionMode:'MANUAL_PROTOTYPE', securityId: securityId.toString(),symbol:identity.symbol,collectionRevision:identity.collectionRevision, ...input, manualState: 'QUEUED' };
     return db.collectorRun.create({ data: { jobType: 'dart-financial-statements', provider: 'OPEN_DART', status: 'RUNNING', metadata: metadata as unknown as Prisma.InputJsonValue } });
   } finally { await repo.releaseLock(owner, lock); }
 }
 
 /** Durable requests are consumed by the existing worker; interrupted runs resume under the shared DB lock. */
 export async function processManualRefresh(db: PrismaClient, config: DartCollectorConfig) {
+  db=collectionClient(db);
   const run = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } }, orderBy: { startedAt: 'asc' } });
   if (!run) return false;
   if((run.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE')return processIndependentRefresh(db,config,run);
@@ -78,6 +83,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     const securityId = BigInt(metadata.securityId);
     const security = await db.security.findUnique({ where: { id: securityId }, include: { dartCorpMapping: true } });
     if (!security?.isActive || security.securityType !== 'STOCK') throw new DartApiError('SECURITY_NOT_FOUND', '수집 대상 종목을 확인해 주세요.');
+    await withCollection(db,securityId,'dart-financial-statements',async()=>{
     if(!prototype&&process.env.CONSENSUS_ENABLED==='true'){try{await freezePastEstimates(db,securityId,security.symbol,security.marketType);await collectAnnualConsensus(db,securityId,security.symbol);}catch{console.warn(JSON.stringify({event:'consensus_collection_failed',securityId:String(securityId)}));}}
     let mapping = security.dartCorpMapping;
     if (!mapping && !prototype) {
@@ -111,6 +117,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
         const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));
         results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });
       } catch (error) {
+        if(error instanceof CollectionExcluded)throw error;
         results.push({ fiscalYear, period, status: 'FAILED', code: (await recordDartFailure(error,metadata.progress?.stage??'MANUAL_REFRESH',run.id,[])).code });
         if (!prototype && error instanceof DartApiError && (error.quotaExceeded || ['010', '011', '012', 'API_KEY_MISSING'].includes(error.code))) {
           throw error;
@@ -118,16 +125,17 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
       } finally { await publish(fiscalYear,'REPORT_DONE',period); }
     }
     }
+    },metadata);
   } catch (error) {
-    const code = (await recordDartFailure(error,metadata.progress?.stage??'MANUAL_REFRESH',run.id,[])).code;
-    for(let fiscalYear=startYear;fiscalYear<=endYear;fiscalYear++)for(const period of periods)if(!results.some(r=>r.fiscalYear===fiscalYear&&r.period===period))results.push({fiscalYear,period,status:'FAILED',code});
+    const code = error instanceof CollectionExcluded?'COLLECTION_EXCLUDED':(await recordDartFailure(error,metadata.progress?.stage??'MANUAL_REFRESH',run.id,[])).code;
+    for(let fiscalYear=startYear;fiscalYear<=endYear;fiscalYear++)for(const period of periods)if(!results.some(r=>r.fiscalYear===fiscalYear&&r.period===period))results.push({fiscalYear,period,status:error instanceof CollectionExcluded?'SKIPPED':'FAILED',code});
   } finally {
     try {
       if(metadata.progress)metadata.progress={...metadata.progress,completed:results.length};
       const success = results.filter((r) => r.status === 'SUCCESS').length;
       const failed = results.filter((r) => r.status === 'FAILED').length;
       const valuationIncomplete=results.some(r=>r.status==='SUCCESS'&&r.valuationStatus!=='SUCCESS');
-      const skipped = results.filter((r) => r.status === 'NO_DATA').length;
+      const skipped = results.filter((r) => r.status === 'NO_DATA'||r.status==='SKIPPED').length;
       for (const result of results) await db.collectorRunItem.create({ data: { runId: run.id, securityId: BigInt(metadata.securityId), symbol: `${metadata.securityId}:${result.fiscalYear}:${result.period}`, status: result.status, message: result.code ?? (result.created ? '신규 판본 저장' : '기존 판본 확인') } });
       await repo.finishRun(run.id, failed ? success || skipped ? 'PARTIAL' : 'FAILED' : skipped === periods.length*(endYear-startYear+1) ? 'SKIPPED' : valuationIncomplete || skipped ? 'PARTIAL' : 'SUCCESS', { success, failed, skipped }, failed ? results.find((r) => r.status === 'FAILED')?.code : undefined, { ...metadata, manualState: 'FINISHED', results });
     } catch(error) { await recordDartFailure(error,'RUN_FINISH',run.id,[]); }

@@ -1,3 +1,4 @@
+import {exclusionReason} from '../collector/collection-policy.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
@@ -50,9 +51,15 @@ const databasePrices = async (symbols?: Set<string>): Promise<RealtimePriceDto[]
   }] : []);
 };
 
+async function currentCachedPrices(prices:RealtimePriceDto[]){
+ if(!prices.length)return prices;
+ const securities=await prisma.security.findMany({where:{id:{in:prices.map(p=>BigInt(p.securityId))}},select:{id:true,symbol:true,isActive:true,collectionRevision:true,collectionExcluded:true,excludedFeatures:true}});
+ const current=new Map(securities.map(s=>[String(s.id),s]));
+ return prices.filter(p=>{const s=current.get(p.securityId);return s?.isActive&&s.symbol===p.symbol&&s.collectionRevision===p.collectionRevision&&!exclusionReason(s,'realtime-prices');});
+}
 const latestPrices = async (symbols?: Set<string>): Promise<RealtimePriceDto[]> => {
   const merged = new Map((await databasePrices(symbols)).map((price) => [price.symbol, price]));
-  for (const price of realtimePriceCache.get(symbols)) {
+  for (const price of await currentCachedPrices(realtimePriceCache.get(symbols))) {
     const stored = merged.get(price.symbol);
     if (!stored || Date.parse(price.observedAt) >= Date.parse(stored.observedAt)) merged.set(price.symbol, price);
   }
@@ -89,10 +96,9 @@ export async function priceRoutes(app: FastifyInstance) {
     reply.raw.write(`event: snapshot\ndata: ${JSON.stringify({ prices: initial })}\n\n`);
 
     const unsubscribe = realtimePriceCache.subscribe((prices) => {
-      const selected = symbols ? prices.filter((price) => symbols?.has(price.symbol)) : prices;
-      if (selected.length > 0 && !reply.raw.destroyed) {
-        reply.raw.write(`event: prices\ndata: ${JSON.stringify({ prices: selected })}\n\n`);
-      }
+      void currentCachedPrices(symbols?prices.filter(p=>symbols.has(p.symbol)):prices).then(selected=>{
+        if(selected.length&&!reply.raw.destroyed)reply.raw.write(`event: prices\ndata: ${JSON.stringify({prices:selected})}\n\n`);
+      }).catch(()=>{});
     });
     const heartbeat = setInterval(() => {
       if (!reply.raw.destroyed) reply.raw.write(': heartbeat\n\n');
@@ -113,8 +119,20 @@ export async function internalPriceRoutes(app: FastifyInstance) {
     if (!Array.isArray(request.body?.prices) || request.body.prices.length > 100) {
       return reply.code(400).send({ error: { code: 'INVALID_INPUT', message: 'prices must be an array of at most 100 items.' } });
     }
-    const accepted = realtimePriceCache.ingest(request.body.prices);
-    return { data: { accepted: accepted.length } };
+    let count=0;
+    for(const raw of request.body.prices){
+      if(!raw||typeof raw!=='object')continue;
+      const value=raw as {securityId?:string;symbol?:string;collectionRevision?:number};
+      if(!value.securityId||!/^\d+$/.test(value.securityId)||!Number.isInteger(value.collectionRevision))continue;
+      await prisma.$transaction(async tx=>{
+        const securityId=BigInt(value.securityId!);
+        await tx.$queryRaw`SELECT id FROM securities WHERE id=${securityId} FOR UPDATE`;
+        const current=await tx.security.findUnique({where:{id:securityId}});
+        if(!current||!current.isActive||current.symbol!==value.symbol||current.collectionRevision!==value.collectionRevision||exclusionReason(current,'realtime-prices'))return;
+        count+=realtimePriceCache.ingest([raw]).length;
+      });
+    }
+    return {data:{accepted:count}};
   });
 }
 
