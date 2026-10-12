@@ -67,6 +67,9 @@ jobs:
       - name: Apply migrations to MariaDB
         run: npm run prisma:migrate:deploy
 
+      - name: Phase21 independent cursor pagination (real MariaDB API)
+        run: node --import tsx --test backend/tests/monitoring-pages.integration.ts
+
       - name: Account classification and trade consistency (real MariaDB API)
         run: node --import tsx --test backend/tests/account-classification.integration.ts
 

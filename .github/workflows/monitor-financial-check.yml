@@ -25,7 +25,7 @@ jobs:
       - run: node --import tsx --test backend/src/routes/stored-analysis.test.ts backend/src/routes/financial-statements.test.ts backend/src/routes/value-analysis.test.ts backend/src/domain/value-analysis.test.ts backend/src/domain/financial-statements.test.ts
       - name: Prepare immutable previous UI for measured heights
         run: |
-          git worktree add --detach monitor-baseline f16cd801236d5247358ee45c4bc7341de90dab1e
+          git worktree add --detach monitor-baseline 031c0bd4de15687ed54984802d6f40747001f7e2
           ln -s ../node_modules monitor-baseline/node_modules
           ln -s ../../frontend/node_modules monitor-baseline/frontend/node_modules
       - run: npx playwright install --with-deps chromium

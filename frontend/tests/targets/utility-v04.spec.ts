@@ -23,7 +23,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
   }
   if(path==='/api/accounts')return route.fulfill({json:{data:[account]}});
   if(path==='/api/collection/monitoring')return route.fulfill({json:{data:{generatedAt:'2026-10-05T00:12:00Z',features}}});
-  if(path.startsWith('/api/collection/monitoring/'))return route.fulfill({json:{data:{runs:[{id:'1',status:'PARTIAL',startedAt:'2026-10-05T00:10:00Z',target:2485,success:2482,failed:1,skipped:2}],items:Array.from({length:24},(_,i)=>({symbol:String(i),status:i?'SUCCESS':'FAILED',reason:i?'성공 · 변경 없음':'실제 실패 · 응답 시간 초과'})),dart:{backfill:{planned:4,byStatus:{SUCCESS:3,PENDING:1}}}}}});
+  if(path.startsWith('/api/collection/monitoring/')){const runs=[{id:'1',status:'PARTIAL',startedAt:'2026-10-05T00:10:00Z',target:2485,success:2482,failed:1,skipped:2}],items=Array.from({length:3},(_,i)=>({id:String(i),symbol:String(i),status:i?'SUCCESS':'FAILED',reason:i?'성공 · 변경 없음':'실제 실패 · 응답 시간 초과'}));return route.fulfill({json:{data:/\/(runs|items)$/.test(path)?{rows:path.endsWith('/runs')?runs:items,hasNext:false,nextCursor:null}:{runs,items,dart:{backfill:{planned:4,byStatus:{SUCCESS:3,PENDING:1}}}}}});}
   if(path==='/api/collection/status')return route.fulfill({json:{data:{latestRun:{status:'SUCCESS'},manualRunAvailable:false,settingsAvailable:false}}});
   if(path.endsWith('/target-arrival-conditions'))return route.fulfill({json:{data:{accountId:'1',conditions,version}}});
   if(path.includes('/compound-plans'))return route.fulfill({json:{data:{accountId:'1',currentAssets:'72000000',pricingComplete:true,currentYear:2026,asOf:'2026-10-05T00:00:00Z',plans}}});
@@ -58,11 +58,10 @@ test('menu order, equal theme widths and fixed geometry',async({page},info)=>{
 test('monitoring selection resets detail only, states and failed refresh preserve results',async({page},info)=>{
  await fixture(page);await page.goto('/detail/collection-monitoring');await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toBeVisible();await geometry(page);await capture(page,'monitoring-main',info.project.name);
  if(info.project.name.startsWith('tablet')){
-  const left=page.locator('[data-scroll-region="monitoring-list"]'),right=page.locator('[data-scroll-region="monitoring-detail"]');
-  await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toHaveAttribute('aria-current','true');await expect(right).toContainText('실제 실패');
-  await left.evaluate(n=>n.scrollTop=25);await right.evaluate(n=>n.scrollTop=80);const top=await left.evaluate(n=>n.scrollTop);
-  await page.getByRole('link',{name:'전체 종목 주가 상세 보기'}).dispatchEvent('click');await expect(page.getByRole('link',{name:'전체 종목 주가 상세 보기'})).toHaveAttribute('aria-current','true');
-  await expect.poll(()=>right.evaluate(n=>n.scrollTop)).toBe(0);expect(await left.evaluate(n=>n.scrollTop)).toBe(top);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(0);
+  await expect(page.getByRole('link',{name:'종목 마스터 상세 보기'})).toHaveAttribute('aria-current','true');await expect(page.locator('main')).toContainText('실제 실패');
+  await expect(page.locator('[data-scroll-region^="monitoring-"]')).toHaveCount(0);
+  await page.getByRole('link',{name:'전체 종목 주가 상세 보기'}).click();await expect(page.getByRole('link',{name:'전체 종목 주가 상세 보기'})).toHaveAttribute('aria-current','true');
+  expect(await page.locator('main').evaluate(n=>getComputedStyle(n).overflowY)).toBe('auto');
  }else{
   await page.getByRole('link',{name:'종목 마스터 상세 보기'}).click();await expect(page.getByRole('heading',{name:'종목 마스터'})).toBeVisible();await expect(page.locator('main')).toContainText('실제 실패');
  }
