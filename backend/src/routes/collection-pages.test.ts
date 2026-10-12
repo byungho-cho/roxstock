@@ -14,7 +14,8 @@ test('page condition validates dates, bound filter/stream cursors and exact BigI
  assert.equal(targets.run.is.jobType,'security-master');assert.equal(targets.runId,undefined);
 });
 test('actual route applies bounded reads, stable ordering and independent item relation',async()=>{
- const originals={ra:prisma.collectorRun.aggregate,rf:prisma.collectorRun.findMany,ia:prisma.collectorRunItem.aggregate,if:prisma.collectorRunItem.findMany};
+ const originals={ra:prisma.collectorRun.aggregate,rf:prisma.collectorRun.findMany,ig:prisma.collectorRunItem.groupBy,ia:prisma.collectorRunItem.aggregate,if:prisma.collectorRunItem.findMany};
+ prisma.collectorRunItem.groupBy=(async()=>[]) as any;
  const calls:any[]=[];
  prisma.collectorRun.aggregate=(async()=>({_max:{id:100n}})) as any;
  prisma.collectorRunItem.aggregate=(async()=>({_max:{id:500n}})) as any;
@@ -27,5 +28,5 @@ test('actual route applies bounded reads, stable ordering and independent item r
    const t=(await app.inject('/api/collection/monitoring/security-master/items?limit=50')).json().data;assert.equal(t.rows.length,50);assert.notEqual(t.rows[0].symbol,t.rows[1].symbol);
    assert.equal(calls[0].take,51);assert.deepEqual(calls[0].orderBy,[{startedAt:'desc'},{id:'desc'}]);assert.equal(calls[1].where.AND[2].OR[1].id.lt,51n);assert.equal(calls[2].where.AND[0].run.is.jobType,'security-master');assert.equal(calls[2].where.AND[0].runId,undefined);
    assert.equal((await app.inject('/api/collection/monitoring/security-master/items?cursor='+p.nextCursor)).statusCode,400);
- }finally{await app.close();prisma.collectorRun.aggregate=originals.ra;prisma.collectorRun.findMany=originals.rf;prisma.collectorRunItem.aggregate=originals.ia;prisma.collectorRunItem.findMany=originals.if;}
+ }finally{await app.close();prisma.collectorRun.aggregate=originals.ra;prisma.collectorRun.findMany=originals.rf;prisma.collectorRunItem.groupBy=originals.ig;prisma.collectorRunItem.aggregate=originals.ia;prisma.collectorRunItem.findMany=originals.if;}
 });
