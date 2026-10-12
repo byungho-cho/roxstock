@@ -1,0 +1,70 @@
+import {createHash} from 'node:crypto';
+import type {FastifyInstance} from 'fastify';
+import {Prisma} from '../generated/prisma/index.js';
+import {prisma} from '../lib/prisma.js';
+
+type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string};
+type Cursor = {v: 1; scope: string; at: string; id: string; ceiling: string};
+const jobs: Record<string,string> = {'security-master':'security-master','realtime-prices':'realtime-selected-prices','market-prices':'market-prices','account-snapshots':'daily-account-snapshots','dart-financial-statements':'dart-financial-statements'};
+const reason = (s: string | null) => s?.replace(/(?:crtfc_key|api[_-]?key|token|secret)=?[^\s&]*/gi,'[redacted]') ?? null;
+const statuses = {runs:['SUCCESS','PARTIAL','FAILED','SKIPPED','RUNNING'],items:['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']};
+function date(value?: string) {
+  if (!value) return undefined;
+  const d = new Date(value+'T00:00:00.000Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(+d) || d.toISOString().slice(0,10)!==value) throw Error('Invalid date');
+  return d;
+}
+export function pageCondition(feature: string, stream: string, q: Query) {
+  const limit = q.limit === undefined ? 50 : Number(q.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw Error('Invalid limit');
+  const status = q.result?.toUpperCase();
+  if (status && !statuses[stream as 'runs'|'items'].includes(status)) throw Error('Invalid status');
+  if(q.market && !['KOSPI','KOSDAQ','KONEX','OTHER'].includes(q.market)) throw Error('Invalid market');
+  if(q.phase && !['BACKFILL','CURRENT'].includes(q.phase)) throw Error('Invalid phase');
+  const from=date(q.from), to=date(q.to);
+  if(from && to && from>to) throw Error('Invalid range');
+  if(to) to.setUTCDate(to.getUTCDate()+1);
+  const scope=createHash('sha256').update(JSON.stringify([feature,stream,limit,status??'',q.phase??'',q.symbol??'',q.market??'',q.accountId??'',q.from??'',q.to??''])).digest('hex');
+  let cursor: Cursor | undefined;
+  if(q.cursor) {
+    if(q.cursor.length>2048) throw Error('Invalid cursor');
+    cursor=JSON.parse(Buffer.from(q.cursor,'base64url').toString());
+    if(!cursor || cursor.v!==1 || cursor.scope!==scope || !/^\d+$/.test(cursor.id) || !/^\d+$/.test(cursor.ceiling) || !Number.isFinite(Date.parse(cursor.at)) || BigInt(cursor.id)>BigInt(cursor.ceiling) || BigInt(cursor.ceiling)>18446744073709551615n) throw Error('Invalid cursor');
+  }
+  const range = from || to ? {...(from && {gte:from}),...(to && {lt:to})} : undefined;
+  const item: Prisma.CollectorRunItemWhereInput={...(q.symbol && {symbol:{contains:q.symbol}}),...(q.market && {security:{is:{marketType:q.market as never}}}),...(q.accountId && feature==='account-snapshots' && {symbol:`account:${q.accountId}`})};
+  const run: Prisma.CollectorRunWhereInput={jobType:jobs[feature],...(q.phase && {metadata:{path:'$.phase',equals:q.phase}})};
+  const where: Prisma.CollectorRunWhereInput | Prisma.CollectorRunItemWhereInput = stream==='runs'
+    ? {...run,...(range && {startedAt:range}),...(status && {status:status as never}),...(Object.keys(item).length>0 && {items:{some:item}})}
+    : {...item,run:{is:run},...(range && {createdAt:range}),...(status && {status:status as never})};
+  return {where,limit,cursor,scope};
+}
+export function pageBoundary(at: string, id: string, field: string) {
+  return {OR:[{[field]:{lt:new Date(at)}},{[field]:new Date(at),id:{lt:BigInt(id)}}]};
+}
+export async function collectionPageRoutes(app: FastifyInstance) {
+  for(const stream of ['runs','items'] as const) app.get<{Params:{feature:string};Querystring:Query}>(`/collection/monitoring/:feature/${stream}`,async(request,reply)=>{
+    const feature=request.params.feature;
+    if(!jobs[feature]) return reply.code(404).send({error:{code:'COLLECTION_FEATURE_NOT_FOUND',message:'Unknown collection feature.'}});
+    let condition: ReturnType<typeof pageCondition>;
+    try{condition=pageCondition(feature,stream,request.query);}catch{return reply.code(400).send({error:{code:'INVALID_MONITOR_PAGE',message:'조회 조건 또는 페이지 커서가 올바르지 않습니다.'}});}
+    const {where,limit,cursor,scope}=condition;
+    // Immutable ID ceiling excludes new records, including backdated inserts, from subsequent pages.
+    const ceiling=cursor ? BigInt(cursor.ceiling) : (stream==='runs'
+      ? (await prisma.collectorRun.aggregate({where:where as Prisma.CollectorRunWhereInput,_max:{id:true}}))._max.id
+      : (await prisma.collectorRunItem.aggregate({where:where as Prisma.CollectorRunItemWhereInput,_max:{id:true}}))._max.id) ?? 0n;
+    const field=stream==='runs'?'startedAt':'createdAt';
+    const paged={AND:[where,{id:{lte:ceiling}},...(cursor?[pageBoundary(cursor.at,cursor.id,field)]:[])]};
+    // Only one lookahead row is read; entire historical collections are never materialized.
+    const records=stream==='runs'
+      ? await prisma.collectorRun.findMany({where:paged as Prisma.CollectorRunWhereInput,orderBy:[{startedAt:'desc'},{id:'desc'}],take:limit+1})
+      : await prisma.collectorRunItem.findMany({where:paged as Prisma.CollectorRunItemWhereInput,orderBy:[{createdAt:'desc'},{id:'desc'}],take:limit+1,include:{security:{select:{symbol:true,name:true,marketType:true}}}});
+    const hasNext=records.length>limit, visible=records.slice(0,limit);
+    const rows=visible.map(record=> 'startedAt' in record
+      ? {id:record.id.toString(),status:record.status,startedAt:record.startedAt.toISOString(),finishedAt:record.finishedAt?.toISOString()??null,target:record.successCount+record.failureCount+record.staleCount+record.skippedCount,success:record.successCount,failed:record.failureCount,skipped:record.skippedCount,failureReason:reason(record.failureReason),metadata:record.metadata}
+      : {id:record.id.toString(),symbol:record.symbol,security:'security' in record ? record.security : null,status:record.status,reason:reason(record.message),occurredAt:record.createdAt.toISOString(),observedAt:record.observedAt?.toISOString()??null});
+    const last=visible.at(-1);
+    const nextCursor=hasNext && last ? Buffer.from(JSON.stringify({v:1,scope,at:('startedAt' in last?last.startedAt:last.createdAt).toISOString(),id:last.id.toString(),ceiling:ceiling.toString()} satisfies Cursor)).toString('base64url') : null;
+    return {data:{rows,hasNext,nextCursor}};
+  });
+}
