@@ -22,6 +22,12 @@
 
 ## 검증 상태
 
-로컬 frontend/backend TypeScript 및 build 통과. backend 회귀검사 206/206 통과. 변경 범위 diff check 통과. 로컬 Chromium 설치는 네트워크가 유효한 ZIP 대신 잘못된 파일을 반환하여 중단했고 반복 실행하지 않았다. 격리 MariaDB API 검증과 커버/태블릿 Chromium 검증은 초안 PR CI 결과로 아래에 확정 기록한다.
+로컬 frontend/backend TypeScript 및 build 통과. backend 회귀검사 206/206 통과. 변경 범위 diff check 통과. 로컬 Chromium 설치는 네트워크가 유효한 ZIP 대신 잘못된 파일을 반환하여 중단했고 반복 실행하지 않았다. 격리 MariaDB API 검증과 커버/태블릿 Chromium 검증도 통과했다. 최종 기록은 아래 및 QA 문서에 저장한다.
 
 추가 검증: 기존 실제 DB 통합검사에 원자적 전체 ON/OFF·기능별 제외 초기화·기존 ALL 호환·확인·잘못된 scope·Z99 차단을 추가했다. 전용 Playwright는 전체/개별/혼합/자동 제외·키보드·확인/취소·503 저장 전/후 실패·서버 재조회·새로고침 유지·중복 클릭·단일 스크롤·마지막 항목/안내 접근·실제 스위치/행 치수를 검증한다. 기존 23차 페이지·코드 정정·모니터링·APK 회귀검사도 유지한다. 실제 Android 키보드/WebView/실기기 검증은 미확인. 운영 데이터 및 두 종목의 등록 출처 변경은 이번 범위에 없으며 수정하지 않는다.
+
+## 최종 결과
+
+최종 코드 `50062cc65f3a3be8c1f9a5e4b283cea3a907e704`, PR [#207](https://github.com/byungho-cho/roxstock/pull/207) 초안 유지. [Backend Check 38222082784](https://github.com/byungho-cho/roxstock/actions/runs/38222082784), [화면 검사 38222082689](https://github.com/byungho-cho/roxstock/actions/runs/38222082689) 성공. 신규14건+기존23차14건, backend206건, 격리 MariaDB 통합 및 백업복구 회귀 통과. 화면/치수/오류 분류는 [QA 기록](../qa/security-editor-v06-20261012.md), 실행번호·API 근거·실측 값은 [JSON](evidence/security-editor-v06-20261012.json).
+
+변경 파일: `CollectionSettingsCard.tsx`(전용 상태 스위치/전체 설정/재조회), `SecurityManagementPage.tsx`(편집 정보/버튼/2열), `AppLayout.tsx`·`PageLayout.tsx`(편집 경로만 여백/헤더), `security-management.ts`(원자적 전체 옵션), `security-management.integration.ts`(실제 DB API), `security-v06.spec.ts`·`playwright.security-v06.config.ts` 및 기존 phase23 CI workflow(변경 화면 검사), 이 개발·QA 문서와 6개 캡처/JSON. 기존 23차 모니터링 아이콘과 종목 목록 배치는 유지했다.
