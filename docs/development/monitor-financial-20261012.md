@@ -44,3 +44,8 @@
 - 네이버 원천은 period_valuations.supplemental.manualSource/estimateFinancials와 annual_consensus_snapshots에도 저장된다. 후자는 원천 보관본이며 선택 지표와 다른 공급원 추정치를 섞어 빈 값을 채우지 않는다.
 - main 직접 push 없음. 소통 PR #137은 open/unmerged 유지. 이 후속 문서 변경은 앱 코드를 바꾸거나 재배포하지 않는다.
 - 미확인: Android 실기기 키보드/실제 IME/WebView. Chrome focus·blur/합성 composition 검증을 실기기 성공으로 기록하지 않는다. 운영 브라우저에서의 전체 QA는 실시하지 않았고 변경 화면은 CI Chromium 두 크기에서 확인했다.
+
+
+## 2026-10-12 · 21차 후속 명세 우선
+
+실행 이력·대상별 상태의 확대 높이/내부 스크롤은 당시 구현 기록이다. 현행 요구는 [21차 최종 명세](../planning/phase21.md): 각각 최근3건 요약, 상세 첫50건/추가50건 서버 조회, 필터·전체기록 상세 이동, 본문 단일 스크롤, 집계 제목·숫자 동일색과 PARTIAL 노랑이다. 아직 구현·배포 완료를 뜻하지 않는다.
