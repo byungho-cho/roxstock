@@ -21,6 +21,18 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   assert.deepEqual(pageCounts,[50,50,5]);assert.equal(new Set(all.map(r=>r.id)).size,105);
   const manual=await make('X23990'),dart=await make('X23991','DART'),unknown=await make('X23992','UNKNOWN'),unused=await make('X23993');
   for(const s of [dart,unknown]){const denied=await patch(s.id,{symbol:'Z99990',confirmCodeChange:true});assert.equal(denied.statusCode,403,denied.body);assert.equal((await patch(s.id,{name:'Phase23 renamed '+s.symbol})).statusCode,200);}
+  // v0.6 master switch: atomic whole-scope activation clears all local exclusions.
+  await policy(manual.id,'consensus',true);await policy(manual.id,'ALL',true);
+  let whole=await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection');assert.equal(whole.statusCode,200,whole.body);
+  assert.equal(whole.json().data.collectionExcluded,false);assert.deepEqual(whole.json().data.excludedFeatures,[]);
+  const revision=whole.json().data.collectionRevision;
+  whole=await patch(manual.id,{feature:'ALL',excluded:true,allFeatures:true,confirmed:true},'/collection');assert.equal(whole.statusCode,200,whole.body);
+  assert.equal(whole.json().data.collectionExcluded,true);assert.equal(whole.json().data.collectionRevision,revision+1);
+  assert.equal((await patch(manual.id,{feature:'ALL',excluded:true,allFeatures:true},'/collection')).statusCode,400);
+  assert.equal((await patch(manual.id,{feature:'consensus',excluded:false,allFeatures:true},'/collection')).statusCode,400);
+  await policy(manual.id,'consensus',true);await policy(manual.id,'ALL',false);
+  assert.deepEqual((await prisma.security.findUnique({where:{id:manual.id}}))!.excludedFeatures,['consensus']);
+  await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection');
   const oldPrice=await prisma.marketPrice.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,currentPrice:'123',previousClosePrice:'120',priceUpdatedAt:new Date()}});
   const today=new Date();today.setUTCHours(0,0,0,0);
   await prisma.financialStatement.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,fiscalYear:today.getUTCFullYear(),periodType:'ANNUAL',periodEndDate:new Date(Date.UTC(today.getUTCFullYear(),11,31)),netIncome:'999',operatingProfit:'20',totalAssets:'100',totalEquity:'200'}});
@@ -56,6 +68,7 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   const nested=await prisma.security.findUnique({where:{id:manual.id},include:{marketPrice:true}});assert.equal(nested!.marketPrice,null);
   const archived=await raw.securityCodeHistory.findFirst({where:{securityId:manual.id}});assert.equal((archived!.preservedData as any).marketPrice.currentPrice,'123');assert.equal(archived!.previousSymbol,manual.symbol);
   assert.equal((await patch(manual.id,{feature:'ALL',excluded:false},'/collection')).statusCode,409);
+  assert.equal((await patch(manual.id,{feature:'ALL',excluded:false,allFeatures:true,confirmed:true},'/collection')).statusCode,409);
   for(const f of collectionFeatures)await assert.rejects(withCollection(prisma,manual.id,f,()=>network('https://example.invalid')),CollectionExcluded);assert.equal(calls,1);
   // The real broker rejects old code/revision and does not add it to SSE cache.
   const priorToken=process.env.COLLECTOR_INTERNAL_TOKEN;process.env.COLLECTOR_INTERNAL_TOKEN='phase23-ci-token';

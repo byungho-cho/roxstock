@@ -54,8 +54,9 @@ export async function securityManagementRoutes(app:FastifyInstance){
   });
   invalidateSecurityCaches();realtimePriceCache.removeSecurity(String(securityId));return {data:publicSecurity(result)};
  });
- app.patch<{Params:{id:string};Body:{feature?:unknown;excluded?:unknown;confirmed?:unknown}}>('/security-management/:id/collection',async request=>{
-  const securityId=id(request.params.id,'id'),{feature,excluded,confirmed}=request.body??{};
+ app.patch<{Params:{id:string};Body:{feature?:unknown;excluded?:unknown;confirmed?:unknown;allFeatures?:unknown}}>('/security-management/:id/collection',async request=>{
+  const securityId=id(request.params.id,'id'),{feature,excluded,confirmed,allFeatures}=request.body??{};
+  if(allFeatures!==undefined&&(typeof allFeatures!=='boolean'||allFeatures&&feature!=='ALL'))throw new ApiError(400,'INVALID_INPUT','전체 적용은 전체 외부 수집 설정에서만 가능합니다.');
   if(feature!=='ALL'&&!collectionFeatures.includes(feature as CollectionFeature)||typeof excluded!=='boolean')throw new ApiError(400,'INVALID_INPUT','수집 기능과 제외 여부를 확인하세요.');
   if(excluded&&confirmed!==true)throw new ApiError(400,'EXCLUSION_CONFIRMATION_REQUIRED','수집 제외 확인이 필요합니다.');
   const result=await serializable(async tx=>{
@@ -65,7 +66,8 @@ export async function securityManagementRoutes(app:FastifyInstance){
    if(normalizeSecuritySymbol(s.symbol).startsWith('Z99')&&!excluded)throw new ApiError(409,'AUTOMATIC_EXCLUSION','Z99 코드는 모든 외부 수집에서 자동 제외됩니다.');
    const values=new Set(Array.isArray(s.excludedFeatures)?s.excludedFeatures.filter((f):f is string=>typeof f==='string'):[]);
    if(feature!=='ALL'){if(excluded)values.add(String(feature));else values.delete(String(feature));}
-   const result=await tx.security.update({where:{id:securityId},data:{...(feature==='ALL'?{collectionExcluded:excluded}:{excludedFeatures:[...values]}),collectionRevision:{increment:1}}});
+   // The editor's master switch changes all features in one transaction; legacy ALL keeps local settings.
+   const result=await tx.security.update({where:{id:securityId},data:{...(feature==='ALL'?{collectionExcluded:excluded,...(allFeatures?{excludedFeatures:[]}: {})}:{excludedFeatures:[...values]}),collectionRevision:{increment:1}}});
    await tx.dartBackfillTask.updateMany({where:{securityId,status:'PROCESSING'},data:{status:'PENDING',nextAttemptAt:null}});
    return result;
   });invalidateSecurityCaches();realtimePriceCache.removeSecurity(String(securityId));return {data:publicSecurity(result)};
