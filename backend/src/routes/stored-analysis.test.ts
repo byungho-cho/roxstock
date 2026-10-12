@@ -28,6 +28,6 @@ test('both list APIs select the same stored estimate and price; reads admit ESTI
   const financial=(await app.inject(`/api/financial-statements?year=${year}&query=000001`)).json().data.rows[0];
   const value=(await app.inject(`/api/value-analysis?year=${year}&query=000001`)).json().data.rows[0];
   for(const k of ['eps','epsYield','roe','w','capital','netIncome','metricBasis','capitalBasis','netIncomeBasis'])assert.deepEqual(financial[k],value[k],k);
-  assert.equal(financial.targetPrice,value.fairPrices.find((p:any)=>p.persistence==='0.8').price);assert.equal(includes.periodValuations.where.periodType,undefined);assert.deepEqual(includes.financialStatements.where.fiscalYear,{lte:year});
+  assert.equal(financial.targetPrice,value.fairPrices.find((p:any)=>p.persistence==='0.8').price);assert.equal(includes.periodValuations.where.periodType,undefined);assert.deepEqual(includes.financialStatements.where.fiscalYear,{gte:year-1,lte:year});
  }finally{await app.close();prisma.security.findMany=original;}
 });
