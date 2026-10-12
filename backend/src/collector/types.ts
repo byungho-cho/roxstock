@@ -87,12 +87,14 @@ export interface SnapshotValue {
 export interface CollectorRepository {
   withTarget?<T>(target: SecurityTarget, feature: import('./collection-policy.js').CollectionFeature, work:()=>Promise<T>):Promise<T>;
   acquireLock(jobName: string, ownerToken: string, ttlSeconds: number): Promise<boolean>;
+  renewLock?(jobName: string, ownerToken: string, ttlSeconds: number): Promise<boolean>;
   releaseLock(jobName: string, ownerToken: string): Promise<void>;
   createRun(jobType: string, provider: string, metadata?: Record<string, unknown>): Promise<bigint>;
   finishRun(runId: bigint, status: CollectorRunStatus, counters: RunCounters, failureReason?: string): Promise<void>;
   addRunItems?(runId:bigint,items:RunItemInput[]):Promise<void>;
   addRunItem(runId: bigint, item: RunItemInput): Promise<void>;
   hasCompletedScheduledPriceRun(scheduleDate: string): Promise<boolean>;
+  listPriceTargets?(): Promise<SecurityTarget[]>;
   listActiveSecurities(): Promise<SecurityTarget[]>;
   listRealtimeSecurities(limit: number): Promise<SecurityTarget[]>;
   upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void|RunItemInput[]>;

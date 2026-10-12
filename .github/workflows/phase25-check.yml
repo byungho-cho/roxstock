@@ -1,0 +1,48 @@
+name: Phase25 Monitoring Status
+on:
+  pull_request:
+    branches: [main]
+    paths: [backend/**, frontend/**, infra/docker/compose.prod-backend.yml, .github/workflows/phase25-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase25.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase25-screen-evidence
+          path: frontend/test-results/phase25/
+          retention-days: 30
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: mysql://root:ci@127.0.0.1:3306/roxstock_phase25_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: node --import tsx backend/tests/prepare-phase25.ts
+      - run: node --import tsx --test backend/tests/phase25.integration.ts

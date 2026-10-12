@@ -1,3 +1,5 @@
+import {runViews,effectiveResult} from './collection-run-view.js';
+import {dailyScheduleHealth, skipKind} from '../domain/collection-health.js';
 import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collection-public-message.js';
 import type { FastifyInstance } from 'fastify';
 import {collectionPageRoutes} from './collection-pages.js';
@@ -27,7 +29,7 @@ const localSchedule = (hour: number, now = new Date()): Date => {
 };
 
 async function currentRun(jobType: string) {
-  return prisma.collectorRun.findFirst({ where: { jobType }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
+  return prisma.collectorRun.findFirst({ where: { jobType, NOT: {items:{some:{message:'another execution holds the collector lock'}}} }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
 }
 async function lastSuccessfulRun(jobType: string) {
   return prisma.collectorRun.findFirst({ where: { jobType, status: { in: ['SUCCESS', 'PARTIAL'] } }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
@@ -61,14 +63,7 @@ async function statusFor(job: CollectionJob, run: NonNullable<Run>, now: Date, r
   if (run.status === 'RUNNING') return 'RUNNING';
   if (run.status === 'FAILED') return 'FAILED';
   if (run.status === 'PARTIAL') return 'PARTIAL';
-  if (job.hour !== undefined) {
-    const dueAt = new Date(localSchedule(job.hour, new Date(now.getTime() - 86_400_000)).getTime());
-    const sameDayRun = run.id !== 0n && run.startedAt.getTime() >= Date.parse(`${getSeoulClock(now).dateKey}T00:00:00+09:00`);
-    if (sameDayRun) return run.status === 'SUCCESS' || run.status === 'SKIPPED' ? 'OK' : 'FAILED';
-    if (now.getTime() < dueAt.getTime()) return 'WAITING';
-    return 'DELAYED';
-  }
-  return run.status === 'SUCCESS' || run.status === 'SKIPPED' ? 'OK' : 'WAITING';
+  return run.id === 0n ? 'WAITING' : run.status === 'SUCCESS' ? 'OK' : run.status === 'SKIPPED' ? 'SKIPPED' : 'WAITING';
 }
 
 async function summary() {
@@ -85,11 +80,14 @@ async function summary() {
   const masterItem = successfulRuns[0] ? await prisma.collectorRunItem.findFirst({ where: { runId: successfulRuns[0].id, symbol: { startsWith: 'MASTER:' }, status: 'SUCCESS' }, select: { symbol: true } }) : null;
   const features = await Promise.all(jobs.map(async (job, index) => {
     const run = runs[index];
-    const itemCounts=run?await prisma.collectorRunItem.groupBy({where:{runId:run.id,...(job.id==='security-master'?{NOT:{symbol:{startsWith:'MASTER:'}}}:{})},by:['status'],_count:{_all:true}}):[];
-    const countsByStatus=Object.fromEntries(itemCounts.map(r=>[r.status,r._count._all]));
-    const actualRecent={target:itemCounts.reduce((n,r)=>n+r._count._all,0),processed:(countsByStatus.SUCCESS??0)+(countsByStatus.FAILED??0),success:countsByStatus.SUCCESS??0,failed:countsByStatus.FAILED??0,skipped:(countsByStatus.SKIPPED??0)+(countsByStatus.STALE??0)+(countsByStatus.NO_DATA??0)+(countsByStatus.NOT_APPLICABLE??0)};
+    const view=(await runViews(run?[run.id]:[])).get(String(run?.id));
+    const duplicate=await prisma.collectorRun.findFirst({where:{jobType:job.jobType,items:{some:{message:'another execution holds the collector lock'}}},orderBy:[{startedAt:'desc'},{id:'desc'}]});
+    const actualRecent=view?{...view,skipped:view.skipped+view.stale,processed:view.success+view.failed}:{target:0,processed:0,success:0,failed:0,skipped:0,excluded:0,skipReasons:{}};
+    const excluded=actualRecent.excluded,skipReasons=actualRecent.skipReasons;
+    const itemCounts=view?.target?[view]:[];
+    const result=run&&view?effectiveResult(run,view):run?.status;
     const recorded=itemCounts.length>0||!run||run.successCount+run.failureCount+run.skippedCount+run.staleCount===0;
-    const recent=recorded?actualRecent:{target:null,processed:null,success:null,failed:null,skipped:null};
+    const recent=recorded?{...actualRecent,excluded}:{target:null,processed:null,success:null,failed:null,skipped:null};
     const resultScope={label:recorded?'최근 실행 대상 결과':'이전 실행의 대상별 결과 미기록',runId:run?String(run.id):'0',startedAt:iso(run?.startedAt)};
     if (job.id === 'dart-financial-statements') {
       const [state, usage, progress, priorityBehind, universeBehind] = await Promise.all([
@@ -115,15 +113,19 @@ async function summary() {
         phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0) },
         priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
-    const state = await statusFor(job, run ?? emptyRun(job.jobType, now), now, realtime);
+    const config = loadCollectorConfig();
+    const hours = job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];
+    const scheduleState=hours.length?dailyScheduleHealth(now,hours,run??null,10,job.id==='market-prices'?120:job.id==='security-master'?30:10):null;
+    const state = await statusFor(job, run ? {...run,status:result as NonNullable<Run>['status']} : emptyRun(job.jobType, now), now, realtime);
     let nextAt: Date | null = job.hour === undefined ? null : localSchedule(job.hour, now);
     if (job.id === 'realtime-prices') nextAt = null;
     if (job.id === 'dart-financial-statements') nextAt = null;
     return { id: job.id, name: job.name, schedule: job.schedule, status: state,
       lastAttemptAt: iso(job.id === 'realtime-prices' ? realtime?.lastCycleStartedAt : run?.startedAt), lastSuccessAt: iso(job.id === 'realtime-prices' ? realtime?.lastPriceReceivedAt : successfulRuns[index]?.finishedAt),
-      lastDataAt: job.id === 'realtime-prices' ? iso(realtime?.lastSourcePriceAt) : job.id === 'market-prices' ? iso(price?.priceUpdatedAt) : job.id === 'account-snapshots' ? iso(latestSnapshot?.snapshotDate) : job.id === 'security-master' && masterItem ? `${masterItem.symbol.slice(7, 11)}-${masterItem.symbol.slice(11, 13)}-${masterItem.symbol.slice(13, 15)}T00:00:00.000Z` : iso(successfulRuns[index]?.finishedAt), statsGeneratedAt: now.toISOString(), nextAt: iso(nextAt),
-      recent,resultScope,
-      lastError: safeReason(run?.failureReason), ...(job.id === 'realtime-prices' ? { realtime: realtime && {
+      lastDataAt: job.id === 'realtime-prices' ? iso(realtime?.lastSourcePriceAt) : job.id === 'market-prices' ? iso(price?.priceUpdatedAt) : job.id === 'account-snapshots' ? iso(latestSnapshot?.snapshotDate) : job.id === 'security-master' && masterItem ? `${masterItem.symbol.slice(7, 11)}-${masterItem.symbol.slice(11, 13)}-${masterItem.symbol.slice(13, 15)}T00:00:00.000Z` : iso(successfulRuns[index]?.finishedAt), statsGeneratedAt: now.toISOString(), nextAt: scheduleState?.nextAt ?? iso(nextAt),
+      recent,resultScope,skipReasons,lastExecution:run?{id:String(run.id),status:result,originalStatus:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null,scheduleState,
+      duplicateRequest:duplicate&&(!run||duplicate.startedAt>=run.startedAt)?{id:String(duplicate.id),startedAt:iso(duplicate.startedAt),reason:'잠금 충돌 · 본 실행과 별도 요청'}:null,
+      lastCollectedAt:iso(run?.finishedAt),lastError: safeReason(run?.failureReason), ...(job.id === 'realtime-prices' ? { realtime: realtime && {
         workerStatus: realtime.workerStatus, heartbeatAt: iso(realtime.heartbeatAt), session: realtime.marketSession,
         cycleStartedAt: iso(realtime.lastCycleStartedAt), cycleFinishedAt: iso(realtime.lastCycleFinishedAt),
         lastPriceReceivedAt: iso(realtime.lastPriceReceivedAt), lastSourcePriceAt: iso(realtime.lastSourcePriceAt), lastSsePublishedAt: iso(realtime.lastSsePublishedAt), lastDbSavedAt: iso(realtime.lastDbSavedAt),
@@ -145,10 +147,11 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
   await collectionPageRoutes(app);
   app.get('/collection/status', async () => {
     const [run, price] = await Promise.all([
-      prisma.collectorRun.findFirst({ where: { jobType: 'market-prices' }, orderBy: [{startedAt:'desc'},{id:'desc'}] }),
+      currentRun('market-prices'),
       prisma.marketPrice.findFirst({ orderBy: { priceUpdatedAt: 'desc' }, select: { priceUpdatedAt: true } }),
     ]);
-    return { data: { latestRun: run ? { id: run.id.toString(), status: run.status, startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null, successCount: run.successCount, failureCount: run.failureCount, failureReason: run.failureReason } : null, latestPriceAt: price?.priceUpdatedAt.toISOString() ?? null, manualRunAvailable: false, settingsAvailable: false } };
+    const view=run?(await runViews([run.id])).get(String(run.id)):null;
+    return { data: { latestRun: run ? { id: run.id.toString(), status: view?effectiveResult(run,view):run.status, originalStatus:run.status, startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null, successCount: run.successCount, failureCount: run.failureCount, failureReason: run.failureReason } : null, latestPriceAt: price?.priceUpdatedAt.toISOString() ?? null, manualRunAvailable: false, settingsAvailable: false } };
   });
   app.get('/collection/monitoring', async () => summary());
   app.get<{ Params: { feature: string }; Querystring: DetailQuery }>('/collection/monitoring/:feature', async (request, reply) => {
@@ -166,7 +169,8 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const runIds = filteredRuns.map((run) => run.id);
     const items = q.overview === '1' ? [] : await prisma.collectorRunItem.findMany({ where: { runId: { in: runIds }, ...(validStatus ? { status: validStatus as never } : {}), ...(q.symbol ? { symbol: { contains: q.symbol } } : {}), ...(validMarket ? { security: { is: { marketType: validMarket as never } } } : {}), ...(q.accountId && feature.id === 'account-snapshots' ? { symbol: `account:${q.accountId}` } : {}) }, orderBy: { createdAt: 'desc' }, take: 500, include: { security: { select: { symbol: true, name: true, marketType: true } } } });
     const now = new Date();
-    const detail: Record<string, unknown> = { id: feature.id, name: feature.name, generatedAt: now.toISOString(), runs: filteredRuns.map((run) => ({ id: run.id.toString(), status: run.status, startedAt: iso(run.startedAt), finishedAt: iso(run.finishedAt), success: run.successCount, failed: run.failureCount, skipped: run.skippedCount, target: run.successCount + run.failureCount + run.staleCount + run.skippedCount, failureReason: safeReason(run.failureReason), metadata: collectionPublicMetadata(run.metadata) })),
+    const views=await runViews(runIds);
+    const detail: Record<string, unknown> = { id: feature.id, name: feature.name, generatedAt: now.toISOString(), runs: filteredRuns.map((run) => ({ id: run.id.toString(), status: effectiveResult(run,views.get(String(run.id))!), originalStatus:run.status, excluded:views.get(String(run.id))?.excluded??null, startedAt: iso(run.startedAt), finishedAt: iso(run.finishedAt), success: run.successCount, failed: run.failureCount, skipped: run.skippedCount, target: run.successCount + run.failureCount + run.staleCount + run.skippedCount, failureReason: safeReason(run.failureReason), metadata: collectionPublicMetadata(run.metadata) })),
       items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: item.status, reason: safeReason(item.message), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };
     if (feature.id === 'realtime-prices') {
       const realtime = await prisma.realtimeWorkerState.findUnique({ where: { id: 'selected-prices' } });

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { collectPrices } from './price-collector.js';
+import {CollectionExcluded} from './collection-policy.js';
 import { collectDailyAccountSnapshots } from './snapshot-collector.js';
 import { parseNaverPrice } from './providers/naver-price-provider.js';
 import { parseSecurityMasterResponse } from './providers/data-go-kr-security-provider.js';
@@ -104,6 +105,25 @@ test('held lock prevents duplicate execution', async () => {
   const provider: PriceProvider = { name: 'test', fetchPrice: async (target) => observation(target.symbol, '1000') };
   assert.equal((await collectPrices(repository, provider, { delayMs: 0, lockTtlSeconds: 30 })).status, 'SKIPPED');
   assert.equal(repository.items[0]?.status, 'SKIPPED');
+});
+
+test('normal exclusions are successful without adding excluded items to success',async()=>{
+  for(const includeSuccess of [false,true]){
+    const repository=new MemoryRepository();
+    repository.securities=[security(1n,'Z99001'),...(includeSuccess?[security(2n,'005930')]:[])];
+    const provider:PriceProvider={name:'test',fetchPrice:async target=>observation(target.symbol,'1000')};
+    const result=await collectPrices(repository,provider,{delayMs:0,lockTtlSeconds:30});
+    assert.equal(result.status,'SUCCESS');assert.equal(result.skipped,1);assert.equal(result.success,includeSuccess?1:0);
+  }
+});
+test('identity changes, lost lease and shutdown are not normal success',async()=>{
+  const repository=new MemoryRepository();repository.securities=[security(1n,'005930')];
+  Object.assign(repository,{withTarget:async()=>{throw new CollectionExcluded('종목코드 또는 수집 설정 변경: 이전 요청 결과 제외','IDENTITY');}});
+  const provider:PriceProvider={name:'test',fetchPrice:async target=>observation(target.symbol,'1000')};
+  assert.equal((await collectPrices(repository,provider,{delayMs:0,lockTtlSeconds:30})).status,'SKIPPED');
+  const controller=new AbortController();controller.abort();
+  await assert.rejects(collectPrices(repository,provider,{delayMs:0,lockTtlSeconds:30,signal:controller.signal}),/COLLECTOR_PROCESS_STOPPING/);
+  assert.equal(repository.finishes.at(-1)?.status,'FAILED');assert.equal(repository.locked,false);
 });
 
 test('manual price run can target a small active-symbol subset', async () => {

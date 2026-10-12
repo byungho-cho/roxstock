@@ -14,17 +14,20 @@ import { getSeoulClock, snapshotScheduleKey } from './time.js';
 
 const config = loadCollectorConfig();
 const repository = new PrismaCollectorRepository(prisma);
+const shutdown = new AbortController();
 const provider = config.provider === 'mock'
   ? new MockPriceProvider()
   : new NaverPriceProvider(config.requestTimeoutMs);
 
 const runPrices = (symbols?: string[]) => collectPrices(repository, provider, {
+  signal: shutdown.signal,
   delayMs: config.providerDelayMs,
   lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
   symbols,
 });
 const runScheduledPrices = (scheduleDate: string, attempt: 'primary' | 'partial-retry' | 'outage-retry', symbols?: string[]) =>
   collectPrices(repository, provider, {
+    signal: shutdown.signal,
     delayMs: config.providerDelayMs,
     lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
     symbols,
@@ -61,31 +64,32 @@ const once = async (target: string, symbolArgument?: string): Promise<void> => {
 
 const daemon = async (): Promise<void> => {
   let completedPriceDate = '';
+  let lockedRetryAt = 0;
   let outageRetryDate = '';
   let outageRetryAt = 0;
   let lastSnapshotKey = '';
   let lastSecurityMasterKey = '';
   let ticking = false;
   const tick = async () => {
-    if (ticking) return;
+    if (ticking || shutdown.signal.aborted) return;
     ticking = true;
     const now = new Date();
     const clock = getSeoulClock(now);
     try {
-      if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate) {
+      if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate && now.getTime() >= lockedRetryAt) {
         const alreadyCompleted = await repository.hasCompletedScheduledPriceRun(clock.dateKey);
         if (alreadyCompleted) {
           completedPriceDate = clock.dateKey;
         } else if (outageRetryDate === clock.dateKey && outageRetryAt > 0 && now.getTime() >= outageRetryAt) {
-          await runScheduledPrices(clock.dateKey, 'outage-retry');
-          completedPriceDate = clock.dateKey;
-          outageRetryDate = '';
-          outageRetryAt = 0;
+          const retried=await runScheduledPrices(clock.dateKey, 'outage-retry');
+          if(retried.skipReason==='LOCK_CONFLICT')lockedRetryAt=now.getTime()+300000;else completedPriceDate = clock.dateKey;
+          if(retried.skipReason!=='LOCK_CONFLICT'){outageRetryDate = '';outageRetryAt = 0;}
         } else if (outageRetryDate !== clock.dateKey) {
           const result = await runScheduledPrices(clock.dateKey, 'primary');
-          if (result.status === 'PARTIAL' && result.failedSymbols.length > 0) {
-            await runScheduledPrices(clock.dateKey, 'partial-retry', result.failedSymbols);
-            completedPriceDate = clock.dateKey;
+          if(result.skipReason==='LOCK_CONFLICT'){lockedRetryAt=now.getTime()+300000;}
+          else if (result.status === 'PARTIAL' && result.failedSymbols.length > 0) {
+            const retried=await runScheduledPrices(clock.dateKey, 'partial-retry', result.failedSymbols);
+            if(retried.skipReason==='LOCK_CONFLICT')lockedRetryAt=now.getTime()+300000;else completedPriceDate = clock.dateKey;
           } else if (result.status === 'FAILED' && result.failed > 0 && result.success === 0 && result.stale === 0) {
             outageRetryDate = clock.dateKey;
             outageRetryAt = now.getTime() + config.priceRetryDelayMinutes * 60 * 1000;
@@ -98,6 +102,7 @@ const daemon = async (): Promise<void> => {
           }
         }
       }
+      if(shutdown.signal.aborted)return;
       const snapshotKey = snapshotScheduleKey(now);
       if (config.snapshotHours.includes(clock.hour) && snapshotKey !== lastSnapshotKey) {
         lastSnapshotKey = snapshotKey;
@@ -120,7 +125,7 @@ const daemon = async (): Promise<void> => {
   let supplementRunning=false;
   const supplementTick=async()=>{if(supplementRunning)return;supplementRunning=true;try{const result=await runIndependentSupplement(prisma,{windowStartHour:config.dartWindowStartHour,windowEndHour:config.dartWindowEndHour});if(!['IDLE','LOCKED','OUTSIDE_WINDOW','DISABLED','QUOTA_BLOCKED'].includes(result.status))log('info','independent valuation supplement finished',result);}catch{log('error','independent valuation supplement failed',{code:'SUPPLEMENT_INTERNAL_ERROR'});}finally{supplementRunning=false;}};
   void supplementTick();const supplementTimer=setInterval(()=>void supplementTick(),60000);
-  const stop = async () => { clearInterval(timer); clearInterval(supplementTimer); while(supplementRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
+  const stop = async () => { shutdown.abort(); clearInterval(timer); clearInterval(supplementTimer); while(ticking || supplementRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
   process.on('SIGTERM', () => void stop());
   process.on('SIGINT', () => void stop());
 };
