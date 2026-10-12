@@ -43,7 +43,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       financials(year, hasInitialQuery(query) ? '' : query),
       prisma.security.findMany({
         where: { isActive: true, ...(query && !hasInitialQuery(query) ? { OR: [{ name: { contains: query } }, { symbol: { contains: query } }] } : {}) },
-        select: { id: true, marketPrice: true },
+        select: { id: true, symbol:true,codeRevision:true, marketPrice: true },
       }),
     ]);
     const prices = new Map(live.map(row => [row.id.toString(), row.marketPrice]));

@@ -1,4 +1,4 @@
-import {collectionPublicMessage} from '../domain/collection-public-message.js';
+import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collection-public-message.js';
 import {exclusionReason,type CollectionFeature} from '../collector/collection-policy.js';
 import {createHash} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
@@ -34,7 +34,7 @@ export function pageCondition(feature: string, stream: string, q: Query) {
     if(!cursor || cursor.v!==1 || cursor.scope!==scope || !/^\d+$/.test(cursor.id) || !/^\d+$/.test(cursor.ceiling) || !Number.isFinite(Date.parse(cursor.at)) || BigInt(cursor.id)>BigInt(cursor.ceiling) || BigInt(cursor.ceiling)>18446744073709551615n) throw Error('Invalid cursor');
   }
   const range = from || to ? {...(from && {gte:from}),...(to && {lt:to})} : undefined;
-  const item: Prisma.CollectorRunItemWhereInput={...(q.symbol && {symbol:{contains:q.symbol}}),...(q.market && {security:{is:{marketType:q.market as never}}}),...(q.accountId && feature==='account-snapshots' && {symbol:`account:${q.accountId}`})};
+  const item: Prisma.CollectorRunItemWhereInput={...(feature==='security-master'?{NOT:{symbol:{startsWith:'MASTER:'}}}:{}),...(q.symbol && {symbol:{contains:q.symbol}}),...(q.market && {security:{is:{marketType:q.market as never}}}),...(q.accountId && feature==='account-snapshots' && {symbol:`account:${q.accountId}`})};
   if(q.runId&&!/^\d{1,20}$/.test(q.runId))throw Error('Invalid run');
   const run: Prisma.CollectorRunWhereInput={jobType:jobs[feature],...(q.runId?{id:BigInt(q.runId)}:{}),...(q.phase && {metadata:{path:'$.phase',equals:q.phase}})};
   const where: Prisma.CollectorRunWhereInput | Prisma.CollectorRunItemWhereInput = stream==='runs'
@@ -61,13 +61,15 @@ export async function collectionPageRoutes(app: FastifyInstance) {
     // Only one lookahead row is read; entire historical collections are never materialized.
     const records=stream==='runs'
       ? await prisma.collectorRun.findMany({where:paged as Prisma.CollectorRunWhereInput,orderBy:[{startedAt:'desc'},{id:'desc'}],take:limit+1})
-      : await prisma.collectorRunItem.findMany({where:paged as Prisma.CollectorRunItemWhereInput,orderBy:[{createdAt:'desc'},{id:'desc'}],take:limit+1,include:{security:{select:{id:true,symbol:true,name:true,marketType:true,registrationSource:true,collectionExcluded:true,excludedFeatures:true,collectionRevision:true}}}});
+      : await prisma.collectorRunItem.findMany({where:paged as Prisma.CollectorRunItemWhereInput,orderBy:[{createdAt:'desc'},{id:'desc'}],take:limit+1,include:{run:{select:{metadata:true}},security:{select:{id:true,isActive:true,symbol:true,name:true,marketType:true,registrationSource:true,collectionExcluded:true,excludedFeatures:true,collectionRevision:true}}}});
     const hasNext=records.length>limit, visible=records.slice(0,limit);
     const rows=visible.map(record=> 'startedAt' in record
-      ? {id:record.id.toString(),status:record.status,startedAt:record.startedAt.toISOString(),finishedAt:record.finishedAt?.toISOString()??null,target:record.successCount+record.failureCount+record.staleCount+record.skippedCount,success:record.successCount,failed:record.failureCount,skipped:record.skippedCount,failureReason:reason(record.failureReason),metadata:record.metadata}
-      : {id:record.id.toString(),symbol:record.symbol,security:'security' in record&&record.security ? {...record.security,id:String(record.security.id),automaticExclusion:record.security.symbol.toUpperCase().startsWith('Z99'),exclusionReason:exclusionReason(record.security,feature as CollectionFeature)} : null,status:record.status,reason:reason(record.message),occurredAt:record.createdAt.toISOString(),observedAt:record.observedAt?.toISOString()??null});
+      ? {id:record.id.toString(),status:record.status,startedAt:record.startedAt.toISOString(),finishedAt:record.finishedAt?.toISOString()??null,target:record.successCount+record.failureCount+record.staleCount+record.skippedCount,success:record.successCount,failed:record.failureCount,skipped:record.skippedCount,failureReason:reason(record.failureReason),metadata:collectionPublicMetadata(record.metadata)}
+      : {id:record.id.toString(),symbol:record.symbol,recordedSymbol:(/^\d+:\d{4}:(?:ANNUAL|Q[1-4])$/.test(record.symbol)?((record.run?.metadata as {symbol?:string}|null)?.symbol??null):/^[A-Z0-9]{6}(?::|$)/.test(record.symbol)?record.symbol.split(':')[0]:null),security:'security' in record&&record.security ? {...record.security,id:String(record.security.id),automaticExclusion:record.security.symbol.toUpperCase().startsWith('Z99'),exclusionReason:exclusionReason(record.security,feature as CollectionFeature)} : null,status:record.status,reason:reason(record.message),occurredAt:record.createdAt.toISOString(),observedAt:record.observedAt?.toISOString()??null});
     const last=visible.at(-1);
     const nextCursor=hasNext && last ? Buffer.from(JSON.stringify({v:1,scope,at:('startedAt' in last?last.startedAt:last.createdAt).toISOString(),id:last.id.toString(),ceiling:ceiling.toString()} satisfies Cursor)).toString('base64url') : null;
-    return {data:{rows,hasNext,nextCursor}};
+    let note:string|undefined;
+    if(stream==='items'&&request.query.runId&&rows.length===0){const run=await prisma.collectorRun.findFirst({where:{id:BigInt(request.query.runId),jobType:jobs[feature]}});const recorded=run?await prisma.collectorRunItem.count({where:{runId:run.id,...(feature==='security-master'?{NOT:{symbol:{startsWith:'MASTER:'}}}:{})}}):0;if(run&&!recorded&&run.successCount+run.failureCount+run.skippedCount>0)note='이전 실행에는 개별 대상 결과가 기록되지 않았습니다. 원본 실행 집계는 실행 이력에서 확인할 수 있습니다.';}
+    return {data:{rows,hasNext,nextCursor,...(note?{note}:{})}};
   });
 }

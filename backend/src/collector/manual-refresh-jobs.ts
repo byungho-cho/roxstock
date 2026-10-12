@@ -72,6 +72,8 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
   await publish();
   const security=await db.security.findUnique({where:{id:BigInt(m.securityId)},include:{dartCorpMapping:true}});
   if(!security?.isActive||security.securityType!=='STOCK')throw new DartApiError('SECURITY_NOT_FOUND','수집 대상 종목을 확인해 주세요.');
+  if(!m.symbol&&security.codeRevision>0)throw new CollectionExcluded('요청 시점의 종목코드를 확인할 수 없어 수집에서 제외','IDENTITY');
+  m.symbol??=security.symbol;m.collectionRevision??=security.collectionRevision;
   const scopedDb=checkedManualDb(db),scopedRepo=new PrismaDartRepository(scopedDb);
   const provider=new OpenDartProvider({apiKey:config.apiKey||'UNCONFIGURED',dailyCallLimit:config.dailyCallLimit,minDelayMs:config.minDelayMs,fetchFn:manualFetch,
    reserveCall:limit=>{checkManualJob();return repo.reserveApiCall(limit,new Date(),owner);},onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')});
@@ -134,8 +136,17 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
    await boundedManualJob(()=>publishTail,10_000).catch(()=>{});
    const success=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'):r.status==='SUCCESS').length;
    const failed=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='FAILED'||t.state==='UNAVAILABLE'||t.state==='PARTIAL'):r.status==='FAILED').length;
-   const skipped=results.filter(r=>r.tasks?!Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'||t.state==='FAILED'||t.state==='UNAVAILABLE'):(r.status==='NO_DATA'||r.status==='SKIPPED')).length;
-   await boundedManualJob(()=>db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{status:success?failed||results.some(r=>r.tasks?.dart.state==='NO_DATA')?'PARTIAL':'SUCCESS':failed?'FAILED':'SKIPPED',finishedAt:new Date(),successCount:success,failureCount:failed,skippedCount:Math.max(0,skipped),metadata:json({...m,manualState:'FINISHED',results})}}),10_000);
+   const items=results.map(r=>{
+    const sources=r.tasks?Object.values(r.tasks):[];
+    const status=sources.length?(sources.some(t=>t.state==='FAILED')?'FAILED':sources.some(t=>t.state==='SUCCESS'||t.state==='PARTIAL')?'SUCCESS':sources.every(t=>t.state==='SKIPPED')?'SKIPPED':'NO_DATA'):r.status;
+    const labels:Record<string,string>={SUCCESS:'완료',PARTIAL:'일부 미수집',FAILED:'실패',SKIPPED:'수집 제외',NO_DATA:'자료 없음',UNAVAILABLE:'미제공'};
+    const message=r.tasks?`재무제표 ${labels[r.tasks.dart.state]??r.tasks.dart.state} · 가치지표 ${labels[r.tasks.valuation.state]??r.tasks.valuation.state}${r.tasks.dart.code?' · '+r.tasks.dart.code:''}${r.tasks.valuation.code?' · '+r.tasks.valuation.code:''}`:r.code;
+    return {runId:run.id,securityId:BigInt(m.securityId),symbol:`${m.symbol??'CODE_UNKNOWN'}:${r.fiscalYear}:${r.period}`,status,message};
+   });
+   await boundedManualJob(()=>db.$transaction(async tx=>{
+    const changed=await tx.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{status:success?failed||results.some(r=>r.tasks?.dart.state==='NO_DATA')?'PARTIAL':'SUCCESS':failed?'FAILED':'SKIPPED',finishedAt:new Date(),successCount:items.filter(r=>r.status==='SUCCESS').length,failureCount:items.filter(r=>r.status==='FAILED').length,skippedCount:items.filter(r=>r.status==='NO_DATA'||r.status==='SKIPPED').length,metadata:json({...m,manualState:'FINISHED',results})}});
+    if(changed.count&&items.length)await tx.collectorRunItem.createMany({data:items});
+   }),10_000);
   }catch(error){console.warn(JSON.stringify({event:'manual_refresh_finalization_failed',jobId:String(run.id),code:errorCode(error)}));}
   finally{await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});}
  }

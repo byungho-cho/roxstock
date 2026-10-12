@@ -15,7 +15,7 @@ export function exclusionReason(security:Policy,feature?:CollectionFeature):stri
  return null;
 }
 export function eligibleWhere(feature:CollectionFeature):Prisma.SecurityWhereInput {
- return {AND:[{isActive:true,NOT:{symbol:{startsWith:'Z99'}},collectionExcluded:false},{OR:[{excludedFeatures:{equals:PrismaNull()}},{NOT:{excludedFeatures:{array_contains:feature}}}]}]};
+ return {AND:[{NOT:{symbol:{startsWith:'Z99'}},collectionExcluded:false},{OR:[{excludedFeatures:{equals:PrismaNull()}},{NOT:{excludedFeatures:{array_contains:feature}}}]}]};
 }
 // JSON SQL NULL and an absent feature both mean enabled. Filter existing feature arrays at SQL level.
 import {Prisma as RuntimePrisma} from '../generated/prisma/index.js';
@@ -24,11 +24,11 @@ const context=new AsyncLocalStorage<{db:PrismaClient;identity:CollectionIdentity
 export const collectionContext=()=>context.getStore();
 export async function collectionIdentity(db:PrismaClient,id:bigint,feature:CollectionFeature,expected?:Partial<CollectionIdentity>):Promise<CollectionIdentity>{
  const security=await db.security.findUnique({where:{id}});
- if(!security||security.isActive===false)throw new CollectionExcluded('종목을 찾을 수 없어 수집에서 제외');
+ if(!security)throw new CollectionExcluded('종목을 찾을 수 없어 수집에서 제외');
  const reason=exclusionReason(security,feature);
  if(reason)throw new CollectionExcluded(reason,security.collectionExcluded||normalizeSecuritySymbol(security.symbol).startsWith('Z99')?'ALL':'FEATURE',feature);
- if(expected?.symbol&&normalizeSecuritySymbol(expected.symbol)!==security.symbol||expected?.collectionRevision!==undefined&&expected.collectionRevision!==security.collectionRevision)throw new CollectionExcluded('종목코드 또는 수집 설정 변경: 이전 요청 결과 제외','IDENTITY');
- return {id,symbol:security.symbol,collectionRevision:security.collectionRevision};
+ if(expected?.symbol&&normalizeSecuritySymbol(expected.symbol)!==normalizeSecuritySymbol(security.symbol)||expected?.collectionRevision!==undefined&&expected.collectionRevision!==security.collectionRevision)throw new CollectionExcluded('종목코드 또는 수집 설정 변경: 이전 요청 결과 제외','IDENTITY');
+ return {id,symbol:normalizeSecuritySymbol(security.symbol),collectionRevision:security.collectionRevision};
 }
 export async function withCollection<T>(db:PrismaClient,id:bigint,feature:CollectionFeature,work:()=>Promise<T>,expected?:Partial<CollectionIdentity>):Promise<T>{
  const prior=context.getStore();

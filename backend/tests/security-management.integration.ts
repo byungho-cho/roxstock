@@ -21,7 +21,11 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   assert.deepEqual(pageCounts,[50,50,5]);assert.equal(new Set(all.map(r=>r.id)).size,105);
   const manual=await make('X23990'),dart=await make('X23991','DART'),unknown=await make('X23992','UNKNOWN'),unused=await make('X23993');
   for(const s of [dart,unknown]){const denied=await patch(s.id,{symbol:'Z99990',confirmCodeChange:true});assert.equal(denied.statusCode,403,denied.body);assert.equal((await patch(s.id,{name:'Phase23 renamed '+s.symbol})).statusCode,200);}
-  const oldPrice=await prisma.marketPrice.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,currentPrice:'123',priceUpdatedAt:new Date()}});
+  const oldPrice=await prisma.marketPrice.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,currentPrice:'123',previousClosePrice:'120',priceUpdatedAt:new Date()}});
+  const today=new Date();today.setUTCHours(0,0,0,0);
+  await prisma.financialStatement.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,fiscalYear:today.getUTCFullYear(),periodType:'ANNUAL',periodEndDate:new Date(Date.UTC(today.getUTCFullYear(),11,31)),netIncome:'999',operatingProfit:'20',totalAssets:'100',totalEquity:'200'}});
+  await prisma.valuationMetric.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,metricDate:today,eps:'33',bps:'10',per:'3'}});
+  await prisma.securityFundamentals.create({data:{securityId:manual.id,collectionSymbol:manual.symbol,issuedShares:'100',treasuryShares:'25',controllingProfit:'999'}});
   const run=await prisma.collectorRun.create({data:{jobType:'realtime-selected-prices',provider:'phase23-ci',status:'PARTIAL',successCount:1,failureCount:1}});runs.push(run.id);
   await prisma.collectorRunItem.createMany({data:[{runId:run.id,securityId:manual.id,symbol:manual.symbol,status:'FAILED',message:'수집 오류 https://example.invalid/api?token=secret-value "password":"private"'},{runId:run.id,securityId:unused.id,symbol:unused.symbol,status:'SUCCESS'}]});
   const overview=(await app.inject('/api/collection/monitoring')).json().data.features.find((r:any)=>r.id==='realtime-prices');
@@ -60,7 +64,11 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   // Manual price input remains permitted for Z99; old observed values are preserved in the archive.
   await prisma.buyTrade.create({data:{accountId:account.id,securityId:manual.id,boughtAt:new Date(),quantity:'1',unitPrice:'100'}});
   const blockedHeld=await app.inject({method:'DELETE',url:`/api/security-management/${manual.id}`,payload:{confirmed:true}});assert.equal(blockedHeld.statusCode,409);assert.match(blockedHeld.json().error.message,/보유/);
-  const manualPrice=await app.inject({method:'PATCH',url:`/api/securities/${manual.id}/price`,payload:{currentPrice:'456'}});assert.equal(manualPrice.statusCode,200,manualPrice.body);assert.equal((await prisma.marketPrice.findUnique({where:{securityId:manual.id}}))!.currentPrice.toString(),'456');
+  const manualPrice=await app.inject({method:'PATCH',url:`/api/securities/${manual.id}/price`,payload:{currentPrice:'456'}});assert.equal(manualPrice.statusCode,200,manualPrice.body);assert.equal((await prisma.marketPrice.findUnique({where:{securityId:manual.id}}))!.currentPrice.toString(),'456');assert.equal(manualPrice.json().data.previousClosePrice,null);
+  const analysis=await app.inject({method:'PATCH',url:`/api/securities/${manual.id}/analysis`,payload:{assets:'1000',dividend:'3',issuedShares:'1000'}});assert.equal(analysis.statusCode,200,analysis.body);
+  const statement=(await raw.financialStatement.findFirst({where:{securityId:manual.id}}))!;assert.equal(statement.totalAssets!.toString(),'1000');assert.equal(statement.netIncome,null);assert.equal(statement.operatingProfit,null);assert.equal(statement.totalEquity,null);
+  const metric=(await raw.valuationMetric.findFirst({where:{securityId:manual.id}}))!;assert.equal(metric.dividendPerShare!.toString(),'3');assert.equal(metric.eps,null);assert.equal(metric.bps,null);
+  const fundamentals=(await raw.securityFundamentals.findUnique({where:{securityId:manual.id}}))!;assert.equal(fundamentals.issuedShares!.toString(),'1000');assert.equal(fundamentals.treasuryShares,null);assert.equal(fundamentals.controllingProfit,null);assert.equal((archived!.preservedData as any).financialStatements[0].netIncome,'999');
   const snapshotAccounts=await repository.listActiveAccountsForSnapshot();assert.ok(snapshotAccounts.some(a=>a.id===account.id&&a.lots.some(l=>l.symbol==='Z99990')));
   await patch(manual.id,{symbol:'X23994',confirmCodeChange:true});
   // Exclude/reactivate without changing the code also invalidates an already issued token.
@@ -73,6 +81,6 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   const deleted=await app.inject({method:'DELETE',url:`/api/security-management/${unused.id}`,payload:{confirmed:true}});assert.equal(deleted.statusCode,200);assert.equal((await raw.security.findUnique({where:{id:unused.id}}))!.isActive,false);assert.equal(await raw.collectorRunItem.count({where:{runId:run.id}}),2);
   console.log(JSON.stringify({phase:23,pages:pageCounts,featuresChecked:collectionFeatures,excludedExternalCalls:0,delayedRequests:1,lateWrites:0,oldBrokerDeliveries:0,historyRetained:true,concurrentCodeStatuses:simultaneous.map(r=>r.statusCode),actualDB:true}));
  }finally{
-  await raw.collectorRun.deleteMany({where:{id:{in:runs}}});await raw.buyTrade.deleteMany({where:{accountId:account.id}});await raw.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await raw.marketPrice.deleteMany({where:{securityId:{in:ids}}});await raw.securityCodeHistory.deleteMany({where:{securityId:{in:ids}}});await raw.security.deleteMany({where:{id:{in:ids}}});await raw.account.delete({where:{id:account.id}});await app.close();await raw.$disconnect();await prisma.$disconnect();
+  await raw.collectorRun.deleteMany({where:{id:{in:runs}}});await raw.buyTrade.deleteMany({where:{accountId:account.id}});await raw.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await raw.financialStatement.deleteMany({where:{securityId:{in:ids}}});await raw.valuationMetric.deleteMany({where:{securityId:{in:ids}}});await raw.securityFundamentals.deleteMany({where:{securityId:{in:ids}}});await raw.marketPrice.deleteMany({where:{securityId:{in:ids}}});await raw.securityCodeHistory.deleteMany({where:{securityId:{in:ids}}});await raw.security.deleteMany({where:{id:{in:ids}}});await raw.account.delete({where:{id:account.id}});await app.close();await raw.$disconnect();await prisma.$disconnect();
  }
 });

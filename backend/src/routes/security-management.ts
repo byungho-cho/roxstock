@@ -36,7 +36,7 @@ export async function securityManagementRoutes(app:FastifyInstance){
    const name=body.name===undefined?s.name:typeof body.name==='string'?body.name.trim():'';
    const symbol=body.symbol===undefined?s.symbol:typeof body.symbol==='string'?normalizeSecuritySymbol(body.symbol):'';
    if(!name||name.length>100||!isSecuritySymbol(symbol))throw new ApiError(400,'INVALID_INPUT','종목명과 영문·숫자 6자리 코드를 확인하세요.');
-   const changed=symbol!==s.symbol;
+   const changed=symbol!==normalizeSecuritySymbol(s.symbol);
    if(changed&&s.registrationSource!=='MANUAL')throw new ApiError(403,'CODE_CORRECTION_FORBIDDEN','사용자 등록이 확인된 종목만 코드를 정정할 수 있습니다.');
    if(changed&&body.confirmCodeChange!==true)throw new ApiError(400,'CODE_CONFIRMATION_REQUIRED','종목코드 변경 안내를 확인하세요.');
    const duplicate=await tx.security.findFirst({where:{symbol,id:{not:securityId}},select:{id:true}});if(duplicate)throw new ApiError(409,'DUPLICATE_SECURITY_CODE','이미 등록된 종목코드입니다.');
@@ -61,7 +61,8 @@ export async function securityManagementRoutes(app:FastifyInstance){
   const result=await serializable(async tx=>{
    await tx.$queryRaw`SELECT id FROM securities WHERE id=${securityId} FOR UPDATE`;
    const s=await tx.security.findUnique({where:{id:securityId}});if(!s)throw missing();
-   if(s.symbol.startsWith('Z99')&&!excluded)throw new ApiError(409,'AUTOMATIC_EXCLUSION','Z99 코드는 모든 외부 수집에서 자동 제외됩니다.');
+   if(!s.isActive)throw new ApiError(409,'SECURITY_INACTIVE','비활성 종목의 수집 설정은 변경할 수 없습니다.');
+   if(normalizeSecuritySymbol(s.symbol).startsWith('Z99')&&!excluded)throw new ApiError(409,'AUTOMATIC_EXCLUSION','Z99 코드는 모든 외부 수집에서 자동 제외됩니다.');
    const values=new Set(Array.isArray(s.excludedFeatures)?s.excludedFeatures.filter((f):f is string=>typeof f==='string'):[]);
    if(feature!=='ALL'){if(excluded)values.add(String(feature));else values.delete(String(feature));}
    const result=await tx.security.update({where:{id:securityId},data:{...(feature==='ALL'?{collectionExcluded:excluded}:{excludedFeatures:[...values]}),collectionRevision:{increment:1}}});

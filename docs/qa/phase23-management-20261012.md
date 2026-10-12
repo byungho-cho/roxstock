@@ -8,6 +8,8 @@
 
 ## 근거
 
+`backend/tests/phase23-migration.integration.ts`는 기존 main의 스키마에 원본 코드·가격·실제 0 이익을 넣고, 검증된 gzip 백업 → 새 마이그레이션 → 원본 비교 → 기존 스키마 복원 → 재적용을 실제 MariaDB에서 검사한다.
+
 `backend/tests/security-management.integration.ts`는 localhost CI DB만 허용한다. 운영 DB 비밀번호를 출력하거나 변경하지 않는다. 외부 공급자는 통제된 응답을 사용해 호출 수와 지연 결과를 확인하며 운영 대량 재수집을 하지 않는다.
 
 `frontend/tests/targets/phase23-management.spec.ts`와 `playwright.phase23.config.ts`는 운영과 동일한 프로덕션 빌드를 사용한다. 이전 main을 별도 빌드해 APK 전후 높이와 화면을 비교한다. 화면/API fixture 증거와 운영 읽기 검증을 구분한다. 테스트용 APK 응답은 다운로드 링크 동작 검증용이며 실제 운영 APK 설치 검증을 대신하지 않는다.

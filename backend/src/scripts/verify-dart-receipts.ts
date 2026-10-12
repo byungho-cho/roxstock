@@ -1,3 +1,5 @@
+import {withCollection,CollectionExcluded} from '../collector/collection-policy.js';
+import {collectionClient} from '../lib/collection-client.js';
 import {randomUUID} from 'node:crypto';
 import {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {PrismaDartRepository} from '../collector/dart-repository.js';
@@ -8,7 +10,7 @@ import {auditDartReceipts} from '../collector/dart-receipt-audit.js';
 import {dartDiagnostic,safeDartContext} from '../collector/dart-diagnostics.js';
 import {retryDecision} from '../collector/dart-policy.js';
 import {loadCollectorConfig} from '../collector/config.js';
-const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID();
+const db=collectionClient(new PrismaClient()),repo=new PrismaDartRepository(db),owner=randomUUID();
 const version='DART_SOURCE_V2',maxCalls=12;
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 const emit=(event:string,value:unknown)=>console.log(JSON.stringify({event,data:value},(_k,v)=>typeof v==='bigint'?String(v):v));
@@ -30,6 +32,8 @@ try {
    const provider=new OpenDartProvider({apiKey:process.env.DART_API_KEY?.trim()??'',dailyCallLimit:limit,minDelayMs:Math.max(config.dartBackfillMinDelayMs,config.dartMinDelayMs),reserveCall:async l=>{if(calls>=2)throw new DartApiError('REPRESENTATIVE_CALL_LIMIT','Two-call cap',false,true);if(!await repo.reserveApiCall(l,new Date(),owner))return false;calls++;return true;},onApiStatus:status=>repo.recordApiResult(status==='013'?'NO_DATA':'ERROR')});
    let result:Record<string,unknown>={symbol:'900290',corpCode:'01170962',taskFiscalYear:2024,apiFiscalYear:2024,reportCode:'11014',stored:false};
    try{
+    const security=await db.security.findFirst({where:{dartCorpMapping:{is:{corpCode:'01170962'}}}});if(!security)throw new CollectionExcluded('검증 대상 종목 미확인: 수집 제외');
+    await withCollection(db,security.id,'dart-financial-statements',async()=>{
     const report=(await provider.listPeriodicReports('01170962',2024)).find(r=>r.reportCode==='11014');
     if(!report)throw new DartApiError('NO_PERIODIC_FILING','No Q3 candidate');
     requireDartReportPeriod(report,'01170962',2024);
@@ -37,9 +41,10 @@ try {
     const rows=await provider.fetchFinancials('01170962',2024,'11014','CFS');
     const source=validateDartFiling({corpCode:'01170962',taskFiscalYear:2024,report,rows,fsDivision:'CFS'});
     result={...result,source:source.sourceValidation,validation:'VERIFIED'};
+    },{symbol:'900290',collectionRevision:security.collectionRevision});
    }catch(e){result={...result,...dartDiagnostic(e,'REPRESENTATIVE_VERIFY')};}
    emit('DART GRT Q3 result',result);
-   await repo.finishRun(runId,result.code?'PARTIAL':'SUCCESS',{success:result.validation==='VERIFIED'?1:0,failed:result.code?1:0,skipped:1},undefined,{version:marker,calls,maxCalls:2,result,readOnlyFinancialData:true});
+   await repo.finishRun(runId,result.code==='COLLECTION_EXCLUDED'?'SKIPPED':result.code?'PARTIAL':'SUCCESS',{success:result.validation==='VERIFIED'?1:0,failed:result.code&&result.code!=='COLLECTION_EXCLUDED'?1:0,skipped:1},undefined,{version:marker,calls,maxCalls:2,result,readOnlyFinancialData:true});
    emit('DART GRT Q3 summary',{runId:String(runId),calls,maxCalls:2,result});
    emit('DART receipt post-verification audit',await auditDartReceipts(db));
   }
@@ -61,9 +66,10 @@ try {
    for(const symbol of ['900290','000120','005930']){
     const security=await db.security.findFirst({where:{symbol,isActive:true},include:{dartCorpMapping:true}});
     if(!security?.dartCorpMapping){results.push({symbol,code:'DART_CORP_CODE_NOT_MAPPED'});continue;}
-    const corpCode=security.dartCorpMapping.corpCode;
+    try{await withCollection(db,security.id,'dart-financial-statements',async()=>{
+    const corpCode=security.dartCorpMapping!.corpCode;
     let reports;
-    try{reports=await provider.listPeriodicReports(corpCode,2024);}catch(e){results.push({symbol,...dartDiagnostic(e,'LIST')});if(e instanceof DartApiError&&(e.quotaExceeded||['010','011','012','API_KEY_MISSING'].includes(e.code)))break;continue;}
+    try{reports=await provider.listPeriodicReports(corpCode,2024);}catch(e){results.push({symbol,...dartDiagnostic(e,'LIST')});if(e instanceof CollectionExcluded)throw e;if(e instanceof DartApiError&&(e.quotaExceeded||['010','011','012','API_KEY_MISSING'].includes(e.code)))stopped=true;return;}
     for(const reportCode of (symbol==='900290'?['11011','11013','11012','11014']:['11011']) as DartReportCode[]){
      const task=await db.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId:security.id,fiscalYear:2024,reportCode}}});
      const periodType=reportCode==='11011'?'ANNUAL':reportCode==='11013'?'Q1':reportCode==='11012'?'Q2':'Q3';
@@ -71,7 +77,7 @@ try {
      let result:Record<string,unknown>={symbol,corpCode,taskFiscalYear:2024,apiFiscalYear:2024,reportCode,retryEligible:eligible,beforeStatus:task?.status,beforeAttempt:task?.attempts};
      if(eligible&&task){
       const originalCode=task.errorCode==='REVIEW_REQUIRED'?(/^([A-Z0-9_]+):/.exec(task.errorMessage??'')?.[1]??'UNKNOWN'):task.errorCode;
-      await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED','Prior error preserved before limited verification',json({...safeDartContext(task.diagnostics),originalCode,attempt:task.attempts,runId:String(runId)}));
+      await repo.addRunItem(runId!,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED','Prior error preserved before limited verification',json({...safeDartContext(task.diagnostics),originalCode,attempt:task.attempts,runId:String(runId)}));
      }
      try{
       const report=reports.find(r=>r.reportCode===reportCode);if(!report)throw new DartApiError('NO_PERIODIC_FILING','No candidate disclosure');
@@ -88,9 +94,9 @@ try {
         return filing;
        });
        result={...result,stored:true,created:saved.created};
-       await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType:report.periodType},'SUCCESS','Bounded representative source validated',json(verified.sourceValidation));
+       await repo.addRunItem(runId!,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType:report.periodType},'SUCCESS','Bounded representative source validated',json(verified.sourceValidation));
       }
-     }catch(e){
+     }catch(e){if(e instanceof CollectionExcluded)throw e;
       const diagnostic=dartDiagnostic(e,'REPRESENTATIVE_VERIFY');
       result={...result,...diagnostic,stored:false};
       if(e instanceof DartApiError&&(e.quotaExceeded||['010','011','012','API_KEY_MISSING'].includes(e.code)))stopped=true;
@@ -99,15 +105,16 @@ try {
        const retry=retryDecision(diagnostic.code,task.attempts+1,new Date());
        const detail={...diagnostic.context,originalCode:diagnostic.code,attempt:task.attempts+1,runId:String(runId),stage:'REPRESENTATIVE_VERIFY',symbol,corpCode};
        if(!(e instanceof DartApiError&&e.quotaExceeded))await db.dartBackfillTask.updateMany({where:{id:task.id,status:'FAILED',attempts:task.attempts},data:{attempts:task.attempts+1,errorCode:retry.code,errorMessage:`${diagnostic.code}: 검증된 출처 또는 기간 확인이 필요합니다.`,diagnostics:json(detail),lastAttemptAt:new Date(),nextAttemptAt:retry.nextAttemptAt}});
-       await repo.addRunItem(runId,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED',diagnostic.code,json(detail));
+       await repo.addRunItem(runId!,{id:security.id,symbol,securityType:security.securityType,corpCode},{...task,reportCode,periodType},'FAILED',diagnostic.code,json(detail));
       }
      }
      results.push(result);emit('DART representative result',result);
      if(stopped)break;
     }
+    },security);}catch(e){if(e instanceof CollectionExcluded){results.push({symbol,status:'SKIPPED',code:'COLLECTION_EXCLUDED'});}else throw e;}
     if(stopped)break;
    }
-   await repo.finishRun(runId,results.some(r=>r.code)?'PARTIAL':'SUCCESS',{success:results.filter(r=>r.validation==='VERIFIED').length,failed:results.filter(r=>r.code).length,skipped:results.filter(r=>r.validation==='VERIFIED'&&!r.stored).length},undefined,{version,calls,maxCalls,results,completedAt:new Date().toISOString(),allFailuresResolved:false});
+   await repo.finishRun(runId,results.some(r=>r.code&&r.code!=='COLLECTION_EXCLUDED')?'PARTIAL':results.every(r=>r.code==='COLLECTION_EXCLUDED')?'SKIPPED':'SUCCESS',{success:results.filter(r=>r.validation==='VERIFIED').length,failed:results.filter(r=>r.code&&r.code!=='COLLECTION_EXCLUDED').length,skipped:results.filter(r=>r.code==='COLLECTION_EXCLUDED'||r.validation==='VERIFIED'&&!r.stored).length},undefined,{version,calls,maxCalls,results,completedAt:new Date().toISOString(),allFailuresResolved:false});
    emit('DART representative summary',{runId:String(runId),calls,maxCalls,results});
    emit('DART receipt post-verification audit',await auditDartReceipts(db));
   }

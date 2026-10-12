@@ -68,6 +68,8 @@ export class PrismaCollectorRepository implements CollectorRepository {
     await this.prisma.collectorRunItem.create({ data: { runId, ...item } });
   }
 
+  async addRunItems(runId:bigint,items:RunItemInput[]){await this.prisma.collectorRunItem.createMany({data:items.map(item=>({runId,...item}))});}
+
   async hasCompletedScheduledPriceRun(scheduleDate: string): Promise<boolean> {
     const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*) AS count
@@ -81,7 +83,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
 
   async listActiveSecurities(): Promise<SecurityTarget[]> {
     return this.prisma.security.findMany({
-      where: eligibleWhere('market-prices'),
+      where: {...eligibleWhere('market-prices'),isActive:true},
       select: { id: true, symbol: true, name: true, collectionRevision:true },
       orderBy: { id: 'asc' },
     });
@@ -104,16 +106,19 @@ export class PrismaCollectorRepository implements CollectorRepository {
     `;
   }
 
-  async upsertSecurityMaster(items: SecurityMasterItem[]): Promise<void> {
+  async upsertSecurityMaster(items: SecurityMasterItem[]): Promise<RunItemInput[]> {
+    const outcomes:RunItemInput[]=[];
     for(const item of items){
-      if(item.symbol.toUpperCase().startsWith('Z99'))continue;
-      await this.prisma.$transaction(async tx=>{
+      if(item.symbol.toUpperCase().startsWith('Z99')){outcomes.push({symbol:item.symbol,status:'SKIPPED',message:'Z99 코드: 수집 제외'});continue;}
+      const outcome=await this.prisma.$transaction(async tx=>{
         await tx.$queryRaw`SELECT id FROM securities WHERE symbol=${item.symbol} FOR UPDATE`;
         const existing=await tx.security.findUnique({where:{symbol:item.symbol}});
-        if(existing&&exclusionReason(existing,'security-master'))return;
-        await tx.security.upsert({where:{symbol:item.symbol},create:{...item,registrationSource:'SECURITY_MASTER',securityType:'STOCK',isActive:true},update:{name:item.name,securityType:'STOCK',isActive:true}});
-      });
+        if(existing&&exclusionReason(existing,'security-master'))return {securityId:existing.id,symbol:item.symbol,status:'SKIPPED' as const,message:exclusionReason(existing,'security-master')!};
+        const saved=await tx.security.upsert({where:{symbol:item.symbol},create:{...item,registrationSource:'SECURITY_MASTER',securityType:'STOCK',isActive:true},update:{name:item.name,securityType:'STOCK',isActive:true}});
+        return {securityId:saved.id,symbol:item.symbol,status:'SUCCESS' as const};
+      });outcomes.push(outcome);
     }
+    return outcomes;
   }
 
   async deactivateMissingSecurities(items: SecurityMasterItem[]): Promise<number> {

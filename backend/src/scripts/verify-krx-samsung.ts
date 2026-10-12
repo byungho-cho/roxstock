@@ -1,3 +1,5 @@
+import {withCollection,CollectionExcluded} from '../collector/collection-policy.js';
+import {collectionClient} from '../lib/collection-client.js';
 import 'dotenv/config';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { configuredKrx } from '../collector/krx-provider.js';
@@ -5,12 +7,12 @@ import { HistoricalPriceError } from '../collector/historical-price-error.js';
 import { getSeoulClock } from '../collector/time.js';
 import { calculatePeriod, type Supplemental } from '../domain/period-valuation.js';
 /** Read-only: never creates or updates a database row. Stops live calls on systemic failure. */
-const db=new PrismaClient(), provider=configuredKrx();
+const db=collectionClient(new PrismaClient()), provider=configuredKrx();
 let blocked: {code:string;category:string}|undefined;
 async function price(end:Date){
  if(blocked)return {verification:'NOT_ATTEMPTED',error:blocked} as const;
- try{return {verification:'LIVE',price:await provider.close('005930',end,'KOSPI')} as const;}
- catch(e){const failure=e instanceof HistoricalPriceError?e:new HistoricalPriceError('KRX_COMMUNICATION','COMMUNICATION');if(failure.category!=='NO_DATA')blocked={code:failure.code,category:failure.category};return {verification:'LIVE_FAILED',error:{code:failure.code,category:failure.category,providerCode:failure.providerCode}} as const;}
+ try{const security=await db.security.findUnique({where:{symbol:'005930'}});if(!security)throw new CollectionExcluded('검증 대상 종목 미확인: 수집 제외');return await withCollection(db,security.id,'market-prices',async()=>({verification:'LIVE',price:await provider.close('005930',end,'KOSPI')} as const),security);}
+ catch(e){if(e instanceof CollectionExcluded)return {verification:'COLLECTION_EXCLUDED',reason:e.message} as const;const failure=e instanceof HistoricalPriceError?e:new HistoricalPriceError('KRX_COMMUNICATION','COMMUNICATION');if(failure.category!=='NO_DATA')blocked={code:failure.code,category:failure.category};return {verification:'LIVE_FAILED',error:{code:failure.code,category:failure.category,providerCode:failure.providerCode}} as const;}
 }
 try{
  console.log(JSON.stringify({symbol:'005930',mode:'READ_ONLY',recent:await price(new Date(`${getSeoulClock().dateKey}T00:00:00Z`))}));

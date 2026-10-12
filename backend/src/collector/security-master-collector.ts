@@ -28,17 +28,19 @@ export const collectSecurityMaster = async (
     if (batch.items.length < options.minimumExpectedCount) {
       throw new Error(`safety check failed: only ${batch.items.length} securities returned`);
     }
-    await repository.upsertSecurityMaster(batch.items);
+    const outcomes=await repository.upsertSecurityMaster(batch.items);
+    if(outcomes){if(repository.addRunItems)await repository.addRunItems(runId,outcomes);else for(const item of outcomes)await repository.addRunItem(runId,item);}
     let deactivated = 0;
     if (options.deactivateMissing) deactivated = await repository.deactivateMissingSecurities(batch.items);
-    counters.success = batch.items.length;
+    counters.success = outcomes?outcomes.filter(r=>r.status==='SUCCESS').length:batch.items.length;
+    counters.skipped = outcomes?outcomes.filter(r=>r.status==='SKIPPED').length:0;
     await repository.addRunItem(runId, {
       symbol: `MASTER:${batch.baseDate}`,
       status: 'SUCCESS',
-      message: `upserted=${batch.items.length}, deactivated=${deactivated}`,
+      message: `upserted=${counters.success}, excluded=${counters.skipped}, deactivated=${deactivated}`,
       observedAt: new Date(),
     });
-    await repository.finishRun(runId, 'SUCCESS', counters);
+    await repository.finishRun(runId, counters.success===0&&counters.skipped>0?'SKIPPED':'SUCCESS', counters);
     log('info', 'security master collection completed', { baseDate: batch.baseDate, count: batch.items.length, deactivated });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);

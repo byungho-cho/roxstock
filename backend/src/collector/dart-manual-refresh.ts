@@ -84,6 +84,8 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     const security = await db.security.findUnique({ where: { id: securityId }, include: { dartCorpMapping: true } });
     if (!security?.isActive || security.securityType !== 'STOCK') throw new DartApiError('SECURITY_NOT_FOUND', '수집 대상 종목을 확인해 주세요.');
     await withCollection(db,securityId,'dart-financial-statements',async()=>{
+    if(!metadata.symbol&&security.codeRevision>0)throw new CollectionExcluded('요청 시점의 종목코드를 확인할 수 없어 수집에서 제외','IDENTITY');
+    metadata.symbol??=security.symbol;metadata.collectionRevision??=security.collectionRevision;
     if(!prototype&&process.env.CONSENSUS_ENABLED==='true'){try{await freezePastEstimates(db,securityId,security.symbol,security.marketType);await collectAnnualConsensus(db,securityId,security.symbol);}catch{console.warn(JSON.stringify({event:'consensus_collection_failed',securityId:String(securityId)}));}}
     let mapping = security.dartCorpMapping;
     if (!mapping && !prototype) {
@@ -136,7 +138,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
       const failed = results.filter((r) => r.status === 'FAILED').length;
       const valuationIncomplete=results.some(r=>r.status==='SUCCESS'&&r.valuationStatus!=='SUCCESS');
       const skipped = results.filter((r) => r.status === 'NO_DATA'||r.status==='SKIPPED').length;
-      for (const result of results) await db.collectorRunItem.create({ data: { runId: run.id, securityId: BigInt(metadata.securityId), symbol: `${metadata.securityId}:${result.fiscalYear}:${result.period}`, status: result.status, message: result.code ?? (result.created ? '신규 판본 저장' : '기존 판본 확인') } });
+      for (const result of results) await db.collectorRunItem.create({ data: { runId: run.id, securityId: BigInt(metadata.securityId), symbol: `${metadata.symbol??'CODE_UNKNOWN'}:${result.fiscalYear}:${result.period}`, status: result.status, message: result.code ?? (result.created ? '신규 판본 저장' : '기존 판본 확인') } });
       await repo.finishRun(run.id, failed ? success || skipped ? 'PARTIAL' : 'FAILED' : skipped === periods.length*(endYear-startYear+1) ? 'SKIPPED' : valuationIncomplete || skipped ? 'PARTIAL' : 'SUCCESS', { success, failed, skipped }, failed ? results.find((r) => r.status === 'FAILED')?.code : undefined, { ...metadata, manualState: 'FINISHED', results });
     } catch(error) { await recordDartFailure(error,'RUN_FINISH',run.id,[]); }
     finally { try{await repo.releaseLock(owner);}catch(error){await recordDartFailure(error,'LOCK_RELEASE',run.id,[]);} }
