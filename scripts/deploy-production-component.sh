@@ -4,15 +4,25 @@ set -Eeuo pipefail
 SHA="${1:-}"
 COMPONENT="${2:-}"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ && "$COMPONENT" =~ ^(frontend|backend)$ ]] || exit 2
+# A documentation-only descendant has identical runtime code. Do not lose an
+# already dispatched application deployment when an independent docs PR merges.
+deployment_revision_allowed() {
+  [[ "$2" == "$3" ]] && return 0
+  git -C "$1" merge-base --is-ancestor "$2" "$3" || return 1
+  git -C "$1" diff --quiet "$2" "$3" -- . ':(exclude)docs/**' ':(exclude)README.md'
+}
 SOURCE_TREE=/opt/roxstock
 mkdir -p "$SOURCE_TREE/.deploy"
 exec 8>"$SOURCE_TREE/.deploy/production.lock"
 flock -w 1200 8
 git -C "$SOURCE_TREE" fetch origin main
 LATEST="$(git -C "$SOURCE_TREE" rev-parse origin/main)"
-if [[ "$LATEST" != "$SHA" ]]; then
+if ! deployment_revision_allowed "$SOURCE_TREE" "$SHA" "$LATEST"; then
   echo "Superseded deployment skipped: $SHA (main: $LATEST)"
   exit 0
+fi
+if [[ "$LATEST" != "$SHA" ]]; then
+  echo "Documentation-only main advancement; deploying application revision $SHA (main: $LATEST)"
 fi
 DEPLOY_TREE="$SOURCE_TREE/.deploy/commits/$SHA"
 if [[ ! -d "$DEPLOY_TREE" ]]; then
