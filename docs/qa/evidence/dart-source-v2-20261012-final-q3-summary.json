@@ -1,0 +1,109 @@
+{
+  "deploySha": "0f660310ceec289228497a60cec338849d641963",
+  "workflowRunId": 38188536054,
+  "before": {
+    "observedAt": "2026-10-12T00:35:06.614Z",
+    "taskStates": [
+      {
+        "status": "PENDING",
+        "count": 89492
+      },
+      {
+        "status": "SUCCESS",
+        "count": 31549
+      },
+      {
+        "status": "NO_FILING",
+        "count": 5807
+      },
+      {
+        "status": "NOT_APPLICABLE",
+        "count": 182
+      },
+      {
+        "status": "FAILED",
+        "count": 458
+      }
+    ],
+    "filingCount": 31549,
+    "duplicateReceipts": 0,
+    "dailyUsage": {
+      "date": "2026-10-12",
+      "calls": 5074,
+      "errors": 0,
+      "noData": 515
+    }
+  },
+  "after": {
+    "observedAt": "2026-10-12T00:35:14.346Z",
+    "taskStates": [
+      {
+        "status": "PENDING",
+        "count": 89492
+      },
+      {
+        "status": "SUCCESS",
+        "count": 31549
+      },
+      {
+        "status": "NO_FILING",
+        "count": 5807
+      },
+      {
+        "status": "NOT_APPLICABLE",
+        "count": 182
+      },
+      {
+        "status": "FAILED",
+        "count": 458
+      }
+    ],
+    "filingCount": 31549,
+    "duplicateReceipts": 0,
+    "dailyUsage": {
+      "date": "2026-10-12",
+      "calls": 5076,
+      "errors": 0,
+      "noData": 515
+    }
+  },
+  "representative": {
+    "runId": "4783",
+    "calls": 2,
+    "maxCalls": 2,
+    "result": {
+      "symbol": "900290",
+      "corpCode": "01170962",
+      "taskFiscalYear": 2024,
+      "apiFiscalYear": 2024,
+      "reportCode": "11014",
+      "stored": false,
+      "context": {
+        "corpCode": "01170962",
+        "reportCode": "11014",
+        "fsDivision": "CFS",
+        "reportPeriod": "2024-03",
+        "selectedReceiptNo": "20240530000884",
+        "selectedCorrectionType": "ORIGINAL",
+        "sourceCorrectionType": "ORIGINAL",
+        "validationResult": "NON_KRW_STORAGE_UNSUPPORTED",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "returnedReceiptNos": [
+          "20240530000884"
+        ]
+      },
+      "stage": "REPRESENTATIVE_VERIFY",
+      "category": "DART_API",
+      "code": "DART_SOURCE_REVIEW",
+      "exceptionClass": "DartApiError",
+      "message": "REPRESENTATIVE_VERIFY: DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.",
+      "frames": [
+        "collector/dart-filing-validation.js:12:168",
+        "collector/dart-filing-validation.js:58:9"
+      ]
+    }
+  },
+  "financialDataWrites": 0,
+  "taskWrites": 0
+}
