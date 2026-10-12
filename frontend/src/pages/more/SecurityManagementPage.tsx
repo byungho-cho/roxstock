@@ -65,7 +65,7 @@ function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>
  </Stack></AppCard>
  {!!s.deleteBlockedReasons?.length&&<Typography sx={{fontSize:11,lineHeight:'16px',color:colors.textSecondary}}>{s.deleteBlockedReasons.join(' · ')}에서 사용 중 · 일반 정보 수정 가능<br/>사용 중인 종목은 삭제할 수 없습니다.</Typography>}
  {error&&!action&&<Typography role="alert" sx={{color:colors.error,fontSize:12}}>{error}</Typography>}
- <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,borderRadius:'8px',fontSize:12,bgcolor:colors.buttonPrimary,color:colors.textPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>정보 저장</Button></Stack>
+ <Stack direction="row" spacing="8px"><Button disabled={busy||!!s.deleteBlockedReasons?.length} variant="outlined" onClick={()=>openAction('delete')} sx={{flex:1,height:36,minHeight:36,borderRadius:'8px',borderColor:colors.border,color:colors.textSecondary,fontSize:12}}>종목 삭제</Button><Button disabled={busy} variant="contained" onClick={()=>void save()} sx={{flex:1,height:36,minHeight:36,borderRadius:'8px',fontSize:12,bgcolor:colors.buttonPrimary,color:colors.textPrimary,'&:hover':{bgcolor:colors.buttonPrimary}}}>정보 저장</Button></Stack>
  </Stack>
  <CollectionSettingsCard security={s}/>
  </Box>
