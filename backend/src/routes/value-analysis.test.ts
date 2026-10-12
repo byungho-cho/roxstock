@@ -3,10 +3,11 @@ import test from 'node:test';
 import { buildApp } from '../app.js';
 import { prisma } from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/index.js';
+const annual=(year:number)=>({fiscalYear:year,periodType:'ANNUAL',totalEquity:new Prisma.Decimal(10000),updatedAt:new Date(`${year}-12-31`)});
 test('whole-master year/search selection, actual total, missing last and error distinct from empty',async()=>{
  const original=prisma.security.findMany;let args:any;let fail=false;
- prisma.security.findMany=(async(input:any)=>{if(input.include)args=input;if(fail)throw new Error('database unavailable');return [ {id:2n,name:'미수집',symbol:'002',valuationMetrics:[],marketPrice:null}, {id:1n,name:'미등록 종목',symbol:'001',fundamentals:{updatedAt:new Date('2024-12-31T15:00:00Z'),issuedShares:new Prisma.Decimal(100)},marketPrice:{currentPrice:new Prisma.Decimal(10000),previousClosePrice:new Prisma.Decimal(9000),priceUpdatedAt:new Date()},valuationMetrics:[{metricDate:new Date('2024-12-31'),bps:new Prisma.Decimal(10000),roe:new Prisma.Decimal(10)}]}];}) as unknown as typeof original;
- const app=buildApp();try{const response=await app.inject('/api/value-analysis?year=2024&query=종목');assert.equal(response.statusCode,200);const data=response.json().data;assert.equal(data.total,2);assert.equal(data.rows[0].w,'1.2');assert.equal(data.rows[1].w,null);assert.equal(data.rows[0].requiredReturn,'8.0');assert.equal(data.rows[0].fairPrices[1].price,'12000');assert.equal(data.rows[0].excessEarnings,null);assert.equal(data.rows[0].issuedShares,null);assert.equal(data.rows[0].shareholderValue,null);assert.equal(data.rows[1].issuedShares,null);assert.equal(data.rows[1].eps,null);assert.equal(args.where.watchlistItems,undefined);assert.equal(args.where.accountId,undefined);assert.equal(args.where.OR[1].symbol.contains,'종목');assert.equal(args.include.valuationMetrics.where.metricDate.gte.toISOString(),'2024-01-01T00:00:00.000Z');assert.equal((await app.inject('/api/value-analysis?year=2025')).json().data.rows[0].issuedShares,null);assert.equal((await app.inject('/api/value-analysis?year=bad')).statusCode,400);fail=true;assert.equal((await app.inject('/api/value-analysis')).statusCode,500);fail=false;prisma.security.findMany=(async()=>[]) as unknown as typeof original;assert.equal((await app.inject('/api/value-analysis')).json().data.total,0);}finally{await app.close();prisma.security.findMany=original;}
+ prisma.security.findMany=(async(input:any)=>{if(input.include)args=input;if(fail)throw new Error('database unavailable');return [ {id:2n,name:'미수집',symbol:'002',valuationMetrics:[],marketPrice:null}, {id:1n,name:'미등록 종목',symbol:'001',financialStatements:[annual(2023)],fundamentals:{updatedAt:new Date('2024-12-31T15:00:00Z'),issuedShares:new Prisma.Decimal(100)},marketPrice:{currentPrice:new Prisma.Decimal(10000),previousClosePrice:new Prisma.Decimal(9000),priceUpdatedAt:new Date()},valuationMetrics:[{metricDate:new Date('2023-12-31'),bps:new Prisma.Decimal(10000),roe:new Prisma.Decimal(10)}]}];}) as unknown as typeof original;
+ const app=buildApp();try{const response=await app.inject('/api/value-analysis?year=2024&query=종목');assert.equal(response.statusCode,200);const data=response.json().data;assert.equal(data.total,2);assert.equal(data.rows[0].w,'1.2');assert.equal(data.rows[1].w,null);assert.equal(data.rows[0].requiredReturn,'8.0');assert.equal(data.rows[0].fairPrices[1].price,'12000');assert.equal(data.rows[0].excessEarnings,null);assert.equal(data.rows[0].issuedShares,null);assert.equal(data.rows[0].shareholderValue,null);assert.equal(data.rows[1].issuedShares,null);assert.equal(data.rows[1].eps,null);assert.equal(args.where.watchlistItems,undefined);assert.equal(args.where.accountId,undefined);assert.equal(args.where.OR[1].symbol.contains,'종목');assert.equal(args.include.valuationMetrics.where.metricDate.gte.toISOString(),'2023-01-01T00:00:00.000Z');assert.equal((await app.inject('/api/value-analysis?year=2025')).json().data.total,0);assert.equal((await app.inject('/api/value-analysis?year=bad')).statusCode,400);fail=true;assert.equal((await app.inject('/api/value-analysis')).statusCode,500);fail=false;prisma.security.findMany=(async()=>[]) as unknown as typeof original;assert.equal((await app.inject('/api/value-analysis')).json().data.total,0);}finally{await app.close();prisma.security.findMany=original;}
 });
 test('detail GET uses one repeatable-read snapshot, year metrics and requested stored periods',async()=>{
  const original=prisma.$transaction;let isolation:any;
@@ -18,7 +19,7 @@ test('detail GET uses one repeatable-read snapshot, year metrics and requested s
 test('financial cache shares concurrent loads but prices and W remain fresh', async () => {
  const original=prisma.security.findMany;let joins=0,price=10000;
  prisma.security.findMany=(async(input:any)=>{
-  if(input.include){joins++;await new Promise(resolve=>setTimeout(resolve,20));return [{id:1n,name:'종목',symbol:'001',financialStatements:[],dartFinancialFilings:[],valuationMetrics:[{metricDate:new Date('2026-01-01'),bps:new Prisma.Decimal(10000),roe:new Prisma.Decimal(10)}]}];}
+  if(input.include){joins++;await new Promise(resolve=>setTimeout(resolve,20));return [{id:1n,name:'종목',symbol:'001',financialStatements:[annual(2025)],dartFinancialFilings:[],valuationMetrics:[{metricDate:new Date('2025-12-31'),bps:new Prisma.Decimal(10000),roe:new Prisma.Decimal(10)}]}];}
   return [{id:1n,marketPrice:{currentPrice:new Prisma.Decimal(price),previousClosePrice:new Prisma.Decimal(9000),priceUpdatedAt:new Date()}}];
  }) as unknown as typeof original;
  const app=buildApp();try{
@@ -40,15 +41,15 @@ test('initial search filters full master without changing live-price or year sel
  }finally{await app.close();prisma.security.findMany=original;}
 });
 
-test('list excludes unused source JSON and historical quarters but retains annual fallback and current-year share basis',async()=>{
+test('list reads only selected/previous annual source evidence and historical share basis for verified totals',async()=>{
  const original=prisma.security.findMany;let join:any;
  prisma.security.findMany=(async(input:any)=>{if(input.include)join=input;return [];}) as any;
  const app=buildApp();try{
   assert.equal((await app.inject('/api/value-analysis?year=2025')).statusCode,200);
   assert.deepEqual(join.include.fundamentals,{select:{updatedAt:true,collectionSymbol:true,securityId:true}});
-  assert.deepEqual(join.include.dartFinancialFilings.omit,{accountSources:true});
-  assert.deepEqual(join.include.dartFinancialFilings.where.OR,[{fiscalYear:2025},{periodType:'ANNUAL'}]);
+  assert.equal(join.include.dartFinancialFilings.omit,undefined);
+  assert.equal(join.include.dartFinancialFilings.where.periodType,'ANNUAL');assert.deepEqual(join.include.dartFinancialFilings.where.fiscalYear,{gte:2024,lte:2025});
   assert.equal(join.include.dartFinancialFilings.where.isWithdrawn,false);
-  assert.equal(join.include.dartShareSnapshots.where.fiscalYear,2025);
+  assert.deepEqual(join.include.dartShareSnapshots.where.fiscalYear,{gte:2024,lte:2025});
  }finally{await app.close();prisma.security.findMany=original;}
 });

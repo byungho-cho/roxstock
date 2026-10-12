@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({expect:{timeout:15000},testDir:'./tests/targets',testMatch:['phase22.spec.ts','value-v04.spec.ts'],workers:2,retries:0,reporter:'list',outputDir:'test-results/phase22',use:{baseURL:'http://127.0.0.1:3022',locale:'ko-KR',timezoneId:'Asia/Seoul',screenshot:'only-on-failure',trace:'retain-on-failure'},projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}}],webServer:{command:'npm run dev -- --host 127.0.0.1 --port 3022',env:{VITE_DATA_SOURCE:'api'},url:'http://127.0.0.1:3022',reuseExistingServer:false}});
+
