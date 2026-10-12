@@ -1,3 +1,4 @@
+import {securityManagementRoutes} from './routes/security-management.js';
 import {investmentProfitRoutes} from './routes/investment-profit.js';
 import {recentBuysRoutes} from './routes/recent-buys.js';
 import { annualConsensusRoutes } from './routes/annual-consensus.js';
@@ -46,6 +47,7 @@ export function buildApp() {
     if (error instanceof ApiError) {
       return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message } });
     }
+    if(typeof error==='object'&&error&&'code' in error&&error.code==='P2002'&&'meta' in error&&(error.meta as {modelName?:string}|undefined)?.modelName==='Security')return reply.code(409).send({error:{code:'DUPLICATE_SECURITY_CODE',message:'이미 등록된 종목코드입니다.'}});
     app.log.error(error);
     return reply.code(500).send({
       error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' },
@@ -62,6 +64,7 @@ export function buildApp() {
   void app.register(investmentProfitRoutes, {prefix:'/api'});
   void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });
+  void app.register(securityManagementRoutes, {prefix:'/api'});
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });
   void app.register(priceRoutes, { prefix: '/api' });

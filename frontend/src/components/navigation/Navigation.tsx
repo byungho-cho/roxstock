@@ -63,7 +63,7 @@ const menuItems=appMenuItems.filter(item=>item.path!=='/');
 export function BottomNav() {
   const navigate = useNavigate(), location = useLocation();
   const path = location.pathname;
-  const active = path === '/trade' ? (location.state?.backgroundLocation?.pathname?.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks')
+  const active = path === '/detail/security-management' ? '/detail/settings' : path === '/trade' ? (location.state?.backgroundLocation?.pathname?.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks')
     : /\/stocks\/[^/]+\/value$/.test(path) ? '/detail/value'
     : /\/stocks\/[^/]+\/financials$/.test(path) ? '/detail/financials'
     : [...menuItems].sort((a,b)=>b.path.length-a.path.length).find(item=>path.startsWith(item.path))?.path

@@ -1,3 +1,4 @@
+const SecurityManagementPage=lazy(()=>import('./pages/more/SecurityManagementPage').then(m=>({default:m.SecurityManagementPage})));
 import { StockInputContext } from './pages/stocks/StockInputContext';
 import { RouteContent } from './components/common/RouteLoading';
 import {lazy,useCallback,useRef,useState} from 'react';
@@ -62,6 +63,7 @@ export function App() {
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="detail/security-management" element={<SecurityManagementPage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature/:stream" element={<CollectionMonitoringPage />} />

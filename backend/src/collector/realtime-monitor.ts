@@ -32,6 +32,11 @@ export const createRealtimeMonitor = (prisma: PrismaClient, token: string) => {
     assertLease() { return transaction(renew); },
     cycle(data: Parameters<NonNullable<Parameters<typeof runRealtimeCollector>[2]['monitor']>['cycle']>[0]) { return transaction(async (prisma) => {
     await renew(prisma);
+    if(data.results){
+      const count=(status:string)=>data.results!.filter(r=>r.status===status).length;
+      const run=await prisma.collectorRun.create({data:{jobType:'realtime-selected-prices',provider:'NAVER_REALTIME',status:count('FAILED')?(count('SUCCESS')?'PARTIAL':'FAILED'):count('SUCCESS')?'SUCCESS':'SKIPPED',startedAt:data.startedAt,finishedAt:data.finishedAt,successCount:count('SUCCESS'),failureCount:count('FAILED'),staleCount:count('STALE'),skippedCount:count('SKIPPED'),metadata:{scope:'SOURCE_TARGET_RESULTS',session:data.session}}});
+      if(data.results.length)await prisma.collectorRunItem.createMany({data:data.results.map(r=>({...r,runId:run.id,createdAt:data.finishedAt}))});
+    }
     const minute = new Date(Math.floor(data.startedAt.getTime() / 60_000) * 60_000);
     const counts = { cycleCount: 1, targetCount: data.targetCount, receivedCount: data.receivedCount, sourceFailureCount: data.sourceFailureCount, staleCount: data.staleCount,
       publishedCount: data.publishedCount, publishFailureCount: data.publishFailureCount, savedCount: data.savedCount, saveFailureCount: data.saveFailureCount, lastCycleFinishedAt: data.finishedAt };

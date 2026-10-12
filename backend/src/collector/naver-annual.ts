@@ -1,3 +1,4 @@
+import {collectionFetch,CollectionExcluded} from './collection-policy.js';
 import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
 import { Prisma } from '../generated/prisma/index.js';
 import { metricKeys, type MetricValues } from '../domain/period-valuation.js';
@@ -62,10 +63,10 @@ export class NaverAnnualProvider {
  private async text(url:string,referer?:string){
   for(let attempt=0;attempt<2;attempt++){
    try{
-    const response=await this.fetcher(url,{headers:{accept:'text/html',...(referer?{referer}:{})},signal:AbortSignal.timeout(30000)});
+    const response=await collectionFetch(this.fetcher,'valuation')(url,{headers:{accept:'text/html',...(referer?{referer}:{})},signal:AbortSignal.timeout(30000)});
     if(!response.ok)throw new NaverAnnualError(response.status===429?'NAVER_RATE_LIMIT':response.status===401?'NAVER_AUTH':response.status===403?'NAVER_PERMISSION':'NAVER_HTTP');
     const body=await response.text();if(body.length>2_000_000)throw new NaverAnnualError('NAVER_RESPONSE_TOO_LARGE');return body;
-   }catch(error){if(error instanceof NaverAnnualError)throw error;if(attempt===0)continue;throw new NaverAnnualError('NAVER_COMMUNICATION');}
+   }catch(error){if(error instanceof CollectionExcluded)throw error;if(error instanceof NaverAnnualError)throw error;if(attempt===0)continue;throw new NaverAnnualError('NAVER_COMMUNICATION');}
   }
   throw new NaverAnnualError('NAVER_COMMUNICATION');
  }

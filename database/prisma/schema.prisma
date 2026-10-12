@@ -103,7 +103,14 @@ model Account {
 
 model Security {
   id                     BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  symbol                 String                  @db.VarChar(20)
+  symbol                 String                  @db.VarChar(20) @unique
+  registrationSource     String                  @default("UNKNOWN") @map("registration_source") @db.VarChar(20)
+  collectionExcluded     Boolean                 @default(false) @map("collection_excluded")
+  excludedFeatures       Json?                   @map("excluded_features")
+  collectionRevision     Int                     @default(0) @map("collection_revision")
+  codeRevision           Int                     @default(0) @map("code_revision")
+  codeChangedAt          DateTime?               @map("code_changed_at") @db.DateTime(3)
+  codeHistory            SecurityCodeHistory[]
   name                   String                  @db.VarChar(100)
   marketType             MarketType              @map("market_type")
   listingYear            Int?                    @map("listing_year") @db.UnsignedSmallInt
@@ -241,6 +248,7 @@ model RealtimeCollectorIssue {
 }
 
 model DartCorpMapping {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   securityId       BigInt   @id @map("security_id") @db.UnsignedBigInt
   corpCode         String   @unique @map("corp_code") @db.Char(8)
   stockCode        String   @unique @map("stock_code") @db.Char(6)
@@ -335,6 +343,7 @@ model DartDailyCompanyCheck {
 }
 
 model DartFinancialFiling {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   sourceValidation Json? @map("source_validation")
   normalizationVersion Int @default(1) @map("normalization_version")
   id                     BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
@@ -503,6 +512,7 @@ model Dividend {
 }
 
 model MarketPrice {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   securityId         BigInt   @id @map("security_id") @db.UnsignedBigInt
   currentPrice       Decimal  @map("current_price") @db.Decimal(19, 4)
   previousClosePrice Decimal? @map("previous_close_price") @db.Decimal(19, 4)
@@ -550,6 +560,7 @@ model DailyPositionSnapshot {
 }
 
 model FinancialStatement {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   id                 BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
   securityId         BigInt              @map("security_id") @db.UnsignedBigInt
   fiscalYear         Int                 @map("fiscal_year") @db.UnsignedSmallInt
@@ -572,6 +583,7 @@ model FinancialStatement {
 }
 
 model ValuationMetric {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   id               BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
   securityId       BigInt   @map("security_id") @db.UnsignedBigInt
   metricDate       DateTime @map("metric_date") @db.Date
@@ -592,6 +604,7 @@ model ValuationMetric {
 }
 
 model SecurityFundamentals {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   securityId        BigInt   @id @map("security_id") @db.UnsignedBigInt
   controllingProfit Decimal? @map("controlling_profit") @db.Decimal(24, 0)
   issuedShares      Decimal? @map("issued_shares") @db.Decimal(24, 0)
@@ -604,6 +617,7 @@ model SecurityFundamentals {
 }
 
 model DartShareSnapshot {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
   securityId BigInt @map("security_id") @db.UnsignedBigInt
   fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
@@ -673,6 +687,7 @@ model DartReportCache {
   @@map("dart_report_cache")
 }
 model PeriodValuation {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   securityId BigInt @map("security_id") @db.UnsignedBigInt
   fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
   periodType String @map("period_type") @db.VarChar(10)
@@ -691,6 +706,7 @@ model PeriodValuation {
 }
 
 model AnnualConsensusSnapshot {
+  collectionSymbol String? @map("collection_symbol") @db.VarChar(20)
   id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
   securityId BigInt @map("security_id") @db.UnsignedBigInt
   fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
@@ -726,4 +742,18 @@ model InvestmentYearAggregate {
  account Account @relation(fields:[accountId], references:[id], onDelete:Cascade)
  @@id([accountId,year])
  @@map("investment_year_aggregates")
+}
+
+// Immutable preservation copy made before a user code correction. Existing rows stay linked to the same ID.
+model SecurityCodeHistory {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId BigInt @map("security_id") @db.UnsignedBigInt
+  previousSymbol String @map("previous_symbol") @db.VarChar(20)
+  newSymbol String @map("new_symbol") @db.VarChar(20)
+  codeRevision Int @map("code_revision")
+  preservedData Json @map("preserved_data")
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  security Security @relation(fields:[securityId],references:[id],onDelete:Restrict)
+  @@index([securityId,codeRevision])
+  @@map("security_code_history")
 }

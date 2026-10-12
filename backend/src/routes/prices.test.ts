@@ -1,3 +1,4 @@
+import {prisma} from '../lib/prisma.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import Fastify from 'fastify';
@@ -7,11 +8,12 @@ import { internalPriceRoutes } from './prices.js';
 test('internal realtime ingestion requires token and accepts valid prices', async () => {
   const priorToken = process.env.COLLECTOR_INTERNAL_TOKEN;
   process.env.COLLECTOR_INTERNAL_TOKEN = 'test-secret';
+  const transaction=prisma.$transaction;prisma.$transaction=(async(fn:any)=>fn({$queryRaw:async()=>[],security:{findUnique:async()=>({id:99n,symbol:'123456',isActive:true,collectionRevision:0,collectionExcluded:false,excludedFeatures:[]})}})) as any;
   const app = Fastify();
   await app.register(internalPriceRoutes);
 
   const body = { prices: [{
-    securityId: '99', symbol: '123456', name: 'Test', currentPrice: '1234', previousClosePrice: '1200',
+    securityId: '99',collectionRevision:0, symbol: '123456', name: 'Test', currentPrice: '1234', previousClosePrice: '1200',
     observedAt: '2026-09-28T01:00:00.000Z', marketStatus: 'OPEN',
   }] };
   const unauthorized = await app.inject({ method: 'POST', url: '/internal/realtime-prices', payload: body });
@@ -25,7 +27,7 @@ test('internal realtime ingestion requires token and accepts valid prices', asyn
   assert.deepEqual(accepted.json(), { data: { accepted: 1 } });
   assert.equal(realtimePriceCache.get(new Set(['123456']))[0]?.currentPrice, '1234');
 
-  await app.close();
+  await app.close();prisma.$transaction=transaction;
   if (priorToken === undefined) delete process.env.COLLECTOR_INTERNAL_TOKEN;
   else process.env.COLLECTOR_INTERNAL_TOKEN = priorToken;
 });
