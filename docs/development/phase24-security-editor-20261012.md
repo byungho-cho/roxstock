@@ -38,3 +38,6 @@ Z99 자동 제외는 스위치로 해제 불가. DART/UNKNOWN 코드 읽기 전�
 프론트/백엔드 타입·빌드, 백엔드 회귀212건, 실제 격리 MariaDB API 통합, 커버/태블릿 화면20건 통과. 실제 DB는 전체/개별 저장·중간 실패 rollback·동시 전체 변경/조회·기존 API 호환·자료/연결 보호를 확인했다. 브라우저는 통제한 API 응답으로 실패/유실/재조회 실패/취소/중복 클릭/새로고침/줄바꿈을 확인했다. 두 검증을 운영 데이터 검증으로 혼동하지 않는다.
 
 최종 캡처·실측·CI 결과와 미검증 범위는 [24차 QA](../qa/phase24-security-editor-20261012.md). Android/WebView/실기기 터치·키보드는 미검증. 병합/운영 배포는 별도 지시 대상.
+
+
+최종 검증 코드 `7ab7724`: [백엔드 CI](https://github.com/byungho-cho/roxstock/actions/runs/38247697750), [프론트 CI](https://github.com/byungho-cho/roxstock/actions/runs/38247697647), [종목관리 화면 CI](https://github.com/byungho-cho/roxstock/actions/runs/38247698194) 통과. UI 기존14건+24차20건, backend212건 및 실제 격리 MariaDB 통합 확인. 후속 검증 기록 커밋은 문서/근거만 변경한다.

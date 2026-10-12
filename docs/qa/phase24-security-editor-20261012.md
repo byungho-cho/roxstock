@@ -10,7 +10,7 @@
 | 백엔드 기존 회귀 | 212/212 통과 |
 | 24차 브라우저 | Chrome, production API-mode preview, 커버370×465·태블릿725×396, 20/20 통과 |
 | 실제 DB | 로컬 MariaDB / 독립 `roxstock_phase24_test`, 기존 21개 migration 적용 후 Fastify API 통합 통과. 운영/일상 DEV DB 쓰기 없음 |
-| PR CI | 제출 후 실행 기록을 아래에 추가 |
+| PR CI | 검증 코드 `7ab7724`의 Frontend Check·Backend Check·Phase23 UI 통과. 기록은 아래 |
 
 ## 요구별 확인
 
@@ -39,3 +39,15 @@ Figma REVIEW의 전체 콘텐츠 높이를 서비스 높이에 적용하지 않�
 ## 미검증·제출 범위
 
 실제 Android/WebView·실기기 터치/키보드는 미검증. 운영 변경/수집/마이그레이션/배포 검증은 수행하지 않았다. PR 초안 유지, 자동 병합 비활성, main/#137 변경 없음. 병합/운영 배포는 별도 지시 후 진행한다.
+
+
+## 최종 CI 실행 기록
+
+검증한 코드: `7ab77246fe6e64b6439bd911b474dfbd25d1ce4e`. 이 기록을 추가하는 후속 커밋은 문서/근거만 변경한다.
+
+- [Frontend Check 38247697647](https://github.com/byungho-cho/roxstock/actions/runs/38247697647): 통과.
+- [Backend Check 38247697750](https://github.com/byungho-cho/roxstock/actions/runs/38247697750): 타입·빌드·212건 회귀, CI 격리 MariaDB API·원자성·rollback·호환성·자료 보존 통과. 서버·DB 오류 주입 경로도 안전한 API 오류로 응답하고 실제 저장 상태를 rollback했다.
+- [종목관리 UI 38247698194](https://github.com/byungho-cho/roxstock/actions/runs/38247698194): 기존23차14건 + 24차20건 = 34건 통과, CI Chromium. 캡처는 로컬 Chrome 실행에서 보존했다.
+- 로컬 backend `/health`와 종목관리 GET 모두200. 쓰기 검증은 위 격리 DB만 사용했다.
+
+CI 관련 JSON은 실측 근거 파일에 기록한다. PR 전체 gate와 타 화면 workflow의 상태는 PR Checks에서 확인하며 이 결과를 자동 병합 승인으로 사용하지 않는다.
