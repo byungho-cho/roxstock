@@ -71,7 +71,7 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   await policy(manual.id,'ALL',true);for(const f of collectionFeatures)await assert.rejects(withCollection(prisma,manual.id,f,()=>network('https://example.invalid')),CollectionExcluded);assert.equal(calls,0);
   const repository=new PrismaCollectorRepository(prisma);
   const provider={name:'phase23-ci',fetchPrice:async()=>{calls++;throw Error('Excluded provider must never be called');}};
-  const batch=await collectPrices(repository,provider,{delayMs:0,lockTtlSeconds:30,symbols:[manual.symbol]});runs.push(batch.runId);assert.equal(batch.status,'SKIPPED');
+  const batch=await collectPrices(repository,provider,{delayMs:0,lockTtlSeconds:30,symbols:[manual.symbol]});runs.push(batch.runId);assert.equal(batch.status,'SUCCESS');assert.equal(batch.success,0);assert.equal(batch.skipped,1);
   const cycle=await collectRealtimeCycle([manual],provider,new Map(),1,async()=>{},async()=>{},()=>{},repository.withTarget.bind(repository));assert.equal(cycle.results?.[0]?.status,'SKIPPED');assert.equal(calls,0);
   assert.equal((await prisma.collectorRunItem.count({where:{runId:run.id,status:'FAILED'}})),1);
   await assert.rejects(enqueueManualRefresh(prisma,manual.id,parseManualRefresh({fiscalYear:2025,period:'ANNUAL'})),{code:'COLLECTION_EXCLUDED'});

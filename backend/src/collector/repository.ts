@@ -22,6 +22,7 @@ export class PrismaCollectorRepository implements CollectorRepository {
   withTarget<T>(target:SecurityTarget,feature:CollectionFeature,work:()=>Promise<T>){return withCollection(this.prisma,target.id,feature,work,target);}
 
   async acquireLock(jobName: string, ownerToken: string, ttlSeconds: number): Promise<boolean> {
+    if (jobName === 'market-prices') return this.acquirePriceLock(ownerToken, ttlSeconds);
     const changed = await this.prisma.$executeRaw`
       INSERT INTO collector_locks (job_name, owner_token, locked_until, created_at, updated_at)
       VALUES (${jobName}, ${ownerToken}, DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
@@ -37,6 +38,32 @@ export class PrismaCollectorRepository implements CollectorRepository {
     return rows[0]?.owner_token === ownerToken;
   }
 
+  private async acquirePriceLock(ownerToken: string, ttlSeconds: number): Promise<boolean> {
+    return this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`INSERT IGNORE INTO collector_locks (job_name,owner_token,locked_until,created_at,updated_at) VALUES ('market-prices',${ownerToken},DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))`;
+      const [lease] = await tx.$queryRaw<Array<{owner_token:string;expired:number}>>`SELECT owner_token,locked_until <= UTC_TIMESTAMP(3) AS expired FROM collector_locks WHERE job_name='market-prices' FOR UPDATE`;
+      if (!lease) throw new Error("COLLECTOR_LOCK_MISSING");
+      if (lease.owner_token === ownerToken) return true;
+      if (!lease.expired) return false;
+      // Only the expired lease's proven owner is recovered. Unknown historical owners are not guessed.
+      const interrupted = await tx.collectorRun.findMany({where:{jobType:'market-prices',status:'RUNNING',metadata:{path:'$.owner',equals:lease.owner_token}}});
+      for (const run of interrupted) {
+        const counts = await tx.collectorRunItem.groupBy({where:{runId:run.id},by:['status'],_count:{_all:true}});
+        const byStatus = Object.fromEntries(counts.map(row=>[row.status,row._count._all]));
+        await tx.collectorRun.update({where:{id:run.id},data:{status:'FAILED',finishedAt:new Date(),successCount:byStatus.SUCCESS??0,failureCount:byStatus.FAILED??0,staleCount:byStatus.STALE??0,skippedCount:byStatus.SKIPPED??0,
+          failureReason:'COLLECTOR_LEASE_EXPIRED: expired owner lease; completion was not recorded',
+          metadata:{...(run.metadata as Record<string,Prisma.InputJsonValue> ?? {}),recovery:{reason:'EXPIRED_OWNER_LEASE',originalStatus:run.status,originalFinishedAt:null,originalFailureReason:run.failureReason,originalCounters:{success:run.successCount,failed:run.failureCount,stale:run.staleCount,skipped:run.skippedCount},recoveredAt:new Date().toISOString()}}}});
+      }
+      await tx.$executeRaw`UPDATE collector_locks SET owner_token=${ownerToken},locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND),updated_at=UTC_TIMESTAMP(3) WHERE job_name='market-prices'`;
+      return true;
+    });
+  }
+
+  async renewLock(jobName: string, ownerToken: string, ttlSeconds: number): Promise<boolean> {
+    const changed = await this.prisma.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND), updated_at=UTC_TIMESTAMP(3) WHERE job_name=${jobName} AND owner_token=${ownerToken} AND locked_until > UTC_TIMESTAMP(3)`;
+    return changed === 1;
+  }
+
   async releaseLock(jobName: string, ownerToken: string): Promise<void> {
     await this.prisma.collectorLock.deleteMany({ where: { jobName, ownerToken } });
   }
@@ -50,8 +77,8 @@ export class PrismaCollectorRepository implements CollectorRepository {
   }
 
   async finishRun(runId: bigint, status: CollectorRunStatus, counters: RunCounters, failureReason?: string): Promise<void> {
-    await this.prisma.collectorRun.update({
-      where: { id: runId },
+    await this.prisma.collectorRun.updateMany({
+      where: { id: runId, status: 'RUNNING' },
       data: {
         status,
         finishedAt: new Date(),
@@ -76,9 +103,14 @@ export class PrismaCollectorRepository implements CollectorRepository {
       FROM collector_runs
       WHERE job_type = 'market-prices'
         AND status IN ('SUCCESS', 'PARTIAL', 'SKIPPED')
+        AND NOT EXISTS (SELECT 1 FROM collector_run_items i WHERE i.run_id=collector_runs.id AND i.message='another execution holds the collector lock')
         AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.scheduleDate')) = ${scheduleDate}
     `;
     return Number(rows[0]?.count ?? 0) > 0;
+  }
+
+  async listPriceTargets(): Promise<SecurityTarget[]> {
+    return this.prisma.security.findMany({where:{isActive:true},select:{id:true,symbol:true,name:true,collectionRevision:true},orderBy:{id:'asc'}});
   }
 
   async listActiveSecurities(): Promise<SecurityTarget[]> {
