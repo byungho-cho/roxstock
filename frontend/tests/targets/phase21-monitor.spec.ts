@@ -29,7 +29,7 @@ for(const total of [0,1,3])test(`summary shows exactly ${total} rows with adapti
  expect(colors).toEqual([['rgb(248, 250, 252)','rgb(248, 250, 252)'],['rgb(52, 211, 153)','rgb(52, 211, 153)'],['rgb(248, 113, 113)','rgb(248, 113, 113)'],['rgb(242, 247, 252)','rgb(242, 247, 252)']]);
  if(total)expect(await page.getByTestId('monitor-run-row').first().locator('p').evaluateAll(ns=>ns.map(n=>getComputedStyle(n).color))).toEqual(Array(3).fill('rgb(251, 191, 36)'));
  const heights={history:(await page.getByTestId('monitor-history-data').boundingBox())!.height,targets:(await page.getByTestId('monitor-results-data').boundingBox())!.height};
- writeFileSync(info.outputPath(`summary-${total}.json`),JSON.stringify({viewport:page.viewportSize(),total,heights,reads},null,2));
+ writeFileSync(info.outputPath(`summary-${total}.json`),JSON.stringify({viewport:page.viewportSize(),total,heights,reads:f.reads},null,2));
  await page.screenshot({path:info.outputPath(`summary-${total}.png`)});
 });
 for(const stream of ['runs','items'])for(const total of [0,49,50,51,105])test(`${stream} ${total}: server requests exactly fifty and append without nested scrolling`,async({page},info)=>{
@@ -44,7 +44,7 @@ for(const stream of ['runs','items'])for(const total of [0,49,50,51,105])test(`$
  expect(await page.locator('main').evaluate(n=>getComputedStyle(n).overflowY)).toBe('auto');
  if(stream==='items' && total){await rows.first().locator('summary').click();await expect(rows.first()).toContainText('상세 끝');}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- writeFileSync(info.outputPath(`pages-${stream}-${total}.json`),JSON.stringify({viewport:page.viewportSize(),total,reads},null,2));
+ writeFileSync(info.outputPath(`pages-${stream}-${total}.json`),JSON.stringify({viewport:page.viewportSize(),total,reads:f.reads},null,2));
  if(total===105)await page.screenshot({path:info.outputPath(`detail-${stream}.png`)});
 });
 test('duplicate more clicks, failed append retry and filters reset independently',async({page})=>{
