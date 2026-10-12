@@ -12,11 +12,38 @@ const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID()
 const version='DART_SOURCE_V2',maxCalls=12;
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 const emit=(event:string,value:unknown)=>console.log(JSON.stringify({event,data:value},(_k,v)=>typeof v==='bigint'?String(v):v));
-let locked=false,calls=0,runId:bigint|undefined;
+let locked=false,calls=0,runId:bigint|undefined,runVersion=version,runMaxCalls=maxCalls;
 try {
  const mode=process.argv[2]??'audit';
- if(!['audit','representative'].includes(mode))throw new DartApiError('INVALID_MODE','Audit or representative mode required');
+ if(!['audit','representative','grt-q3'].includes(mode))throw new DartApiError('INVALID_MODE','Audit or representative mode required');
  const baseline=await auditDartReceipts(db);emit('DART receipt read-only audit',baseline);
+ if(mode==='grt-q3'){
+  if(process.env.DART_RECEIPT_RETRY_ALLOWED!==version)throw new DartApiError('RETRY_NOT_AUTHORIZED','Explicit bounded verification required');
+  locked=await repo.acquireLock(owner,900);if(!locked)throw new DartApiError('COLLECTOR_BUSY','Wait for active collector');
+  const marker='DART_SOURCE_V2_GRT_Q3';runVersion=marker;runMaxCalls=2;
+  const prior=await db.collectorRun.findFirst({where:{jobType:'dart-receipt-verification',metadata:{path:'$.version',equals:marker}}});
+  if(prior)emit('DART GRT Q3 already attempted',{runId:String(prior.id),calls:0});
+  else{
+   const config=loadCollectorConfig(),limit=config.dartBackfillDailyCallLimit,usage=await repo.getDailyUsage();
+   if((usage?.apiCallCount??0)+2>limit)throw new DartApiError('DAILY_CALL_LIMIT','Verification budget unavailable',false,true);
+   runId=(await db.collectorRun.create({data:{jobType:'dart-receipt-verification',provider:'OPEN_DART',status:'RUNNING',metadata:{version:marker,maxCalls:2,readOnlyFinancialData:true,priorUsage:usage?.apiCallCount??0}}})).id;
+   const provider=new OpenDartProvider({apiKey:process.env.DART_API_KEY?.trim()??'',dailyCallLimit:limit,minDelayMs:Math.max(config.dartBackfillMinDelayMs,config.dartMinDelayMs),reserveCall:async l=>{if(calls>=2)throw new DartApiError('REPRESENTATIVE_CALL_LIMIT','Two-call cap',false,true);if(!await repo.reserveApiCall(l,new Date(),owner))return false;calls++;return true;},onApiStatus:status=>repo.recordApiResult(status==='013'?'NO_DATA':'ERROR')});
+   let result:Record<string,unknown>={symbol:'900290',corpCode:'01170962',taskFiscalYear:2024,apiFiscalYear:2024,reportCode:'11014',stored:false};
+   try{
+    const report=(await provider.listPeriodicReports('01170962',2024)).find(r=>r.reportCode==='11014');
+    if(!report)throw new DartApiError('NO_PERIODIC_FILING','No Q3 candidate');
+    requireDartReportPeriod(report,'01170962',2024);
+    // CFS is the previously observed representative response. No OFS fallback can exceed the 2-call budget.
+    const rows=await provider.fetchFinancials('01170962',2024,'11014','CFS');
+    const source=validateDartFiling({corpCode:'01170962',taskFiscalYear:2024,report,rows,fsDivision:'CFS'});
+    result={...result,source:source.sourceValidation,validation:'VERIFIED'};
+   }catch(e){result={...result,...dartDiagnostic(e,'REPRESENTATIVE_VERIFY')};}
+   emit('DART GRT Q3 result',result);
+   await repo.finishRun(runId,result.code?'PARTIAL':'SUCCESS',{success:result.validation==='VERIFIED'?1:0,failed:result.code?1:0,skipped:1},undefined,{version:marker,calls,maxCalls:2,result,readOnlyFinancialData:true});
+   emit('DART GRT Q3 summary',{runId:String(runId),calls,maxCalls:2,result});
+   emit('DART receipt post-verification audit',await auditDartReceipts(db));
+  }
+ }
  if(mode==='representative'){
   if(process.env.DART_RECEIPT_RETRY_ALLOWED!==version)throw new DartApiError('RETRY_NOT_AUTHORIZED','Explicit bounded representative execution required');
   locked=await repo.acquireLock(owner,900);if(!locked)throw new DartApiError('COLLECTOR_BUSY','Wait for active collector');
@@ -85,5 +112,5 @@ try {
    emit('DART receipt post-verification audit',await auditDartReceipts(db));
   }
  }
-}catch(error){emit('DART verification stopped',{calls,...dartDiagnostic(error,'REPRESENTATIVE_VERIFY')});if(runId)await repo.finishRun(runId,'FAILED',{success:0,failed:1,skipped:0},dartDiagnostic(error,'REPRESENTATIVE_VERIFY').code,{version,calls,maxCalls,allFailuresResolved:false});process.exitCode=1;}
+}catch(error){emit('DART verification stopped',{calls,...dartDiagnostic(error,'REPRESENTATIVE_VERIFY')});if(runId)await repo.finishRun(runId,'FAILED',{success:0,failed:1,skipped:0},dartDiagnostic(error,'REPRESENTATIVE_VERIFY').code,{version:runVersion,calls,maxCalls:runMaxCalls,allFailuresResolved:false});process.exitCode=1;}
 finally{if(locked)try{await repo.releaseLock(owner);}catch(e){emit('DART verification lock release failed',dartDiagnostic(e,'LOCK_RELEASE'));process.exitCode=1;}await db.$disconnect();}
