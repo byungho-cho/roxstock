@@ -69,18 +69,17 @@ export function installPageBootstrap(app: FastifyInstance) {
         }
         const dashboardPromise = loadDashboard(accountId, portfolio);
         // Secondary failures do not turn valid account balances into an error.
-        const [dashboard, trend, targets, recent] = await Promise.all([
+        const [dashboard, targets, recent] = await Promise.all([
           dashboardPromise,
-          dashboardPromise.then(result => homeTrend(accountId, result.data, today)).catch(() => null),
           portfolio.then(position => targetArrivalsResult(position.account)).catch(() => null),
           portfolio.then(position => {
             const lots = [...position.account.buyTrades].sort((a, b) => b.boughtAt.getTime() - a.boughtAt.getTime() || (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
             return recentBuysResult(lots.slice(0, 5), lots.length, accountId, 0);
           }).catch(() => null),
         ]);
-        return { ...base, dashboard: dashboard.data, trend, targets, recent };
+        return { ...base, dashboard: dashboard.data, targets, recent };
       });
-      if ('trend' in result.value && (result.value.trend === null || result.value.targets === null || result.value.recent === null)) cache.delete(cacheKey);
+      if ('targets' in result.value && (result.value.targets === null || result.value.recent === null)) cache.delete(cacheKey);
       reply.header('Cache-Control', 'private, no-store');
       reply.header('X-Page-Cache', result.status);
       return { data: result.value };

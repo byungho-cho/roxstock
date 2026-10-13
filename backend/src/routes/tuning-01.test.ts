@@ -60,7 +60,7 @@ test('page endpoints select accounts, reuse one position read, cache and invalid
     assert.equal(first.json().data.dashboard.totalAssetValue,'100');
     assert.equal(first.json().data.recent.meta.count,0);
     assert.equal(first.json().data.targets.meta.total,0);
-    assert.equal(first.json().data.trend.data.at(-1).totalAssetValue,'100');
+    assert.equal(first.json().data.trend,undefined);
     assert.equal(positions,1);
     assert.equal((await app.inject('/api/pages/home')).headers['x-page-cache'],'HIT');
     await app.inject({method:'POST',url:'/api/pages/read',payload:{paths:['/accounts']}});

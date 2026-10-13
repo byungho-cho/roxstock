@@ -45,7 +45,7 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
       if (currentGeneration === generation.current) { lock.current = false; setMoreBusy(false); }
     }
   };
-  return <HomeListCard stable pending={!report&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={report ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={moreError ? <Button size="small" onClick={() => void more()}>추가 조회 실패 · 재시도</Button> : failed&&report ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void retry()}>재시도</Button></> : undefined} updating={query.isFetching} moreDisabled={moreBusy} more={view?.more ? () => void more() : undefined} height={290 + Math.max(0, rows.length-5)*43}>
+  return <HomeListCard stable pending={!report&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={report ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={moreError ? <Button size="small" onClick={() => void more()}>추가 조회 실패 · 재시도</Button> : failed&&report ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void retry()}>재시도</Button></> : undefined} updating={query.isFetching} moreDisabled={moreBusy} more={view?.more ? () => void more() : undefined} height="auto">
     {failed && !report && <HomeEmpty>최근 매수 조회 실패{report && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void retry(); void accounts.refetch(); }}>재시도</Button></HomeEmpty>}
     {!report && !failed && (accountId || accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {!failed && report && rows.length === 0 && <HomeEmpty />}

@@ -1,0 +1,35 @@
+import {test,expect} from '@playwright/test';
+import {fixture} from './phase28-fixture';
+const content=(page:any)=>page.getByTestId('stock-detail-content');
+test('annual realized plus net dividends, zero denominator and scoped accounts/stocks',async({page},info)=>{
+ await fixture(page);await page.goto('/stocks/1?detailTab=summary');
+ const annual=content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'});
+ await expect(annual).toContainText('+230원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('+23.0%');await expect(annual.getByTestId('holding-summary-center')).toHaveCSS('color','rgb(248, 113, 113)');await page.screenshot({path:info.outputPath('summary-after.png')});
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(annual).toContainText('-170원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('-17.0%');
+ await page.goto('/stocks/3?detailTab=summary');await expect(content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'})).toContainText('0원');await expect(content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'}).getByTestId('holding-summary-center')).toHaveText('—');
+});
+test('all 160 buy and sell trades across years arrive in one scoped request, no more button',async({page},info)=>{
+ const f=await fixture(page);await page.goto('/stocks/1?detailTab=trades');await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(80);await expect(content(page).locator('[data-testid^="buy-"]')).toHaveCount(80);await expect(content(page).getByTestId('trade-year-2024')).toContainText('80건');await expect(content(page).getByText('이전 연도 더보기')).toHaveCount(0);expect(f.reads.filter(p=>p.includes('/trades?')&&p.includes('securityId=1'))).toHaveLength(1);await page.screenshot({path:info.outputPath('trades-after.png')});
+ await page.goto('/stocks/3?detailTab=trades');await expect(content(page)).toContainText('내용이 없습니다.');await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(0);
+});
+test('late stock response never replaces selected stock trades',async({page})=>{
+ const f=await fixture(page);f.hold();await page.goto('/stocks/2?detailTab=trades');await page.goto('/stocks/3?detailTab=trades');await expect(content(page)).toContainText('내용이 없습니다.');f.release();await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(0);
+});
+test('home replaces chart without requests; rows use 4px; dashboard and settings navigation',async({page},info)=>{
+ const f=await fixture(page);await page.goto('/');await expect(page.getByTestId('asset-performance-card')).toContainText('평가손익');await expect(page.getByTestId('home-trend-card')).toHaveCount(0);expect(f.reads.filter(p=>p.includes('asset-history'))).toHaveLength(0);
+ for(const id of ['home-holding','recent-buy-lot']){const row=page.getByTestId(id).first();await expect(row).toBeAttached();expect(await row.evaluate(n=>[getComputedStyle(n).paddingTop,getComputedStyle(n).paddingBottom,getComputedStyle(n.firstElementChild!).rowGap])).toEqual(['4px','4px','4px']);}await page.screenshot({path:info.outputPath('home-after.png')});
+ const before=await page.getByTestId('recent-buy-lot').first().elementHandle();await page.getByTestId('recent-buys-card').getByRole('button',{name:'더보기'}).click();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(7);expect(await before!.evaluate(n=>n.isConnected)).toBe(true);
+ await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'대시보드',exact:true}).click();await expect(page.getByRole('heading',{name:'대시보드',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'대시보드',exact:true})).toHaveAttribute('aria-current','page');await expect(page.getByTestId('asset-overview').getByTestId('asset-performance-card')).toBeVisible();await expect(page.getByTestId('asset-overview').getByText('예수금',{exact:true})).toHaveCount(0);await page.screenshot({path:info.outputPath('dashboard-after.png')});
+ await page.goto('/detail/settings');await page.getByRole('button',{name:/수집 모니터링 수집 결과/}).click();await expect(page).toHaveURL(/collection-monitoring/);await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/detail\/settings/);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+test('table pairs snapshot evaluation/investment, missing dates stay empty, chart stays live',async({page},info)=>{
+ await fixture(page);await page.goto('/detail/compound?view=goal&plan=1&goal=1');const table=page.getByRole('table',{name:'연도별 평가금액과 투자금액 및 목표금액'});await expect(table.getByRole('columnheader')).toHaveText(['연도','평가금액','투자금액','목표금액']);await expect(page.getByTestId('compound-year-2024').getByRole('cell').nth(2)).toHaveText('0원');await expect(page.getByTestId('compound-year-2025').getByRole('cell').nth(1)).toHaveText('—');await expect(page.getByTestId('compound-year-2026')).toHaveAttribute('title','평가·투자 기준일 2026-10-12');await expect(page.getByTestId('compound-year-2026').getByRole('cell').nth(1)).toHaveText('1,234,567,890,123원');await expect(page.getByTestId('compound-realized-2026')).toHaveCount(1);await table.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('compound-after.png')});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('year boundary resets annual profit without replacing current valuation',async({page})=>{
+ await fixture(page);await page.goto('/stocks/1?detailTab=summary');const annual=content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'});await expect(annual).toContainText('+230원');await page.clock.setFixedTime(new Date('2027-01-01T00:00:00Z'));await page.waitForTimeout(1100);await expect(annual).toContainText('0원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('—');
+});
+test('record previous main screens',async({page},info)=>{
+ test.skip(!process.env.PHASE28_BASELINE_URL,'baseline preview is supplied in CI');await fixture(page);
+ for(const [name,path,ready] of [['summary','/stocks/1?detailTab=summary','stock-annual-profit'],['trades','/stocks/1?detailTab=trades','trade-year-2026'],['home','/','home-holdings-card'],['dashboard','/detail/assets','asset-overview'],['compound','/detail/compound?view=goal&plan=1&goal=1','compound-year-2026']] as const){await page.goto(process.env.PHASE28_BASELINE_URL+path);await expect(page.getByTestId(ready)).toBeAttached();await page.screenshot({path:info.outputPath(name+'-before.png')});}
+});
