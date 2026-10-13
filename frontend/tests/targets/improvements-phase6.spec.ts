@@ -57,7 +57,9 @@ test('summary defers holding lots and stock trade detail; profit detail loads an
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  await page.getByRole('tab',{name:'보유 현황',exact:true}).click();await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/buy-lots')).length).toBeGreaterThan(0);
  await page.getByRole('tab',{name:'요약',exact:true}).click();await page.getByTestId('stock-profit-summary').click();await expect(page.getByTestId('profit-detail-summary')).toBeVisible();
- await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).length).toBe(1);
+ // Account-wide navigation and the stock-scoped summary must have independent cache entries.
+ await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).map(u=>u.searchParams.get('securityId')).sort()).toEqual([null,'1'].sort());
+ expect(reads.filter(u=>u.pathname.endsWith('/investment-profit')&&u.searchParams.get('securityId')==='1')).toHaveLength(1);
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(1);
 });
