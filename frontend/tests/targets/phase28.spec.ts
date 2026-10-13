@@ -13,7 +13,7 @@ test('all 160 buy and sell trades across years arrive in one scoped request, no 
  await page.goto('/stocks/3?detailTab=trades');await expect(content(page)).toContainText('내용이 없습니다.');await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(0);
 });
 test('late stock response never replaces selected stock trades',async({page})=>{
- const f=await fixture(page);f.hold();await page.goto('/stocks/2?detailTab=trades');await page.goto('/stocks/3?detailTab=trades');await expect(content(page)).toContainText('내용이 없습니다.');f.release();await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(0);
+ const f=await fixture(page);f.hold();await page.goto('/stocks/2?detailTab=trades');await page.goto('/stocks/3?detailTab=trades');await expect(content(page)).toHaveAttribute('data-list-condition','["3","trades"]');f.release();await expect(content(page)).toContainText('내용이 없습니다.');await expect(content(page).locator('[data-testid^="sell-"]')).toHaveCount(0);
 });
 test('home replaces chart without requests; rows use 4px; dashboard and settings navigation',async({page},info)=>{
  const f=await fixture(page);await page.goto('/');await expect(page.getByTestId('asset-performance-card')).toContainText('평가손익');await expect(page.getByTestId('home-trend-card')).toHaveCount(0);expect(f.reads.filter(p=>p.includes('asset-history'))).toHaveLength(0);

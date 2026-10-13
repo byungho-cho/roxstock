@@ -10,21 +10,6 @@ import { targetArrivalsResult } from './target-arrivals.js';
 import { recentBuysResult } from './recent-buys.js';
 import { Prisma } from '../generated/prisma/index.js';
 
-export async function homeTrend(accountId: bigint, dashboard: Awaited<ReturnType<typeof loadDashboard>>['data'], today: string) {
-  const from = new Date(`${today}T00:00:00Z`);
-  from.setUTCMonth(from.getUTCMonth() - 1);
-  const snapshots = await prisma.dailyAccountSnapshot.findMany({
-    where: { accountId, snapshotDate: { gte: from, lte: new Date(`${today}T00:00:00Z`) } },
-    select: { snapshotDate: true, totalAssetValue: true }, orderBy: [{ snapshotDate: 'asc' }, { id: 'asc' }],
-  });
-  const data = snapshots.map(row => ({ date: row.snapshotDate.toISOString().slice(0, 10), totalAssetValue: row.totalAssetValue.toString() }));
-  if (dashboard.totalAssetValue !== null) {
-    if (data.at(-1)?.date === today) data.pop();
-    data.push({ date: today, totalAssetValue: dashboard.totalAssetValue });
-  }
-  return { data };
-}
-
 export function stockTradeSummary(portfolio: Awaited<ReturnType<typeof loadPortfolio>>) {
   const rows = new Map<string, { security: { id: string; symbol: string; name: string; marketType: string }; realizedProfitLoss: Prisma.Decimal; lastSoldAt: Date | null }>();
   for (const lot of portfolio.account.buyTrades) {
