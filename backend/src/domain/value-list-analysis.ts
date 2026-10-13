@@ -1,6 +1,7 @@
 import {Prisma,type PeriodValuation,type DartFinancialFiling} from '../generated/prisma/index.js';
 import {fairPrice,weight,type StoredValuation,mergeStatements} from './value-analysis.js';
 import {selectStoredAnalysis} from './stored-analysis.js';
+const ExactDecimal=Prisma.Decimal.clone({precision:60});
 const obj=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
 const dec=(v:unknown)=>typeof v==='string'&&/^-?\d+(\.\d+)?$/.test(v)?new Prisma.Decimal(v):null;
 type Input=Parameters<typeof selectStoredAnalysis>[0];
@@ -9,6 +10,17 @@ export function shareholderTotals(metric:StoredValuation|null,row:PeriodValuatio
  if(!metric||!row)return unavailable('RIM 계산에 사용한 기간별 원천 근거가 없습니다.');
  if(metric.rimCompatible===false)return unavailable('기존 RIM 가격의 자기자본·ROE 기준이 확인되지 않았습니다.');
  const p=obj(row.provenance),per=obj(p.perMetric),bpsEvidence=obj(per.bps??p),roeEvidence=obj(per.roe??p);
+ // A same-provider annual estimate proves parent equity + annual ROE without inventing a BPS denominator.
+ // Totals do not require shares. The per-share reconciliation stays null until that independent input is known.
+ const supplement=obj(row.supplemental),sourceEstimate=obj(supplement.manualSource),sourceFinancials=obj(sourceEstimate.financials),estimatedFinancials=obj(supplement.estimateFinancials),sourceValues=obj(sourceEstimate.values);
+ if(row.periodType==='ESTIMATE'&&sourceEstimate.source==='NAVER_FNGUIDE_ANNUAL'){
+  const parent=dec(estimatedFinancials.parentEquity),sourceParent=dec(sourceFinancials.parentEquity),roe=dec(metric.roe),sourceRoe=dec(sourceValues.roe);
+  const confirmed=sourceEstimate.kind==='ANNUAL_ESTIMATE'&&sourceEstimate.fiscalYear===row.fiscalYear&&sourceEstimate.division==='CFS'&&p.fsDivision==='CFS'&&p.roeBasis==='OWNERS_OF_PARENT'&&p.periodEnd===`${row.fiscalYear}-12-31`&&roeEvidence.source===sourceEstimate.source&&roeEvidence.kind===sourceEstimate.kind&&roeEvidence.fiscalYear===row.fiscalYear&&roeEvidence.division==='CFS'&&parent!==null&&sourceParent!==null&&parent.eq(sourceParent)&&roe!==null&&sourceRoe!==null&&roe.eq(sourceRoe);
+  if(!confirmed)return unavailable('연간 추정 지배주주자본·ROE의 원천 값·연도·연결·소유주 귀속 기준을 확인할 수 없습니다.');
+  const capital=new ExactDecimal(parent.toString()),excess=capital.mul(new ExactDecimal(roe.toString()).div(100).minus('0.08')),total=capital.plus(excess.mul('0.8').div('0.08'));
+  const reason='제공처 BPS의 수정 기말 주식수 분모가 확인되지 않아 주당 가치·W0.8 대조는 계산하지 않습니다. 표시 보통주 수로 대체하지 않습니다.';
+  return {excessEarnings:excess.toString(),shareholderValue:total.toString(),rimReason:null,rimShareReason:reason,rimBasis:{year:row.fiscalYear,period:'ESTIMATE',division:'CFS',receiptNo:null,periodEnd:p.periodEnd,equity:capital.toString(),shares:null,shareClass:null,sharePolicy:'PROVIDER_ADJUSTED_DENOMINATOR_UNVERIFIED',source:sourceEstimate.source,collectedAt:sourceEstimate.collectedAt,isEstimated:true,equityAttribution:'OWNERS_OF_PARENT',roeBasis:'ANNUAL_ESTIMATE_OWNERS_OF_PARENT'},rimComparison:{perShare:null,existingW08:fairPrice(metric,'0.8'),difference:null,matchesAtStoredPrecision:false,reason}};
+ }
  if(bpsEvidence.source!=='OPEN_DART'||roeEvidence.source!=='OPEN_DART')return unavailable('제공처 BPS의 수정 주식수·주식 종류 분모를 확인할 수 없습니다.');
  const f=filings.find(f=>!f.isWithdrawn&&f.periodType==='ANNUAL'&&f.fiscalYear===row.fiscalYear&&f.receiptNo===bpsEvidence.receiptNo);
  if(!f||roeEvidence.receiptNo!==f.receiptNo||bpsEvidence.periodEnd!==f.periodEndDate.toISOString().slice(0,10)||roeEvidence.periodEnd!==bpsEvidence.periodEnd||bpsEvidence.fsDivision!==f.fsDivision||roeEvidence.fsDivision!==f.fsDivision)return unavailable('자기자본·BPS·ROE의 연간 기간·접수번호·연결/별도 기준이 일치하지 않습니다.');
@@ -20,9 +32,10 @@ export function shareholderTotals(metric:StoredValuation|null,row:PeriodValuatio
  const equity=f.fsDivision==='CFS'?parent:f.totalEquity,roe=dec(metric.roe),bps=dec(metric.bps);
  if(!n?.gt(0)||equity==null||roe==null||bps==null)return unavailable('검증된 자기자본·ROE·BPS·동일 기준 주식수가 누락되었습니다.');
  // Stored ratios are rounded to four decimals. Compare at that existing storage precision.
- if(!equity.div(n).toDecimalPlaces(4).eq(bps.toDecimalPlaces(4)))return unavailable('원천 자본/주식수와 저장 BPS가 불일치합니다. 기존 가격은 변경하지 않습니다.');
- const excess=equity.mul(roe.div(100).minus('0.08')),total=equity.plus(excess.mul('0.8').div('0.08')),perShare=total.div(n),existing=dec(fairPrice(metric,'0.8'));
- const difference=existing?perShare.minus(existing):null;
+ const capital=new ExactDecimal(equity.toString()),shareCount=new ExactDecimal(n.toString());
+ if(!capital.div(shareCount).toDecimalPlaces(4).eq(bps.toDecimalPlaces(4).toString()))return unavailable('원천 자본/주식수와 저장 BPS가 불일치합니다. 기존 가격은 변경하지 않습니다.');
+ const excess=capital.mul(new ExactDecimal(roe.toString()).div(100).minus('0.08')),total=capital.plus(excess.mul('0.8').div('0.08')),perShare=total.div(shareCount),existing=dec(fairPrice(metric,'0.8'));
+ const difference=existing?perShare.minus(existing.toString()):null;
  return {excessEarnings:excess.toString(),shareholderValue:total.toString(),rimReason:null,rimBasis:{year:f.fiscalYear,period:'ANNUAL',division:f.fsDivision,receiptNo:f.receiptNo,periodEnd:bpsEvidence.periodEnd,equity:equity.toString(),shares:n.toString(),shareClass:'COMMON',sharePolicy:'PERIOD_END_OUTSTANDING_NO_PREFERRED',source:'OPEN_DART'},rimComparison:{perShare:perShare.toString(),existingW08:existing?.toString()??null,difference:difference?.toString()??null,matchesAtStoredPrecision:difference!==null&&difference.abs().lte('0.0001'),reason:difference?.eq(0)?null:difference!==null&&difference.abs().lte('0.0001')?'저장 BPS 반올림 정밀도 내의 차이입니다. 기존 적정주가를 보존합니다.':'원천 자기자본/주식수와 반올림된 저장 BPS의 가격 차이입니다. 기존 적정주가를 보존하며 값을 대조해야 합니다.'}};
 }
 export function selectValueListAnalysis(input:Input){

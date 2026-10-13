@@ -35,3 +35,15 @@ test('parent attribution evidence is required for CFS; no old year equity substi
 test('December 31 legacy metrics without annual evidence are not annual data',()=>{
  const i=input();Object.assign(i,{metrics:[{metricDate:new Date('2025-12-31'),bps:new Prisma.Decimal(100),roe:new Prisma.Decimal(10)}]});assert.equal(selectValueListAnalysis(i).dataPriority,3);
 });
+
+test('verified RIM totals preserve fractional won above 18 integer digits locally without changing price precision',()=>{
+ const b=basis('1000000000000000000.1234','10');b.metric.bps='100000000000000000.0123';
+ const r=shareholderTotals(b.metric,b.row,[b.f]);assert.equal(r.excessEarnings,'20000000000000000.002468');assert.equal(r.shareholderValue,'1200000000000000000.14808');assert.equal(r.rimComparison?.perShare,'120000000000000000.014808');
+});
+
+test('same annual estimate source proves parent-equity totals independently; missing adjusted shares cannot fabricate a per-share match',()=>{
+ const row=p(2026,'ESTIMATE',{provenance:{periodEnd:'2026-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{source:'NAVER_FNGUIDE_ANNUAL',kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'CFS'}}},supplemental:{manualSource:{source:'NAVER_FNGUIDE_ANNUAL',kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'CFS',values:{roe:'102.88'},financials:{parentEquity:'373868000000000'}},estimateFinancials:{parentEquity:'373868000000000'}}});
+ const metric={metricDate:'2026-12-31',bps:'526869.36',roe:'102.88',eps:null,per:null,pbr:null,rimCompatible:true};
+ const r=shareholderTotals(metric,row,[]);assert.equal(r.excessEarnings,'354725958400000');assert.equal(r.shareholderValue,'3921127584000000');assert.equal(r.rimComparison?.perShare,null);assert.equal(r.rimComparison?.existingW08,'5525805.84768');assert.equal(r.rimBasis?.shares,null);assert.equal(r.rimReason,null);
+ for(const change of [(x:any)=>x.supplemental.estimateFinancials.parentEquity='120666751000000',(x:any)=>x.supplemental.manualSource.fiscalYear=2025,(x:any)=>x.provenance.roeBasis='TOTAL_SAME_DIVISION',(x:any)=>x.supplemental.manualSource.values.roe='44.15']){const copy=JSON.parse(JSON.stringify(row));change(copy);assert.equal(shareholderTotals(metric,copy,[]).shareholderValue,null);}
+});
