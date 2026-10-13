@@ -1,3 +1,4 @@
+import type { loadPortfolio } from './portfolio.js';
 import { normalizeSecuritySymbol, isSecuritySymbol, normalizeProviderSymbol } from '../domain/security-symbol.js';
 import type { FastifyInstance } from 'fastify';
 import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
@@ -299,60 +300,7 @@ export async function securityRoutes(app: FastifyInstance) {
     return { data: { currentPrice: marketPrice.currentPrice.toString(), previousClosePrice: marketPrice.previousClosePrice?.toString() ?? null, priceUpdatedAt: marketPrice.priceUpdatedAt.toISOString() } };
   });
 
-  app.get<{ Querystring: SecurityQuery }>('/securities', async (request) => {
-    const search = queryText(request.query.query);
-    const selectedMarket = marketType(request.query.marketType);
-    const accountId = request.query.accountId ? id(request.query.accountId, 'accountId') : undefined;
-    const selectedList = request.query.listType === 'TRADED' ? 'TRADED' : listTypeFilter(request.query.listType);
-    const excludeRegistered = request.query.excludeRegistered === 'true';
-    const registeredOnly = request.query.registeredOnly === 'true';
-    for (const key of ['excludeRegistered', 'registeredOnly', 'includeInactive'] as const) {
-      if (request.query[key] && !['true', 'false'].includes(request.query[key]!)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be true or false.`);
-    }
-    if (selectedList && excludeRegistered) throw new ApiError(400, 'INVALID_INPUT', 'listType and excludeRegistered cannot be combined.');
-    if ((selectedList || excludeRegistered || registeredOnly) && !accountId) throw new ApiError(400, 'ACCOUNT_REQUIRED', '계좌를 선택하세요.');
-    if (accountId) await requireActiveAccount(prisma, accountId);
-    const lots = accountId ? await prisma.buyTrade.findMany({
-      where: { accountId }, select: { securityId: true, quantity: true, sellTrades: { select: { quantity: true } } },
-    }) : [];
-    const remainingById = new Map<string, Prisma.Decimal>();
-    for (const lot of lots) {
-      const key = lot.securityId.toString();
-      remainingById.set(key, (remainingById.get(key) ?? new Prisma.Decimal(0)).plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map(s => s.quantity))));
-    }
-    const where: Prisma.SecurityWhereInput = {
-      ...(request.query.includeInactive !== 'true' && { isActive: true }),
-      ...(selectedMarket && { marketType: selectedMarket }),
-      ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),
-      ...(search && !hasInitialQuery(search) && { AND: [{ OR: [{ symbol: { contains: normalizeProviderSymbol(search) } }, { name: { contains: search } }] }] }),
-    };
-    const securities = await prisma.security.findMany({
-      where, include: { marketPrice: true, accountWatchlistItems: { where: { accountId: accountId ?? 0n } } },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-    });
-    const classified = securities.filter(security => !hasInitialQuery(search) || matchesStockSearch(security.name, search) || matchesStockSearch(security.symbol, search)).map(security => {
-      const manual = security.accountWatchlistItems[0] ?? null;
-      const remaining = remainingById.get(security.id.toString());
-      const effective = remaining !== undefined ? remaining.gt(0) ? 'HOLDING' : 'TRADED' : manual?.listType ?? null;
-      return { security, manual, effective, hasTradeHistory: remaining !== undefined };
-    }).filter(item => (!selectedList || item.effective === selectedList) && (!excludeRegistered || !['WATCHLIST', 'HOLDING'].includes(item.effective ?? '')));
-    const hasPagination = request.query.limit !== undefined || request.query.offset !== undefined;
-    const limit = pageNumber(request.query.limit, 'limit', 50, 100);
-    const offset = pageNumber(request.query.offset, 'offset', 0, 100_000);
-    const page = hasPagination ? classified.slice(offset, offset + limit) : classified;
-    const securityIds = page.map(item => item.security.id);
-    const [metrics, financials] = await Promise.all([
-      prisma.valuationMetric.findMany({ where: { securityId: { in: securityIds } }, orderBy: { metricDate: 'desc' }, distinct: ['securityId'] }),
-      prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' } }),
-    ]);
-    const metricById = new Map(metrics.map(item => [item.securityId.toString(), item]));
-    return { data: page.map(({ security, manual, effective, hasTradeHistory }) => {
-      const years = financials.filter(item => item.securityId === security.id).slice(0, 2);
-      return { ...serializeSecurity({ ...security, watchlistItem: manual }), listType: effective, manualListType: manual?.listType ?? null, hasTradeHistory, isActive: security.isActive,
-        valuation: serializeMetrics(metricById.get(security.id.toString()) ?? null), operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
-        previousOperatingProfit: years[1]?.operatingProfit?.toString() ?? null };
-    }), meta: { total: classified.length, limit: hasPagination ? limit : classified.length, offset: hasPagination ? offset : 0 } };
-  });
+  app.get<{ Querystring: SecurityQuery }>('/securities', request => loadSecurities(request.query));
 
   app.post<{ Body: WatchlistBody }>('/watchlist-items', async (request, reply) => {
     const body = request.body ?? {};
@@ -404,4 +352,59 @@ export async function securityRoutes(app: FastifyInstance) {
     });
     return { data: { id: itemId.toString(), deleted: true } };
   });
+}
+
+export async function loadSecurities(query: SecurityQuery, portfolio?: Awaited<ReturnType<typeof loadPortfolio>>) {
+    const search = queryText(query.query);
+    const selectedMarket = marketType(query.marketType);
+    const accountId = query.accountId ? id(query.accountId, 'accountId') : undefined;
+    const selectedList = query.listType === 'TRADED' ? 'TRADED' : listTypeFilter(query.listType);
+    const excludeRegistered = query.excludeRegistered === 'true';
+    const registeredOnly = query.registeredOnly === 'true';
+    for (const key of ['excludeRegistered', 'registeredOnly', 'includeInactive'] as const) {
+      if (query[key] && !['true', 'false'].includes(query[key]!)) throw new ApiError(400, 'INVALID_INPUT', `${key} must be true or false.`);
+    }
+    if (selectedList && excludeRegistered) throw new ApiError(400, 'INVALID_INPUT', 'listType and excludeRegistered cannot be combined.');
+    if ((selectedList || excludeRegistered || registeredOnly) && !accountId) throw new ApiError(400, 'ACCOUNT_REQUIRED', '계좌를 선택하세요.');
+    if (accountId && !portfolio) await requireActiveAccount(prisma, accountId);
+    const lots = portfolio?.account.buyTrades ?? (accountId ? await prisma.buyTrade.findMany({
+      where: { accountId }, select: { securityId: true, quantity: true, sellTrades: { select: { quantity: true } } },
+    }) : []);
+    const remainingById = new Map<string, Prisma.Decimal>();
+    for (const lot of lots) {
+      const key = lot.securityId.toString();
+      remainingById.set(key, (remainingById.get(key) ?? new Prisma.Decimal(0)).plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map(s => s.quantity))));
+    }
+    const where: Prisma.SecurityWhereInput = {
+      ...(query.includeInactive !== 'true' && { isActive: true }),
+      ...(selectedMarket && { marketType: selectedMarket }),
+      ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),
+      ...(search && !hasInitialQuery(search) && { AND: [{ OR: [{ symbol: { contains: normalizeProviderSymbol(search) } }, { name: { contains: search } }] }] }),
+    };
+    const securities = await prisma.security.findMany({
+      where, include: { marketPrice: true, accountWatchlistItems: { where: { accountId: accountId ?? 0n } } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+    const classified = securities.filter(security => !hasInitialQuery(search) || matchesStockSearch(security.name, search) || matchesStockSearch(security.symbol, search)).map(security => {
+      const manual = security.accountWatchlistItems[0] ?? null;
+      const remaining = remainingById.get(security.id.toString());
+      const effective = remaining !== undefined ? remaining.gt(0) ? 'HOLDING' : 'TRADED' : manual?.listType ?? null;
+      return { security, manual, effective, hasTradeHistory: remaining !== undefined };
+    }).filter(item => (!selectedList || item.effective === selectedList) && (!excludeRegistered || !['WATCHLIST', 'HOLDING'].includes(item.effective ?? '')));
+    const hasPagination = query.limit !== undefined || query.offset !== undefined;
+    const limit = pageNumber(query.limit, 'limit', 50, 100);
+    const offset = pageNumber(query.offset, 'offset', 0, 100_000);
+    const page = hasPagination ? classified.slice(offset, offset + limit) : classified;
+    const securityIds = page.map(item => item.security.id);
+    const [metrics, financials] = await Promise.all([
+      prisma.valuationMetric.findMany({ where: { securityId: { in: securityIds } }, orderBy: { metricDate: 'desc' }, distinct: ['securityId'] }),
+      prisma.financialStatement.findMany({ where: { securityId: { in: securityIds }, periodType: 'ANNUAL' }, orderBy: { fiscalYear: 'desc' } }),
+    ]);
+    const metricById = new Map(metrics.map(item => [item.securityId.toString(), item]));
+    return { data: page.map(({ security, manual, effective, hasTradeHistory }) => {
+      const years = financials.filter(item => item.securityId === security.id).slice(0, 2);
+      return { ...serializeSecurity({ ...security, watchlistItem: manual }), listType: effective, manualListType: manual?.listType ?? null, hasTradeHistory, isActive: security.isActive,
+        valuation: serializeMetrics(metricById.get(security.id.toString()) ?? null), operatingProfit: years[0]?.operatingProfit?.toString() ?? null,
+        previousOperatingProfit: years[1]?.operatingProfit?.toString() ?? null };
+    }), meta: { total: classified.length, limit: hasPagination ? limit : classified.length, offset: hasPagination ? offset : 0 } };
 }

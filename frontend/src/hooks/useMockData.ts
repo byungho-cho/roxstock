@@ -1,3 +1,5 @@
+import { mapDashboardResponse, mapHolding, mapSecurity } from '../data/liveData';
+import { deriveAccountStocksFromSummary } from '../pages/stocks/stockMath';
 import { storedQueryOptions } from '../data/storedQueryOptions';
 import { getDashboardTrend, getStockTradeSummary } from '../data/roxstockApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +11,7 @@ import { useActiveAccount } from './useActiveAccount';
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60_000;
 
 export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = {}) {
-  const { accountId } = useActiveAccount();
+  const { accountId, page, pageMode, screen } = useActiveAccount();
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`);
   monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
@@ -17,30 +19,41 @@ export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = 
   const history = useQuery({
     ...storedQueryOptions,
     queryKey: ['assetHistory', accountId, 'dashboard', from, today],
-    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: liveApiEnabled && !!accountId,
+    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: liveApiEnabled && !!accountId && !pageMode,
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   const summary = useQuery({
     ...storedQueryOptions, staleTime:30_000,
     queryKey: ['dashboard', liveApiEnabled ? 'api' : 'mock', accountId],
     queryFn: ({signal}) => liveApiEnabled ? fetchLiveDashboard(accountId, false, signal) : fetchDashboard(),
-    enabled: !liveApiEnabled || !!accountId,
+    enabled: !pageMode && (!liveApiEnabled || !!accountId),
     refetchInterval: liveApiEnabled && pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
+  if (pageMode && screen === 'home') {
+    const report = page.data;
+    return { ...page, data: report?.dashboard ? mapDashboardResponse(report.dashboard) : undefined,
+      historyData: report?.trend ?? undefined, historyRefetch: page.refetch,
+      historyPending: page.isPending, historyError: page.isError || report?.trend === null, historySettled: !page.isPending };
+  }
   return { ...summary, historyData: history.data, historyRefetch: history.refetch, historyPending: history.isPending, historyError: history.isError, historySettled: !history.isPending, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: point.totalAssetValue == null ? Number.NaN : Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
 }
 
 export function useStocks(listType?: StockListType, options: { enabled?: boolean } = {}) {
-  const { accountId } = useActiveAccount(), client = useQueryClient();
-  return useQuery({
+  const { accountId, page, pageMode, screen } = useActiveAccount(), client = useQueryClient();
+  const query = useQuery({
     queryKey: ['stocks', listType ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId],
     queryFn: () => liveApiEnabled ? fetchLiveStocks(listType, accountId, client.fetchQuery({ ...storedQueryOptions, queryKey: ['accountTradesSummary', accountId], queryFn: ({signal}) => getStockTradeSummary(accountId!, signal) })) : fetchStocks(listType),
-    enabled: options.enabled !== false && (!liveApiEnabled || !!accountId),
+    enabled: !pageMode && options.enabled !== false && (!liveApiEnabled || !!accountId),
     refetchInterval: liveApiEnabled ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
-
+  if (pageMode && screen === 'stocks') {
+    const data = page.data?.stocks;
+    const stocks = data ? deriveAccountStocksFromSummary(data.catalog.map(mapSecurity), data.holdings.map(mapHolding), data.trades) : undefined;
+    return { ...page, data: listType ? stocks?.filter(stock => stock.listType === listType) : stocks };
+  }
+  return query;
 }
 
 export function useBuyLots(stockId?: string, options: { enabled?: boolean } = {}) {

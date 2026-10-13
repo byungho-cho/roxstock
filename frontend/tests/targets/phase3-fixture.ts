@@ -11,6 +11,9 @@ export async function fixture(page:Page, options: { names?: string[]; history?: 
   const holdings=pnl.map((profit,i)=>({securityId:String(i+1),symbol:securities[i].symbol,name:securities[i].name,quantity:'1',averagePurchasePrice:'100',purchaseAmount:'100',currentPrice:profit===null?null:String(100+profit),marketValue:profit===null?null:String(100+profit),unrealizedProfitLoss:profit===null?null:String(profit),unrealizedReturnRate:profit===null?null:String(profit),priceUpdatedAt:'2026-10-07T03:00:00Z'}));
   const lots=Array.from({length:11},(_,i)=>({id:String(i+1),buyDate:i<3?'2026-10-01':i<9?'2026-09-03':i===9?'2026-08-01':'2026-07-31',boughtAt:`${i<3?'2026-10-01':i<9?'2026-09-03':i===9?'2026-08-01':'2026-07-31'}T03:00:00Z`,holdingDays:6,currentPrice:'150',unitPrice:'100',quantity:'10',soldQuantity:'8',remainingQuantity:'2',remainingPurchaseAmount:'200',returnRate:'50',profitLoss:'100',valuationStatus:'AVAILABLE',priceUpdatedAt:'2026-10-07T03:00:00Z',security:{id:'1',symbol:'000001',name:'종목1',marketType:'KOSPI'},sellTrades:[]}));
   await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const url=new URL(route.request().url()),p=url.pathname;
     if(p==='/api/collection/monitoring')return route.fulfill({json:{data:{features:[]}}});
     if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true},{id:'2',name:'다른',isActive:true}]}});

@@ -15,6 +15,7 @@ export async function apiEnvelope<T>(path: string, init: RequestInit = {}): Prom
     const payload = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
     throw new ApiError(response.status, payload?.error?.code ?? 'HTTP_ERROR', payload?.error?.message ?? `API 요청 실패 (${response.status})`);
   }
+  if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase())) window.dispatchEvent(new Event('roxstock-data-mutated'));
   if (response.status === 204) return undefined as T;
   const payload = await response.json() as { data?: unknown };
   if (!('data' in payload)) throw new ApiError(response.status, 'INVALID_RESPONSE', 'API 응답에 data가 없습니다.');

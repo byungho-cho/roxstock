@@ -3,6 +3,9 @@ async function fixture(page:Page){
  let fail=false,saved=false;const writes:Array<Record<string,unknown>>=[];const reads:string[]=[];
  const security={id:'1',name:'삼성SDI',symbol:'006400',marketType:'KOSPI',securityType:'STOCK',listType:null,watchlistItemId:null,currentPrice:null,previousClosePrice:null,valuation:null};
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const u=new URL(route.request().url()),p=u.pathname,m=route.request().method(),account=u.searchParams.get('accountId');
   if(m!=='GET'){const body=route.request().postDataJSON();writes.push(body);await new Promise(r=>setTimeout(r,200));if(fail)return route.fulfill({status:409,json:{error:{message:'검증 저장 실패'}}});saved=true;return route.fulfill({json:{data:{...security,...body,watchlistItemId:'1'}}});}
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'검증 계좌 1',brokerName:'CI',cashBalance:'1000',isActive:true,isDefault:true},{id:'2',name:'검증 계좌 2',brokerName:'CI',cashBalance:'1000',isActive:true}]}});

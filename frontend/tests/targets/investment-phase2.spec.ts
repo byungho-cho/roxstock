@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 test('stored chart/table, pointer selection, detail return and quarter boundaries',async({page},info)=>{
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const url=new URL(route.request().url()),p=url.pathname;
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true}]}});
   if(p.endsWith('/asset-history')){

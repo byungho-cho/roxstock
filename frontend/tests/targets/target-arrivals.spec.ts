@@ -7,6 +7,9 @@ async function fixture(page:Page) {
   let settings={accountId:'1',scope:'ACCOUNT',version:0,conditions:[...conditions]};
   let failSave=false; let failRead=false; let unavailable=0;
   await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const url=new URL(route.request().url());const path=url.pathname;
     if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'테스트 계좌',brokerName:'증권사',isActive:true,isDefault:true,cashBalance:'1000000'},{id:'2',name:'다른 계좌',brokerName:'증권사',isActive:true,cashBalance:'0'}]}});
     if(path.endsWith('/target-arrival-conditions')){
