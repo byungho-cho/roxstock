@@ -1,5 +1,5 @@
 import type { DashboardData, StockItem, StockListType } from '../types/models';
-import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getStockTradeSummary, listSecurities, type StockTradeSummaryDto, type HoldingDto, type SecurityDto, type ServerListType } from './roxstockApi';
+import { currentAccountId, getAccountDashboard, getAccountHoldings, getAssetHistory, getBuyLots, getStockTradeSummary, listSecurities, type StockTradeSummaryDto, type HoldingDto, type SecurityDto, type ServerListType, type AccountDashboardDto } from './roxstockApi';
 import { deriveAccountStocksFromSummary } from '../pages/stocks/stockMath';
 import type { BuyLot } from '../types/models';
 
@@ -60,6 +60,10 @@ export async function fetchLiveStocks(listType?: StockListType, accountId?: stri
 export async function fetchLiveDashboard(selectedAccountId?: string, includeHistory = true, signal?:AbortSignal): Promise<DashboardData> {
   const accountId = selectedAccountId ?? await currentAccountId();
   const [response, history] = await Promise.all([getAccountDashboard(accountId,signal), includeHistory ? getAssetHistory(accountId) : Promise.resolve({data: []})]);
+  return mapDashboardResponse(response, history.data);
+}
+
+export function mapDashboardResponse(response: AccountDashboardDto, history: {date:string;totalAssetValue:string}[] = []): DashboardData {
   const holdings = response.holdings.map(mapHolding);
   const stockValue = decimal(response.stockValue);
   const totalAssets = decimal(response.totalAssetValue);
@@ -79,7 +83,7 @@ export async function fetchLiveDashboard(selectedAccountId?: string, includeHist
       pricingComplete: response.pricingComplete,
     },
     holdings,
-    trend: history.data.slice(-365).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
+    trend: history.slice(-365).map((point) => ({ label: point.date, value: Number(point.totalAssetValue) })),
   };
 }
 

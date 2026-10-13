@@ -5,6 +5,9 @@ async function fixture(page: Page, initial: 'normal'|'missing'|'error'|'single' 
   let state = initial; let hold = false; let release: (()=>void)|undefined;
   await page.clock.install({time:new Date(stamp)});
   await page.route('**/api/**', async route => {
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const path = new URL(route.request().url()).pathname;
     const second = path.includes('/2/');
     if(path==='/api/accounts') return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true,cashBalance:'203200000'},{id:'2',name:'빈 계좌',isActive:true,cashBalance:'0'}]}});

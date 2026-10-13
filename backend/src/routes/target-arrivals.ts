@@ -1,3 +1,4 @@
+import type { Prisma } from '../generated/prisma/index.js';
 import type { FastifyInstance } from 'fastify';
 import { defaultTargetConditions, evaluateTargetLots, validateTargetConditions } from '../domain/target-arrival.js';
 import { ApiError } from '../lib/api-error.js';
@@ -11,7 +12,7 @@ const accountFor = async (accountId: bigint) => {
   if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
   return account;
 };
-const settingsFor = (a: Awaited<ReturnType<typeof accountFor>>) => ({
+const settingsFor = (a: Pick<Awaited<ReturnType<typeof accountFor>>, 'id' | 'targetArrivalVersion' | 'targetArrivalConditions'>) => ({
   accountId: a.id.toString(), scope: 'ACCOUNT' as const, version: a.targetArrivalVersion,
   conditions: a.targetArrivalConditions === null ? defaultTargetConditions : validateTargetConditions(a.targetArrivalConditions),
 });
@@ -33,13 +34,20 @@ export async function targetArrivalRoutes(app: FastifyInstance) {
     if (result.count !== 1) throw new ApiError(409, 'TARGET_SETTINGS_CONFLICT', '다른 곳에서 설정이 변경되었습니다. 최신 설정을 확인한 후 다시 저장해 주세요.');
     return { data: { ...settingsFor(account), conditions, version: version + 1 } };
   });
-  app.get<{ Params: Params }>('/accounts/:accountId/target-arrivals', async request => {
-    const accountId = id(request.params.accountId, 'accountId');
+  app.get<{ Params: Params }>('/accounts/:accountId/target-arrivals', request => loadTargetArrivals(id(request.params.accountId, 'accountId')));
+}
+
+export async function loadTargetArrivals(accountId: bigint) {
     // One DB read gives settings + trades + persisted prices a single snapshot.
     const account = await prisma.account.findUnique({ where: { id: accountId }, include: {
       buyTrades: { select: { id:true,securityId:true,boughtAt:true,quantity:true,unitPrice:true,sellTrades: { select: { quantity: true } }, security: { select: { symbol:true,name:true,marketPrice:{select:{currentPrice:true,priceUpdatedAt:true}} } } } },
     } });
     if (!account?.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');
+    return targetArrivalsResult(account);
+}
+
+export function targetArrivalsResult(account: Parameters<typeof settingsFor>[0] & { buyTrades: Array<{ id: bigint; securityId: bigint; boughtAt: Date; quantity: Prisma.Decimal; unitPrice: Prisma.Decimal; sellTrades: { quantity: Prisma.Decimal }[]; security: { symbol: string; name: string; marketPrice: { currentPrice: Prisma.Decimal; priceUpdatedAt: Date } | null } }> }) {
+    const accountId = account.id;
     const settings = settingsFor(account);
     const now = new Date();
     const livePrices = new Map(realtimePriceCache.get().map(p => [p.securityId, p]));
@@ -57,5 +65,4 @@ export async function targetArrivalRoutes(app: FastifyInstance) {
       enabled: settings.conditions.length > 0, total: result.data.length, unavailableCount: result.unavailable.length,
       unavailable: result.unavailable, calculatedAt: now.toISOString(), asOfDate: result.asOfDate,
       priceAsOf: dates[0] ?? null, priceAsOfLatest: dates.at(-1) ?? null, timezone: 'Asia/Seoul', snapshotMode: 'ALL_RESULTS' } };
-  });
 }

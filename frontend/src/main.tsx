@@ -9,6 +9,11 @@ import { theme } from './styles/theme';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: liveApiEnabled ? 'always' : false } } });
 
+window.addEventListener('roxstock-data-mutated', () => {
+  void queryClient.invalidateQueries({ queryKey: ['homePage'] });
+  void queryClient.invalidateQueries({ queryKey: ['stocksPage'] });
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><BrowserRouter useTransitions={false}><App /></BrowserRouter></ThemeProvider></QueryClientProvider></StrictMode>,
 );

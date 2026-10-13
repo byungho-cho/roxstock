@@ -65,6 +65,9 @@ test('late home response cannot replace the last selected account',async({page})
 for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses net balance and never creates a second transaction`,async({page})=>{
  await fixture(page);const writes:{path:string;body:any}[]=[];
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const r=route.request(),p=new URL(r.url()).pathname;
   if(r.method()!=='GET'){writes.push({path:p,body:r.postDataJSON()});return route.fulfill({json:{data:{id:'trade-new',cashTransactionId:'linked-123'}}});}
   if(p.endsWith('/cash-transactions/linked-123'))return route.fulfill({json:{data:{id:'linked-123',transactionType:type.toUpperCase(),createdAt:'2026-10-09T00:00:00Z',transactionDate:'2026-10-09T00:00:00Z',amount:'1000',feeTaxAmount:'0',balanceAfter:'9000',signedAmount:'1000',memo:null,dividend:null}}});

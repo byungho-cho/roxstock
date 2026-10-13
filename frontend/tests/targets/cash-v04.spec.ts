@@ -10,6 +10,9 @@ async function setup(page: Page) {
   let saved: typeof latest | null = null;
   let removed = false;
   await page.route('**/api/**', async route => {
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     if (request.method() !== 'GET') {
       writes.push({ path, method: request.method(), body: request.postDataJSON() ?? {} });
