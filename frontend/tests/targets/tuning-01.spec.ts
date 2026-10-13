@@ -50,3 +50,15 @@ test('more failure keeps rows and retries, account switch clears prior account c
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(card.getByTestId('recent-buy-lot')).toHaveCount(5);
 });
+
+test('old backend 404 falls back to existing account/list APIs during rollback', async ({page}) => {
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if(path.startsWith('/api/pages/')) return route.fulfill({status:404,json:{error:{message:'Not found'}}});
+    if(path==='/api/accounts') return route.fulfill({json:{data:[account()]}});
+    if(path.endsWith('/holdings')) return route.fulfill({json:{data:[holding]}});
+    return route.fulfill({json:{data:[]}});
+  });
+  await page.goto('/stocks');
+  await expect(page.getByTestId('stock-list')).toContainText('현대자동차');
+});

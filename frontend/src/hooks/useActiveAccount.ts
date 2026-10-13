@@ -22,8 +22,9 @@ export function useActiveAccount() {
   const selected = useSyncExternalStore(subscribe, selectedId, () => null);
   const { pathname } = useLocation();
   const screen = pathname === "/" ? "home" : pathname === "/stocks" ? "stocks" : undefined;
-  const pageMode = liveApiEnabled && !!screen;
-  const page = useQuery({ queryKey: [screen === "home" ? "homePage" : "stocksPage", selected], queryFn: async ({ signal }) => { const result = await getPageBootstrap(screen!, selected, signal); if (!signal.aborted) client.setQueryData(['accounts', 'api'], result.accounts); return result; }, enabled: pageMode, staleTime: 30_000, refetchInterval: pageMode ? 60_000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const pageEnabled = liveApiEnabled && !!screen;
+  const page = useQuery({ queryKey: [screen === "home" ? "homePage" : "stocksPage", selected], queryFn: async ({ signal }) => { const result = await getPageBootstrap(screen!, selected, signal); if (!signal.aborted && !result.legacy) client.setQueryData(['accounts', 'api'], result.accounts); return result; }, enabled: pageEnabled, staleTime: 30_000, refetchInterval: pageEnabled ? 60_000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const pageMode = pageEnabled && !page.data?.legacy;
   const accounts = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), enabled: liveApiEnabled && !pageMode });
   if (pageMode) return { accountId: page.data?.accountId ?? undefined, accounts: { ...page, data: page.data?.accounts }, page, pageMode, screen };
   return { page, pageMode, screen, accountId: liveApiEnabled ? chooseAccount(accounts.data ?? [])?.id : undefined, accounts };
