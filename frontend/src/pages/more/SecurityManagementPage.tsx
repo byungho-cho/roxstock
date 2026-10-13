@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {memo,useCallback,useEffect,useRef,useState} from 'react';
 import {Box,Button,ButtonBase,InputBase,Stack,Typography} from '@mui/material';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useSearchParams} from 'react-router-dom';
@@ -23,16 +23,18 @@ export function SecurityManagementPage(){
  const search=()=>{const next=new URLSearchParams(params);next.set('query',input.trim());next.delete('selected');setParams(next);(document.activeElement as HTMLElement)?.blur();};
  const more=async()=>{if(lock.current||list.isFetching||!list.hasNextPage)return;lock.current=true;try{await list.fetchNextPage();}finally{lock.current=false;}};
  const rows=list.data?.pages.flatMap(p=>p.rows)??[];
+ const select=useCallback((id:string)=>setParams(previous=>{const next=new URLSearchParams(previous);next.set('selected',id);return next;}),[setParams]);
  return <><PageHeader embedded variant="more" compact backIcon={selected?<Box component="span" aria-hidden sx={{fontSize:30,lineHeight:"36px"}}>‹</Box>:undefined} title={selected?"종목 정보 수정":"종목 관리"} showAdd={false} showBackTablet backPath={selected?`/detail/security-management?query=${encodeURIComponent(query)}`:'/detail/settings?view=settings'}/><Box sx={{pb:4}} data-testid="security-management" data-list-condition={`master:${query}`} data-restoration-ready={list.isPending?'false':'true'}>
  <StockSearchFrame><Box component="img" src="/stocks-v03/search.svg" alt=""/><InputBase aria-label="종목 관리 검색" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();search();}}} placeholder="종목명·코드 검색" sx={{fontSize:12,flex:1,minWidth:0}}/><Button onClick={search} sx={{minWidth:40,fontSize:12}}>검색</Button></StockSearchFrame>
  {!selected&&<Typography sx={{fontSize:11,color:colors.textMuted,my:1}}>종목명 오름차순 · 등록 출처와 수집 설정</Typography>}
  {selected?<SecurityEditor key={selected} securityId={selected} onDeleted={()=>{const next=new URLSearchParams(params);next.delete('selected');setParams(next,{replace:true});}}/>:<>
- {list.isPending?<DelayedSkeleton height={64}/>:<Stack spacing={1}>{rows.map(s=><AppCard key={s.id} sx={{p:0}}><ButtonBase data-testid="security-master-row" data-scroll-item={s.id} onClick={()=>{const next=new URLSearchParams(params);next.set('selected',s.id);setParams(next);}} sx={{display:'block',textAlign:'left',width:'100%',p:1.5}}><Typography sx={{fontSize:15,fontWeight:700,overflowWrap:'anywhere'}}><StockIdentity name={s.name} symbol={s.symbol}/></Typography><Typography sx={{fontSize:11,color:colors.textMuted,mt:0.5}}>{sourceLabel(s.registrationSource)} · {s.exclusionReason??(s.excludedFeatures.length?'일부 기능 수집 제외':'수집 활성')}</Typography></ButtonBase></AppCard>)}</Stack>}
+ {list.isPending?<DelayedSkeleton height={64}/>:<Stack spacing={1}>{rows.map(s=><SecurityRow key={s.id} s={s} onSelect={select}/>)}</Stack>}
  {!list.isPending&&!list.isError&&rows.length===0&&<Typography sx={{fontSize:12}}>검색 결과가 없습니다.</Typography>}
  {list.isError&&<Typography role="alert" sx={{fontSize:12,color:colors.error}}>조회 실패 · 기존 목록을 유지합니다.<Button onClick={()=>{if(list.isFetchNextPageError)void more();else void list.refetch();}}>다시 시도</Button></Typography>}
  {list.hasNextPage&&<Button disabled={list.isFetching} onClick={()=>void more()} sx={{display:'block',mx:'auto',mt:1}}>더보기</Button>}
  </>}</Box></>;
 }
+const SecurityRow=memo(function SecurityRow({s,onSelect}:{s:ManagedSecurity;onSelect:(id:string)=>void}){return <AppCard key={s.id} sx={{p:0}}><ButtonBase data-testid="security-master-row" data-scroll-item={s.id} onClick={()=>onSelect(s.id)} sx={{display:'block',textAlign:'left',width:'100%',p:1.5}}><Typography sx={{fontSize:15,fontWeight:700,overflowWrap:'anywhere'}}><StockIdentity name={s.name} symbol={s.symbol}/></Typography><Typography sx={{fontSize:11,color:colors.textMuted,mt:0.5}}>{sourceLabel(s.registrationSource)} · {s.exclusionReason??(s.excludedFeatures.length?'일부 기능 수집 제외':'수집 활성')}</Typography></ButtonBase></AppCard>;});
 function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>void}){
  const client=useQueryClient(),detail=useQuery({queryKey:['security-management-detail',securityId],queryFn:({signal})=>apiRequest<ManagedSecurity>(`/security-management/${securityId}`,{signal}),retry:false});
  const [draft,setDraft]=useState<{name:string;symbol:string;listingYear:string}|null>(null),[action,setAction]=useState<'code'|'delete'|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),lock=useRef(false);

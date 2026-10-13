@@ -5,6 +5,9 @@ async function setup(page:Page){
  const stocks=[1,2].map(i=>({id:String(i),name:'종목'+i,symbol:'00000'+i,market:'KOSPI',currentPrice:'100',w:'1',fairPrices:[],valuation:null}));
  const state={posts:0,finished:false,fail:false,body:null as unknown,reads:[] as URL[]};
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const u=new URL(route.request().url()),p=u.pathname;
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'계좌',isActive:true,isDefault:true}]}});
   if(p.endsWith('/financial-refresh/active'))return route.fulfill({json:{data:null}});

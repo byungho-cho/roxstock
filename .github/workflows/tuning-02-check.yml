@@ -1,0 +1,31 @@
+name: Tuning 02 Check
+on:
+  pull_request:
+    branches: [main]
+    paths: ['frontend/**', 'backend/**', '.github/workflows/tuning-02-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tuning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run typecheck:backend
+      - run: node --import tsx --test backend/src/routes/tuning-02.test.ts frontend/src/data/readBatch.test.ts
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config=playwright.tuning02.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tuning-02-evidence
+          path: frontend/test-results/tuning-02

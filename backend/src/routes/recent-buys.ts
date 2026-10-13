@@ -1,3 +1,4 @@
+import type { loadPortfolio } from './portfolio.js';
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '../generated/prisma/index.js';
 import {prisma} from '../lib/prisma.js';
@@ -8,8 +9,10 @@ import {calculateRemainingQuantity} from '../domain/trade.js';
 import {realtimePriceCache} from '../realtime/price-cache.js';
 
 export async function recentBuysRoutes(app:FastifyInstance){
- app.get<{Params:{accountId:string};Querystring:{months?:string}}>('/accounts/:accountId/recent-buys',async request=>{
-  const accountId=id(request.params.accountId,'accountId'),months=Number(request.query.months??0);
+ app.get<{Params:{accountId:string};Querystring:{months?:string}}>('/accounts/:accountId/recent-buys',request=>loadRecentBuys(id(request.params.accountId,'accountId'),Number(request.query.months??0)));
+}
+
+export async function loadRecentBuys(accountId: bigint, months = 0) {
   if(!Number.isInteger(months)||months<0||months>2400)throw new ApiError(400,'INVALID_INPUT','Invalid months.');
   const now=new Date(),today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(now);
   const from=new Date(Date.UTC(Number(today.slice(0,4)),Number(today.slice(5,7))-1-months,1)-9*3600000);
@@ -24,8 +27,12 @@ export async function recentBuysRoutes(app:FastifyInstance){
      security:{select:{id:true,symbol:true,name:true,marketType:true,marketPrice:true}},sellTrades:{select:{quantity:true}}}});
    return {lots,total};
   },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
+  return recentBuysResult(result.lots, result.total, accountId, months, now);
+}
+
+export function recentBuysResult(lots: Array<Omit<Awaited<ReturnType<typeof loadPortfolio>>['account']['buyTrades'][number], 'sellTrades'> & { sellTrades: { quantity: Prisma.Decimal }[] }>, total: number, accountId: bigint, months: number, now = new Date()) {
   const prices=new Map(realtimePriceCache.get().map(row=>[row.securityId,row]));
-  const data=result.lots.map(lot=>{
+  const data=lots.map(lot=>{
    const stored=lot.security.marketPrice,live=prices.get(String(lot.securityId));
    const useLive=live&&(!stored||Date.parse(live.observedAt)>=stored.priceUpdatedAt.getTime());
    const remaining=calculateRemainingQuantity(lot.quantity,lot.sellTrades.map(row=>row.quantity));
@@ -34,6 +41,5 @@ export async function recentBuysRoutes(app:FastifyInstance){
     quantity:String(lot.quantity),unitPrice:String(lot.unitPrice),remainingQuantity:String(remaining),soldQuantity:lot.quantity.minus(remaining).toString(),remainingPurchaseAmount:remaining.mul(lot.unitPrice).toString(),
     profitLoss:valuation.currentPrice===null?null:new Prisma.Decimal(valuation.currentPrice).minus(lot.unitPrice).mul(remaining).toString(),memo:null,sellTrades:[]};
   });
-  return {data,meta:{accountId:String(accountId),count:data.length,total:result.total,more:result.total>data.length,months,calculatedAt:now.toISOString()}};
- });
+  return {data,meta:{accountId:String(accountId),count:data.length,total:total,more:total>data.length,months,calculatedAt:now.toISOString()}};
 }

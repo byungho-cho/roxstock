@@ -3,6 +3,9 @@ import { expect, test } from '@playwright/test';
 test('financial refresh is explicit, scoped, preserves data and reports no filing', async ({ page }, info) => {
   let posts = 0; let reads = 0; let finished = false;
   await page.route('**/api/**', async route => {
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/accounts') return route.fulfill({ json: { data: [{id:'1',name:'테스트',isActive:true,isDefault:true,cashBalance:'0'}] } });
     if (path.endsWith('/analysis')) { reads++; return route.fulfill({json:{data:{security:{id:'1',name:'현대차',symbol:'005380',currentPrice:'200000',previousClosePrice:'190000'},valuation:null,statements:[{fiscalYear:2025,periodType:'ANNUAL',revenue:'1000000000000',dartSource:{receiptNo:'20260301000001',fsDivision:'CFS',collectedAt:'2026-10-01T04:00:00Z'}}]}}}); }
