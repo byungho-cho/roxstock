@@ -18,7 +18,7 @@ export async function fixture(page:Page){
   }else if(p.endsWith('/trades')){
    if(held&&securityId==='2')await gate;
    const data=Array.from({length:160},(_,i)=>({id:String(i+1),type:i%2?'SELL':'BUY',buyTradeId:String(i%2?i:i+1),security:securities.find(s=>s.id===securityId),tradedAt:(i<80?'2026-10-01':'2024-10-01')+'T00:00:00Z',quantity:'1',unitPrice:i%2?'120':'100',amount:i%2?'120':'100',realizedProfitLoss:i%2?'20':null}));return {status:200,body:{data:securityId==='3'?[]:data,summary:{buyAmount:'8000',sellAmount:'9600',realizedProfitLoss:'1600'},meta:{accountId:id,count:securityId==='3'?0:160}}};
-  }else if(p.endsWith('/recent-buys'))return {status:200,body:{data:recent,meta:{count:7,more:false}}};
+  }else if(p.endsWith('/recent-buys'))return {status:200,body:{data:recent,meta:{accountId:id,count:7,total:7,more:false}}};
   else if(p.endsWith('/target-arrivals'))return {status:200,body:{data:[],meta:{total:0,collectedAt:'2026-10-13T03:00:00Z'}}};
   else if(p.endsWith('/compound-plans')){
    const rows=[2024,2025,2026,2027].map(year=>({year,asset:'999999999999',contributed:'90',realizedAsset:year===2024?'123':null,evaluationAmount:year===2024?'123':year===2026?'1234567890123':null,investmentAmount:year===2024?'0':year===2026?'999999999999':null,valuationDate:year===2024?'2024-12-31':year===2026?'2026-10-12':null}));data={accountId:id,currentYear:2026,currentAssets:'150',pricingComplete:true,asOf:'2026-10-13T03:00:00Z',plans:[{id:'1',planName:'검증 계획',startYear:2024,endYear:2027,duration:4,initialAssetValue:'100',annualContributionAmount:'0',status:'ACTIVE',goals:[{id:'1',goalName:'검증 목표',annualTargetRate:'10',displayColor:'#5EA1F0',isDefault:true,isVisible:true,rows,yearTarget:'133',finalTarget:'146',progress:'100'}]}]};
@@ -28,7 +28,7 @@ export async function fixture(page:Page){
  await page.route('**/api/**',async route=>{
   const u=new URL(route.request().url());
   if(u.pathname==='/api/pages/read')return route.fulfill({json:{data:await Promise.all((route.request().postDataJSON().paths as string[]).map(read))}});
-  if(u.pathname==='/api/pages/home')return route.fulfill({json:{data:{accounts,accountId:u.searchParams.get('accountId')??'1',dashboard:{...dashboard,holdings,purchaseAmount:'1000'},recent:{data:recent.slice(0,5),meta:{count:5,more:true}},targets:{data:[],meta:{total:0}}}}});
+  if(u.pathname==='/api/pages/home')return route.fulfill({json:{data:{accounts,accountId:u.searchParams.get('accountId')??'1',dashboard:{...dashboard,holdings,purchaseAmount:'1000'},recent:{data:recent.slice(0,5),meta:{count:5,total:7,more:true}},targets:{data:[],meta:{total:0}}}}});
   if(u.pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'legacy'}}});
   const result=await read(u.pathname.slice(4)+u.search);await route.fulfill({status:result.status,json:result.body});
  });
