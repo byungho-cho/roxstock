@@ -1,0 +1,37 @@
+name: Phase27 Circular Stocks and Compact Lots
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, .github/workflows/phase27-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: node --import tsx --test frontend/tests/unit/circularNeighbors.test.ts
+      - name: Build pre-change production baseline
+        run: |
+          git worktree add --detach phase27-baseline 258ee8d06db93d171d6ed71504f5dc9198f4daae
+          ln -s ../node_modules phase27-baseline/node_modules
+          ln -s ../../frontend/node_modules phase27-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix phase27-baseline/frontend run build
+      - run: VITE_DATA_SOURCE=api npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase27.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase27-screen-evidence
+          path: frontend/test-results/phase27/
+          retention-days: 30
