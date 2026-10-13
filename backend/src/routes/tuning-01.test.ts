@@ -63,6 +63,8 @@ test('page endpoints select accounts, reuse one position read, cache and invalid
     assert.equal(first.json().data.trend.data.at(-1).totalAssetValue,'100');
     assert.equal(positions,1);
     assert.equal((await app.inject('/api/pages/home')).headers['x-page-cache'],'HIT');
+    await app.inject({method:'POST',url:'/api/pages/read',payload:{paths:['/accounts']}});
+    assert.equal((await app.inject('/api/pages/home')).headers['x-page-cache'],'HIT');
     assert.equal(positions,1);
     const other=await app.inject('/api/pages/stocks?accountId=1');
     assert.equal(other.json().data.accountId,'1'); assert.equal(positions,2);
