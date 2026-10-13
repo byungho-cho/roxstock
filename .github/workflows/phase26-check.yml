@@ -28,6 +28,9 @@ jobs:
         working-directory: frontend
       - run: npx playwright test --config playwright.phase26.config.ts
         working-directory: frontend
+      - name: Verify stock/account cache separation without legacy raw reads
+        run: npx playwright test --config playwright.phase6.config.ts -g "summary defers"
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
