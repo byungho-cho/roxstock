@@ -1,8 +1,8 @@
 import { Box, Button } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
-import { getRecentBuys } from '../../data/roxstockApi';
+import { memo, useEffect, useRef, useState } from 'react';
+import { getRecentBuys, type BuyLotDto } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { colors } from '../../styles/tokens';
 import { HomeEmpty, HomeListCard, HomeListLoading, HomeTwoLineRow } from './HomeListCard';
@@ -11,29 +11,51 @@ import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { seoulToday } from '../investment/investmentData';
 
 export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
-  const navigate = useNavigate();
-  const { accountId, accounts } = useActiveAccount();
-  const [expanded, setExpanded] = useState({ accountId, months: 0 });
-  const lock = useRef(false), timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => { lock.current=false; return () => clearTimeout(timer.current); }, [accountId]);
-  const months=expanded.accountId===accountId?expanded.months:0;
-  const query = useQuery({ ...storedQueryOptions, staleTime:60_000, queryKey: ['recentBuys', accountId, seoulToday(), months], queryFn: ({signal}) => getRecentBuys(accountId!,months,signal), enabled: !!accountId&&enabled, refetchInterval: enabled?60_000:false, refetchIntervalInBackground:false });
-  const view = query.data?.meta;
-  const rows = query.data?.data??[];
+  const { accountId, accounts, page, pageMode, screen } = useActiveAccount();
+  const client = useQueryClient();
+  const home = pageMode && screen === 'home';
+  const [expanded, setExpanded] = useState<{ accountId?: string; months: number }>({ accountId, months: 0 });
+  const [moreBusy, setMoreBusy] = useState(false), [moreError, setMoreError] = useState(false);
+  const lock = useRef(false), generation = useRef(0);
+  useEffect(() => { generation.current++; lock.current = false; setMoreBusy(false); setMoreError(false); return () => { generation.current++; }; }, [accountId]);
+  const months = expanded.accountId === accountId ? expanded.months : 0;
+  const query = useQuery({ ...storedQueryOptions, staleTime:60_000, queryKey: ['recentBuys', accountId, seoulToday(), months], queryFn: ({signal}) => getRecentBuys(accountId!,months,signal), enabled: !!accountId && enabled && (!home || months > 0), refetchInterval: enabled && (!home || months > 0) ? 60_000 : false, refetchIntervalInBackground:false });
+  const report = home && months === 0 ? page.data?.recent ?? undefined : query.data;
+  const view = report?.meta;
+  const rows = report?.data ?? [];
   const prices = rows.map(row => row.priceUpdatedAt).filter((value): value is string => !!value).sort();
-  const failed = query.isError || accounts.isError;
-  const more = () => {
-    if(lock.current) return;
-    lock.current=true;
-    setExpanded(previous => ({ accountId, months: (previous.accountId === accountId ? previous.months : 0) + 1 }));
-    timer.current=setTimeout(() => { lock.current=false; }, 200);
+  const failed = accounts.isError || (home && months === 0 ? page.data?.recent === null : query.isError);
+  const retry = () => home && months === 0 ? page.refetch() : query.refetch();
+  const more = async () => {
+    if (lock.current || !accountId || !report) return;
+    lock.current = true; setMoreBusy(true); setMoreError(false);
+    const currentGeneration = generation.current, nextMonths = months + 1;
+    const key = ['recentBuys', accountId, seoulToday(), nextMonths];
+    try {
+      const next = await client.fetchQuery({ queryKey: key, queryFn: ({signal}) => getRecentBuys(accountId, nextMonths, signal), staleTime: 0 });
+      if (currentGeneration !== generation.current) return;
+      const ids = new Set(rows.map(row => row.id));
+      // Retain existing objects/order; only append previously unseen IDs.
+      const merged = [...rows, ...next.data.filter(row => !ids.has(row.id))];
+      client.setQueryData(key, { ...next, data: merged, meta: { ...next.meta, count: merged.length } });
+      setExpanded({ accountId, months: nextMonths });
+    } catch {
+      if (currentGeneration === generation.current) setMoreError(true);
+    } finally {
+      if (currentGeneration === generation.current) { lock.current = false; setMoreBusy(false); }
+    }
   };
-  return <HomeListCard stable pending={!query.data&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={query.data ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={failed&&query.data ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void query.refetch()}>재시도</Button></> : undefined} updating={query.isFetching} more={view?.more ? more : undefined} height={290 + Math.max(0, rows.length-5)*43}>
-    {failed && !query.data && <HomeEmpty>최근 매수 조회 실패{query.data && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void query.refetch(); void accounts.refetch(); }}>재시도</Button></HomeEmpty>}
-    {!query.data && !failed && (accountId || accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
-    {!failed && query.data && rows.length === 0 && <HomeEmpty />}
-    {rows.map(row => <HomeTwoLineRow key={row.id} testId="recent-buy-lot" onClick={() => { if (!lock.current) navigate(`/stocks/${row.security.id}?detailTab=holding`); }}
-      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
-      second={[<Box component="span" sx={{ color: colors.textSecondary }}>{row.buyDate?.slice(2).replaceAll('-', '.') ?? new Date(row.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(2).replaceAll('-', '.')} ({row.holdingDays ?? '—'}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(row.returnRate) }}>{lotRate(row.returnRate)}</Box>, <Box component="span" aria-label="평가손익" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.profitLoss == null ? '—' : targetWon(row.profitLoss)}</Box>]} />)}
+  return <HomeListCard stable pending={!report&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={report ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={moreError ? <Button size="small" onClick={() => void more()}>추가 조회 실패 · 재시도</Button> : failed&&report ? <><span>조회 실패 · 이전 결과 </span><Button size="small" onClick={() => void retry()}>재시도</Button></> : undefined} updating={query.isFetching} moreDisabled={moreBusy} more={view?.more ? () => void more() : undefined} height={290 + Math.max(0, rows.length-5)*43}>
+    {failed && !report && <HomeEmpty>최근 매수 조회 실패{report && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void retry(); void accounts.refetch(); }}>재시도</Button></HomeEmpty>}
+    {!report && !failed && (accountId || accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
+    {!failed && report && rows.length === 0 && <HomeEmpty />}
+    {rows.map(row => <RecentBuyRow key={row.id} row={row} />)}
   </HomeListCard>;
 }
+
+const RecentBuyRow = memo(function RecentBuyRow({ row }: { row: BuyLotDto }) {
+  const navigate = useNavigate();
+  return <HomeTwoLineRow testId="recent-buy-lot" onClick={() => navigate(`/stocks/${row.security.id}?detailTab=holding`)}
+      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
+      second={[<Box component="span" sx={{ color: colors.textSecondary }}>{row.buyDate?.slice(2).replaceAll('-', '.') ?? new Date(row.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(2).replaceAll('-', '.')} ({row.holdingDays ?? '—'}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(row.returnRate) }}>{lotRate(row.returnRate)}</Box>, <Box component="span" aria-label="평가손익" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.profitLoss == null ? '—' : targetWon(row.profitLoss)}</Box>]} />;
+});

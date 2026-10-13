@@ -1,5 +1,7 @@
+import { useLocation } from 'react-router-dom';
+import { getPageBootstrap } from '../data/pageApi';
 import { storedQueryOptions } from '../data/storedQueryOptions';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 import { chooseAccount, listAccounts, selectedAccountStorageKey } from '../data/roxstockApi';
 import { liveApiEnabled } from '../data/liveData';
@@ -12,11 +14,17 @@ const subscribe = (notify: () => void) => {
     window.removeEventListener('storage', notify);
   };
 };
-const selectedId = () => window.localStorage.getItem(selectedAccountStorageKey);
+const selectedId = () => window.localStorage.getItem(selectedAccountStorageKey) ?? import.meta.env.VITE_API_ACCOUNT_ID ?? null;
 
 export function useActiveAccount() {
   // The selection event makes a switch visible before any new account request finishes.
-  useSyncExternalStore(subscribe, selectedId, () => null);
-  const accounts = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), enabled: liveApiEnabled });
-  return { accountId: liveApiEnabled ? chooseAccount(accounts.data ?? [])?.id : undefined, accounts };
+  const client = useQueryClient();
+  const selected = useSyncExternalStore(subscribe, selectedId, () => null);
+  const { pathname } = useLocation();
+  const screen = pathname === "/" ? "home" : pathname === "/stocks" ? "stocks" : undefined;
+  const pageMode = liveApiEnabled && !!screen;
+  const page = useQuery({ queryKey: [screen === "home" ? "homePage" : "stocksPage", selected], queryFn: async ({ signal }) => { const result = await getPageBootstrap(screen!, selected, signal); if (!signal.aborted) client.setQueryData(['accounts', 'api'], result.accounts); return result; }, enabled: pageMode, staleTime: 30_000, refetchInterval: pageMode ? 60_000 : false, refetchIntervalInBackground: false, refetchOnWindowFocus: false });
+  const accounts = useQuery({ ...storedQueryOptions, queryKey: ['accounts', 'api'], queryFn: ({signal})=>listAccounts(signal), enabled: liveApiEnabled && !pageMode });
+  if (pageMode) return { accountId: page.data?.accountId ?? undefined, accounts: { ...page, data: page.data?.accounts }, page, pageMode, screen };
+  return { page, pageMode, screen, accountId: liveApiEnabled ? chooseAccount(accounts.data ?? [])?.id : undefined, accounts };
 }
