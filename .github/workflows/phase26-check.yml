@@ -31,6 +31,9 @@ jobs:
       - name: Verify stock/account cache separation without legacy raw reads
         run: npx playwright test --config playwright.phase6.config.ts -g "summary defers"
         working-directory: frontend
+      - name: Verify home shells with the requested compact empty target card
+        run: npx playwright test --config playwright.phase20.config.ts tests/targets/phase20-home.spec.ts -g "account wait paints|dashboard and target failures|account API failure retains"
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
