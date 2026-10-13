@@ -24,7 +24,7 @@ for(const screen of screens)test(`batched reads render ${screen.url}`,async({pag
   }});
   await page.goto(screen.url);
   await expect.poll(()=>batches.flat().some(path=>path.split('?')[0].endsWith(screen.path))).toBe(true);
-  if(screen.ready)await expect(page.getByTestId(screen.ready)).toBeVisible();
+  if(screen.ready)await expect(page.getByTestId(screen.ready).first()).toBeVisible();
   else await expect(page.getByText(screen.text!,{exact:true})).toBeVisible();
   await expect(page.locator('[data-loading-indicator="visible"]')).toHaveCount(0);
   expect(direct).toEqual([]);expect(errors).toEqual([]);
