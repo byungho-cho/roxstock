@@ -4,6 +4,9 @@ const rows=Array.from({length:120},(_,i)=>({id:String(i+1),symbol:String(i+1).pa
 async function fixture(page:Page,small=false){
  let failure=false,holdId:string|null=null,holdSearch:string|null=null;const releases:(()=>void)[]=[],requests:string[]=[];
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const url=new URL(route.request().url());requests.push(route.request().method()+' '+url.pathname+url.search);
   if(url.pathname.endsWith('/financial-refresh/active'))return route.fulfill({json:{data:null}});
   if(url.pathname==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true}]}});

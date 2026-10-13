@@ -4,6 +4,9 @@ import {fixture} from './phase3-fixture';
 test('home priority cards finish before recent buys; recent delay is local; valid re-entry cache is immediate',async({page},info)=>{
  await fixture(page);const reads:string[]=[];let releasePrimary!:()=>void,releaseRecent!:()=>void;
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const path=new URL(route.request().url()).pathname;reads.push(path);
   if(path.endsWith('/asset-history'))await new Promise<void>(r=>{releasePrimary=r;});
   if(path.endsWith('/recent-buys'))await new Promise<void>(r=>{releaseRecent=r;});

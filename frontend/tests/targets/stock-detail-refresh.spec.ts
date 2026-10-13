@@ -17,6 +17,9 @@ async function setup(page:Page){
  const securities=[...Array.from({length:20},(_,i)=>security(i+1,`검색종목 ${String(i+1).padStart(2,'0')}`)),...Array.from({length:6},(_,i)=>security(31+i,`관심검색 ${i+1}`,'WATCHLIST',false)),security(70,'수동보유','HOLDING',false),security(80,'전량매도','TRADED',true)];
  const reads:URL[]=[];let fail=false,pending=false;const releases:Array<()=>void>=[];
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const url=new URL(route.request().url()),path=url.pathname;
   if(route.request().method()!=='GET')return route.fallback();
   if(!['/api/securities','/api/value-analysis'].includes(path)&&!path.includes('/value-analysis/')&&!path.endsWith('/holdings')&&!path.endsWith('/buy-lots')&&!path.endsWith('/trades'))return route.fallback();

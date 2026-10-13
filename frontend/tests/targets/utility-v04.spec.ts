@@ -12,6 +12,9 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
  const plans=empty?[]:Array.from({length:8},(_,i)=>({id:String(i+1),planName:'계획'+(i+1),startYear:2025,endYear:2029,duration:5,initialAssetValue:'64000000',annualContributionAmount:'20000000',status:'ACTIVE',goals:goalsEmpty?[]:[goal]}));
  let account={id:'1',name:'기본 계좌',brokerName:'증권사',accountNumber:'1234',isActive:true,isDefault:true,cashBalance:'203200000' as string|null,updatedAt:'2026-10-05T00:00:00Z'};
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const req=route.request(),path=new URL(req.url()).pathname;
   if(req.method()!=='GET'){
    const body=req.postDataJSON();writes.push({path,body});

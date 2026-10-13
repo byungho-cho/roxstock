@@ -5,6 +5,9 @@ import { fixture } from './phase3-fixture';
 async function setup(page:Page) {
  const control=await fixture(page);
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const u=new URL(route.request().url());if(!/\/(trades|investment-profit)$/.test(u.pathname))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));

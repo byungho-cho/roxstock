@@ -42,7 +42,7 @@ const dashboardPeriod = (now: Date) => {
   return { todayKey, previousDayKey, previousMonthEndKey, todayStart, tomorrowStart };
 };
 
-const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number]) => ({
+export const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number]) => ({
   securityId: holding.securityId.toString(),
   symbol: holding.symbol,
   name: holding.name,
@@ -67,9 +67,9 @@ export const loadPortfolio = async (accountId: bigint, reader:Prisma.Transaction
       cashTransactions: { select:{id:true,balanceAfter:true,updatedAt:true},orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
       buyTrades: {
         select: {
-          securityId:true,quantity:true,unitPrice:true,
-          sellTrades: { select: { quantity: true } },
-          security: { select: { symbol:true,name:true,marketType:true,marketPrice:{select:{currentPrice:true,previousClosePrice:true,priceUpdatedAt:true}} } },
+          id:true,boughtAt:true,securityId:true,quantity:true,unitPrice:true,
+          sellTrades: { select: { quantity: true, unitPrice: true, soldAt: true } },
+          security: { select: { id:true,symbol:true,name:true,marketType:true,marketPrice:{select:{currentPrice:true,previousClosePrice:true,priceUpdatedAt:true}} } },
         },
         orderBy: [{ boughtAt: 'asc' }, { id: 'asc' }],
       },
@@ -111,80 +111,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get<{ Params: AccountParams }>('/accounts/:accountId/dashboard', async (request) => {
-    const accountId = id(request.params.accountId, 'accountId');
-    const { account, holdings } = await loadPortfolio(accountId);
-    const dashboard = calculateDashboard(account.cashBalance, holdings);
-    const calculatedAt = new Date();
-    const period = dashboardPeriod(calculatedAt);
-    const [previousDaySnapshot, previousMonthEndSnapshot, externalFlowGroups] = await Promise.all([
-      prisma.dailyAccountSnapshot.findUnique({
-        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousDayKey } },
-      }),
-      prisma.dailyAccountSnapshot.findUnique({
-        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousMonthEndKey } },
-      }),
-      prisma.cashTransaction.groupBy({
-        by: ['transactionType'],
-        where: {
-          accountId,
-          transactionType: { in: ['DEPOSIT', 'WITHDRAWAL'] },
-          transactionDate: { gte: period.todayStart, lt: period.tomorrowStart },
-        },
-        _sum: { amount: true },
-      }),
-    ]);
-    const externalAmount = (type: 'DEPOSIT' | 'WITHDRAWAL') => externalFlowGroups
-      .find((group) => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
-    const todayDepositAmount = externalAmount('DEPOSIT');
-    const todayWithdrawalAmount = externalAmount('WITHDRAWAL');
-    const performance = calculateDashboardPerformance({
-      currentCashBalance: dashboard.cashBalance,
-      currentStockValue: dashboard.stockValue,
-      previousDaySnapshot,
-      previousMonthEndSnapshot,
-      todayDepositAmount,
-      todayWithdrawalAmount,
-    });
-    return {
-      data: {
-        account: { id: account.id.toString(), name: account.name, brokerName: account.brokerName },
-        cashBalance: decimal(dashboard.cashBalance),
-        cashBalanceStatus: account.cashBalanceStatus,
-        purchaseAmount: dashboard.purchaseAmount.toString(),
-        stockValue: decimal(dashboard.stockValue),
-        totalAssetValue: decimal(dashboard.totalAssetValue),
-        unrealizedProfitLoss: decimal(dashboard.unrealizedProfitLoss),
-        unrealizedReturnRate: decimal(dashboard.unrealizedReturnRate),
-        pricingComplete: dashboard.pricingComplete,
-        missingPriceSymbols: dashboard.missingPriceSymbols,
-        latestPriceUpdatedAt: dashboard.latestPriceUpdatedAt?.toISOString() ?? null,
-        previousDayChange: performance.previousDayChange,
-        previousDayChangeRate: performance.previousDayChangeRate,
-        dailyProfit: performance.dailyProfit,
-        dailyProfitRate: performance.dailyProfitRate,
-        stockMonthlyProfit: performance.stockMonthlyProfit,
-        cashMonthlyProfit: performance.cashMonthlyProfit,
-        performanceMeta: {
-          timezone: 'Asia/Seoul',
-          asOfDate: period.todayKey.toISOString().slice(0, 10),
-          calculatedAt: calculatedAt.toISOString(),
-          previousDayBaselineDate: previousDaySnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
-          previousMonthEndBaselineDate: previousMonthEndSnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
-          todayDepositAmount: todayDepositAmount.toString(),
-          todayWithdrawalAmount: todayWithdrawalAmount.toString(),
-          dailyProfitUnavailableReason: performance.dailyProfitUnavailableReason,
-          dailyProfitRateUnavailableReason: performance.dailyProfitRateUnavailableReason,
-          stockMonthlyProfitUnavailableReason: performance.stockMonthlyProfitUnavailableReason,
-          cashMonthlyProfitUnavailableReason: performance.cashMonthlyProfitUnavailableReason,
-          calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE',
-        },
-        holdings: holdings.map(serializeHolding),
-      },
-    };
-  });
+  app.get<{ Params: AccountParams }>('/accounts/:accountId/dashboard', request => loadDashboard(id(request.params.accountId, 'accountId')));
 
-  // Persisted snapshots only; no collection or history mutation on reads.
   app.get<{ Params: AccountParams }>('/accounts/:accountId/investment-capital', async request => {
     const accountId = id(request.params.accountId, 'accountId');
     const account = await prisma.account.findUnique({ where: { id: accountId }, select: { isActive: true } });
@@ -331,3 +259,75 @@ export async function portfolioRoutes(app: FastifyInstance) {
 }
 
 
+
+export async function loadDashboard(accountId: bigint, portfolio = loadPortfolio(accountId)) {
+    const { account, holdings } = await portfolio;
+    const dashboard = calculateDashboard(account.cashBalance, holdings);
+    const calculatedAt = new Date();
+    const period = dashboardPeriod(calculatedAt);
+    const [previousDaySnapshot, previousMonthEndSnapshot, externalFlowGroups] = await Promise.all([
+      prisma.dailyAccountSnapshot.findUnique({
+        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousDayKey } },
+      }),
+      prisma.dailyAccountSnapshot.findUnique({
+        where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousMonthEndKey } },
+      }),
+      prisma.cashTransaction.groupBy({
+        by: ['transactionType'],
+        where: {
+          accountId,
+          transactionType: { in: ['DEPOSIT', 'WITHDRAWAL'] },
+          transactionDate: { gte: period.todayStart, lt: period.tomorrowStart },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+    const externalAmount = (type: 'DEPOSIT' | 'WITHDRAWAL') => externalFlowGroups
+      .find((group) => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
+    const todayDepositAmount = externalAmount('DEPOSIT');
+    const todayWithdrawalAmount = externalAmount('WITHDRAWAL');
+    const performance = calculateDashboardPerformance({
+      currentCashBalance: dashboard.cashBalance,
+      currentStockValue: dashboard.stockValue,
+      previousDaySnapshot,
+      previousMonthEndSnapshot,
+      todayDepositAmount,
+      todayWithdrawalAmount,
+    });
+    return {
+      data: {
+        account: { id: account.id.toString(), name: account.name, brokerName: account.brokerName },
+        cashBalance: decimal(dashboard.cashBalance),
+        cashBalanceStatus: account.cashBalanceStatus,
+        purchaseAmount: dashboard.purchaseAmount.toString(),
+        stockValue: decimal(dashboard.stockValue),
+        totalAssetValue: decimal(dashboard.totalAssetValue),
+        unrealizedProfitLoss: decimal(dashboard.unrealizedProfitLoss),
+        unrealizedReturnRate: decimal(dashboard.unrealizedReturnRate),
+        pricingComplete: dashboard.pricingComplete,
+        missingPriceSymbols: dashboard.missingPriceSymbols,
+        latestPriceUpdatedAt: dashboard.latestPriceUpdatedAt?.toISOString() ?? null,
+        previousDayChange: performance.previousDayChange,
+        previousDayChangeRate: performance.previousDayChangeRate,
+        dailyProfit: performance.dailyProfit,
+        dailyProfitRate: performance.dailyProfitRate,
+        stockMonthlyProfit: performance.stockMonthlyProfit,
+        cashMonthlyProfit: performance.cashMonthlyProfit,
+        performanceMeta: {
+          timezone: 'Asia/Seoul',
+          asOfDate: period.todayKey.toISOString().slice(0, 10),
+          calculatedAt: calculatedAt.toISOString(),
+          previousDayBaselineDate: previousDaySnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
+          previousMonthEndBaselineDate: previousMonthEndSnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
+          todayDepositAmount: todayDepositAmount.toString(),
+          todayWithdrawalAmount: todayWithdrawalAmount.toString(),
+          dailyProfitUnavailableReason: performance.dailyProfitUnavailableReason,
+          dailyProfitRateUnavailableReason: performance.dailyProfitRateUnavailableReason,
+          stockMonthlyProfitUnavailableReason: performance.stockMonthlyProfitUnavailableReason,
+          cashMonthlyProfitUnavailableReason: performance.cashMonthlyProfitUnavailableReason,
+          calculationMethod: 'NET_FLOW_ADJUSTED_SIMPLE',
+        },
+        holdings: holdings.map(serializeHolding),
+      },
+    };
+}
