@@ -18,7 +18,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Preserve buy, partial sell, edit, delete and target-condition editing
-        run: npx playwright test --config=playwright.targets.config.ts stocks-v03.spec.ts target-arrivals.spec.ts --project=cover-370x465 --project=tablet-725x396 --workers=2
+        run: npx playwright test --config=playwright.targets.config.ts stock-inputs-v04.spec.ts settings-v03.spec.ts stocks-v04.spec.ts --grep "form:|price editor|target conditions:|linked buy deletion" --project=cover-370x465 --project=tablet-725x396 --workers=2
         working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
