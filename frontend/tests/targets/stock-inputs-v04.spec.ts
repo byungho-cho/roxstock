@@ -33,3 +33,20 @@ for(const type of ['buy','sell'] as const)for(const edit of [false,true])test(`$
  f.fail();await confirm.click();await expect(root.getByRole('alert')).toContainText('테스트 저장 실패');await expect(quantity).toHaveValue(type==='buy'&&!edit?'10':'70');f.success();await confirm.dblclick();await expect(page).not.toHaveURL(/\/trade/);expect(f.writes).toHaveLength(2);expect(f.writes[1].method).toBe(edit?'PATCH':'POST');expect(f.writes[1].path).toBe(`/api/${type}-trades${edit?(type==='buy'?'/lot1':'/s1'):''}`);
  if(tablet(page)){await expect(page.getByTestId('stock-right')).toContainText('519,000원');if(type==='buy'&&!edit){expect(await left.evaluate(n=>n.scrollTop)).toBe(before[0]);expect(await right.evaluate(n=>n.scrollTop)).toBe(before[1]);}}
 });
+
+test('partial sell posts the selected lot and partial quantity',async({page})=>{
+ const f=await fixture(page);await selected(page);
+ await page.getByTestId('lot-lot1').getByRole('button',{name:'2026-09-10 Lot 매도'}).click();
+ const root=flow(page);await root.getByRole('textbox',{name:'매도수량',exact:true}).fill('35');
+ await root.getByRole('button',{name:'매도',exact:true}).click();await expect(page.getByTestId('trade-form')).toHaveCount(0);
+ expect(f.writes).toHaveLength(1);expect(f.writes[0]).toMatchObject({method:'POST',path:'/api/sell-trades',body:{quantity:'35',buyTradeId:'lot1'}});
+});
+
+test('unlinked buy deletion preserves cancellation and exact lot target',async({page})=>{
+ const f=await fixture(page);await selected(page);
+ await page.getByRole('button',{name:'lot1 매수 삭제'}).click();const confirm=page.getByRole('dialog');
+ await expect(confirm).toContainText('예수금은 자동 변경되지 않습니다.');await expect(confirm.getByRole('button',{name:'삭제',exact:true})).toBeEnabled();
+ await confirm.getByRole('button',{name:'취소',exact:true}).click();expect(f.writes).toHaveLength(0);
+ await page.getByRole('button',{name:'lot1 매수 삭제'}).click();await confirm.getByRole('button',{name:'삭제',exact:true}).click();await expect(confirm).toHaveCount(0);
+ expect(f.writes).toHaveLength(1);expect(f.writes[0]).toMatchObject({method:'DELETE',path:'/api/buy-trades/lot1'});
+});
