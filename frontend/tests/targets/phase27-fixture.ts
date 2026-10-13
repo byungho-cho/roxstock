@@ -25,5 +25,5 @@ export async function fixture(page:Page,{count=4,large=false,delayStock=''}={}) 
   if(route.request().method()!=='GET'){writes.push(u.pathname);return route.fulfill({json:{data:{id:'test'}}});}
   const r=await read(u.pathname.slice(4)+u.search);return route.fulfill({status:r.status,json:r.body});
  });
- return {reads,writes,release,setPrice:async(value:number|null)=>{price=value;await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));});}};
+ return {reads,writes,release,setPrice:async(value:number|null)=>{price=value;await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange',{bubbles:true}));Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange',{bubbles:true}));});}};
 }
