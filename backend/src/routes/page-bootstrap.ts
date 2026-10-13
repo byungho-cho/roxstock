@@ -46,7 +46,7 @@ export function installPageBootstrap(app: FastifyInstance) {
   app.addHook('onClose', async () => { unsubscribe(); cache.clear(); });
   app.addHook('onSend', async (request, reply, payload) => {
     // Runs after the handler/transaction. Failed writes are also cleared defensively.
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) cache.clear();
+    if (request.routeOptions.url !== '/api/pages/read' && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) cache.clear();
     return payload;
   });
   for (const screen of ['home', 'stocks'] as const) {
