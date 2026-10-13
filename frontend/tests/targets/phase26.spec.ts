@@ -26,7 +26,7 @@ async function capture(page:Page,info:any,name:string){await page.screenshot({pa
 test('before and after holding summary: center axes, 8px padding and signed valuation/sell colours',async({page},info)=>{
  await setup(page);await page.goto('http://127.0.0.1:3126/stocks/1?detailTab=summary');await expect(content(page)).toContainText('보유 요약');await capture(page,info,'stock-before');
  for(const [id,rgb] of [['1','rgb(248, 113, 113)'],['4','rgb(96, 165, 250)'],['3','rgb(248, 250, 252)']]){
-  await page.goto('/stocks/'+id+'?detailTab=summary');const holding=content(page).getByTestId('holding-summary-row');await expect(holding).toHaveCount(4);
+  await page.goto('/stocks/'+id+'?detailTab=summary');const holding=content(page).getByTestId('holding-summary-row');await expect(holding).toHaveCount(5);
   const average=holding.filter({hasText:'평균단가'}).getByTestId('holding-summary-center'),profit=holding.filter({hasText:'평가손익'}).getByTestId('holding-summary-center');await expect(average).toContainText('1주');expect((await average.boundingBox())!.x).toBe((await profit.boundingBox())!.x);expect(await average.evaluate(n=>getComputedStyle(n).textAlign)).toBe('center');
   expect(await holding.filter({hasText:'평가금액'}).locator('p').last().evaluate(n=>getComputedStyle(n).color)).toBe(rgb);
   const sell=content(page).getByTestId('profit-metric').filter({hasText:'매도총액'});await expect(sell).toContainText('300원');const c=await sell.locator('p').last().evaluate(n=>getComputedStyle(n).color);expect(c).toBe(id==='1'?'rgb(251, 113, 133)':rgb);
