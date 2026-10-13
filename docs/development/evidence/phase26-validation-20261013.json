@@ -1,0 +1,33 @@
+{
+  "codeCommit": "26b956c73ed5ae69194d895cfb1820ee01094529",
+  "baselineMain": "3d2bd4f76ecbc0ee62bfd10d5372f92c8bb82b3a",
+  "browser": {
+    "runId": 38334147471,
+    "artifactId": 11783983045,
+    "passed": 16,
+    "failed": 0,
+    "viewports": [
+      {
+        "width": 370,
+        "height": 465
+      },
+      {
+        "width": 725,
+        "height": 396
+      }
+    ],
+    "mode": "isolated API route fixtures with captured operating SK inputs"
+  },
+  "scopeSqlApi": [
+    "2026-10-13T01:48:29.3430381Z # PHASE26_SCOPE_PROOF [{\"account\":\"5\",\"security\":\"117\",\"profit\":\"100\",\"dividend\":\"20\",\"count\":3},{\"account\":\"5\",\"security\":\"118\",\"profit\":\"-100\",\"dividend\":\"99\",\"count\":3},{\"account\":\"6\",\"security\":\"117\",\"profit\":\"200\",\"dividend\":\"7\",\"count\":3},{\"account\":\"5\",\"security\":\"117\",\"profit\":\"100\",\"dividend\":\"20\",\"count\":3}]"
+  ],
+  "rimSqlApi": [
+    "2026-10-13T01:49:15.0186261Z # PHASE26_RIM_SQL_API_PROOF {\"issuedShares\":\"5846278608\",\"shareBasis\":{\"receiptNo\":\"99999999999983\",\"stockKind\":\"보통주\",\"shareClass\":\"COMMON\",\"fiscalYear\":2026,\"reportCode\":\"11012\",\"periodEndDate\":\"2026-06-30\",\"collectedAt\":\"2026-10-13T01:49:14.761Z\"},\"excessEarnings\":\"354725958400000\",\"shareholderValue\":\"3921127584000000\",\"rimBasis\":{\"year\":2026,\"period\":\"ESTIMATE\",\"division\":\"CFS\",\"receiptNo\":null,\"periodEnd\":\"2026-12-31\",\"equity\":\"373868000000000\",\"shares\":null,\"shareClass\":null,\"sharePolicy\":\"PROVIDER_ADJUSTED_DENOMINATOR_UNVERIFIED\",\"source\":\"NAVER_FNGUIDE_ANNUAL\",\"isEstimated\":true,\"equityAttribution\":\"OWNERS_OF_PARENT\",\"roeBasis\":\"ANNUAL_ESTIMATE_OWNERS_OF_PARENT\"},\"rimComparison\":{\"perShare\":null,\"existingW08\":\"5525805.84768\",\"difference\":null,\"matchesAtStoredPrecision\":false,\"reason\":\"제공처 BPS의 수정 기말 주식수 분모가 확인되지 않아 주당 가치·W0.8 대조는 계산하지 않습니다. 표시 보통주 수로 대체하지 않습니다.\"}}"
+  ],
+  "operationalChanges": false,
+  "nativeKeyboardWebviewVerified": false,
+  "sourceOriginalRefetchVerified": false,
+  "adjustedBpsDenominator": null,
+  "verificationCommit": "38c25f10f4e3d68a31f1731f53860c510887ef0b",
+  "finalBrowserRunId": 38334354037
+}

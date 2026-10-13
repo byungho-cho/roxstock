@@ -61,5 +61,5 @@ test('summary defers holding lots and stock trade detail; profit detail loads an
  await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).map(u=>u.searchParams.get('securityId')).sort()).toEqual([null,'1'].sort());
  expect(reads.filter(u=>u.pathname.endsWith('/investment-profit')&&u.searchParams.get('securityId')==='1')).toHaveLength(1);
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
- expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(1);
+ expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(0);
 });
