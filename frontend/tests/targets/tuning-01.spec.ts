@@ -8,7 +8,7 @@ const stocks=()=>({accounts:[account()],accountId:'1',stocks:{catalog:[],holding
 async function setup(page:Page){
  const calls:string[]=[];
  await page.route('**/api/**',route=>{const path=new URL(route.request().url()).pathname;calls.push(path);return route.fulfill({status:404,json:{error:{message:'Unexpected request'}}});});
- await page.route('**/api/pages/**',route=>{const url=new URL(route.request().url());calls.push(url.pathname);return route.fulfill({json:{data:url.pathname.endsWith('/stocks')?stocks():home(url.searchParams.get('accountId')??'1')}});});
+ await page.route('**/api/pages/**',route=>{const url=new URL(route.request().url());if(url.pathname==='/api/pages/read')return route.fulfill({status:404,json:{error:{message:'Use legacy reads in tuning-01 fixture'}}});calls.push(url.pathname);return route.fulfill({json:{data:url.pathname.endsWith('/stocks')?stocks():home(url.searchParams.get('accountId')??'1')}});});
  return calls;
 }
 test('home and stocks use one API each and preserve cache during tab switches',async({page})=>{

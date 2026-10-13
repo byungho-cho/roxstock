@@ -36,7 +36,8 @@ test('profit rows sort signed amounts with stable ties; sold-lot cost cannot rep
 });
 test('profit load makes one trades request, parallel paginated dividends and passes cancellation to every source',async()=>{
  const original=globalThis.fetch,signal=new AbortController().signal,paths:string[]=[];
- globalThis.fetch=(async(url:any,init:any)=>{assert.equal(init.signal,signal);const path=String(url);paths.push(path);
+ // Preserve legacy endpoint/cancellation coverage; readBatch.test.ts covers the new transport.
+ globalThis.fetch=(async(url:any,init:any)=>{if(String(url)==='/api/pages/read')return Response.json({error:{message:'Legacy fixture'}},{status:404});assert.equal(init.signal,signal);const path=String(url);paths.push(path);
  return {ok:true,json:async()=>path.includes('cash-transactions')?{data:[],meta:{total:0}}:path.includes('investment-capital')?{data:[{year:2026,date:'2026-10-01',investmentAmount:'50',status:'AVAILABLE'}]}:{data:[],summary:{}}} as any;}) as any;
  try {const data=await loadProfit('7','2026-10-07',signal);assert.equal(paths.length,3);assert.equal(paths.filter(p=>p.includes('/trades?')).length,1);assert.equal(data.capital?.[0]?.date,'2026-10-01');} finally {globalThis.fetch=original;}
 });
@@ -44,7 +45,7 @@ test('profit load makes one trades request, parallel paginated dividends and pas
 test('summary skips capital, shares raw reads with profit detail, and refreshes them after mutation', async()=>{
  const original=globalThis.fetch,client=new QueryClient(),signal=new AbortController().signal,paths:string[]=[];
  let value='100';
- globalThis.fetch=(async(url:any)=>{const path=String(url);paths.push(path);return {ok:true,json:async()=>path.includes('cash-transactions')?{data:[],meta:{total:0}}:path.includes('investment-capital')?{data:[]}:{data:[{id:'1',type:'BUY',tradedAt:'2026-01-01T00:00:00Z',amount:value,security:{id:'1',name:'A'}}],summary:{}}} as any;}) as any;
+ globalThis.fetch=(async(url:any)=>{if(String(url)==='/api/pages/read')return Response.json({error:{message:'Legacy fixture'}},{status:404});const path=String(url);paths.push(path);return {ok:true,json:async()=>path.includes('cash-transactions')?{data:[],meta:{total:0}}:path.includes('investment-capital')?{data:[]}:{data:[{id:'1',type:'BUY',tradedAt:'2026-01-01T00:00:00Z',amount:value,security:{id:'1',name:'A'}}],summary:{}}} as any;}) as any;
  try {
   const summary=await loadProfit('1','2026-10-11',signal,{client,includeCapital:false});assert.equal(summary.capital,undefined);assert.equal(paths.length,2);
   const detail=await loadProfit('1','2026-10-11',signal,{client});assert.equal(paths.length,3);assert.deepEqual(summary.totals,detail.totals);assert.deepEqual(summary.years,detail.years);
