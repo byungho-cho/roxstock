@@ -12,6 +12,9 @@ export async function homeFixture(page: Page, targetCount = 0) {
   let release: (() => void) | undefined;
   await page.clock.install({ time: new Date('2026-10-01T03:10:00Z') });
   await page.route('**/api/**', async route => {
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const path = new URL(route.request().url()).pathname; second = path.includes('/2/');
     if (path === '/api/accounts') return route.fulfill({json:{data:[{id:'1',name:'기본',brokerName:'CI',isActive:true,isDefault:true,cashBalance:'203200000'},{id:'2',name:'다른 계좌',brokerName:'CI',isActive:true,cashBalance:'0'}]}});
     if (fail && /target-arrivals|buy-lots|recent-buys/.test(path)) return route.fulfill({status:503,json:{error:{message:'조회 오류'}}});

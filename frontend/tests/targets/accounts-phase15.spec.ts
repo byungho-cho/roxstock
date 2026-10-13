@@ -4,6 +4,9 @@ async function fixture(page:Page){
  let accounts=[{id:'1',name:'사용 계좌',isDefault:true,cashBalance:'20'},{id:'2',name:'다른 계좌 긴 이름을 표시하는 계좌',isDefault:false,cashBalance:'30'}].map(a=>({...a,brokerName:'증권사',accountNumber:'123-'+a.id,isActive:true,updatedAt:'2026-10-09T00:00:00Z'}));
  const state={hasData:false,fail:false,deleteFail:false,ratio:20,pricingComplete:true};const writes:string[]=[];
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const req=route.request(),path=new URL(req.url()).pathname;
   if(req.method()==='PATCH'&&path.startsWith('/api/accounts/')){writes.push(path);const account=accounts.find(a=>path.endsWith('/'+a.id))!;Object.assign(account,req.postDataJSON());return route.fulfill({json:{data:account}});}
   if(req.method()==='DELETE'){writes.push(path);if(state.deleteFail)return route.fulfill({status:409,json:{error:{code:'ACCOUNT_HAS_DATA',message:'연결 데이터가 추가되었습니다.'}}});accounts=accounts.filter(a=>!path.endsWith('/'+a.id));return route.fulfill({json:{data:{accountId:path.split('/').at(-1),nextAccountId:accounts[0]?.id??null}}});}

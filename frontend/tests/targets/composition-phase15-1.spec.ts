@@ -9,6 +9,9 @@ async function fixture(page:Page){
  const state={ratio:22,missing:false,zero:false};
  page.on('pageerror',error=>{throw error;});
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const path=new URL(route.request().url()).pathname,ratio=path.includes('/2/')?40:state.ratio,cash=state.zero?0:ratio*10000,stock=state.missing?null:String(state.zero?0:(100-ratio)*10000);
   if(path==='/api/accounts')return route.fulfill({json:{data:[1,2].map(id=>({id:String(id),name:'계좌 '+id,brokerName:'검증',accountNumber:'123-'+id,cashBalance:String((id===2?40:state.ratio)*10000),isActive:true,isDefault:id===1}))}});
   if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{stockValue:stock,cashBalance:String(cash),totalAssetValue:state.missing?null:state.zero?'0':'1000000',purchaseAmount:'300000',unrealizedProfitLoss:'10000',unrealizedReturnRate:'1',stockMonthlyProfit:'10000',cashMonthlyProfit:'-1000',holdings:[],pricingComplete:!state.missing,latestPriceUpdatedAt:'2026-10-09T00:00:00Z'}}});

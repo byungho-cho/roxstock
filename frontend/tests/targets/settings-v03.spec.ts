@@ -5,6 +5,9 @@ async function fixture(page: Page) {
   const writes:{path:string;body:any}[]=[];
   let fail=false;
   await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const req=route.request(),path=new URL(req.url()).pathname;
     if(req.method()!=='GET') {
       const body=req.postDataJSON();writes.push({path,body});
