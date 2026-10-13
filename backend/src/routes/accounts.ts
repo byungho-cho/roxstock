@@ -59,8 +59,7 @@ const mapAccountWriteError = (error: unknown): never => {
 
 const resetLocks = new Set<string>();
 
-export async function accountRoutes(app: FastifyInstance) {
-  app.get('/accounts', async () => {
+export async function loadAccounts() {
     const accounts = await prisma.account.findMany({ include: { cashTransactions: { select:{id:true,balanceAfter:true,updatedAt:true},orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 } }, orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }] });
     return {
       data: accounts.map((account) => ({
@@ -77,7 +76,10 @@ export async function accountRoutes(app: FastifyInstance) {
         updatedAt: account.updatedAt.toISOString(),
       })),
     };
-  });
+}
+
+export async function accountRoutes(app: FastifyInstance) {
+  app.get('/accounts', loadAccounts);
 
   app.post<{ Body: AccountBody }>('/accounts', async (request, reply) => {
     const body = request.body ?? {};

@@ -1,3 +1,4 @@
+import { installPageBootstrap } from './routes/page-bootstrap.js';
 import {securityManagementRoutes} from './routes/security-management.js';
 import {investmentProfitRoutes} from './routes/investment-profit.js';
 import {recentBuysRoutes} from './routes/recent-buys.js';
@@ -23,6 +24,7 @@ import { collectionStatusRoutes } from './routes/collection-status.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
+  installPageBootstrap(app);
   const started=new WeakMap<FastifyRequest,bigint>();
   app.addHook('onRequest',async request=>{started.set(request,process.hrtime.bigint());});
   app.addHook('onSend',async(request,reply,payload)=>{
