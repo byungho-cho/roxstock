@@ -1,0 +1,90 @@
+{
+  "observedAtUTC": "2026-10-13T01:09:29.539741+00:00",
+  "symbol": "000660",
+  "securityId": "39",
+  "sourceSelection": "Operating read-only saved-data API; direct operational DB connection not used",
+  "requests": [
+    "/api/value-analysis?year=2026&query=000660",
+    "/api/value-analysis/39?year=2026&startYear=2024&count=3",
+    "/api/financial-statements/39?mode=annual&endYear=2026"
+  ],
+  "before": {
+    "listIssuedShares": null,
+    "detailIssuedShares": "712702365",
+    "detailTreasuryShares": "1626865",
+    "detailOutstandingShares": "711075500",
+    "shareBasis": {
+      "receiptNo": "20260814003509",
+      "stockKind": "보통주",
+      "shareClass": "COMMON",
+      "fiscalYear": 2026,
+      "reportCode": "11012",
+      "periodEndDate": "2026-06-30",
+      "collectedAt": "2026-10-09T09:49:15.321Z"
+    },
+    "listRimReason": "제공처 BPS의 수정 주식수·주식 종류 분모를 확인할 수 없습니다.",
+    "listExcess": null,
+    "listShareholder": null,
+    "metricYear": 2026,
+    "metricKind": "ANNUAL_ESTIMATE",
+    "bps": "526869.36",
+    "roe": "102.88",
+    "existingW08": "5525805.84768",
+    "referenceEquity": "120666751000000",
+    "referenceClosingDate": "2025-12-31"
+  },
+  "financialRows": [
+    {
+      "period": "2024",
+      "basis": "CFS",
+      "collectedAt": "2026-10-01T10:45:01.018Z",
+      "totalEquity": "73915704000000",
+      "parentEquity": null
+    },
+    {
+      "period": "2025",
+      "basis": "CFS",
+      "collectedAt": "2026-10-01T10:44:35.505Z",
+      "totalEquity": "120666751000000",
+      "parentEquity": null
+    },
+    {
+      "period": "2026E",
+      "basis": "CONSENSUS:NAVER_FNGUIDE_ANNUAL",
+      "collectedAt": "2026-10-08T08:13:30.665Z",
+      "totalEquity": "375006843000000",
+      "parentEquity": "373868000000000"
+    }
+  ],
+  "roeSource": {
+    "fiscalYear": 2026,
+    "kind": "ANNUAL_ESTIMATE",
+    "division": "CFS",
+    "source": "NAVER_FNGUIDE_ANNUAL",
+    "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+    "collectedAt": "2026-10-08T08:13:23.774Z",
+    "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+    "priceDate": "2026-10-07",
+    "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+    "formulas": {
+      "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+      "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+      "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+      "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+      "roe": "지배순이익 / 평균 지배자본 * 100"
+    },
+    "method": "COLLECTED",
+    "version": "MANUAL_ANNUAL_V1",
+    "periodType": "ANNUAL"
+  },
+  "formulaResult": {
+    "condition": "2026E parent equity and ROE must match stored same-provider source values and CFS/owners/annual basis",
+    "rimEquity": "373868000000000",
+    "roe": "102.88",
+    "excessEarnings": "354725958400000",
+    "shareholderValue": "3921127584000000",
+    "rimPerShare": null,
+    "comparisonReason": "Adjusted BPS end-period denominator unavailable. Do not replace with interim issued/outstanding shares.",
+    "operationalDataChanges": false
+  }
+}

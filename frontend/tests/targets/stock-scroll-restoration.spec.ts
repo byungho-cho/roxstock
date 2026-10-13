@@ -53,7 +53,7 @@ for(const category of categories)test(category+' restores actual scroll after in
    if(category==='watchlist')await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id+'/value');
    else if(wide)await expect(page.getByTestId('stock-right')).toBeVisible();
    else {
-    await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id && url.searchParams.get('detailTab')===(category==='traded'?'trades':'holding'));
+    await expect(page).toHaveURL(url=>url.pathname==='/stocks/'+id && url.searchParams.get('detailTab')===(category==='traded'?'trades':'summary'));
    }
    if(category==='traded')await expect(page.getByRole('tab',{name:'거래내역',exact:true})).toHaveAttribute('aria-selected','true');
   };

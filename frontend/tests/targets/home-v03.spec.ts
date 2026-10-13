@@ -52,7 +52,7 @@ test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and o
   if(page.viewportSize()!.width>=600)for(const p of layout.panels.filter(p=>['home-holdings-card','target-arrival-card','recent-buys-card'].includes(p.id!)))expect(p.rect.height).toBe(290);
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;
-    expect(summary.rect.height).toBeGreaterThanOrEqual(290);expect(summary.rect.y).toBe(t.rect.y);expect(h.rect.y).toBe(r.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);
+    expect(summary.rect.height).toBeGreaterThanOrEqual(290);expect(summary.rect.y).toBe(r.rect.y);expect(h.rect.y).toBe(t.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);
   }
   const colors=await held.getByTestId('home-holding').evaluateAll(rows=>rows.map(row=>[...row.querySelectorAll('div > div')].filter(n=>n.textContent && n.childElementCount===0).map(n=>getComputedStyle(n).color)));
   expect(colors[0]).toContain('rgb(248, 113, 113)');expect(colors[1]).toContain('rgb(96, 165, 250)');expect(colors[2]).toContain('rgb(248, 250, 252)');
