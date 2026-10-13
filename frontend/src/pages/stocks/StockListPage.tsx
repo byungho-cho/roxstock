@@ -47,7 +47,7 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const items=useMemo(()=>sortStocks(all.filter(s=>s.listType===active&&stockMatches(s.name,s.symbol,query)),sort.key,sort.descending,favoriteIds),[all,active,query,sort.key,sort.descending,favoriteIds]);
  const chosen=items.find(s=>s.id===selected),split=tablet&&!!chosen;
  const entry=location.state?.stockNavigation,conditions=JSON.stringify([query,sort]);
- const entryIds=entry?.accountId===accountId&&entry.tab===active&&entry.conditions===conditions&&entry.ids.includes(selected)?entry.ids:items.map(s=>s.id);
+ const entryIds=entry&&entry.accountId===accountId&&entry.tab===active&&entry.conditions===conditions&&entry.ids.includes(selected)?entry.ids:items.map(s=>s.id);
  const navigationState={accountId,ids:split?entryIds:items.map(s=>s.id),tab:active,conditions};
  const neighbors=useStockNeighbors(chosen?.id??'',all,split?entryIds:[]);
  const moveDetail=(offset:number)=>{const target=offset<0?neighbors.previous:neighbors.next;if(target){const next=new URLSearchParams(params);next.set('tab',active);next.set('selected',target.id);setParams(next,{replace:true,state:{...location.state,stockNavigation:navigationState,listEntryKey:location.state?.listEntryKey??location.key}});}};

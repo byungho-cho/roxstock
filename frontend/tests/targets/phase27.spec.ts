@@ -2,6 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {writeFileSync} from 'node:fs';
 import {fixture} from './phase27-fixture';
 const nav=(page:Page)=>page.getByTestId('stock-navigation');
+test.beforeEach(async({page})=>{page.on('pageerror',error=>{throw error;});});
 async function swipe(page:Page,direction:number){
  const region=page.locator('[data-detail-swipe]').last();
  await region.evaluate((target,direction)=>{
@@ -70,7 +71,11 @@ test('before/after measurements preserve fixed chrome and fit two cards after sc
    await page.mouse.move(firstBox.x+firstBox.width/2,Math.min(firstBox.y+10,bottom-10));
    await page.mouse.wheel(0,Math.max(0,firstBox.y-44));
    const visibleCount=()=>page.locator('[data-testid^="lot-1-"]').evaluateAll((nodes,bottom)=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.top>=44&&r.bottom<=bottom;}).length,bottom);
-   await expect.poll(visibleCount).toBeGreaterThanOrEqual(2);
+   // Wheel scrolling is asynchronous. Align the first card after it settles, using the real scroll region.
+   await expect.poll(async()=>{
+    await first.evaluate(node=>{const region=node.closest<HTMLElement>('[data-scroll-region]')??document.querySelector<HTMLElement>('main');if(region)region.scrollTop+=node.getBoundingClientRect().top-44;});
+    return visibleCount();
+   }).toBeGreaterThanOrEqual(2);
    measurements.after.scrolledFullyVisible=await visibleCount();
    await page.screenshot({path:info.outputPath('after-scrolled.png')});
   }
