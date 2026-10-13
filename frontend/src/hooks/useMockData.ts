@@ -10,7 +10,7 @@ import { useActiveAccount } from './useActiveAccount';
 
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60_000;
 
-export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = {}) {
+export function useDashboard({ pollPrices = false, includeTrend = true }: { pollPrices?: boolean; includeTrend?: boolean } = {}) {
   const { accountId, page, pageMode, screen } = useActiveAccount();
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`);
@@ -19,7 +19,7 @@ export function useDashboard({ pollPrices = false }: { pollPrices?: boolean } = 
   const history = useQuery({
     ...storedQueryOptions,
     queryKey: ['assetHistory', accountId, 'dashboard', from, today],
-    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: liveApiEnabled && !!accountId && !pageMode,
+    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: includeTrend && liveApiEnabled && !!accountId && !pageMode,
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   const summary = useQuery({

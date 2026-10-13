@@ -6,7 +6,7 @@ import { colors } from '../../styles/tokens';
 
 export function HomeListCard({ title, count, testId, action, children, timestamp, more, moreDisabled=false, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false, stable = false, pending=false, compactEmpty=false, naturalCover=false }: {
   title: string; titleHint?: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
-  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean; stable?:boolean; pending?:boolean; compactEmpty?:boolean; naturalCover?:boolean;
+  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number | 'auto'; compactFooter?: boolean; stable?:boolean; pending?:boolean; compactEmpty?:boolean; naturalCover?:boolean;
 }) {
   return <AppCard data-testid={testId} data-empty-compact={compactEmpty} sx={{ minWidth: 0, height: compactEmpty?{xs:98,sm:height}:naturalCover?{xs:'auto',sm:height}:compactFooter || stable ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: compactEmpty?{xs:'8px 14px',sm:'12px 14px'}:'12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
@@ -37,8 +37,8 @@ export function HomeEmpty({ children = '내용이 없습니다.' }: { children?:
 export function HomeTwoLineRow({ testId, onClick, first, second, color = colors.textPrimary, large = false }: {
   testId: string; onClick: () => void; first: [ReactNode, ReactNode, ReactNode]; second: [ReactNode, ReactNode, ReactNode]; color?: string; large?: boolean;
 }) {
-  return <CardActionArea data-testid={testId} onClick={onClick} sx={{ display: 'block', textAlign: 'left', color, borderRadius: 0, borderBottom: `1px solid ${colors.borderStrong}`, pl: '8px', pr: 0, height: large ? 'auto' : 43, minHeight: 43, '&:last-child': { borderBottom: 0, height: large ? 'auto' : 38, minHeight: 38 } }}>
-    <Box sx={{ display: 'grid', gridTemplateColumns: large ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, .92fr)' : 'minmax(0, 1fr) minmax(max-content, 1fr) minmax(max-content, 1fr)', columnGap: '8px', rowGap: '2px', alignItems: 'center', fontVariantNumeric: 'tabular-nums', '& > *': { minWidth: 0, fontSize: 10, lineHeight: '16px', textAlign: 'right', overflowWrap: large ? 'anywhere' : undefined, whiteSpace: large ? undefined : 'nowrap' }, '& > :nth-of-type(3n + 1)': { textAlign: 'left' }, '& > :first-child': { fontSize: 12, lineHeight: '20px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+  return <CardActionArea data-testid={testId} onClick={onClick} sx={{ display: 'block', textAlign: 'left', color, borderRadius: 0, borderBottom: `1px solid ${colors.borderStrong}`, pl: '8px', pr: 0, py: '4px', height: 'auto', minHeight: 0, '&:last-child': { borderBottom: 0 } }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: large ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, .92fr)' : 'minmax(0, 1fr) minmax(max-content, 1fr) minmax(max-content, 1fr)', columnGap: '8px', rowGap: '4px', alignItems: 'center', fontVariantNumeric: 'tabular-nums', '& > *': { minWidth: 0, fontSize: 10, lineHeight: '16px', textAlign: 'right', overflowWrap: large ? 'anywhere' : undefined, whiteSpace: large ? undefined : 'nowrap' }, '& > :nth-of-type(3n + 1)': { textAlign: 'left' }, '& > :first-child': { fontSize: 12, lineHeight: '20px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' } }}>
       {first.map((cell, i) => <Box key={`first-${i}`}>{cell}</Box>)}
       {second.map((cell, i) => <Box key={`second-${i}`}>{cell}</Box>)}
     </Box>

@@ -11,7 +11,7 @@ import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
 import { calculateDashboard } from '../domain/portfolio.js';
 import { loadPortfolio } from './portfolio.js';
-import { parsePlan,parseGoal,serializePlan,seoulYear } from '../domain/compound-growth.js';
+import { parsePlan,parseGoal,serializePlan,seoulYear,annualTableValues } from '../domain/compound-growth.js';
 type Params={accountId:string;planId:string;goalId:string};
 const include={goals:{orderBy:[{displayOrder:'asc' as const},{id:'asc' as const}]}};
 async function locked(tx:Prisma.TransactionClient,accountId:bigint,planId?:bigint){
@@ -35,10 +35,13 @@ export async function compoundGrowthRoutes(app:FastifyInstance){
   const endedDates=pastYears.map(year=>new Date(Date.UTC(year,11,31)));
   const endingSnapshots=endedDates.length?await tx.dailyAccountSnapshot.findMany({where:{accountId,snapshotDate:{in:endedDates}}}):[];
   const endingByYear=new Map(endingSnapshots.map(row=>[row.snapshotDate.getUTCFullYear(),row.totalAssetValue.toString()]));
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(now);
+  const currentSnapshots=basic?[]:await tx.dailyAccountSnapshot.findMany({where:{accountId,snapshotDate:{gte:new Date(`${currentYear}-01-01T00:00:00Z`),lte:new Date(`${today}T00:00:00Z`)}},orderBy:[{snapshotDate:'desc'},{id:'desc'}]});
+  const tableValues=annualTableValues([...endingSnapshots,...currentSnapshots],today);
   const assets=basic?null:dashboard.totalAssetValue?.toString()??null;
   const asOf=new Date(Math.max(account.updatedAt.getTime(),dashboard.latestPriceUpdatedAt?.getTime()??0));
   return {data:{accountId:accountId.toString(),currentAssets:assets,asOf:asOf.toISOString(),calculatedAt:now.toISOString(),currentYear,
-   pricingComplete:!basic&&dashboard.pricingComplete,plans:plans.map(plan=>serializePlan(plan,assets,currentYear,endingByYear.get(plan.endDate.getUTCFullYear())??null,endingByYear)),
+   pricingComplete:!basic&&dashboard.pricingComplete,plans:plans.map(plan=>serializePlan(plan,assets,currentYear,endingByYear.get(plan.endDate.getUTCFullYear())??null,endingByYear,tableValues)),
    basis:{contributionTiming:'START_OF_YEAR',initialTiming:'START_OF_START_YEAR',inclusiveYears:true,yearTarget:'CALENDAR_YEAR_END_WITHIN_PLAN',progressDenominator:'FINAL_TARGET',timezone:'Asia/Seoul'}}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead}));
  for(const method of ['post','put'] as const){
