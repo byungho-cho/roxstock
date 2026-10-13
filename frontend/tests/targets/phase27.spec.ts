@@ -59,7 +59,7 @@ test('profit-only targets update with prices; remaining quantity total and all t
 test('before/after measurements preserve fixed chrome and fit two cards after scrolling',async({page},info)=>{
  await fixture(page);const measurements:any={};
  for(const [version,origin] of [['before','http://127.0.0.1:3127'],['after','http://127.0.0.1:3027']]){
-  await page.goto(origin+'/stocks/1?detailTab=holding');const first=page.getByTestId('lot-1-0');await expect(first).toBeVisible();
+  await page.goto(origin+'/stocks/1?detailTab=holding');const first=page.locator('[data-testid^="lot-1-"]').first();await expect(first).toBeVisible();
   const boxes=await page.locator('[data-testid^="lot-1-"]').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {y:r.y,bottom:r.bottom,height:r.height};}));
   const height=page.viewportSize()!.height,bottom=height-44;
   measurements[version]={cards:boxes,fullyVisible:boxes.filter(b=>b.y>=44&&b.bottom<=bottom).length,visibleEquivalent:boxes.reduce((sum,b)=>sum+Math.max(0,Math.min(bottom,b.bottom)-Math.max(44,b.y))/b.height,0)};
@@ -71,11 +71,7 @@ test('before/after measurements preserve fixed chrome and fit two cards after sc
    await page.mouse.move(firstBox.x+firstBox.width/2,Math.min(firstBox.y+10,bottom-10));
    await page.mouse.wheel(0,Math.max(0,firstBox.y-44));
    const visibleCount=()=>page.locator('[data-testid^="lot-1-"]').evaluateAll((nodes,bottom)=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.top>=44&&r.bottom<=bottom;}).length,bottom);
-   // Wheel scrolling is asynchronous. Align the first card after it settles, using the real scroll region.
-   await expect.poll(async()=>{
-    await first.evaluate(node=>{const region=node.closest<HTMLElement>('[data-scroll-region]')??document.querySelector<HTMLElement>('main');if(region)region.scrollTop+=node.getBoundingClientRect().top-44;});
-    return visibleCount();
-   }).toBeGreaterThanOrEqual(2);
+   await expect.poll(visibleCount).toBeGreaterThanOrEqual(2);
    measurements.after.scrolledFullyVisible=await visibleCount();
    await page.screenshot({path:info.outputPath('after-scrolled.png')});
   }
