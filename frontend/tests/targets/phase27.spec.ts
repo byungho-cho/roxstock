@@ -4,9 +4,12 @@ import {fixture} from './phase27-fixture';
 const nav=(page:Page)=>page.getByTestId('stock-navigation');
 async function swipe(page:Page,direction:number){
  const region=page.locator('[data-detail-swipe]').last();
- await region.dispatchEvent('touchstart',{touches:[{clientX:180,clientY:160}]});
- await region.dispatchEvent('touchmove',{touches:[{clientX:180-direction*100,clientY:162}]});
- await region.dispatchEvent('touchend',{touches:[],changedTouches:[{clientX:180-direction*100,clientY:162}]});
+ await region.evaluate((target,direction)=>{
+  const touch=(x:number,y:number)=>new Touch({identifier:1,target,clientX:x,clientY:y});
+  target.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[touch(180,160)]}));
+  target.dispatchEvent(new TouchEvent('touchmove',{bubbles:true,touches:[touch(180-direction*100,162)]}));
+  target.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],changedTouches:[touch(180-direction*100,162)]}));
+ },direction);
 }
 async function code(page:Page,id:string){await expect(nav(page).getByTestId('stock-navigation-code')).toHaveText(id.padStart(6,'0'));}
 test('first/last wrap through header clicks and swipes; adjacent prefetch includes both ends',async({page})=>{
@@ -41,7 +44,7 @@ test('rapid navigation cannot let delayed stock lots replace the current stock',
 test('profit-only targets update with prices; remaining quantity total and all tooltip close paths',async({page},info)=>{
  const f=await fixture(page);await page.goto('/stocks/1?detailTab=holding');const card=page.getByTestId('lot-1-0');await expect(card).toBeVisible();
  await expect(card.getByText('수익',{exact:true})).toBeVisible();await expect(card.getByText('목표수익률',{exact:true})).toHaveCount(0);
- const target=card.getByRole('button',{name:'5% 목표 총액'});await expect(target).toHaveText('5% · 319,200원');
+ const target=card.getByRole('button',{name:'5% 목표 총액',exact:true});await expect(target).toHaveText('5% · 319,200원');
  await target.click();await expect(page.getByRole('tooltip')).toHaveText('목표 총액 2,234,400원');await expect(page.getByRole('tooltip')).toBeInViewport();await expect(page.getByRole('dialog')).toHaveCount(0);
  await page.screenshot({path:info.outputPath('tooltip.png')});await target.click();await expect(page.getByRole('tooltip')).toHaveCount(0);
  await target.click();await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);
