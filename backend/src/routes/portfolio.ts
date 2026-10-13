@@ -1,4 +1,5 @@
 import { cashBasis } from '../domain/current-cash.js';
+import { sharedRead } from '../domain/read-scope.js';
 import { annualInvestmentCapital } from '../domain/investment-capital.js';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '../generated/prisma/index.js';
@@ -60,7 +61,11 @@ export const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[n
   marketStatus: holding.marketStatus,
 });
 
-export const loadPortfolio = async (accountId: bigint, reader:Prisma.TransactionClient=prisma) => {
+export const loadPortfolio = (accountId: bigint, reader:Prisma.TransactionClient=prisma) => reader === prisma
+  ? sharedRead(`portfolio:${accountId}`, () => readPortfolio(accountId, reader))
+  : readPortfolio(accountId, reader);
+
+const readPortfolio = async (accountId: bigint, reader:Prisma.TransactionClient) => {
   const account = await reader.account.findUnique({
     where: { id: accountId },
     include: {
