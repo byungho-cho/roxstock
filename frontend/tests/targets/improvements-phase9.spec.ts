@@ -41,7 +41,7 @@ test('popup validates range; persists request and reenables after failure',async
  await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.goto('/detail/value?view=chart&selected=1&endYear=2025');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await expect(page.getByRole('combobox',{name:'시작연도',exact:true})).toContainText('2023');await expect(page.getByRole('combobox',{name:'종료연도',exact:true})).toContainText('2025');
 });
 test('lot date styling and financial link preserve selection',async({page},info)=>{
- await fixture(page);await page.goto('/stocks/1?detailTab=holding');const date=page.getByTestId('lot-1').getByText('2026.10.01',{exact:true});await expect(date).toBeVisible();await expect(date).toHaveCSS('font-size','14px');await expect(date).toHaveCSS('font-weight','700');await expect(date).toHaveCSS('color','rgb(255, 255, 255)');await page.screenshot({path:info.outputPath('phase9-lot-date.png')});
+ await fixture(page);await page.goto('/stocks/1?detailTab=holding');const date=page.getByTestId('lot-1').getByTestId('lot-date');await expect(date).toBeVisible();await expect(date).toContainText('2026.10.01');await expect(date).toContainText('보유');await expect(date).toHaveCSS('font-size','14px');await expect(date).toHaveCSS('font-weight','700');await expect(date).toHaveCSS('color','rgb(255, 255, 255)');await page.screenshot({path:info.outputPath('phase9-lot-date.png')});
  await setup(page);await page.getByRole('tab',{name:'요약',exact:true}).click();await page.getByRole('button',{name:'(재무제표)',exact:true}).click();await expect(page).toHaveURL(/stocks\/1\/financials/);await expect(page.getByTestId('financial-page')).toBeVisible();
 });
 

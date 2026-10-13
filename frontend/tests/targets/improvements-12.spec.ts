@@ -114,7 +114,7 @@ test('stock holding lots descend with deterministic tie-break; trades header ret
  await stockFixture(page);
  await page.route('**/api/accounts/a/buy-lots**',route=>route.fulfill({json:{data:[{id:'3',boughtAt:'2026-09-10T00:00:00Z'},{id:'2',boughtAt:'2026-10-01T00:00:00Z'},{id:'10',boughtAt:'2026-10-01T00:00:00Z'}].map(row=>({...row,security:{id:'1',name:'현대자동차'},quantity:'10',soldQuantity:'0',remainingQuantity:'10',unitPrice:'100',sellTrades:[]}))}}));
  await page.goto('/stocks/1?detailTab=holding');await expect(page.getByTestId('lot-10')).toBeVisible();
- expect(await page.locator('[data-testid^="lot-"]').evaluateAll(n=>n.map(x=>x.getAttribute('data-testid')))).toEqual(['lot-10','lot-2','lot-3']);
+ expect(await page.locator('[data-holding-lot]').evaluateAll(n=>n.map(x=>x.getAttribute('data-testid')))).toEqual(['lot-10','lot-2','lot-3']);
  await page.getByRole('tab',{name:'거래내역'}).click();await expect(page.getByTestId('stock-realized-profit')).toContainText('+20,230,000원');
  await expect(page.getByTestId('stock-realized-profit')).toContainText('+125.7%');
  await expect(page.getByTestId('stock-detail-content').getByRole('button',{name:'매수',exact:true})).toBeVisible();
