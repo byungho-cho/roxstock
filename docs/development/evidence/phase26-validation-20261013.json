@@ -28,6 +28,14 @@
   "nativeKeyboardWebviewVerified": false,
   "sourceOriginalRefetchVerified": false,
   "adjustedBpsDenominator": null,
-  "verificationCommit": "38c25f10f4e3d68a31f1731f53860c510887ef0b",
-  "finalBrowserRunId": 38334354037
+  "verificationCommit": "0f713aa8df03e562d2ffb8de2ebccfed2c6711b0",
+  "finalBrowserRunId": 38335141450,
+  "finalScopedBrowserChecks": {
+    "phase26": 16,
+    "cacheAggregate": 2,
+    "homePartial": 6,
+    "total": 24,
+    "passed": 24,
+    "failed": 0
+  }
 }

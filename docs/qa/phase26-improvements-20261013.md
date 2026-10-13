@@ -34,7 +34,7 @@
 - [최종 제품 코드의 화면 16/16 통과](https://github.com/byungho-cho/roxstock/actions/runs/38334147471), 커버370×465/태블릿725×396. 기준 main 전후 실제 browser capture, 최종 artifact11783983045.
 - [Backend Check 통과](https://github.com/byungho-cho/roxstock/actions/runs/38333798419): 실제 MariaDB scope 및220개 회귀, 백엔드 타입/빌드.
 - [실제 DB RIM/API 증명](https://github.com/byungho-cho/roxstock/actions/runs/38333798451), api job115089246001 성공. `PHASE26_RIM_SQL_API_PROOF`의 실제 DB→API 총액과 기존 가격/null 비교 결과를 [검증 JSON](../development/evidence/phase26-validation-20261013.json)에 기록.
-- [최종 회귀 기대값 커밋의 화면16/16 재확인](https://github.com/byungho-cho/roxstock/actions/runs/38334354037), [백엔드 검사 재확인](https://github.com/byungho-cho/roxstock/actions/runs/38334354131) 성공. 추가 repo 자동 회귀는 결과 확인 후 기록. 이 문서의 통과 표기는 지정한 커밋·run에 대한 결과이며 운영 적용 상태를 뜻하지 않는다.
+- [최종 회귀 기대값 커밋의 화면16/16 재확인](https://github.com/byungho-cho/roxstock/actions/runs/38334354037), [백엔드 검사 재확인](https://github.com/byungho-cho/roxstock/actions/runs/38334354131) 성공. 변경 범위 최종 검사 결과는 아래에 기록한다. 저장소 전체 자동 회귀의 일부는 진행 중이며 전체 통과로 보고하지 않는다. 이 문서의 통과 표기는 지정한 커밋·run에 대한 결과이며 운영 적용 상태를 뜻하지 않는다.
 
 ## 전후 화면
 
@@ -61,3 +61,9 @@
 후속 기대값 수정: 범위별 aggregate 응답이 준비되면 과거 거래 원본 재조회도0회다. 기존 검사 마지막의 raw trade1회 기대값을0회로 고쳤다. 최종 phase26 workflow에 해당 회귀를 커버/태블릿2건으로 함께 실행하도록 추가했다. 기존 broad phase6의 마지막 실패는 제품 오류가 아닌 이 기대값의 오류이며 기존 기능 검사29건 및 phase7의9건은 통과했다.
 
 20차 자동 회귀의 커버3건은 모든 카드가 조회 전후 같은 높이라는 이전 규칙 때문에 실패했다(목표 카드286→98px). 이번 지시는 정상0건의 축소를 요구하므로 나머지5개 카드의 geometry 비교는 유지하고 목표 카드의 높이는26차 정상0/로딩/503 전용 검사로 검증한다. 해당3사례를 커버/태블릿6건으로 최종 phase26 workflow에 추가했다. 원래20차 검사 나머지133건은 통과했다.
+
+## 최종 변경 범위 검사
+
+코드/검사 커밋 `0f713aa8df03e562d2ffb8de2ebccfed2c6711b0`, [최종 workflow38335141450](https://github.com/byungho-cho/roxstock/actions/runs/38335141450) 성공. 커버/태블릿26차 화면16건 + 계좌/종목 cache 및 raw조회 회귀2건 + 홈 부분 조회/오류/빈 높이 회귀6건 = **24건 모두 통과**. 이전 baseline과 변경 빌드가 모두 성공했다. 이후 커밋은 최종 결과 문서/JSON만 기록한다. 실행 중인 저장소 전체 자동 회귀를 다시 기다리거나 전체 통과로 표시하지 않는다.
+
+최종 코드의 [Frontend Check38335141401](https://github.com/byungho-cho/roxstock/actions/runs/38335141401) 및 [Backend Check38335141318](https://github.com/byungho-cho/roxstock/actions/runs/38335141318) 모두 성공: 프런트/백엔드 타입·빌드와 백엔드220회귀·실제DB 검사 재확인.
