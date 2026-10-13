@@ -1,0 +1,139 @@
+{
+  "readOnly": true,
+  "externalDartApiCalls": 0,
+  "queryStartedAt": "2026-10-13T05:01:42.156Z",
+  "queryCompletedAt": "2026-10-13T05:01:57.694Z",
+  "codeSha": "258ee8d06db93d171d6ed71504f5dc9198f4daae",
+  "baselinePR": 213,
+  "baselineCommit": "c2f4692ae8789d3d3ff7d2ae4a24960aaafcaadd",
+  "baselineFinalAt": "2026-10-13T04:33:38Z",
+  "fixDeploymentCutoff": "2026-10-12T00:29:40.000Z",
+  "taskStateCounts": [
+    {
+      "_count": {
+        "_all": 86363
+      },
+      "status": "PENDING"
+    },
+    {
+      "_count": {
+        "_all": 34212
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "_count": {
+        "_all": 6315
+      },
+      "status": "NO_FILING"
+    },
+    {
+      "_count": {
+        "_all": 182
+      },
+      "status": "NOT_APPLICABLE"
+    },
+    {
+      "_count": {
+        "_all": 416
+      },
+      "status": "FAILED"
+    }
+  ],
+  "failedByCode": [
+    {
+      "_count": {
+        "_all": 1
+      },
+      "errorCode": "NETWORK_ERROR"
+    },
+    {
+      "_count": {
+        "_all": 235
+      },
+      "errorCode": "RECEIPT_MISMATCH"
+    },
+    {
+      "_count": {
+        "_all": 180
+      },
+      "errorCode": "REVIEW_REQUIRED"
+    }
+  ],
+  "candidateCount": 324,
+  "candidateSecurities": 32,
+  "candidateFailedOverlap": 0,
+  "old458Current": {
+    "FAILED": 412,
+    "SUCCESS": 46
+  },
+  "pr213Failed416Current": {
+    "FAILED": 416
+  },
+  "pr213Review165Current": {
+    "FAILED": 165
+  },
+  "currentFailed": 416,
+  "currentNoDiagnosticReview": 165,
+  "recoveredOriginalCodeFor165": {
+    "RECEIPT_MISMATCH": 165
+  },
+  "failedWithPostDeploymentTaskAttempt": 14,
+  "subjectCount": 786,
+  "primaryCategories": {
+    "UNSUPPORTED_EXCLUDED": 35,
+    "INSUFFICIENT_EVIDENCE": 379,
+    "QUARANTINE_RECOLLECT_CANDIDATE": 307,
+    "CLOSED": 46,
+    "DEVELOPER_DECISION": 13,
+    "RESET_RECOLLECT_CANDIDATE": 6
+  },
+  "excluded": {
+    "total": 35,
+    "periodCandidates": 17,
+    "failedTasks": 18,
+    "explicitNonKrwTaskDiagnostics": 2,
+    "targetCurrencyEvidence": {
+      "NO_TARGET_CURRENCY_EVIDENCE": 30,
+      "20261012_REPRESENTATIVE_REPORT_FOR_2024": 3,
+      "TASK_DIAGNOSTIC": 2
+    }
+  },
+  "insufficient": {
+    "total": 379,
+    "existingAutoRetryNoReset": 225,
+    "reviewHold": 154
+  },
+  "candidateActiveSelections": 324,
+  "candidateSourceValidationNull": 324,
+  "candidateNormalizationVersion": {
+    "2": 252,
+    "1": 41,
+    "3": 31
+  },
+  "candidateManualShortcuts": 31,
+  "candidateDirectValuationReferenceRows": 158,
+  "nonGRTDirectValuationReferenceRows": 148,
+  "candidateIdentityNamespaceMismatch": 0,
+  "candidateWithdrawn": 0,
+  "resetCandidateIds": [
+    "114461",
+    "116049",
+    "116052",
+    "116133",
+    "116233",
+    "116681"
+  ],
+  "resetCandidateSecurities": 5,
+  "quarantineCandidateCount": 307,
+  "cachedEvidenceTaskCount": 115,
+  "historyItemCount": 1319,
+  "dependencyEdgeCount": 2479,
+  "manualFinancialRowsInInvestigatedSecurities": 0,
+  "legacyValuationMetricRowsInInvestigatedSecurities": 0,
+  "shareSnapshotsInInvestigatedSecurities": 12,
+  "consensusRowsInInvestigatedSecurities": 2,
+  "executionPerformed": false,
+  "readyToExecuteSubjects": 0,
+  "firstAttemptTimeScope": "first_recorded_item_at is persisted event time, not exact first request start; history retention completeness unconfirmed"
+}
