@@ -1,3 +1,4 @@
+import {StockNavigation} from './StockNavigation';
 import {StockIdentity} from './StockIdentity';
 import {StockTabs} from './StockTabs';
 import {StockLoadingRows} from './StockLoadingRows';
@@ -45,8 +46,10 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const sort=sorting[active]??defaultSort(active),all=data??[];
  const items=useMemo(()=>sortStocks(all.filter(s=>s.listType===active&&stockMatches(s.name,s.symbol,query)),sort.key,sort.descending,favoriteIds),[all,active,query,sort.key,sort.descending,favoriteIds]);
  const chosen=items.find(s=>s.id===selected),split=tablet&&!!chosen;
- const navigationState={accountId,ids:items.map(s=>s.id),tab:active};
- const neighbors=useStockNeighbors(chosen?.id??'',all,split?items.map(s=>s.id):[]);
+ const entry=location.state?.stockNavigation,conditions=JSON.stringify([query,sort]);
+ const entryIds=entry?.accountId===accountId&&entry.tab===active&&entry.conditions===conditions&&entry.ids.includes(selected)?entry.ids:items.map(s=>s.id);
+ const navigationState={accountId,ids:split?entryIds:items.map(s=>s.id),tab:active,conditions};
+ const neighbors=useStockNeighbors(chosen?.id??'',all,split?entryIds:[]);
  const moveDetail=(offset:number)=>{const target=offset<0?neighbors.previous:neighbors.next;if(target){const next=new URLSearchParams(params);next.set('tab',active);next.set('selected',target.id);setParams(next,{replace:true,state:{...location.state,stockNavigation:navigationState,listEntryKey:location.state?.listEntryKey??location.key}});}};
  const detailSwipe=useDetailSwipe(moveDetail,split);
  const total=items.filter(s=>(s.quantity??0)>0).reduce((sum,s)=>sum+stockValuation(s).amount,0);
@@ -61,7 +64,7 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>{unavailable?(loading?<Skeleton width={64} height={18} sx={{transform:'none'}}/>:'—'):`총 ${items.length}개`}</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{unavailable?(loading?<Skeleton width={100} height={18} sx={{transform:'none'}}/>:'—'):won(total)}</Typography>}</Stack>;
  const cards=<Stack spacing="8px" sx={{pb:tablet?'80px':0}}>{items.map(s=><StockCard key={s.id} stock={s} isFavorite={favoriteIds.has(s.id)} onToggleFavorite={()=>toggleFavorite(s.id)} onValue={()=>setValueStock(s)} onClick={()=>select(s)} onEditPrice={()=>tablet?setPriceStock(s):navigate(`/stocks/${s.id}/price`)}/>)}</Stack>;
  return <Stack spacing={split?0:1} data-testid="stock-list" data-restoration-ready={!isPending||isError} data-list-condition={JSON.stringify([active,query,sort])} sx={{height:tablet?'100%':undefined,minHeight:0,fontFamily:'RoxHomeInter, sans-serif'}}>
-  <PageHeader embedded title={split?`종목목록(${stockTabs.find(t=>t.value===active)!.label})`:'종목목록'} showAdd={false} onBack={split?back:undefined} showBackTablet action={<HeaderAddButton label="종목 추가" onClick={add}/>}/>
+  <PageHeader embedded stockNavigation={split?<StockNavigation symbol={chosen.symbol} previousName={neighbors.previous?.name} nextName={neighbors.next?.name} onPrevious={()=>moveDetail(-1)} onNext={()=>moveDetail(1)}/>:undefined} title={split?`종목목록(${stockTabs.find(t=>t.value===active)!.label})`:'종목목록'} showAdd={false} onBack={split?back:undefined} showBackTablet action={<HeaderAddButton label="종목 추가" onClick={add}/>}/>
   {accounts.isError&&<Button role="alert" onClick={()=>void accounts.refetch()}>계좌 조회 실패 · 다시 시도</Button>}
   {liveApiEnabled&&!accountId&&!accounts.isPending&&!accounts.isError&&<AppCard sx={{p:2}}><Typography>등록된 계좌가 없습니다.</Typography><Button onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button></AppCard>}
   {isError&&<Button role="alert" onClick={()=>void refetch()}>{data?'최신 조회 실패 · 기존 목록 표시':'종목 목록 조회 실패 · 다시 시도'}</Button>}
