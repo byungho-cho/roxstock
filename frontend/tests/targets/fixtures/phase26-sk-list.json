@@ -1,0 +1,222 @@
+{
+  "data": {
+    "rows": [
+      {
+        "id": "39",
+        "symbol": "000660",
+        "name": "SK하이닉스",
+        "marketType": "KOSPI",
+        "currentPrice": "1508000",
+        "previousClosePrice": "1605000",
+        "priceUpdatedAt": "2026-10-13T00:42:34.060Z",
+        "per": "4.9",
+        "pbr": "3.27",
+        "metricDate": "2026-12-31",
+        "eps": "351909.16",
+        "roe": "102.88",
+        "epsYield": "23.336151193633952255",
+        "targetPrice": "5525805.84768",
+        "w": "3.664327485198938992",
+        "value": "3.664327485198938992",
+        "capital": "120666751000000",
+        "capitalYear": 2025,
+        "netIncome": "254746038000000",
+        "metricBasis": {
+          "year": 2026,
+          "period": "ESTIMATE",
+          "label": "2026E",
+          "isEstimated": true,
+          "source": "NAVER_FNGUIDE_ANNUAL",
+          "division": "CFS",
+          "flow": "FULL_YEAR_ESTIMATE",
+          "provenance": {
+            "version": "MANUAL_ANNUAL_V1",
+            "kind": "ANNUAL_ESTIMATE",
+            "periodEnd": "2026-12-31",
+            "fsDivision": "CFS",
+            "roeBasis": "OWNERS_OF_PARENT",
+            "perMetric": {
+              "eps": {
+                "fiscalYear": 2026,
+                "kind": "ANNUAL_ESTIMATE",
+                "division": "CFS",
+                "source": "NAVER_FNGUIDE_ANNUAL",
+                "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+                "collectedAt": "2026-10-08T08:13:23.774Z",
+                "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+                "priceDate": "2026-10-07",
+                "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+                "formulas": {
+                  "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+                  "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+                  "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+                  "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+                  "roe": "지배순이익 / 평균 지배자본 * 100"
+                },
+                "method": "COLLECTED",
+                "version": "MANUAL_ANNUAL_V1",
+                "periodType": "ANNUAL"
+              },
+              "bps": {
+                "fiscalYear": 2026,
+                "kind": "ANNUAL_ESTIMATE",
+                "division": "CFS",
+                "source": "NAVER_FNGUIDE_ANNUAL",
+                "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+                "collectedAt": "2026-10-08T08:13:23.774Z",
+                "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+                "priceDate": "2026-10-07",
+                "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+                "formulas": {
+                  "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+                  "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+                  "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+                  "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+                  "roe": "지배순이익 / 평균 지배자본 * 100"
+                },
+                "method": "COLLECTED",
+                "version": "MANUAL_ANNUAL_V1",
+                "periodType": "ANNUAL"
+              },
+              "per": {
+                "fiscalYear": 2026,
+                "kind": "ANNUAL_ESTIMATE",
+                "division": "CFS",
+                "source": "NAVER_FNGUIDE_ANNUAL",
+                "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+                "collectedAt": "2026-10-08T08:13:23.774Z",
+                "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+                "priceDate": "2026-10-07",
+                "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+                "formulas": {
+                  "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+                  "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+                  "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+                  "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+                  "roe": "지배순이익 / 평균 지배자본 * 100"
+                },
+                "method": "COLLECTED",
+                "version": "MANUAL_ANNUAL_V1",
+                "periodType": "ANNUAL"
+              },
+              "pbr": {
+                "fiscalYear": 2026,
+                "kind": "ANNUAL_ESTIMATE",
+                "division": "CFS",
+                "source": "NAVER_FNGUIDE_ANNUAL",
+                "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+                "collectedAt": "2026-10-08T08:13:23.774Z",
+                "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+                "priceDate": "2026-10-07",
+                "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+                "formulas": {
+                  "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+                  "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+                  "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+                  "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+                  "roe": "지배순이익 / 평균 지배자본 * 100"
+                },
+                "method": "COLLECTED",
+                "version": "MANUAL_ANNUAL_V1",
+                "periodType": "ANNUAL"
+              },
+              "roe": {
+                "fiscalYear": 2026,
+                "kind": "ANNUAL_ESTIMATE",
+                "division": "CFS",
+                "source": "NAVER_FNGUIDE_ANNUAL",
+                "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+                "collectedAt": "2026-10-08T08:13:23.774Z",
+                "pricePolicy": "PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY",
+                "priceDate": "2026-10-07",
+                "sharePolicy": "PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR",
+                "formulas": {
+                  "eps": "지배순이익 / 수정평균발행주식수(보통주+우선주)",
+                  "bps": "지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)",
+                  "per": "보통주 수정주가(기말) / 동일 원천 EPS",
+                  "pbr": "보통주 수정주가(기말) / 동일 원천 BPS",
+                  "roe": "지배순이익 / 평균 지배자본 * 100"
+                },
+                "method": "COLLECTED",
+                "version": "MANUAL_ANNUAL_V1",
+                "periodType": "ANNUAL"
+              }
+            }
+          },
+          "metricDate": "2026-12-31"
+        },
+        "capitalBasis": {
+          "year": 2025,
+          "source": "DART:CFS",
+          "period": "ANNUAL",
+          "isEstimated": false,
+          "unit": "KRW",
+          "collectedAt": "2026-10-01T10:44:35.505Z"
+        },
+        "netIncomeBasis": {
+          "year": 2026,
+          "source": "NAVER_FNGUIDE_ANNUAL",
+          "division": "CFS",
+          "period": "ANNUAL",
+          "flow": "FULL_YEAR_ESTIMATE",
+          "isEstimated": true,
+          "unit": "KRW",
+          "sourceUrl": "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=000660",
+          "collectedAt": "2026-10-08T08:13:23.774Z"
+        },
+        "missingReasons": {
+          "eps": null,
+          "roe": null,
+          "targetPrice": null,
+          "epsYield": null,
+          "capital": null,
+          "w": null,
+          "value": null,
+          "netIncome": null
+        },
+        "excessEarnings": null,
+        "shareholderValue": null,
+        "rimReason": "제공처 BPS의 수정 주식수·주식 종류 분모를 확인할 수 없습니다.",
+        "rimBasis": null,
+        "rimComparison": null,
+        "dataPriority": 1,
+        "dataColor": "#C8FF9E",
+        "basisText": "2026E · 연간 추정 · 자본 2025년 결산 · NAVER_FNGUIDE_ANNUAL",
+        "notices": [
+          "최근 수집 실패 여부와 무관하게 기존 유효 연간 자료를 표시합니다.",
+          "제공처 BPS의 수정 주식수·주식 종류 분모를 확인할 수 없습니다.",
+          "발행주식수 표시는 해당 자료 연도의 보통주 공시값이며 RIM 계산 분모와 별도로 표시합니다."
+        ],
+        "issuedShares": null,
+        "treasuryShares": null,
+        "outstandingShares": null,
+        "shareBasis": null,
+        "requiredReturn": "8.0",
+        "fundamentalsUpdatedAt": null,
+        "fairPrices": [
+          {
+            "persistence": "0.7",
+            "price": "4900938.78672"
+          },
+          {
+            "persistence": "0.8",
+            "price": "5525805.84768"
+          },
+          {
+            "persistence": "0.9",
+            "price": "6150672.90864"
+          },
+          {
+            "persistence": "1.0",
+            "price": "6775539.9696"
+          }
+        ]
+      }
+    ],
+    "total": 1,
+    "year": 2026,
+    "query": "000660",
+    "timezone": "Asia/Seoul",
+    "metricBasis": "SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL"
+  }
+}
