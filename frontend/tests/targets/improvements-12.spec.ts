@@ -16,6 +16,9 @@ async function fixture(page:Page){
  const requests:string[]=[];let release:()=>void=()=>{},held=false;
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const url=new URL(route.request().url()),path=url.pathname;requests.push(url.pathname+url.search);
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',isActive:true,isDefault:true,name:'기본'},{id:'2',isActive:true,name:'다른 계좌'}]}});
   if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{account:{id:'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});
@@ -122,6 +125,9 @@ test('home shows ready cards while history loads, preserves account isolation an
  let releaseHistory!:()=>void,releaseSecond!:()=>void;const reads:string[]=[];
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const url=new URL(route.request().url()),path=url.pathname;reads.push(path);
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isDefault:true,isActive:true},{id:'2',name:'다른 계좌',isActive:true}]}});
   const second=path.includes('/2/');

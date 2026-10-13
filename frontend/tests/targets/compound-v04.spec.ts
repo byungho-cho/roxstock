@@ -5,6 +5,9 @@ async function fixture(page:Page,empty=false,goalsEmpty=false){
  const plans=empty?[]:Array.from({length:8},(_,i)=>makePlan(String(i+1)));if(goalsEmpty)plans.forEach(p=>p.goals=[]);
  let fail=false,saveFail=false,held:string|null=null;const releases:(()=>void)[]=[],writes:{method:string;path:string;body:any}[]=[];
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const u=new URL(route.request().url()),method=route.request().method();
   if(u.pathname==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본 계좌',isActive:true,isDefault:true},{id:'2',name:'둘째 계좌',isActive:true}]}});
   if(/\/compound-plans/.test(u.pathname)){

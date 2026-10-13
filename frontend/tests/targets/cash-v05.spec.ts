@@ -6,6 +6,9 @@ async function setup(page:Page){
  const writes:{method:string,path:string,body:any}[]=[];let tax=230;let fail='',empty=false,latestId='99',latestType=0,balanceMissing=false,noLedger=false;
  const rows=types.map((transactionType,i)=>({id:String(i+1),transactionType,createdAt:'2026-10-01T03:00:00Z',transactionDate:'2026-10-01T03:00:00Z',amount:'1000',feeTaxAmount:transactionType==='BUY'?'-230':'230',balanceAfter:'10000',signedAmount:'1000',memo:'과거 내역',dividend:transactionType==='DIVIDEND'?{id:'1',securityId:'2',securityName:'삼성전자',grossAmount:'1230',netAmount:'1000'}:null}));
  await page.route('**/api/**',async route=>{
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
   const request=route.request(),url=new URL(request.url()),path=url.pathname;
   if(request.method()!=='GET'){const body=request.postDataJSON();writes.push({method:request.method(),path,body});tax+=10;return route.fulfill({json:{data:{id:'1',cashBalanceAdjusted:false}}});}
   if(fail&&path.endsWith(fail))return route.fulfill({status:500,json:{error:{message:'조회 실패'}}});

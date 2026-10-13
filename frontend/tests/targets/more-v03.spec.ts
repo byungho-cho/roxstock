@@ -7,6 +7,9 @@ const menus = [
 ] as const;
 async function fixture(page: Page) {
   await page.route('**/api/**', async route => {
+    // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
+    if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
+
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/accounts') return route.fulfill({ json: {data: [{id:'1', name:'기본 계좌', brokerName:'CI', isActive:true, isDefault:true, cashBalance:'0'}]} });
     return route.fulfill({ status: 503, json: {error: {message: 'Navigation fixture: data unavailable'}} });
