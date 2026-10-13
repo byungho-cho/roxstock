@@ -1,3 +1,4 @@
+import {circularNeighbors} from '../../utils/circularNeighbors';
 import {ClickInfo} from '../../components/common/ClickInfo';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {FairPriceCard} from './FairPriceCard';
@@ -77,12 +78,12 @@ export function ValueAnalysisPage(){
  const detailStatus=<><Status pending={detail.pending} error={detail.error} retry={detail.retry} hasData={!!shownDetail}/>{shownDetail&&!detail.data&&<Typography sx={{fontSize:10,color:muted,mb:'8px'}}>이전 기간 결과 · {shownDetail.mode==='annual'?'연간':'분기'} {shownDetail.rows[0]?.label}부터</Typography>}</>;
  const leftRef=useRef<HTMLDivElement>(null),rightRef=useRef<HTMLDivElement>(null),searchRef=useRef<HTMLInputElement>(null);
  useEffect(()=>{if(sourceItems||stockId||!list.data)return;const rows=list.data.rows;if(rows.length&&!rows.some(row=>row.id===selected))setSelected(rows[0].id);else if(!rows.length&&!stockId)setSelected(null);},[list.data,selected,setSelected,stockId,!!sourceItems]);
- const rows=fromStockList?(sourceItems??[]):list.data?.rows??[],index=rows.findIndex(row=>row.id===selected),previous=index>0?rows[index-1]:null,next=index>=0&&index<rows.length-1?rows[index+1]:null;
+ const rows=fromStockList?(sourceItems??[]):list.data?.rows??[],{previous,next}=circularNeighbors<{id:string;name:string}>(rows,selected);
  const goView=(target:string,id=selected,replace=false)=>{const search=new URLSearchParams(location.search);search.set('view',target);for(const [k,v] of Object.entries({year,mode,centerYear,quarterStart,count}))search.set(k,String(v));if(id)search.set('selected',id);else search.delete('selected');navigate(location.pathname+'?'+search,{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(id:string)=>{setSelected(id);goView(!tablet&&view==='list'?'detail':view,id);};
  const move=(direction:number)=>{const target=direction<0?previous:next;if(target&&(sourceItems||!fromStockList&&listCurrent)){setSelected(target.id);const search=new URLSearchParams(location.search);for(const [k,v] of Object.entries({selected:target.id,year,mode,centerYear,quarterStart,count}))search.set(k,String(v));navigate((sourceItems?`/stocks/${target.id}/value`:location.pathname)+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});}};
  useEffect(()=>{
-  for(const neighbor of [previous,next]){if(!neighbor)continue;const key=JSON.stringify([neighbor.id,year,mode,startYear,startQuarter,count]);
+  for(const neighbor of new Set([previous,next])){if(!neighbor)continue;const key=JSON.stringify([neighbor.id,year,mode,startYear,startQuarter,count]);
    void client.prefetchQuery({queryKey:['valueStored',accountId,key],staleTime:30_000,queryFn:({signal})=>detailValues(neighbor.id,year,mode,startYear,startQuarter,count,signal)});
   }
  },[client,accountId,previous?.id,next?.id,year,mode,startYear,startQuarter,count]);
