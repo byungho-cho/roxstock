@@ -23,7 +23,7 @@ async function fixture(page: Page, initial: Mode = 'normal') {
       if(mode==='error'||mode==='changing')return route.fulfill({status:mode==='changing'?409:503,json:{error:{message:'조회 중 데이터가 변경되었습니다.'}}});
       const empty=mode==='empty'||path.includes('/2/');
       const records=empty?[]:trades.map(row=>mode==='missing'&&row.type==='SELL'?{...row,realizedProfitLoss:null}:mode==='large'&&row.type==='SELL'?{...row,amount:'999999999999999.99999999',realizedProfitLoss:'99999999999999.99999999'}:row);
-      return route.fulfill({json:profitFixture(path.includes('/2/')?'2':'1',records,empty?[]:dividends,[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}],'2026-10-05')});
+      return route.fulfill({json:profitFixture(path.includes('/2/')?'2':'1',records,empty?[]:dividends,[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}],'2026-10-05',url.searchParams.get('securityId')??undefined)});
     }
     if (path.endsWith('/investment-capital')) return route.fulfill({json:{data:[{year:2026,date:'2026-10-01',investmentAmount:'13500',status:'AVAILABLE'},{year:2025,date:'2025-12-31',investmentAmount:'500',status:'AVAILABLE'}]}});
     if (path.endsWith('/trades')) {

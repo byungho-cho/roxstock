@@ -8,7 +8,7 @@ async function setup(page:Page) {
   const u=new URL(route.request().url());if(!/\/(trades|investment-profit)$/.test(u.pathname))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));
-  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[])});
+  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[],[],undefined,u.searchParams.get('securityId')??undefined)});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
  });return control;
 }

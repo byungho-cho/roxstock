@@ -1,6 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
-import {writeFileSync} from 'node:fs';
-import sk from './fixtures/phase26-sk-value.json';
+import {readFileSync,writeFileSync} from 'node:fs';
+const sk=JSON.parse(readFileSync(new URL('./fixtures/phase26-sk-value.json',import.meta.url),'utf8'));
 import {fixture} from './phase3-fixture';
 const profits=['100','5','0','-30','-10','0'];
 async function setup(page:Page){
