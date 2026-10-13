@@ -12,28 +12,64 @@ import { OverlayPageScrollbar } from '../components/navigation/OverlayPageScroll
 import { ViewportMetricsPanel } from '../components/navigation/ViewportMetricsPanel';
 import { colors, pageMetrics } from '../styles/tokens';
 import { usePageScrollRestoration } from '../hooks/navigation/usePageScrollRestoration';
-import { PullRefreshIndicator } from '../components/navigation/PullRe…9780 tokens truncated…nceCard summary={summary ?? unavailableSummary} profit={summary?.pricingComplete === false ? NaN : summary?.totalProfit ?? NaN} rate={summary?.pricingComplete === false || !((summary?.stockPurchaseAmount ?? 0) > 0) ? NaN : summary?.totalProfitRate ?? NaN} loading={pending}/>
+import { PullRefreshIndicator } from '../components/navigation/PullRefreshIndicator';
+import { MainLoadingBar } from '../components/navigation/MainLoadingBar';
 
-    </Stack>
-    <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard height="auto" stable pending={pending} testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={holdings ? `${holdings.length}종목` : undefined} notice={isError&&holdings ? <Button size="small" onClick={retry}>조회 실패 · 이전 결과 · 재시도</Button> : summary?.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary?.collectedAt} updating={isFetching}>
-      {holdings?.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}?detailTab=summary`)} />)}
-      {pending && <HomeListLoading/>}
-      {(isError||accounts.isError)&&!holdings&&<HomeEmpty><span role="alert">보유종목 조회 실패</span><Button size="small" onClick={()=>{if(accounts.isError)void accounts.refetch();else retry();}}>재시도</Button></HomeEmpty>}
-      {noAccount&&<HomeEmpty>등록된 계좌가 없습니다.<Button onClick={()=>navigate("/detail/settings?view=add")}>계좌 추가</Button></HomeEmpty>}
-      {holdings?.length === 0 && <HomeEmpty />}
-    </HomeListCard></Box>
-    <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard enabled={!liveApiEnabled||recentReady===accountId} /></Box>
-    <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
-  </Box>;
+import { PageLayout } from './PageLayout';
+
+function getHeaderTitle(pathname: string): string {
+  const collectionTitles: Record<string, string> = { 'security-master': '종목 마스터', 'realtime-prices': '실시간 주가', 'market-prices': '전체 종목 주가', 'account-snapshots': '일별 계좌 스냅샷', 'dart-financial-statements': 'DART 재무제표' };
+  if (pathname.startsWith('/detail/collection-monitoring')) return pathname.endsWith('/runs') ? '실행 이력' : pathname.endsWith('/items') ? '대상별 상태' : collectionTitles[pathname.split('/')[3] ?? ''] ?? '수집 모니터링';
+  if (pathname.startsWith('/stocks')) return '종목목록'; if (pathname.startsWith('/journal')) return '매매일지';
+  if (pathname.startsWith('/assets')) return '자산분석'; if (pathname.startsWith('/more')) return '더보기';
+  if (pathname === '/detail/settings') return '설정'; if (pathname.startsWith('/detail/collection-monitoring')) return '수집 모니터링'; if (pathname.startsWith('/detail')) return '상세정보'; return '대시보드';
 }
 
-export function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
-  const cost = stock.purchaseAmount ?? (stock.quantity !== undefined && stock.averagePrice !== undefined ? stock.quantity * stock.averagePrice : Number.NaN);
-  return <HomeTwoLineRow testId="home-holding" onClick={onClick} color={getMarketColor(stock.profitAmount ?? Number.NaN)}
-    first={[stock.name, `${stock.quantity?.toLocaleString('ko-KR') ?? '—'} × ${formatWon(stock.averagePrice ?? Number.NaN)}`, formatRate(stock.profitRate ?? Number.NaN)]}
-    second={[formatWon(cost), formatWon(stock.marketValue ?? Number.NaN), formatSignedWon(stock.profitAmount ?? Number.NaN)]} />;
+export function AppLayout() {
+  const returnMonitor=useReturnNavigation('/detail/collection-monitoring');
+  const location = useLocation(); const navigate = useNavigate(); const [showScrollTop, setShowScrollTop] = useState(false);
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+  const scrollRef = useRef<HTMLElement>(null);
+  usePageScrollRestoration(scrollRef);
+  const { accountId } = useActiveAccount();
+  const pull = usePullToRefresh(scrollRef, `${accountId}:${location.pathname}:${location.search}`);
+  const isTargetPage = location.pathname === '/detail/target-arrivals';
+  const isTargetSettings = location.pathname === '/detail/settings' && new URLSearchParams(location.search).get('view') === 'target-arrival';
+  const isTradePage = location.pathname.startsWith('/trade') || location.pathname.startsWith('/journal/trade/'); const isHomePage = location.pathname === '/'; const isStockFlowPage = location.pathname.startsWith('/stocks');
+
+  const isAssetOverview = location.pathname === '/detail/assets' || location.pathname === '/detail/cash';
+  const isCash = location.pathname === '/detail/cash';
+  const isFinancial = location.pathname === '/detail/financials' || /^\/stocks\/[^/]+\/financials$/.test(location.pathname);
+  const isValue = location.pathname === '/detail/value' || /^\/stocks\/[^/]+\/value$/.test(location.pathname);
+  const isValueChart = isValue && new URLSearchParams(location.search).get('view') === 'chart';
+  const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
+  const isCompound = location.pathname === '/detail/compound';
+  const isAnalysis = location.pathname === '/assets';
+  const isJournal = location.pathname === '/journal';
+  useEffect(() => {
+    const content = scrollRef.current;
+    if (!content) return;
+    const handle = () => { setShowScrollTop(content.scrollTop > content.clientHeight * 0.4); };
+    content.addEventListener('scroll', handle, { passive: true });
+    setShowScrollTop(content.scrollTop > content.clientHeight * 0.4);
+    return () => content.removeEventListener('scroll', handle);
+  }, [location.pathname]);
+  const isMoreMenu = location.pathname === '/more';
+  const isMoreSettings = location.pathname === '/detail/settings'; const isCollectionMonitoring = location.pathname.startsWith('/detail/collection-monitoring');
+  const hasPageHeader = location.pathname==='/detail/security-management' || isTargetPage || isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings || isAnalysis || isInvestment || isValue || isCompound || isFinancial;
+  return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: `${pageMetrics.headerHeight}px` }}>
+    <Box component="div" ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11, ...(location.pathname==='/detail/security-management'&&new URLSearchParams(location.search).has('selected') ? {'& .MuiToolbar-root':{px:'8px'},'& h1':{fontSize:'18px !important',fontWeight:600},'& [aria-label="뒤로가기"]':{width:12,minWidth:12,mr:'16px',p:0}} : {}), ...(isFinancial ? {'& .MuiToolbar-root':{px:'8px'},'& h1':{fontSize: new URLSearchParams(location.search).has('selected') || isStockFlowPage ? '14px !important':'22px !important',fontWeight:600,textAlign: new URLSearchParams(location.search).has('selected') || isStockFlowPage ? 'center':'left'}} : {}), ...(location.pathname === '/detail/assets' ? { '& .MuiToolbar-root': { pl: '0px !important' } } : {}), ...(isAnalysis ? { '& .MuiToolbar-root': { pl: '0px' } } : {}), ...(isCash || isInvestment || isCompound ? { '& .MuiToolbar-root': { px: '8px' }, '& h1': { fontSize: 22, fontWeight: 600 }, '& [aria-label="뒤로가기"]': { width: 11, mr: '16px' } } : {}), ...(isCompound ? { '& h1': { fontSize: { xs: new URLSearchParams(location.search).has('form') ? 16 : new URLSearchParams(location.search).get('view') && new URLSearchParams(location.search).get('view') !== 'list' ? 17 : 22, sm: 22 }, fontWeight: 600 } } : {}), ...(isJournal || isStockFlowPage || isMoreMenu || isMoreSettings ? { '& .MuiToolbar-root': { px: '8px' } } : {}), ...(isTradePage || location.pathname === '/stocks/add' || location.pathname.endsWith('/price') ? { '& h1': { fontSize: { xs: isTradePage ? 16 : 15, sm: 15 }, fontWeight: 600 } } : isStockFlowPage && !isValue || isMoreSettings ? { '& h1': { fontSize: location.pathname === '/stocks' && !new URLSearchParams(location.search).has('selected') ? 22 : 16, fontWeight: location.pathname === '/stocks' ? 700 : 600 } } : {}), ...(location.pathname === '/detail/investment-profit' ? { '& h1': { fontSize: 20, lineHeight: '28px', fontWeight: 700 }, '& [aria-label="뒤로가기"]': { width: 20, minWidth: 20, p: 0, mr: '8px' } } : {}), ...(isCollectionMonitoring ? { '& [aria-label="뒤로가기"]': { display: { xs: 'flex', sm: 'flex !important' } } } : {}), ...(isJournal ? { '& h1': { fontSize: 20, lineHeight: '32px', textAlign: 'left' }, '& .MuiToolbar-root': { alignItems: 'center' } } : {}), ...(isCollectionMonitoring || isMoreSettings || isCompound ? { '& .MuiToolbar-root': { px: '8px' }, '& [aria-label="뒤로가기"]': { width: 12, minWidth: 12, mr: '16px', p: 0 }, '& [aria-label="뒤로가기"] + .MuiBox-root': { textAlign: 'left' }, '& h1': { textAlign: 'left', fontSize: { xs: isCompound && !new URLSearchParams(location.search).has('form') && !['goal','compare'].includes(new URLSearchParams(location.search).get('view') ?? '') ? 22 : 18, sm: isCollectionMonitoring || isCompound ? 22 : 18 } } } : {}) }}>
+      {isMoreMenu && <PageHeader title="메뉴" showAdd={false} />}
+      {!hasPageHeader && !isMoreMenu && <PageHeader homeDashboard={isHomePage} variant={isCollectionMonitoring ? 'detail' : isHomePage ? 'home' : location.pathname === '/more' ? 'more' : 'standard'} title={isHomePage ? <HomeAccountTitle /> : getHeaderTitle(location.pathname)} backPath={isCollectionMonitoring ? location.pathname === '/detail/collection-monitoring' ? '/detail/settings' : /^\/detail\/collection-monitoring\/[^/]+\/(runs|items)$/.test(location.pathname) ? location.pathname.split('/').slice(0,4).join('/') : '/detail/collection-monitoring' : location.pathname === '/more' ? '/' : undefined} onBack={isCollectionMonitoring && /\/(runs|items)$/.test(location.pathname) && location.state?.returnTo ? returnMonitor : undefined} backIcon={isCollectionMonitoring ? <img src="/stocks-v03/back.svg" alt="" /> : undefined} showBackTablet={isCollectionMonitoring} showAddMobile={!isCollectionMonitoring} showAdd={isHomePage} addPath="/stocks/add?type=holding&from=home" addLabel="종목 추가" onAdd={isHomePage ? () => navigate("/stocks/add?type=holding&from=home",{state:{backgroundLocation:location}}) : undefined} maxWidth={816} />}
+    </Box>
+    <MainLoadingBar />
+    <PullRefreshIndicator distance={pull.distance} refreshing={pull.refreshing} />
+    <Snackbar open={pull.error} autoHideDuration={5000} onClose={pull.dismissError} message="새로고침에 실패했습니다. 기존 데이터를 표시합니다." action={<Button onClick={pull.retry}>재시도</Button>} />
+    <PageLayout securityManagement={location.pathname==='/detail/security-management'&&new URLSearchParams(location.search).has('selected')} valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><RouteContent><Outlet /></RouteContent></PageLayout>
+    {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
+    {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
+    {<><Zoom in={!isCash && showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}
+  </Box></HeaderSlotContext.Provider>;
 }
 
-// Unknown data is never represented as a successful zero amount.
-const unavailableSummary: DashboardSummary = {totalAssets:NaN,stockValue:NaN,stockPurchaseAmount:NaN,cashBalance:NaN,dailyProfit:NaN,dailyProfitRate:NaN,stockMonthlyProfit:NaN,cashMonthlyProfit:NaN,totalProfit:NaN,totalProfitRate:NaN,collectedAt:'',pricingComplete:false};
 
