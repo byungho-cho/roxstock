@@ -65,11 +65,12 @@ test('before/after measurements preserve fixed chrome and fit two cards after sc
   if(version==='after'){
    expect(boxes[0].height).toBeLessThan(measurements.before.cards[0].height);
    expect(await page.getByRole('navigation',{name:'하단 메뉴'}).evaluate(n=>n.getBoundingClientRect().height)).toBe(44);
-   const scroll=page.viewportSize()!.width>=600?page.getByTestId('stock-right'):page.locator('main');
-   await scroll.evaluate(n=>{const card=n.querySelector('[data-testid="lot-1-0"]')!;n.scrollTop+=card.getBoundingClientRect().top-n.getBoundingClientRect().top;});
-   await expect(page.getByTestId('lot-1-1')).toBeInViewport();
-   const scrolled=await page.locator('[data-testid^="lot-1-"]').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {y:r.y,bottom:r.bottom,height:r.height};}));
-   measurements.after.scrolledFullyVisible=scrolled.filter(b=>b.y>=44&&b.bottom<=bottom).length;
+   const firstBox=(await first.boundingBox())!;
+   await page.mouse.move(firstBox.x+firstBox.width/2,Math.min(firstBox.y+10,bottom-10));
+   await page.mouse.wheel(0,Math.max(0,firstBox.y-44));
+   const visibleCount=()=>page.locator('[data-testid^="lot-1-"]').evaluateAll((nodes,bottom)=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.top>=44&&r.bottom<=bottom;}).length,bottom);
+   await expect.poll(visibleCount).toBeGreaterThanOrEqual(2);
+   measurements.after.scrolledFullyVisible=await visibleCount();
    await page.screenshot({path:info.outputPath('after-scrolled.png')});
   }
  }
