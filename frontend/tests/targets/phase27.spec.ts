@@ -49,8 +49,9 @@ test('profit-only targets update with prices; remaining quantity total and all t
  await page.screenshot({path:info.outputPath('tooltip.png')});await target.click();await expect(page.getByRole('tooltip')).toHaveCount(0);
  await target.click();await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);
  await target.click();await page.mouse.click(2,100);await expect(page.getByRole('tooltip')).toHaveCount(0);
+ await target.click();await page.getByTestId('lot-1-1').getByRole('button',{name:'10% 목표 총액',exact:true}).click();await expect(page.getByRole('tooltip')).toHaveCount(1);await expect(target).toHaveAttribute('aria-expanded','false');await page.keyboard.press('Escape');
  const profitHeight=(await card.boundingBox())!.height;
- for(const price of [300000,304000,null]){await f.setPrice(price);await expect(card.getByTestId('lot-targets')).toHaveCount(0);await expect(card.getByRole('button',{name:'1-0 매수 수정'})).toBeVisible();expect((await card.boundingBox())!.height).toBeLessThan(profitHeight);}
+ for(const price of [300000,304000,null]){await f.setPrice(price);await expect(card.getByText(`7 × ${price===null?'—':price.toLocaleString('ko-KR')+'원'}`,{exact:true}).last()).toBeVisible();await expect(card.getByTestId('lot-targets')).toHaveCount(0);await expect(card.getByRole('button',{name:'1-0 매수 수정'})).toBeVisible();expect((await card.boundingBox())!.height).toBeLessThan(profitHeight);}
  await f.setPrice(350000);await expect(card.getByTestId('lot-target')).toHaveCount(3);expect(f.writes).toHaveLength(0);
  await card.getByRole('button',{name:'1-0 매수 삭제'}).click();await expect(page.getByRole('dialog')).toContainText('연결된 매도');await expect(page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true})).toBeDisabled();
 });
