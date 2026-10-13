@@ -1,0 +1,188 @@
+{
+  "base": "258ee8d06db93d171d6ed71504f5dc9198f4daae",
+  "head": "3dcf414336e77de25f7713f3a182fd9fd9dc6eb9",
+  "run": 38354066190,
+  "artifact": 11792356961,
+  "viewports": {
+    "cover": {
+      "before": {
+        "cards": [
+          {
+            "y": 164,
+            "bottom": 365.5,
+            "height": 201.5
+          },
+          {
+            "y": 373.5,
+            "bottom": 575,
+            "height": 201.5
+          },
+          {
+            "y": 583,
+            "bottom": 784.5,
+            "height": 201.5
+          }
+        ],
+        "fullyVisible": 1,
+        "visibleEquivalent": 1.2357320099255582
+      },
+      "after": {
+        "cards": [
+          {
+            "y": 156,
+            "bottom": 286,
+            "height": 130
+          },
+          {
+            "y": 290,
+            "bottom": 420,
+            "height": 130
+          },
+          {
+            "y": 424,
+            "bottom": 554,
+            "height": 130
+          }
+        ],
+        "fullyVisible": 2,
+        "visibleEquivalent": 2,
+        "scrolledFullyVisible": 2
+      }
+    },
+    "tablet": {
+      "before": {
+        "cards": [
+          {
+            "y": 164,
+            "bottom": 365.5,
+            "height": 201.5
+          },
+          {
+            "y": 373.5,
+            "bottom": 575,
+            "height": 201.5
+          },
+          {
+            "y": 583,
+            "bottom": 784.5,
+            "height": 201.5
+          }
+        ],
+        "fullyVisible": 0,
+        "visibleEquivalent": 0.9330024813895782
+      },
+      "after": {
+        "cards": [
+          {
+            "y": 156,
+            "bottom": 286,
+            "height": 130
+          },
+          {
+            "y": 290,
+            "bottom": 420,
+            "height": 130
+          },
+          {
+            "y": 424,
+            "bottom": 554,
+            "height": 130
+          }
+        ],
+        "fullyVisible": 1,
+        "visibleEquivalent": 1.476923076923077,
+        "scrolledFullyVisible": 2
+      }
+    },
+    "cover-large": {
+      "before": {
+        "cards": [
+          {
+            "y": 164,
+            "bottom": 365.5,
+            "height": 201.5
+          },
+          {
+            "y": 373.5,
+            "bottom": 575,
+            "height": 201.5
+          },
+          {
+            "y": 583,
+            "bottom": 784.5,
+            "height": 201.5
+          }
+        ],
+        "fullyVisible": 3,
+        "visibleEquivalent": 3
+      },
+      "after": {
+        "cards": [
+          {
+            "y": 156,
+            "bottom": 286,
+            "height": 130
+          },
+          {
+            "y": 290,
+            "bottom": 420,
+            "height": 130
+          },
+          {
+            "y": 424,
+            "bottom": 554,
+            "height": 130
+          }
+        ],
+        "fullyVisible": 3,
+        "visibleEquivalent": 3,
+        "scrolledFullyVisible": 3
+      }
+    },
+    "tablet-large": {
+      "before": {
+        "cards": [
+          {
+            "y": 164,
+            "bottom": 365.5,
+            "height": 201.5
+          },
+          {
+            "y": 373.5,
+            "bottom": 575,
+            "height": 201.5
+          },
+          {
+            "y": 583,
+            "bottom": 784.5,
+            "height": 201.5
+          }
+        ],
+        "fullyVisible": 2,
+        "visibleEquivalent": 2.699751861042184
+      },
+      "after": {
+        "cards": [
+          {
+            "y": 156,
+            "bottom": 286,
+            "height": 130
+          },
+          {
+            "y": 290,
+            "bottom": 420,
+            "height": 130
+          },
+          {
+            "y": 424,
+            "bottom": 554,
+            "height": 130
+          }
+        ],
+        "fullyVisible": 3,
+        "visibleEquivalent": 3,
+        "scrolledFullyVisible": 3
+      }
+    }
+  }
+}
