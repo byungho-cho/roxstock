@@ -132,7 +132,7 @@ export function LiveCashPage() {
     if(!target)return;
     const active=document.activeElement;
     // Respect a field the user already chose, including while initial data was still loading.
-    if(active instanceof HTMLInputElement&&active!==target&&active.closest('[data-testid="cash-input-body"], [data-testid="cash-form"]')){initialFocusDone.current=true;return;}
+    if(active instanceof HTMLElement&&active!==target&&active.matches('input,textarea,button,[role="combobox"]')&&active.closest('[data-testid="cash-input-body"], [data-testid="cash-form"]')){initialFocusDone.current=true;return;}
     initialFocusDone.current=true;target.focus({preventScroll:true});target.select();
   };
   useEffect(()=>{if(!inputVisible){initialFocusDone.current=false;return;}const frame=requestAnimationFrame(focusInitial);return()=>cancelAnimationFrame(frame);},[inputVisible,searching,editing?.id,linked.data,type]);
@@ -214,7 +214,7 @@ export function LiveCashPage() {
     }
     if (editing && !/^\d+(?:\.\d+)?$/.test(after)) invalid.after = '세후예수금을 입력해 주세요.';
     setFieldErrors(invalid);
-    if (Object.keys(invalid).length) { ({ gross: grossRef, tax: taxRef, amount: amountRef } as Record<string, typeof amountRef>)[Object.keys(invalid)[0]]?.current?.focus(); return; }
+    if (Object.keys(invalid).length) { ({ gross: grossRef, tax: taxRef, amount: amountRef, after: afterRef } as Record<string, typeof amountRef>)[Object.keys(invalid)[0]]?.current?.focus(); return; }
     mutationLock.current = true;
     setSaving(true); setError('');
     try {

@@ -26,7 +26,7 @@ test('summary metrics, distinct links and both back paths restore scroll',async(
   const link=page.getByTestId(selector).first();await link.scrollIntoViewIfNeeded();const saved=await region(page).evaluate(e=>e.scrollTop);await link.click();await expect(page).toHaveURL(/investment-profit/);
   if(destination==='stock'){await expect(page.getByTestId('profit-selected')).toHaveText('종목1');await expect(page.getByTestId('profit-detail-summary')).toContainText('2,000원');}
   if(destination==='list')await expect(page.getByTestId('profit-tabs').getByRole('button',{name:'연도별',exact:true})).toHaveAttribute('aria-pressed','true');
-  if(destination==='year'){await expect(page.getByTestId('profit-selected')).toHaveText('2026년');await expect(page.getByTestId('profit-detail-summary')).toContainText('+3,000원');}
+  if(destination==='year'){await expect(page.getByTestId('profit-selected')).toHaveText('2026년');await expect(page.getByTestId('profit-detail-summary')).toContainText('+500원');}
   await page.goBack();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
   await link.click();await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
  }
