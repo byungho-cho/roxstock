@@ -1,0 +1,36 @@
+name: Phase26 Cash Home Stock Financial Value
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/**, .github/workflows/phase26-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Build exact previous main
+        run: |
+          git worktree add --detach phase26-baseline 3d2bd4f
+          ln -s ../node_modules phase26-baseline/node_modules
+          ln -s ../../frontend/node_modules phase26-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix phase26-baseline/frontend run build
+      - run: VITE_DATA_SOURCE=api npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase26.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase26-screen-evidence
+          path: frontend/test-results/phase26/
+          retention-days: 30

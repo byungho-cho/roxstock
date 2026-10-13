@@ -60,3 +60,26 @@ test('real DB: recent ranges equal legacy; annual aggregates invalidate, reject 
   await prisma.dividend.deleteMany({where:{accountId:account.id}});await prisma.cashTransaction.deleteMany({where:{accountId:account.id}});await prisma.sellTrade.deleteMany({where:{buyTrade:{accountId:account.id}}});await prisma.buyTrade.deleteMany({where:{accountId:account.id}});await prisma.dailyAccountSnapshot.deleteMany({where:{accountId:account.id}});await prisma.account.delete({where:{id:account.id}});await prisma.marketPrice.deleteMany({where:{securityId:security.id}});await prisma.security.delete({where:{id:security.id}});await app.close();await prisma.$disconnect();
  }
 });
+
+test('phase26: same account other stock and same stock other account stay isolated through cached annual API',async()=>{
+ assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/);
+ const app=buildApp(),accounts=await Promise.all(['A','B'].map(name=>prisma.account.create({data:{name:'Phase26 '+name,brokerName:'CI',cashBalance:'0'}}))),securities=await Promise.all(['P26001','P26002'].map(symbol=>prisma.security.create({data:{symbol,name:'Phase26 '+symbol,marketType:'OTHER'}})));
+ try{
+  for(const [a,s,buyPrice,sellPrice,net] of [[0,0,'100','150','20'],[0,1,'100','50','99'],[1,0,'400','500','7']] as const){
+   const buy=await prisma.buyTrade.create({data:{accountId:accounts[a].id,securityId:securities[s].id,boughtAt:new Date('2025-01-02T00:00:00Z'),quantity:'10',unitPrice:buyPrice}});
+   await prisma.sellTrade.create({data:{buyTradeId:buy.id,soldAt:new Date('2025-02-02T00:00:00Z'),quantity:'2',unitPrice:sellPrice}});
+   const cash=await prisma.cashTransaction.create({data:{accountId:accounts[a].id,transactionType:'DIVIDEND',transactionDate:new Date('2025-03-03'),amount:net,balanceAfter:net}});
+   await prisma.dividend.create({data:{accountId:accounts[a].id,securityId:securities[s].id,cashTransactionId:cash.id,receivedDate:new Date('2025-03-03'),grossAmount:net,netAmount:net}});
+  }
+  const results=[];
+  for(const [a,s,profit,dividendValue] of [[0,0,'100','20'],[0,1,'-100','99'],[1,0,'200','7'],[0,0,'100','20']] as const){
+   const response=await app.inject(`/api/accounts/${accounts[a].id}/investment-profit?securityId=${securities[s].id}`);assert.equal(response.statusCode,200,response.body);const data=response.json().data;
+   assert.equal(data.accountId,String(accounts[a].id));assert.equal(data.securityId,String(securities[s].id));assert.equal(data.capital.length,0);assert.ok(data.events.every((e:any)=>e.securityId===data.securityId));
+   const t=totals(data.events.map((e:any)=>({...e,buy:amount(e.buy),sell:amount(e.sell),cost:amount(e.cost),trading:amount(e.trading),dividend:amount(e.dividend)})));assert.equal(t.trading,amount(profit));assert.equal(t.dividend,amount(dividendValue));results.push({account:String(accounts[a].id),security:String(securities[s].id),profit,dividend:dividendValue,count:data.events.length});
+  }
+  assert.equal((await app.inject(`/api/accounts/${accounts[0].id}/investment-profit?securityId=bad`)).statusCode,400);
+  console.log('PHASE26_SCOPE_PROOF',JSON.stringify(results));
+ }finally{
+  const ids=accounts.map(a=>a.id);await prisma.dividend.deleteMany({where:{accountId:{in:ids}}});await prisma.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await prisma.sellTrade.deleteMany({where:{buyTrade:{accountId:{in:ids}}}});await prisma.buyTrade.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.security.deleteMany({where:{id:{in:securities.map(s=>s.id)}}});await app.close();await prisma.$disconnect();
+ }
+});

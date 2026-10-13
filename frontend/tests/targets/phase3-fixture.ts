@@ -21,7 +21,7 @@ export async function fixture(page:Page, options: { names?: string[]; history?: 
     if(p.endsWith('/securities'))return route.fulfill({json:{data:securities}});
     if(p.endsWith('/holdings'))return route.fulfill({json:{data:second?[]:holdings}});
     if(p.endsWith('/trades'))return route.fulfill({json:{data:[],daily:[],summary:{realizedProfitLoss:'200',buyAmount:'0',sellAmount:'0'}}});
-    if(p.endsWith('/investment-profit'))return route.fulfill({json:{data:{accountId:second?'2':'1',events:[],capital:[]}}});
+    if(p.endsWith('/investment-profit'))return route.fulfill({json:{data:{accountId:second?'2':'1',events:[],capital:[],...(url.searchParams.has('securityId')?{securityId:url.searchParams.get('securityId')}: {})}}});
     if(p.endsWith('/recent-buys')){const view=recentBuys((second?[]:lots) as BuyLotDto[],'2026-10-07',Number(url.searchParams.get('months')));return route.fulfill({json:{data:view.rows,meta:{...view,rows:undefined,total:second?0:lots.length}}});}
     if(p.endsWith('/buy-lots'))return route.fulfill({json:{data:second?[]:lots.map((lot,i)=>({...lot,currentPrice:missing&&i===0?null:lot.currentPrice}))}});
     if(p.endsWith('/asset-history')){

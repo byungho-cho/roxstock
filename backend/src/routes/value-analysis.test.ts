@@ -48,8 +48,17 @@ test('list reads only selected/previous annual source evidence and historical sh
   assert.equal((await app.inject('/api/value-analysis?year=2025')).statusCode,200);
   assert.deepEqual(join.include.fundamentals,{select:{updatedAt:true,collectionSymbol:true,securityId:true}});
   assert.equal(join.include.dartFinancialFilings.omit,undefined);
-  assert.equal(join.include.dartFinancialFilings.where.periodType,'ANNUAL');assert.deepEqual(join.include.dartFinancialFilings.where.fiscalYear,{gte:2024,lte:2025});
+  assert.equal(join.include.dartFinancialFilings.where.periodType,undefined);assert.deepEqual(join.include.dartFinancialFilings.where.fiscalYear,{gte:2024,lte:2025});
   assert.equal(join.include.dartFinancialFilings.where.isWithdrawn,false);
   assert.deepEqual(join.include.dartShareSnapshots.where.fiscalYear,{gte:2024,lte:2025});
  }finally{await app.close();prisma.security.findMany=original;}
+});
+
+test('annual estimate list displays stored interim common shares independently from unverifiable RIM denominator',async()=>{
+ const original=prisma.security.findMany;
+ const date=new Date('2026-06-30'),receipt='20260814003509';
+ const row={id:39n,symbol:'000660',name:'SK test',isActive:true,marketPrice:{currentPrice:new Prisma.Decimal(100),priceUpdatedAt:new Date()},valuationMetrics:[],periodValuations:[{fiscalYear:2026,periodType:'ESTIMATE',values:{bps:'526869.36',roe:'102.88'},provenance:{fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',source:'NAVER_FNGUIDE_ANNUAL'},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026}}}],financialStatements:[],dartFinancialFilings:[{fiscalYear:2026,periodType:'Q2',periodEndDate:date,receiptNo:receipt,receiptDate:new Date('2026-08-14'),isWithdrawn:false}],dartShareSnapshots:[{receiptNo:receipt,shareClass:'COMMON',stockKind:'보통주',fiscalYear:2026,reportCode:'11012',periodEndDate:date,collectedAt:new Date('2026-10-09'),issuedShares:new Prisma.Decimal(712702365),treasuryShares:new Prisma.Decimal(1626865),outstandingShares:new Prisma.Decimal(711075500)}]};
+ prisma.security.findMany=(async()=>[row]) as any;const app=buildApp();
+ try{const r=await app.inject('/api/value-analysis?year=2026&query=000660');assert.equal(r.statusCode,200,r.body);const v=r.json().data.rows[0];assert.equal(v.issuedShares,'712702365');assert.equal(v.shareBasis.periodEndDate,'2026-06-30');assert.equal(v.excessEarnings,null);assert.match(v.rimReason,/분모/);assert.equal(v.fairPrices[1].price,'5525805.84768');}
+ finally{await app.close();prisma.security.findMany=original;}
 });

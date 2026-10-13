@@ -41,8 +41,8 @@ export async function readProfitYears(accountId:bigint,today:string,revision:big
  return result.years;
 }
 export async function investmentProfitRoutes(app:FastifyInstance){
- app.get<{Params:{accountId:string}}>('/accounts/:accountId/investment-profit',async request=>{
-  const accountId=id(request.params.accountId,'accountId');
+ app.get<{Params:{accountId:string};Querystring:{securityId?:string}}>('/accounts/:accountId/investment-profit',async request=>{
+  const accountId=id(request.params.accountId,'accountId'),securityId=request.query.securityId===undefined?null:id(request.query.securityId,'securityId');
   const account=await prisma.account.findUnique({where:{id:accountId},select:{isActive:true}});
   if(!account?.isActive)throw new ApiError(404,'ACCOUNT_NOT_FOUND','Account not found.');
   const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
@@ -60,7 +60,7 @@ export async function investmentProfitRoutes(app:FastifyInstance){
     while(cache.size>=128||[...cache.values()].reduce((sum,value)=>sum+value.bytes,0)-(cache.get(key)?.bytes??0)+bytes>budget)cache.delete(cache.keys().next().value!);
     cache.set(key,{until:Date.now()+5000,years,calculatedAt,bytes});
    }
-   return {data:{accountId:String(accountId),events:years.flatMap(year=>year.events),capital:years.map(year=>year.capital)},meta:{basisDate:today,calculationVersion:PROFIT_VERSION,sourceRevision:String(revision),cacheHit:!!saved&&saved.until>Date.now(),state:'VALID',calculatedAt}};
+   return {data:{accountId:String(accountId),events:years.flatMap(year=>year.events).filter(event=>securityId===null||event.securityId===String(securityId)),capital:securityId===null?years.map(year=>year.capital):[],...(securityId===null?{}:{securityId:String(securityId)})},meta:{basisDate:today,calculationVersion:PROFIT_VERSION,sourceRevision:String(revision),cacheHit:!!saved&&saved.until>Date.now(),state:'VALID',calculatedAt}};
   }
   throw new ApiError(409,'PROFIT_SOURCE_CHANGED','조회 중 데이터가 변경되었습니다. 다시 조회해 주세요.');
  });
