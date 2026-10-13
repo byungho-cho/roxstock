@@ -6,6 +6,26 @@ on:
 permissions:
   contents: read
 jobs:
+  trades-and-targets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Preserve buy, partial sell, edit, delete and target-condition editing
+        run: npx playwright test --config=playwright.targets.config.ts stocks-v03.spec.ts target-arrivals.spec.ts --project=cover-370x465 --project=tablet-725x396 --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase27-trade-target-regression
+          path: frontend/test-results/targets/
+          retention-days: 30
   ui:
     runs-on: ubuntu-latest
     timeout-minutes: 15
