@@ -62,7 +62,7 @@ test('late home response cannot replace the last selected account',async({page})
  await expect(page.getByTestId('home-summary-area')).toContainText('300원');await expect(open).toContainText('계좌 c');
 });
 
-for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses tax and never creates a second transaction`,async({page})=>{
+for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses net balance and never creates a second transaction`,async({page})=>{
  await fixture(page);const writes:{path:string;body:any}[]=[];
  await page.route('**/api/**',async route=>{
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
@@ -82,7 +82,7 @@ for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses 
  await page.getByRole('button',{name:type==='buy'?'매수':'매도',exact:true}).click();
  const confirm=page.getByRole('dialog').filter({hasText:'제세금을 입력하시겠습니까?'});await expect(confirm).toBeVisible();
  await confirm.getByRole('button',{name:'확인',exact:true}).click();
- const tax=page.getByLabel('제세금',{exact:true});await expect(tax).toBeFocused();await tax.fill('100');
+ const tax=page.getByLabel('제세금',{exact:true});await expect(page.getByLabel('세후예수금',{exact:true})).toBeFocused();await tax.fill('100');
  await page.getByRole('button',{name:'저장',exact:true}).click();
  await expect.poll(()=>writes.length).toBe(2);expect(writes[1].path).toContain('linked-123');expect(writes[1].body).toMatchObject({accountId:'a',feeTaxAmount:'100',balanceAfter:'8900'});
 });

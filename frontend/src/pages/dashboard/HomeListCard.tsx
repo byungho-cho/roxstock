@@ -4,16 +4,16 @@ import type { ReactNode } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { colors } from '../../styles/tokens';
 
-export function HomeListCard({ title, count, testId, action, children, timestamp, more, moreDisabled=false, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false, stable = false, pending=false }: {
+export function HomeListCard({ title, count, testId, action, children, timestamp, more, moreDisabled=false, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false, stable = false, pending=false, compactEmpty=false, naturalCover=false }: {
   title: string; titleHint?: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
-  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean; stable?:boolean; pending?:boolean;
+  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number; compactFooter?: boolean; stable?:boolean; pending?:boolean; compactEmpty?:boolean; naturalCover?:boolean;
 }) {
-  return <AppCard data-testid={testId} sx={{ minWidth: 0, height: compactFooter || stable ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
+  return <AppCard data-testid={testId} data-empty-compact={compactEmpty} sx={{ minWidth: 0, height: compactEmpty?{xs:98,sm:height}:naturalCover?{xs:'auto',sm:height}:compactFooter || stable ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: compactEmpty?{xs:'8px 14px',sm:'12px 14px'}:'12px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
       <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={titleHint ? `${title} ${titleHint}` : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit', gap: '6px' }}>{title}{titleHint && <Box component="span" data-testid="home-title-hint" sx={{fontSize:11,color:colors.textMuted,fontWeight:400}}>{titleHint}</Box>}</ButtonBase> : title}</Typography>
       <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{pending ? <DelayedSkeleton width={30} height={14}/> : count ?? '—'}</Typography>{action}</Box>
     </Box>
-    <Box data-testid="home-list-region" aria-busy={pending} sx={{ flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
+    <Box data-testid="home-list-region" aria-busy={pending} sx={{'& > [role="status"]':compactEmpty?{minHeight:26,pb:0}:undefined, flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
     <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
       <Box sx={{ minWidth: 0 }}><Typography title={timestamp ?? undefined} sx={{ minWidth: 0, fontSize: 9, lineHeight: notice ? '12px' : '16px', color: colors.textMuted }}>
         {pending ? <DelayedSkeleton width={90} height={12}/> : <>{timestampLabel}{homeTimestamp(timestamp)}</>}

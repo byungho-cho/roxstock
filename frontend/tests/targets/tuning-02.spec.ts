@@ -32,6 +32,26 @@ for(const screen of screens)test(`batched reads render ${screen.url}`,async({pag
   await page.screenshot({path:info.outputPath('screen.png')});
 });
 
+test('phase26 stock profit scope survives batching, linked detail and account switching',async({page})=>{
+  const batches:string[][]=[];
+  await fixture(page,{batch:true,onBatch:paths=>batches.push(paths),read:url=>{
+    if(!url.pathname.endsWith('/investment-profit'))return undefined;
+    const accountId=url.pathname.split('/')[3],securityId=url.searchParams.get('securityId');
+    const profit=accountId==='2'?'505':securityId==='1'?'120':'-30';
+    return {json:{data:{accountId,securityId,capital:[],events:[{date:'2025-10-01',securityId,name:'종목'+securityId,kind:'SELL',buy:'0',sell:'1000',cost:'500',trading:profit,dividend:'0'}]}}};
+  }});
+  await page.goto('/stocks/1?detailTab=summary');
+  await expect(page.getByTestId('stock-annual-row')).toContainText('+120원');
+  await page.getByTestId('stock-annual-row').click();
+  await expect(page).toHaveURL(/securityId=1/);
+  await expect(page.getByTestId('profit-detail-summary')).toContainText('120원');
+  await page.goto('/stocks/4?detailTab=summary');
+  await expect(page.getByTestId('stock-annual-row')).toContainText('-30원');
+  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+  await expect(page.getByTestId('stock-annual-row')).toContainText('+505원');
+  expect(batches.flat()).toEqual(expect.arrayContaining(['/accounts/1/investment-profit?securityId=1','/accounts/1/investment-profit?securityId=4','/accounts/2/investment-profit?securityId=4']));
+});
+
 test('secondary failure stays local and a new account cannot inherit old account data',async({page})=>{
   const batches:string[][]=[];
   await fixture(page,{batch:true,onBatch:p=>batches.push(p),read:url=>url.pathname.endsWith('/asset-history')?{status:503,json:{error:{message:'차트 조회 실패'}}}:undefined});

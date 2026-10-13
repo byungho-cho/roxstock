@@ -37,7 +37,7 @@ export function DashboardPage() {
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`); monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
   const homeTrend = trend.filter(point => !/^\d{4}-\d{2}-\d{2}$/.test(point.label) || (point.label >= monthAgo.toISOString().slice(0, 10) && point.label <= today));
-  return <Box data-testid="home-shell" className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary targets" "holdings recent"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
+  return <Box data-testid="home-shell" className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary recent" "holdings targets"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
     <Stack data-testid="home-summary-area" spacing="8px" sx={{ minWidth: 0, minHeight: { sm: 290 }, gridArea: { sm: 'summary' } }}>
       <Box data-testid="home-total-card" aria-busy={pending} sx={{height:76,position:'relative'}}><TotalAssetCard summary={summary ?? unavailableSummary} home loading={pending}/>{(isError||accounts.isError)&&<Button size="small" sx={{position:'absolute',right:13,top:summary?27:9,p:0,fontSize:9,minHeight:18}} onClick={()=>{if(accounts.isError)void accounts.refetch();else retry();}}>조회 실패{summary?' · 이전 값':''} · 재시도</Button>}</Box>
       <Box data-testid="home-quick-cards" aria-busy={pending} sx={{height:68}}><AssetQuickCards allocationAvailable={!isError} summary={summary ?? unavailableSummary} home loading={pending}/></Box>
@@ -50,14 +50,14 @@ export function DashboardPage() {
       </Box></AppCard>
     </Stack>
     <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard stable pending={pending} testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={holdings ? `${holdings.length}종목` : undefined} notice={isError&&holdings ? <Button size="small" onClick={retry}>조회 실패 · 이전 결과 · 재시도</Button> : summary?.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary?.collectedAt} updating={isFetching}>
-      {holdings?.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}`)} />)}
+      {holdings?.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}?detailTab=summary`)} />)}
       {pending && <HomeListLoading/>}
       {(isError||accounts.isError)&&!holdings&&<HomeEmpty><span role="alert">보유종목 조회 실패</span><Button size="small" onClick={()=>{if(accounts.isError)void accounts.refetch();else retry();}}>재시도</Button></HomeEmpty>}
       {noAccount&&<HomeEmpty>등록된 계좌가 없습니다.<Button onClick={()=>navigate("/detail/settings?view=add")}>계좌 추가</Button></HomeEmpty>}
       {holdings?.length === 0 && <HomeEmpty />}
     </HomeListCard></Box>
-    <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
     <Box sx={{ gridArea: { sm: 'recent' } }}><RecentBuysCard enabled={!liveApiEnabled||recentReady===accountId} /></Box>
+    <Box sx={{ gridArea: { sm: 'targets' } }}><TargetArrivalCard /></Box>
   </Box>;
 }
 

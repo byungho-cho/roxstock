@@ -11,7 +11,7 @@ async function setup(page:Page) {
   const u=new URL(route.request().url());if(!/\/(trades|investment-profit)$/.test(u.pathname))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));
-  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[])});
+  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[],[],undefined,u.searchParams.get('securityId')??undefined)});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
  });return control;
 }
@@ -29,7 +29,7 @@ test('summary metrics, distinct links and both back paths restore scroll',async(
   const link=page.getByTestId(selector).first();await link.scrollIntoViewIfNeeded();const saved=await region(page).evaluate(e=>e.scrollTop);await link.click();await expect(page).toHaveURL(/investment-profit/);
   if(destination==='stock'){await expect(page.getByTestId('profit-selected')).toHaveText('종목1');await expect(page.getByTestId('profit-detail-summary')).toContainText('2,000원');}
   if(destination==='list')await expect(page.getByTestId('profit-tabs').getByRole('button',{name:'연도별',exact:true})).toHaveAttribute('aria-pressed','true');
-  if(destination==='year'){await expect(page.getByTestId('profit-selected')).toHaveText('2026년');await expect(page.getByTestId('profit-detail-summary')).toContainText('+3,000원');}
+  if(destination==='year'){await expect(page.getByTestId('profit-selected')).toHaveText('2026년');await expect(page.getByTestId('profit-detail-summary')).toContainText('+500원');}
   await page.goBack();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
   await link.click();await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
  }
@@ -60,7 +60,9 @@ test('summary defers holding lots and stock trade detail; profit detail loads an
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  await page.getByRole('tab',{name:'보유 현황',exact:true}).click();await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/buy-lots')).length).toBeGreaterThan(0);
  await page.getByRole('tab',{name:'요약',exact:true}).click();await page.getByTestId('stock-profit-summary').click();await expect(page.getByTestId('profit-detail-summary')).toBeVisible();
- await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).length).toBe(1);
+ // Account-wide navigation and the stock-scoped summary must have independent cache entries.
+ await expect.poll(()=>reads.filter(u=>u.pathname.endsWith('/investment-profit')).map(u=>u.searchParams.get('securityId')).sort()).toEqual([null,'1'].sort());
+ expect(reads.filter(u=>u.pathname.endsWith('/investment-profit')&&u.searchParams.get('securityId')==='1')).toHaveLength(1);
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
- expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(1);
+ expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(0);
 });

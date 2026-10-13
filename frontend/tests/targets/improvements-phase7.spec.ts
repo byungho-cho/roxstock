@@ -9,7 +9,7 @@ async function setup(page:Page){
 
   const u=new URL(route.request().url());if(!u.pathname.endsWith('/trades')&&!u.pathname.endsWith('/investment-profit'))return route.fallback();
   const data=u.pathname.includes('/2/')?[]:[2024,2025,2026].flatMap(year=>[1,2,3,4,5,6].map(id=>({id:`${year}${id}`,type:'SELL',security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:'150',amount:'1500',realizedProfitLoss:'500',buyTradeId:'1'})));
-  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[])});
+  if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[],[],undefined,u.searchParams.get('securityId')??undefined)});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'500',buyAmount:'1000',sellAmount:'1500'},daily:[]}});
  });return f;
 }
@@ -37,7 +37,7 @@ test('investment detail year quarter empty state latest response and left axis',
 test('profit stock year links restore exact origin sort and scroll',async({page})=>{
  await setup(page);await page.goto('/detail/investment-profit?profitDetail=year&year=2025');const compact=page.getByTestId('profit-compact').filter({has:page.getByText('종목별 손익',{exact:false})}).first();await compact.getByRole('button',{name:'손익액 오름차순 정렬'}).click();const row=compact.locator('[data-id="3"]');await row.scrollIntoViewIfNeeded();const region=page.viewportSize()!.width<600?page.locator('main'):page.locator('[data-scroll-region="profit-right"]');const saved=await region.evaluate(e=>e.scrollTop);
  await row.click();await expect(page.getByTestId('profit-selected')).toHaveText('종목3');await expect(page.getByTestId('profit-detail-summary')).toContainText('전체 거래 요약');
- const annual=page.getByTestId('profit-compact').filter({has:page.getByTestId('profit-annual-heading')});await annual.locator('[data-id="2024"]').click();await expect(page.getByTestId('profit-selected')).toHaveText('2024년');await expect(page.getByTestId('profit-detail-summary')).toContainText('투자금');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('profit-selected')).toHaveText('종목3');
+ const annual=page.getByTestId('profit-compact').filter({has:page.getByTestId('profit-annual-heading')});await annual.locator('[data-id="2024"]').click();await expect(page.getByTestId('profit-selected')).toHaveText('2024년');await expect(page.getByTestId('profit-detail-summary')).toContainText('매수총액');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('profit-selected')).toHaveText('종목3');
  await page.getByTestId('profit-annual-heading').click();await expect(page.getByTestId('profit-tabs').getByRole('button',{name:'연도별',exact:true})).toHaveAttribute('aria-pressed','true');await page.goBack();await expect(page.getByTestId('profit-selected')).toHaveText('종목3');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('profit-selected')).toHaveText('2025년');await expect(compact.getByRole('button',{name:'손익액 내림차순 정렬'})).toBeAttached();await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
  await page.goto('/stocks/1?detailTab=summary');await expect(page.getByTestId('stock-annual-profit')).not.toContainText('거래내역');await expect(page.getByRole('tab',{name:'거래내역',exact:true})).toBeAttached();
 });
