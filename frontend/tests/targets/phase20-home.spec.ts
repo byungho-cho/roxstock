@@ -3,7 +3,7 @@ import {fixture} from './phase3-fixture';
 // Phase26 intentionally lets the target card resize once its result is known; its loading/error/empty heights are checked in phase26.spec.ts.
 const cards=['home-total-card','home-quick-cards','asset-performance-card'];
 async function geometry(page:Page){const top=(await page.getByTestId('home-shell').boundingBox())!.y;return Promise.all(cards.map(async id=>{const b=(await page.getByTestId(id).boundingBox())!;return {id,height:b.height,top:b.y-top};}));}
-async function titles(page:Page){for(const name of ['평가자산','일별손익','주식평가액','예수금'])await expect(page.getByTestId('home-summary-area').getByText(name,{exact:true})).toBeVisible();for(const id of ['asset-performance-card','home-holdings-card','target-arrival-card','recent-buys-card'])await expect(page.getByTestId(id).getByRole('heading')).toBeVisible();}
+async function titles(page:Page){for(const name of ['평가자산','일별손익','주식평가액','예수금'])await expect(page.getByTestId('home-summary-area').getByText(name,{exact:true}).first()).toBeVisible();for(const id of ['asset-performance-card','home-holdings-card','target-arrival-card','recent-buys-card'])await expect(page.getByTestId(id).getByRole('heading')).toBeVisible();}
 test('account wait paints every home shell and label without fake results',async({page},info)=>{
  await fixture(page);let release!:()=>void;
  await page.route('**/api/accounts',async r=>{await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
