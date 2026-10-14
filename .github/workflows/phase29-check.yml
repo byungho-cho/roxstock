@@ -18,21 +18,21 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: |
-          git worktree add --detach phase29-baseline 50aeb7d64f62b800eee6d0c1e9f313bf1829462d
-          ln -s ../node_modules phase29-baseline/node_modules
-          ln -s ../../frontend/node_modules phase29-baseline/frontend/node_modules
-          VITE_DATA_SOURCE=api npm --prefix phase29-baseline/frontend run build
-          npm --prefix phase29-baseline/frontend run preview -- --host 127.0.0.1 --port 3129 > /tmp/phase29-baseline.log 2>&1 &
+          git worktree add --detach phase30-baseline fc25804037ac5cc35f092b24d3310b346ebe3561
+          ln -s ../node_modules phase30-baseline/node_modules
+          ln -s ../../frontend/node_modules phase30-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix phase30-baseline/frontend run build
+          npm --prefix phase30-baseline/frontend run preview -- --host 127.0.0.1 --port 3130 > /tmp/phase30-baseline.log 2>&1 &
       - run: npm run typecheck:frontend && VITE_DATA_SOURCE=api npm run build:frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npx playwright test --config playwright.phase29.config.ts
+      - run: npx playwright test --config playwright.phase30.config.ts
         working-directory: frontend
         env:
-          PHASE29_BASELINE_URL: http://127.0.0.1:3129
+          PHASE30_BASELINE_URL: http://127.0.0.1:3130
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: phase29-screen-evidence
-          path: frontend/test-results/phase29/
+          name: phase30-screen-evidence
+          path: frontend/test-results/phase30/
           retention-days: 30
