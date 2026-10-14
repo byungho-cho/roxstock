@@ -4,7 +4,6 @@ import {StockTabs} from './StockTabs';
 import {StockLoadingRows} from './StockLoadingRows';
 import {StockToolbar} from './StockToolbar';
 export {StockToolbar} from './StockToolbar';
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {ReportButton} from './ReportButton';
 import { stockMatches } from '../../utils/stockSearch';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
@@ -61,7 +60,7 @@ export function StockListPage({initialSelectedId,initialTab}:{initialSelectedId?
  const toolbar=<StockToolbar query={query} onQuery={setQuery} sort={sort.key} descending={sort.descending} tab={active} onSort={key=>setSorting({...sorting,[active]:{...sort,key}})} onDirection={()=>setSorting({...sorting,[active]:{...sort,descending:!sort.descending}})} compact={tablet&&!split}/>;
  const loading=liveApiEnabled&&(accounts.isPending||(!!accountId&&isPending));
  const unavailable=liveApiEnabled&&!data;
- const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>{unavailable?(loading?<Skeleton width={64} height={18} sx={{transform:'none'}}/>:'—'):`총 ${items.length}개`}</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{unavailable?(loading?<Skeleton width={100} height={18} sx={{transform:'none'}}/>:'—'):won(total)}</Typography>}</Stack>;
+ const summary=<Stack direction="row" sx={{height:26,alignItems:'center',justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>{unavailable?(loading?'':'—'):`총 ${items.length}개`}</Typography>{active==='holding'&&<Typography sx={{fontSize:13,fontWeight:600,color:colors.marketRise}}>{unavailable?(loading?'':'—'):won(total)}</Typography>}</Stack>;
  const cards=<Stack spacing="8px" sx={{pb:tablet?'80px':0}}>{items.map(s=><StockCard key={s.id} stock={s} isFavorite={favoriteIds.has(s.id)} onToggleFavorite={()=>toggleFavorite(s.id)} onValue={()=>setValueStock(s)} onClick={()=>select(s)} onEditPrice={()=>tablet?setPriceStock(s):navigate(`/stocks/${s.id}/price`)}/>)}</Stack>;
  return <Stack spacing={split?0:1} data-testid="stock-list" data-restoration-ready={!isPending||isError} data-list-condition={JSON.stringify([active,query,sort])} sx={{height:tablet?'100%':undefined,minHeight:0,fontFamily:'RoxHomeInter, sans-serif'}}>
   <PageHeader embedded showBack={split} stockNavigation={split?<StockNavigation symbol={chosen.symbol} previousName={neighbors.previous?.name} nextName={neighbors.next?.name} onPrevious={()=>moveDetail(-1)} onNext={()=>moveDetail(1)}/>:undefined} title={split?`종목목록(${stockTabs.find(t=>t.value===active)!.label})`:'종목목록'} showAdd={false} onBack={split?back:undefined} showBackTablet action={<HeaderAddButton label="종목 추가" onClick={add}/>}/>

@@ -56,7 +56,7 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
       {stockNavigation && <Box sx={{ position: 'absolute', ...(valueAnalysis ? {height:14,lineHeight:'14px','& .MuiButton-root':{minHeight:14,height:14,lineHeight:'14px'}} : {}), bottom: 2, left: valueAnalysis ? 8 : 48, right: valueAnalysis ? 8 : 48 }}>{stockNavigation}</Box>}
       {center && <Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: '50%', transform: 'translateX(-50%)', alignItems: 'center', justifyContent: 'center', maxWidth: 'calc(100% - 240px)' }}>{center}</Box>}
       {action ?? (showAdd && <HeaderAddButton label={addLabel} onClick={onAdd ?? (() => navigateToForm(navigate, addPath))} mobileVisible={mobileAddVisible} />)}
-      {hasBack && stockNavigation && !action && <Box sx={{ display: { xs: 'block', sm: valueAnalysis ? 'block' : 'none' }, width: valueAnalysis ? 20 : compact && variant === 'more' ? 28 : pageMetrics.headerHeight, flexShrink: 0 }} />}
+      {hasBack && stockNavigation && !action && <Box sx={{ display:'block', width:28, flexShrink: 0 }} />}
     </Toolbar>
   </AppBar>;
   return embedded ? slot ? createPortal(header, slot) : null : header;

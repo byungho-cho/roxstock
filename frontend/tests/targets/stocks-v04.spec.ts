@@ -11,7 +11,7 @@ test('v0.4 layout, 36px toolbar, correct menus and data-only table scrolling',as
  const nav=page.locator('.MuiBottomNavigation-root:visible');
  expect((await nav.boundingBox())!.height).toBe(44);
  await expect(nav.getByRole('button')).toHaveCount(13);
- if(wide)await expect(nav.getByRole('button',{name:'모니터링'})).toBeVisible();
+ if(wide)await expect(nav.getByRole('button',{name:'설정',exact:true})).toBeVisible();
  expect((await page.getByRole('combobox',{name:'정렬 기준'}).locator('..').boundingBox())!.height).toBe(36);
  const input=page.getByRole('textbox',{name:'목록 종목 검색'});await input.fill('보유');await input.blur();await input.focus();expect(await input.evaluate((el:HTMLInputElement)=>el.selectionEnd!-el.selectionStart!)).toBe(2);await input.fill('');
  if(wide){const rows=page.locator('[data-scroll-region="stock-table"]'),header=page.getByRole('columnheader',{name:'종목',exact:true}),before=(await header.boundingBox())!.y;await rows.evaluate(el=>el.scrollTop=100);expect((await header.boundingBox())!.y).toBe(before);expect(await page.locator('main').evaluate(el=>el.scrollTop)).toBe(0);await rows.evaluate(el=>el.scrollTop=0);}
@@ -51,12 +51,11 @@ test('linked buy deletion is restricted and sends no delete request',async({page
  expect(f.writes.filter(w=>w.method==='DELETE')).toHaveLength(0);
 });
 
-test('previous-year expansion preserves entries and year titles stick inside their own scroll area',async({page},info)=>{
+test('loaded trade years preserve entries and year titles stick inside their own scroll area',async({page},info)=>{
  await fixture(page);await selected(page);await page.getByRole('tab',{name:'거래내역',exact:true}).click();
- await expect(page.getByTestId('trade-year-2026')).toBeVisible();await expect(page.getByTestId('trade-year-2025')).toHaveCount(0);
+ await expect(page.getByTestId('trade-year-2026')).toBeVisible();await expect(page.getByTestId('trade-year-2025')).toHaveCount(1);
  const scroll=tablet(page.viewportSize()!.width)?page.getByTestId('stock-right'):page.locator('main');
- await page.getByRole('button',{name:'이전 연도 더보기'}).scrollIntoViewIfNeeded();const before=await scroll.evaluate(el=>el.scrollTop);
- await page.getByRole('button',{name:'이전 연도 더보기'}).click();await expect(page.getByTestId('trade-year-2025')).toHaveCount(1);expect(await scroll.evaluate(el=>el.scrollTop)).toBe(before);await expect(page.getByTestId('sell-s1')).toHaveCount(1);
+ await expect(page.getByTestId('sell-s1')).toHaveCount(1);
  await scroll.evaluate(el=>el.scrollTop=130);expect((await page.getByTestId('trade-year-2026').getByTestId('trade-year-title').boundingBox())!.y).toBeCloseTo((await scroll.boundingBox())!.y,0);
  await screenshot(page,'v04-years',info.project.name);
 });
