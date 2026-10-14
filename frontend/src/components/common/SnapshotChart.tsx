@@ -7,10 +7,10 @@ export type SnapshotChartPoint = { date: string; values: Record<string, number |
 export type SnapshotChartSeries = { key: string; label: string; color: string; lineTestId?: string };
 /** Numeric values are geometry only; tooltip text retains source precision. Stored dates only. */
 export function SnapshotChart({ points, series, from, to, height = 164, rightAxis = false, legend = false, fill = false,
-  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false }: {
+  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false, emptyFrame = false }: {
   points: SnapshotChartPoint[]; series: SnapshotChartSeries[]; from: string; to: string;
   height?: number | string; fill?: boolean; rightAxis?: boolean; legend?: boolean; testId: string; ariaLabel: string;
-  dateLabels?: { date: string; label: string }[]; dateColor?: string; dottedTooltipDate?: boolean;
+  dateLabels?: { date: string; label: string }[]; dateColor?: string; dottedTooltipDate?: boolean; emptyFrame?: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const gesture = useRef<{ x: number; y: number; vertical: boolean } | null>(null);
@@ -39,7 +39,7 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
     setSelected(nearest?.date ?? null);
   };
   const point = points.find(item => item.date === selected);
-  const amounts = [0, 1, 2, 3].map(i => `${Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만`);
+  const amounts = [0, 1, 2, 3].map(i => emptyFrame && !values.length ? '—' : `${Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만`);
   const gutter = fill && !rightAxis ? Math.max(...amounts.map(label => label.length * 6)) + 4 : 0;
   const tooltipLeft = rightAxis ? 4 : Math.max(...amounts.map(label => label.length * 6)) + 8;
   const labels = dateLabels ?? Array.from({ length: 5 }, (_, i) => {
@@ -55,7 +55,7 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
         onPointerUp={() => { gesture.current = null; }} onPointerCancel={() => { gesture.current = null; }}
         sx={{ display: 'block', ml:gutter+'px', width: `calc(100% - ${rightAxis ? 64 : gutter}px)`, height: '100%', touchAction: 'pan-y', userSelect: 'none' }}>
         {[0, 1, 2, 3].map(i => <path key={i} d={`M4 ${12 + i * 46} H256`} stroke={colors.border} />)}
-        {series.map(item => <g key={item.key}><path data-testid={item.lineTestId} d={path(item.key)} stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />{points.map((point,index) => finite(point.values[item.key]) && !finite(points[index-1]?.values[item.key]) && !finite(points[index+1]?.values[item.key]) && <circle key={point.date} cx={x(point.date)} cy={y(point.values[item.key]!)} r="2" fill={item.color} />)}</g>)}
+        {series.filter(item=>!emptyFrame||points.some(point=>finite(point.values[item.key]))).map(item => <g key={item.key}><path data-testid={item.lineTestId} d={path(item.key)} stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />{points.map((point,index) => finite(point.values[item.key]) && !finite(points[index-1]?.values[item.key]) && !finite(points[index+1]?.values[item.key]) && <circle key={point.date} cx={x(point.date)} cy={y(point.values[item.key]!)} r="2" fill={item.color} />)}</g>)}
         {point && <g data-testid={testId === 'investment-chart' ? 'investment-selection' : `${testId}-selection-guide`}><path data-testid={testId === 'asset-trend-chart' ? 'asset-trend-guide' : undefined} d={`M${x(point.date)} 8 V154`} stroke={colors.textMuted} /></g>}
       </Box>
       {point && series.map(item => finite(point.values[item.key]) && <Box data-testid={testId === 'asset-trend-chart' ? 'asset-trend-selection' : undefined} key={item.key} sx={{ position: 'absolute', pointerEvents: 'none', left: `calc(${gutter}px + ${x(point.date) / 260 * 100}% - ${(rightAxis ? 64 : gutter) * x(point.date) / 260}px)`, top: `${y(point.values[item.key]!) / 164 * 100}%`, transform: 'translate(-50%, -50%)', width: 6, height: 6, borderRadius: '50%', bgcolor: item.color }} />)}
