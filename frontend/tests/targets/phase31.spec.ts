@@ -85,3 +85,38 @@ test('controlled before/after measurements distinguish shell, API and data displ
   console.log(JSON.stringify({kind:'phase31-ui-before-after',label,project:info.project.name,repeats:3,concurrency:2,controlledDelayMs:300,cache:'fresh browser context per sample',samples,sha:process.env.GITHUB_SHA,utc:new Date().toISOString()}));
  }
 });
+
+test('all menu entry headers omit back arrows on cover and tablet',async({page},info)=>{
+ await fixture(page,{read:url=>{
+  if(url.pathname==='/api/value-analysis')return {json:{data:{rows:[],total:0,year:2026,query:''}}};
+  if(url.pathname==='/api/financial-statements')return {json:{data:{rows:[],total:0,year:2026}}};
+ }});
+ const entries=[['/detail/assets','대시보드'],['/stocks','종목목록'],['/journal','매매일지'],['/detail/cash','예수금'],['/assets','자산분석'],['/detail/investment','투자금'],['/detail/investment-profit','투자손익'],['/detail/value','가치분석'],['/detail/financials','재무제표'],['/detail/compound','복리계획'],['/detail/settings?view=settings','설정'],['/more','메뉴']];
+ for(const [path,title] of entries){
+  await page.goto(path);
+  await expect(page.getByRole('heading',{name:title,exact:true,level:1})).toBeVisible();
+  await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+  await expect(page.locator('.MuiBottomNavigation-root')).toBeVisible();
+ }
+ await page.goto('/');
+ await expect(page.getByRole('heading',{level:1})).toBeVisible();
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ await page.screenshot({path:info.outputPath('main-header-no-back.png')});
+});
+test('settings and financial child screens retain back navigation',async({page},info)=>{
+ await fixture(page,{read:url=>{
+  if(url.pathname.startsWith('/api/financial-statements/'))return {status:503,json:{error:{message:'controlled failure'}}};
+  if(url.pathname==='/api/financial-statements')return {json:{data:{rows:[],total:0,year:2026}}};
+ }});
+ await page.goto('/detail/settings?view=account');
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
+ await page.goto('/detail/financials?selected=1&view=detail');
+ const back=page.getByRole('button',{name:'뒤로가기',exact:true});
+ await expect(back).toBeVisible();
+ await back.click();
+ await expect(page).toHaveURL(/view=list/);
+ await expect(back).toHaveCount(0);
+ await page.goto('/stocks/1');
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
+ await page.screenshot({path:info.outputPath('detail-header-back.png')});
+});

@@ -23,6 +23,7 @@ type PageHeaderProps = {
   onAdd?: () => void;
   backPath?: string;
   showBackTablet?: boolean;
+  showBack?: boolean;
   onBack?: () => void;
   showAddMobile?: boolean;
   action?: ReactNode;
@@ -37,11 +38,13 @@ type PageHeaderProps = {
 export const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
 // A page can supply its actions, while the header always renders in AppLayout's fixed slot.
-export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
+export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const slot = useContext(HeaderSlotContext);
   const tablet = useMediaQuery('(min-width:600px)');
-  const hasBack = Boolean(backPath || onBack);
+  const { pathname } = useLocation();
+  const isMenuPage = pathname === '/more' || appMenuItems.some(item => item.path === pathname);
+  const hasBack = Boolean(backPath || onBack) && (showBack ?? !isMenuPage);
   const mobileAddVisible = showAddMobile ?? variant !== 'detail';
   if ((scope === 'cover' && tablet) || (scope === 'tablet' && !tablet)) return null;
   const header = <AppBar position="static" elevation={0} color="transparent" sx={{ height: pageMetrics.headerHeight, bgcolor: colors.canvas, border: 0 }}>
