@@ -13,11 +13,10 @@ test('home priority cards finish before recent buys; recent delay is local; vali
   return route.fallback();
  });
  const start=Date.now();await page.goto('/');await expect(page.getByTestId('home-summary-area')).toContainText('165,000원');await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');
- const chartHeight=(await page.getByTestId('home-chart-region').boundingBox())!.height,holdingsTop=(await page.getByTestId('home-holdings-card').boundingBox())!.y;expect(chartHeight).toBe(page.viewportSize()!.width<600?87:171);
- expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
- await expect.poll(()=>!!releasePrimary).toBe(true);releasePrimary();await expect(page.getByTestId('asset-trend-chart')).toBeVisible();const major=Date.now()-start;expect((await page.getByTestId('home-chart-region').boundingBox())!.height).toBe(chartHeight);expect((await page.getByTestId('home-holdings-card').boundingBox())!.y).toBe(holdingsTop);
+ const performanceHeight=(await page.getByTestId('asset-performance-card').boundingBox())!.height,holdingsTop=(await page.getByTestId('home-holdings-card').boundingBox())!.y;expect(performanceHeight).toBeGreaterThan(0);
+ await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);expect(reads.filter(p=>p.endsWith('/asset-history'))).toHaveLength(0);const major=Date.now()-start;
  await expect.poll(()=>!!releaseRecent).toBe(true);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);
- releaseRecent();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);const total=Date.now()-start;
+ releaseRecent();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect((await page.getByTestId('asset-performance-card').boundingBox())!.height).toBe(performanceHeight);expect((await page.getByTestId('home-holdings-card').boundingBox())!.y).toBe(holdingsTop);const total=Date.now()-start;
  const before=reads.length;await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'더보기',exact:true}).click();await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(reads.length).toBe(before);
  console.log(JSON.stringify({kind:'phase18-mock-ui',project:info.project.name,majorMs:major,recentMs:total,totalMs:total,requests:before,utc:new Date().toISOString(),sha:process.env.GITHUB_SHA}));
  await page.screenshot({path:info.outputPath('home-ready.png')});

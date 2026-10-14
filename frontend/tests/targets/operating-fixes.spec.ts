@@ -27,7 +27,7 @@ test('stock quote time survives pending and failure; top pull preserves conditio
 });
 
 test('app pull refreshes only active screen queries once',async({page})=>{
-  const state=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');await expect(page.getByTestId('home-trend-card')).toBeVisible();
+  const state=await fixture(page);await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');await expect(page.getByTestId('asset-performance-card')).toBeVisible();
   // Home shells now appear before data; measure pull requests after initial queries settle.
   await expect(page.getByTestId('home-total-card')).toContainText('566,600,000원');
   await expect(page.getByTestId('recent-buys-card').getByTestId('home-list-region')).toHaveAttribute('aria-busy','false');
