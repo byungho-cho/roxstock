@@ -1,11 +1,13 @@
+import {encodeSort,type AnalysisSort} from '../value/AnalysisSort';
+import type {ValueRow} from '../value/valueApi';
 import type {FinancialRow} from '../value/valueApi';
 import {apiRequest} from '../../data/apiClient';
 export const fields=['revenue','operatingProfit','netIncome','parentNetIncome','totalAssets','totalLiabilities','totalEquity','parentEquity','operatingCashFlow','investingCashFlow','financingCashFlow','cashEquivalents'] as const;
 export type Field=typeof fields[number];
-export type MetricBasis={year:number;label:string;isEstimated:boolean;source:string|null;period:string;division:string|null};
+export type MetricBasis={year:number|null;label:string;isEstimated:boolean;source:string|null;period:string;division:string|null};
 export type AmountBasis={year:number;source:string;period:string;isEstimated:boolean;unit:string;division?:string};
-export type Row={metricBasis?:MetricBasis;capitalBasis?:AmountBasis|null;netIncomeBasis?:AmountBasis|null;missingReasons?:Record<string,string|null>;id:string;name:string;symbol:string;market:string;currentPrice:string|null;previousClosePrice:string|null;priceUpdatedAt:string|null;targetPrice:string|null;w:string|null;value:string|null;eps:string|null;epsYield:string|null;roe:string|null;issuedShares:string|null;capital:string|null;netIncome:string|null};
-export type FinancialList={rows:Row[];total:number;year:number;market:string};
+export type Row=Pick<ValueRow,'collectionStatus'|'collectionErrors'|'sourceReasons'|'notices'|'basisText'|'shareBasis'|'shareMissingReason'|'rimBasis'|'rimReason'|'rimShareReason'|'cacheGeneratedAt'> & {metricBasis?:MetricBasis;capitalBasis?:AmountBasis|null;netIncomeBasis?:AmountBasis|null;missingReasons?:Record<string,string|null>;id:string;name:string;symbol:string;market:string;currentPrice:string|null;previousClosePrice:string|null;priceUpdatedAt:string|null;targetPrice:string|null;w:string|null;value:string|null;eps:string|null;epsYield:string|null;roe:string|null;issuedShares:string|null;capital:string|null;netIncome:string|null};
+export type FinancialList={rows:Row[];total:number;year:number;market:string;cache?:{status:string;generatedAt:string|null}};
 export type FinancialDetail={chartRows:FinancialRow[];security:{id:string;name:string;symbol:string};rows:{isEstimated?:boolean;collectionState?:string;key:string;label:string;year:number;quarter:number|null;values:Record<Field,string|null>;growth:Record<Field,string|null>;basis:string|null;collectedAt:string|null;isDerived:boolean}[];collectedAt:string|null;notices:string[]};
-export const listFinancials=(year:number,market:string,query:string,sort:string,direction:string,signal:AbortSignal)=>apiRequest<FinancialList>('/financial-statements?'+new URLSearchParams({year:String(year),market,query,sort:sort||'name',direction:sort?direction:'asc'}),{signal});
+export const listFinancials=(year:number,market:string,query:string,sorts:AnalysisSort[],signal:AbortSignal)=>apiRequest<FinancialList>('/financial-statements?'+new URLSearchParams({year:String(year),market,query,sorts:encodeSort(sorts)}),{signal});
 export const detailFinancials=(id:string,endYear:number,mode:string,startQuarter:number,signal:AbortSignal)=>apiRequest<FinancialDetail>('/financial-statements/'+encodeURIComponent(id)+'?'+new URLSearchParams({...(mode==='annual'?{endYear:String(endYear)}:{startYear:String(endYear),endYear:String(endYear),startQuarter:String(startQuarter)}),mode}),{signal});

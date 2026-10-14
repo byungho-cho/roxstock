@@ -757,3 +757,18 @@ model SecurityCodeHistory {
   @@index([securityId,codeRevision])
   @@map("security_code_history")
 }
+
+// Read-only projections. Revisions are advanced by transactional DB triggers.
+model AnalysisRevision {
+  key String @id @db.VarChar(64)
+  revision BigInt @default(0) @db.UnsignedBigInt
+  updatedAt DateTime @default(now()) @map("updated_at") @db.DateTime(3)
+  @@map("analysis_revisions")
+}
+model AnalysisReadCache {
+  key String @id @db.VarChar(191)
+  revision String @db.VarChar(64)
+  payload Json
+  generatedAt DateTime @default(now()) @map("generated_at") @db.DateTime(3)
+  @@map("analysis_read_cache")
+}

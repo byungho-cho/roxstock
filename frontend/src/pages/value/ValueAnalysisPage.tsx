@@ -1,3 +1,4 @@
+import {AnalysisSortHeader,defaultAnalysisSort,encodeSort,type AnalysisSort,type SortKey} from './AnalysisSort';
 import {circularNeighbors} from '../../utils/circularNeighbors';
 import {ClickInfo} from '../../components/common/ClickInfo';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
@@ -61,10 +62,11 @@ export function ValueAnalysisPage(){
  const [centerYear,setCenterYear]=useFinancialCenterYear(currentYear,'annualStart'),[quarterStart,setQuarterStart]=useFinancialCondition('quarterStart',currentYear+':1',currentYear),[refreshOpen,setRefreshOpen]=useState(false);
  const endYear=centerYear+1,annualStart=centerYear-1;
  useEffect(()=>{if(mode==='annual'&&(params.get('centerYear')!==String(centerYear)||params.has('annualStart')||params.has('endYear')))setCenterYear(centerYear);},[endYear,mode,location.search]);
+ const [sorts,setSorts]=usePageMemory<AnalysisSort[]>('value-multi-sort',defaultAnalysisSort);
  const [visibleCount,setVisibleCount]=usePageMemory('value-visible-count',100);
  const view=params.get('view')??(stockId?'detail':'list'),chart=view==='chart',coverDetail=(!tablet||fromStockList)&&view==='detail';
  const needsList=!fromStockList||(!chart&&!coverDetail);
- const listKey=JSON.stringify([year,query]),list=useStoredQuery<ValueList>(listKey,signal=>listValues(year,query,signal),needsList);
+ const listKey=JSON.stringify([year,query,encodeSort(sorts)]),list=useStoredQuery<ValueList>(listKey,signal=>listValues(year,query,signal,sorts),needsList);
  const [retainedList,setRetainedList]=useState<{accountId?:string;data:ValueList}>();
  useEffect(()=>{if(list.data)setRetainedList({accountId,data:list.data});},[list.data,accountId]);
  const listData=list.data??(retainedList?.accountId===accountId?retainedList?.data:undefined),listCurrent=!!list.data;
@@ -92,13 +94,16 @@ export function ValueAnalysisPage(){
  const composing=useRef(false),confirmedQuery=useRef(query);
  useEffect(()=>{confirmedQuery.current=query;},[query]);
  const confirmSearch=()=>{if(composing.current)return;const next=(searchRef.current?.value??draft).trim();if(next!==confirmedQuery.current){confirmedQuery.current=next;setQuery(next);setVisibleCount(100);}searchRef.current?.blur();};
+ const sortLabels:Record<SortKey,string>={name:'종목명',w:'W',currentPrice:'현재가',targetPrice:'목표가',value:'가치',eps:'EPS',epsYield:'EPS 수익률',priceUpdatedAt:'시세일자',issuedShares:'주식수',roe:'ROE',capital:'자본',netIncome:'당기순이익'};
  const listContent=<><Box sx={{display:'flex',gap:'8px',mb:'8px'}}>
   <Box component="form" onSubmit={event=>{event.preventDefault();confirmSearch();}} sx={{flex:1,minWidth:0,display:'flex',gap:'8px',height:36,border:'1px solid #1e293b',alignItems:'center',bgcolor:'#111927','&:focus-within':{borderColor:'#3b82f6'},borderRadius:'8px',px:'8px'}}>
    <button aria-label="검색 확인" type="submit" style={{border:0,padding:0,background:'transparent',height:28,display:'flex',alignItems:'center'}}><img src="/value-v04/search.svg" width="16" height="16" alt=""/></button>   <input ref={searchRef} enterKeyHint="done" onCompositionStart={()=>{composing.current=true;}} onCompositionEnd={()=>{composing.current=false;}} onKeyDown={event=>{if(event.key==='Enter'&&(composing.current||event.nativeEvent.isComposing||event.keyCode===229))event.preventDefault();}} aria-label="종목 검색" placeholder="종목명 또는 코드 검색" value={draft} onChange={event=>setDraft(event.target.value)} style={{...controlStyle,border:0,flex:1,minWidth:0,padding:0,outline:0}}/>{draft&&<button type="button" aria-label="검색어 지우기" onClick={()=>{setDraft('');setQuery('');setVisibleCount(100);searchRef.current?.focus();}} style={{background:'transparent',border:0,padding:0,display:'flex'}}><img src="/stocks-v03/clear.svg" alt="" width="16" height="16"/></button>}
   </Box><select aria-label="기준연도" value={year} onChange={event=>{setYear(Number(event.target.value));setVisibleCount(100);}} style={{...controlStyle,height:36,width:78,appearance:'none',paddingRight:24,backgroundImage:'url(/value-v04/select.svg)',backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center'}}>{Array.from({length:currentYear-2015+1},(_,i)=>currentYear-i).map(y=><option key={y} value={y}>{y}</option>)}</select></Box>
+  <Box data-testid="value-sort-headers" sx={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'4px',mb:'8px'}}>{(Object.keys(sortLabels) as SortKey[]).map(column=><AnalysisSortHeader key={column} label={sortLabels[column]} column={column} sorts={sorts} onChange={next=>{setSorts(next);setVisibleCount(100);}}/>)}</Box>
   <Status pending={list.pending} error={list.error} retry={list.retry} hasData={!!listData}/>
+  {listData?.cache?.status==='STALE'&&<Box role="alert" sx={{fontSize:11,color:colors.warning}}>캐시 갱신 실패 · 마지막 정상 자료<Button onClick={list.retry} size="small">재시도</Button></Box>}
   {list.pending&&!listData&&<Box aria-label="가치분석 목록 로딩" sx={{display:'grid',gap:'8px'}}>{[0,1,2].map(i=><Skeleton key={i} variant="rounded" height={148} sx={{borderRadius:'8px'}}/>)}</Box>}
-  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · W 내림차순{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.slice(0,visibleCount).map(row=><ValueStockCard key={row.id} row={row} selected={row.id===selected} disabled={!listCurrent} onClick={()=>choose(row.id)}/>)}{visibleCount<listData.total&&<Button sx={{fontSize:12}} onClick={()=>setVisibleCount(n=>n+100)}>더 보기 ({Math.min(visibleCount,listData.total)} / {listData.total})</Button>}</Box>}</>}
+  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · {sorts.length===1&&sorts[0].key==='w'&&sorts[0].direction==='desc'?'W 내림차순':sorts.length?sorts.map(s=>sortLabels[s.key]+' '+(s.direction==='desc'?'↓':'↑')).join(' → '):'종목코드순'}{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.slice(0,visibleCount).map(row=><ValueStockCard key={row.id} row={{...row,cacheGeneratedAt:listData.cache?.generatedAt}} selected={row.id===selected} disabled={!listCurrent} onClick={()=>choose(row.id)}/>)}{visibleCount<listData.total&&<Button sx={{fontSize:12}} onClick={()=>setVisibleCount(n=>n+100)}>더 보기 ({Math.min(visibleCount,listData.total)} / {listData.total})</Button>}</Box>}</>}
  </>;
  const detailContent=<>{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')} refresh={<FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box sx={{p:'24px',textAlign:'center'}}><CircularProgress size={20}/></Box>:!detail.error?<Empty/>:null}</>;
  const swipe=useDetailSwipe(move,!refreshOpen&&(chart||coverDetail||tablet));
