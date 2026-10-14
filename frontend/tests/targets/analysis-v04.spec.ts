@@ -32,7 +32,7 @@ test('menu order, icons, screen references and home destinations stay distinct',
   }
   await menu.getByRole('button', { name: '예수금', exact: true }).click(); await expect(page).toHaveURL(/\/detail\/cash/);
   await page.goto('/'); await page.locator('.MuiBottomNavigation-root').getByRole('button', { name: '자산분석', exact: true }).click(); await expect(page).toHaveURL(/\/assets$/);
-  await page.getByRole('button', { name: '뒤로가기', exact: true }).click(); await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('button', { name: '뒤로가기', exact: true })).toHaveCount(0);await page.locator('.MuiBottomNavigation-root').getByRole('button', { name: '홈', exact: true }).click(); await expect(page).toHaveURL(/\/$/);
   await page.getByText('예수금', { exact: true }).first().click(); await expect(page).toHaveURL(/\/detail\/cash/);
 });
 
