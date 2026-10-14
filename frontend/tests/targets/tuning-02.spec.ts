@@ -23,11 +23,15 @@ for(const screen of screens)test(`batched reads render ${screen.url}`,async({pag
     return undefined;
   }});
   await page.goto(screen.url);
-  await expect.poll(()=>batches.flat().some(path=>path.split('?')[0].endsWith(screen.path))).toBe(true);
+  if(screen.path==='/trades') {
+    // Phase31 prioritizes the month outside the batch; Lot reads remain batched.
+    await expect.poll(()=>direct.some(path=>path.endsWith('/trades'))).toBe(true);
+    await expect.poll(()=>batches.flat().some(path=>path.split('?')[0].endsWith('/buy-lots'))).toBe(true);
+  } else await expect.poll(()=>batches.flat().some(path=>path.split('?')[0].endsWith(screen.path))).toBe(true);
   if(screen.ready)await expect(page.getByTestId(screen.ready).first()).toBeVisible();
   else await expect(page.getByText(screen.text!,{exact:true})).toBeVisible();
   await expect(page.locator('[data-loading-indicator="visible"]')).toHaveCount(0);
-  expect(direct).toEqual([]);expect(errors).toEqual([]);
+  expect(screen.path==='/trades'?direct.filter(path=>!path.endsWith('/trades')):direct).toEqual([]);expect(errors).toEqual([]);
   if(screen.url==='/assets')expect(batches.some(paths=>paths.length>1)).toBe(true);
   await page.screenshot({path:info.outputPath('screen.png')});
 });

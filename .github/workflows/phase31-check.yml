@@ -1,0 +1,52 @@
+name: Phase31 Loading and Version
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/**, scripts/release-version.mjs, .github/workflows/phase31-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: node scripts/release-version.mjs
+      - run: |
+          git fetch --no-tags origin 4b850e5fd4080afa01fd98dd903c728f1a3a827f
+          git worktree add --detach phase31-baseline 4b850e5fd4080afa01fd98dd903c728f1a3a827f
+          ln -s ../node_modules phase31-baseline/node_modules
+          ln -s ../../frontend/node_modules phase31-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix phase31-baseline/frontend run build
+          npm --prefix phase31-baseline/frontend run preview -- --host 127.0.0.1 --port 3132 > /tmp/phase31-baseline.log 2>&1 &
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase31.config.ts
+        working-directory: frontend
+        env:
+          PHASE31_BASELINE_URL: http://127.0.0.1:3132
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase31-evidence
+          path: frontend/test-results/phase31/
+  measurement:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/measure-value-read.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase31-value-api-measurement
+          path: test-results/phase31/

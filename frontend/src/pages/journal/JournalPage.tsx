@@ -32,20 +32,17 @@ function shiftMonth(month: string, offset: number) {
 }
 const panel = { bgcolor: colors.surface, border: 0, borderRadius: '8px' } as const;
 const calendarPanel = { ...panel, bgcolor: '#0E1420', border: '1px solid #1F2B42' } as const;
-const journalQuery = (accountId: string, month: string) => ({
-  queryKey: ['journalTrades', accountId, month] as const,
+// Month and year share the journalTrades invalidation prefix.
+const journalQuery = (accountId: string, period: string) => ({
+  queryKey: ['journalTrades', accountId, period] as const,
   ...storedQueryOptions,
   queryFn: ({ signal }: { signal: AbortSignal }) => {
-    const [year, value] = month.split('-').map(Number);
-    const first = new Date(year, value - 1, 1);
-    const last = new Date(year, value, 0);
-    first.setDate(first.getDate() - first.getDay());
-    last.setTime(first.getTime());
-    last.setDate(first.getDate() + 41);
+    const year = Number(period.slice(0, 4));
+    const month = period.length === 7 ? Number(period.slice(5)) : undefined;
     return getTrades(accountId, {
-      from: dateOf(first.getFullYear(), first.getMonth() + 1, first.getDate()),
-      to: dateOf(last.getFullYear(), last.getMonth() + 1, last.getDate()),
-    }, signal);
+      from: dateOf(year, month ?? 1, 1),
+      to: dateOf(year, month ?? 12, new Date(year, month ?? 12, 0).getDate()),
+    }, signal, period.length === 7 ? 'high' : 'low');
   },
 });
 
@@ -67,16 +64,36 @@ export function JournalPage() {
   const [selectedTradeId, setSelectedTradeId] = usePageMemory<string | null>('journalTrade',null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressClickUntil = useRef(0);
+  const yearPeriod = month.slice(0, 4);
+  const yearKey = ['journalTrades', accountId ?? '', yearPeriod] as const;
+  const cachedYear = queryClient.getQueryState<Awaited<ReturnType<typeof getTrades>>>(yearKey);
   const { data: remoteReport, isPending: tradesPending, isError: tradesError, refetch: reloadTrades } = useQuery({
     ...journalQuery(accountId ?? '', month), enabled: liveApiEnabled && !!accountId,
+    initialData: () => cachedYear?.data && !cachedYear.isInvalidated ? {
+      ...cachedYear.data,
+      data: cachedYear.data.data.filter(trade => new Date(trade.tradedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).startsWith(month)),
+    } : undefined,
+    initialDataUpdatedAt: cachedYear?.dataUpdatedAt,
   });
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const lotsQuery = useQuery({ queryKey: ['buyLots', accountId, 'journal-all'], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, ...storedQueryOptions });
   const remoteLots = lotsQuery.data;
+  // An observed query deduplicates annual work and refreshes after transaction invalidation.
+  // The timer yields a paint to the successful month before any annual read begins.
+  const [backgroundPeriod, setBackgroundPeriod] = useState('');
   useEffect(() => {
-    if (!liveApiEnabled || !accountId || !remoteReport || tradesError) return;
-    for (const offset of [-1, 1]) void queryClient.prefetchQuery(journalQuery(accountId, shiftMonth(month, offset)));
-  }, [accountId, month, queryClient, remoteReport, tradesError]);
+    setBackgroundPeriod('');
+    if (!remoteReport || tradesError || tradesPending) return;
+    const timer = window.setTimeout(() => setBackgroundPeriod(`${accountId}:${yearPeriod}`), 50);
+    return () => {
+      window.clearTimeout(timer);
+      void queryClient.cancelQueries({ queryKey: ['journalTrades', accountId ?? '', yearPeriod], exact: true });
+    };
+  }, [accountId, month, yearPeriod, remoteReport, tradesError, tradesPending, queryClient]);
+  useQuery({
+    ...journalQuery(accountId ?? '', yearPeriod),
+    enabled: liveApiEnabled && !!accountId && backgroundPeriod === `${accountId}:${yearPeriod}` && !tradesPending && !tradesError,
+  });
 
   const allEntries = useMemo(() => {
     if (liveApiEnabled) return (remoteReport?.data ?? []).map((trade): Entry => ({
@@ -197,7 +214,7 @@ export function JournalPage() {
     </Box>
     <Box sx={{ ...panel, p: '8px 16px' }}>{titleRow}{transactions}</Box>
     <Box data-testid="daily-position-profit" sx={{...panel,p:'12px 16px'}}><Stack direction="row" sx={{justifyContent:'space-between'}}><Typography sx={{fontSize:14,fontWeight:600}}>종목별 손익</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>기여도</Typography></Stack>
-    {status??(!stockProfits.length?<Typography sx={{fontSize:12,py:2}}>해당 날짜의 거래가 없습니다.</Typography>:stockProfits.map(row=><Box key={row.id} sx={{display:'grid',gridTemplateColumns:'minmax(64px,1fr) 1fr minmax(90px,1.2fr)',gap:1,alignItems:'center',minHeight:24}}><Typography noWrap sx={{fontSize:11}}>{row.name}</Typography><Box sx={{height:7,bgcolor:colors.raised,borderRadius:4}}>{row.complete&&row.sells>0&&<Box sx={{height:'100%',width:`${contributionTotal?Math.abs(row.profit)/contributionTotal*100:0}%`,bgcolor:getProfitColor(row.profit),borderRadius:4}}/>}</Box><Typography sx={{fontSize:11,textAlign:'right',color:row.sells?getProfitColor(row.profit):colors.textMuted}}>{!row.sells?'실현손익 없음':!row.complete?'—':signedWon(row.profit)}</Typography></Box>))}</Box>
+    {status??(unavailable?<Typography role="status" sx={{fontSize:12,py:2}}>거래 조회 중</Typography>:!stockProfits.length?<Typography sx={{fontSize:12,py:2}}>해당 날짜의 거래가 없습니다.</Typography>:stockProfits.map(row=><Box key={row.id} sx={{display:'grid',gridTemplateColumns:'minmax(64px,1fr) 1fr minmax(90px,1.2fr)',gap:1,alignItems:'center',minHeight:24}}><Typography noWrap sx={{fontSize:11}}>{row.name}</Typography><Box sx={{height:7,bgcolor:colors.raised,borderRadius:4}}>{row.complete&&row.sells>0&&<Box sx={{height:'100%',width:`${contributionTotal?Math.abs(row.profit)/contributionTotal*100:0}%`,bgcolor:getProfitColor(row.profit),borderRadius:4}}/>}</Box><Typography sx={{fontSize:11,textAlign:'right',color:row.sells?getProfitColor(row.profit):colors.textMuted}}>{!row.sells?'실현손익 없음':!row.complete?'—':signedWon(row.profit)}</Typography></Box>))}</Box>
   </Stack>;
   const dateSelector = <Box data-testid="journal-date-selector" sx={{ bgcolor: colors.canvas, pb: '8px', position: 'sticky', top: 0, zIndex: 2, flexShrink: 0 }}><Box data-testid="journal-date-card" sx={{ ...panel, height: 44, display: 'grid', gridTemplateColumns: '36px minmax(0, 1fr) 36px', alignItems: 'center', px: '8px' }}>
     <IconButton aria-label="이전 날짜" onClick={() => moveDay(-1)} sx={{ width: 36, height: 36 }}><ChevronLeftRounded sx={{ fontSize: 20 }}/></IconButton>
@@ -224,10 +241,10 @@ export function JournalPage() {
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 22, alignItems: 'start' }}>{weekdays.map((day, index) => <Typography key={day} sx={{ textAlign: 'center', fontSize: 10, lineHeight: '14px', fontWeight: 600, color: index === 0 ? colors.marketRise : index === 6 ? colors.marketFall : colors.textMuted }}>{day}</Typography>)}</Box>
           <Box data-testid="journal-calendar-grid" sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridTemplateRows: 'repeat(6, 44px)' }}>{calendar.map(({ date, day, adjacent }, index) => {
             const count = counts.get(date), selected = selectedDate === date, holiday = holidays.get(date);
-            return <ButtonBase key={date} aria-label={`${date}${holiday ? ` ${holiday}` : ''}${unavailable?' 거래 조회 중':` 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`}`} aria-busy={pending} aria-pressed={selected} onClick={() => selectDate(date)}
+            return <ButtonBase key={date} aria-label={`${date}${holiday ? ` ${holiday}` : ''}${unavailable||adjacent?' 거래 미수신':` 매수 ${count?.buy ?? 0}건 매도 ${count?.sell ?? 0}건`}`} aria-busy={pending} aria-pressed={selected} onClick={() => selectDate(date)}
               sx={{ minWidth: 0, height: 44, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start', pt: 0, bgcolor: 'transparent', outline: selected ? '1.5px solid #EDBF40' : 'none', outlineOffset: '-1px', borderRadius: '4px', color: holiday || index % 7 === 0 ? colors.marketRise : adjacent ? colors.disabled : index % 7 === 6 ? colors.marketFall : colors.textPrimary, '&:focus-visible': { outline: `2px solid ${colors.warning}` } }}>
               <Typography component="span" sx={{ fontSize: 10, lineHeight: '14px', textAlign: 'center', fontWeight: selected ? 600 : 400 }}>{day}</Typography>
-              {pending?<Skeleton width="75%" height={10} sx={{mx:'auto',mt:'2px',transform:'none'}}/>:(['buy', 'sell'] as const).map(type => count?.[type] ? <Typography component="span" data-testid={`journal-chip-${type}`} key={type} sx={{ mx: '4px', px: '2px', mt: '1px', borderRadius: '2px', bgcolor: type === 'buy' ? 'rgba(64,134,87,0.7)' : 'rgba(207,74,83,0.7)', color: '#fff', border: 0, fontSize: 10, lineHeight: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>{type === 'buy' ? '매수' : '매도'} {count[type]}</Typography> : null)}
+              {unavailable?null:(['buy', 'sell'] as const).map(type => count?.[type] ? <Typography component="span" data-testid={`journal-chip-${type}`} key={type} sx={{ mx: '4px', px: '2px', mt: '1px', borderRadius: '2px', bgcolor: type === 'buy' ? 'rgba(64,134,87,0.7)' : 'rgba(207,74,83,0.7)', color: '#fff', border: 0, fontSize: 10, lineHeight: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>{type === 'buy' ? '매수' : '매도'} {count[type]}</Typography> : null)}
             </ButtonBase>;
           })}</Box>
         </Box>

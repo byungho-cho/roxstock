@@ -1,0 +1,116 @@
+{
+  "utc": "2026-10-14T08:22:27.478Z",
+  "sourceSha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+  "base": "https://newrox.cafe24.com",
+  "concurrency": 1,
+  "repeats": 3,
+  "deploymentVersion": null,
+  "samples": [
+    {
+      "condition": "entry-and-reentry",
+      "index": 0,
+      "totalMs": 15001.370638,
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "valid": false
+    },
+    {
+      "condition": "entry-and-reentry",
+      "index": 1,
+      "totalMs": 14999.931701,
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "valid": false
+    },
+    {
+      "condition": "entry-and-reentry",
+      "index": 2,
+      "status": 200,
+      "headersMs": 3691.786094999996,
+      "totalMs": 5973.286805999996,
+      "bytes": 3438845,
+      "serverTiming": "app;dur=1918.86",
+      "cache": null,
+      "total": 1569,
+      "valid": true
+    },
+    {
+      "condition": "search",
+      "index": 0,
+      "status": 200,
+      "headersMs": 1824.839165999998,
+      "totalMs": 2211.604204999996,
+      "bytes": 58928,
+      "serverTiming": "app;dur=733.68",
+      "cache": null,
+      "total": 21,
+      "valid": true
+    },
+    {
+      "condition": "search",
+      "index": 1,
+      "status": 200,
+      "headersMs": 231.1922540000014,
+      "totalMs": 420.8097220000054,
+      "bytes": 58928,
+      "serverTiming": "app;dur=27.86",
+      "cache": null,
+      "total": 21,
+      "valid": true
+    },
+    {
+      "condition": "search",
+      "index": 2,
+      "status": 200,
+      "headersMs": 212.8694570000007,
+      "totalMs": 406.3602880000035,
+      "bytes": 58928,
+      "serverTiming": "app;dur=8.54",
+      "cache": null,
+      "total": 21,
+      "valid": true
+    },
+    {
+      "condition": "year-change",
+      "index": 0,
+      "totalMs": 15000.264078,
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "valid": false
+    },
+    {
+      "condition": "year-change",
+      "index": 1,
+      "totalMs": 15000.208997000002,
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "valid": false
+    },
+    {
+      "condition": "year-change",
+      "index": 2,
+      "totalMs": 14999.766239000004,
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "valid": false
+    }
+  ],
+  "summary": [
+    {
+      "condition": "entry-and-reentry",
+      "n": 1,
+      "medianMs": 5973.286805999996,
+      "minMs": 5973.286805999996,
+      "maxMs": 5973.286805999996,
+      "stddevMs": 0
+    },
+    {
+      "condition": "search",
+      "n": 3,
+      "medianMs": 420.8097220000054,
+      "minMs": 406.3602880000035,
+      "maxMs": 2211.604204999996,
+      "stddevMs": 847.6149064254487
+    }
+  ],
+  "limitations": [
+    "sourceSha identifies the tested source, not a verified deployed revision",
+    "No forced cold-cache eviction",
+    "DB/selection/calculation/sort/serialization/transfer subcosts and handset rendering are not independently instrumented"
+  ]
+}
