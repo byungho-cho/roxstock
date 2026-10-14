@@ -55,5 +55,5 @@ for(const financial of [false,true])test(`${financial?'financial':'value'} detai
  await fixture(page);await page.goto(financial?'/detail/financials':'/detail/value');await expect(page.getByTestId((financial?'financial-row-':'value-row-')+'000001')).toBeVisible();await page.getByTestId('sort-eps').click();await expect(page.locator(`[data-testid^="${financial?'financial-row-':'value-row-'}"]`).first()).toHaveAttribute('data-testid',(financial?'financial-row-':'value-row-')+'000002');
  await page.getByTestId((financial?'financial-row-':'value-row-')+'000002').click();
  if(financial){await page.getByRole('button',{name:'정상컨센서스',exact:true}).click();await expect(page).toHaveURL(/selected=1/);}
- else {await expect(page.getByRole('heading',{level:1})).toContainText('부분결산');await swipeStock(page,true);await expect(page.getByRole('heading',{level:1})).toContainText('정상컨센서스');}
+ else {await expect(page.getByRole('heading',{level:1})).toContainText('부분결산');await page.getByRole('button',{name:'재무지표 보기',exact:true}).click();await swipeStock(page,true);await expect(page.getByRole('heading',{level:1})).toContainText('정상컨센서스');}
 });

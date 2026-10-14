@@ -28,3 +28,9 @@ test('a financial mutation during generation cannot publish mixed data',async()=
 test('partial evening collection keeps previous numeric prices and exposes collection failure',async()=>{
  const f=fixture(),model=new ValueReadModel(f.db,f.loader);await model.warm(2026,['1']);const row=(await model.get(2026)).rows.find(r=>r.id==='1')!;assert.equal(row.currentPrice,'100');assert.equal(row.collectionStatus,'ERROR');assert.deepEqual(row.collectionErrors,['PRICE_COLLECTION_FAILED_LAST_VALUE_RETAINED']);
 });
+
+test('old or invalid persisted schema falls back and can be atomically rebuilt',async()=>{
+ const f=fixture(),model=new ValueReadModel(f.db,f.loader);await model.warm(2026);f.records.get('value:2026').payload.schemaVersion=0;
+ const restarted=new ValueReadModel(f.db,f.loader);assert.equal((await restarted.get(2026)).meta.status,'FALLBACK');await restarted.warm(2026);assert.equal((await restarted.get(2026)).meta.status,'HIT');
+ f.records.get('value:2026').payload=null;const repaired=new ValueReadModel(f.db,f.loader);assert.equal((await repaired.get(2026)).meta.status,'FALLBACK');await repaired.warm(2026);assert.equal((await repaired.get(2026)).meta.status,'HIT');
+});
