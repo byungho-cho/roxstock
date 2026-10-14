@@ -35,7 +35,7 @@ for(const financial of [false,true])test(`${financial?'financial':'value'} basis
  await page.screenshot({path:info.outputPath((financial?'financial':'value')+'-initial-after.png')});
  const url=page.url();await first.getByTestId(icon).focus();await page.keyboard.press('Enter');await expect(page.getByRole('tooltip')).toContainText('단위');expect(page.url()).toBe(url);const tip=(await page.getByRole('tooltip').boundingBox())!;expect(tip.x).toBeGreaterThanOrEqual(0);expect(tip.x+tip.width).toBeLessThanOrEqual(page.viewportSize()!.width);
  await page.screenshot({path:info.outputPath((financial?'financial':'value')+'-tooltip-after.png')});await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);
- const p=(await first.getByTestId(icon).boundingBox())!;await first.getByTestId(icon).click();await page.mouse.click(p.x+p.width/2,p.y+p.height/2);await expect(page.getByRole('tooltip')).toHaveCount(0);
+ await first.getByTestId(icon).click();const p=(await first.getByTestId(icon).boundingBox())!;await page.mouse.click(p.x+p.width/2,p.y+p.height/2);await expect(page.getByRole('tooltip')).toHaveCount(0);
  await first.getByTestId(icon).click();await page.locator('.MuiBackdrop-root:visible').click({position:{x:2,y:2}});await expect(page.getByRole('tooltip')).toHaveCount(0);expect(page.url()).toBe(url);
  await page.getByTestId('sort-eps').click();await expect(page.getByTestId('sort-eps')).toContainText('2↓');await expect(page.locator(`[data-testid^="${prefix}"]`).first()).toHaveAttribute('data-testid',prefix+'000002');
  await page.getByTestId('sort-w').click();await expect(page.getByTestId('sort-w')).toContainText('1↑');await expect(page.locator(`[data-testid^="${prefix}"]`).first()).toHaveAttribute('data-testid',prefix+'000004');

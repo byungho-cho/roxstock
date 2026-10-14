@@ -58,7 +58,11 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
   const value=Reflect.get(target,key);
   if(key==='$transaction'&&typeof value==='function')return (work:any,...options:any[])=>{
    if(typeof work!=='function')return value.call(target,work,...options);
-   return value.call(target,async(tx:any)=>{await lockCollection(tx);return inCollectionTransaction(()=>work(collectionClient(tx,root)));},...options);
+   return value.call(target,async(tx:any)=>{
+    // Acquire the revision row before the callback can establish a repeatable-read snapshot.
+    // MariaDB otherwise raises 1020 when revision triggers update a newer committed row.
+    if(tx.analysisRevision)await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;
+    await lockCollection(tx);return inCollectionTransaction(()=>work(collectionClient(tx,root)));},...options);
   };
   if(typeof value==='function')return value.bind(target);
   if(!value||typeof value!=='object'||!models.has(String(key)))return value;
