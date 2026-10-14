@@ -1,0 +1,67 @@
+name: Value Financial Cache
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/**, database/**, .github/workflows/value-cache-check.yml]
+permissions:
+  contents: read
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: mysql://roxstock:roxstock@127.0.0.1:3306/roxstock
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: roxstock
+          MARIADB_USER: roxstock
+          MARIADB_PASSWORD: roxstock
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run prisma:generate && npm run prisma:migrate:deploy
+      - run: npm run typecheck:backend && npm run build:backend
+      - run: node --import tsx backend/src/tests/value-cache-integration.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: value-cache-performance
+          path: test-results/value-cache/
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: |
+          git worktree add --detach value-baseline 6eb3efdaa21ee2e0a1679e9d4a819ffed22db654
+          ln -s ../node_modules value-baseline/node_modules
+          ln -s ../../frontend/node_modules value-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix value-baseline/frontend run build
+          npm --prefix value-baseline/frontend run preview -- --host 127.0.0.1 --port 3131 > /tmp/value-baseline.log 2>&1 &
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.value-cache.config.ts
+        working-directory: frontend
+        env:
+          VALUE_BASELINE_URL: http://127.0.0.1:3131
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: value-cache-screens
+          path: frontend/test-results/value-cache/

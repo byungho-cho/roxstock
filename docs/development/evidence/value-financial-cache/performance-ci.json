@@ -1,0 +1,190 @@
+{
+  "environment": "Isolated CI MariaDB; Fastify inject; no external collection; 50 synthetic securities + migration fixtures",
+  "timestamp": "2026-10-14T06:48:29.159Z",
+  "year": 2026,
+  "query": "캐시",
+  "sorts": "w:desc",
+  "concurrency": 1,
+  "measurements": [
+    {
+      "name": "before structure: 60s financial cache MISS + live price + full calculation",
+      "count": 5,
+      "medianMs": 30.470681000000013,
+      "minMs": 24.98283400000014,
+      "maxMs": 97.06476799999996,
+      "samples": [
+        {
+          "ms": 97.06476799999996,
+          "dbQueries": 10,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 30.65965499999993,
+          "dbQueries": 10,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 30.470681000000013,
+          "dbQueries": 10,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 25.86675000000014,
+          "dbQueries": 10,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 24.98283400000014,
+          "dbQueries": 10,
+          "cache": "BASELINE"
+        }
+      ]
+    },
+    {
+      "name": "before structure: 60s financial cache HIT + live price + full calculation",
+      "count": 5,
+      "medianMs": 10.814712999999983,
+      "minMs": 10.041202999999996,
+      "maxMs": 13.68747899999994,
+      "samples": [
+        {
+          "ms": 10.814712999999983,
+          "dbQueries": 2,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 10.366833999999926,
+          "dbQueries": 2,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 13.68747899999994,
+          "dbQueries": 2,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 12.546860000000152,
+          "dbQueries": 2,
+          "cache": "BASELINE"
+        },
+        {
+          "ms": 10.041202999999996,
+          "dbQueries": 2,
+          "cache": "BASELINE"
+        }
+      ]
+    },
+    {
+      "name": "after: no daily cache fallback",
+      "count": 5,
+      "medianMs": 21.298446000000013,
+      "minMs": 20.671059999999898,
+      "maxMs": 24.136617000000115,
+      "samples": [
+        {
+          "ms": 24.136617000000115,
+          "dbQueries": 11,
+          "cache": "FALLBACK"
+        },
+        {
+          "ms": 21.110022999999956,
+          "dbQueries": 11,
+          "cache": "FALLBACK"
+        },
+        {
+          "ms": 20.671059999999898,
+          "dbQueries": 11,
+          "cache": "FALLBACK"
+        },
+        {
+          "ms": 21.298446000000013,
+          "dbQueries": 11,
+          "cache": "FALLBACK"
+        },
+        {
+          "ms": 23.797782000000097,
+          "dbQueries": 11,
+          "cache": "FALLBACK"
+        }
+      ]
+    },
+    {
+      "name": "after: daily cache HIT, same query/year/W sort",
+      "count": 5,
+      "medianMs": 4.380411000000095,
+      "minMs": 4.290754000000106,
+      "maxMs": 5.5297760000000835,
+      "samples": [
+        {
+          "ms": 5.400925000000143,
+          "dbQueries": 2,
+          "cache": "HIT"
+        },
+        {
+          "ms": 5.5297760000000835,
+          "dbQueries": 2,
+          "cache": "HIT"
+        },
+        {
+          "ms": 4.375982999999906,
+          "dbQueries": 2,
+          "cache": "HIT"
+        },
+        {
+          "ms": 4.380411000000095,
+          "dbQueries": 2,
+          "cache": "HIT"
+        },
+        {
+          "ms": 4.290754000000106,
+          "dbQueries": 2,
+          "cache": "HIT"
+        }
+      ]
+    },
+    {
+      "name": "after: restart persisted cache HIT",
+      "count": 5,
+      "medianMs": 3.0031289999999444,
+      "minMs": 2.8966300000001866,
+      "maxMs": 3.1902800000000298,
+      "samples": [
+        {
+          "ms": 3.1902800000000298,
+          "dbQueries": 2,
+          "cache": "PERSISTED_HIT"
+        },
+        {
+          "ms": 3.0807239999999183,
+          "dbQueries": 2,
+          "cache": "PERSISTED_HIT"
+        },
+        {
+          "ms": 3.0031289999999444,
+          "dbQueries": 2,
+          "cache": "PERSISTED_HIT"
+        },
+        {
+          "ms": 2.952154000000064,
+          "dbQueries": 2,
+          "cache": "PERSISTED_HIT"
+        },
+        {
+          "ms": 2.8966300000001866,
+          "dbQueries": 2,
+          "cache": "PERSISTED_HIT"
+        }
+      ]
+    }
+  ],
+  "verified": [
+    "source transaction rollback preserves revision",
+    "targeted financial refresh only one security",
+    "intraday price independence",
+    "restart persisted hit",
+    "cross-process evening price generation",
+    "financial detail revision invalidation",
+    "zero and negative financial values"
+  ],
+  "limitations": "Before structure is reproduced with the shared selection function; production post-deploy timings are not measured. Cache hit/miss states are explicit; measurements are API/service time, not browser paint time."
+}
