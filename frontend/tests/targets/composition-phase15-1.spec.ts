@@ -39,8 +39,8 @@ for(const [ratio,stockShade,cashShade] of cases) test(`cash ${ratio}%: fixed tex
     if(path==='/detail/assets')await barCheck(page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/detail/assets'){
     const card=page.getByTestId('asset-composition-card');
-    for(const [value,color] of [[(100-ratio)*10000,stockColor],[ratio*10000,cashColor]] as const)await expect(card.getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true})).toHaveCSS('color',`rgb(${color})`);
-    for(const [value,color] of [[100-ratio,stockColor],[ratio,cashColor]] as const)await expect(card.getByText(`${value.toFixed(1)}%`,{exact:true})).toHaveCSS('color',`rgb(${color})`);
+    for(const [value,color,index] of [[(100-ratio)*10000,stockColor,0],[ratio*10000,cashColor,1]] as const){const values=card.getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
+    for(const [value,color,index] of [[100-ratio,stockColor,0],[ratio,cashColor,1]] as const){const values=card.getByText(`${value.toFixed(1)}%`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
     await barCheck(card.getByRole('img',{name:/^주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/assets'){
     const card=page.getByTestId('analysis-composition');
