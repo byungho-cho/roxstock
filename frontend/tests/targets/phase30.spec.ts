@@ -1,13 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {fixture} from './phase28-fixture';
 test('dashboard layout, shared periods, weights and single scroll',async({page},info)=>{
- await fixture(page,{trend:true});
- // Analysis API supplies summary and chart points in one response.
- await page.route('**/api/accounts/*/asset-history?*',async route=>{
-  const u=new URL(route.request().url());if(u.searchParams.has('view'))return route.fallback();
-  const id=u.pathname.split('/')[3],v=id==='1'?'2500':'7000';
-  await route.fulfill({json:{data:[{date:'2026-09-13',totalAssetValue:'2000'},{date:'2026-10-13',totalAssetValue:v}],summary:{from:u.searchParams.get('from')??'2020-01-01',to:'2026-10-13',openingAssetValue:'2000',closingAssetValue:v,profitLoss:'500',returnRate:'25'}}});
- });
+ await fixture(page,{trend:true,analysis:true});
  await page.goto('/detail/assets');const card=page.getByTestId('asset-composition-card');await expect(card.getByTestId('composition-total')).toContainText('2,500원');
  await expect(page.getByTestId('asset-holdings-card')).toHaveCount(0);await expect(page.getByTestId('asset-summary-column')).toHaveCount(0);
  const tablet=page.viewportSize()!.width>=600;
@@ -28,11 +22,10 @@ test('dashboard layout, shared periods, weights and single scroll',async({page},
  await page.setViewportSize({width:page.viewportSize()!.width,height:1000});await page.screenshot({path:info.outputPath('dashboard-layout-after.png')});
 });
 test('history error retries and missing values remain unavailable',async({page})=>{
- await fixture(page,{trend:true});let error=true;
- await page.route('**/api/accounts/*/asset-history?*',route=>error?route.fulfill({status:503,json:{error:{message:'failed'}}}):route.fulfill({json:{data:[],summary:{profitLoss:null,returnRate:null}}}));
+ const f=await fixture(page,{trend:true,analysis:true});f.history.mode='error';
  await page.goto('/detail/assets');const tablet=page.viewportSize()!.width>=600;
- if(tablet){await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('—');await expect(page.getByTestId('analysis-chart-region')).toContainText('실패');error=false;await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('analysis-chart-region')).toContainText('내용이 없습니다.');}
- else {await expect(page.getByTestId('dashboard-trend-region')).toContainText('실패');error=false;await page.getByTestId('dashboard-trend-region').getByRole('button',{name:'재시도'}).click();await expect(page.getByTestId('dashboard-trend-region')).toContainText('내용이 없습니다.');}
+ if(tablet){await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('—');await expect(page.getByTestId('analysis-chart-region')).toContainText('실패');f.history.mode='empty';await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('analysis-chart-region')).toContainText('내용이 없습니다.');}
+ else {await expect(page.getByTestId('dashboard-trend-region')).toContainText('실패');f.history.mode='empty';await page.getByTestId('dashboard-trend-region').getByRole('button',{name:'재시도'}).click();await expect(page.getByTestId('dashboard-trend-region')).toContainText('내용이 없습니다.');}
 });
 
 test('capture previous main dashboard',async({page},info)=>{
