@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useState, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
 import { useLocation, useNavigate, type NavigateOptions, type To } from 'react-router-dom';
 import { useActiveAccount } from '../useActiveAccount';
 import { readPageMemory, writePageMemory } from './pageMemory';
@@ -29,17 +29,19 @@ export function usePageMemory<T>(name: string, initial: T | (() => T), options: 
     return saved??(typeof initial==='function'?(initial as ()=>T)():initial);
   };
   const [slot, setSlot] = useState(() => ({ key, value: read() }));
-  useLayoutEffect(()=>{
-    if(!options.adoptInitialAccount)return;
-    const receive=(event:Event)=>{const detail=(event as CustomEvent<{key:string;value:T}>).detail;if(detail.key===key)setSlot({key,value:detail.value});};
-    window.addEventListener('roxstock-page-memory',receive);
-    // A Suspense shell can write after this render but before the listener mounts.
-    // Reconcile before paint so an immediate action sees the latest selection.
-    const saved=readPageMemory<T>(key);
-    if(saved!==undefined)setSlot(current=>current.key===key&&Object.is(current.value,saved)?current:{key,value:saved});
-    return()=>window.removeEventListener('roxstock-page-memory',receive);
-  },[key,options.adoptInitialAccount]);
-  const value = options.adoptInitialAccount ? readPageMemory<T>(key) ?? (slot.key === key ? slot.value : read()) : slot.key === key ? slot.value : read();
+  const localValue = slot.key === key ? slot.value : read();
+  // A shell and its lazy page may overlap during concurrent rendering. React
+  // checks this snapshot again before commit, including writes made before
+  // subscription; an effect-only listener can miss that handoff.
+  const sharedValue = useSyncExternalStore(notify => {
+    if (!options.adoptInitialAccount) return () => {};
+    const receive = (event: Event) => {
+      if ((event as CustomEvent<{key:string}>).detail.key === key) notify();
+    };
+    window.addEventListener('roxstock-page-memory', receive);
+    return () => window.removeEventListener('roxstock-page-memory', receive);
+  }, () => options.adoptInitialAccount ? readPageMemory<T>(key) ?? localValue : localValue);
+  const value = options.adoptInitialAccount ? sharedValue : localValue;
   if (slot.key !== key) setSlot({ key, value });
   const setValue: Dispatch<SetStateAction<T>> = update => {
     // Persist the event before a Suspense replacement can unmount its sender.
