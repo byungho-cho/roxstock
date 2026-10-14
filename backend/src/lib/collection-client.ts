@@ -50,6 +50,9 @@ async function resetNamespace(model:string,delegate:Obj,args:Obj,op:string,root:
  return {...args,[op==='upsert'?'update':'data']:{...empty,...create,...provided}};
 }
 /** Central read identity boundary, and atomic collection write fence. No collected history is deleted on code edits. */
+async function lockAnalysisRevision(tx:any){
+ if(tx.analysisRevision)await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;
+}
 const wrapped=new WeakSet<object>();
 export function collectionClient<T extends object>(db:T,root:PrismaClient=db as unknown as PrismaClient):T{
  if(wrapped.has(db))return db;
@@ -61,7 +64,7 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
    return value.call(target,async(tx:any)=>{
     // Acquire the revision row before the callback can establish a repeatable-read snapshot.
     // MariaDB otherwise raises 1020 when revision triggers update a newer committed row.
-    if(tx.analysisRevision)await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;
+    await lockAnalysisRevision(tx);
     await lockCollection(tx);return inCollectionTransaction(()=>work(collectionClient(tx,root)));},...options);
   };
   if(typeof value==='function')return value.bind(target);
@@ -72,7 +75,7 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
     const model=String(key),op=String(operation),scope=collectionContext();let query=project(model,args);
     if(collected.has(model)&&writes.has(op)&&scope){
      const required=model==='dartShareSnapshot'?'share-counts':model==='annualConsensusSnapshot'?'consensus':undefined;
-     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root),key),operation)(query));});
+     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockAnalysisRevision(tx);await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root),key),operation)(query));});
      if(required)await lockCollection(db as any,required);
      query=stamp(query,scope.identity.symbol);
      if(op==='updateMany'){const security=await root.security.findUnique({where:{id:scope.identity.id},select:{codeRevision:true}});query.where={AND:[query.where??{},{securityId:scope.identity.id},security?.codeRevision?{collectionSymbol:scope.identity.symbol}:{OR:[{collectionSymbol:scope.identity.symbol},{collectionSymbol:null}]}]};}
