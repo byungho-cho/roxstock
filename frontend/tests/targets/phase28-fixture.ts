@@ -6,7 +6,7 @@ export async function fixture(page:Page, options:{trend?:boolean}={}){
  const accounts=[1,2].map(id=>({id:String(id),name:'계좌'+id,isDefault:id===1,isActive:true,cashBalance:'1000'}));
  const securities=[1,2,3].map(id=>({id:String(id),symbol:String(id).padStart(6,'0'),name:'종목'+id,marketType:'KOSPI',listType:'HOLDING',isActive:true,hasTradeHistory:true,currentPrice:'150',previousClosePrice:'140'}));
  const dashboard={accountId:'1',totalAssetValue:'2500',cashBalance:'1000',stockValue:'1500',stockPurchaseAmount:'1000',unrealizedProfitLoss:'500',unrealizedReturnRate:'50',pricingComplete:true,previousDayChange:'50',previousDayChangeRate:'2',calculatedAt:'2026-10-13T03:00:00Z'};
- const holdings=securities.map(s=>({securityId:s.id,symbol:s.symbol,name:s.name,quantity:'10',averagePurchasePrice:'100',purchaseAmount:'1000',currentPrice:'150',marketValue:'1500',unrealizedProfitLoss:'500',unrealizedReturnRate:'50'}));
+ const holdings=securities.map(s=>({securityId:s.id,symbol:s.symbol,name:s.name,quantity:'10',averagePurchasePrice:'100',purchaseAmount:'1000',currentPrice:'150',marketValue:options.trend?'500':'1500',unrealizedProfitLoss:'500',unrealizedReturnRate:'50'}));
  const recent=Array.from({length:7},(_,i)=>({id:'lot'+i,security:securities[0],quantity:'10',unitPrice:'100',remainingQuantity:'10',currentPrice:'150',profitLoss:'500',returnRate:'50',boughtAt:'2026-10-12T00:00:00Z',buyDate:'2026-10-12',holdingDays:1}));
  async function read(path:string):Promise<{status:number;body:any}>{
   reads.push(path);const u=new URL('http://fixture/api'+path),p=u.pathname,id=p.split('/')[3]??'1',securityId=u.searchParams.get('securityId')??'1';let data:any=[];
