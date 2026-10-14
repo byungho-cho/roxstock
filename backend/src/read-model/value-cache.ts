@@ -1,3 +1,4 @@
+import {PageCache} from '../domain/page-cache.js';
 import {randomUUID} from 'node:crypto';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {loadValueRows,type ValueReadRow,type ValueFilter} from './value-rows.js';
@@ -6,10 +7,10 @@ type Payload={schemaVersion:number;financialRevision:string;revisions:Record<str
 type Entry={revision:string;payload:Payload;generatedAt:Date};
 export class ValueReadModel {
  private memory=new Map<number,Entry>();
- private fallbackPending=new Map<string,Promise<ValueReadRow[]>>();
+ private fallbackCache=new PageCache(60_000,12);
  private pending=new Map<number,Promise<{entry:Entry;status:string}>>();
  constructor(private db:PrismaClient,private loader:(year:number,ids?:bigint[],previous?:Parameters<typeof loadValueRows>[2],filter?:ValueFilter)=>ReturnType<typeof loadValueRows>=(year,ids,previous,filter)=>loadValueRows(year,ids,previous,db,filter)){}
- clear(){this.memory.clear();this.pending.clear();}
+ clear(){this.memory.clear();this.pending.clear();this.fallbackCache.clear();}
  private async revision(){return (await this.db.analysisRevision.findUnique({where:{key:'financial'}}))?.revision.toString()??'0';}
  private async stored(year:number){
   const row=await this.db.analysisReadCache.findUnique({where:{key:`value:${year}`}});
@@ -25,8 +26,9 @@ export class ValueReadModel {
   if(previous?.payload.financialRevision===revision){this.remember(year,previous);return {rows:previous.payload.rows,meta:this.meta(previous,'PERSISTED_HIT')};}
   if(!previous){
    // No daily snapshot (including first startup): use the existing stored-data query, never collect externally.
-   const key=JSON.stringify([year,revision,filter]);let work=this.fallbackPending.get(key);if(!work){work=this.loader(year,undefined,undefined,filter).finally(()=>this.fallbackPending.delete(key));this.fallbackPending.set(key,work);}
-   const rows=await work;return {rows,meta:{status:'FALLBACK',generatedAt:null,priceCacheGeneratedAt:null,financialRevision:revision}};
+   const key=JSON.stringify([year,revision,filter]);
+   const cached=await this.fallbackCache.get(key,()=>this.loader(year,undefined,undefined,filter));
+   return {rows:cached.value,meta:{status:'FALLBACK',queryCacheStatus:cached.status,generatedAt:null,priceCacheGeneratedAt:null,financialRevision:revision}};
   }
   try{const {entry,status}=await this.refresh(year,false,previous);return {rows:entry.payload.rows,meta:this.meta(entry,status)};}
   catch(error){return {rows:previous.payload.rows,meta:{...this.meta(previous,'STALE'),refreshError:'CACHE_REFRESH_FAILED'}};}

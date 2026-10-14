@@ -85,3 +85,60 @@ test('controlled before/after measurements distinguish shell, API and data displ
   console.log(JSON.stringify({kind:'phase31-ui-before-after',label,project:info.project.name,repeats:3,concurrency:2,controlledDelayMs:300,cache:'fresh browser context per sample',samples,sha:process.env.GITHUB_SHA,utc:new Date().toISOString()}));
  }
 });
+
+test('all menu entry headers omit back arrows on cover and tablet',async({page},info)=>{
+ await fixture(page,{read:url=>{
+  if(url.pathname.endsWith('/cash-overview'))return {json:{data:{account:{id:'1',name:'기본',currentBalance:'10000',balanceStatus:'AVAILABLE',updatedAt:'2026-10-14T03:00:00Z'},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},recentTransactions:[]}}};
+  if(url.pathname==='/api/value-analysis')return {json:{data:{rows:[],total:0,year:2026,query:''}}};
+  if(url.pathname==='/api/financial-statements')return {json:{data:{rows:[],total:0,year:2026}}};
+ }});
+ const entries=[['/detail/assets','대시보드'],['/stocks','종목목록'],['/journal','매매일지'],['/detail/cash','예수금'],['/assets','자산분석'],['/detail/investment','투자금'],['/detail/investment-profit','투자손익'],['/detail/value','가치분석'],['/detail/financials','재무제표'],['/detail/compound','복리계획'],['/detail/settings?view=settings','설정'],['/more','메뉴']];
+ for(const [path,title] of entries){
+  await page.goto(path);
+  await expect(page.getByRole('heading',{name:title,exact:true,level:1})).toBeVisible();
+  await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+  await expect(page.locator('.MuiBottomNavigation-root')).toBeVisible();
+ }
+ await page.goto('/');
+ await expect(page.getByRole('heading',{level:1})).toBeVisible();
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ await page.screenshot({path:info.outputPath('main-header-no-back.png')});
+});
+test('settings and financial child screens retain back navigation',async({page},info)=>{
+ await fixture(page,{read:url=>{
+  if(url.pathname.startsWith('/api/financial-statements/'))return {status:503,json:{error:{message:'controlled failure'}}};
+  if(url.pathname==='/api/financial-statements')return {json:{data:{rows:[],total:0,year:2026}}};
+ }});
+ await page.goto('/detail/settings?view=account');
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
+ await page.goto('/detail/financials?selected=1&view=detail');
+ const back=page.getByRole('button',{name:'뒤로가기',exact:true});
+ await expect(back).toBeVisible();
+ await back.click();
+ await expect(page).toHaveURL(/view=list/);
+ await expect(back).toHaveCount(0);
+ await page.goto('/stocks/1');
+ await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
+ await page.screenshot({path:info.outputPath('detail-header-back.png')});
+});
+
+test('value list does not wait for accounts or prefetch invisible cover detail',async({page},info)=>{
+ const rows=Array.from({length:60},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'성능종목'+(i+1),w:String(60-i),eps:'1',roe:'10',currentPrice:'100',previousClosePrice:'90',fairPrices:[],metricBasis:{year:2025,label:'2025',source:'OPEN_DART',isEstimated:false}}));
+ const reads:string[]=[];let release!:()=>void;
+ await fixture(page,{read:url=>{
+  reads.push(url.pathname+url.search);
+  if(url.pathname==='/api/value-analysis')return {json:{data:{rows,total:rows.length,year:2026,query:''}}};
+  if(url.pathname.startsWith('/api/value-analysis/'))return {status:503,json:{error:{message:'controlled detail failure'}}};
+ }});
+ await page.route('**/api/accounts',async route=>{await new Promise<void>(r=>release=r);await route.fulfill({json:{data:[{id:'1',name:'기본',isDefault:true,isActive:true}]}});});
+ const start=Date.now();await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();
+ await expect.poll(()=>!!release).toBe(true);
+ expect(reads.some(p=>p.includes('compact=1'))).toBe(true);
+ expect(reads.filter(p=>/^\/api\/value-analysis\//.test(p))).toHaveLength(0);
+ expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(20);
+ console.log(JSON.stringify({kind:'value-list-account-independent',project:info.project.name,dataMs:Date.now()-start,rowsRendered:20,rowsAvailable:60,accountRequest:'still pending'}));
+ release();
+ if(page.viewportSize()!.width<600){await expect(page.getByTestId('value-detail')).toHaveCount(0);}
+ await page.getByRole('button',{name:/더 보기/}).click();expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(40);
+ await page.screenshot({path:info.outputPath('value-list-fast.png')});
+});
