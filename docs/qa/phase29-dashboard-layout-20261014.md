@@ -7,7 +7,7 @@
 - 대시보드에서 평가손익 카드 제거. 도넛 아래, 종목별 비중 위에 기존 `AssetTrendChart`를 재사용했다. 기존 1개월 조회 범위, `view=trend`, 금액 변환, 일 단위 날짜, 터치·툴팁·Esc/외부 클릭 닫기, `/assets` 상세보기 유지.
 - 차트 위아래 `#25344D` 구분선. 동적 차트와 도넛·범례는 기존 API 기반 렌더링을 유지한다. Figma의 정적 예시 벡터로 대체하지 않는다.
 - 갱신 시각은 종목별 비중 아래 일반 문서 흐름에 놓았다. 카드 높이는 내용에 맞춰 확장하며 656/698px 최소 높이로 로딩 중 레이아웃을 유지한다. 차트의 날짜 행을 포함하고 숨김/잘림은 적용하지 않는다.
-- 홈 API에 차트 조회를 다시 추가하지 않았다. 대시보드는 기존 `useDashboard`와 캐시·배치 읽기를 사용하며 계좌별 조회 키 및 중단 신호를 유지한다.
+- 홈 API에 차트 조회를 다시 추가하지 않았다. 대시보드는 기존 `useDashboard`와 캐시·배치 읽기를 사용하며 계좌별 조회 키 및 중단 신호를 유지한다. 주요 요약을 먼저 표시한 뒤 차트 조회를 시작해 느린 차트가 비중·요약을 막지 않도록 했다. 홈 목록의 로딩 예약 높이를 기존 4px 여백의 실제 행 높이에 맞추고, 태블릿 대시보드의 보유 목록 본문은 남은 높이를 사용해 마지막 행과 푸터가 겹치지 않게 했다.
 
 ## Figma 대조 기준
 
@@ -23,6 +23,6 @@
 4. 차트 로딩·빈 상태·오류·재시도 시 종목별 비중 유지 및 높이 안정성.
 5. 동일 fixture의 28차 main 전후 전체 화면·카드 캡처.
 
-PNG 파일: `home-before/after`, `performance-before/after`, `dashboard-before/after`, `composition-before/after`, `dashboard-chart-after`, `chart-tooltip-after`, `chart-empty-after`. 검증 결과와 artifact 링크는 PR 본문에 기록한다. 운영 계좌 자료가 아닌 통제한 API fixture를 사용한다.
+PNG 파일: `home-before/after`, `performance-before/after`, `dashboard-before/after`, `composition-before/after`, `dashboard-chart-after`, `chart-tooltip-after`, `chart-empty-after`. 검증 결과와 artifact 링크는 PR 본문에 기록한다. 전체 화면은 원래 viewport에서 캡처하고, 개별 카드 PNG는 같은 너비에서 세로 viewport만 확장해 스크롤 컨테이너로 인한 캡처 잘림을 방지한다. 운영 계좌 자료가 아닌 통제한 API fixture를 사용한다.
 
 실제 Fold·Android WebView·Safari·글꼴 확대는 미검증. 배포는 시작 확인만 수행하고 완료·운영 적용 확인은 하지 않는다.

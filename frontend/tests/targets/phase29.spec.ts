@@ -6,6 +6,11 @@ async function geometry(page:Page){
  expect((await page.getByRole('navigation',{name:'하단 메뉴'}).boundingBox())!.height).toBe(44);
  expect(await page.locator('main').evaluate(main=>Array.from(main.querySelectorAll('*')).filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY)&&n.scrollHeight>n.clientHeight+1).length)).toBe(0);
 }
+async function captureCard(page:Page,card:ReturnType<Page['getByTestId']>,path:string){
+ const viewport=page.viewportSize()!;const height=(await card.boundingBox())!.height;
+ await page.setViewportSize({width:viewport.width,height:Math.max(viewport.height,Math.ceil(height)+110)});
+ await card.scrollIntoViewIfNeeded();await card.screenshot({path});await page.setViewportSize(viewport);
+}
 test('home performance is compact with unchanged amounts and two previous-day lines',async({page},info)=>{
  await fixture(page);await page.goto('/');const card=page.getByTestId('asset-performance-card');await expect(card).toContainText('500원');
  const measured=await card.evaluate(n=>({height:n.getBoundingClientRect().height,padding:[getComputedStyle(n).paddingTop,getComputedStyle(n).paddingBottom],gap:getComputedStyle(n).gap,lines:Array.from(n.children).map(e=>e.getBoundingClientRect().height)}));
@@ -15,7 +20,7 @@ test('home performance is compact with unchanged amounts and two previous-day li
  await expect(card.getByTestId('performance-heading')).toContainText('50.0%');await expect(card.getByTestId('performance-row').nth(0)).toContainText('1,000원');await expect(card.getByTestId('performance-row').nth(2)).toContainText('1,500원');
  await expect(card.getByTestId('performance-row').nth(1).getByText('500원')).toHaveCSS('color','rgb(248, 113, 113)');
  await expect(page.getByTestId('home-trend-card')).toHaveCount(0);await geometry(page);
- console.log(JSON.stringify({kind:'phase29-home-measurement',project:info.project.name,...measured}));await page.screenshot({path:info.outputPath('home-after.png')});await card.screenshot({path:info.outputPath('performance-after.png')});
+ console.log(JSON.stringify({kind:'phase29-home-measurement',project:info.project.name,...measured}));await page.screenshot({path:info.outputPath('home-after.png')});await captureCard(page,card,info.outputPath('performance-after.png'));
 });
 test('dashboard orders donut trend weights and footer without independent cards or duplicate reads',async({page},info)=>{
  const f=await fixture(page,{trend:true});await page.goto('/detail/assets');const card=page.getByTestId('asset-composition-card');await expect(card.getByTestId('asset-trend-chart')).toBeVisible();
@@ -26,8 +31,10 @@ test('dashboard orders donut trend weights and footer without independent cards 
  const trend=card.getByTestId('dashboard-trend');await expect(trend).toHaveCSS('border-top-width','1px');await expect(trend).toHaveCSS('border-bottom-width','1px');
  expect(await trend.getByTestId('asset-trend-date').allTextContents()).not.toContain('09/01');await expect(trend).toContainText('1개월');
  const reads=f.reads.filter(p=>p.includes('/asset-history?'));expect(reads).toHaveLength(1);expect(reads[0]).toContain('from=2026-09-13');expect(reads[0]).toContain('to=2026-10-13');expect(reads[0]).toContain('view=trend');
+ await page.locator('main').evaluate(n=>n.scrollTop=0);await page.screenshot({path:info.outputPath('dashboard-after.png')});await captureCard(page,card,info.outputPath('composition-after.png'));
+ if(page.viewportSize()!.width>=600){const held=page.getByTestId('asset-holdings-card');expect((await held.getByTestId('home-card-footer').boundingBox())!.y).toBeGreaterThanOrEqual((await held.getByTestId('home-holding').last().boundingBox())!.y+(await held.getByTestId('home-holding').last().boundingBox())!.height);}
  await card.getByRole('button',{name:'종목별 비중 차트 방식 변경'}).click();await expect(card).toContainText('누적형');await expect(card.getByTestId('asset-weight-row')).toHaveCount(3);await geometry(page);
- await page.screenshot({path:info.outputPath('dashboard-after.png')});await card.screenshot({path:info.outputPath('composition-after.png')});await trend.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('dashboard-chart-after.png')});
+ await trend.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('dashboard-chart-after.png')});
  await trend.getByRole('button',{name:'자산추이 (상세보기)'}).click();await expect(page).toHaveURL(/\/assets$/);await page.goBack();await expect(page).toHaveURL(/\/detail\/assets$/);
  expect(f.reads.filter(p=>p.includes('/asset-history?')&&p.includes('view=trend'))).toHaveLength(1);
 });
@@ -48,5 +55,5 @@ test('history loading empty and failure preserve weights and stable composition 
 });
 test('capture previous main for comparable home and dashboard screens',async({page},info)=>{
  test.skip(!process.env.PHASE29_BASELINE_URL,'baseline preview is provided in CI');await fixture(page,{trend:true});
- for(const [name,path,ready] of [['home','/','asset-performance-card'],['dashboard','/detail/assets','asset-composition-card']] as const){await page.goto(process.env.PHASE29_BASELINE_URL+path);await expect(page.getByTestId(ready)).toBeVisible();await page.screenshot({path:info.outputPath(name+'-before.png')});await page.getByTestId(ready).screenshot({path:info.outputPath(name==='home'?'performance-before.png':'composition-before.png')});}
+ for(const [name,path,ready] of [['home','/','asset-performance-card'],['dashboard','/detail/assets','asset-composition-card']] as const){await page.goto(process.env.PHASE29_BASELINE_URL+path);await expect(page.getByTestId(ready)).toBeVisible();await page.screenshot({path:info.outputPath(name+'-before.png')});await captureCard(page,page.getByTestId(ready),info.outputPath(name==='home'?'performance-before.png':'composition-before.png'));}
 });

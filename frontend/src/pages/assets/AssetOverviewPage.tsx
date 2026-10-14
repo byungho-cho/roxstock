@@ -24,7 +24,7 @@ type ChartItem = { id: string; name: string; percent: number; color: string };
 
 export function AssetOverviewPage() {
   const navigate = useNavigate();
-  const { data, isPending, isError, isFetching, refetch, historyData, historyPending, historyError, historyRefetch } = useDashboard({ pollPrices: true });
+  const { data, isPending, isError, isFetching, refetch, historyData, historyPending, historyError, historyRefetch } = useDashboard({ pollPrices: true, deferTrend: true });
   const {accountId, accounts}=useActiveAccount();
   const pending=isPending&&!isError&&!accounts.isError;
   const [mode, setMode] = useState<'cumulative' | 'ranked'>('ranked');
@@ -49,7 +49,7 @@ export function AssetOverviewPage() {
     <Box className="rox-home" data-testid="asset-overview" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', alignItems: 'stretch' }}>
       <Stack data-testid="asset-summary-column" spacing="8px" sx={{ minWidth: 0, '& [data-testid="home-holding"]': { pr: '8px' }, '& h2': { fontSize: 13, lineHeight: '22px' }, '& [data-testid="home-card-footer"] .MuiTypography-root': { fontSize: 10 } }}><TotalAssetCard summary={summary} home loading={pending}/>{(isError||accounts.isError)&&<Button role="alert" onClick={()=>{void refetch();if(accounts.isError)void accounts.refetch();}}>평가자산 조회 실패 · 다시 시도</Button>}
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}><HomeListCard height={222} compactFooter testId="asset-holdings-card" title="보유종목" pending={pending} count={data?`${holdings.length}종목`:undefined} timestampLabel="갱신 " timestamp={summary.collectedAt} updating={isFetching} more={() => navigate('/stocks?tab=holding')} notice={data&&summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined}>
-          {pending?<HomeListLoading rowCount={3}/>:holdings.slice(0, 3).map(stock => <HoldingRow key={stock.id} stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} />)}
+          {pending?<HomeListLoading rowCount={3} compact/>:holdings.slice(0, 3).map(stock => <HoldingRow key={stock.id} stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} />)}
           {!pending&&holdings.length===0&&<HomeEmpty>{isError||accounts.isError?<Button role="alert" onClick={()=>{void refetch();if(accounts.isError)void accounts.refetch();}}>조회 실패 · 다시 시도</Button>:'내용이 없습니다.'}</HomeEmpty>}
         </HomeListCard></Box>
       </Stack>

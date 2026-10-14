@@ -10,18 +10,12 @@ import { useActiveAccount } from './useActiveAccount';
 
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60_000;
 
-export function useDashboard({ pollPrices = false, includeTrend = true }: { pollPrices?: boolean; includeTrend?: boolean } = {}) {
+export function useDashboard({ pollPrices = false, includeTrend = true, deferTrend = false }: { pollPrices?: boolean; includeTrend?: boolean; deferTrend?: boolean } = {}) {
   const { accountId, page, pageMode, screen } = useActiveAccount();
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`);
   monthAgo.setUTCMonth(monthAgo.getUTCMonth() - 1);
   const from = monthAgo.toISOString().slice(0, 10);
-  const history = useQuery({
-    ...storedQueryOptions,
-    queryKey: ['assetHistory', accountId, 'dashboard', from, today],
-    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: includeTrend && liveApiEnabled && !!accountId && !pageMode,
-    staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
-  });
   const summary = useQuery({
     ...storedQueryOptions, staleTime:30_000,
     queryKey: ['dashboard', liveApiEnabled ? 'api' : 'mock', accountId],
@@ -29,6 +23,12 @@ export function useDashboard({ pollPrices = false, includeTrend = true }: { poll
     enabled: !pageMode && (!liveApiEnabled || !!accountId),
     refetchInterval: liveApiEnabled && pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
+  });
+  const history = useQuery({
+    ...storedQueryOptions,
+    queryKey: ['assetHistory', accountId, 'dashboard', from, today],
+    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: includeTrend && (!deferTrend || !summary.isPending) && liveApiEnabled && !!accountId && !pageMode,
+    staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   if (pageMode && screen === 'home') {
     const report = page.data;
