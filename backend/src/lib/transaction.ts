@@ -1,4 +1,5 @@
 import { Prisma } from '../generated/prisma/index.js';
+import {isMariaDbSnapshotConflict} from '../domain/transaction-conflict.js';
 import { prisma } from './prisma.js';
 
 export async function serializable<T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
@@ -15,7 +16,7 @@ export async function serializable<T>(work: (tx: Prisma.TransactionClient) => Pr
       // MariaDB may report locking conflicts through raw-query P2010 instead of P2034.
       // The interactive callback has failed and Prisma has rolled back before this catch.
       const rawConflict = code === 'P2010' && ['1020', '1213', '1205'].includes(String(known?.meta?.code));
-      if (attempt >= 2 || (!['P2034', 'P2002'].includes(code) && !rawConflict)) throw error;
+      if (attempt >= 2 || (!['P2034', 'P2002'].includes(code) && !rawConflict && !isMariaDbSnapshotConflict(error))) throw error;
       await new Promise(resolve => setTimeout(resolve, 20 * (attempt + 1)));
     }
   }
