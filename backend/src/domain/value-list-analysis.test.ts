@@ -54,3 +54,8 @@ test('annual estimate never fills missing EPS or financial amounts from prior an
  assert.equal(selected.metricBasis.year,2026);assert.equal(selected.eps,null);assert.equal(selected.roe,'0');assert.equal(selected.netIncome,'-50');assert.equal(selected.capital,'0');assert.equal(selected.capitalBasis?.year,2026);
  const mismatch=structuredClone(estimate);mismatch.values.eps='20';mismatch.supplemental.manualSource.values.eps='10';assert.equal(selectValueListAnalysis(input([mismatch])).eps,null);
 });
+
+test('retained total-income ROE cannot inherit newer parent-attribution provenance for RIM',()=>{
+ const row=p(2025,'ANNUAL',{provenance:{periodEnd:'2025-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{fsDivision:'CFS',roeBasis:'TOTAL_SAME_DIVISION',periodEnd:'2025-12-31'}}}});
+ const r=selectValueListAnalysis(input([row]));assert.equal(r.targetPrice,null);assert.equal(r.w,null);assert.equal(r.missingReasons.targetPrice,'RIM_BASIS_UNCONFIRMED');
+});

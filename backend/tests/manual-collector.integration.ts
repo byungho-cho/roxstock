@@ -24,7 +24,8 @@ test('manual source -> real DB -> value/security APIs agree; estimates are separ
   for(const selectedYear of [year-1,year]){
    const value=await app.inject(`/api/value-analysis/${security.id}?year=${selectedYear}&startYear=${selectedYear}&count=1`),analysis=await app.inject(`/api/securities/${security.id}/analysis?fiscalYear=${selectedYear}`);
    assert.equal(value.statusCode,200,value.body);assert.equal(analysis.statusCode,200,analysis.body);
-   assert.deepEqual(value.json().data.valuation,analysis.json().data.valuation);
+   if(selectedYear===year)assert.deepEqual(value.json().data.valuation,analysis.json().data.valuation);
+   else assert.equal(value.json().data.valuation,null,'선택 연도 결산은 목록 기준의 전년도 결산이 아니다');
    assert.equal(value.json().data.rows[0].per,'10');assert.equal(value.json().data.rows[0].collectionState,selectedYear===year?'ESTIMATE_READY':'COMPLETE');assert.equal(value.json().data.rows[0].isEstimated,selectedYear===year);
   }
   assert.equal(await prisma.annualConsensusSnapshot.count({where:{securityId:security.id}}),1);
