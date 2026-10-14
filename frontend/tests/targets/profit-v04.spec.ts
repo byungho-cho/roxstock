@@ -113,14 +113,14 @@ test('stored profit does not poll/focus-refresh; account switch rejects the old 
  expect(f.offsets.length).toBe(reads);await expect(page.getByTestId('profit-total')).toHaveText('-739원');
  f.hold();await page.reload();
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
- await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');f.release();await expect(page.getByTestId('profit-total')).toHaveCount(0);
+ await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');f.release();await expect(page.getByTestId('profit-total')).toHaveText('');
 });
 test('empty missing failed and changing-source results remain distinct', async ({ page }, info) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');
   if (page.viewportSize()!.width >= 600) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
   f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
-  f.mode('changing');const changedPage=page.waitForResponse(r=>r.url().includes('/investment-profit')&&r.status()===409);await page.getByRole('button',{name:'재시도'}).first().click();await changedPage;await expect(page.getByRole('alert').first()).toBeVisible();await expect(page.getByTestId('profit-total')).toHaveCount(0);
+  f.mode('changing');const changedPage=page.waitForResponse(r=>r.url().includes('/investment-profit')&&r.status()===409);await page.getByRole('button',{name:'재시도'}).first().click();await changedPage;await expect(page.getByRole('alert').first()).toBeVisible();await expect(page.getByTestId('profit-total')).toHaveText('');
   f.mode('normal'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
 });
 test('long amounts never invade adjacent columns', async ({ page }) => {
