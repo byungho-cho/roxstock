@@ -23,7 +23,7 @@ test('dates precede month data; annual waits, seeds other months and crosses yea
  await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
  expect(reads).toHaveLength(2);
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'더보기',exact:true}).click();
- await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'매매일지',exact:true}).click();
+ await page.goBack();
  await expect(calendar).toHaveAttribute('aria-label','2026년 2월 거래 달력');
  await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
  expect(reads).toHaveLength(2);
