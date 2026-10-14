@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-export async function fixture(page:Page, options:{trend?:boolean}={}){
+export async function fixture(page:Page, options:{trend?:boolean;analysis?:boolean}={}){
  await page.clock.setFixedTime(new Date('2026-10-13T03:00:00Z'));
  const history={mode:'ready' as 'ready'|'empty'|'error'|'hold'};let releaseHistory=()=>{};
  const reads:string[]=[];let release=()=>{},held=false;const gate=new Promise<void>(r=>release=r);
@@ -17,6 +17,7 @@ export async function fixture(page:Page, options:{trend?:boolean}={}){
    if(history.mode==='hold')await new Promise<void>(r=>releaseHistory=r);
    if(history.mode==='error')return {status:503,body:{error:{message:'history failed'}}};
    data=history.mode==='empty'?[]:[{date:'2026-09-01',totalAssetValue:'9999'},{date:'2026-09-13',totalAssetValue:id==='1'?'2000':'6000'},{date:'2026-10-01',totalAssetValue:id==='1'?'2200':'6500'},{date:'2026-10-13',totalAssetValue:id==='1'?'2500':'7000'}];
+   if(options.analysis&&!u.searchParams.has('view'))return {status:200,body:{data,summary:{from:u.searchParams.get('from')??'2020-01-01',to:'2026-10-13',openingAssetValue:'2000',closingAssetValue:id==='1'?'2500':'7000',profitLoss:'500',returnRate:'25'}}};
   }else if(p.endsWith('/dashboard'))data={...dashboard,holdings,purchaseAmount:'1000',accountId:id};
   else if(p.endsWith('/investment-profit')){
    const events=(['BUY','SELL','DIVIDEND'] as const).map(kind=>({date:'2026-01-02',securityId,name:'종목'+securityId,kind,buy:kind==='BUY'?'1000':'0',sell:kind==='SELL'?'400':'0',cost:kind==='SELL'?'200':'0',trading:kind==='SELL'?(id==='1'?'200':'-200'):'0',dividend:kind==='DIVIDEND'?'30':'0'}));data={accountId:id,securityId,events:securityId==='3'?[]:events,capital:[]};
