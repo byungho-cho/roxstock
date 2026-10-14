@@ -3,7 +3,7 @@ import {fixture} from './phase3-fixture';
 import path from 'node:path';
 const cases=[{name:'journal',url:'/journal?date=2026-10-07',shell:'journal-layout',labels:['거래현황'],ready:'journal-entry-t1'},
  {name:'accounts',url:'/detail/settings?view=account',shell:'settings-layout',labels:['계좌 추가'],ready:'account-card-1'},
- {name:'analysis',url:'/assets',shell:'asset-analysis',labels:['총자산','자산구성','자산추이','기간 성과 구성','기간 시작자산','총입금'],ready:'analysis-chart'},
+ {name:'analysis',url:'/assets',shell:'asset-analysis',labels:['총자산','자산구성','자산추이','기간 성과 구성','기간 시작자산','총입금'],ready:'asset-trend-line'},
  {name:'stocks',url:'/stocks',shell:'stock-list',labels:[],ready:'stock-card-1'}];
 async function setup(page:Page){await fixture(page);await page.route('**/api/accounts',r=>r.fulfill({json:{data:[{id:'1',name:'검증 계좌',accountNumber:'123-456',cashBalance:'65000',updatedAt:'2026-10-07T03:00:00Z',isActive:true,isDefault:true},{id:'2',name:'다른 계좌',cashBalance:'0',isActive:true}]}}));await page.route('**/api/accounts/*/trades*',r=>r.fulfill({json:{data:[{id:'t1',type:'BUY',tradedAt:'2026-10-07T03:00:00Z',quantity:'2',unitPrice:'100',security:{id:'1',symbol:'000001',name:'검증 종목'}}],daily:[],summary:{buyAmount:'200',sellAmount:'0',realizedProfitLoss:'0'}}}));}
 async function capture(page:Page,name:string,state:string,project:string){const root=process.env.ROX_PHASE20_CAPTURE_DIR;if(root)await page.screenshot({path:path.join(root,`${name}-${project}-${state}.png`)});}
@@ -14,7 +14,7 @@ for(const item of cases)test(`${item.name}: account wait keeps fixed controls, n
  await expect(page.getByTestId(item.shell)).toBeVisible();for(const label of item.labels)await expect(page.getByText(label,{exact:true}).first()).toBeVisible();
  if(item.name==='stocks'){await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toBeVisible();await expect(page.getByRole('tab',{name:'보유종목'})).toBeVisible();}
  await expect(page.getByTestId(item.shell)).not.toContainText('내용이 없습니다.');await expect(page.getByTestId(item.shell)).not.toContainText('총 0개');await expect(page.getByTestId(item.shell)).not.toContainText('0원');
- await expect(page.locator('[data-loading-indicator="visible"]')).not.toHaveCount(0);await expect(page.locator('[data-loading-indicator="waiting"]')).toHaveCount(0);await capture(page,item.name,'loading',info.project.name);
+ if(item.name==='analysis')await expect(page.getByTestId(item.shell).locator('.MuiSkeleton-root')).toHaveCount(0);else await expect(page.locator('[data-loading-indicator="visible"]')).not.toHaveCount(0);await expect(page.locator('[data-loading-indicator="waiting"]')).toHaveCount(0);await capture(page,item.name,'loading',info.project.name);
  const calendar=item.name==='journal'?await page.getByTestId('journal-calendar-card').boundingBox():null,chart=item.name==='analysis'?await page.getByTestId('analysis-chart-region').boundingBox():null;
  const accountHeight=item.name==='accounts'?(await page.getByTestId('account-loading-row').first().boundingBox())!.height:null;
  const stockRow=item.name==='stocks'?(page.viewportSize()!.width<600?await page.getByTestId('stock-loading-row').first().boundingBox():await page.getByTestId('stock-loading-table-row').first().boundingBox()):null;
@@ -29,7 +29,7 @@ for(const item of cases)test(`${item.name}: account wait keeps fixed controls, n
 test('analysis independent failure retains successful areas; condition changes never show previous values',async({page})=>{
  await setup(page);let mode='normal',held=true;const releases:Array<()=>void>=[];
  await page.route('**/api/accounts/*/asset-history*',async r=>{if(mode==='hold'&&held)await new Promise<void>(resolve=>releases.push(resolve));if(mode==='empty')return r.fulfill({json:{data:[],summary:{}}});if(mode==='error')return r.fulfill({status:503,json:{error:{message:'test failure'}}});return r.fallback();});
- await page.goto('/assets');await expect(page.getByTestId('analysis-chart')).toBeVisible();const chartHeight=(await page.getByTestId('analysis-chart-region').boundingBox())!.height;
+ await page.goto('/assets');await expect(page.getByTestId('asset-trend-line')).toBeVisible();const chartHeight=(await page.getByTestId('analysis-chart-region').boundingBox())!.height;
  mode='hold';await page.getByRole('button',{name:'3개월',exact:true}).click();await expect.poll(()=>releases.length).toBeGreaterThan(0);await expect(page.getByTestId('analysis-metric-기간 투자손익')).not.toContainText('65,000');await expect(page.getByTestId('analysis-total-value')).toContainText('165,000원');await expect(page.getByTestId('analysis-performance')).toContainText('총입금');held=false;releases.splice(0).forEach(r=>r());await expect(page.getByTestId('analysis-chart')).toBeVisible();
  mode='error';await page.getByRole('button',{name:'6개월',exact:true}).click();await expect(page.getByTestId('analysis-chart-region').getByRole('alert')).toBeVisible({timeout:15000});await expect(page.getByTestId('analysis-total-value')).toContainText('165,000원');expect((await page.getByTestId('analysis-chart-region').boundingBox())!.height).toBe(chartHeight);
  mode='empty';await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('analysis-chart-region')).toContainText('내용이 없습니다.');expect((await page.getByTestId('analysis-chart-region').boundingBox())!.height).toBe(chartHeight);

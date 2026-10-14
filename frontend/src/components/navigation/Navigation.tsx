@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useMediaQuery } from '@mui/material';
-import { colors, pageGutter, pageMetrics } from '../../styles/tokens';
+import { colors, pageMetrics } from '../../styles/tokens';
 import { navigateToForm } from '../../utils/focusForm';
 
 type PageHeaderProps = {
@@ -48,15 +48,15 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
   const mobileAddVisible = showAddMobile ?? variant !== 'detail';
   if ((scope === 'cover' && tablet) || (scope === 'tablet' && !tablet)) return null;
   const header = <AppBar position="static" elevation={0} color="transparent" sx={{ height: pageMetrics.headerHeight, bgcolor: colors.canvas, border: 0 }}>
-    <Toolbar disableGutters={homeDashboard || assetOverview} className={variant === 'home' || assetOverview ? 'rox-home' : undefined} sx={{ position: 'relative', width: '100%', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px: homeDashboard || assetOverview || variant === 'more' ? '8px' : { xs: `${pageGutter.xs}px`, sm: variant === 'home' ? '16px' : `${pageGutter.sm}px` }, py: 0, alignItems: valueAnalysis && stockNavigation ? 'flex-start' : homeDashboard ? 'center' : variant === 'home' ? 'flex-start' : 'center' }}>
-      {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display: { xs: 'flex', sm: showBackTablet ? 'flex' : 'none' }, zIndex: valueAnalysis ? 1 : undefined, width: valueAnalysis ? 20 : variant === 'more' ? 28 : pageMetrics.headerHeight, height: valueAnalysis && stockNavigation ? 22 : pageMetrics.headerHeight, alignSelf: valueAnalysis && stockNavigation ? 'flex-start' : undefined, p: valueAnalysis || variant === 'more' ? 0 : undefined, color: colors.textPrimary }}><>{backIcon ?? <ArrowBackRounded sx={{ fontSize: variant === 'more' ? 18 : 24 }} />}</></IconButton>}
-      <Box sx={{ flex: 1, minWidth: 0, textAlign: stockNavigation ? 'center' : assetOverview || variant === 'more' ? 'left' : variant === 'detail' || compact || hasBack ? { xs: 'center', sm: 'left' } : 'left' }}>
-        <Typography component="h1" noWrap sx={{ ...(valueAnalysis && stockNavigation ? { mt:0,mb:0,textAlign:'center',lineHeight:'22px !important',fontSize:'14px !important',height:22 } : valueAnalysis ? { fontSize:'22px !important',textAlign:'left' } : {}), mb: valueAnalysis ? 0 : stockNavigation ? '12px' : 0, fontSize: valueAnalysis && stockNavigation ? '14px !important' : { xs: variant === 'more' ? compact ? 16 : 18 : 22, sm: variant === 'home' || assetOverview ? 22 : 21 }, lineHeight: valueAnalysis && stockNavigation ? '22px' : variant === 'more' ? { xs: '22px', sm: '30px' } : '30px', fontWeight: 700, letterSpacing: '-0.11px' }}>{title}</Typography>
+    <Toolbar disableGutters className={variant === 'home' || assetOverview ? 'rox-home' : undefined} sx={{ position: 'relative', width: '100%', boxSizing:'border-box', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px:'8px', py:0, alignItems:stockNavigation?'flex-start':'center' }}>
+      {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display:{xs:'flex',sm:showBackTablet?'flex':'none'}, zIndex:1, width:20, minWidth:20, height:stockNavigation?22:pageMetrics.headerHeight, mr:'8px', p:0, flexShrink:0, color:colors.textPrimary, '& svg, & img':{width:20,height:20,objectFit:'contain'}, '& > span':{fontSize:24,lineHeight:'24px'} }}>{backIcon ?? <ArrowBackRounded />}</IconButton>}
+      <Box sx={{flex:1,minWidth:0,textAlign:stockNavigation?'center':'left'}}>
+        <Typography component="h1" noWrap sx={{m:0,fontSize:stockNavigation?14:hasBack?18:22,lineHeight:stockNavigation?'22px':'30px',height:stockNavigation?22:30,fontWeight:700,letterSpacing:'-0.11px',textAlign:stockNavigation?'center':'left'}}>{title}</Typography>
       </Box>
       {stockNavigation && <Box sx={{ position: 'absolute', ...(valueAnalysis ? {height:14,lineHeight:'14px','& .MuiButton-root':{minHeight:14,height:14,lineHeight:'14px'}} : {}), bottom: 2, left: valueAnalysis ? 8 : 48, right: valueAnalysis ? 8 : 48 }}>{stockNavigation}</Box>}
       {center && <Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: '50%', transform: 'translateX(-50%)', alignItems: 'center', justifyContent: 'center', maxWidth: 'calc(100% - 240px)' }}>{center}</Box>}
       {action ?? (showAdd && <HeaderAddButton label={addLabel} onClick={onAdd ?? (() => navigateToForm(navigate, addPath))} mobileVisible={mobileAddVisible} />)}
-      {hasBack && (compact || !mobileAddVisible) && !action && <Box sx={{ display: { xs: 'block', sm: valueAnalysis ? 'block' : 'none' }, width: valueAnalysis ? 20 : compact && variant === 'more' ? 28 : pageMetrics.headerHeight, flexShrink: 0 }} />}
+      {hasBack && stockNavigation && !action && <Box sx={{ display: { xs: 'block', sm: valueAnalysis ? 'block' : 'none' }, width: valueAnalysis ? 20 : compact && variant === 'more' ? 28 : pageMetrics.headerHeight, flexShrink: 0 }} />}
     </Toolbar>
   </AppBar>;
   return embedded ? slot ? createPortal(header, slot) : null : header;
