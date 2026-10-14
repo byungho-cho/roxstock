@@ -1,10 +1,13 @@
 import {useDelayedIndicator} from './DelayedSkeleton';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Component, Suspense, type ReactNode } from 'react';
+import {useLocation} from 'react-router-dom';
 import {PriorityRouteShell} from './PriorityRouteShell';
 
 export function RouteLoading() {
   const visible=useDelayedIndicator();
+  const {pathname}=useLocation();
+  if(pathname==='/assets')return <PriorityRouteShell/>;
   return <><PriorityRouteShell/><Box role={visible?'status':undefined} aria-label={visible?'화면 불러오는 중':undefined} sx={{height:24,display:'flex',justifyContent:'center',visibility:visible?'visible':'hidden'}}><CircularProgress size={16}/></Box></>;
 }
 export class RouteContent extends Component<{ children: ReactNode }, { failed: boolean }> {

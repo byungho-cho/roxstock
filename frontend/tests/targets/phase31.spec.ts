@@ -48,8 +48,8 @@ test('chart card retains height and controls before history arrives',async({page
  const chart=page.getByTestId('analysis-chart-region');await expect(chart).toBeVisible();
  expect((await chart.boundingBox())!.height).toBe(224);
  await expect(chart.locator('[data-loading-indicator]')).toHaveCount(0);
- await expect(chart.getByRole('status')).toContainText('조회 중');
- control.release();await expect(page.getByTestId('analysis-chart')).toBeVisible();
+ await expect(chart.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();await expect(page.getByTestId('asset-trend-line')).toHaveCount(0);
+ control.release();await expect(page.getByTestId('asset-trend-line')).toBeVisible();
  expect((await chart.boundingBox())!.height).toBe(224);
 });
 test('account switch isolates a late month response and an error can retry',async({page})=>{
