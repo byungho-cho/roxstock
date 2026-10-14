@@ -26,3 +26,7 @@
 PNG 파일: `home-before/after`, `performance-before/after`, `dashboard-before/after`, `composition-before/after`, `dashboard-chart-after`, `chart-tooltip-after`, `chart-empty-after`. 검증 결과와 artifact 링크는 PR 본문에 기록한다. 전체 화면은 원래 viewport에서 캡처하고, 개별 카드 PNG는 같은 너비에서 세로 viewport만 확장해 스크롤 컨테이너로 인한 캡처 잘림을 방지한다. 운영 계좌 자료가 아닌 통제한 API fixture를 사용한다.
 
 실제 Fold·Android WebView·Safari·글꼴 확대는 미검증. 배포는 시작 확인만 수행하고 완료·운영 적용 확인은 하지 않는다.
+
+## 최종 병합·배포 시작 기록 · 2026-10-14
+
+최종 head `2086264f3e0b41f9a541dfdf765d87953d20f08e`: 이전 Phase20의 삭제 평가손익/차트 제목 검사를 최신 구성으로 갱신하고, 로딩 자산구성 높이1px 차이를 보완했다. PR 워크플로30개 종료·실패0(범위 밖 skipped 포함), PR Gate 통과. PR #217 병합 `e7265940fea33312703ca1789bc55b0420bd6ffd`, [Production Deploy 시작](https://github.com/byungho-cho/roxstock/actions/runs/38512193321). 배포 완료·운영 적용 확인은 생략했다.
