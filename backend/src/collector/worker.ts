@@ -1,9 +1,10 @@
+import {warmValueCaches} from '../read-model/value-cache.js';
 import {runIndependentSupplement} from './independent-valuation-supplement.js';
 import 'dotenv/config';
 import { prisma } from '../lib/prisma.js';
 import { loadCollectorConfig } from './config.js';
 import { collectorLog as log } from './logger.js';
-import { collectPrices } from './price-collector.js';
+import { collectPrices,type PriceCollectorResult } from './price-collector.js';
 import { MockPriceProvider } from './providers/mock-price-provider.js';
 import { NaverPriceProvider } from './providers/naver-price-provider.js';
 import { DataGoKrSecurityProvider } from './providers/data-go-kr-security-provider.js';
@@ -19,20 +20,19 @@ const provider = config.provider === 'mock'
   ? new MockPriceProvider()
   : new NaverPriceProvider(config.requestTimeoutMs);
 
-const runPrices = (symbols?: string[]) => collectPrices(repository, provider, {
+const runPrices = async (symbols?: string[]) => {const result=await collectPrices(repository, provider, {
   signal: shutdown.signal,
   delayMs: config.providerDelayMs,
   lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
   symbols,
-});
-const runScheduledPrices = (scheduleDate: string, attempt: 'primary' | 'partial-retry' | 'outage-retry', symbols?: string[]) =>
-  collectPrices(repository, provider, {
+});if(!symbols?.length&&result.success>0){try{await warmValueCaches(prisma,result.failedSymbols);}catch(error){log('error','value cache generation failed; last good snapshot retained',{error:String(error)});}}return result;};
+const runScheduledPrices = async (scheduleDate: string, attempt: 'primary' | 'partial-retry' | 'outage-retry', symbols?: string[]) => {const result=await collectPrices(repository, provider, {
     signal: shutdown.signal,
     delayMs: config.providerDelayMs,
     lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
     symbols,
     metadata: { scheduleDate, attempt },
-  });
+  });return result;};
 const runSnapshots = (now = new Date()) => collectDailyAccountSnapshots(repository, {
   lockTtlSeconds: config.lockTtlSeconds,
   now,
@@ -76,19 +76,20 @@ const daemon = async (): Promise<void> => {
     const now = new Date();
     const clock = getSeoulClock(now);
     try {
+      let cachePrices:PriceCollectorResult|undefined,hasNewPrices=false;
       if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate && now.getTime() >= lockedRetryAt) {
         const alreadyCompleted = await repository.hasCompletedScheduledPriceRun(clock.dateKey);
         if (alreadyCompleted) {
           completedPriceDate = clock.dateKey;
         } else if (outageRetryDate === clock.dateKey && outageRetryAt > 0 && now.getTime() >= outageRetryAt) {
-          const retried=await runScheduledPrices(clock.dateKey, 'outage-retry');
+          const retried=await runScheduledPrices(clock.dateKey, 'outage-retry');cachePrices=retried;hasNewPrices=retried.success>0;
           if(retried.skipReason==='LOCK_CONFLICT')lockedRetryAt=now.getTime()+300000;else completedPriceDate = clock.dateKey;
           if(retried.skipReason!=='LOCK_CONFLICT'){outageRetryDate = '';outageRetryAt = 0;}
         } else if (outageRetryDate !== clock.dateKey) {
-          const result = await runScheduledPrices(clock.dateKey, 'primary');
+          const result = await runScheduledPrices(clock.dateKey, 'primary');cachePrices=result;hasNewPrices=result.success>0;
           if(result.skipReason==='LOCK_CONFLICT'){lockedRetryAt=now.getTime()+300000;}
           else if (result.status === 'PARTIAL' && result.failedSymbols.length > 0) {
-            const retried=await runScheduledPrices(clock.dateKey, 'partial-retry', result.failedSymbols);
+            const retried=await runScheduledPrices(clock.dateKey, 'partial-retry', result.failedSymbols);if(retried.skipReason!=='LOCK_CONFLICT')cachePrices=retried;hasNewPrices ||= retried.success>0;
             if(retried.skipReason==='LOCK_CONFLICT')lockedRetryAt=now.getTime()+300000;else completedPriceDate = clock.dateKey;
           } else if (result.status === 'FAILED' && result.failed > 0 && result.success === 0 && result.stale === 0) {
             outageRetryDate = clock.dateKey;
@@ -102,6 +103,7 @@ const daemon = async (): Promise<void> => {
           }
         }
       }
+      if(hasNewPrices&&cachePrices&&!shutdown.signal.aborted){try{await warmValueCaches(prisma,cachePrices.failedSymbols);}catch(error){log('error','value cache generation failed; last good snapshot retained',{error:String(error)});}}
       if(shutdown.signal.aborted)return;
       const snapshotKey = snapshotScheduleKey(now);
       if (config.snapshotHours.includes(clock.hour) && snapshotKey !== lastSnapshotKey) {

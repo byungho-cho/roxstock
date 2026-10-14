@@ -9,8 +9,8 @@ test('selected annual estimate then previous final, quarter/older excluded; fail
  for(const rows of [[p(2026,'Q2')],[p(2024)],[p(2026)]])assert.equal(selectValueListAnalysis(input(rows)).dataPriority,3);
  const empty=p(2026,'ESTIMATE',{values:{eps:null,bps:null,roe:null},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026}}});assert.equal(selectValueListAnalysis(input([empty,p(2025)])).dataPriority,2);
 });
-test('group order precedes W; missing last including negative and zero',()=>{
- const rows=[{id:'3',symbol:'3',dataPriority:2,w:'99'},{id:'2',symbol:'2',dataPriority:1,w:null},{id:'1',symbol:'1',dataPriority:1,w:'0'},{id:'4',symbol:'4',dataPriority:3,w:'100'},{id:'5',symbol:'5',dataPriority:1,w:'-1'}];assert.deepEqual(orderValueGroups(rows).map(r=>r.id),['1','5','2','3','4']);
+test('W order is global across source groups; missing last including negative and zero',()=>{
+ const rows=[{id:'3',symbol:'3',dataPriority:2,w:'99'},{id:'2',symbol:'2',dataPriority:1,w:null},{id:'1',symbol:'1',dataPriority:1,w:'0'},{id:'4',symbol:'4',dataPriority:3,w:'100'},{id:'5',symbol:'5',dataPriority:1,w:'-1'}];assert.deepEqual(orderValueGroups(rows).map(r=>r.id),['4','3','1','5','2']);
 });
 function basis(equity='1000',roe='10'){
  const f={fiscalYear:2025,periodType:'ANNUAL',receiptNo:'r',fsDivision:'OFS',periodEndDate:new Date('2025-12-31'),isWithdrawn:false,totalEquity:new Prisma.Decimal(equity),accountSources:{}} as any;
@@ -46,4 +46,22 @@ test('same annual estimate source proves parent-equity totals independently; mis
  const metric={metricDate:'2026-12-31',bps:'526869.36',roe:'102.88',eps:null,per:null,pbr:null,rimCompatible:true};
  const r=shareholderTotals(metric,row,[]);assert.equal(r.excessEarnings,'354725958400000');assert.equal(r.shareholderValue,'3921127584000000');assert.equal(r.rimComparison?.perShare,null);assert.equal(r.rimComparison?.existingW08,'5525805.84768');assert.equal(r.rimBasis?.shares,null);assert.equal(r.rimReason,null);
  for(const change of [(x:any)=>x.supplemental.estimateFinancials.parentEquity='120666751000000',(x:any)=>x.supplemental.manualSource.fiscalYear=2025,(x:any)=>x.provenance.roeBasis='TOTAL_SAME_DIVISION',(x:any)=>x.supplemental.manualSource.values.roe='44.15']){const copy=JSON.parse(JSON.stringify(row));change(copy);assert.equal(shareholderTotals(metric,copy,[]).shareholderValue,null);}
+});
+
+test('annual estimate never fills missing EPS or financial amounts from prior annual/quarter data',()=>{
+ const estimate=p(2026,'ESTIMATE',{values:{eps:null,bps:'100',roe:'0'},provenance:{periodEnd:'2026-12-31',fsDivision:'OFS'},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'OFS',source:'NAVER_FNGUIDE_ANNUAL',values:{bps:'100',roe:'0'},financials:{netIncome:'-50',totalEquity:'0'}},estimateFinancials:{netIncome:'-50',totalEquity:'0'}}});
+ const selected=selectValueListAnalysis(input([estimate,p(2025)],[{fiscalYear:2025,periodType:'ANNUAL',totalEquity:new Prisma.Decimal(500),netIncomeYtd:new Prisma.Decimal(999)} as any]));
+ assert.equal(selected.metricBasis.year,2026);assert.equal(selected.eps,null);assert.equal(selected.roe,'0');assert.equal(selected.netIncome,'-50');assert.equal(selected.capital,'0');assert.equal(selected.capitalBasis?.year,2026);
+ const mismatch=structuredClone(estimate);mismatch.values.eps='20';mismatch.supplemental.manualSource.values.eps='10';assert.equal(selectValueListAnalysis(input([mismatch])).eps,null);
+});
+
+test('retained total-income ROE cannot inherit newer parent-attribution provenance for RIM',()=>{
+ const row=p(2025,'ANNUAL',{provenance:{periodEnd:'2025-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{fsDivision:'CFS',roeBasis:'TOTAL_SAME_DIVISION',periodEnd:'2025-12-31'}}}});
+ const r=selectValueListAnalysis(input([row]));assert.equal(r.targetPrice,null);assert.equal(r.w,null);assert.equal(r.missingReasons.targetPrice,'RIM_BASIS_UNCONFIRMED');
+});
+
+test('existing manual annual-estimate provenance keeps annual values but rejects interim markers',()=>{
+ const estimate=p(2026,'ESTIMATE',{values:{eps:'0',bps:'100',roe:'-10'},provenance:{periodEnd:'2026-12-31',fsDivision:'OFS',perMetric:Object.fromEntries(['eps','bps','roe'].map(k=>[k,{kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'OFS',periodType:'ANNUAL'}]))},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'OFS',values:{eps:'0',bps:'100',roe:'-10'}}}});
+ const valid=selectValueListAnalysis(input([estimate]));assert.equal(valid.eps,'0');assert.equal(valid.roe,'-10');
+ estimate.provenance.perMetric.eps.periodType='Q2';assert.equal(selectValueListAnalysis(input([estimate])).eps,null);
 });

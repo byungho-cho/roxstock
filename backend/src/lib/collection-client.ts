@@ -3,6 +3,8 @@ import {Prisma,type PrismaClient} from '../generated/prisma/index.js';
 import {collectionContext,inCollectionTransaction,lockCollection} from '../collector/collection-policy.js';
 const collected=new Set(['marketPrice','financialStatement','valuationMetric','securityFundamentals','dartFinancialFiling','dartShareSnapshot','periodValuation','annualConsensusSnapshot','dartCorpMapping']);
 const models=new Map(Prisma.dmmf.datamodel.models.map(m=>[m.name.slice(0,1).toLowerCase()+m.name.slice(1),m]));
+const analysisModels=new Set(['financialStatement','valuationMetric','dartFinancialFiling','dartShareSnapshot','periodValuation','annualConsensusSnapshot','security','dartBackfillTask']);
+const analysisWrites=new Set(['create','createMany','update','updateMany','upsert','delete','deleteMany']);
 const writes=new Set(['create','createMany','update','updateMany','upsert']);
 type Obj=Record<string,any>;
 function project(model:string,args:Obj){
@@ -50,15 +52,22 @@ async function resetNamespace(model:string,delegate:Obj,args:Obj,op:string,root:
  return {...args,[op==='upsert'?'update':'data']:{...empty,...create,...provided}};
 }
 /** Central read identity boundary, and atomic collection write fence. No collected history is deleted on code edits. */
+async function lockAnalysisRevision(tx:any){
+ if(tx.analysisRevision)await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;
+}
 const wrapped=new WeakSet<object>();
-export function collectionClient<T extends object>(db:T,root:PrismaClient=db as unknown as PrismaClient):T{
+export function collectionClient<T extends object>(db:T,root:PrismaClient=db as unknown as PrismaClient,inAnalysisTransaction=false):T{
  if(wrapped.has(db))return db;
  const cache=new Map<PropertyKey,unknown>();
  const proxy=new Proxy(db,{get(target,key){
   const value=Reflect.get(target,key);
   if(key==='$transaction'&&typeof value==='function')return (work:any,...options:any[])=>{
    if(typeof work!=='function')return value.call(target,work,...options);
-   return value.call(target,async(tx:any)=>{await lockCollection(tx);return inCollectionTransaction(()=>work(collectionClient(tx,root)));},...options);
+   return value.call(target,async(tx:any)=>{
+    // Acquire the revision row before the callback can establish a repeatable-read snapshot.
+    // MariaDB otherwise raises 1020 when revision triggers update a newer committed row.
+    await lockAnalysisRevision(tx);
+    await lockCollection(tx);return inCollectionTransaction(()=>work(collectionClient(tx,root,true)));},...options);
   };
   if(typeof value==='function')return value.bind(target);
   if(!value||typeof value!=='object'||!models.has(String(key)))return value;
@@ -66,9 +75,12 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
    const method=Reflect.get(delegate,operation);if(typeof method!=='function')return method;
    return async(args:Obj={})=>{
     const model=String(key),op=String(operation),scope=collectionContext();let query=project(model,args);
+    // Prisma upserts may establish their own implicit transaction snapshot. Fence these too.
+    if(!inAnalysisTransaction&&analysisModels.has(model)&&analysisWrites.has(op)&&typeof (db as any).$transaction==='function')
+     return root.$transaction(async tx=>{await lockAnalysisRevision(tx);await lockCollection(tx);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root,true),key),operation)(query));});
     if(collected.has(model)&&writes.has(op)&&scope){
      const required=model==='dartShareSnapshot'?'share-counts':model==='annualConsensusSnapshot'?'consensus':undefined;
-     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root),key),operation)(query));});
+     if(!scope.inTransaction)return root.$transaction(async tx=>{await lockAnalysisRevision(tx);await lockCollection(tx);if(required)await lockCollection(tx,required);return inCollectionTransaction(()=>Reflect.get(Reflect.get(collectionClient(tx,root,true),key),operation)(query));});
      if(required)await lockCollection(db as any,required);
      query=stamp(query,scope.identity.symbol);
      if(op==='updateMany'){const security=await root.security.findUnique({where:{id:scope.identity.id},select:{codeRevision:true}});query.where={AND:[query.where??{},{securityId:scope.identity.id},security?.codeRevision?{collectionSymbol:scope.identity.symbol}:{OR:[{collectionSymbol:scope.identity.symbol},{collectionSymbol:null}]}]};}
