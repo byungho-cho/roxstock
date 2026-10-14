@@ -7,7 +7,7 @@ test('home priority cards finish before recent buys; recent delay is local; vali
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
     if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
 
-  const path=new URL(route.request().url()).pathname;reads.push(path);
+  const path=new URL(route.request().url()).pathname;if(path!=='/api/version')reads.push(path);
   if(path.endsWith('/asset-history'))await new Promise<void>(r=>{releasePrimary=r;});
   if(path.endsWith('/recent-buys'))await new Promise<void>(r=>{releaseRecent=r;});
   return route.fallback();

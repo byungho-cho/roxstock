@@ -1,0 +1,193 @@
+{
+  "run": "https://github.com/byungho-cho/roxstock/actions/runs/38534307633",
+  "head": "c17be88c83e147faffa7e2be27ff2db31ab86756",
+  "baseline": "4b850e5fd4080afa01fd98dd903c728f1a3a827f",
+  "samples": [
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "before",
+      "project": "cover",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 701,
+          "dataMs": 1535,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 638,
+          "dataMs": 1483,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 532,
+          "dataMs": 1360,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:10.207Z"
+    },
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "before",
+      "project": "tablet",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 650,
+          "dataMs": 1502,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 631,
+          "dataMs": 1444,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 521,
+          "dataMs": 1344,
+          "controlledApiMs": 302,
+          "dateSkeletons": 42
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:10.787Z"
+    },
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "after",
+      "project": "cover",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 509,
+          "dataMs": 845,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 609,
+          "dataMs": 925,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 641,
+          "dataMs": 980,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:13.697Z"
+    },
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "after",
+      "project": "tablet",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 603,
+          "dataMs": 956,
+          "controlledApiMs": 301,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 674,
+          "dataMs": 1007,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 589,
+          "dataMs": 936,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:14.331Z"
+    },
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "before",
+      "project": "large",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 521,
+          "dataMs": 1355,
+          "controlledApiMs": 301,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 590,
+          "dataMs": 1397,
+          "controlledApiMs": 300,
+          "dateSkeletons": 42
+        },
+        {
+          "shellMs": 569,
+          "dataMs": 1394,
+          "controlledApiMs": 300,
+          "dateSkeletons": 42
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:24.682Z"
+    },
+    {
+      "kind": "phase31-ui-before-after",
+      "label": "after",
+      "project": "large",
+      "repeats": 3,
+      "concurrency": 2,
+      "controlledDelayMs": 300,
+      "cache": "fresh browser context per sample",
+      "samples": [
+        {
+          "shellMs": 467,
+          "dataMs": 784,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 439,
+          "dataMs": 754,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        },
+        {
+          "shellMs": 413,
+          "dataMs": 731,
+          "controlledApiMs": 300,
+          "dateSkeletons": 0
+        }
+      ],
+      "sha": "b4d58910e6dc675a79e5b085012a270a260eba0d",
+      "utc": "2026-10-14T08:21:27.459Z"
+    }
+  ]
+}

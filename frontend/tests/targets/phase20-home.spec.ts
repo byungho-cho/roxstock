@@ -18,7 +18,7 @@ test('chart and targets paint before slow dashboard; recent remains a titled she
  await page.route('**/api/**',async r=>{
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
     if(new URL(r.request().url()).pathname.startsWith('/api/pages/'))return r.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
-const p=new URL(r.request().url()).pathname;reads.push(p);if(p.endsWith('/dashboard'))await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
+const p=new URL(r.request().url()).pathname;if(p!=='/api/version')reads.push(p);if(p.endsWith('/dashboard'))await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
  await page.goto('/');await titles(page);await expect(page.getByTestId('home-trend-card')).toHaveCount(0);await expect(page.getByTestId('target-arrival-card')).toContainText('0건');
  await expect(page.getByTestId('home-total-card')).toHaveAttribute('aria-busy','true');expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
  const before=await geometry(page);release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);

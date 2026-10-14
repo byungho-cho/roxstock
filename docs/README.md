@@ -1,5 +1,9 @@
 # Documentation
 
+## 31차 · V 1.0.31
+
+[구현·버전 관리·배포](./development/phase31-loading-version-20261014.md) · [검증과 성능](./qa/phase31-loading-version-20261014.md) · [PR #221](https://github.com/byungho-cho/roxstock/pull/221).
+
 ## 2026-10-14 현행 기준
 
 이 절과 [28·29차 현행 명세](./handoff/20261014-phase28-29-current.md)가 같은 항목의 이전 기록보다 우선합니다.
