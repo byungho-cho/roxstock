@@ -17,7 +17,7 @@ test('detail GET uses one repeatable-read snapshot, year metrics and requested s
 });
 
 
-test('no daily snapshot uses stored-data fallback and fresh prices without external collection', async () => {
+test('no daily snapshot briefly reuses revision-keyed stored-data fallback without external collection', async () => {
  const original=prisma.security.findMany;let joins=0,price=10000;
  prisma.security.findMany=(async(input:any)=>{
   if(input.include){joins++;await new Promise(resolve=>setTimeout(resolve,20));return [{id:1n,name:'종목',symbol:'001',financialStatements:[annual(2025)],dartFinancialFilings:[],valuationMetrics:[{metricDate:new Date('2025-12-31'),bps:new Prisma.Decimal(10000),roe:new Prisma.Decimal(10)}],marketPrice:{currentPrice:new Prisma.Decimal(price),previousClosePrice:new Prisma.Decimal(9000),priceUpdatedAt:new Date()}}];}
@@ -25,8 +25,9 @@ test('no daily snapshot uses stored-data fallback and fresh prices without exter
  }) as unknown as typeof original;
  const app=buildAnalysisTestApp();try{
   await Promise.all([app.inject('/api/value-analysis?year=2026'),app.inject('/api/value-analysis?year=2026')]);assert.equal(joins,1);
-  price=20000;const response=await app.inject('/api/value-analysis?year=2026');assert.equal(response.json().data.rows[0].w,'0.6');assert.equal(joins,2);
-  await app.inject('/api/value-analysis?year=2025');assert.equal(joins,3);
+  price=20000;const response=await app.inject('/api/value-analysis?year=2026');assert.equal(response.json().data.rows[0].w,'1.2');assert.equal(joins,1);
+  await app.inject('/api/value-analysis?year=2025');assert.equal(joins,2);
+  app.valueReadModel.clear();assert.equal((await app.inject('/api/value-analysis?year=2026')).json().data.rows[0].w,'0.6');assert.equal(joins,3);
  }finally{await app.close();prisma.security.findMany=original;}
 });
 

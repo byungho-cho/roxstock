@@ -34,3 +34,12 @@ test('old or invalid persisted schema falls back and can be atomically rebuilt',
  const restarted=new ValueReadModel(f.db,f.loader);assert.equal((await restarted.get(2026)).meta.status,'FALLBACK');await restarted.warm(2026);assert.equal((await restarted.get(2026)).meta.status,'HIT');
  f.records.get('value:2026').payload=null;const repaired=new ValueReadModel(f.db,f.loader);assert.equal((await repaired.get(2026)).meta.status,'FALLBACK');await repaired.warm(2026);assert.equal((await repaired.get(2026)).meta.status,'HIT');
 });
+
+test('fallback cache shares reads, isolates filters/revisions and clears explicitly',async()=>{
+ const f=fixture(),model=new ValueReadModel(f.db,f.loader);
+ await Promise.all([model.get(2026),model.get(2026)]);assert.equal(f.loads,1);
+ await model.get(2026);assert.equal(f.loads,1);
+ await model.get(2026,{query:'other'});assert.equal(f.loads,2);
+ f.dirty();await model.get(2026);assert.equal(f.loads,3);
+ model.clear();await model.get(2026);assert.equal(f.loads,4);
+});

@@ -12,7 +12,7 @@ import { ApiError } from '../lib/api-error.js';
 import { id } from '../lib/input.js';
 import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
 
-type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string; sorts?:string };
+type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string; sorts?:string; compact?:string };
 const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));
 function integer(value: string | undefined, fallback: number, min: number, max: number, name: string) {
   if (value === undefined) return fallback;
@@ -27,7 +27,8 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
     if (query.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'query is too long.');
     let sorts;try{sorts=parseAnalysisSort(request.query.sorts);}catch{throw new ApiError(400,'INVALID_INPUT','정렬 조건을 확인해 주세요.');}
     const result=await app.valueReadModel.get(year,{query});
-    const rows=sortAnalysisRows(publicValueRows(result.rows).filter(row=>!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query)),sorts);
+    if(request.query.compact!==undefined&&request.query.compact!=='1')throw new ApiError(400,'INVALID_INPUT','compact is invalid.');
+    const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query)),sorts);
     return {data:{rows,total:rows.length,year,query,sorts,cache:result.meta,timezone:'Asia/Seoul',metricBasis:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL'}};
   });
   app.get<{ Params: { id: string }; Querystring: Query }>('/value-analysis/:id', async request => {

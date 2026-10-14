@@ -13,7 +13,7 @@ test('dashboard layout, shared periods, weights and single scroll',async({page},
   for(const label of ['1개월','3개월','6개월','1년','전체']){await panel.getByRole('button',{name:label,exact:true}).click();await expect(panel.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');await expect(panel.getByTestId('analysis-trend-period')).toHaveText(await panel.getByTestId('analysis-performance-period').textContent()??'');}
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(panel.getByTestId('analysis-metric-기간 종료자산')).toContainText('7,000원');
  }else{
-  await expect(card.getByTestId('asset-trend-chart')).toBeVisible();const t=(await card.getByTestId('dashboard-trend').boundingBox())!,d=(await card.getByTestId('asset-donut').boundingBox())!;expect(t.y+t.height).toBeLessThanOrEqual(d.y);
+  await expect(card.getByTestId('asset-trend-chart')).toBeVisible();const t=(await card.getByTestId('dashboard-trend').boundingBox())!,d=(await card.getByTestId('asset-donut').boundingBox())!;expect(d.y+d.height).toBeLessThanOrEqual(t.y); const a=(await card.getByTestId('composition-amounts').boundingBox())!;expect(Math.abs(t.x-a.x)).toBeLessThan(1);expect(Math.abs(t.width-a.width)).toBeLessThan(1);
  }
  const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();const svg=chart.locator('svg');await expect(svg).toHaveCSS('touch-action','pan-y');
  const r=(await svg.boundingBox())!,cdp=await page.context().newCDPSession(page),y=r.y+r.height/2;
