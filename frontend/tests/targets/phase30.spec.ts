@@ -15,11 +15,16 @@ test('dashboard layout, shared periods, weights and single scroll',async({page},
  }else{
   await expect(card.getByTestId('asset-trend-chart')).toBeVisible();const t=(await card.getByTestId('dashboard-trend').boundingBox())!,d=(await card.getByTestId('asset-donut').boundingBox())!;expect(t.y+t.height).toBeLessThanOrEqual(d.y);
  }
+ const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();const svg=chart.locator('svg');await expect(svg).toHaveCSS('touch-action','pan-y');
+ const r=(await svg.boundingBox())!,cdp=await page.context().newCDPSession(page),y=r.y+r.height/2;
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width*.2,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:r.x+r.width*.95,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ const tip=page.getByTestId('asset-trend-tooltip');await expect(tip).toBeVisible();const t=(await tip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);expect(t.y+t.height).toBeLessThanOrEqual(page.viewportSize()!.height);await page.screenshot({path:info.outputPath('dashboard-tooltip-after.png')});await page.keyboard.press('Escape');
  await card.getByRole('button',{name:'종목별 비중 차트 방식 변경'}).click();await expect(card).toContainText('누적형');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect(await page.locator('main').evaluate(n=>Array.from(n.querySelectorAll('*')).filter(e=>['auto','scroll'].includes(getComputedStyle(e).overflowY)&&e.scrollHeight>e.clientHeight+1).length)).toBe(0);
  await page.locator('main').evaluate(n=>n.scrollTop=0);await page.screenshot({path:info.outputPath('dashboard-after.png'),fullPage:true});
  await page.setViewportSize({width:page.viewportSize()!.width,height:1000});await page.screenshot({path:info.outputPath('dashboard-layout-after.png')});
+ await page.getByRole('button',{name:tablet?'자산추이 상세보기':'자산추이 (상세보기)',exact:true}).click();await expect(page).toHaveURL(tablet?/\/assets\?.*chart=detail/:/\/assets$/);if(tablet)await expect(page.getByRole('dialog')).toBeVisible();
 });
 test('history error retries and missing values remain unavailable',async({page})=>{
  const f=await fixture(page,{trend:true,analysis:true});f.history.mode='error';
