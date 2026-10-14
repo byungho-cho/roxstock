@@ -1,5 +1,6 @@
 export const appMenuItems=[
  {label:'홈',path:'/',icon:'home'},
+ {label:'대시보드',path:'/detail/assets',icon:'assets'},
  {label:'종목목록',path:'/stocks',icon:'stocks'},
  {label:'매매일지',path:'/journal',icon:'journal'},
  {screen:'1300',label:'예수금',path:'/detail/cash',icon:'cash'},
@@ -9,7 +10,6 @@ export const appMenuItems=[
  {label:'가치분석',path:'/detail/value',icon:'value'},
  {label:'재무제표',path:'/detail/financials',icon:'financials'},
  {label:'복리계획',path:'/detail/compound',icon:'compound'},
- {label:'모니터링',path:'/detail/collection-monitoring',icon:'monitoring'},
  {label:'설정',path:'/detail/settings',icon:'settings'},
 ];
 export const menuIconSource=(icon:string)=>`/more-v03/${icon}.svg`;

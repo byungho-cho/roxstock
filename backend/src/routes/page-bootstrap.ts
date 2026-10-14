@@ -10,21 +10,6 @@ import { targetArrivalsResult } from './target-arrivals.js';
 import { recentBuysResult } from './recent-buys.js';
 import { Prisma } from '../generated/prisma/index.js';
 
-export async function homeTrend(accountId: bigint, dashboard: Awaited<ReturnType<typeof loadDashboard>>['data'], today: string) {
-  const from = new Date(`${today}T00:00:00Z`);
-  from.setUTCMonth(from.getUTCMonth() - 1);
-  const snapshots = await prisma.dailyAccountSnapshot.findMany({
-    where: { accountId, snapshotDate: { gte: from, lte: new Date(`${today}T00:00:00Z`) } },
-    select: { snapshotDate: true, totalAssetValue: true }, orderBy: [{ snapshotDate: 'asc' }, { id: 'asc' }],
-  });
-  const data = snapshots.map(row => ({ date: row.snapshotDate.toISOString().slice(0, 10), totalAssetValue: row.totalAssetValue.toString() }));
-  if (dashboard.totalAssetValue !== null) {
-    if (data.at(-1)?.date === today) data.pop();
-    data.push({ date: today, totalAssetValue: dashboard.totalAssetValue });
-  }
-  return { data };
-}
-
 export function stockTradeSummary(portfolio: Awaited<ReturnType<typeof loadPortfolio>>) {
   const rows = new Map<string, { security: { id: string; symbol: string; name: string; marketType: string }; realizedProfitLoss: Prisma.Decimal; lastSoldAt: Date | null }>();
   for (const lot of portfolio.account.buyTrades) {
@@ -69,18 +54,17 @@ export function installPageBootstrap(app: FastifyInstance) {
         }
         const dashboardPromise = loadDashboard(accountId, portfolio);
         // Secondary failures do not turn valid account balances into an error.
-        const [dashboard, trend, targets, recent] = await Promise.all([
+        const [dashboard, targets, recent] = await Promise.all([
           dashboardPromise,
-          dashboardPromise.then(result => homeTrend(accountId, result.data, today)).catch(() => null),
           portfolio.then(position => targetArrivalsResult(position.account)).catch(() => null),
           portfolio.then(position => {
             const lots = [...position.account.buyTrades].sort((a, b) => b.boughtAt.getTime() - a.boughtAt.getTime() || (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
             return recentBuysResult(lots.slice(0, 5), lots.length, accountId, 0);
           }).catch(() => null),
         ]);
-        return { ...base, dashboard: dashboard.data, trend, targets, recent };
+        return { ...base, dashboard: dashboard.data, targets, recent };
       });
-      if ('trend' in result.value && (result.value.trend === null || result.value.targets === null || result.value.recent === null)) cache.delete(cacheKey);
+      if ('targets' in result.value && (result.value.targets === null || result.value.recent === null)) cache.delete(cacheKey);
       reply.header('Cache-Control', 'private, no-store');
       reply.header('X-Page-Cache', result.status);
       return { data: result.value };

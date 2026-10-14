@@ -3,7 +3,7 @@ import { AppBar, BottomNavigationAction, Box, IconButton, Toolbar, Typography } 
 import {appMenuItems,menuIconSource} from './menuItems';
 import { HeaderAddButton } from './HeaderAddButton';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useMediaQuery } from '@mui/material';
 import { colors, pageGutter, pageMetrics } from '../../styles/tokens';
@@ -63,16 +63,18 @@ const menuItems=appMenuItems.filter(item=>item.path!=='/');
 export function BottomNav() {
   const navigate = useNavigate(), location = useLocation();
   const path = location.pathname;
-  const active = path === '/detail/security-management' ? '/detail/settings' : path === '/trade' ? (location.state?.backgroundLocation?.pathname?.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks')
+  const scroll = useRef<HTMLDivElement>(null);
+  const active = path.startsWith('/detail/collection-monitoring') || path === '/detail/security-management' ? '/detail/settings' : path === '/trade' ? (location.state?.backgroundLocation?.pathname?.startsWith('/journal') || new URLSearchParams(location.search).get('return') === 'journal' ? '/journal' : '/stocks')
     : /\/stocks\/[^/]+\/value$/.test(path) ? '/detail/value'
     : /\/stocks\/[^/]+\/financials$/.test(path) ? '/detail/financials'
     : [...menuItems].sort((a,b)=>b.path.length-a.path.length).find(item=>path.startsWith(item.path))?.path
     ?? (path === '/more' ? '/more' : '/');
+  useEffect(() => { scroll.current?.querySelector('[aria-current="page"]')?.scrollIntoView({block:'nearest',inline:'nearest'}); }, [active]);
   const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(${asset})`,maskSize:'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={asset} alt="" sx={{width:18,height:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
   const divider = <Box sx={{width:'1px',height:28,my:'8px',bgcolor:'#334155',flexShrink:0}}/>;
   return <Box component="nav" className="MuiBottomNavigation-root" aria-label="하단 메뉴" sx={{position:'fixed',inset:'auto 0 0',height:44,zIndex:10,display:'flex',bgcolor:'#0B1220',borderTop:`1px solid ${colors.border}`}}>
     {item('홈','/',menuIconSource('home'),true)}{divider}
-    <Box data-testid="bottom-menu-scroll" sx={{display:'flex',minWidth:0,flex:1,overflowX:'auto',overflowY:'hidden',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}>{menuItems.map(entry=>item(entry.label,entry.path,menuIconSource(entry.icon)))}</Box>
+    <Box ref={scroll} data-testid="bottom-menu-scroll" sx={{display:'flex',minWidth:0,flex:1,overflowX:'auto',overflowY:'hidden',scrollbarWidth:'none','&::-webkit-scrollbar':{display:'none'}}}>{menuItems.map(entry=>item(entry.label,entry.path,menuIconSource(entry.icon)))}</Box>
     {divider}{item('더보기','/more','/navigation-v16/more.svg',true)}
   </Box>;
 }

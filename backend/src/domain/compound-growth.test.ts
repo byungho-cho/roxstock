@@ -38,3 +38,12 @@ test('yearly realized assets use exact closing snapshot, preserve zero and keep 
  plan.initialAssetValue=new Prisma.Decimal(0);assert.equal(serializePlan(plan,'100',2026).goals[0]!.rows[3]!.annualAchievementRate,null);
  assert.equal(seoulYear(new Date('2025-12-31T14:59:59Z')),2025);assert.equal(seoulYear(new Date('2025-12-31T15:00:00Z')),2026);
 });
+
+test('phase28 table pairs investment and valuation at capital date, preserves missing history and zero',async()=>{
+ const {annualTableValues}=await import('./compound-growth.js');
+ const snapshot=(date:string,investment:string|null,total:string)=>({snapshotDate:new Date(date+'T00:00:00Z'),investmentAmount:investment,totalAssetValue:total});
+ const values=annualTableValues([snapshot('2024-12-31','0','0'),snapshot('2025-12-30','99','100'),snapshot('2026-10-12','123.45','987.65'),snapshot('2026-10-13',null,'999'),snapshot('2026-10-14','200','300')],'2026-10-13');
+ assert.deepEqual(values.get(2024),{evaluationAmount:'0',investmentAmount:'0',valuationDate:'2024-12-31'});
+ assert.deepEqual(values.get(2025),{evaluationAmount:null,investmentAmount:null,valuationDate:null});
+ assert.deepEqual(values.get(2026),{evaluationAmount:'987.65',investmentAmount:'123.45',valuationDate:'2026-10-12'});
+});
