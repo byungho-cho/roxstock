@@ -1,4 +1,5 @@
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+import {PerformanceCard} from '../../components/common/PerformanceCard';
 import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
 import { Box, Button, Snackbar, Stack, Typography } from '@mui/material';
@@ -6,7 +7,7 @@ import {useActiveAccount} from '../../hooks/useActiveAccount';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppCard } from '../../components/common/Common';
-import { AssetQuickCards, TotalAssetCard } from '../../components/common/AssetSummaryCards';
+import { TotalAssetCard } from '../../components/common/AssetSummaryCards';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { assetComposition } from '../../data/mockData';
 import { liveApiEnabled } from '../../data/liveData';
@@ -23,11 +24,11 @@ type ChartItem = { id: string; name: string; percent: number; color: string };
 
 export function AssetOverviewPage() {
   const navigate = useNavigate();
-  const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true });
+  const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true, includeTrend: false });
   const {accounts}=useActiveAccount();
   const pending=isPending&&!isError&&!accounts.isError;
   const [mode, setMode] = useState<'cumulative' | 'ranked'>('ranked');
-  const header = <PageHeader title="평가자산" variant="detail" backPath="/" showBackTablet showAdd={false} assetOverview backIcon={<Box component="span" sx={{ fontSize: 30, lineHeight: '30px' }}>‹</Box>} embedded action={<Box sx={{ width: 44, flexShrink: 0 }} />} />;
+  const header = <PageHeader title="대시보드" variant="detail" backPath="/" showBackTablet showAdd={false} assetOverview backIcon={<Box component="span" sx={{ fontSize: 30, lineHeight: '30px' }}>‹</Box>} embedded action={<Box sx={{ width: 44, flexShrink: 0 }} />} />;
   const summary=data?.summary??unavailableSummary,holdings=data?.holdings??[];
   const profit = summary.pricingComplete === false ? Number.NaN : summary.totalProfit;
   const rate = summary.pricingComplete === false || !(summary.stockPurchaseAmount > 0) ? Number.NaN : summary.totalProfitRate;
@@ -42,7 +43,7 @@ export function AssetOverviewPage() {
   }));
   return <>{header}<Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
     <Box className="rox-home" data-testid="asset-overview" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', alignItems: 'stretch' }}>
-      <Stack data-testid="asset-summary-column" spacing="8px" sx={{ minWidth: 0, '& [data-testid="home-holding"]': { pr: '8px' }, '& h2': { fontSize: 13, lineHeight: '22px' }, '& [data-testid="home-card-footer"] .MuiTypography-root': { fontSize: 10 } }}><TotalAssetCard summary={summary} home loading={pending}/>{(isError||accounts.isError)&&<Button role="alert" onClick={()=>{void refetch();if(accounts.isError)void accounts.refetch();}}>평가자산 조회 실패 · 다시 시도</Button>}<AssetQuickCards allocationAvailable={!isError} summary={summary} home loading={pending} gap="10px" /><PerformanceCard summary={summary} profit={profit} rate={rate} loading={pending}/>
+      <Stack data-testid="asset-summary-column" spacing="8px" sx={{ minWidth: 0, '& [data-testid="home-holding"]': { pr: '8px' }, '& h2': { fontSize: 13, lineHeight: '22px' }, '& [data-testid="home-card-footer"] .MuiTypography-root': { fontSize: 10 } }}><TotalAssetCard summary={summary} home loading={pending}/>{(isError||accounts.isError)&&<Button role="alert" onClick={()=>{void refetch();if(accounts.isError)void accounts.refetch();}}>평가자산 조회 실패 · 다시 시도</Button>}<PerformanceCard summary={summary} profit={profit} rate={rate} loading={pending}/>
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}><HomeListCard height={222} compactFooter testId="asset-holdings-card" title="보유종목" pending={pending} count={data?`${holdings.length}종목`:undefined} timestampLabel="갱신 " timestamp={summary.collectedAt} updating={isFetching} more={() => navigate('/stocks?tab=holding')} notice={data&&summary.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined}>
           {pending?<HomeListLoading rowCount={3}/>:holdings.slice(0, 3).map(stock => <HoldingRow key={stock.id} stock={stock} onClick={() => navigate(`/stocks/${stock.id}`)} />)}
           {!pending&&holdings.length===0&&<HomeEmpty>{isError||accounts.isError?<Button role="alert" onClick={()=>{void refetch();if(accounts.isError)void accounts.refetch();}}>조회 실패 · 다시 시도</Button>:'내용이 없습니다.'}</HomeEmpty>}
@@ -53,18 +54,6 @@ export function AssetOverviewPage() {
   </>;
 }
 
-function PerformanceCard({ summary, profit, rate,loading=false }: { loading?:boolean; summary: DashboardSummary; profit: number; rate: number }) {
-  const rows = [
-    { label: '매입금액', value: formatWon(summary.stockPurchaseAmount), color: colors.textPrimary },
-    { label: '평가손익', value: formatWon(profit), color: getMarketColor(profit) },
-    { label: '주식평가액', value: formatWon(summary.stockValue), color: getMarketColor(profit) },
-  ];
-  return <AppCard data-testid="asset-performance-card" sx={{ height: 174, borderRadius: '8px', borderColor: '#25344D', px: '14px', pt: '12px', minWidth: 0 }}>
-    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', height: 24, mb: '6px' }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>평가손익</Typography><Typography sx={{ fontSize: 16, fontWeight: 700, color: getMarketColor(rate) }}>{loading?<Skeleton width={45} height={16} sx={{transform:'none'}}/>:formatPercent(rate)}</Typography></Stack>
-    {rows.map(row => <Stack key={row.label} direction="row" sx={{ height: 26, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, color: colors.textSecondary }}>{row.label}</Typography><Typography sx={{ fontSize: 12, fontWeight: 600, color: row.color, whiteSpace: 'nowrap' }}>{loading?<Skeleton width={90} height={12} sx={{transform:'none'}}/>:row.value}</Typography></Stack>)}
-    <Stack data-testid="asset-previous-day" direction="row" sx={{ height: 36, alignItems: 'flex-start', pt: '2px', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12, color: colors.textMuted }}>전일 대비</Typography><Stack sx={{ alignItems: 'flex-end', minWidth: 0, whiteSpace: 'nowrap', textAlign: 'right' }}><Typography sx={{ fontSize: 12, lineHeight: '18px', fontWeight: 600, color: getMarketColor(summary.previousDayChange ?? Number.NaN) }}>{loading?<Skeleton width={90} height={12} sx={{transform:'none'}}/>:formatSignedWon(summary.previousDayChange ?? Number.NaN)}</Typography><Typography sx={{ fontSize: 10, lineHeight: '14px', color: getMarketColor(summary.previousDayChangeRate ?? Number.NaN) }}>{loading?<Skeleton width={40} height={10} sx={{transform:'none'}}/>:formatPercent(summary.previousDayChangeRate ?? Number.NaN)}</Typography></Stack></Stack>
-  </AppCard>;
-}
 
 function CompositionCard({ summary, items, mode, onToggle, updating,allocationAvailable,loading=false,failed=false,retry }: {loading?:boolean;failed?:boolean;retry:()=>void; summary: DashboardSummary; items: ChartItem[]; mode: 'cumulative' | 'ranked'; onToggle: () => void; updating: boolean;allocationAvailable:boolean }) {
   const {available,stockPercent,cashPercent,stockColor,cashColor,stockBarColor,cashBarColor}=cashAllocation(summary.stockValue,summary.cashBalance,summary.pricingComplete!==false&&allocationAvailable);

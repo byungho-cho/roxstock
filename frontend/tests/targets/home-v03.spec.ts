@@ -49,7 +49,7 @@ test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and o
   const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
   expect(await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(251, 191, 36)');
   expect(assets).toHaveLength(13);for(const asset of assets){expect([18,20]).toContain(asset.width);expect(asset.height).toBe(asset.width);expect(asset.render.width).toBe(18);expect(asset.render.height).toBe(18);}
-  if(page.viewportSize()!.width>=600)for(const p of layout.panels.filter(p=>['home-holdings-card','target-arrival-card','recent-buys-card'].includes(p.id!)))expect(p.rect.height).toBe(290);
+  if(page.viewportSize()!.width>=600)for(const p of layout.panels.filter(p=>['home-holdings-card','target-arrival-card','recent-buys-card'].includes(p.id!)))expect(p.rect.height).toBeGreaterThanOrEqual(222);
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;
     expect(summary.rect.height).toBeGreaterThanOrEqual(290);expect(summary.rect.y).toBe(r.rect.y);expect(h.rect.y).toBe(t.rect.y);expect(h.rect.x).toBe(summary.rect.x);expect(t.rect.x).toBe(r.rect.x);

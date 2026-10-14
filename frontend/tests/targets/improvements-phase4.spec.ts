@@ -90,7 +90,7 @@ test('top-only pull: one refresh, cached contents, failure cleanup, retry and ho
   await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   const main=page.locator('main'),dash=()=>reads.filter(p=>p.endsWith('/dashboard')).length;
   const before=dash();const scrollRegion=main;await scrollRegion.evaluate(e=>{if(e.scrollHeight===e.clientHeight)e.style.maxHeight='200px';e.scrollTop=40;});expect(await scrollRegion.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);await gesture(scrollRegion);expect(dash()).toBe(before);await scrollRegion.evaluate(e=>{e.scrollTop=0;e.style.maxHeight='';});
-  await gesture(main,130,5);expect(dash()).toBe(before);await gesture(page.getByTestId('asset-trend-chart'));expect(dash()).toBe(before);
+  await gesture(main,130,5);expect(dash()).toBe(before);await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
   f.hold();await gesture(main);await expect.poll(dash).toBe(before+1);await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);await gesture(main);expect(dash()).toBe(before+1);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   f.release();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);
   f.fail();await gesture(main);await expect(page.getByText('새로고침에 실패했습니다. 기존 데이터를 표시합니다.')).toBeVisible({timeout:20000});await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);

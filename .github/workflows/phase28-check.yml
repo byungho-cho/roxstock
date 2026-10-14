@@ -1,0 +1,44 @@
+name: Phase28 Final Improvements
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**, backend/**, .github/workflows/phase28-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: |
+          git worktree add --detach phase28-baseline 9a933a0
+          ln -s ../node_modules phase28-baseline/node_modules
+          ln -s ../../frontend/node_modules phase28-baseline/frontend/node_modules
+          VITE_DATA_SOURCE=api npm --prefix phase28-baseline/frontend run build
+          npm --prefix phase28-baseline/frontend run preview -- --host 127.0.0.1 --port 3128 > /tmp/phase28-baseline.log 2>&1 &
+      - run: npm run prisma:generate && npm run typecheck:backend && npm run build:backend && npm --workspace backend test
+      - run: VITE_DATA_SOURCE=api npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.phase28.config.ts
+        working-directory: frontend
+        env:
+          PHASE28_BASELINE_URL: http://127.0.0.1:3128
+      - name: Preserve trade mutations and target conditions
+        run: npx playwright test --config playwright.targets.config.ts stock-inputs-v04.spec.ts settings-v03.spec.ts stocks-v04.spec.ts --grep "form:|price editor|partial sell|target conditions:|linked buy deletion" --project=cover-370x465 --project=tablet-725x396 --workers=2
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase28-screen-evidence
+          path: |
+            frontend/test-results/phase28/
+            frontend/test-results/targets/
+          retention-days: 30

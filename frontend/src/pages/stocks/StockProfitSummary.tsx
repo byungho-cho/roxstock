@@ -5,6 +5,7 @@ import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
 import { colors } from '../../styles/tokens';
+import { useSeoulYear } from '../compound/useCompoundPlans';
 import { seoulToday } from '../investment/investmentData';
 import { groups, loadProfit, totals, won } from '../investment-profit/profitData';
 import { StockProfitMetrics } from '../investment-profit/ProfitSummaryMetrics';
@@ -13,9 +14,13 @@ export { stockProfitPath, profitEntryState } from '../investment-profit/profitNa
 const heading={fontSize:14,fontWeight:700};
 const hint={fontSize:10,fontWeight:400,color:'#9CA3AF'};
 const card={borderRadius:'8px',border:'1px solid '+colors.border,bgcolor:colors.surface};
+export function useStockProfit(stockId:string,enabled=true) {
+ const client=useQueryClient(),{accountId}=useActiveAccount(),today=seoulToday(),year=useSeoulYear();
+ const query=useQuery({...storedQueryOptions,queryKey:['investment-profit-summary',accountId,stockId,year],queryFn:({signal})=>loadProfit(accountId!,today,signal,{client,includeCapital:false,aggregate:true,securityId:stockId}),enabled:enabled&&!!accountId,retry:false});
+ return query;
+}
 export function StockProfitSummary({stockId}:{stockId:string}) {
- const client=useQueryClient(),{accountId}=useActiveAccount(),go=useListNavigation(),today=seoulToday();
- const query=useQuery({...storedQueryOptions,queryKey:['investment-profit-summary',accountId,stockId,Number(today.slice(0,4))],queryFn:({signal})=>loadProfit(accountId!,today,signal,{client,includeCapital:false,aggregate:true,securityId:stockId}),enabled:!!accountId,retry:false});
+ const go=useListNavigation(),query=useStockProfit(stockId);
  const open=(url:string)=>go(url,{state:profitEntryState});
  if(!query.data)return query.isError?<Button role="alert" onClick={()=>query.refetch()}>손익 조회 실패 · 다시 시도</Button>:<Skeleton data-restoration-ready="false" height={180}/>;
  const stock=query.data.stocks.find(row=>row.id===stockId),years=groups(stock?.events??[],'year');

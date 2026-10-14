@@ -5,6 +5,11 @@ import {colors} from '../../styles/tokens';
 import {format,number} from '../value/valueApi';
 import type {Goal} from './compoundApi';
 
+function TableAmount({value}:{value:string|null}) {
+ const groups=format(value,0,'원').split(',');
+ return <>{groups.map((part,index)=><Box component="span" key={index} sx={{display:'inline-block'}}>{part}{index<groups.length-1?',':''}</Box>)}</>;
+}
+
 export function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:number;assets:string|null}){
  const [selected,setSelected]=useState<number|null>(null);
  const boundary=useRef<HTMLDivElement>(null),gesture=useRef<{x:number;y:number;vertical:boolean}|null>(null);
@@ -41,11 +46,11 @@ export function GrowthChart({goal,currentYear,assets}:{goal:Goal;currentYear:num
     <Box>{chosen.year}년</Box>{[{label:'목표금액',value:chosen.asset},{label:'누적 투입금',value:chosen.contributed},{label:'실현금액',value:chosen.realizedAsset}].map(row=><Box key={row.label} sx={{display:'flex',justifyContent:'space-between',gap:'6px'}}><span>{row.label}</span><Box sx={{minWidth:0,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{row.value==null?'데이터 없음':format(row.value,0,'원')}</Box></Box>)}
    </Box>}
   </Box>
-  <Box role="table" aria-label="연도별 실현금액과 목표금액" sx={{mt:'8px',fontSize:11}}>
-   <Box role="row" sx={{display:'grid',gridTemplateColumns:'44px minmax(0,1fr) minmax(0,1fr)',gap:'8px',color:colors.textMuted,mb:'8px'}}>{['연도','실현금액','목표금액'].map((label,i)=><Box key={label} role="columnheader" sx={{textAlign:i?'right':'left'}}>{label}</Box>)}</Box>
-   {rows.map(row=>{const realized=row.realizedAsset,met=row.realizedTargetMet??(number(realized)!==null&&number(row.asset)!==null?number(realized)!>=number(row.asset)!:null),color=realized==null?colors.textMuted:row.year<currentYear?(met?'#FA616E':'#60A5FA'):colors.textPrimary;
-    return <Box key={row.year} role="row" data-testid={'compound-year-'+row.year} sx={{display:'grid',gridTemplateColumns:'44px minmax(0,1fr) minmax(0,1fr)',gap:'8px',mb:'8px',alignItems:'start'}}>
-     <Box role="cell" sx={{color:colors.textMuted}}>{row.year}</Box><Box role="cell" sx={{textAlign:'right',overflowWrap:'anywhere',minWidth:0,color}}>{format(realized,0,'원')}</Box><Box role="cell" sx={{textAlign:'right',overflowWrap:'anywhere',minWidth:0,color:row.year<currentYear?colors.textMuted:colors.textPrimary}}>{format(row.asset,0,'원')}</Box>
+  <Box role="table" aria-label="연도별 평가금액과 투자금액 및 목표금액" sx={{mt:'8px',fontSize:{xs:10,sm:11},lineHeight:'16px',fontVariantNumeric:'tabular-nums'}}>
+   <Box role="row" sx={{display:'grid',gridTemplateColumns:'32px repeat(3,minmax(0,1fr))',gap:'4px',color:colors.textMuted,mb:'8px'}}>{['연도','평가금액','투자금액','목표금액'].map((label,i)=><Box key={label} role="columnheader" sx={{textAlign:i?'right':'left'}}>{label}</Box>)}</Box>
+   {rows.map(row=>{const realized=row.evaluationAmount??null,met=(number(realized)!==null&&number(row.asset)!==null?number(realized)!>=number(row.asset)!:null),color=realized==null?colors.textMuted:row.year<currentYear?(met?'#FA616E':'#60A5FA'):colors.textPrimary;
+    return <Box key={row.year} role="row" data-testid={'compound-year-'+row.year} title={row.valuationDate?`평가·투자 기준일 ${row.valuationDate}`:'기준 자료 없음'} sx={{display:'grid',gridTemplateColumns:'32px repeat(3,minmax(0,1fr))',gap:'4px',mb:'8px',alignItems:'start'}}>
+     <Box role="cell" sx={{color:colors.textMuted}}>{row.year}</Box><Box role="cell" sx={{textAlign:'right',overflowWrap:'anywhere',minWidth:0,color}}><TableAmount value={realized}/></Box><Box role="cell" sx={{textAlign:'right',overflowWrap:'anywhere',minWidth:0,color:colors.textPrimary}}><TableAmount value={row.investmentAmount??null}/></Box><Box role="cell" sx={{textAlign:'right',overflowWrap:'anywhere',minWidth:0,color:row.year<currentYear?colors.textMuted:colors.textPrimary}}><TableAmount value={row.asset}/></Box>
     </Box>;
    })}
   </Box>

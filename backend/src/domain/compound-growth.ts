@@ -1,4 +1,5 @@
 import { Prisma, type CompoundGrowthPlan, type CompoundGrowthGoal } from '../generated/prisma/index.js';
+import { annualInvestmentCapital } from './investment-capital.js';
 import { ApiError } from '../lib/api-error.js';
 const D = Prisma.Decimal.clone({ precision: 400 });
 export const colors = ['#5EA1F0','#FFC21A','#2DCCA4','#FA616E','#A87AF4','#29BEC8','#CBD5E1'];
@@ -29,13 +30,13 @@ export function project(initial:string,contribution:string,rate:string,start:num
  for(let year=start;year<=end;year++){asset=asset.plus(addition).mul(factor);rows.push({year,asset:asset.toString(),contributed:new D(initial).plus(addition.mul(year-start+1)).toString()});}
  return rows;
 }
-export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number,endingAssets:string|null=null,yearAssets:ReadonlyMap<number,string>=new Map()) {
+export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoal[]},currentAssets:string|null,currentYear:number,endingAssets:string|null=null,yearAssets:ReadonlyMap<number,string>=new Map(),tableValues:ReadonlyMap<number,{evaluationAmount:string|null;investmentAmount:string|null;valuationDate:string|null}>=new Map()) {
  const startYear=plan.startDate.getUTCFullYear(),endYear=plan.endDate.getUTCFullYear();
  const goals=plan.goals.map(goal=>{
   const rows=project(plan.initialAssetValue.toString(),plan.annualContributionAmount.toString(),goal.annualTargetRate.toString(),startYear,endYear).map(row=>{
    const realizedAsset=row.year<currentYear?yearAssets.get(row.year)??null:row.year===currentYear?currentAssets:null;
    const target=new D(row.asset);
-   return {...row,realizedAsset,realizedTargetMet:realizedAsset===null?null:new D(realizedAsset).gte(target),annualAchievementRate:realizedAsset!==null&&target.gt(0)?new D(realizedAsset).div(target).mul(100).toString():null};
+   return {...row,...(tableValues.get(row.year)??{evaluationAmount:null,investmentAmount:null,valuationDate:null}),realizedAsset,realizedTargetMet:realizedAsset===null?null:new D(realizedAsset).gte(target),annualAchievementRate:realizedAsset!==null&&target.gt(0)?new D(realizedAsset).div(target).mul(100).toString():null};
   });
   const finalTarget=rows.at(-1)?.asset??null,yearTarget=rows.find(row=>row.year===currentYear)?.asset??null;
   const final=finalTarget===null?null:new D(finalTarget);
@@ -45,4 +46,13 @@ export function serializePlan(plan:CompoundGrowthPlan & {goals:CompoundGrowthGoa
  });
  return {id:plan.id.toString(),planName:plan.planName,displayColor:plan.displayColor??plan.goals[0]?.displayColor??colors[0]!,startYear,endYear,duration:endYear-startYear+1,initialAssetValue:plan.initialAssetValue.toString(),annualContributionAmount:plan.annualContributionAmount.toString(),goals,endingAssets,endingAsOf:endingAssets===null?null:endYear+'-12-31',
   status:currentYear<startYear?'UPCOMING':currentYear>endYear?'ENDED':'ACTIVE'};
+}
+
+/** Investment capital selection follows the service's annual definition; both table amounts use its date. */
+export function annualTableValues(snapshots: {snapshotDate:Date;investmentAmount:{toString():string}|null;totalAssetValue:{toString():string}}[],today:string) {
+ const capital=annualInvestmentCapital(snapshots,today);
+ return new Map(capital.map(row=>{
+  const snapshot=row.date?snapshots.find(item=>item.snapshotDate.toISOString().slice(0,10)===row.date):undefined;
+  return [row.year,{evaluationAmount:snapshot?.totalAssetValue.toString()??null,investmentAmount:row.investmentAmount,valuationDate:row.date}];
+ }));
 }
