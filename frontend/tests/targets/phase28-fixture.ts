@@ -1,18 +1,23 @@
 import type {Page} from '@playwright/test';
-export async function fixture(page:Page){
+export async function fixture(page:Page, options:{trend?:boolean}={}){
  await page.clock.setFixedTime(new Date('2026-10-13T03:00:00Z'));
+ const history={mode:'ready' as 'ready'|'empty'|'error'|'hold'};let releaseHistory=()=>{};
  const reads:string[]=[];let release=()=>{},held=false;const gate=new Promise<void>(r=>release=r);
  const accounts=[1,2].map(id=>({id:String(id),name:'계좌'+id,isDefault:id===1,isActive:true,cashBalance:'1000'}));
  const securities=[1,2,3].map(id=>({id:String(id),symbol:String(id).padStart(6,'0'),name:'종목'+id,marketType:'KOSPI',listType:'HOLDING',isActive:true,hasTradeHistory:true,currentPrice:'150',previousClosePrice:'140'}));
  const dashboard={accountId:'1',totalAssetValue:'2500',cashBalance:'1000',stockValue:'1500',stockPurchaseAmount:'1000',unrealizedProfitLoss:'500',unrealizedReturnRate:'50',pricingComplete:true,previousDayChange:'50',previousDayChangeRate:'2',calculatedAt:'2026-10-13T03:00:00Z'};
- const holdings=securities.map(s=>({securityId:s.id,symbol:s.symbol,name:s.name,quantity:'10',averagePurchasePrice:'100',purchaseAmount:'1000',currentPrice:'150',marketValue:'1500',unrealizedProfitLoss:'500',unrealizedReturnRate:'50'}));
+ const holdings=securities.map(s=>({securityId:s.id,symbol:s.symbol,name:s.name,quantity:'10',averagePurchasePrice:'100',purchaseAmount:'1000',currentPrice:'150',marketValue:options.trend?'500':'1500',unrealizedProfitLoss:'500',unrealizedReturnRate:'50'}));
  const recent=Array.from({length:7},(_,i)=>({id:'lot'+i,security:securities[0],quantity:'10',unitPrice:'100',remainingQuantity:'10',currentPrice:'150',profitLoss:'500',returnRate:'50',boughtAt:'2026-10-12T00:00:00Z',buyDate:'2026-10-12',holdingDays:1}));
  async function read(path:string):Promise<{status:number;body:any}>{
   reads.push(path);const u=new URL('http://fixture/api'+path),p=u.pathname,id=p.split('/')[3]??'1',securityId=u.searchParams.get('securityId')??'1';let data:any=[];
   if(p==='/api/accounts')data=accounts;
   else if(p==='/api/securities')data=securities;
   else if(p.endsWith('/holdings'))data=holdings;
-  else if(p.endsWith('/dashboard'))data={...dashboard,holdings,purchaseAmount:'1000',accountId:id};
+  else if(p.endsWith('/asset-history')&&options.trend){
+   if(history.mode==='hold')await new Promise<void>(r=>releaseHistory=r);
+   if(history.mode==='error')return {status:503,body:{error:{message:'history failed'}}};
+   data=history.mode==='empty'?[]:[{date:'2026-09-01',totalAssetValue:'9999'},{date:'2026-09-13',totalAssetValue:id==='1'?'2000':'6000'},{date:'2026-10-01',totalAssetValue:id==='1'?'2200':'6500'},{date:'2026-10-13',totalAssetValue:id==='1'?'2500':'7000'}];
+  }else if(p.endsWith('/dashboard'))data={...dashboard,holdings,purchaseAmount:'1000',accountId:id};
   else if(p.endsWith('/investment-profit')){
    const events=(['BUY','SELL','DIVIDEND'] as const).map(kind=>({date:'2026-01-02',securityId,name:'종목'+securityId,kind,buy:kind==='BUY'?'1000':'0',sell:kind==='SELL'?'400':'0',cost:kind==='SELL'?'200':'0',trading:kind==='SELL'?(id==='1'?'200':'-200'):'0',dividend:kind==='DIVIDEND'?'30':'0'}));data={accountId:id,securityId,events:securityId==='3'?[]:events,capital:[]};
   }else if(p.endsWith('/trades')){
@@ -32,5 +37,5 @@ export async function fixture(page:Page){
   if(u.pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'legacy'}}});
   const result=await read(u.pathname.slice(4)+u.search);await route.fulfill({status:result.status,json:result.body});
  });
- return {reads,hold:()=>{held=true;},release:()=>{held=false;release();}};
+ return {reads,history,releaseHistory:()=>releaseHistory(),hold:()=>{held=true;},release:()=>{held=false;release();}};
 }
