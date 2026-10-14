@@ -60,3 +60,8 @@ test('retained total-income ROE cannot inherit newer parent-attribution provenan
  const r=selectValueListAnalysis(input([row]));assert.equal(r.targetPrice,null);assert.equal(r.w,null);assert.equal(r.missingReasons.targetPrice,'RIM_BASIS_UNCONFIRMED');
 });
 
+test('existing manual annual-estimate provenance keeps annual values but rejects interim markers',()=>{
+ const estimate=p(2026,'ESTIMATE',{values:{eps:'0',bps:'100',roe:'-10'},provenance:{periodEnd:'2026-12-31',fsDivision:'OFS',perMetric:Object.fromEntries(['eps','bps','roe'].map(k=>[k,{kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'OFS',periodType:'ANNUAL'}]))},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026,division:'OFS',values:{eps:'0',bps:'100',roe:'-10'}}}});
+ const valid=selectValueListAnalysis(input([estimate]));assert.equal(valid.eps,'0');assert.equal(valid.roe,'-10');
+ estimate.provenance.perMetric.eps.periodType='Q2';assert.equal(selectValueListAnalysis(input([estimate])).eps,null);
+});
