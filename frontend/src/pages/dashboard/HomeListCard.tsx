@@ -13,7 +13,7 @@ export function HomeListCard({ title, count, testId, action, children, timestamp
       <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{titleAction ? <ButtonBase aria-label={titleHint ? `${title} ${titleHint}` : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit', gap: '6px' }}>{title}{titleHint && <Box component="span" data-testid="home-title-hint" sx={{fontSize:11,color:colors.textMuted,fontWeight:400}}>{titleHint}</Box>}</ButtonBase> : title}</Typography>
       <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{pending ? <DelayedSkeleton width={30} height={14}/> : count ?? '—'}</Typography>{action}</Box>
     </Box>
-    <Box data-testid="home-list-region" aria-busy={pending} sx={{'& > [role="status"]':compactEmpty?{minHeight:26,pb:0}:undefined, flex: compactFooter ? undefined : 1, height: compactFooter ? 129 : undefined, minHeight: 0 }}>{children}</Box>
+    <Box data-testid="home-list-region" aria-busy={pending} sx={{'& > [role="status"]':compactEmpty?{minHeight:26,pb:0}:undefined, flex: 1, minHeight: 0 }}>{children}</Box>
     <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
       <Box sx={{ minWidth: 0 }}><Typography title={timestamp ?? undefined} sx={{ minWidth: 0, fontSize: 9, lineHeight: notice ? '12px' : '16px', color: colors.textMuted }}>
         {pending ? <DelayedSkeleton width={90} height={12}/> : <>{timestampLabel}{homeTimestamp(timestamp)}</>}
@@ -47,7 +47,7 @@ export function HomeTwoLineRow({ testId, onClick, first, second, color = colors.
 }
 
 /** Five two-line rows reserve the same body as the normal compact home list. */
-export function HomeListLoading({rowCount=5}:{rowCount?:number}={}) {
+export function HomeListLoading({rowCount=5,compact=false}:{rowCount?:number;compact?:boolean}={}) {
   const visible=useDelayedIndicator();
-  return <Box aria-label="목록 조회 중" data-loading-indicator={visible?'visible':'waiting'} sx={{visibility:visible?'visible':'hidden'}}>{Array.from({length:rowCount},(_,i)=><Box key={i} sx={{height:i===rowCount-1?38:43,px:'8px',display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',alignContent:'center',gap:'2px 8px'}}>{Array.from({length:6},(_,j)=><Skeleton key={j} height={j<3?16:12} sx={{transform:'none'}}/>)}</Box>)}</Box>;
+  return <Box aria-label="목록 조회 중" data-loading-indicator={visible?'visible':'waiting'} sx={{visibility:visible?'visible':'hidden'}}>{Array.from({length:rowCount},(_,i)=><Box key={i} sx={{height:compact?(i===rowCount-1?48:49):(i===rowCount-1?38:43),px:'8px',display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',alignContent:'center',gap:compact?'4px 8px':'2px 8px'}}>{Array.from({length:6},(_,j)=><Skeleton key={j} height={j<3?16:12} sx={{transform:'none'}}/>)}</Box>)}</Box>;
 }

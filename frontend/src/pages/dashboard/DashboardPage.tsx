@@ -37,7 +37,7 @@ export function DashboardPage() {
     </Stack>
     <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard height="auto" stable pending={pending} testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={holdings ? `${holdings.length}종목` : undefined} notice={isError&&holdings ? <Button size="small" onClick={retry}>조회 실패 · 이전 결과 · 재시도</Button> : summary?.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary?.collectedAt} updating={isFetching}>
       {holdings?.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}?detailTab=summary`)} />)}
-      {pending && <HomeListLoading/>}
+      {pending && <HomeListLoading compact/>}
       {(isError||accounts.isError)&&!holdings&&<HomeEmpty><span role="alert">보유종목 조회 실패</span><Button size="small" onClick={()=>{if(accounts.isError)void accounts.refetch();else retry();}}>재시도</Button></HomeEmpty>}
       {noAccount&&<HomeEmpty>등록된 계좌가 없습니다.<Button onClick={()=>navigate("/detail/settings?view=add")}>계좌 추가</Button></HomeEmpty>}
       {holdings?.length === 0 && <HomeEmpty />}
