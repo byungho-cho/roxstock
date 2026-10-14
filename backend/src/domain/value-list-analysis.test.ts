@@ -59,3 +59,4 @@ test('retained total-income ROE cannot inherit newer parent-attribution provenan
  const row=p(2025,'ANNUAL',{provenance:{periodEnd:'2025-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{fsDivision:'CFS',roeBasis:'TOTAL_SAME_DIVISION',periodEnd:'2025-12-31'}}}});
  const r=selectValueListAnalysis(input([row]));assert.equal(r.targetPrice,null);assert.equal(r.w,null);assert.equal(r.missingReasons.targetPrice,'RIM_BASIS_UNCONFIRMED');
 });
+
