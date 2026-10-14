@@ -42,7 +42,7 @@ const journalQuery = (accountId: string, period: string) => ({
     return getTrades(accountId, {
       from: dateOf(year, month ?? 1, 1),
       to: dateOf(year, month ?? 12, new Date(year, month ?? 12, 0).getDate()),
-    }, signal);
+    }, signal, period.length === 7 ? 'high' : 'low');
   },
 });
 

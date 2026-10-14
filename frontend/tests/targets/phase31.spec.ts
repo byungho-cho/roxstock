@@ -47,3 +47,36 @@ test('chart card retains height and controls before history arrives',async({page
  control.release();await expect(page.getByTestId('analysis-chart')).toBeVisible();
  expect((await chart.boundingBox())!.height).toBe(224);
 });
+test('account switch isolates a late month response and an error can retry',async({page})=>{
+ await fixture(page);let release!:()=>void,failed=true;
+ await page.route('**/api/accounts/*/trades*',async r=>{
+  if(new URL(r.request().url()).pathname.includes('/1/'))await new Promise<void>(resolve=>release=resolve);
+  if(failed&&new URL(r.request().url()).pathname.includes('/2/'))return r.fulfill({status:503,json:{error:{message:'temporary'}}});
+  return r.fulfill({json:empty});
+ });
+ await page.goto('/journal?date=2026-01-07');await expect.poll(()=>!!release).toBe(true);
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await expect(page.getByTestId('journal-layout').getByRole('alert')).toBeVisible({timeout:15000});
+ await expect(page.getByTestId('journal-layout')).not.toContainText('내용이 없습니다.');
+ failed=false;await page.getByTestId('journal-layout').getByRole('alert').click();
+ await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
+ release();await expect(page.getByTestId('journal-calendar-grid').locator('[data-testid^="journal-chip-"]')).toHaveCount(0);
+});
+test('controlled before/after measurements distinguish shell, API and data display',async({browser,page},info)=>{
+ test.skip(!process.env.PHASE31_BASELINE_URL,'baseline is prepared in CI');
+ for(const [label,base] of [['before',process.env.PHASE31_BASELINE_URL!],['after','http://127.0.0.1:3032']]){
+  const samples=[];
+  for(let i=0;i<3;i++){
+   const p=await browser.newPage({viewport:page.viewportSize()!});await fixture(p);
+   let apiMs=0;await p.route('**/api/accounts/*/trades*',async r=>{const start=Date.now();await new Promise(resolve=>setTimeout(resolve,300));apiMs=Date.now()-start;return r.fulfill({json:empty});});
+   const start=Date.now();await p.goto(base+'/journal?date=2026-01-07');
+   await expect(p.getByTestId('journal-calendar-card')).toBeVisible();const shellMs=Date.now()-start;
+   const dateSkeletons=await p.getByTestId('journal-calendar-grid').locator('[data-loading-indicator]').count();
+   await expect(p.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
+   samples.push({shellMs,dataMs:Date.now()-start,controlledApiMs:apiMs,dateSkeletons});
+   if(i===0)await p.screenshot({path:info.outputPath(`calendar-${label}.png`)});
+   await p.close();
+  }
+  console.log(JSON.stringify({kind:'phase31-ui-before-after',label,project:info.project.name,repeats:3,concurrency:2,controlledDelayMs:300,cache:'fresh browser context per sample',samples,sha:process.env.GITHUB_SHA,utc:new Date().toISOString()}));
+ }
+});
