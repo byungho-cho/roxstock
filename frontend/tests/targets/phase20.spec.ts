@@ -71,7 +71,8 @@ test('fast data hides indicator, slow data shows it without moving chart or metr
  const before={height:(await region.boundingBox())!.height,y:(await metrics.boundingBox())!.y};let release!:()=>void;
  await page.route('**/api/accounts/*/asset-history**',async r=>{await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});await page.clock.pauseAt(new Date('2026-10-07T03:00:01Z'));await page.getByRole('button',{name:'3개월',exact:true}).click();await expect.poll(()=>!!release).toBe(true);
- const skeleton=region.locator('[data-loading-indicator]');await expect(skeleton).toHaveAttribute('data-loading-indicator','waiting');await expect(skeleton).toBeHidden();
- await page.clock.runFor(250);await expect(skeleton).toBeVisible();expect((await region.boundingBox())!.height).toBe(before.height);expect((await metrics.boundingBox())!.y).toBe(before.y);
+ await expect(region.locator('[data-loading-indicator]')).toHaveCount(0);
+ await expect(region.getByRole('status')).toContainText('조회 중');
+ await page.clock.runFor(250);expect((await region.boundingBox())!.height).toBe(before.height);expect((await metrics.boundingBox())!.y).toBe(before.y);
  release();await page.clock.resume();await expect(page.getByTestId('analysis-chart')).toBeVisible();expect((await metrics.boundingBox())!.y).toBe(before.y);
 });

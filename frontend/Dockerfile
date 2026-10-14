@@ -9,6 +9,7 @@ COPY backend/package.json backend/package.json
 RUN npm ci --workspace frontend --include-workspace-root=false
 
 COPY frontend frontend
+COPY backend/src/release.json backend/src/release.json
 
 ARG VITE_DATA_SOURCE=mock
 ARG VITE_API_ACCOUNT_ID=
