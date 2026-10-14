@@ -52,6 +52,11 @@ if [[ "$recovery" == "RECOVERED" ]]; then
   echo "Verified Phase18 DDL recovery through the database administrator session."
   "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate resolve --applied 20261011010000_profit_year_aggregates --schema database/prisma/schema.prisma'
 fi
+cache_recovery="$(bash "$PROJECT_DIR/scripts/recover-analysis-cache-migration.sh")"
+if [[ "$cache_recovery" == "RECOVERED" ]]; then
+  echo "Verified analysis cache DDL recovery through the database administrator session."
+  "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate resolve --applied 20261014060000_analysis_read_cache --schema database/prisma/schema.prisma'
+fi
 "${COMPOSE[@]}" run --rm --no-deps backend sh -lc 'npx --no-install prisma migrate deploy --schema database/prisma/schema.prisma'
 
 echo "[3/5] Confirming Prisma migration status"
@@ -139,4 +144,5 @@ fi
 
 "${COMPOSE[@]}" ps
 exit 1
+
 

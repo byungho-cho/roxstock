@@ -1,0 +1,9 @@
+# Analysis cache migration recovery · 2026-10-14
+
+Production Deploy 38528458353 failed while applying `20261014060000_analysis_read_cache`: MariaDB 1142, TRIGGER command denied for the application user on financial_statements (first trigger). The two cache tables and initial revision had been created. Production Deploy 38537457594 was subsequently blocked by Prisma P3009; rerunning the unchanged deployment cannot resolve it.
+
+The deployment still uses the existing restricted server-local pre-migration backup and deployment lock. A narrowly scoped administrator recovery runs before normal Prisma deploy. It requires the original migration checksum and recorded 1142/first-table failure, the expected cache schema, an empty cache and only the zero initial financial revision. Unexpected/used state stops recovery. It replays only migration-owned cache DDL and 24 triggers, verifies the completed triggers, then the caller resolves the original migration as applied. No runtime TRIGGER grants, original migration edits, application financial data deletes or DART recollection are involved. The administrator session uses existing container credentials without printing them.
+
+The isolated MariaDB recovery workflow reproduces both permission failures, tests rejection of populated cache, repeat recovery before resolve, original checksum preservation, unchanged runtime grants, account data preservation and revision execution by the restricted application user. Local bash syntax and YAML parsing passed; live database and production results must be taken from CI/deployment runs.
+
+The recovery code is an additional code release: V 1.0.32. It includes the already merged 31st improvements. After required CI passes, merge and start Production Deploy; deployment completion is not claimed until its result is observed.

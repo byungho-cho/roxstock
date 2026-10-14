@@ -2,7 +2,7 @@ name: Phase18 Migration Recovery
 on:
   pull_request:
     branches: [main]
-    paths: [scripts/recover-profit-migration.sh, scripts/profit-migration-replay.awk, scripts/deploy-backend.sh, .github/workflows/phase18-migration-recovery.yml]
+    paths: [scripts/recover-profit-migration.sh, scripts/profit-migration-replay.awk, scripts/recover-analysis-cache-migration.sh, scripts/deploy-backend.sh, .github/workflows/phase18-migration-recovery.yml]
 permissions:
   contents: read
 jobs:
@@ -47,7 +47,23 @@ jobs:
           npx prisma migrate resolve --applied 20261011010000_profit_year_aggregates --schema database/prisma/schema.prisma
           test "$(bash scripts/recover-profit-migration.sh "$DB_CONTAINER")" = UNCHANGED
           test "$(sha256sum database/prisma/migrations/20261011010000_profit_year_aggregates/migration.sql)" = "$before"
+          if npm run prisma:migrate:deploy > /tmp/cache-migration.log 2>&1; then echo 'Expected cache trigger permission failure'; exit 1; fi
+          grep -E '1142|TRIGGER command denied' /tmp/cache-migration.log
+          cache_before=$(sha256sum database/prisma/migrations/20261014060000_analysis_read_cache/migration.sql)
+          # A used cache must fail closed without changing the failed migration.
+          printf "INSERT INTO analysis_read_cache(\`key\`,revision,payload) VALUES('guard-test','test','{}');\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
+          if bash scripts/recover-analysis-cache-migration.sh "$DB_CONTAINER"; then echo 'Expected populated-cache rejection'; exit 1; fi
+          printf "DELETE FROM analysis_read_cache WHERE \`key\`='guard-test';\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot roxstock'
+          test "$(bash scripts/recover-analysis-cache-migration.sh "$DB_CONTAINER")" = RECOVERED
+          # Replaying before resolve must also be safe.
+          test "$(bash scripts/recover-analysis-cache-migration.sh "$DB_CONTAINER")" = RECOVERED
+          npx prisma migrate resolve --applied 20261014060000_analysis_read_cache --schema database/prisma/schema.prisma
+          test "$(bash scripts/recover-analysis-cache-migration.sh "$DB_CONTAINER")" = UNCHANGED
+          test "$(sha256sum database/prisma/migrations/20261014060000_analysis_read_cache/migration.sql)" = "$cache_before"
           npm run prisma:migrate:deploy
           test "$(printf "SELECT Trigger_priv FROM mysql.db WHERE Db='roxstock' AND User='roxstock' AND Host='%%';\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot --batch --skip-column-names roxstock')" = N
           test "$(printf "SELECT COUNT(*) FROM accounts WHERE name='preserve-test' AND cash_balance=123.1234;\n" | docker exec -i "$DB_CONTAINER" sh -c 'MYSQL_PWD=root mariadb -uroot --batch --skip-column-names roxstock')" = 1
           node --import tsx --test backend/tests/phase18.integration.ts
+          # Admin-owned triggers must work for the restricted runtime user.
+          node --import tsx -e 'import {PrismaClient} from "./backend/src/generated/prisma/index.js"; const p=new PrismaClient(); try { const before=await p.analysisRevision.findUniqueOrThrow({where:{key:"financial"}}); await p.security.create({data:{symbol:"999991",name:"cache recovery",marketType:"KOSPI"}}); const after=await p.analysisRevision.findUniqueOrThrow({where:{key:"financial"}}); if(after.revision<=before.revision)throw new Error("Revision trigger did not execute"); } finally {await p.$disconnect();}'
+
