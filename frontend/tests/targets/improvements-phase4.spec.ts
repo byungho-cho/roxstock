@@ -9,7 +9,7 @@ async function gesture(target: Locator, dx = 0, dy = 160) {
   }, {dx,dy});
 }
 async function selectLast(page:Page, chart:Locator) {
-  await chart.scrollIntoViewIfNeeded(); const r=(await chart.locator('svg').boundingBox())!;
+  await expect(chart.getByTestId('asset-trend-line')).toBeAttached();await chart.scrollIntoViewIfNeeded(); const r=(await chart.locator('svg').boundingBox())!;
   await page.mouse.move(r.x+r.width*.999,r.y+r.height*.5);
   const tooltip=chart.getByTestId('asset-trend-tooltip'); await expect(tooltip).toBeVisible();
   const t=(await tooltip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -79,7 +79,7 @@ test('analysis shares chart, neutral dates and left ticks; both back paths resto
 
 test('missing snapshot is selectable as unavailable and breaks the line',async({page})=>{
   await fixture(page,{history:[['2026-09-07','100000'],['2026-09-20',null],['2026-10-07','120000']]});await page.goto('/assets');
-  const chart=page.getByTestId('asset-trend-chart'),svg=chart.locator('svg');await chart.scrollIntoViewIfNeeded();const r=(await svg.boundingBox())!;
+  await expect(page.getByTestId('asset-trend-line')).toBeAttached();const chart=page.getByTestId('asset-trend-chart'),svg=chart.locator('svg');await chart.scrollIntoViewIfNeeded();const r=(await svg.boundingBox())!;
   await page.mouse.move(r.x+r.width*(4+13/30*252)/260,r.y+50);
   await expect(chart.getByTestId('asset-trend-tooltip')).toContainText('2026-09-20');await expect(chart.getByTestId('asset-trend-tooltip')).toContainText('—');await expect(chart.getByTestId('asset-trend-selection')).toHaveCount(0);
   const path=await chart.getByTestId('asset-trend-line').getAttribute('d');expect(path!.match(/M/g)).toHaveLength(2);expect(path).not.toContain('L');
