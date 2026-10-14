@@ -64,7 +64,7 @@ test('fixed more/settings menus paint without account API or deferred editor cod
  await page.screenshot({path:info.outputPath('settings-menu-pending.png')});
  await expect.poll(()=>!!release).toBe(true);release();
 });
-test('fast data hides indicator, slow data shows it without moving chart or metrics',async({page})=>{
+test('asset data waits retain a blank chart frame without loading indicators or moving metrics',async({page})=>{
  await fixture(page);await page.goto('/assets');await expect(page.getByTestId('analysis-chart')).toBeVisible();await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획이 없습니다.');
  await expect(page.locator('[data-loading-indicator="visible"]')).toHaveCount(0);
  const region=page.getByTestId('analysis-chart-region'),metrics=page.getByTestId('analysis-performance');
@@ -72,7 +72,7 @@ test('fast data hides indicator, slow data shows it without moving chart or metr
  await page.route('**/api/accounts/*/asset-history**',async r=>{await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});await page.clock.pauseAt(new Date('2026-10-07T03:00:01Z'));await page.getByRole('button',{name:'3개월',exact:true}).click();await expect.poll(()=>!!release).toBe(true);
  await expect(region.locator('[data-loading-indicator]')).toHaveCount(0);
- await expect(region.getByRole('status')).toContainText('조회 중');
+ await expect(region.getByRole('status')).toHaveCount(0);await expect(region.locator('.MuiSkeleton-root')).toHaveCount(0);await expect(region.getByTestId('asset-trend-line')).toHaveCount(0);await expect(region.getByTestId('asset-trend-chart')).toBeVisible();
  await page.clock.runFor(250);expect((await region.boundingBox())!.height).toBe(before.height);expect((await metrics.boundingBox())!.y).toBe(before.y);
  release();await page.clock.resume();await expect(page.getByTestId('analysis-chart')).toBeVisible();expect((await metrics.boundingBox())!.y).toBe(before.y);
 });

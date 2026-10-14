@@ -56,7 +56,7 @@ test('analysis order, full-year dates and month dates; chart exposes detail link
 
 test('asset chart touch drag stays on screen and vertical touch scroll remains native',async({page},info)=>{
   await fixture(page);await page.goto('/assets');
-  const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('asset-trend-line')).toBeVisible();const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();
   const svg=chart.locator('svg');expect(await svg.evaluate(e=>getComputedStyle(e).touchAction)).toBe('pan-y');
   const cdp=await page.context().newCDPSession(page),r=(await svg.boundingBox())!;
   const x=r.x+r.width*.7,y=Math.min(r.y+80,page.viewportSize()!.height-70);

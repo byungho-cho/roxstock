@@ -1,0 +1,45 @@
+import {test,expect} from '@playwright/test';
+import {fixture} from './phase3-fixture';
+test('asset frame replaces route loading during the actual page code download',async({page},info)=>{
+ await fixture(page);let release!:()=>void;
+ await page.route('**/assets/AssetAnalysisPage-*.js',async route=>{await new Promise<void>(resolve=>release=resolve);await route.continue();});
+ await page.goto('/assets',{waitUntil:'domcontentloaded'});
+ const shell=page.getByTestId('analysis-download-shell');await expect(shell).toBeVisible();await expect.poll(()=>!!release).toBe(true);
+ await expect(page.locator('.MuiSkeleton-root')).toHaveCount(0);await expect(page.getByLabel('화면 불러오는 중')).toHaveCount(0);await expect(page.locator('.MuiCircularProgress-root')).toHaveCount(0);
+ const chart=page.getByTestId('analysis-download-chart');await expect(chart.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();
+ const before=await chart.boundingBox();expect(before!.height).toBe(224);
+ await page.screenshot({path:info.outputPath('first-entry-code-download.png')});
+ release();await expect(page.getByTestId('asset-trend-line')).toBeVisible();await expect(shell).toHaveCount(0);
+ expect(await page.getByTestId('analysis-chart-region').boundingBox()).toEqual(before);
+});
+test('asset frame exists before accounts/history; only data line appears after response',async({page},info)=>{
+ await fixture(page);let held=true;const releases:Array<()=>void>=[];
+ await page.route('**/api/accounts',async route=>{if(held)await new Promise<void>(resolve=>releases.push(resolve));return route.fallback();});
+ await page.route('**/api/accounts/*/asset-history**',async route=>{if(held)await new Promise<void>(resolve=>releases.push(resolve));return route.fallback();});
+ await page.goto('/assets');const region=page.getByTestId('analysis-chart-region');
+ await expect(region).toHaveAttribute('aria-busy','true');await expect(page.getByTestId('analysis-trend-title')).toBeVisible();
+ await expect(region.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();
+ await expect(region.locator('svg > path')).toHaveCount(4);await expect(region.locator('.MuiSkeleton-root')).toHaveCount(0);await expect(page.getByTestId('asset-analysis').locator('.MuiSkeleton-root')).toHaveCount(0);
+ await expect(page.getByTestId('asset-trend-line')).toHaveCount(0);await expect(region).not.toContainText('내용이 없습니다.');
+ const metrics=page.getByTestId('analysis-metrics-region');await expect(metrics.locator('.MuiSkeleton-root')).toHaveCount(0);
+ const cells=metrics.locator('[data-metric-value]');await expect(cells).toHaveCount(11);expect(await cells.allTextContents()).toEqual(Array(11).fill(''));
+ const metricsBounds=await metrics.boundingBox();
+ const dimensions=await region.boundingBox();expect(dimensions!.height).toBe(224);
+ const button=page.getByRole('button',{name:'3개월',exact:true}),buttonTop=(await button.boundingBox())!.y;
+ await page.screenshot({path:info.outputPath('fixed-chart-before-api.png')});
+ held=false;releases.splice(0).forEach(release=>release());await expect(page.getByTestId('asset-trend-line')).toBeVisible();
+ await expect(region).toHaveAttribute('aria-busy','false');expect((await metrics.boundingBox())!.height).toBe(metricsBounds!.height);await expect(page.getByTestId('analysis-metric-기간 종료자산')).toContainText('165,000원');expect(await region.boundingBox()).toEqual(dimensions);expect((await button.boundingBox())!.y).toBe(buttonTop);
+ const svg=region.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'});await svg.scrollIntoViewIfNeeded();const rect=await svg.boundingBox();await page.mouse.move(rect!.x+rect!.width/2,rect!.y+rect!.height/2);
+ await expect(page.getByTestId('asset-trend-tooltip')).toBeVisible();
+ await page.screenshot({path:info.outputPath('chart-after-api.png')});
+});
+test('asset frame in expanded chart stays visible while first history request is pending',async({page})=>{
+ await fixture(page);let held=true;const releases:Array<()=>void>=[];
+ await page.route('**/api/accounts/*/asset-history**',async route=>{if(held)await new Promise<void>(resolve=>releases.push(resolve));return route.fallback();});
+ await page.goto('/assets');await page.getByRole('button',{name:'자산추이 상세보기'}).click();const dialog=page.getByRole('dialog');
+ await expect(dialog.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();
+ await expect(dialog.locator('.MuiSkeleton-root')).toHaveCount(0);await expect(dialog.getByTestId('asset-trend-line')).toHaveCount(0);
+ const chart=dialog.getByTestId('asset-trend-chart'),bounds=await chart.boundingBox();
+ held=false;releases.splice(0).forEach(release=>release());await expect(dialog.getByTestId('asset-trend-line')).toBeVisible();
+ const ready=await chart.boundingBox();expect(ready!.height).toBe(bounds!.height);expect(ready!.width).toBe(bounds!.width);
+});
