@@ -65,7 +65,7 @@ test('analysis displays API breakdown and plan, exact selected interval and stat
   await expect(page.getByTestId('analysis-metric-수수료·세금')).toContainText('-30원');
   await expect(page.getByTestId('analysis-compound').getByTestId('compound-summary-current')).toHaveText('1,500원');await expect(page.getByTestId('analysis-compound')).toContainText('1,200원');
   await expect(page.getByTestId('analysis-performance-period')).toHaveText('26.09.01 ~ 26.09.30');
-  await expect(page.locator('.MuiToolbar-root').first()).toHaveCSS('padding-left','0px');expect((await page.getByTestId('analysis-total').boundingBox())!.x).toBe(8);
+  await expect(page.locator('.MuiToolbar-root').first()).toHaveCSS('padding-left','8px');expect((await page.getByTestId('analysis-total').boundingBox())!.x).toBe(8);
   missing=true;await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
   empty=true;await page.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('analysis-performance').getByText('내용이 없습니다.')).toBeVisible();
   fail=true;await page.getByRole('button',{name:'6개월',exact:true}).click();await expect(page.getByTestId('analysis-performance').getByRole('alert')).toBeVisible({timeout:15000});
