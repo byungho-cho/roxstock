@@ -1,3 +1,4 @@
+import release from './release.json' with { type: 'json' };
 import {ValueReadModel} from './read-model/value-cache.js';
 import { installPageBootstrap } from './routes/page-bootstrap.js';
 import { installReadBatch } from './routes/read-batch.js';
@@ -36,6 +37,11 @@ export function buildApp() {
     const start=started.get(request);
     if(start!==undefined)reply.header('Server-Timing',`app;dur=${(Number(process.hrtime.bigint()-start)/1e6).toFixed(2)}`);
     return payload;
+  });
+
+  app.get('/api/version', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return { data: release };
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
