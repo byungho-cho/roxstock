@@ -1,0 +1,90 @@
+{
+  "basisCommit": "6eb3efdaa21ee2e0a1679e9d4a819ffed22db654",
+  "kind": "Readonly pre-change production API; includes client/network time; no post-deployment measurement",
+  "results": [
+    {
+      "kind": "value",
+      "url": "https://newrox.cafe24.com/api/value-analysis?year=2026&query=025560",
+      "samples": [
+        {
+          "httpStatus": 200,
+          "totalMs": 10248.512,
+          "ttfbMs": 10244.794,
+          "serverTiming": "app;dur=1154.14"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6919.74,
+          "ttfbMs": 6919.53,
+          "serverTiming": "app;dur=24.92"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6835.5560000000005,
+          "ttfbMs": 6835.334,
+          "serverTiming": "app;dur=10.37"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6900.128,
+          "ttfbMs": 6899.942,
+          "serverTiming": "app;dur=15.85"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6808.196,
+          "ttfbMs": 6767.058,
+          "serverTiming": "app;dur=9.20"
+        }
+      ],
+      "count": 5,
+      "medianMs": 6900.128,
+      "minMs": 6808.196,
+      "maxMs": 10248.512,
+      "cacheHit": "not exposed by old API",
+      "dbQueries": "not exposed by old API"
+    },
+    {
+      "kind": "financial",
+      "url": "https://newrox.cafe24.com/api/financial-statements?year=2026&market=KOSPI&query=025560&sort=w&direction=desc",
+      "samples": [
+        {
+          "httpStatus": 200,
+          "totalMs": 6962.64,
+          "ttfbMs": 6962.5,
+          "serverTiming": "app;dur=105.54"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6903.34,
+          "ttfbMs": 6903.121999999999,
+          "serverTiming": "app;dur=25.64"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 12663.256000000001,
+          "ttfbMs": 12662.905,
+          "serverTiming": "app;dur=35.83"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 6868.5830000000005,
+          "ttfbMs": 6868.415,
+          "serverTiming": "app;dur=11.71"
+        },
+        {
+          "httpStatus": 200,
+          "totalMs": 7304.477999999999,
+          "ttfbMs": 7304.117,
+          "serverTiming": "app;dur=13.93"
+        }
+      ],
+      "count": 5,
+      "medianMs": 6962.64,
+      "minMs": 6868.5830000000005,
+      "maxMs": 12663.256000000001,
+      "cacheHit": "not exposed by old API",
+      "dbQueries": "not exposed by old API"
+    }
+  ]
+}

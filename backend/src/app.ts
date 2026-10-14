@@ -1,3 +1,4 @@
+import {ValueReadModel} from './read-model/value-cache.js';
 import { installPageBootstrap } from './routes/page-bootstrap.js';
 import { installReadBatch } from './routes/read-batch.js';
 import {securityManagementRoutes} from './routes/security-management.js';
@@ -25,6 +26,8 @@ import { collectionStatusRoutes } from './routes/collection-status.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
+  app.decorate('valueReadModel',new ValueReadModel(prisma));
+  app.addHook('onClose',async()=>app.valueReadModel.clear());
   installPageBootstrap(app);
   installReadBatch(app);
   const started=new WeakMap<FastifyRequest,bigint>();
@@ -80,3 +83,5 @@ export function buildApp() {
 
   return app;
 }
+
+declare module 'fastify' {interface FastifyInstance {valueReadModel:ValueReadModel;}}
