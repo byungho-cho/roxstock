@@ -2,7 +2,10 @@
   "name": "roxstock",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["backend", "frontend"],
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "dev:frontend": "npm --workspace frontend run dev",
     "build:frontend": "npm --workspace frontend run build",
@@ -12,6 +15,7 @@
     "typecheck:backend": "npm --workspace backend run typecheck",
     "prisma:generate": "npm --workspace backend run prisma:generate",
     "prisma:validate": "npm --workspace backend run prisma:validate",
-    "prisma:migrate:deploy": "npm --workspace backend run prisma:migrate:deploy"
+    "prisma:migrate:deploy": "npm --workspace backend run prisma:migrate:deploy",
+    "release:bump": "node scripts/release-version.mjs --bump"
   }
 }
