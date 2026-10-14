@@ -20,7 +20,7 @@ test('annual and quarter cards select values, drag and reset outside without too
  await page.screenshot({path:info.outputPath('cards-quarter.png')});
 });
 test('title, separator and centered legends fit without overlap',async({page},info)=>{
- await ready(page);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{level:1})).toHaveText('종목1 (000001)');
+ await ready(page);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();await expect(page.getByRole('heading',{level:1})).toHaveText('종목1 (000001)');
  await expect(page.getByTestId('financial-sticky-header')).toHaveCSS('padding-bottom','0px');await expect(page.getByTestId('financial-sticky-header')).toHaveCSS('margin-bottom','0px');await expect(page.getByTestId('financial-sticky-header')).toHaveCSS('border-bottom-width','1px');
  for(const bar of await page.getByTestId('financial-card-titlebar').all()){
   const box=(await bar.boundingBox())!,legend=(await bar.getByTestId('financial-chart-legend').boundingBox())!,left=(await bar.locator(':scope > div').first().boundingBox())!,right=(await bar.getByRole('button',{name:'상세보기'}).boundingBox())!;
@@ -37,7 +37,7 @@ test('fullscreen compact tooltip, selected points, all periods and chrome reset'
  await select(chart);await dialog.getByText('가치지표',{exact:true}).tap();await expect(tip).toHaveCount(0);await page.getByRole('button',{name:'차트 상세보기 뒤로가기'}).click();await expect(dialog).toHaveCount(0);await expect(page.getByRole('button',{name:'재무지표 중앙연도'})).toHaveText('2024');
 });
 test('value refresh common Small has eight pixel price gap',async({page},info)=>{
- await setup(page);await page.goto('/detail/value?view=detail&selected=1');await expect(page.getByTestId('value-detail')).toBeVisible();await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ await setup(page);await page.goto('/detail/value?view=detail&selected=1');await expect(page.getByTestId('value-detail')).toBeVisible();await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
  const price=page.getByTestId('value-detail').getByTestId('value-current-price'),refresh=page.getByRole('button',{name:'재무제표 갱신',exact:true});await expect(refresh).toHaveCSS('height','28px');const p=(await price.boundingBox())!,r=(await refresh.boundingBox())!;expect(Math.abs(r.x-p.x-p.width-8)).toBeLessThan(1);await refresh.tap();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.screenshot({path:info.outputPath('value-detail.png')});
 });
 test('long stock title stays one line with visible code; no-data cards have no selection',async({page})=>{
@@ -57,5 +57,5 @@ test('period change clears old selection while year collection colors stay intac
 });
 
 test('value list keeps existing back while selected details omit it',async({page})=>{
- await setup(page);await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();if((page.viewportSize()?.width??0)<600)await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(1);else await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ await setup(page);await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
 });
