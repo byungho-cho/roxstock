@@ -120,3 +120,24 @@ test('settings and financial child screens retain back navigation',async({page},
  await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toBeVisible();
  await page.screenshot({path:info.outputPath('detail-header-back.png')});
 });
+
+test('value list does not wait for accounts or prefetch invisible cover detail',async({page},info)=>{
+ const rows=Array.from({length:60},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'성능종목'+(i+1),w:String(60-i),eps:'1',roe:'10',currentPrice:'100',previousClosePrice:'90',fairPrices:[],metricBasis:{year:2025,label:'2025',source:'OPEN_DART',isEstimated:false}}));
+ const reads:string[]=[];let release!:()=>void;
+ await fixture(page,{read:url=>{
+  reads.push(url.pathname+url.search);
+  if(url.pathname==='/api/value-analysis')return {json:{data:{rows,total:rows.length,year:2026,query:''}}};
+  if(url.pathname.startsWith('/api/value-analysis/'))return {status:503,json:{error:{message:'controlled detail failure'}}};
+ }});
+ await page.route('**/api/accounts',async route=>{await new Promise<void>(r=>release=r);await route.fulfill({json:{data:[{id:'1',name:'기본',isDefault:true,isActive:true}]}});});
+ const start=Date.now();await page.goto('/detail/value');await expect(page.getByTestId('value-row-000001')).toBeVisible();
+ await expect.poll(()=>!!release).toBe(true);
+ expect(reads.some(p=>p.includes('compact=1'))).toBe(true);
+ expect(reads.filter(p=>/^\/api\/value-analysis\//.test(p))).toHaveLength(0);
+ expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(20);
+ console.log(JSON.stringify({kind:'value-list-account-independent',project:info.project.name,dataMs:Date.now()-start,rowsRendered:20,rowsAvailable:60,accountRequest:'still pending'}));
+ release();
+ if(page.viewportSize()!.width<600){await expect(page.getByTestId('value-detail')).toHaveCount(0);}
+ await page.getByRole('button',{name:/더 보기/}).click();expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(40);
+ await page.screenshot({path:info.outputPath('value-list-fast.png')});
+});
