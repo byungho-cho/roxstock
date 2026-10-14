@@ -88,6 +88,7 @@ test('controlled before/after measurements distinguish shell, API and data displ
 
 test('all menu entry headers omit back arrows on cover and tablet',async({page},info)=>{
  await fixture(page,{read:url=>{
+  if(url.pathname.endsWith('/cash-overview'))return {json:{data:{account:{id:'1',name:'기본',currentBalance:'10000',balanceStatus:'AVAILABLE',updatedAt:'2026-10-14T03:00:00Z'},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},recentTransactions:[]}}};
   if(url.pathname==='/api/value-analysis')return {json:{data:{rows:[],total:0,year:2026,query:''}}};
   if(url.pathname==='/api/financial-statements')return {json:{data:{rows:[],total:0,year:2026}}};
  }});
