@@ -1,5 +1,6 @@
 name: Phase31 Loading and Version
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths: [frontend/**, backend/**, scripts/release-version.mjs, .github/workflows/phase31-check.yml]
@@ -35,6 +36,7 @@ jobs:
           name: phase31-evidence
           path: frontend/test-results/phase31/
   measurement:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
