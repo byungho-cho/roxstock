@@ -94,10 +94,16 @@ test('home and assets use identical unrounded color bands and missing-price neut
   f.state.ratio=ratio;
   for(const path of ['/','/detail/assets']){
    await page.goto(path);
-   const stockCard=page.getByRole('button').filter({has:page.getByText('주식평가액',{exact:true})}).first();
-   const cashCard=page.getByRole('button').filter({has:page.getByText('예수금',{exact:true})}).first();
-   await expect(stockCard.getByText(`${Math.round(100-ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${stock})`);
-   await expect(cashCard.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
+   if(path==='/'){
+    const stockCard=page.getByRole('button').filter({has:page.getByText('주식평가액',{exact:true})}).first();
+    const cashCard=page.getByRole('button').filter({has:page.getByText('예수금',{exact:true})}).first();
+    await expect(stockCard.getByText(`${Math.round(100-ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${stock})`);
+    await expect(cashCard.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
+   } else {
+    const card=page.getByTestId('asset-composition-card');
+    await expect(card.getByText(`${Math.round(100-ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${stock})`);
+    await expect(card.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
+   }
    if(path.includes('assets')){
     const bar=page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /});
     await expect(bar).toBeVisible(); // final 3안 bar shades are verified in phase15-1 tests

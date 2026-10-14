@@ -138,11 +138,11 @@ test('home shows ready cards while history loads, preserves account isolation an
   return route.fulfill({json:{data:[]}});
  });
  await page.goto('/');await expect(page.getByTestId('home-summary-area')).toContainText('4,000원');
- await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
- await expect(page.getByTestId('home-trend-loading')).toBeVisible();
+ await expect(page.getByTestId('target-arrival-card')).toContainText('내용이 없습니다.');await expect.poll(()=>reads.filter(p=>p.endsWith('/recent-buys')).length).toBe(1);
+ await expect(page.getByTestId('asset-performance-card')).toBeVisible();expect(reads.filter(p=>p.endsWith('/asset-history'))).toHaveLength(0);
  expect(reads.filter(p=>p.endsWith('/dashboard'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:info.outputPath('home-partial.png')});releaseHistory();await expect(page.getByRole('img',{name:'자산추이 · 날짜별 금액 조회'})).toBeVisible();
+ await page.screenshot({path:info.outputPath('home-partial.png')});await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('home-summary-area')).not.toContainText('4,000원');await expect.poll(()=>Boolean(releaseSecond)).toBe(true);releaseSecond();
  await expect(page.getByTestId('home-summary-area')).toContainText('9,000원');await page.screenshot({path:info.outputPath('home-ready.png')});
