@@ -1,5 +1,5 @@
-import { Prisma, type FinancialStatement, type DartFinancialFiling } from '../generated/prisma/index.js';
-import { mergeStatements, type Period } from './value-analysis.js';
+import { Prisma, type FinancialStatement, type DartFinancialFiling } from '@roxstock/shared/prisma';
+import { mergeStatements, type Period } from '@roxstock/shared/domain/value-analysis';
 
 export const financialFields = ['revenue','operatingProfit','netIncome','parentNetIncome','totalAssets','totalLiabilities','totalEquity','parentEquity','operatingCashFlow','investingCashFlow','financingCashFlow','cashEquivalents'] as const;
 export type FinancialField = typeof financialFields[number];

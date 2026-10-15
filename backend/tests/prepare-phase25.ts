@@ -1,4 +1,4 @@
-import {PrismaClient} from '../src/generated/prisma/index.js';
+import {PrismaClient} from '@roxstock/shared/prisma';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';

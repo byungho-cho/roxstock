@@ -1,16 +1,16 @@
-import {publicValueRows} from '../read-model/value-rows.js';
-import {parseAnalysisSort,sortAnalysisRows} from '../domain/analysis-sort.js';
-import {selectValueListAnalysis,orderValueGroups,shareholderTotals} from '../domain/value-list-analysis.js';
+import {publicValueRows} from '@roxstock/shared/read-model/value-rows';
+import {parseAnalysisSort,sortAnalysisRows} from '@roxstock/shared/domain/analysis-sort';
+import {selectValueListAnalysis,orderValueGroups,shareholderTotals} from '@roxstock/shared/domain/value-list-analysis';
 import {securityCacheRevision} from '../domain/security-cache-revision.js';
-import {selectStoredAnalysis,storedAnalysisInclude} from '../domain/stored-analysis.js';
-import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
-import {displayShares} from '../domain/share-counts.js';
+import {selectStoredAnalysis,storedAnalysisInclude} from '@roxstock/shared/domain/stored-analysis';
+import { hasInitialQuery, matchesStockSearch } from '@roxstock/shared/domain/stock-search';
+import {displayShares} from '@roxstock/shared/domain/share-counts';
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
-import { prisma } from '../lib/prisma.js';
-import { ApiError } from '../lib/api-error.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '../domain/value-analysis.js';
+import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '@roxstock/shared/domain/value-analysis';
 
 type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string; sorts?:string; compact?:string };
 const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));

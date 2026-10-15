@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 import { calculateDashboardPerformance, type DashboardPerformanceInput } from './dashboard-performance.js';
 
 const decimal = (value: number | string) => new Prisma.Decimal(value);

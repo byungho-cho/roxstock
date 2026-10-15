@@ -31,7 +31,7 @@ jobs:
             const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
             core.setOutput('sha', sha);
             const {data: commit} = await github.rest.repos.getCommit({...context.repo, ref: sha});
-            const changed = commit.files.some(f => ['backend/src/collector/dart-filing-validation.ts', 'backend/src/scripts/verify-dart-receipts.ts'].includes(f.filename));
+            const changed = commit.files.some(f => f.status !== 'renamed' && ['collector/src/dart-filing-validation.ts', 'collector/src/scripts/verify-dart-receipts.ts'].includes(f.filename));
             core.setOutput('enabled', String(sha === branch.commit.sha && (context.eventName === 'workflow_dispatch' || changed)));
   verify:
     needs: scope
@@ -64,9 +64,9 @@ jobs:
             "bash -s -- '$TARGET_SHA' '$VERIFY_MODE'" <<'REMOTE' | tee dart-receipt-verification.jsonl
           set -Eeuo pipefail
           sha="$1"; mode="$2"
-          test "$(docker inspect --format '{{.Config.Image}}' roxstock-backend)" = "newrox/roxstock-backend:sha-$sha"
-          test "$(docker inspect --format '{{.State.Health.Status}}' roxstock-backend)" = healthy
-          docker exec -e DART_RECEIPT_RETRY_ALLOWED=DART_SOURCE_V2 roxstock-backend node backend/dist/scripts/verify-dart-receipts.js "$mode"
+          test "$(docker inspect --format '{{.Config.Image}}' roxstock-dart-collector)" = "newrox/roxstock-collector:sha-$sha"
+          test "$(docker inspect --format '{{.State.Health.Status}}' roxstock-dart-collector)" = healthy
+          docker exec -e DART_RECEIPT_RETRY_ALLOWED=DART_SOURCE_V2 roxstock-dart-collector node collector/dist/scripts/verify-dart-receipts.js "$mode"
           docker inspect --format '{{.Name}} {{.Config.Image}} {{.State.Health.Status}}' roxstock-backend roxstock-dart-collector
           REMOTE
       - uses: actions/upload-artifact@v4

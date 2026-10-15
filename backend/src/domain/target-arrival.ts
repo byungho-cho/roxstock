@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
 // Local precision: don't change Prisma's global Decimal configuration.
 const Decimal = Prisma.Decimal.clone({ precision: 80 });

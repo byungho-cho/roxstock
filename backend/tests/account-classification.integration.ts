@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { buildApp } from '../src/app.js';
-import { prisma } from '../src/lib/prisma.js';
-import { PrismaCollectorRepository } from '../src/collector/repository.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { PrismaCollectorRepository } from '../../collector/src/repository.js';
 
 // Real Fastify routes + real Prisma + disposable MariaDB, no route/DB mocks.
 test('account classifications, migration preservation, trade replay and connected-Lot corrections', async () => {

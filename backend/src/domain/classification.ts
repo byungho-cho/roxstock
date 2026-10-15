@@ -1,5 +1,5 @@
-import { Prisma, type WatchlistType } from '../generated/prisma/index.js';
-import { ApiError } from '../lib/api-error.js';
+import { Prisma, type WatchlistType } from '@roxstock/shared/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 
 export function manualClassification(value: unknown): WatchlistType {
   if (value !== 'WATCHLIST' && value !== 'HOLDING') {

@@ -1,5 +1,5 @@
 // Runs only against the disposable CI MariaDB before the new migration.
-import { prisma } from '../src/lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 const a = await prisma.account.create({data:{name:'Migration owner',brokerName:'CI',isDefault:true,cashBalance:'1000000'}});
 await prisma.cashTransaction.create({data:{accountId:a.id,transactionType:'DEPOSIT',transactionDate:new Date('2026-01-01'),amount:'1000000',balanceAfter:'1000000'}});
 const b = await prisma.account.create({data:{name:'Migration second',brokerName:'CI',cashBalance:'500000'}});

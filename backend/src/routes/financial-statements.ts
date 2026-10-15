@@ -1,15 +1,15 @@
-import {publicValueRows} from '../read-model/value-rows.js';
-import {parseAnalysisSort,sortAnalysisRows} from '../domain/analysis-sort.js';
-import {PageCache} from '../domain/page-cache.js';
-import {matchesStockSearch} from '../domain/stock-search.js';
-import {selectStoredAnalysis,storedAnalysisInclude} from '../domain/stored-analysis.js';
-import {displayShares} from '../domain/share-counts.js';
+import {publicValueRows} from '@roxstock/shared/read-model/value-rows';
+import {parseAnalysisSort,sortAnalysisRows} from '@roxstock/shared/domain/analysis-sort';
+import {PageCache} from '@roxstock/shared/domain/page-cache';
+import {matchesStockSearch} from '@roxstock/shared/domain/stock-search';
+import {selectStoredAnalysis,storedAnalysisInclude} from '@roxstock/shared/domain/stored-analysis';
+import {displayShares} from '@roxstock/shared/domain/share-counts';
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
-import { prisma } from '../lib/prisma.js';
-import { ApiError } from '../lib/api-error.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { combinedValuation,fairPrice,weight,valuation,periods,financialRows,mergeStatements } from '../domain/value-analysis.js';
+import { combinedValuation,fairPrice,weight,valuation,periods,financialRows,mergeStatements } from '@roxstock/shared/domain/value-analysis';
 import { storedFinancials,statementPeriods } from '../domain/financial-statements.js';
 
 type Query={year?:string;query?:string;market?:string;sort?:string;direction?:string;sorts?:string;mode?:string;startYear?:string;endYear?:string;period?:string;startQuarter?:string};

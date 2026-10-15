@@ -7,7 +7,7 @@ on:
       - frontend/src/pages/financial/**
       - frontend/src/pages/stocks/**
       - frontend/src/components/forms/**
-      - backend/src/collector/**
+      - collector/src/**
       - backend/src/routes/financial*
       - backend/src/domain/period-valuation*
       - frontend/tests/targets/improvements-phase9.spec.ts

@@ -1,13 +1,13 @@
 import {runViews,effectiveResult} from './collection-run-view.js';
-import {dailyScheduleHealth, skipKind} from '../domain/collection-health.js';
+import {dailyScheduleHealth, skipKind} from '@roxstock/shared/domain/collection-health';
 import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collection-public-message.js';
 import type { FastifyInstance } from 'fastify';
 import {collectionPageRoutes} from './collection-pages.js';
-import { prisma } from '../lib/prisma.js';
-import { getSeoulClock } from '../collector/time.js';
-import { PrismaDartRepository } from '../collector/dart-repository.js';
-import { loadCollectorConfig } from '../collector/config.js';
-import { dartWindowOpen, dartPriorityWindowOpen, publicHolidayDates, holidayCalendarStatus } from '../collector/dart-policy.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { getSeoulClock } from '@roxstock/shared/collection/time';
+import { CollectionJobRepository as PrismaDartRepository } from '@roxstock/shared/collection/job-repository';
+import { loadCollectorConfig } from '@roxstock/shared/collection/config';
+import { dartWindowOpen, dartPriorityWindowOpen, publicHolidayDates, holidayCalendarStatus } from '@roxstock/shared/collection/dart-policy';
 
 interface CollectionJob { id: string; name: string; jobType: string; schedule: string; hour?: number; }
 const jobs: CollectionJob[] = [

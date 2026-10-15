@@ -1,5 +1,6 @@
+import {readFile} from 'node:fs/promises';
 import release from './release.json' with { type: 'json' };
-import {ValueReadModel} from './read-model/value-cache.js';
+import {ValueReadModel} from '@roxstock/shared/read-model/value-cache';
 import { installPageBootstrap } from './routes/page-bootstrap.js';
 import { installReadBatch } from './routes/read-batch.js';
 import {securityManagementRoutes} from './routes/security-management.js';
@@ -13,8 +14,8 @@ import { valueAnalysisRoutes } from './routes/value-analysis.js';
 import { financialRefreshActiveRoutes } from './routes/financial-refresh-active.js';
 import { financialRefreshRoutes } from './routes/financial-refresh.js';
 
-import { ApiError } from './lib/api-error.js';
-import { prisma } from './lib/prisma.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { targetArrivalRoutes } from './routes/target-arrivals.js';
 import { accountRoutes } from './routes/accounts.js';
 import { securityRoutes } from './routes/securities.js';
@@ -41,7 +42,14 @@ export function buildApp() {
 
   app.get('/api/version', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return { data: release };
+    let current = release;
+    if (process.env.ROXSTOCK_RELEASE_FILE) {
+      try {
+        const metadata = JSON.parse(await readFile(process.env.ROXSTOCK_RELEASE_FILE, 'utf8'));
+        if (/^1\.0\.\d+$/.test(metadata.version)) current = {version: metadata.version};
+      } catch { /* Local development and pre-split deployments use the bundled version. */ }
+    }
+    return { data: current };
   });
 
   app.get('/health', async () => ({ status: 'ok' }));

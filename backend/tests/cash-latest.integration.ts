@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../src/app.js';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 test('cash12 real MariaDB: account latest, backdated dates, historical edits, deletions and competing writes',async()=>{
  const app=buildApp();const accounts=await Promise.all([1,2].map(i=>prisma.account.create({data:{name:`Cash12 integration ${i}`,brokerName:'TEST',cashBalance:'99999'}})));const [a,b]=accounts;
  const call=async(method:'GET'|'POST'|'PATCH'|'DELETE',url:string,payload?:any,expected=200)=>{const r=await app.inject({method,url:'/api'+url,...(payload?{payload}:{})});assert.equal(r.statusCode,expected,r.body);return r.json().data;};

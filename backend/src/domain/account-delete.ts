@@ -1,5 +1,5 @@
-import type {Prisma} from '../generated/prisma/index.js';
-import {ApiError} from '../lib/api-error.js';
+import type {Prisma} from '@roxstock/shared/prisma';
+import {ApiError} from '@roxstock/shared/lib/api-error';
 import {accountConnections} from './account-connections.js';
 
 /** Caller supplies a Serializable transaction. Parent X lock blocks FK inserts until commit. */

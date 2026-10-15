@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/index.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { Prisma } from '@roxstock/shared/prisma';
 
 test('home trend respects dates/account and skips detailed ledger, position and goal reads', async () => {
   const originalAccount = prisma.account.findUnique;

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {buildApp} from '../src/app.js';
-import {refreshManualAnnual} from '../src/collector/manual-annual-prototype.js';
-import {NaverAnnualError,type NaverAnnualProvider,type NaverAnnual} from '../src/collector/naver-annual.js';
-import type {OpenDartProvider} from '../src/collector/dart-provider.js';
-import {PrismaDartRepository} from '../src/collector/dart-repository.js';
-import {getSeoulClock} from '../src/collector/time.js';
+import {refreshManualAnnual} from '../../collector/src/manual-annual-prototype.js';
+import {NaverAnnualError,type NaverAnnualProvider,type NaverAnnual} from '../../collector/src/naver-annual.js';
+import type {OpenDartProvider} from '../../collector/src/dart-provider.js';
+import {PrismaDartRepository} from '../../collector/src/dart-repository.js';
+import {getSeoulClock} from '@roxstock/shared/collection/time';
 
 test('manual source -> real DB -> value/security APIs agree; estimates are separate and failure preserves stored values',async()=>{
  const year=Number(getSeoulClock().dateKey.slice(0,4)),app=buildApp();

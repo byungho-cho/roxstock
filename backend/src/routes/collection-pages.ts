@@ -1,11 +1,11 @@
 import {runViews,effectiveResult} from './collection-run-view.js';
-import {skipKind} from '../domain/collection-health.js';
+import {skipKind} from '@roxstock/shared/domain/collection-health';
 import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collection-public-message.js';
-import {exclusionReason,type CollectionFeature} from '../collector/collection-policy.js';
+import {exclusionReason,type CollectionFeature} from '@roxstock/shared/collection/collection-policy';
 import {createHash} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
-import {Prisma} from '../generated/prisma/index.js';
-import {prisma} from '../lib/prisma.js';
+import {Prisma} from '@roxstock/shared/prisma';
+import {prisma} from '@roxstock/shared/lib/prisma';
 
 type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string;runId?:string};
 type Cursor = {v: 1; scope: string; at: string; id: string; ceiling: string};

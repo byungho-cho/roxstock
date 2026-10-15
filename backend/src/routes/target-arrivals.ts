@@ -1,9 +1,9 @@
-import type { Prisma } from '../generated/prisma/index.js';
+import type { Prisma } from '@roxstock/shared/prisma';
 import type { FastifyInstance } from 'fastify';
 import { defaultTargetConditions, evaluateTargetLots, validateTargetConditions } from '../domain/target-arrival.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 type Params = { accountId: string };

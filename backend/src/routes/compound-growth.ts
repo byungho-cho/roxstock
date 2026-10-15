@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
-import { prisma } from '../lib/prisma.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { prisma } from '@roxstock/shared/lib/prisma';
 // Every mutation acquires one account row lock before reading or writing children.
 // READ COMMITTED avoids MariaDB's stale joined-child reads at SERIALIZABLE.
 async function compoundTransaction<T>(work:(tx:Prisma.TransactionClient)=>Promise<T>):Promise<T>{
  return prisma.$transaction(work,{isolationLevel:Prisma.TransactionIsolationLevel.ReadCommitted,maxWait:5000,timeout:10000});
 }
 import { requireActiveAccount } from '../domain/classification.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
 import { calculateDashboard } from '../domain/portfolio.js';
 import { loadPortfolio } from './portfolio.js';

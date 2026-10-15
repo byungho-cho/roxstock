@@ -3,11 +3,11 @@ import {deleteEmptyAccount} from '../domain/account-delete.js';
 import { cashBasis, lockCashAccount, readCurrentCash, requireCash } from '../domain/current-cash.js';
 import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 
 type AccountBody = { name?: unknown; brokerName?: unknown; accountNumber?: unknown; isDefault?: unknown };
 type AccountParams = { accountId: string };

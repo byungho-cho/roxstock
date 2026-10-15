@@ -1,6 +1,6 @@
-import {Prisma} from '../generated/prisma/index.js';
+import {Prisma} from '@roxstock/shared/prisma';
 import {annualInvestmentCapital} from './investment-capital.js';
-import {ApiError} from '../lib/api-error.js';
+import {ApiError} from '@roxstock/shared/lib/api-error';
 export const PROFIT_VERSION=1;
 export type ProfitEvent={date:string;securityId:string;name:string;kind:'BUY'|'SELL'|'DIVIDEND';buy:string|null;sell:string|null;cost:string|null;trading:string|null;dividend:string|null};
 export type ProfitYear={year:number;events:ProfitEvent[];capital:ReturnType<typeof annualInvestmentCapital>[number];totals:Record<'buy'|'sell'|'cost'|'trading'|'dividend'|'total',string|null>};

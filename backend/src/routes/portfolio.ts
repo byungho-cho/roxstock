@@ -2,15 +2,15 @@ import { cashBasis } from '../domain/current-cash.js';
 import { sharedRead } from '../domain/read-scope.js';
 import { annualInvestmentCapital } from '../domain/investment-capital.js';
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
 import { calculateDashboard, calculateHoldings, type PortfolioLotInput } from '../domain/portfolio.js';
 import { seoulYear } from '../domain/compound-growth.js';
 import { calculateAssetPeriod, calculatePointChange, calculatePeriodBreakdown, compoundYearTarget } from '../domain/asset-history.js';
 import { calculateDashboardPerformance } from '../domain/dashboard-performance.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 type AccountParams = { accountId: string };
