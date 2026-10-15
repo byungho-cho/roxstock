@@ -10,11 +10,11 @@ export function AndroidDownload() {
   useEffect(() => {
     const controller = new AbortController();
     void fetch('/downloads/android/latest.json', { signal: controller.signal, cache: 'no-store' })
-      .then(response => {if(!response.ok)throw new Error("RELEASE_READ_FAILED");return response.json();})
+      .then(response => {if(response.status===404)return null;if(!response.ok)throw new Error("RELEASE_READ_FAILED");return response.json();})
       .then(value => {
         if (value && typeof value.version === 'string' && typeof value.updatedAt === 'string'
           && typeof value.url === 'string' && /^\/downloads\/android\/[A-Za-z0-9._-]+\.apk$/.test(value.url)) setRelease(value);
-        else setFailed(true);
+        else if(value!==null)setFailed(true);
       }).catch(() => {if(!controller.signal.aborted)setFailed(true);});
     return () => controller.abort();
   }, []);

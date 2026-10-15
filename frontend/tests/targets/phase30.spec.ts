@@ -29,8 +29,8 @@ test('dashboard layout, shared periods, weights and single scroll',async({page},
 test('history error retries and missing values remain unavailable',async({page})=>{
  const f=await fixture(page,{trend:true,analysis:true});f.history.mode='error';
  await page.goto('/detail/assets');const tablet=page.viewportSize()!.width>=600;
- if(tablet){await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('—');await expect(page.getByTestId('analysis-chart-region')).toContainText('실패');f.history.mode='empty';await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('analysis-chart-region')).toContainText('내용이 없습니다.');}
- else {await expect(page.getByTestId('dashboard-trend-region')).toContainText('실패');f.history.mode='empty';await page.getByTestId('dashboard-trend-region').getByRole('button',{name:'재시도'}).click();await expect(page.getByTestId('dashboard-trend-region')).toContainText('내용이 없습니다.');}
+ if(tablet){await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('—');await expect(page.locator('.MuiSnackbar-root')).toContainText('실패');f.history.mode='empty';await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도'}).click();await expect(page.getByTestId('analysis-chart-region')).toContainText('내용이 없습니다.');}
+ else {await expect(page.locator('.MuiSnackbar-root')).toContainText('실패');f.history.mode='empty';await page.getByTestId('dashboard-trend-region').getByRole('button',{name:'재시도'}).click();await expect(page.getByTestId('dashboard-trend-region')).toContainText('내용이 없습니다.');}
 });
 
 test('capture previous main dashboard',async({page},info)=>{

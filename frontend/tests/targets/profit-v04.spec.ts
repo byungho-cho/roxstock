@@ -120,8 +120,8 @@ test('empty missing failed and changing-source results remain distinct', async (
   if (page.viewportSize()!.width >= 600) { await expect(page.getByTestId('profit-detail-empty')).toHaveText('내역이 없습니다.'); await expect(page.getByTestId('profit-detail').getByRole('button')).toHaveCount(0); }
   f.mode('missing'); await page.reload(); await expect(page.getByTestId('profit-total')).toHaveText('—'); await expect(page.getByTestId('profit-cumulative-rate')).toHaveText('누적 수익률 —');
   f.mode('error'); await page.reload(); await expect(page.getByRole('alert').first()).toContainText('조회에 실패'); await expect(page.getByTestId('profit-empty')).toHaveCount(0);
-  f.mode('changing');const changedPage=page.waitForResponse(r=>r.url().includes('/investment-profit')&&r.status()===409);await page.getByRole('button',{name:'재시도'}).first().click();await changedPage;await expect(page.getByRole('alert').first()).toBeVisible();await expect(page.getByTestId('profit-total')).toHaveText('');
-  f.mode('normal'); await page.getByRole('button', { name: '재시도' }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
+  f.mode('changing');const changedPage=page.waitForResponse(r=>r.url().includes('/investment-profit')&&r.status()===409);await page.getByRole('button',{name:/다시 시도|재시도/}).first().click();await changedPage;await expect(page.getByRole('alert').first()).toBeVisible();await expect(page.getByTestId('profit-total')).toHaveText('');
+  f.mode('normal'); await page.getByRole('button', { name: /다시 시도|재시도/ }).first().click(); await expect(page.getByTestId('profit-total')).toHaveText('-739원');
 });
 test('long amounts never invade adjacent columns', async ({ page }) => {
   await fixture(page, 'large'); await page.goto('/detail/investment-profit'); await expect(page.getByTestId('profit-total')).not.toHaveText('—');

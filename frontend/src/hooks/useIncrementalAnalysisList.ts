@@ -11,7 +11,7 @@ export function useIncrementalAnalysisList<T extends ListRow,P extends ListPage<
 ) {
  const [visiblePages,setVisiblePages]=usePageMemory('analysis-visible-pages:'+JSON.stringify(queryKey),2,{adoptInitialAccount:true});
  const query=useInfiniteQuery({queryKey,initialPageParam:0,
-  queryFn:({pageParam,signal})=>load(pageParam,pageParam===0?20:pageParam===20?30:50,signal),
+  queryFn:async({pageParam,signal})=>{const page=await load(pageParam,pageParam===0?20:pageParam===20?30:50,signal);if(!Array.isArray(page?.rows)||!Number.isFinite(page.total))throw new Error("목록 응답 형식이 올바르지 않습니다.");return page;},
   getNextPageParam:(last,_pages,offset)=>last.rows.length&&offset+last.rows.length<last.total?offset+last.rows.length:undefined,
   enabled,staleTime:30_000,gcTime:30*60_000,refetchOnWindowFocus:false,
  });
