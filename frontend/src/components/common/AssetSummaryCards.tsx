@@ -1,14 +1,14 @@
 import {DelayedSkeleton} from './DelayedSkeleton';
 import {cashAllocation} from '../../utils/cashAllocation';
 import { Box, CardActionArea, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useListNavigation } from '../../hooks/navigation/usePageMemory';
 import type { DashboardSummary } from '../../types/models';
 import { formatPercent, formatRate, formatSignedWon, formatWon, getMarketColor } from '../../utils/format';
 import { colors, pageMetrics } from '../../styles/tokens';
 import { AppCard } from './Common';
 
 export function TotalAssetCard({ summary, tabletHeight = 116, home = false, loading=false }: { summary: DashboardSummary; tabletHeight?: number; home?: boolean; loading?:boolean }) {
-  const navigate = useNavigate();
+  const navigate = useListNavigation();
   return <AppCard sx={{ height: home ? 76 : { xs: 102, sm: tabletHeight }, borderRadius: home ? '8px' : undefined, position: 'relative' }}><CardActionArea onClick={() => navigate('/detail/assets')} sx={{ height: '100%' }}>
     <Typography sx={{ position: 'absolute', top: home ? 13 : { xs: 17, sm: 24 }, left: home ? 13 : pageMetrics.cardInset, fontSize: home ? 14 : { xs: 12, sm: 14 }, lineHeight: '18px', color: colors.textSecondary }}>평가자산</Typography>
     <Box sx={{ position: 'absolute', top: home ? 9 : { xs: 9, sm: 15 }, right: home ? 13 : pageMetrics.cardInset, maxWidth: 'calc(100% - 26px)', textAlign: 'right', lineHeight: home ? '29px' : '36px' }}><Typography component="span" sx={{ color: getMarketColor(summary.dailyProfit), fontSize: home ? 24 : { xs: 24, sm: 30 }, lineHeight: home ? '29px' : undefined, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{loading ? <DelayedSkeleton component="span" width={140} height={29} sx={{display:'inline-block',transform:'none'}}/> : formatWon(summary.totalAssets)}</Typography></Box>
@@ -19,10 +19,10 @@ export function TotalAssetCard({ summary, tabletHeight = 116, home = false, load
 }
 
 export function AssetQuickCards({ summary, tabletHeight = 88, home = false, gap, allocationAvailable=true, loading=false }: { summary: DashboardSummary; tabletHeight?: number; home?: boolean; gap?: string; allocationAvailable?:boolean; loading?:boolean }) {
-  const navigate = useNavigate();
+  const navigate = useListNavigation();
   const {stockPercent:stockRate,cashPercent:cashRate,stockColor,cashColor}=cashAllocation(summary.stockValue,summary.cashBalance,summary.pricingComplete!==false&&allocationAvailable);
   return <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: gap ?? { xs: home ? '10px' : '10px', sm: home ? '14px' : `${pageMetrics.gap}px` }, height: home ? 68 : { xs: 82, sm: tabletHeight } }}>
-    <QuickCard title="주식평가액" value={formatWon(summary.stockValue)} rate={formatPercent(stockRate)} monthly={formatSignedWon(summary.stockMonthlyProfit)} color={stockColor} monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate(home ? '/detail/investment' : '/detail/stock-value')} tabletHeight={tabletHeight} home={home} loading={loading} />
+    <QuickCard title="주식평가액" value={formatWon(summary.stockValue)} rate={formatPercent(stockRate)} monthly={formatSignedWon(summary.stockMonthlyProfit)} color={stockColor} monthlyColor={getMarketColor(summary.stockMonthlyProfit)} onClick={() => navigate(home ? '/assets' : '/detail/stock-value')} tabletHeight={tabletHeight} home={home} loading={loading} />
     <QuickCard title="예수금" value={formatWon(summary.cashBalance)} rate={formatPercent(cashRate)} monthly={formatSignedWon(summary.cashMonthlyProfit)} color={cashColor} monthlyColor={getMarketColor(summary.cashMonthlyProfit)} onClick={() => navigate('/detail/cash')} tabletHeight={tabletHeight} home={home} loading={loading} />
   </Box>;
 }
