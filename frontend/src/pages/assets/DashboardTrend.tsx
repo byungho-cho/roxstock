@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {Box, Button, CardActionArea, Stack, Typography} from '@mui/material';
 import {useNavigate} from 'react-router-dom';
 import {AssetTrendChart, type AssetTrendPoint} from '../../components/common/AssetTrendChart';
@@ -14,8 +15,8 @@ export function DashboardTrend({points, pending, failed, retry}: {
     </CardActionArea>
     <Box data-testid="dashboard-trend-region" aria-busy={pending} sx={{mt: '10px', height: {xs: 48, sm: 90}, position: 'relative', display: 'flex', alignItems: 'center', '& > *': {width: '100%'}, '& [data-testid="asset-trend-chart"]': {mt: 0}}}>
       <AssetTrendChart points={points.length>1?points:[]} height={{xs:32,sm:74}} dateMode="day"/>
-      {!pending&&points.length<2&&<Stack sx={{position:'absolute',inset:0,alignItems:'center',justifyContent:'center'}}>{failed?<><Typography role="alert" sx={{fontSize:11}}>자산 추이 조회 실패</Typography><Button size="small" onClick={retry}>재시도</Button></>:<Typography role="status" sx={{fontSize:11,color:colors.textMuted}}>내용이 없습니다.</Typography>}</Stack>}
-      {failed && points.length > 0 && <Button size="small" sx={{position: 'absolute', top: 0, right: 0, p: 0, fontSize: 9, minHeight: 18, width: 'auto!important'}} onClick={retry}>조회 실패 · 이전 결과 · 재시도</Button>}
+      {!pending&&points.length<2&&<Stack sx={{position:'absolute',inset:0,alignItems:'center',justifyContent:'center'}}>{failed?<><QueryErrorNotice message="자산 추이 조회 실패"/><Button size="small" onClick={retry}>재시도</Button></>:<Typography role="status" sx={{fontSize:11,color:colors.textMuted}}>내용이 없습니다.</Typography>}</Stack>}
+      {failed && points.length > 0 && <QueryErrorNotice message="조회 실패 · 이전 결과" onRetry={retry}/>}
     </Box>
   </Box>;
 }

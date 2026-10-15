@@ -95,8 +95,8 @@ test('current-year remaining lot profit, historical year, browser/detail return 
 test('one top loading bar spans concurrent foreground queries, failure and navigation; refresh remains quiet',async({page},info)=>{
   const f=await fixture(page);f.hold();await page.goto('/assets');await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);expect((await page.getByTestId('main-loading-bar').boundingBox())!.height).toBe(3);
   f.release();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);
-  f.hold();await page.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);f.fail();f.release();await expect(page.getByRole('button',{name:'다시 시도',exact:true})).toBeVisible();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);
-  f.success();await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('asset-trend-chart')).toBeVisible();
+  f.hold();await page.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('main-loading-bar')).toHaveCount(1);f.fail();f.release();await expect(page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도',exact:true})).toBeVisible();await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);
+  f.success();await page.getByTestId('analysis-chart-region').getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('asset-trend-chart')).toBeVisible();
   await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});f.hold();await page.clock.fastForward(60_000);await page.waitForTimeout(200);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
   // A request from an unmounted screen must not keep the next screen's bar active.

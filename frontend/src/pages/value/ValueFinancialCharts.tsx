@@ -1,10 +1,11 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {useChartDismiss} from '../../hooks/useChartDismiss';
 import {colors} from '../../styles/tokens';
 import {collectionColor} from './collectionColor';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import {useQuery} from '@tanstack/react-query';
 import {useLocation,useNavigate} from 'react-router-dom';
-import { Box, Typography, IconButton, Popover, Button, Dialog, CircularProgress } from '@mui/material';
+import { Box, Typography, IconButton, Popover, Button, Dialog } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useEffect,useRef,useState } from 'react';
 import { format,number,allFinancialRows,type FinancialRow } from './valueApi';
@@ -84,7 +85,7 @@ export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',curren
   {groups.map(g=><Box key={g.title} sx={{bgcolor:'#111927',borderRadius:1,p:'8px 16px'}}><Box data-testid="financial-card-titlebar" sx={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',minHeight:24}}><Box sx={{display:'flex',alignItems:'center',minWidth:0}}><Typography sx={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{g.title}</Typography>{g.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}</Box><ChartLegend group={g} compact/><Button size="small" disabled={!stockId} onClick={()=>open(g.title)} sx={{justifySelf:'end',p:0,minWidth:0,fontSize:10,color:'#94A3B8'}}>상세보기</Button></Box><Chart rows={rows} group={currencyGroup(g,rows)}/></Box>)}
   <Dialog fullScreen transitionDuration={0} open={!!group} onClose={close} aria-label="재무지표 차트 상세보기" slotProps={{paper:{'aria-label':'재무지표 차트 상세보기',sx:{bgcolor:'#080F1C',backgroundImage:'none',p:1,overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
    <Box sx={{display:'flex',alignItems:'center',gap:1,minHeight:36,flexShrink:0}}><IconButton aria-label="차트 상세보기 뒤로가기" onClick={close} size="small"><ArrowBackRoundedIcon/></IconButton><Typography sx={{fontSize:14,fontWeight:600}}>{group?.title}</Typography><Typography sx={{ml:'auto',fontSize:11,color:'#94A3B8'}}>2015–{currentYear} · {mode==='annual'?'연간':'분기'}</Typography></Box>
-   {all.isPending?<Box sx={{flex:1,display:'grid',placeItems:'center'}}><CircularProgress size={24}/></Box>:all.isError?<Box role="alert" sx={{p:2}}>전체 기간 조회에 실패했습니다.<Button onClick={()=>void all.refetch()}>다시 조회</Button></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
+   {all.isPending?<Box aria-busy="true" sx={{flex:1,minHeight:0}}/>:all.isError?<Box sx={{p:2}}><QueryErrorNotice message="전체 기간 조회에 실패했습니다." onRetry={()=>void all.refetch()}/></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
   </Dialog>
  </Box>;
 }

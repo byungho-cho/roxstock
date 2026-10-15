@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {CompositionCard,type ChartItem} from './CompositionCard';
 import {useListNavigation,usePageMemory} from '../../hooks/navigation/usePageMemory';
 import {DashboardTrend} from './DashboardTrend';
@@ -37,7 +38,7 @@ export function AssetOverviewPage() {
   const items: ChartItem[] = [...top, ...(other > 0 ? [{ id: 'other', percent: other }] : [])].map(({ id, percent }, index) => ({
     id, percent, color: palette[index], name: id === 'other' ? '기타' : holdings.find(stock => stock.id === id)?.name ?? '기타',
   }));
-  return <>{header}<Snackbar open={isError} message="최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다." />
+  return <>{header}<QueryErrorNotice active={isError} message={"최신 데이터 조회에 실패했습니다. 이전 값을 표시합니다."} inlineRetry={false}/>
     <Box className="rox-home" data-testid="asset-overview" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', alignItems: 'stretch' }}>
       <CompositionCard onHome={()=>navigate('/')} onStocks={()=>navigate('/stocks?tab=holding')} onStock={id=>navigate(`/stocks/${id}?detailTab=summary`,{state:{stockNavigation:{accountId,ids:items.filter(item=>item.id!=='other').map(item=>item.id),tab:'holding'}}})} trend={tablet ? null : trendCard} loading={pending} failed={isError||accounts.isError} retry={()=>{void refetch();if(accounts.isError)void accounts.refetch();}} allocationAvailable={!isError} summary={summary} items={items} mode={mode} updating={isFetching} onToggle={() => setMode(previous => previous === 'cumulative' ? 'ranked' : 'cumulative')} />
       {tablet && <AssetAnalysisPage dashboardPanel />}

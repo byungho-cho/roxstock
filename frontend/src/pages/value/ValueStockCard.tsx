@@ -1,3 +1,4 @@
+import {formatShareCount} from '../../utils/shareCount';
 import {AnalysisBasisInfo} from './AnalysisBasisInfo';
 import {largeMoney} from '../../utils/largeMoney';
 import {useState} from 'react';
@@ -18,7 +19,7 @@ export function ValueStockCard({row,selected,disabled,onClick}:{row:ValueRow;sel
    <Box component="span" data-testid="value-current-price" sx={{fontSize:11,color:color(delta),textAlign:'right',overflowWrap:'anywhere'}}>{format(row.currentPrice,0,'원')}</Box>
   </Box>
   <Box data-testid="value-classification" sx={{display:'grid',gridTemplateColumns:'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)',gap:'4px',alignItems:'center',minHeight:20,fontWeight:700,bgcolor:row.dataColor??'#FFD96E',px:'8px',borderRadius:0}}>
-   <Box component="span" sx={{fontSize:10,color:'#144038',overflowWrap:'anywhere'}}>발행주식수 {format(row.issuedShares,0,'주')}</Box>
+   <Box component="span" sx={{fontSize:10,color:'#144038',overflowWrap:'anywhere'}}>발행주식수 {formatShareCount(row.issuedShares)}</Box>
    <Box component="span" sx={{fontSize:11,color:'#AD1F33',textAlign:'right'}}>W {format(row.w,2)}</Box>
    <Box component="span" sx={{fontSize:10,color:'#AD1F33',textAlign:'right'}}>ROE {format(row.roe,1,'%')}</Box>
   </Box>

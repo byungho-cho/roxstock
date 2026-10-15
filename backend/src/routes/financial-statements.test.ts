@@ -19,3 +19,19 @@ test('financial detail keeps exactly three periods across a year boundary withou
  const all=await app.inject('/api/financial-statements/1?startYear=2024&endYear=2025&period=ALL');assert.equal(all.json().data.rows.length,8);
  assert.equal((await app.inject('/api/financial-statements/1?startYear=2025&endYear=2024&period=ALL')).statusCode,400);}finally{await app.close();prisma.$transaction=original;}
 });
+
+test('financial bounded list keeps full navigation, total and original API semantics',async()=>{
+ const original=prisma.security.findMany;
+ prisma.security.findMany=(async()=>Array.from({length:125},(_,i)=>({id:BigInt(i+1),name:'종목'+i,symbol:String(i+1).padStart(6,'0'),marketType:'KOSPI',marketPrice:null,valuationMetrics:[]}))) as unknown as typeof original;
+ const app=buildAnalysisTestApp();
+ try{
+  const full=(await app.inject('/api/financial-statements?year=2026&market=KOSPI')).json().data;
+  const response=await app.inject('/api/financial-statements?year=2026&market=KOSPI&limit=100');assert.equal(response.statusCode,200);
+  const bounded=response.json().data;assert.equal(bounded.total,125);assert.equal(bounded.rows.length,100);assert.deepEqual(bounded.rows,full.rows.slice(0,100));assert.deepEqual(bounded.navigation,full.rows.map(({id,name,symbol}:any)=>({id,name,symbol})));
+  assert.equal((await app.inject('/api/financial-statements?year=2026&limit=200')).json().data.rows.length,125);
+  const next=(await app.inject('/api/financial-statements?year=2026&market=KOSPI&limit=30&offset=20')).json().data;assert.deepEqual(next.rows,full.rows.slice(20,50));assert.equal(next.navigation,undefined);
+  assert.equal((await app.inject('/api/financial-statements?offset=-1')).statusCode,400);
+  assert.equal((await app.inject('/api/financial-statements?limit=0')).statusCode,400);
+  assert.equal((await app.inject('/api/financial-statements?compact=bad')).statusCode,400);
+ }finally{await app.close();prisma.security.findMany=original;}
+});

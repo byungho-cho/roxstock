@@ -85,7 +85,7 @@ test('small companies use a readable common monetary scale instead of rounded tr
 
 test('compact value cards use real API fields and missing amounts, with no edit delete star actions',async({page})=>{
  await fixture(page);await ready(page);const row=page.getByTestId('value-row-000001');
- await expect(row).toContainText('발행주식수 1,000,000주');await expect(row).toContainText('EPS');await expect(row).toContainText('100원');await expect(row).toContainText('초과이익');await expect(row).toContainText('주주가치');await expect(row).toContainText('기준평가율');await expect(row).toContainText('8.0%');
+ await expect(row).toContainText('발행주식수 100만주');await expect(row).toContainText('EPS');await expect(row).toContainText('100원');await expect(row).toContainText('초과이익');await expect(row).toContainText('주주가치');await expect(row).toContainText('기준평가율');await expect(row).toContainText('8.0%');
  expect(await row.locator('span').allTextContents()).not.toContain('NaN');await expect(row).toContainText('W 0.7');await expect(row).toContainText('12,000원');
  await expect(row.getByRole('button',{name:/자료 기준 및 출처/})).toHaveCount(1);await expect(row.getByRole('button',{name:/편집|삭제|즐겨찾기/})).toHaveCount(0);const text=await row.textContent();expect(text).not.toMatch(/Infinity|NaN/);
 });

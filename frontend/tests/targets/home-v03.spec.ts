@@ -69,6 +69,6 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   await page.locator('main').evaluate(n=>n.scrollTop=180);const top=await page.locator('main').evaluate(n=>n.scrollTop);
   f.hold();await page.clock.fastForward(60_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(card.getByTestId('target-lot')).toHaveCount(5);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);f.release();await expect(card.getByText(/갱신 중/)).toHaveCount(0);
   f.unavailable();await page.clock.fastForward(60_000);await expect(card.getByText(/판정 불가 1건/)).toBeVisible();await expect(card.getByText('내용이 없습니다.')).toHaveCount(0);
-  f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(card.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
+  f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(page.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
 });

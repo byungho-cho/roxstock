@@ -81,14 +81,14 @@ test('settings menu, small form, left title and Enter failure retention',async({
  const heights=await page.getByRole('textbox').evaluateAll(ns=>ns.map(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height));expect(heights).toEqual([36,36,36]);
  const title=await page.getByRole('heading').boundingBox();expect(title!.x).toBe(36);
  await field.fill('변경 계좌');await field.press('Enter');await expect(page.getByRole('textbox',{name:'증권사',exact:true})).toBeFocused();f.fail();
- await page.getByRole('textbox',{name:'계좌번호',exact:true}).press('Enter');await expect(page.getByRole('alert')).toContainText('테스트 저장 실패');await expect(field).toHaveValue('변경 계좌');
+ await page.getByRole('textbox',{name:'계좌번호',exact:true}).press('Enter');await expect(page.getByRole('alert').filter({hasText:'테스트 저장 실패'})).toContainText('테스트 저장 실패');await expect(field).toHaveValue('변경 계좌');
  await capture(page,'settings-input',info.project.name);
 });
 test('target limit, duplicate validation, delete draft and save failure retry',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/settings?view=target-arrival');await expect(page.getByRole('button',{name:'조건 추가',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'삭제',exact:true}).first().click();const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.getByRole('button',{name:'삭제',exact:true}).click();expect(f.writes).toHaveLength(0);
  await page.getByRole('button',{name:'조건 추가',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);const days=page.getByRole('textbox',{name:'보유기간 상한',exact:true}),rate=page.getByRole('textbox',{name:'목표수익률',exact:true});await days.fill('30');await days.press('Enter');await rate.fill('12');await expect(page.getByRole('button',{name:'등록',exact:true})).toBeDisabled();await days.fill('120');await rate.press('Enter');
- f.fail();await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByRole('alert')).toContainText('테스트 저장 실패');f.succeed();await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByText('저장했습니다. 홈 목록을 갱신했습니다.')).toBeVisible();
+ f.fail();await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'테스트 저장 실패'})).toContainText('테스트 저장 실패');f.succeed();await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByText('저장했습니다. 홈 목록을 갱신했습니다.')).toBeVisible();
  expect(f.writes.at(-1)?.body.conditions.map((c:any)=>c.days)).toEqual([30,90,120,180,365]);
 });
 test('reset confirmation, failure retry and duplicate guards',async({page})=>{

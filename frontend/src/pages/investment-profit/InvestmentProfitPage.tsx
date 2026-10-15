@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {ProfitEmptyList,ProfitEmptyDetail} from './ProfitEmptyFrame';
 import { stockProfitPath, yearProfitPath } from './profitNavigation';
 import { ProfitMetric as Metric, StockProfitMetrics } from './ProfitSummaryMetrics';
@@ -110,7 +111,7 @@ export function InvestmentProfitPage() {
     }
     await query.refetch();
   };
-  const error = failed ? <AppCard sx={card}><Typography role="alert" sx={muted}>조회에 실패했습니다.{data ? ' 기존 데이터를 표시합니다.' : ''}</Typography><Button onClick={retry} sx={{ fontSize: 11, minHeight: 28 }}>재시도</Button></AppCard> : null;
+  const error = failed ? <AppCard sx={card}><QueryErrorNotice message="조회에 실패했습니다."/><Button onClick={retry} sx={{ fontSize: 11, minHeight: 28 }}>재시도</Button></AppCard> : null;
   const loadingList = <ProfitEmptyList stock={tab==='stock'} scoped={!!securityScope} toggle={toggle}/>;
   const loadingDetail = <ProfitEmptyDetail stock={tab==='stock'} scoped={!!securityScope} year={selectedYear}/>;
   const empty = (detail = false) => <AppCard data-testid={detail ? 'profit-detail-empty' : 'profit-empty'} sx={{ ...card, height: 160, display: 'grid', placeItems: 'center' }}><Typography role="status" sx={{ fontSize: 14 }}>{detail ? '내역이 없습니다.' : '내용이 없습니다.'}</Typography></AppCard>;

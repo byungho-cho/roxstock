@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { CheckCircleRounded, KeyboardArrowDownRounded } from '@mui/icons-material';
 import {
   Alert, Box, Button, CardContent, CircularProgress, FormControl,
@@ -167,14 +168,14 @@ function TradeEntry() {
     else mobileMemoRef.current?.focus();
   };
 
-  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Alert severity="error">거래에 필요한 데이터를 불러오지 못했습니다. <Button onClick={() => { void reloadStocks(); void reloadDashboard(); }}>다시 시도</Button></Alert></Stack>;
+  if (liveApiEnabled && ((stocksError && !fetchedStocks) || (dashboardError && !dashboard))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><QueryErrorNotice message="거래에 필요한 데이터를 불러오지 못했습니다." onRetry={() => { void reloadStocks(); void reloadDashboard(); }}/></Stack>;
   if (liveApiEnabled && (stocksPending || dashboardPending || (type === 'sell' && lotsLoading))) return <Stack spacing={1} sx={{ p: 2 }}><PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수' : '매도'} /><Box role="status" sx={{ bgcolor: colors.surface, borderRadius: 2, p: 2, color: colors.textMuted }}>거래 정보를 불러오는 중입니다.</Box></Stack>;
-  if (lotsError && type === 'sell') return <Alert severity="error">매도 가능 Lot 조회에 실패했습니다. <Button onClick={() => void reloadLots()}>다시 시도</Button></Alert>;
+  if (lotsError && type === 'sell') return <QueryErrorNotice message="매도 가능 Lot 조회에 실패했습니다." onRetry={() => void reloadLots()}/>;
   if ((!liveApiEnabled && editId && !editing) || (type === 'sell' && (!lotId || (!lotsLoading && !selectedLot)))) return null;
 
   return (
     <Stack spacing={1.25} sx={{ pb: 9, maxWidth: 880, mx: 'auto' }}>
-      <Snackbar open={(stocksError && !!fetchedStocks) || (dashboardError && !!dashboard)} message="최신 시세 조회에 실패했습니다. 이전 값을 표시합니다." />
+      <QueryErrorNotice active={(stocksError && !!fetchedStocks) || (dashboardError && !!dashboard)} message={"최신 시세 조회에 실패했습니다. 이전 값을 표시합니다."} inlineRetry={false}/>
       <PageHeader embedded compact showAdd={false} title={editing ? `${type === 'buy' ? '매수' : '매도'} 수정` : type === 'buy' ? '매수' : '매도'} />
       <Grid container spacing={{ xs: 1.25, sm: 2 }} sx={{ px: { xs: `${pageGutter.xs}px`, sm: `${pageGutter.sm}px` } }}>
         <Grid size={{ xs: 12, sm: 7 }}>

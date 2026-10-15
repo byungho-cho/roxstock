@@ -41,7 +41,7 @@ test('missing plan/default/error has no arbitrary navigation',async({page})=>{
  const f=await setup(page);f.empty();await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획이 없습니다.');expect(await page.getByTestId('analysis-compound').getByRole('button').count()).toBe(0);
  f.empty(false);await page.goto('/detail/compound?view=goal&plan=unknown&goal=g1');await expect(page.getByText('해당 계획을 찾을 수 없습니다.')).toBeVisible();
  f.empty(false);f.noDefault();await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('기본 목표가 없습니다.');
- f.fail(true);await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');await page.getByTestId('analysis-compound').click();await expect(page).toHaveURL(/\/assets$/);
+ f.fail(true);await page.goto('/assets');await expect(page.getByTestId('analysis-compound').getByRole('button',{name:'복리계획 다시 시도'})).toBeVisible();await page.getByTestId('analysis-compound').click();await expect(page).toHaveURL(/\/assets$/);
 });
 test('polling refresh retains summary, zero and unavailable, isolates late accounts',async({page})=>{
  await page.clock.install({time:new Date('2026-10-09T00:00:00Z')});const f=await setup(page);await page.goto('/detail/compound?view=goal&plan=p1&goal=g1');await expect(page.getByTestId('compound-summary-current')).toHaveText('117원');
@@ -91,6 +91,6 @@ test('back during a late save does not consume the goal entry twice',async({page
 });
 
 test('malformed or mismatched account responses show an error without breaking analysis',async({page})=>{
- await setup(page);await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:[]}}));await page.goto('/assets');await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:{accountId:'b',currentAssets:'999',currentYear:2026,plans:[plan]}}}));await page.getByRole('button',{name:'복리계획 다시 시도'}).click();await expect(page.getByTestId('analysis-compound-summary')).toHaveCount(0);await expect(page.getByTestId('analysis-compound')).toContainText('조회에 실패');
+ await setup(page);await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:[]}}));await page.goto('/assets');await expect(page.getByTestId('analysis-compound').getByRole('button',{name:'복리계획 다시 시도'})).toBeVisible();await page.getByRole('button',{name:'3개월',exact:true}).click();await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.route('**/api/accounts/a/compound-plans*',route=>route.fulfill({json:{data:{accountId:'b',currentAssets:'999',currentYear:2026,plans:[plan]}}}));await page.getByRole('button',{name:'복리계획 다시 시도'}).click();await expect(page.getByTestId('analysis-compound-summary')).toHaveCount(0);await expect(page.getByTestId('analysis-compound').getByRole('button',{name:'복리계획 다시 시도'})).toBeVisible();
 });
