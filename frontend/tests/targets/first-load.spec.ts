@@ -3,6 +3,25 @@ import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { fixture } from './stock-input-fixture';
 
+test('home monthly profit labels account profit separately from cash change', async ({page}) => {
+  await fixture(page);
+  let profit: string | null = '12345';
+  await page.route('**/api/pages/**', route => route.fulfill({status:404,json:{error:{message:'Use account fixture'}}}));
+  await page.route('**/api/accounts/*/dashboard', async route => {
+    await route.fulfill({json:{data:{totalAssetValue:'1200000',stockValue:'800000',cashBalance:'400000',
+      purchaseAmount:'750000',pricingComplete:true,holdings:[],stockMonthlyProfit:profit,cashMonthlyProfit:'-50000'}}});
+  });
+  await page.goto('/');
+  const cards = page.getByTestId('home-quick-cards');
+  await expect(cards).toContainText('이번달 손익 +12,345원');
+  await expect(cards).toContainText('이번달 -50,000원');
+  await expect(cards.getByText('이번달 손익 +12,345원', {exact:true})).toHaveCSS('color','rgb(248, 113, 113)');
+  profit = '-2345'; await page.reload();
+  await expect(cards.getByText('이번달 손익 -2,345원', {exact:true})).toHaveCSS('color','rgb(96, 165, 250)');
+  profit = null; await page.reload();
+  await expect(cards).toContainText('이번달 손익 —');
+});
+
 for (const path of ['/', '/assets']) test(`cold ${path} loads only needed screens and valid precompressed code`, async ({ page }) => {
   await fixture(page);
   const scripts = new Set<string>();

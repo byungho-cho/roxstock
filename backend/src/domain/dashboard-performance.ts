@@ -14,6 +14,8 @@ export type DashboardPerformanceInput = {
   previousMonthEndSnapshot: PerformanceSnapshot | null;
   todayDepositAmount: Prisma.Decimal;
   todayWithdrawalAmount: Prisma.Decimal;
+  monthDepositAmount: Prisma.Decimal;
+  monthWithdrawalAmount: Prisma.Decimal;
 };
 
 export type UnavailableReason =
@@ -61,8 +63,11 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
   const cashMonthlyProfit = input.currentCashBalance !== null && input.previousMonthEndSnapshot
     ? input.currentCashBalance.minus(input.previousMonthEndSnapshot.cashBalance)
     : null;
-  const stockMonthlyProfit = input.previousMonthEndSnapshot && input.currentStockValue !== null
-    ? input.currentStockValue.minus(input.previousMonthEndSnapshot.stockValue)
+  // Sum of this month's net-flow-adjusted daily P/L telescopes to this total.
+  // Keep the API field name for compatibility; it is account P/L, not stock-value change.
+  const stockMonthlyProfit = input.previousMonthEndSnapshot && currentTotalAssetValue !== null
+    ? currentTotalAssetValue.minus(input.previousMonthEndSnapshot.totalAssetValue)
+      .minus(input.monthDepositAmount).plus(input.monthWithdrawalAmount)
     : null;
 
   return {
@@ -74,7 +79,8 @@ export const calculateDashboardPerformance = (input: DashboardPerformanceInput) 
     cashMonthlyProfit: stringOrNull(cashMonthlyProfit),
     dailyProfitUnavailableReason,
     dailyProfitRateUnavailableReason,
-    stockMonthlyProfitUnavailableReason: input.currentStockValue === null
+    stockMonthlyProfitUnavailableReason: input.currentCashBalance === null
+      ? 'CURRENT_CASH_MISSING' as const : input.currentStockValue === null
       ? 'CURRENT_PRICE_INCOMPLETE' as const
       : !input.previousMonthEndSnapshot ? 'PREVIOUS_MONTH_END_SNAPSHOT_MISSING' as const : null,
     cashMonthlyProfitUnavailableReason: input.currentCashBalance === null ? 'CURRENT_CASH_MISSING' as const : input.previousMonthEndSnapshot

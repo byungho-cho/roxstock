@@ -17,7 +17,49 @@ const input = (overrides: Partial<DashboardPerformanceInput> = {}): DashboardPer
   previousMonthEndSnapshot: snapshot('2026-08-31', 800, 300),
   todayDepositAmount: decimal(100),
   todayWithdrawalAmount: decimal(50),
+  monthDepositAmount: decimal(100),
+  monthWithdrawalAmount: decimal(50),
   ...overrides,
+});
+
+test('월중 추가 매수와 외부 입출금은 월간 수익으로 잡지 않는다', () => {
+  const base = { previousMonthEndSnapshot: snapshot('2026-08-31', 700, 300),
+    monthDepositAmount: decimal(0), monthWithdrawalAmount: decimal(0) };
+  assert.equal(calculateDashboardPerformance(input({ ...base,
+    currentCashBalance: decimal(200), currentStockValue: decimal(800),
+  })).stockMonthlyProfit, '0');
+  assert.equal(calculateDashboardPerformance(input({ ...base,
+    currentCashBalance: decimal(500), currentStockValue: decimal(800), monthDepositAmount: decimal(300),
+  })).stockMonthlyProfit, '0');
+  assert.equal(calculateDashboardPerformance(input({ ...base,
+    currentCashBalance: decimal(100), currentStockValue: decimal(800), monthWithdrawalAmount: decimal(100),
+  })).stockMonthlyProfit, '0');
+});
+
+test('월간 손익은 입출금 보정한 일별손익 합계와 같고 오늘을 한 번만 포함한다', () => {
+  const opening = snapshot('2026-08-31', 700, 300);
+  const first = calculateDashboardPerformance(input({ previousDaySnapshot: opening,
+    previousMonthEndSnapshot: opening, currentCashBalance: decimal(500), currentStockValue: decimal(800),
+    todayDepositAmount: decimal(200), todayWithdrawalAmount: decimal(0),
+    monthDepositAmount: decimal(200), monthWithdrawalAmount: decimal(0) }));
+  const second = calculateDashboardPerformance(input({ previousDaySnapshot: snapshot('2026-09-01', 500, 800),
+    previousMonthEndSnapshot: opening, currentCashBalance: decimal(350), currentStockValue: decimal(810),
+    todayDepositAmount: decimal(0), todayWithdrawalAmount: decimal(100),
+    monthDepositAmount: decimal(200), monthWithdrawalAmount: decimal(100) }));
+  assert.equal(first.stockMonthlyProfit, first.dailyProfit);
+  assert.equal(second.stockMonthlyProfit, decimal(first.dailyProfit!).plus(second.dailyProfit!).toString());
+  assert.equal(second.stockMonthlyProfit, '60');
+});
+
+test('소수 손실과 예수금 누락을 보존하고 전일 누락만으로 월간 계산을 막지 않는다', () => {
+  const result = calculateDashboardPerformance(input({ previousDaySnapshot: null,
+    previousMonthEndSnapshot: snapshot('2026-08-31', 700, 300),
+    currentCashBalance: decimal('200.1234'), currentStockValue: decimal('799.0001'),
+    monthDepositAmount: decimal(0), monthWithdrawalAmount: decimal(0) }));
+  assert.equal(result.stockMonthlyProfit, '-0.8765');
+  const missing = calculateDashboardPerformance(input({ currentCashBalance: null }));
+  assert.equal(missing.stockMonthlyProfit, null);
+  assert.equal(missing.stockMonthlyProfitUnavailableReason, 'CURRENT_CASH_MISSING');
 });
 
 test('입출금을 제거한 총자산 변화로 일별손익과 전일자산 기준 수익률을 계산한다', () => {
@@ -26,7 +68,7 @@ test('입출금을 제거한 총자산 변화로 일별손익과 전일자산 �
   assert.equal(result.previousDayChangeRate, '20');
   assert.equal(result.dailyProfit, '150');
   assert.equal(result.dailyProfitRate, '15');
-  assert.equal(result.stockMonthlyProfit, '200');
+  assert.equal(result.stockMonthlyProfit, '50');
   assert.equal(result.cashMonthlyProfit, '-100');
 });
 
@@ -48,12 +90,12 @@ test('거래가 없는 날에도 동일한 기준으로 자산 변화를 계산�
   assert.equal(result.dailyProfit, '10');
 });
 
-test('월초에는 전월 말 스냅샷을 기준으로 주식과 예수금 변화를 계산한다', () => {
+test('월초에도 월간 손익은 외부 입출금을 제외하고 예수금 증감은 기존 기준을 유지한다', () => {
   const result = calculateDashboardPerformance(input({
     previousDaySnapshot: snapshot('2026-08-31', 800, 300),
     previousMonthEndSnapshot: snapshot('2026-08-31', 800, 300),
   }));
-  assert.equal(result.stockMonthlyProfit, '200');
+  assert.equal(result.stockMonthlyProfit, '50');
   assert.equal(result.cashMonthlyProfit, '-100');
 });
 
