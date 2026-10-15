@@ -1,0 +1,12 @@
+RoxStock production database backup paired with source tag v0.3.
+Backup started: 2026-10-15 21:49:17 UTC / 2026-10-16 06:49:17 Asia/Seoul.
+Source tag commit: cf906b0484a72869fe9fb756b4d1e9b6d99d8d46.
+The source tag includes the local asset-analysis icon change; it does not indicate a deployment.
+All 40 tables are InnoDB. A single-transaction dump preserves a consistent data snapshot.
+Database tables, indexes, constraints, triggers, routines and events are included.
+The five recovered 2026-10-15 account snapshots are included (5,800 snapshots total).
+The Git copy is encrypted with AES-256-GCM and a random 256-bit password, using scrypt for key derivation.
+Password and plaintext archive are retained outside Git; never upload them to this public repository.
+The restricted original server backup remains under /root/roxstock-backups/roxstock-v0.3-20261015T214917Z.
+No production data, schema, collector configuration or deployment was modified by this backup.
+See validation.json for actual restore verification status and manifest.json for hashes.
