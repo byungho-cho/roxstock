@@ -1,0 +1,68 @@
+{
+  "atUtc": "2026-10-11T22:33:52.731Z",
+  "deployment": "f16cd801236d5247358ee45c4bc7341de90dab1e",
+  "networkRequests": 0,
+  "databaseAccess": false,
+  "checks": [
+    {
+      "label": "non_december_failure",
+      "corp": "01170962",
+      "requestYear": 2024,
+      "code": "11012",
+      "selected": "20240229002271",
+      "returned": [
+        "20250304000174"
+      ],
+      "strictMismatch": true,
+      "assertion": "PASS"
+    },
+    {
+      "label": "same_company_annual_control",
+      "corp": "01170962",
+      "requestYear": 2024,
+      "code": "11011",
+      "selected": "20241018000064",
+      "returned": [
+        "20241018000064"
+      ],
+      "strictMismatch": false,
+      "assertion": "PASS"
+    },
+    {
+      "label": "period_year_comparison",
+      "corp": "01170962",
+      "requestYear": 2023,
+      "code": "11012",
+      "selected": "20240229002271",
+      "returned": [
+        "20240229002271"
+      ],
+      "strictMismatch": false,
+      "assertion": "PASS"
+    },
+    {
+      "label": "amendment_failure",
+      "corp": "00113410",
+      "requestYear": 2024,
+      "code": "11011",
+      "selected": "20250317001020",
+      "returned": [
+        "20250317000953"
+      ],
+      "strictMismatch": true,
+      "assertion": "PASS"
+    },
+    {
+      "label": "annual_control",
+      "corp": "00126380",
+      "requestYear": 2024,
+      "code": "11011",
+      "selected": "20250311001085",
+      "returned": [
+        "20250311001085"
+      ],
+      "strictMismatch": false,
+      "assertion": "PASS"
+    }
+  ]
+}
