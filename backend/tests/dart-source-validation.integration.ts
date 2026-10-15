@@ -8,7 +8,7 @@ import {validateDartFiling} from '../../collector/src/dart-filing-validation.js'
 const url=new URL(process.env.DATABASE_URL??'');
 if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_dart_recovery_test'))throw Error('Isolated MariaDB required');
 const db=new PrismaClient(),repo=new PrismaDartRepository(db);
-const evidence=JSON.parse(readFileSync(new URL('./fixtures/dart-receipt-analysis.json',import.meta.url),'utf8')) as Array<{corpCode:string;path:string;rows:RawReport[]}>;
+const evidence=JSON.parse(readFileSync(new URL('../../collector/tests/fixtures/dart-receipt-analysis.json',import.meta.url),'utf8')) as Array<{corpCode:string;path:string;rows:RawReport[]}>;
 
 test('actual MariaDB stores GRT/CJ/Samsung source, period, units; duplicate attempts and wrong-period writes preserve existing data',async()=>{
  try{

@@ -25,7 +25,6 @@ COPY shared/package.json shared/package.json
 RUN npm ci --workspace backend --workspace shared --include-workspace-root --omit=dev && npm cache clean --force
 COPY --from=build /app/backend/dist backend/dist
 COPY --from=build /app/shared/dist shared/dist
-COPY --from=build /app/shared/src/generated shared/src/generated
 COPY database database
 USER node
 EXPOSE 3300

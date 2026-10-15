@@ -19,7 +19,7 @@ for(const month of [3,6,9,12])test(`company-specific annual/Q1/Q2/Q3 closing-mon
  for(const report of reports){const source=validate(report);assert.equal(source.periodEndDate.toISOString().slice(0,7),report.reportName.match(/\((\d{4})\.(\d{2})\)/)?.slice(1).join('-'));assert.equal(source.sourceValidation.apiFiscalYear,2024);}
 });
 test('GRT and CJ/Samsung recorded API receipts reverse-validate without relabeling',()=>{
- const evidence=JSON.parse(readFileSync(new URL('../../../backend/tests/fixtures/dart-receipt-analysis.json',import.meta.url),'utf8')) as Array<{corpCode:string;path:string;fiscalYear:number;reportCode?:string;rows:Array<RawReport&{rcept_no:string}>}>;
+ const evidence=JSON.parse(readFileSync(new URL('../tests/fixtures/dart-receipt-analysis.json',import.meta.url),'utf8')) as Array<{corpCode:string;path:string;fiscalYear:number;reportCode?:string;rows:Array<RawReport&{rcept_no:string}>}>;
  for(const corp of ['01170962','00113410','00126380']){
   const list=evidence.find(r=>r.path==='list.json'&&r.corpCode===corp)!;
   const reports=mapPeriodicReports(list.rows,2024);
