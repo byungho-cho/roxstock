@@ -57,9 +57,9 @@ test('tablet independent columns, modal cancel preserves list position and no-go
 test('refresh failure preserves contents and timestamp; account switch hides old account and ignores late response',async({page})=>{
  const f=await fixture(page);await page.goto('/detail/compound');await expect(page.getByTestId('compound-plan-1')).toBeVisible();f.saveFail(true);
  await page.getByTestId('compound-plan-1').click();await page.getByRole('button',{name:'계획 삭제',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'삭제',exact:true}).click();await expect(page.getByRole('alert')).toContainText('기존 내용을 유지');await page.getByRole('button',{name:'취소',exact:true}).click();
- f.saveFail(false);f.fail(true);await page.getByRole('radio',{name:'안정형 기본 목표로 설정'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toHaveCount(page.viewportSize()!.width>=600?2:1);
+ f.saveFail(false);f.fail(true);await page.getByRole('radio',{name:'안정형 기본 목표로 설정'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toHaveCount(1);
  const compare=page.viewportSize()!.width>=600?page.locator('[data-scroll-region="compound-right"]'):page;
- await expect(compare.getByRole('alert')).toContainText('조회 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await compare.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
+ await expect(page.locator('.MuiSnackbar-root')).toContainText('조회에 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await compare.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
  f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
 });
