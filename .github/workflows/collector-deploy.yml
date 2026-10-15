@@ -53,7 +53,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm --workspace collector run prisma:generate
+      - run: npm run prisma:generate
       - run: npm --workspace collector run build
 
   docker:

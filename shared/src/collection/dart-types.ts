@@ -65,4 +65,3 @@ export class DartApiError extends Error {
     this.name = 'DartApiError';
   }
 }
-

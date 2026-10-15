@@ -61,4 +61,3 @@ export async function expireManualRun(db:PrismaClient,run:CollectorRun,now=Date.
  if(changed.count&&m.lockOwner)await new PrismaDartRepository(db).releaseLock(m.lockOwner);
  return Boolean(changed.count);
 }
-

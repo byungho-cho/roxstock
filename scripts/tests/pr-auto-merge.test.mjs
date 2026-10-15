@@ -29,7 +29,7 @@ test('documentation/captures only merges without deploying',async()=>{
 test('scope detects application changes after the first page of docs',async()=>{
  assert.equal((await run({paths:[...Array.from({length:150},(_,i)=>`docs/${i}.md`),'backend/src/app.ts']})).dispatches,1);
 });
-for(const path of ['database/prisma/schema.prisma','infra/caddy/Caddyfile','package-lock.json','compose.yml','.dockerignore','scripts/deploy-production-component.sh','.github/workflows/production-deploy.yml'])test(`deploy scope: ${path}`,async()=>assert.equal((await run({paths:[path]})).dispatches,1));
+for(const path of ['collector/src/worker.ts','shared/src/lib/prisma.ts','database/prisma/schema.prisma','infra/caddy/Caddyfile','package-lock.json','compose.yml','.dockerignore','scripts/deploy-production-component.sh','.github/workflows/production-deploy.yml','.github/workflows/collector-deploy.yml'])test(`deploy scope: ${path}`,async()=>assert.equal((await run({paths:[path]})).dispatches,1));
 for(const path of ['scripts/tests/pr-auto-merge.test.mjs','.github/workflows/pr-auto-merge.yml','.github/workflows/pr-gate.yml'])test(`check/orchestration only skips: ${path}`,async()=>assert.equal((await run({paths:[path]})).dispatches,0));
 for(const status of ['queued','pending','in_progress','waiting','requested'])test(`deduplicate ${status}`,async()=>assert.equal((await run({alreadyMerged:true,runs:[{status,conclusion:null}]})).dispatches,0));
 test('deduplicate successful deployment',async()=>assert.equal((await run({alreadyMerged:true,runs:[{status:'completed',conclusion:'success'}]})).dispatches,0));

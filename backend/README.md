@@ -132,7 +132,7 @@ npm --workspace collector exec -- tsx src/worker.ts prices 005930,005380
 
 \`\`\`bash
 cd /opt/roxstock
-COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+BACKEND_IMAGE=newrox/roxstock-backend:sha-<API_SHA> COLLECTOR_IMAGE=newrox/roxstock-collector:"$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
   run --rm --no-deps collector node collector/dist/worker.js securities
 \`\`\`
@@ -151,7 +151,7 @@ docker inspect --format='{{.State.Health.Status}}' roxstock-collector
 
 # 운영 서버에서 수동 재실행 (스케줄러와 DB 락 공유)
 cd /opt/roxstock
-COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+BACKEND_IMAGE=newrox/roxstock-backend:sha-<API_SHA> COLLECTOR_IMAGE=newrox/roxstock-collector:"$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
   run --rm --no-deps collector node collector/dist/worker.js prices
 \`\`\`
@@ -160,7 +160,7 @@ COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-back
 
 \`\`\`bash
 cd /opt/roxstock
-COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+BACKEND_IMAGE=newrox/roxstock-backend:sha-<API_SHA> COLLECTOR_IMAGE=newrox/roxstock-collector:"$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
   run --rm --no-deps collector node collector/dist/worker.js prices 005930,005380
 \`\`\`

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 image="${1:?image required}"
+docker run --rm --network host -e DATABASE_URL="${DATABASE_URL:?isolated verification DB required}" \
+  -v "$PWD/scripts/collector-image-db-smoke.mjs:/verification.mjs:ro" "$image" node /verification.mjs
 docker run --rm --network none --entrypoint sh "$image" -c '
   test ! -d /app/backend/dist
   test ! -d /app/node_modules/fastify
