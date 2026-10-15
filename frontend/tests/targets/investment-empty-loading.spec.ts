@@ -14,9 +14,9 @@ for(const item of [{accountFirst:true,path:'/detail/investment',module:'Investme
   releaseCode();await expect(page.getByTestId(item.page)).toBeVisible();await expect(page.locator('.MuiSkeleton-root,.MuiCircularProgress-root')).toHaveCount(0);
   if(chart){expect(await page.getByTestId('investment-chart-region').boundingBox()).toEqual(chart);if(!item.accountFirst){await expect(page.getByTestId('investment-value')).toHaveText('');await expect(page.getByTestId('investment-evaluation-line')).toHaveCount(0);}await expect(page.getByRole('button',{name:'1분기',exact:true})).toHaveAttribute('aria-pressed','true');}
   else{await expect(page.getByTestId('profit-total')).toHaveText('');await expect(page.getByText('종목별 누적 수익',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'손익액 내림차순 정렬',exact:true})).toBeVisible();}
-  if(chart){await page.getByRole('button',{name:'상세보기 ›',exact:true}).click();await expect(page.getByTestId('investment-detail-quarters').getByRole('button',{name:'1분기',exact:true})).toHaveAttribute('aria-pressed','true');}
+  if(chart){await page.getByRole('button',{name:'상세보기 ›',exact:true}).click();await expect(page.getByTestId('investment-detail-quarters')).toHaveCount(0);}
   await expect.poll(()=>!!releaseAccount).toBe(true);releaseAccount();
-  if(chart){await expect(page.getByTestId('investment-detail-quarters').getByRole('button',{name:'1분기',exact:true})).toHaveAttribute('aria-pressed','true');await page.getByRole('button',{name:'차트 상세 뒤로가기'}).click();}
+  if(chart){await expect(page.getByTestId('investment-detail-quarters')).toHaveCount(0);await page.getByRole('button',{name:'차트 상세 뒤로가기'}).click();}
   await expect(page.getByTestId(item.page)).toHaveAttribute('data-restoration-ready','true');
   await page.screenshot({path:info.outputPath('ready.png')});
   if(chart)expect(await page.getByTestId('investment-chart-region').boundingBox()).toEqual(chart);

@@ -5,12 +5,23 @@ import type { AssetHistoryDto, CashHistoryDto, CashTransactionDto, TradeReport, 
 export type Quarter = 0 | 1 | 2 | 3 | 4;
 export const quarters: Quarter[] = [0, 1, 2, 3, 4];
 export const seoulToday = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
-export function quarterAvailable(year: number, quarter: Quarter, today: string) {
+export type QuarterSelection = Quarter | Quarter[];
+export const selectedQuarters = (selection: QuarterSelection): Quarter[] => Array.isArray(selection) ? selection : selection ? [selection] : [];
+export const quarterSelected = (selection: QuarterSelection, value: Quarter) => value === 0 ? selectedQuarters(selection).length === 0 : selectedQuarters(selection).includes(value);
+export function canToggleQuarter(selection: QuarterSelection, value: Quarter) {
+ const values=selectedQuarters(selection); if(!value||!values.length)return true; const low=Math.min(...values),high=Math.max(...values); return value===low||value===high||value===low-1||value===high+1;
+}
+export function toggleQuarter(selection: QuarterSelection, value: Quarter): QuarterSelection {
+ if(!value)return 0; if(!canToggleQuarter(selection,value))return selection; const values=selectedQuarters(selection); const next=values.includes(value)?values.filter(q=>q!==value):[...values,value].sort(); return next.length?next:0;
+}
+export function quarterAvailable(year: number, quarter: QuarterSelection, today: string): boolean {
+  if(Array.isArray(quarter))return quarter.every(value=>quarterAvailable(year,value,today));
   return !quarter || year < Number(today.slice(0, 4)) || (year === Number(today.slice(0, 4)) && quarter <= Math.ceil(Number(today.slice(5, 7)) / 3));
 }
-export function periodRange(year: number, quarter: Quarter, today: string) {
-  const firstMonth = quarter ? (quarter - 1) * 3 + 1 : 1;
-  const lastMonth = quarter ? quarter * 3 : 12;
+export function periodRange(year: number, quarter: QuarterSelection, today: string) {
+  const selection=selectedQuarters(quarter);
+  const firstMonth = selection.length ? (Math.min(...selection) - 1) * 3 + 1 : 1;
+  const lastMonth = selection.length ? Math.max(...selection) * 3 : 12;
   const from = `${year}-${String(firstMonth).padStart(2, '0')}-01`;
   const end = new Date(Date.UTC(year, lastMonth, 0)).toISOString().slice(0, 10);
   return { from, to: end < today ? end : today };
