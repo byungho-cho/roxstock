@@ -19,7 +19,7 @@ jobs:
       - run: npm ci
       - name: Build exact previous main
         run: |
-          git worktree add --detach phase26-baseline 3d2bd4f
+          git worktree add --detach phase26-baseline 9ac253aec472810c5475ac0fbf5c84ae125f728f
           ln -s ../node_modules phase26-baseline/node_modules
           ln -s ../../frontend/node_modules phase26-baseline/frontend/node_modules
           VITE_DATA_SOURCE=api npm --prefix phase26-baseline/frontend run build

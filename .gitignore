@@ -27,4 +27,8 @@ frontend/playwright-targets-report/
 # Production environment backups must stay outside Git
 backup/*.env
 
+# Legacy plaintext production backups must stay outside this public repository.
+/backups/
+/backup/
+
 shared/src/generated/

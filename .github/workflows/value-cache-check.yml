@@ -49,7 +49,7 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: |
-          git worktree add --detach value-baseline 6eb3efdaa21ee2e0a1679e9d4a819ffed22db654
+          git worktree add --detach value-baseline d692e3cfc35ed39cbc1615cd9dcac57f5871ed02
           ln -s ../node_modules value-baseline/node_modules
           ln -s ../../frontend/node_modules value-baseline/frontend/node_modules
           VITE_DATA_SOURCE=api npm --prefix value-baseline/frontend run build
