@@ -1,6 +1,6 @@
 RoxStock production database backup paired with source tag v0.3.
 Backup started: 2026-10-15 21:49:17 UTC / 2026-10-16 06:49:17 Asia/Seoul.
-Source tag commit: cf906b0484a72869fe9fb756b4d1e9b6d99d8d46.
+Source tag commit after history cleanup: 457afcbc65e5a4b7a99785522e30de6357162719.
 The source tag includes the local asset-analysis icon change; it does not indicate a deployment.
 All 40 tables are InnoDB. A single-transaction dump preserves a consistent data snapshot.
 Database tables, indexes, constraints, triggers, routines and events are included.

@@ -1,6 +1,6 @@
 {
   "sourceTag": "v0.3",
-  "sourceCommit": "cf906b0484a72869fe9fb756b4d1e9b6d99d8d46",
+  "sourceCommit": "457afcbc65e5a4b7a99785522e30de6357162719",
   "sourceUrl": "https://github.com/byungho-cho/roxstock/tree/v0.3",
   "database": "roxstock",
   "serverDirectory": "/root/roxstock-backups/roxstock-v0.3-20261015T214917Z",
@@ -21,5 +21,7 @@
   "authenticatedDecryption": "passed (including bundled recovery tool)",
   "validation": "validation.json",
   "productionChanges": "none",
-  "deployment": "not performed"
+  "deployment": "not performed",
+  "originalSourceCommit": "cf906b0484a72869fe9fb756b4d1e9b6d99d8d46",
+  "historyCleanup": "Plaintext legacy backup removed from all branch/tag histories on 2026-10-16 KST; source trees preserved outside the removed folder."
 }
