@@ -20,7 +20,7 @@ function dependencies(lock,workspace) {
     if(found.has(key))return;const value=packages[key];if(!value)return;
     found.set(key,value);
     if(value.link){visit(value.resolved);return;}
-    for(const name of Object.keys({...value.dependencies,...value.optionalDependencies,...value.devDependencies})) {
+    for(const name of Object.keys({...value.dependencies,...value.optionalDependencies,...value.devDependencies,...value.peerDependencies})) {
       let parent=key;
       while(true){const candidate=(parent?parent+'/':'')+'node_modules/'+name;if(packages[candidate]){visit(candidate);break;}if(!parent)break;parent=parent.includes('/')?parent.slice(0,parent.lastIndexOf('/')):'';}
     }

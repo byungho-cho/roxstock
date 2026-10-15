@@ -3,7 +3,6 @@ services:
     image: ${BACKEND_IMAGE:?Set an immutable BACKEND_IMAGE}
     container_name: roxstock-backend
     restart: unless-stopped
-    stop_grace_period: 720s
     env_file:
       - ../../backend/.env.production
     environment:

@@ -14,3 +14,8 @@ test('collector-only lock resolution does not rebuild API/frontend',()=>{
  const after=structuredClone(before);after.packages['node_modules/feed'].version='2';
  assert.deepEqual(selectServices(['package-lock.json'],{before,after}),{backend:false,collector:true,frontend:false});
 });
+test('resolved peer changes include every affected workspace',()=>{
+ const before={packages:{backend:{dependencies:{adapter:'1'}},collector:{dependencies:{feed:'1'}},frontend:{},'node_modules/adapter':{version:'1',peerDependencies:{engine:'*'}},'node_modules/engine':{version:'1'},'node_modules/feed':{version:'1'}}};
+ const after=structuredClone(before);after.packages['node_modules/engine'].version='2';
+ assert.deepEqual(selectServices(['package-lock.json'],{before,after}),{backend:true,collector:false,frontend:false});
+});
