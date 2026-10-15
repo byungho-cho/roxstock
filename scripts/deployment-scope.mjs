@@ -49,6 +49,7 @@ export function selectDeployedServices(lines,head,{compare=compareScope,resolve=
   if(!cache.has(base))cache.set(base,compare(base,head));
   selected[service] ||= cache.get(base)[service];
  }
+ if(new Set(groups.collector.map(name=>states.get('roxstock-'+name).image)).size>1)selected.collector=true;
  return selected;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
