@@ -2,19 +2,26 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {selectDeployedServices} from '../deployment-scope.mjs';
 const yaml=readFileSync('.github/workflows/production-deploy.yml','utf8');
 const source=yaml.split('          script: |\n')[1].split('      - uses: actions/checkout')[0].split('\n').map(l=>l.replace(/^            /,'')).join('\n');
-async function revision({jobs,current=true}={}){
- const output={},sha='f'.repeat(40),runs=[{id:3,head_branch:'main',head_sha:'c'.repeat(40)},{id:2,head_branch:'main',head_sha:'b'.repeat(40)},{id:1,head_branch:'main',head_sha:'a'.repeat(40)}];
- const listWorkflowRuns=()=>{},listJobsForWorkflowRun=()=>{};
- const github={rest:{repos:{getBranch:async()=>({data:{commit:{sha:current?sha:'e'.repeat(40)}}})},actions:{listWorkflowRuns,listJobsForWorkflowRun}},paginate:async(method,args)=>method===listWorkflowRuns?runs:jobs[args.run_id]};
- await vm.runInNewContext(`(async()=>{${source}})()`,{github,context:{repo:{}},process:{env:{REQUESTED_SHA:sha}},core:{setOutput:(k,v)=>output[k]=v,notice:()=>{}}});return output;
-}
-test('superseded or no-op success cannot conceal undeployed changes',async()=>{
- const output=await revision({jobs:{3:[{name:'revision',conclusion:'success'},{name:'backend / Backend Deploy',conclusion:'skipped'}],2:[{name:'backend / Backend Deploy',conclusion:'success'}],1:[]}});
- assert.equal(output.base,'b'.repeat(40));assert.equal(output.current,'true');
+test('superseded dispatch cannot select any production service',async()=>{
+ const output={},sha='f'.repeat(40);
+ await vm.runInNewContext(`(async()=>{${source}})()`,{github:{rest:{repos:{getBranch:async()=>({data:{commit:{sha:'e'.repeat(40)}}})}}},context:{repo:{}},process:{env:{REQUESTED_SHA:sha}},core:{setOutput:(k,v)=>output[k]=v,notice:()=>{}}});
+ assert.equal(output.current,'false');assert.equal(output.sha,sha);
 });
-test('frontend-only actual deployments are valid baselines; empty history uses the source recovery tag',async()=>{
- assert.equal((await revision({jobs:{3:[{name:'frontend / deploy',conclusion:'success'}],2:[],1:[]}})).base,'c'.repeat(40));
- const output=await revision({jobs:{3:[],2:[],1:[]},current:false});assert.equal(output.current,'false');assert.equal(output.base,'c351ae61a5315cb80c3f9019a83dfa7c0d403c99');
+const image=(name,sha,repository=name,status='healthy')=>`/roxstock-${name}|newrox/roxstock-${repository}:sha-${sha}|${status}`;
+const a='a'.repeat(40),b='b'.repeat(40),head='c'.repeat(40);
+const deployed=(api=a,workers=a,front=a)=>[image('backend',api),image('collector',workers,'collector'),image('realtime-collector',workers,'collector'),image('dart-collector',workers,'collector'),image('frontend',front)].join('\n');
+test('actual images preserve already deployed API after a partial pipeline failure',()=>{
+ const selected=selectDeployedServices(deployed(b,a,a),head,{resolve:s=>s,compare:base=>({backend:base!==b,collector:true,frontend:false})});
+ assert.deepEqual(selected,{backend:false,collector:true,frontend:false});
+});
+test('mixed collector images, legacy combined images and unhealthy targets are detected independently',()=>{
+ const compare=()=>({backend:false,collector:false,frontend:false}),resolve=s=>s;
+ const mixed=deployed().replace(image('dart-collector',a,'collector'),image('dart-collector',b,'collector'));
+ assert.deepEqual(selectDeployedServices(mixed,head,{resolve,compare:base=>({...compare(),collector:base===b})}),{backend:false,collector:true,frontend:false});
+ assert.equal(selectDeployedServices(deployed().replace(image('collector',a,'collector'),image('collector',a,'backend')),head,{resolve,compare}).collector,true);
+ assert.deepEqual(selectDeployedServices(deployed().replace(image('backend',a),image('backend',a,'backend','unhealthy')),head,{resolve,compare}),{backend:true,collector:false,frontend:false});
+ assert.throws(()=>selectDeployedServices('',head,{resolve,compare}),/Missing production container/);
 });

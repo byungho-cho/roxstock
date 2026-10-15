@@ -43,7 +43,7 @@ API는 `npm --workspace backend run dev`, 각 수집기는 `collector/README.md`
 
 ## CI·독립 배포
 
-`Production Deploy` 단일 진입점은 main SHA를 확인하고 마지막 성공한 운영 배포부터 변경을 계산합니다. 이전 배포가 실패했다면 그 이전 성공 지점부터 다시 비교하여 미반영 변경을 놓치지 않습니다. 최초 분리는 API·수집기와 변경된 frontend Docker workspace 설정을 함께 반영합니다. 이후:
+`Production Deploy` 단일 진입점은 main SHA를 확인하고 서버의 실제 API·세 수집기·frontend 이미지 SHA와 health를 읽어 각 서비스별 변경을 계산합니다. 일부 서비스만 배포된 실패 실행이나 배포가 생략된 성공 실행이 다른 서비스의 기준점을 앞당기지 않습니다. 세 수집기 중 하나만 이전 이미지여도 수집기 그룹을 선택하며, 첫 분리 전 backend 공유 이미지를 쓰는 수집기는 새 이미지로 전환합니다. 최초 분리는 API·수집기와 변경된 frontend Docker workspace 설정을 함께 반영합니다. 이후:
 
 | 변경 | 선택 |
 | --- | --- |
