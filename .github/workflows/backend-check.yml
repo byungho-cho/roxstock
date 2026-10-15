@@ -1,16 +1,6 @@
 name: Backend Check
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "!backend/src/release.json"
-      - "shared/**"
-      - "database/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/backend-check.yml"
-
   workflow_call:
 
 permissions:
@@ -130,3 +120,13 @@ jobs:
 
       - name: Build backend
         run: npm run build:backend
+
+      - name: Independent production API image and startup boundary
+        run: |
+          docker build -f backend/Dockerfile -t roxstock-api-check .
+          docker run --rm --entrypoint sh roxstock-api-check -c 'test ! -d /app/collector/dist; test ! -d /app/backend/dist/collector'
+          docker run -d --name api-entry-check --network none -e DATABASE_URL=mysql://ci:ci@127.0.0.1:3306/ci roxstock-api-check
+          sleep 5
+          docker exec api-entry-check node -e "fetch('http://127.0.0.1:3300/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          docker stop -t 30 api-entry-check
+          test "$(docker inspect --format '{{.State.ExitCode}}' api-entry-check)" = 0
