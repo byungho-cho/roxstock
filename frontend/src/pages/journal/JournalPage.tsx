@@ -211,7 +211,7 @@ export function JournalPage() {
   </Box>;
   const transactions=<>{status??<JournalTransactions loading={pending} entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
   const titleRow = <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: '4px' }}>
-    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{pending?<Skeleton width={40} height={10} sx={{transform:'none'}}/>:unavailable?'—':`총 ${dayEntries.length}건`}</Typography>
+    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{pending?'':unavailable?'—':`총 ${dayEntries.length}건`}</Typography>
   </Stack>;
   const summary = <Box data-testid="journal-day-summary" sx={{ bgcolor: colors.raised, borderRadius: '8px', p: '8px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
     {[

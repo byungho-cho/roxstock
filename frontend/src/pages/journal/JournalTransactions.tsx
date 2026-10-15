@@ -1,4 +1,4 @@
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+
 import { Box, ButtonBase, Typography } from '@mui/material';
 import { colors } from '../../styles/tokens';
 import { sellEvaluation, type JournalEntry } from './journalMath';
@@ -14,7 +14,7 @@ export function JournalTransactions({ entries, onOpen, loading=false }: { loadin
   return <Box data-testid="journal-transactions">
     {(['buy', 'sell'] as const).map(type => <Box key={type}>
       <Typography sx={{ borderTop: '1px solid #407AC7', pt: '4px', pb: '4px', textAlign: 'center', color: colors.textSecondary, fontSize: 10, lineHeight: '14px' }}>{type === 'buy' ? '매수' : '매도'}</Typography>
-      {loading&&<Box data-testid={'journal-loading-'+type} sx={{py:type==='buy'?'4px':'5px'}}>{Array.from({length:type==='buy'?1:3},(_,i)=><Box key={i} sx={{display:'grid',gridTemplateColumns:columns,gap:'4px',height:14,mb:i<2&&type==='sell'?'4px':0}}>{[0,1,2].map(n=><Skeleton key={n} width="85%" height={10} sx={{transform:'none',justifySelf:n?'end':'start'}}/>)}</Box>)}</Box>}
+      {loading&&<Box aria-busy="true" data-testid={'journal-loading-'+type} sx={{height:type==='buy'?22:60}}/>}
       {!loading&&entries.filter(entry => entry.type === type).map(entry => {
         const evaluation = sellEvaluation(entry);
         return <ButtonBase data-testid={`journal-entry-${entry.id}`} data-scroll-item={`${type}-${entry.id}`} key={entry.id} onClick={() => onOpen(entry)} aria-label={`${type === 'buy' ? '매수' : '매도'} ${entry.stockName} 거래 상세`}

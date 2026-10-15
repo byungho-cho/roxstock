@@ -28,11 +28,11 @@ test('stored chart/table, pointer selection, detail return and quarter boundarie
  const before=await page.locator('main').evaluate(e=>e.scrollTop);
  await page.screenshot({path:info.outputPath('summary.png')});
  await page.getByRole('button',{name:'상세보기'}).click();await expect(page.getByRole('dialog')).toBeVisible();
- await expect(page.getByRole('dialog').getByRole('button',{name:'2분기'})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('dialog').getByTestId('investment-detail-quarters')).toHaveCount(0);
  const detailChart=page.getByRole('dialog').getByTestId('investment-chart').locator('svg');const d=(await detailChart.boundingBox())!;
  await page.touchscreen.tap(d.x+10,d.y+40);await expect(page.getByRole('dialog').getByTestId('investment-tooltip')).toBeVisible();
  await page.screenshot({path:info.outputPath('detail.png')});
- await page.getByRole('dialog').getByRole('button',{name:'전체',exact:true}).click();
+ 
  await expect(page.getByRole('dialog').getByTestId('investment-chart')).toHaveAttribute('data-dates','2026-01-01,2026-03-31,2026-04-01,2026-04-03');
  await page.getByRole('button',{name:'차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.locator('main').evaluate(e=>e.scrollTop)).toBe(before);

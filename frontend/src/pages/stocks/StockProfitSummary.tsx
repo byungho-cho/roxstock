@@ -1,4 +1,4 @@
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+
 import { Box, Button, ButtonBase, Card, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
@@ -22,13 +22,14 @@ export function useStockProfit(stockId:string,enabled=true) {
 export function StockProfitSummary({stockId}:{stockId:string}) {
  const go=useListNavigation(),query=useStockProfit(stockId);
  const open=(url:string)=>go(url,{state:profitEntryState});
- if(!query.data)return query.isError?<Button role="alert" onClick={()=>query.refetch()}>손익 조회 실패 · 다시 시도</Button>:<Skeleton data-restoration-ready="false" height={180}/>;
- const stock=query.data.stocks.find(row=>row.id===stockId),years=groups(stock?.events??[],'year');
+ if(!query.data&&query.isError)return <Button role="alert" onClick={()=>query.refetch()}>손익 조회 실패 · 다시 시도</Button>;
+ const pending=!query.data;
+ const stock=query.data?.stocks.find(row=>row.id===stockId),years=groups(stock?.events??[],'year');
  return <>
   {query.isError&&<Button role="alert" onClick={()=>query.refetch()}>손익 갱신 실패 · 다시 시도</Button>}
-  <Card sx={card}><ButtonBase data-testid="stock-profit-summary" data-scroll-item="stock-profit-summary" onClick={()=>open(stockProfitPath(stockId))} sx={{display:'block',width:'100%',p:'8px 16px',textAlign:'left'}}><Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',mb:1}}><Typography sx={heading}>거래 요약</Typography><Typography sx={hint}>(상세보기)</Typography></Stack><StockProfitMetrics totals={stock?.totals??totals([])}/></ButtonBase></Card>
+  <Card sx={card}><ButtonBase data-testid="stock-profit-summary" data-scroll-item="stock-profit-summary" onClick={()=>open(stockProfitPath(stockId))} sx={{display:'block',width:'100%',p:'8px 16px',textAlign:'left'}}><Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',mb:1}}><Typography sx={heading}>거래 요약</Typography><Typography sx={hint}>(상세보기)</Typography></Stack><Box aria-busy={pending} data-restoration-ready={!pending}>{pending?['매수총액','매도총액','매매손익','배당포함 총손익'].map(label=><Typography key={label} sx={{fontSize:12,lineHeight:'20px',minHeight:24}}>{label}</Typography>):<StockProfitMetrics totals={stock?.totals??totals([])}/>}</Box></ButtonBase></Card>
   <Card data-testid="stock-annual-profit" sx={{...card,p:'8px 16px'}}><ButtonBase data-testid="stock-annual-heading" data-scroll-item="stock-annual-heading" onClick={()=>open(yearProfitPath(undefined,stockId))} sx={{display:'flex',width:'100%',justifyContent:'space-between',minHeight:32,textAlign:'left'}}><Typography sx={heading}>연도별 손익</Typography><Typography sx={hint}>(상세보기)</Typography></ButtonBase>
-   {years.length?years.map(row=><ButtonBase key={row.id} data-testid="stock-annual-row" data-year={row.id} data-scroll-item={'profit-year-'+row.id} onClick={()=>open(yearProfitPath(row.id,stockId))} sx={{display:'grid',gridTemplateColumns:'52px minmax(0,1fr)',gap:'4px',width:'100%',minHeight:32,textAlign:'left',borderBottom:'1px solid '+colors.border}}><Typography sx={{fontSize:12}}>{row.id}년</Typography><Typography sx={{fontSize:12,textAlign:'right',color:row.totals.total==null||row.totals.total===0n?colors.textPrimary:row.totals.total>0n?colors.marketRise:colors.marketFall}}>{won(row.totals.total,true)}</Typography></ButtonBase>):<Box sx={{py:2,color:colors.textMuted,fontSize:12}}>내용이 없습니다.</Box>}
+   {pending?<Box aria-busy="true" sx={{height:50}}/>:years.length?years.map(row=><ButtonBase key={row.id} data-testid="stock-annual-row" data-year={row.id} data-scroll-item={'profit-year-'+row.id} onClick={()=>open(yearProfitPath(row.id,stockId))} sx={{display:'grid',gridTemplateColumns:'52px minmax(0,1fr)',gap:'4px',width:'100%',minHeight:32,textAlign:'left',borderBottom:'1px solid '+colors.border}}><Typography sx={{fontSize:12}}>{row.id}년</Typography><Typography sx={{fontSize:12,textAlign:'right',color:row.totals.total==null||row.totals.total===0n?colors.textPrimary:row.totals.total>0n?colors.marketRise:colors.marketFall}}>{won(row.totals.total,true)}</Typography></ButtonBase>):<Box sx={{py:2,color:colors.textMuted,fontSize:12}}>내용이 없습니다.</Box>}
   </Card>
  </>;
 }
