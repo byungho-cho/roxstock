@@ -30,7 +30,7 @@ const dateOnly = (value: string | undefined, fieldName: string) => {
 const decimal = (value: Prisma.Decimal | null) => value?.toString() ?? null;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1_000;
 
-const dashboardPeriod = (now: Date) => {
+export const dashboardPeriod = (now: Date) => {
   const kst = new Date(now.getTime() + KST_OFFSET_MS);
   const year = kst.getUTCFullYear();
   const monthIndex = kst.getUTCMonth();
@@ -40,7 +40,8 @@ const dashboardPeriod = (now: Date) => {
   const previousMonthEndKey = new Date(Date.UTC(year, monthIndex, 0));
   const todayStart = new Date(todayKey.getTime() - KST_OFFSET_MS);
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1_000);
-  return { todayKey, previousDayKey, previousMonthEndKey, todayStart, tomorrowStart };
+  const monthStart = new Date(Date.UTC(year, monthIndex, 1) - KST_OFFSET_MS);
+  return { todayKey, previousDayKey, previousMonthEndKey, todayStart, tomorrowStart, monthStart };
 };
 
 export const serializeHolding = (holding: ReturnType<typeof calculateHoldings>[number]) => ({
@@ -270,7 +271,7 @@ export async function loadDashboard(accountId: bigint, portfolio = loadPortfolio
     const dashboard = calculateDashboard(account.cashBalance, holdings);
     const calculatedAt = new Date();
     const period = dashboardPeriod(calculatedAt);
-    const [previousDaySnapshot, previousMonthEndSnapshot, externalFlowGroups] = await Promise.all([
+    const [previousDaySnapshot, previousMonthEndSnapshot, externalFlowGroups, monthFlowGroups] = await Promise.all([
       prisma.dailyAccountSnapshot.findUnique({
         where: { accountId_snapshotDate: { accountId, snapshotDate: period.previousDayKey } },
       }),
@@ -286,11 +287,24 @@ export async function loadDashboard(accountId: bigint, portfolio = loadPortfolio
         },
         _sum: { amount: true },
       }),
+      prisma.cashTransaction.groupBy({
+        by: ['transactionType'],
+        where: {
+          accountId,
+          transactionType: { in: ['DEPOSIT', 'WITHDRAWAL'] },
+          transactionDate: { gte: period.monthStart, lt: period.tomorrowStart },
+        },
+        _sum: { amount: true },
+      }),
     ]);
     const externalAmount = (type: 'DEPOSIT' | 'WITHDRAWAL') => externalFlowGroups
       .find((group) => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
     const todayDepositAmount = externalAmount('DEPOSIT');
     const todayWithdrawalAmount = externalAmount('WITHDRAWAL');
+    const monthAmount = (type: 'DEPOSIT' | 'WITHDRAWAL') => monthFlowGroups
+      .find(group => group.transactionType === type)?._sum.amount ?? new Prisma.Decimal(0);
+    const monthDepositAmount = monthAmount('DEPOSIT');
+    const monthWithdrawalAmount = monthAmount('WITHDRAWAL');
     const performance = calculateDashboardPerformance({
       currentCashBalance: dashboard.cashBalance,
       currentStockValue: dashboard.stockValue,
@@ -298,6 +312,8 @@ export async function loadDashboard(accountId: bigint, portfolio = loadPortfolio
       previousMonthEndSnapshot,
       todayDepositAmount,
       todayWithdrawalAmount,
+      monthDepositAmount,
+      monthWithdrawalAmount,
     });
     return {
       data: {
@@ -326,6 +342,9 @@ export async function loadDashboard(accountId: bigint, portfolio = loadPortfolio
           previousMonthEndBaselineDate: previousMonthEndSnapshot?.snapshotDate.toISOString().slice(0, 10) ?? null,
           todayDepositAmount: todayDepositAmount.toString(),
           todayWithdrawalAmount: todayWithdrawalAmount.toString(),
+          monthDepositAmount: monthDepositAmount.toString(),
+          monthWithdrawalAmount: monthWithdrawalAmount.toString(),
+          monthlyProfitBasis: 'TOTAL_ASSETS_NET_EXTERNAL_FLOWS',
           dailyProfitUnavailableReason: performance.dailyProfitUnavailableReason,
           dailyProfitRateUnavailableReason: performance.dailyProfitRateUnavailableReason,
           stockMonthlyProfitUnavailableReason: performance.stockMonthlyProfitUnavailableReason,
