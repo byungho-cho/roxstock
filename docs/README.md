@@ -1,5 +1,18 @@
 # Documentation
 
+## 2026-10-16 현행 기준 · V1.0.41
+
+현재 코드 기준은 [PR #233](https://github.com/byungho-cho/roxstock/pull/233)의 main `f75f1030ce9da9e4ebde3870ce31e2a10a6f1ca4`입니다. [현행 개발·운영 현황](./개발현황.md#2026-10-16-현행-기준--v1041)을 먼저 확인합니다. 아래 날짜별 기록의 대기·미구현·미확정 표시는 작성 당시 상태이며, 동일 항목은 이 절과 최신 개발현황이 우선합니다.
+
+- 홈·자산분석: 경로별 코드 분리, 정적 gzip 제공, 필요한 API 응답 축소를 반영했습니다. 최근 빈 데이터 영역 로딩·기존 데이터 유지·공통 오류 토스트 정책도 반영되어 있습니다. [프론트 실행·첫 접속](../frontend/README.md).
+- 가치분석·재무제표: 20개 우선 표시, 30개 자동 추가, 다음 50개 미리 조회 및 더보기. 표시용 주식수의 최신 저장 공시 연결과 만주·억주 단위를 반영했습니다.
+- 주식수 저장과 계좌 카드 선택·연필 편집은 구현 완료입니다. 전체 운영 주식수 보충 완료를 의미하지 않습니다. [주식수·계좌 카드](./development/share-counts-account-cards.md), [계좌 2줄·복리 상태색 후속](./development/phase17-followup.md).
+- 올해 목표 대비 상태색은 90% 미만 파랑 / 90~110% 양 끝 포함 노랑 / 110% 초과 빨강으로 확정되어 있습니다. [17차 후속 기준](./planning/phase17-followup.md). 예수금 구성비 색상과 구분합니다.
+- 수집기는 `collector/`, API는 `backend/`, 공통 코드는 `shared/`, DB 원본은 `database/prisma/`로 분리했습니다. [수집기 분리 운영](./collector-service-split.md). 우선종목 자동 수집 16:00~다음 날 06:00, 기본정보 06:00 시작, 수동 재무 갱신 유지입니다.
+- [V1.0.41 배포 실행](https://github.com/byungho-cho/roxstock/actions/runs/38741453906)은 성공 상태입니다. 이번 문서 작업에서 운영 화면·실기기·전체 데이터 완전성은 재검증하지 않았습니다. Figma 최종 확인 기록과 문서 현행화 날짜는 별개입니다.
+
+## 이전 기준과 변경 이력
+
 ## 31차 · V 1.0.31
 
 [구현·버전 관리·배포](./development/phase31-loading-version-20261014.md) · [검증과 성능](./qa/phase31-loading-version-20261014.md) · [PR #221](https://github.com/byungho-cho/roxstock/pull/221).
