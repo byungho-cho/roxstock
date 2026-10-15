@@ -105,7 +105,7 @@ test('home and assets use identical unrounded color bands and missing-price neut
     await expect(card.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
    }
    if(path.includes('assets')){
-    const bar=page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /});
+    const bar=page.getByTestId('asset-composition-card').getByRole('button',{name:/^홈 보기 · 주식 /});
     await expect(bar).toBeVisible(); // final 3안 bar shades are verified in phase15-1 tests
    }
   }
