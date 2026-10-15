@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {memo,useCallback,useEffect,useRef,useState} from 'react';
 import {Box,Button,ButtonBase,InputBase,Stack,Typography} from '@mui/material';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
@@ -30,7 +31,7 @@ export function SecurityManagementPage(){
  {selected?<SecurityEditor key={selected} securityId={selected} onDeleted={()=>{const next=new URLSearchParams(params);next.delete('selected');setParams(next,{replace:true});}}/>:<>
  {list.isPending?<DelayedSkeleton height={64}/>:<Stack spacing={1}>{rows.map(s=><SecurityRow key={s.id} s={s} onSelect={select}/>)}</Stack>}
  {!list.isPending&&!list.isError&&rows.length===0&&<Typography sx={{fontSize:12}}>검색 결과가 없습니다.</Typography>}
- {list.isError&&<Typography role="alert" sx={{fontSize:12,color:colors.error}}>조회 실패 · 기존 목록을 유지합니다.<Button onClick={()=>{if(list.isFetchNextPageError)void more();else void list.refetch();}}>다시 시도</Button></Typography>}
+ {list.isError&&<QueryErrorNotice message="조회 실패 · 기존 목록을 유지합니다." onRetry={()=>{if(list.isFetchNextPageError)void more();else void list.refetch();}}/>}
  {list.hasNextPage&&<Button disabled={list.isFetching} onClick={()=>void more()} sx={{display:'block',mx:'auto',mt:1}}>더보기</Button>}
  </>}</Box></>;
 }
@@ -58,7 +59,7 @@ function SecurityEditor({securityId,onDeleted}:{securityId:string;onDeleted:()=>
   if(lock.current)return;lock.current=true;setBusy(true);setError('');
   try{await apiRequest(`/security-management/${securityId}`,{method:'DELETE',body:JSON.stringify({confirmed:true})});await client.invalidateQueries({queryKey:['security-management']});setAction(null);onDeleted();}catch(e){setError(e instanceof Error?e.message:'삭제 실패');}finally{lock.current=false;setBusy(false);}
  };
- if(!s)return <Box>{detail.isError?<Typography role="alert">종목 정보 조회 실패<Button onClick={()=>void detail.refetch()}>다시 시도</Button></Typography>:<DelayedSkeleton height={180}/>}</Box>;
+ if(!s)return <Box>{detail.isError?<QueryErrorNotice message="종목 정보 조회 실패" onRetry={()=>void detail.refetch()}/>:<DelayedSkeleton height={180}/>}</Box>;
  return <Stack spacing="8px" sx={{mt:'8px'}}>
  <Box sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,1fr))'},gap:'8px',alignItems:'start'}}>
  <Stack spacing="8px" sx={{minWidth:0}}>

@@ -38,5 +38,5 @@ test('cash responses are independent; slow, failed and empty chart keep geometry
  // Fail without retries holding an unresolved follow-up response.
  held=false;release();
  await expect(page.getByText('추이 조회 실패 · 다시 시도',{exact:true})).toBeVisible({timeout:15000});expect(await page.getByTestId('cash-trend').boundingBox()).toEqual(before);
- fail=false;await page.getByText('추이 조회 실패 · 다시 시도',{exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');expect(await page.getByTestId('cash-trend').boundingBox()).toEqual(before);
+ fail=false;await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');expect(await page.getByTestId('cash-trend').boundingBox()).toEqual(before);
 });

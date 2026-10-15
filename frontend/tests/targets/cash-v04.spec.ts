@@ -181,7 +181,7 @@ test('period and balance popups retain query and scroll; failed reads/writes ret
   state.writeFail(); await page.getByRole('textbox', { name: '세후예수금', exact: true }).fill('2000'); await page.getByRole('button', {name:'저장',exact:true}).click(); await expect(page.getByText('저장 실패 · 다시 시도', { exact: true })).toBeVisible();
   state.success(); await page.getByRole('button', {name:'저장',exact:true}).click(); await expect(page.getByTestId('cash-form')).not.toBeVisible(); expect(state.writes.at(-1)?.body).toMatchObject({ accountId:'a', expectedLatestId:'997', balanceAfter: '2000' });
   state.fail('/asset-history'); await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByText('추이 조회 실패 · 다시 시도', { exact: true })).toBeVisible({ timeout: 15000 });
-  state.success(); state.empty(); await page.getByText('추이 조회 실패 · 다시 시도', { exact: true }).click(); await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
+  state.success(); state.empty(); await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click(); await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
   await page.getByRole('button', { name: '이전 기간', exact: true }).click(); await expect(page.getByTestId('cash-history-total')).toHaveText('총 0개'); await expect(page.getByTestId('cash-history')).toContainText('내용이 없습니다.');
   if (!tablet(page)) { await page.getByRole('button', { name: '예수금 등록', exact: true }).click(); await page.goBack(); await expect(page.getByTestId('cash-history')).toBeVisible(); await expect(page.getByRole('button', { name: '기간 직접 선택' })).toHaveText('2026.08'); }
 });

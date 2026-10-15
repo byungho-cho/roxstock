@@ -4,16 +4,16 @@ export type ValueFilter={query?:string;market?:MarketType};
 import {valueCollectionStatus} from '../domain/value-collection-status.js';
 import {prisma} from '../lib/prisma.js';
 import {selectValueListAnalysis} from '../domain/value-list-analysis.js';
-import {displayShares} from '../domain/share-counts.js';
+import {latestStoredDisplayShares} from '../domain/share-counts.js';
 import {fairPrice} from '../domain/value-analysis.js';
 export const valueFinancialInclude=(year:number)=>({
  fundamentals:{select:{updatedAt:true}},
  financialStatements:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL' as const},orderBy:{fiscalYear:'desc' as const}},
  periodValuations:{where:{fiscalYear:{gte:year-1,lte:year},periodType:{in:['ESTIMATE','ANNUAL']}},orderBy:{updatedAt:'desc' as const}},
  valuationMetrics:{where:{metricDate:{gte:new Date(Date.UTC(year-1,0,1)),lt:new Date(Date.UTC(year+1,0,1))}},orderBy:{metricDate:'desc' as const}},
- dartShareSnapshots:{where:{fiscalYear:{gte:year-1,lte:year}}},
+ dartShareSnapshots:{where:{fiscalYear:{lte:year},shareClass:'COMMON',OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc' as const},{receiptNo:'desc' as const}],take:2},
  dartBackfillTasks:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL' as const},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}},
- dartFinancialFilings:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL' as const,isWithdrawn:false},orderBy:[{receiptDate:'desc' as const},{collectedAt:'desc' as const},{receiptNo:'desc' as const}]},
+ dartFinancialFilings:{where:{fiscalYear:{gte:year-1,lte:year},isWithdrawn:false},orderBy:[{receiptDate:'desc' as const},{collectedAt:'desc' as const},{receiptNo:'desc' as const}]},
 });
 type PreviousPrice={symbol:string;codeRevision?:number;currentPrice:string|null;previousClosePrice:string|null;priceUpdatedAt:string|null;collectionErrors?:string[]};
 const loadSecurities=(db:typeof prisma,year:number,ids?:bigint[],filter?:ValueFilter)=>db.security.findMany({where:{isActive:true,...(ids?{id:{in:ids}}:{}),...(filter?.market?{marketType:filter.market}:{}),...(filter?.query&&!hasInitialQuery(filter.query)?{OR:[{name:{contains:filter.query}},{symbol:{contains:filter.query}}]}:{})},include:{marketPrice:true,...valueFinancialInclude(year)}});
@@ -25,10 +25,10 @@ export function projectValueRows(securities:Awaited<ReturnType<typeof loadSecuri
   const currentPrice=prior?prior.currentPrice:s.marketPrice?.currentPrice.toString()??null;
   const analysis=selectValueListAnalysis({year,price:currentPrice,metrics:s.valuationMetrics??[],periods:s.periodValuations??[],manual:s.financialStatements??[],filings:(s.dartFinancialFilings??[]).filter(f=>f.periodType==='ANNUAL')});
   const {metric,...selected}=analysis,basisYear=analysis.metricBasis.year??year;
-  const shares=displayShares(s.dartShareSnapshots??[],(s.dartFinancialFilings??[]).filter(f=>analysis.dataPriority!==3&&f.periodType==='ANNUAL'),basisYear);
+  const shares=latestStoredDisplayShares(s.dartShareSnapshots??[],s.dartFinancialFilings??[],year);
   const selectedRow=(s.periodValuations??[]).find(v=>v.fiscalYear===basisYear&&v.periodType===(analysis.dataPriority===1?'ESTIMATE':'ANNUAL'));
   const tasks=(s.dartBackfillTasks??[]).filter(t=>t.fiscalYear===basisYear&&t.periodType==='ANNUAL');
-  const shareMissingReason=shares.issuedShares===null?'해당 기준연도·주식 종류·동일 공시의 검증된 주식수 저장값이 없습니다. 다른 기간 값이나 역산으로 대체하지 않습니다.':null;
+  const shareMissingReason=shares.issuedShares===null?'선택 연도까지 저장된 해당 주식 종류의 확정 공시 주식수가 없습니다. 임의 역산하지 않습니다.':null;
   const missingReasons={...selected.missingReasons,issuedShares:shares.issuedShares===null?'SHARES_BASIS_UNAVAILABLE':null};
   const {collectionErrors,collectionStatus:financialStatus}=valueCollectionStatus(missingReasons,selectedRow,tasks);collectionErrors.push(...(prior?.collectionErrors??[]).filter(e=>e.startsWith('PRICE_')));const collectionStatus=collectionErrors.length?'ERROR':financialStatus;
   return {id:String(s.id),codeRevision:s.codeRevision,symbol:s.symbol,name:s.name,marketType:s.marketType,market:s.marketType,currentPrice,

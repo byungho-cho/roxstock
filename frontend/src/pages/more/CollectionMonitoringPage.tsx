@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
 import '../dashboard/home-font.css';
 import {collectionTaskLabel} from './collectionTaskLabel';
@@ -67,7 +68,7 @@ function Updating({ initialIcon = false }: { initialIcon?: boolean }) {
 }
 function QueryNotice({ error, retry }: { error: boolean; retry: () => void }) {
   return <Box sx={{ height: 24, display: 'flex', alignItems: 'center', gap: 1 }}>
-    {error && <><Typography role="alert" sx={{ fontSize: 10, color: '#F26A6F' }}>조회 실패 · 수집기 상태와 별개입니다.</Typography><Button onClick={retry} sx={{ minWidth: 0, p: 0, fontSize: 10 }}>다시 시도</Button></>}
+    {error && <><QueryErrorNotice message="조회 실패 · 수집기 상태와 별개입니다."/><Button onClick={retry} sx={{ minWidth: 0, p: 0, fontSize: 10 }}>다시 시도</Button></>}
   </Box>;
 }
 // These descriptors supply fixed titles/layout only. Every data field is hidden by PendingData.
@@ -277,7 +278,7 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
     <FailedData.Provider value={query.isError}><PendingData.Provider value={!query.data}>
       {stream==='runs'?<RunHistory runs={rows} feature={feature}/>:<TargetResults items={rows} feature={feature}/>}
     </PendingData.Provider></FailedData.Provider>
-    {query.isError && <Box role="alert" sx={{fontSize:11,color:colors.error,mt:1}}>조회 실패 · 기존 목록을 유지합니다.<Button onClick={()=>{if(query.isFetchNextPageError)void loadMore();else void query.refetch();}}>다시 시도</Button></Box>}
+    {query.isError && <Box sx={{fontSize:11,color:colors.error,mt:1}}><QueryErrorNotice message="조회 실패 · 기존 목록을 유지합니다." onRetry={()=>{if(query.isFetchNextPageError)void loadMore();else void query.refetch();}}/></Box>}
     {query.hasNextPage && <Box sx={{textAlign:'center',mt:1}}><Button disabled={query.isFetching} onClick={()=>{void loadMore();}}>더보기</Button>{query.isFetchingNextPage && <Updating/>}</Box>}
   </Box>;
 }

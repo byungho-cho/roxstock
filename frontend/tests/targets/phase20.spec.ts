@@ -52,7 +52,7 @@ test('late previous-account buy response never changes new-account quantity or f
 test('fixed settings menu survives account API failure with a local reason',async({page})=>{
  await fixture(page);await page.route('**/api/accounts',r=>r.fulfill({status:503,json:{error:{message:'조회 실패'}}}));
  await page.goto('/detail/settings');await expect(page.getByTestId('settings-menu')).toContainText('계좌 관리');
- await expect(page.getByTestId('settings-menu')).toContainText('조회 실패');await expect(page.getByTestId('settings-menu').getByText('목표가 도래 조건',{exact:true})).toBeVisible();
+ await expect(page.locator('.MuiSnackbar-root')).toContainText('조회에 실패');await expect(page.getByTestId('settings-menu').getByText('목표가 도래 조건',{exact:true})).toBeVisible();
 });
 test('fixed more/settings menus paint without account API or deferred editor code',async({page},info)=>{
  await fixture(page);let release!:()=>void,modules=0;
