@@ -43,7 +43,6 @@ export function selectDeployedServices(lines,head,{compare=compareScope,resolve=
   const state=states.get('roxstock-'+name);if(!state)throw Error('Missing production container: '+name);
   const match=state.image.match(/^newrox\/roxstock-(backend|collector|frontend):sha-([0-9a-f]{7,40})$/);
   if(!match||(match[1]!==service&&!(service==='collector'&&match[1]==='backend')))throw Error('Unrecognized production image for '+name);
-  if(state.status!=='healthy'&&!(service==='frontend'&&state.status==='running')){selected[service]=true;continue;}
   if(service==='collector'&&match[1]==='backend'){selected.collector=true;continue;}
   let base;try{base=resolve(match[2]);}catch{selected[service]=true;continue;}
   if(!cache.has(base))cache.set(base,compare(base,head));

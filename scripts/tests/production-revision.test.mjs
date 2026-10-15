@@ -17,11 +17,11 @@ test('actual images preserve already deployed API after a partial pipeline failu
  const selected=selectDeployedServices(deployed(b,a,a),head,{resolve:s=>s,compare:base=>({backend:base!==b,collector:true,frontend:false})});
  assert.deepEqual(selected,{backend:false,collector:true,frontend:false});
 });
-test('mixed collector images, legacy combined images and unhealthy targets are detected independently',()=>{
+test('mixed and legacy collector images are detected without widening scope for unrelated health observations',()=>{
  const compare=()=>({backend:false,collector:false,frontend:false}),resolve=s=>s;
  const mixed=deployed().replace(image('dart-collector',a,'collector'),image('dart-collector',b,'collector'));
  assert.deepEqual(selectDeployedServices(mixed,head,{resolve,compare}),{backend:false,collector:true,frontend:false});
  assert.equal(selectDeployedServices(deployed().replace(image('collector',a,'collector'),image('collector',a,'backend')),head,{resolve,compare}).collector,true);
- assert.deepEqual(selectDeployedServices(deployed().replace(image('backend',a),image('backend',a,'backend','unhealthy')),head,{resolve,compare}),{backend:true,collector:false,frontend:false});
+ assert.deepEqual(selectDeployedServices(deployed().replace(image('backend',a),image('backend',a,'backend','unhealthy')),head,{resolve,compare}),{backend:false,collector:false,frontend:false});
  assert.throws(()=>selectDeployedServices('',head,{resolve,compare}),/Missing production container/);
 });
