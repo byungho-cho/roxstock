@@ -1,5 +1,5 @@
-import {skipKind, priceRunResult} from '../domain/collection-health.js';
-import {prisma} from '../lib/prisma.js';
+import {skipKind, priceRunResult} from '@roxstock/shared/domain/collection-health';
+import {prisma} from '@roxstock/shared/lib/prisma';
 
 export async function runViews(ids: bigint[]) {
   const groups = ids.length ? await prisma.collectorRunItem.groupBy({where:{runId:{in:ids},NOT:{symbol:{startsWith:'MASTER:'}}},by:['runId','status','message'],_count:{_all:true}}) : [];

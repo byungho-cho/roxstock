@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {ValueReadModel} from '../read-model/value-cache.js';
+import {ValueReadModel} from '@roxstock/shared/read-model/value-cache';
 function fixture(){
  let revision=0n,fail=false,writeFail=false;const records=new Map<string,any>(),versions=new Map<string,bigint>();let loads=0,price='100';let lastIds:bigint[]|undefined;
  const db={analysisRevision:{findUnique:async()=>({revision}),findMany:async()=>[...versions].map(([key,revision])=>({key,revision}))},analysisReadCache:{findUnique:async({where}:any)=>records.get(where.key)??null,create:async({data}:any)=>{if(writeFail)throw Error('write failed');records.set(data.key,data);return data;},updateMany:async({where,data}:any)=>{if(writeFail)throw Error('write failed');const old=records.get(where.key);if(old?.revision!==where.revision)return {count:0};records.set(where.key,{...old,...data});return {count:1};}}} as any;

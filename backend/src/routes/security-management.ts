@@ -1,12 +1,12 @@
 import {invalidateSecurityCaches} from '../domain/security-cache-revision.js';
 import type {FastifyInstance} from 'fastify';
-import {Prisma} from '../generated/prisma/index.js';
-import {prisma} from '../lib/prisma.js';
+import {Prisma} from '@roxstock/shared/prisma';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {serializable} from '../lib/transaction.js';
-import {ApiError} from '../lib/api-error.js';
+import {ApiError} from '@roxstock/shared/lib/api-error';
 import {id} from '../lib/input.js';
-import {normalizeSecuritySymbol,isSecuritySymbol} from '../domain/security-symbol.js';
-import {collectionFeatures,exclusionReason,type CollectionFeature} from '../collector/collection-policy.js';
+import {normalizeSecuritySymbol,isSecuritySymbol} from '@roxstock/shared/domain/security-symbol';
+import {collectionFeatures,exclusionReason,type CollectionFeature} from '@roxstock/shared/collection/collection-policy';
 import {realtimePriceCache} from '../realtime/price-cache.js';
 type Query={query?:string;cursor?:string};
 const publicSecurity=(s:any)=>({id:String(s.id),symbol:s.symbol,name:s.name,marketType:s.marketType,listingYear:s.listingYear,isActive:s.isActive,registrationSource:s.registrationSource,canCorrectCode:s.registrationSource==='MANUAL',collectionExcluded:s.collectionExcluded,excludedFeatures:Array.isArray(s.excludedFeatures)?s.excludedFeatures:[],automaticExclusion:s.symbol.startsWith('Z99'),exclusionReason:exclusionReason(s),collectionRevision:s.collectionRevision});

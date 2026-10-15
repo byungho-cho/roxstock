@@ -1,14 +1,14 @@
 import type { loadPortfolio } from './portfolio.js';
-import { normalizeSecuritySymbol, isSecuritySymbol, normalizeProviderSymbol } from '../domain/security-symbol.js';
+import { normalizeSecuritySymbol, isSecuritySymbol, normalizeProviderSymbol } from '@roxstock/shared/domain/security-symbol';
 import type { FastifyInstance } from 'fastify';
-import { hasInitialQuery, matchesStockSearch } from '../domain/stock-search.js';
-import { Prisma, type MarketType, type WatchlistType } from '../generated/prisma/index.js';
+import { hasInitialQuery, matchesStockSearch } from '@roxstock/shared/domain/stock-search';
+import { Prisma, type MarketType, type WatchlistType } from '@roxstock/shared/prisma';
 
-import { combinedValuation, valuation } from '../domain/value-analysis.js';
-import { ApiError } from '../lib/api-error.js';
-import { parseManualRefresh } from '../collector/dart-manual-refresh.js';
+import { combinedValuation, valuation } from '@roxstock/shared/domain/value-analysis';
+import { ApiError } from '@roxstock/shared/lib/api-error';
+import { parseManualRefresh } from '@roxstock/shared/collection/manual-requests';
 import { id, optionalMemo } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { serializable } from '../lib/transaction.js';
 import { manualClassification, requireActiveAccount } from '../domain/classification.js';
 import { calculateRemainingQuantity } from '../domain/trade.js';

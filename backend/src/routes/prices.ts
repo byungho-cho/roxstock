@@ -1,8 +1,8 @@
-import {exclusionReason} from '../collector/collection-policy.js';
-import { normalizeProviderSymbol, isSecuritySymbol } from '../domain/security-symbol.js';
+import {exclusionReason} from '@roxstock/shared/collection/collection-policy';
+import { normalizeProviderSymbol, isSecuritySymbol } from '@roxstock/shared/domain/security-symbol';
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { realtimePriceCache, type RealtimePriceDto } from '../realtime/price-cache.js';
 
 interface PriceQuery {

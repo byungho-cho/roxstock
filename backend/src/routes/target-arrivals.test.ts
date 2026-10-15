@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/index.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { Prisma } from '@roxstock/shared/prisma';
 
 test('account-scoped API preserves explicit empty settings and rejects stale writes', async () => {
   const originalFind=prisma.account.findUnique;

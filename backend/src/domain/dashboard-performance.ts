@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
 export type PerformanceSnapshot = {
   snapshotDate: Date;

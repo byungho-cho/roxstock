@@ -1,12 +1,14 @@
 services:
   backend:
-    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    image: ${BACKEND_IMAGE:?Set an immutable BACKEND_IMAGE}
     container_name: roxstock-backend
     restart: unless-stopped
+    stop_grace_period: 720s
     env_file:
       - ../../backend/.env.production
     environment:
       NODE_ENV: production
+      ROXSTOCK_RELEASE_FILE: /run/roxstock/release.json
       HOST: 0.0.0.0
       PORT: 3300
       DART_BACKFILL_DAILY_CALL_LIMIT: ${DART_BACKFILL_DAILY_CALL_LIMIT:-10000}
@@ -17,6 +19,8 @@ services:
       # The current Cafe24 deployment is a disposable development/test server.
       # Change to false or remove this override before production use.
       ENABLE_ACCOUNT_DATA_RESET: ${ENABLE_ACCOUNT_DATA_RESET:-true}
+    volumes:
+      - ${ROXSTOCK_RUNTIME_DIR:-/opt/roxstock/.deploy/runtime}:/run/roxstock:ro
     expose:
       - "3300"
     networks:
@@ -34,10 +38,10 @@ services:
       start_period: 10s
 
   collector:
-    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
-    stop_grace_period: 60s
+    image: ${COLLECTOR_IMAGE:?Set an immutable COLLECTOR_IMAGE}
     container_name: roxstock-collector
     restart: unless-stopped
+    stop_grace_period: 720s
     env_file:
       - ../../backend/.env.production
     environment:
@@ -48,7 +52,7 @@ services:
       COLLECTOR_PRICE_RETRY_DELAY_MINUTES: ${COLLECTOR_PRICE_RETRY_DELAY_MINUTES:-60}
       COLLECTOR_SNAPSHOT_HOURS: ${COLLECTOR_SNAPSHOT_HOURS:-23}
       COLLECTOR_LOCK_TTL_SECONDS: ${COLLECTOR_LOCK_TTL_SECONDS:-7200}
-    command: ["node", "backend/dist/collector/worker.js", "daemon"]
+    command: ["node", "${COLLECTOR_ENTRY_ROOT:-collector/dist}/worker.js", "daemon"]
     networks:
       - db
     healthcheck:
@@ -59,9 +63,10 @@ services:
       start_period: 10s
 
   realtime-collector:
-    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    image: ${COLLECTOR_IMAGE:?Set an immutable COLLECTOR_IMAGE}
     container_name: roxstock-realtime-collector
     restart: unless-stopped
+    stop_grace_period: 720s
     env_file:
       - ../../backend/.env.production
     environment:
@@ -81,10 +86,7 @@ services:
       COLLECTOR_REALTIME_AFTER_MARKET_OPEN: ${COLLECTOR_REALTIME_AFTER_MARKET_OPEN:-15:40}
       COLLECTOR_REALTIME_AFTER_MARKET_CLOSE: ${COLLECTOR_REALTIME_AFTER_MARKET_CLOSE:-20:00}
       COLLECTOR_REALTIME_API_URL: http://backend:3300/internal/realtime-prices
-    command: ["node", "backend/dist/collector/realtime-worker.js"]
-    depends_on:
-      backend:
-        condition: service_healthy
+    command: ["node", "${COLLECTOR_ENTRY_ROOT:-collector/dist}/realtime-worker.js"]
     networks:
       - app
       - db
@@ -96,9 +98,10 @@ services:
       start_period: 10s
 
   dart-collector:
-    image: newrox/roxstock-backend:${BACKEND_IMAGE_TAG:?Set BACKEND_IMAGE_TAG to a sha-commit tag}
+    image: ${COLLECTOR_IMAGE:?Set an immutable COLLECTOR_IMAGE}
     container_name: roxstock-dart-collector
     restart: unless-stopped
+    stop_grace_period: 720s
     env_file:
       - ../../backend/.env.production
     environment:
@@ -119,7 +122,7 @@ services:
       DART_NIGHT_WINDOW_START_HOUR: ${DART_NIGHT_WINDOW_START_HOUR:-18}
       DART_NIGHT_WINDOW_END_HOUR: ${DART_NIGHT_WINDOW_END_HOUR:-6}
       DART_CORP_CODE_REFRESH_HOURS: ${DART_CORP_CODE_REFRESH_HOURS:-24}
-    command: ["node", "backend/dist/collector/dart-worker.js"]
+    command: ["node", "${COLLECTOR_ENTRY_ROOT:-collector/dist}/dart-worker.js"]
     networks:
       - db
     healthcheck:

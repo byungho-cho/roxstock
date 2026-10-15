@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {Prisma} from '../generated/prisma/index.js';import {projectValueRows} from '../read-model/value-rows.js';
+import {Prisma} from '@roxstock/shared/prisma';import {projectValueRows} from '@roxstock/shared/read-model/value-rows';
 const evidence=(name:string)=>JSON.parse(readFileSync(new URL('../../../docs/development/evidence/value-financial-cache/'+name,import.meta.url),'utf8')).data;
 test('Mirae stored source replay fixes interim list selection without fabricating missing annual ROE or shares',()=>{
  const stored=evidence('mirae-stored-source.json'),value=evidence('value-mirae-before.json').rows[0],financial=evidence('financial-mirae-before.json').rows[0];

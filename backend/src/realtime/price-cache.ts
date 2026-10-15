@@ -1,4 +1,4 @@
-import { normalizeSecuritySymbol, isSecuritySymbol } from '../domain/security-symbol.js';
+import { normalizeSecuritySymbol, isSecuritySymbol } from '@roxstock/shared/domain/security-symbol';
 export interface RealtimePriceDto {
   securityId: string;
   collectionRevision?:number;

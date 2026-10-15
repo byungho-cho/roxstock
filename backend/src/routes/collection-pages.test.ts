@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {pageBoundary,pageCondition,collectionPageRoutes} from './collection-pages.js';
 import Fastify from 'fastify';
-import {prisma} from '../lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 test('page condition validates dates, bound filter/stream cursors and exact BigInt ties',()=>{
  const first=pageCondition('security-master','runs',{});
  const cursor=Buffer.from(JSON.stringify({v:1,scope:first.scope,at:'2026-10-12T00:00:00.000Z',id:'9007199254740993',ceiling:'9007199254741000'})).toString('base64url');

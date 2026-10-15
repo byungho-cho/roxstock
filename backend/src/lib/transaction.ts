@@ -1,6 +1,6 @@
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 import {isMariaDbSnapshotConflict} from '../domain/transaction-conflict.js';
-import { prisma } from './prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 
 export async function serializable<T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
   for (let attempt = 0; ; attempt++) {

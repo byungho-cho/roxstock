@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {Prisma} from '../generated/prisma/index.js';import {isMariaDbSnapshotConflict} from './transaction-conflict.js';
+import {Prisma} from '@roxstock/shared/prisma';import {isMariaDbSnapshotConflict} from './transaction-conflict.js';
 const unknown=(message:string)=>new Prisma.PrismaClientUnknownRequestError(message,{clientVersion:'6.19.3'});
 test('only confirmed MariaDB 1020 snapshot conflicts may retry after callback rollback',()=>{
  assert.equal(isMariaDbSnapshotConflict(unknown('MysqlError { code: 1020, message: "Record has changed since last read in table cash_transactions" }')),true);

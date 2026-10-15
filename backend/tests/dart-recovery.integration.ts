@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {PrismaClient} from '../src/generated/prisma/index.js';
-import {PrismaDartRepository} from '../src/collector/dart-repository.js';
-import {DartApiError} from '../src/collector/dart-provider.js';
+import {PrismaClient} from '@roxstock/shared/prisma';
+import {PrismaDartRepository} from '../../collector/src/dart-repository.js';
+import {DartApiError} from '../../collector/src/dart-provider.js';
 
 // Caller must provision an isolated migrated database; never run this against app/production data.
 const url=new URL(process.env.DATABASE_URL??'');

@@ -2,8 +2,8 @@ import {buildAnalysisTestApp} from './analysis-test-fixture.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../app.js';
-import {prisma} from '../lib/prisma.js';
-import {Prisma} from '../generated/prisma/index.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
+import {Prisma} from '@roxstock/shared/prisma';
 test('financial list only reads stored records and missing numbers sort last in both directions',async()=>{
  const original=prisma.security.findMany;let args:any;
  prisma.security.findMany=(async(input:any)=>{args=input;return [{id:2n,name:'누락',symbol:'002',marketType:'KOSPI',marketPrice:null,fundamentals:null,valuationMetrics:[],financialStatements:[],dartFinancialFilings:[]},{id:1n,name:'저장',symbol:'001',marketType:'KOSPI',marketPrice:{currentPrice:new Prisma.Decimal(100),priceUpdatedAt:new Date()},fundamentals:null,valuationMetrics:[],financialStatements:[],dartFinancialFilings:[]}];}) as unknown as typeof original;

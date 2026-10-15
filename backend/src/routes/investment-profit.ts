@@ -1,8 +1,8 @@
 import type {FastifyInstance} from 'fastify';
-import {Prisma} from '../generated/prisma/index.js';
-import {prisma} from '../lib/prisma.js';
+import {Prisma} from '@roxstock/shared/prisma';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {id} from '../lib/input.js';
-import {ApiError} from '../lib/api-error.js';
+import {ApiError} from '@roxstock/shared/lib/api-error';
 import {calculateProfitYear,PROFIT_VERSION,type ProfitYear} from '../domain/investment-profit.js';
 const cache=new Map<string,{until:number;years:ProfitYear[];calculatedAt:string;bytes:number}>();
 const pending=new Map<string,Promise<ProfitYear[]>>();
