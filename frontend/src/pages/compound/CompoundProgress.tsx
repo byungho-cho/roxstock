@@ -11,7 +11,7 @@ export function CompoundProgress({goal,assets,progressValue,progressLabel='목�
  const marker=annual!==null&&annual>0&&final!==null&&final>0?Math.max(0,Math.min(100,annual/final*100)):null;
  const color=compoundAssetColor(assets,goal?.yearTarget),difference=compoundTargetDifference(assets,goal?.yearTarget);
  return <Box data-testid="compound-progress" sx={{minWidth:0,mt:'4px'}}>
-  <Box role="meter" aria-label={progressLabel} aria-valuemin={0} aria-valuemax={Math.max(100,progress??0)} aria-valuenow={progress??undefined} sx={{height,bgcolor:'#25334A',borderRadius:'4px',position:'relative',isolation:'isolate'}}>
+  <Box role={pending?undefined:"meter"} aria-hidden={pending||undefined} aria-label={pending?undefined:progressLabel} aria-valuemin={0} aria-valuemax={Math.max(100,progress??0)} aria-valuenow={progress??undefined} sx={{height,visibility:pending?'hidden':undefined,bgcolor:'#25334A',borderRadius:'4px',position:'relative',isolation:'isolate'}}>
    {marker!==null&&<Box data-testid="compound-year-background" sx={{position:'absolute',inset:'0 auto 0 0',width:marker+'%',height:'100%',bgcolor:colors.warning,opacity:.24,borderRadius:'4px',zIndex:0}}/>}
    {progress!==null&&<Box data-testid="compound-current-bar" sx={{position:'relative',height:'100%',width:Math.max(0,Math.min(100,progress))+'%',bgcolor:color,borderRadius:'4px',zIndex:1}}/>}
    {marker!==null&&<Box data-testid="compound-year-marker" aria-label="올해 목표 기준선" sx={{position:'absolute',left:`clamp(1px, ${marker}%, calc(100% - 1px))`,transform:'translateX(-50%)',top:-2,width:2,height:height+4,bgcolor:colors.warning,zIndex:2}}/>}
