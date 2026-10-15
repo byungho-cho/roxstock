@@ -53,6 +53,10 @@ test('year and quarter filter share chart/table, include boundaries and keep sum
   const q1 = await page.getByTestId('investment-row').evaluateAll(rows => rows.map(row => row.getAttribute('data-date')));
   expect(q1[0]).toBe('2026-03-31'); expect(q1.at(-1)).toBe('2026-01-01');
   await periods.getByRole('button', { name: '2분기' }).click();
+  await expect(periods.getByRole('button', { name: '1분기' })).toHaveAttribute('aria-pressed','true');
+  await expect(periods.getByRole('button', { name: '2분기' })).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByTestId('investment-row').last()).toHaveAttribute('data-date','2026-01-01');
+  await periods.getByRole('button', { name: '1분기' }).click();
   const q2 = await page.getByTestId('investment-row').evaluateAll(rows => rows.map(row => row.getAttribute('data-date')));
   expect(q2[0]).toBe('2026-06-15'); expect(q2.at(-1)).toBe('2026-04-01');
   expect((await page.getByTestId('investment-chart').getAttribute('data-dates'))!.split(',')).toEqual([...q2].reverse());
