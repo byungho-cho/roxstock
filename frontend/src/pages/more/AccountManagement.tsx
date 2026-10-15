@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useMoreAccounts} from '../../hooks/useMoreAccounts';
 import {useAccountAllocation} from '../../hooks/useAccountAllocation';
@@ -16,7 +17,7 @@ export function AccountManagement(_props: { openReset?: () => void }) {
  return <Stack spacing="8px" data-testid="account-management" aria-busy={pending}>
  <Typography sx={{fontSize:11,color:colors.textMuted}}>계좌를 선택하거나 계좌 정보를 수정할 수 있습니다.</Typography>
  <Button fullWidth variant="contained" sx={{height:42,bgcolor:colors.buttonPrimary,color:'#fff'}} onClick={()=>navigate('/detail/settings?view=add')}>계좌 추가</Button>
- {query.isError&&liveApiEnabled&&<Button role="alert" onClick={()=>void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>}
+ {query.isError&&liveApiEnabled&&<QueryErrorNotice message="계좌 조회 실패 · 다시 시도" onRetry={()=>void query.refetch()}/>}
  {pending?Array.from({length:3},(_,i)=><Box key={i} data-testid="account-loading-row" sx={{...settingsPanel,p:'6px 15px',borderWidth:2}}><Stack spacing="4px">{[0,1].map(n=><Stack key={n} direction="row" sx={{height:n?20:21,justifyContent:'space-between',alignItems:'center'}}><Skeleton width={n?72:140} height={n?10:13} sx={{transform:'none'}}/><Skeleton width={n?100:20} height={n?16:20} sx={{transform:'none'}}/></Stack>)}</Stack></Box>):accounts.map(item=><AccountCard key={item.id} item={item} active={selected?.id===item.id} select={()=>void select(item.id)}/>)}
  {!pending&&!query.isError&&!accounts.length&&<Typography>등록된 계좌가 없습니다. 계좌를 추가해 주세요.</Typography>}
  </Stack>;

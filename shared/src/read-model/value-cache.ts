@@ -2,7 +2,7 @@ import {PageCache} from '../domain/page-cache.js';
 import {randomUUID} from 'node:crypto';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {loadValueRows,type ValueReadRow,type ValueFilter} from './value-rows.js';
-const schemaVersion=1;
+const schemaVersion=4;
 type Payload={schemaVersion:number;financialRevision:string;revisions:Record<string,string>;rows:ValueReadRow[];priceCacheGeneratedAt:string};
 type Entry={revision:string;payload:Payload;generatedAt:Date};
 export class ValueReadModel {
@@ -15,15 +15,15 @@ export class ValueReadModel {
  private async stored(year:number){
   const row=await this.db.analysisReadCache.findUnique({where:{key:`value:${year}`}});
   const payload=row?.payload as unknown as Payload;
-  return row&&payload&&payload.schemaVersion===schemaVersion&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
+  return row&&payload&&[1,2,3,schemaVersion].includes(payload.schemaVersion)&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
  }
  async get(year:number,filter?:ValueFilter){
   const memory=this.memory.get(year);
   const revision=await this.revision();
   const stamp=memory?await this.db.analysisReadCache.findUnique({where:{key:`value:${year}`},select:{revision:true}}):undefined;
-  if(memory?.payload.financialRevision===revision&&stamp?.revision===memory.revision)return {rows:memory.payload.rows,meta:this.meta(memory,'HIT')};
+  if(memory?.payload.schemaVersion===schemaVersion&&memory.payload.financialRevision===revision&&stamp?.revision===memory.revision)return {rows:memory.payload.rows,meta:this.meta(memory,'HIT')};
   const previous=memory&&stamp?.revision===memory.revision?memory:await this.stored(year);
-  if(previous?.payload.financialRevision===revision){this.remember(year,previous);return {rows:previous.payload.rows,meta:this.meta(previous,'PERSISTED_HIT')};}
+  if(previous?.payload.schemaVersion===schemaVersion&&previous.payload.financialRevision===revision){this.remember(year,previous);return {rows:previous.payload.rows,meta:this.meta(previous,'PERSISTED_HIT')};}
   if(!previous){
    // No daily snapshot (including first startup): use the existing stored-data query, never collect externally.
    const key=JSON.stringify([year,revision,filter]);
@@ -49,7 +49,7 @@ export class ValueReadModel {
   const versions=await this.db.analysisRevision.findMany({where:{key:{startsWith:'security:'}}});
   const revisions=Object.fromEntries(versions.map(r=>[r.key.slice(9),r.revision.toString()]));
   const dirty=previous&&!prices?Object.keys(revisions).filter(id=>previous.payload.revisions[id]!==revisions[id]):[];
-  const ids=!prices&&previous?dirty.map(id=>BigInt(id)):undefined;
+  const ids=!prices&&previous&&previous.payload.schemaVersion===schemaVersion?dirty.map(id=>BigInt(id)):undefined;
   const updated=await this.loader(year,ids,!prices&&previous?new Map(previous.payload.rows.map(r=>[r.id,r])):undefined);
   const priceFailures=new Set(failedSymbols);
   if(prices)for(const row of updated)if(priceFailures.has(row.symbol)){row.collectionErrors.push('PRICE_COLLECTION_FAILED_LAST_VALUE_RETAINED');row.collectionStatus='ERROR';}

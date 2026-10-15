@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { Alert, Box, Button, Dialog, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import { colors } from '../../styles/tokens';
 
 export function TargetArrivalSettings() {
   const { accountId, accounts } = useActiveAccount();
-  if (!accountId) return <Alert severity={accounts.isError ? 'error' : 'info'}>{accounts.isError ? '계좌 조회에 실패했습니다.' : '계좌를 선택해 주세요.'}{accounts.isError && <Button onClick={() => void accounts.refetch()}>다시 시도</Button>}</Alert>;
+  if (!accountId) return accounts.isError ? <QueryErrorNotice message="계좌 조회에 실패했습니다." onRetry={()=>void accounts.refetch()}/> : <Alert severity="info">계좌를 선택해 주세요.</Alert>;
   return <AccountTargetSettings key={accountId} accountId={accountId} accountName={accounts.data?.find(a => a.id === accountId)?.name ?? accountId} />;
 }
 
@@ -60,7 +61,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
       setConflict(false); setError('최신 설정 버전을 확인했습니다. 입력 내용을 검토하고 다시 저장해 주세요.');
     } catch { setError('최신 설정 조회에 실패했습니다. 입력 내용은 유지됩니다.'); }
   };
-  if (!draft) return query.isError ? <Alert severity="error">설정 조회에 실패했습니다.<Button onClick={() => void query.refetch()}>다시 시도</Button></Alert> : <Skeleton variant="rounded" height={220} />;
+  if (!draft) return query.isError ? <QueryErrorNotice message="설정 조회에 실패했습니다." onRetry={() => void query.refetch()}/> : <Skeleton variant="rounded" height={220} />;
   return <Box>
     {editor ? <AppCard sx={{ p: '14px', borderRadius: '8px' }}>
       <Typography component="h2" sx={{ fontSize: 16, fontWeight: 600 }}>{editor?.index === null ? '조건 추가' : '조건 수정'}</Typography>
@@ -84,7 +85,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
       </AppCard>)}
     </Stack>
     {draft.conditions.length === 0 && <Alert severity="info" sx={{ my: 1 }}>조건이 없어 기능이 비활성화되었습니다.</Alert>}
-    {error && <Alert severity="error" sx={{ my: 1 }}>{error}{conflict ? <Button onClick={() => void loadVersion()}>최신 버전 확인</Button> : <Button disabled={busy} onClick={() => void save()}>다시 시도</Button>}</Alert>}
+    {error && (error.includes("조회에 실패") ? <QueryErrorNotice message={error} onRetry={()=>void loadVersion()}/> : <Alert severity="error" sx={{ my: 1 }}>{error}{conflict ? <Button onClick={() => void loadVersion()}>최신 버전 확인</Button> : <Button disabled={busy} onClick={() => void save()}>다시 시도</Button>}</Alert>)}
     {saved && <Alert severity="success" sx={{ my: 1 }}>저장했습니다. 홈 목록을 갱신했습니다.</Alert>}
     <Button fullWidth variant="contained" disabled={busy || conflict} onClick={() => void save()} sx={{ mt: 2 }}>{busy ? '저장 중' : '저장'}</Button>
     </>}

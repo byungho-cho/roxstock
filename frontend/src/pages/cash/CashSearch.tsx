@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { Box, Button, ButtonBase, IconButton, InputBase, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -30,7 +31,7 @@ export function CashSearch({ accountId, onSelect }: { accountId?: string; onSele
       <IconButton aria-label="검색어 지우기" disabled={!query} onClick={() => { setQuery(''); setSearch(''); input.current?.focus(); }} sx={{ p: 0, width: 17, height: 16 }}><Box component="img" src="/cash-v04/search-clear.svg" alt="" sx={{ width: 17, height: 16 }} /></IconButton>
     </Box>
     {current && !result.isError && !result.isPending && <Typography sx={{ fontSize: 13, fontWeight: 600, height: 20 }}>‘{current}’ 검색 결과 {rows.length}개</Typography>}
-    {current && result.isError ? <Button role="alert" onClick={() => void result.refetch()}>종목 검색 실패 · 다시 시도</Button> : current && result.isPending ? <Typography role="status" sx={{ fontSize: 12 }}>검색 중입니다.</Typography> : rows.length ? rows.map(s =>
+    {current && result.isError ? <QueryErrorNotice message="종목 검색에 실패했습니다." onRetry={()=>void result.refetch()}/> : current && result.isPending ? <Typography role="status" sx={{ fontSize: 12 }}>검색 중입니다.</Typography> : rows.length ? rows.map(s =>
       <ButtonBase data-testid="cash-search-result" key={s.id} onClick={() => onSelect(s)} sx={{ height: 52, flexShrink: 0, p: '7px 14px', bgcolor: colors.surface, border: '1px solid #25344d', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
         <Typography sx={{ fontSize: 15, fontWeight: 700, lineHeight: '20px', color: colors.textMuted }}><Highlight text={s.name} query={current} /></Typography>
         <Typography sx={{ fontSize: 10, lineHeight: '15px', color: colors.textMuted }}><Highlight text={s.symbol} query={current} /> · <Highlight text={s.marketType} query={current} /></Typography>

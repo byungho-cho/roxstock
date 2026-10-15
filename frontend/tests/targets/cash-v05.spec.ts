@@ -57,7 +57,7 @@ test('saved chart uses axes, gap and touch tooltip; empty and failure remain dis
  const rect=(await chart.locator('svg').boundingBox())!;await page.touchscreen.tap(rect.x+rect.width/2,rect.y+rect.height/2);
  await expect(page.getByTestId('asset-trend-tooltip')).toBeVisible();await expect(chart.locator('svg path[stroke="'+ '#60A5FA' +'"]').first()).toHaveAttribute('d',/M.*M/);
  state.fail('/asset-history');await page.getByRole('button',{name:'이전 기간',exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('추이 조회 실패');
- state.fail('');state.empty();await page.getByText('추이 조회 실패 · 다시 시도',{exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
+ state.fail('');state.empty();await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
 });
 
 test('latest entry can be deleted and year tax refreshes; read failures never show zero',async({page})=>{

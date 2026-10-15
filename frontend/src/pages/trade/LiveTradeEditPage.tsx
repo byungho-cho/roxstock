@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import { useTargetArrivals } from '../../hooks/useTargetArrivals';
@@ -82,7 +83,7 @@ export function LiveTradeEditPage() {
   return <Stack spacing={1.5} sx={{ p: 2, pb: 10, maxWidth: 680, mx: 'auto' }}>
     <PageHeader embedded compact showAdd={false} title={type === 'buy' ? '매수 거래 상세' : '매도 거래 상세'} />
     {detail.isPending || !accountId && !!trade ? <Box role="status" aria-label="거래 정보를 불러오는 중"><Skeleton variant="rounded" height={55} /><Skeleton variant="rounded" height={55} sx={{ mt: 1 }} /><Skeleton variant="rounded" height={55} sx={{ mt: 1 }} /></Box>
-      : detail.isError ? <Alert severity="error">거래 정보를 불러오지 못했습니다. <Button onClick={() => void detail.refetch()}>다시 시도</Button></Alert>
+      : detail.isError ? <QueryErrorNotice message="거래 정보를 불러오지 못했습니다." onRetry={()=>void detail.refetch()}/>
       : !trade || mismatch ? <Alert severity="error">현재 계좌의 거래가 아닙니다.</Alert>
       : form?.key === `${type}:${tradeId}` && <>
         <Typography sx={{ fontWeight: 700 }}>{trade.security.name} ({trade.security.symbol}) · {trade.account.name}</Typography>

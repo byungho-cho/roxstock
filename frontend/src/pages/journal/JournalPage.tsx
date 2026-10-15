@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {useJournalDayPosition} from './useJournalDayPosition';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
@@ -199,7 +200,7 @@ export function JournalPage() {
     </Box>
     <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronRightRounded sx={{ fontSize: 18 }}/></IconButton>
   </Box>;
-  const status=liveApiEnabled&&tradesError&&!remoteReport?<Button role="alert" onClick={()=>void reloadTrades()}>거래 조회 실패 · 다시 시도</Button>:null;
+  const status=liveApiEnabled&&tradesError&&!remoteReport?<QueryErrorNotice message="거래 조회 실패 · 다시 시도" onRetry={()=>void reloadTrades()}/>:null;
   const monthlySummary = <Box ref={dayPosition.monthlyRef} component="section" data-testid="journal-month-summary" aria-labelledby="journal-month-summary-title" aria-busy={pending} sx={{ ...calendarPanel, mt: '8px', p: '10px 14px' }}>
     <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', mb: '6px' }}><Typography id="journal-month-summary-title" component="h2" sx={{ fontSize: 14, fontWeight: 600 }}>월별 거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{year}년 {value}월</Typography></Stack>
     {[
@@ -207,7 +208,7 @@ export function JournalPage() {
       {key:'sell',label:'매도',count:monthTotals.sellCount,amount:monthTotals.sell,color:getProfitColor(monthProfit)},
       {key:'profit',label:'실현손익',count:null,amount:monthProfit,color:getProfitColor(monthProfit)},
     ].map(row=><Box key={row.key} data-testid={`journal-month-${row.key}`} sx={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) minmax(0, 1.6fr)', gap: '8px', alignItems: 'center', minHeight: 26, fontSize: 12, borderTop: row.key==='profit'?`1px solid ${colors.border}`:undefined }}><Box sx={{color:colors.textMuted}}>{row.label}</Box><Box sx={{textAlign:'right',fontSize:11,color:row.key==='profit'?row.color:colors.textMuted,overflowWrap:'anywhere'}}>{pending?'':unavailable?'—':row.count===null?journalRate(monthTotals.cost&&monthProfit!==undefined?monthProfit/monthTotals.cost*100:undefined):`${row.count}건`}</Box><Box sx={{textAlign:'right',fontWeight:600,color:row.color,overflowWrap:'anywhere'}}>{pending?'':unavailable?'—':row.key==='profit'?signedWon(row.amount):won(row.amount)}</Box></Box>)}
-    {liveApiEnabled&&tradesError&&<Button onClick={()=>void reloadTrades()} sx={{fontSize:11,minHeight:28}}>{remoteReport?'최신 월별 거래 조회 실패 · 다시 시도':'월별 거래 조회 실패 · 다시 시도'}</Button>}
+    {liveApiEnabled&&tradesError&&<QueryErrorNotice message="월별 거래 조회에 실패했습니다." onRetry={()=>void reloadTrades()}/>}
   </Box>;
   const transactions=<>{status??<JournalTransactions loading={pending} entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
   const titleRow = <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: '4px' }}>
@@ -269,11 +270,11 @@ export function JournalPage() {
       </Box>}
       <Box ref={rightRef} data-scroll-region={tablet ? 'journal-detail' : undefined} data-list-condition={JSON.stringify([month, selectedDate, detailMode])}
         sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-        {liveApiEnabled && tradesError && !!remoteReport && <Button role="alert" onClick={() => void reloadTrades()}>최신 거래 조회 실패 · 다시 시도</Button>}
-        {liveApiEnabled && lotsQuery.isError && <Button role="alert" onClick={() => void lotsQuery.refetch()}>연결 Lot 조회 실패 · 다시 시도</Button>}
+        {liveApiEnabled && tradesError && !!remoteReport && <QueryErrorNotice message="최신 거래 조회 실패 · 다시 시도" onRetry={() => void reloadTrades()}/>}
+        {liveApiEnabled && lotsQuery.isError && <QueryErrorNotice message="연결 Lot 조회 실패 · 다시 시도" onRetry={() => void lotsQuery.refetch()}/>}
         {liveApiEnabled && !accountId && !accounts.isPending ? <Stack spacing={2} sx={{ ...calendarPanel, p: 3, alignItems: 'center', textAlign: 'center' }}>
           {accounts.isPending ? <Skeleton variant="rounded" width="100%" height={80}/> : accounts.isError ? <>
-            <Typography role="alert">계좌 정보를 불러오지 못했어요.</Typography>
+            <QueryErrorNotice message="계좌 정보를 불러오지 못했습니다."/>
             <Button variant="outlined" onClick={() => void accounts.refetch()}>다시 시도</Button>
           </> : <>
             <Typography sx={{ fontWeight: 700 }}>등록된 계좌가 없습니다.</Typography>

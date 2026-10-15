@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {Box,Button,ButtonBase,Dialog,IconButton,InputBase,Stack,Typography} from '@mui/material';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useContext,useEffect,useRef,useState} from 'react';
@@ -68,7 +69,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
     {query&&<IconButton aria-label="검색어 지우기" onClick={()=>{setQuery('');setSearch('');searchRef.current?.focus();}} sx={{p:0,width:16,height:16}}><Box component="img" src="/stocks-v03/search-clear.svg" alt="" sx={{width:16,height:16}}/></IconButton>}
    </Box>
    {currentSearch&&<Typography sx={{fontSize:13,lineHeight:'19px',fontWeight:600}}>‘{currentSearch}’ 검색 결과 {rows.length}개</Typography>}
-   {currentSearch&&result.isError?<Box role="alert" sx={{p:'20px',fontSize:13}}>검색에 실패했습니다. 기존 검색 상태를 유지합니다.<Button onClick={()=>void result.refetch()}>다시 시도</Button></Box>:currentSearch&&result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:currentSearch&&rows.length?
+   {currentSearch&&result.isError?<QueryErrorNotice message="검색에 실패했습니다. 기존 검색 상태를 유지합니다." onRetry={()=>void result.refetch()}/>:currentSearch&&result.isFetching&&!rows.length?<Typography role="status" sx={{py:4,textAlign:'center'}}>검색 중입니다.</Typography>:currentSearch&&rows.length?
     <Box data-testid="stock-search-results" sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr)',gap:'8px'}}>{rows.map(s=><ButtonBase key={s.id} data-testid="security-search-result" onClick={()=>{setSelected(s);showConfirm();}} sx={{height:52,p:'8px 14px',display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:'center',borderRadius:'8px',bgcolor:colors.surface,border:'1px solid #25344d',minWidth:0,textAlign:'left'}}>
      <Typography noWrap sx={{fontSize:14,fontWeight:600,lineHeight:'20px',maxWidth:'100%'}}><Highlight text={s.name} query={currentSearch}/></Typography>
      <Typography sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted}}><Highlight text={s.symbol} query={currentSearch}/> · {s.marketType} · {s.isActive===false?'비활성 종목':s.hasTradeHistory?'현재 계좌 거래종목 · 분류 변경 불가':s.watchlistItemId?`현재 계좌 ${s.listType==='holding'?'보유종목':'관심종목'}`:'현재 계좌 미등록'}</Typography>

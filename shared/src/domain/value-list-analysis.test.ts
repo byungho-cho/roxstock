@@ -65,3 +65,11 @@ test('existing manual annual-estimate provenance keeps annual values but rejects
  const valid=selectValueListAnalysis(input([estimate]));assert.equal(valid.eps,'0');assert.equal(valid.roe,'-10');
  estimate.provenance.perMetric.eps.periodType='Q2';assert.equal(selectValueListAnalysis(input([estimate])).eps,null);
 });
+
+test('legacy v1 receipt link is accepted only with the original share basis and capital/BPS reconciliation',()=>{
+ const b=basis();Object.assign(b.row.provenance,{version:1});delete b.row.provenance.sharesReceiptNo;
+ assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,'1200');
+ for(const edit of [(x:any)=>x.row.provenance.version=2,(x:any)=>x.row.provenance.sharesReceiptNo='other',(x:any)=>x.row.supplemental.shares.receiptNo='other',(x:any)=>x.row.supplemental.shares.outstanding='11',(x:any)=>x.row.supplemental.shares.preferred=true]){
+  const x=basis();Object.assign(x.row.provenance,{version:1});delete x.row.provenance.sharesReceiptNo;edit(x);assert.equal(shareholderTotals(x.metric,x.row,[x.f]).shareholderValue,null);
+ }
+});

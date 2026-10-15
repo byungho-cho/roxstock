@@ -12,7 +12,7 @@ import { id } from '../lib/input.js';
 import { combinedValuation,fairPrice,weight,valuation,periods,financialRows,mergeStatements } from '@roxstock/shared/domain/value-analysis';
 import { storedFinancials,statementPeriods } from '../domain/financial-statements.js';
 
-type Query={year?:string;query?:string;market?:string;sort?:string;direction?:string;sorts?:string;mode?:string;startYear?:string;endYear?:string;period?:string;startQuarter?:string};
+type Query={year?:string;query?:string;market?:string;sort?:string;direction?:string;sorts?:string;mode?:string;startYear?:string;endYear?:string;period?:string;startQuarter?:string;offset?:string;limit?:string;compact?:string};
 const currentYear=()=>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date()));
 function integer(value:string|undefined,fallback:number,min:number,max:number){if(value===undefined)return fallback;if(!/^\d+$/.test(value)||Number(value)<min||Number(value)>max)throw new ApiError(400,'INVALID_INPUT','기간을 확인해 주세요.');return Number(value);}
 const orderKeys=['name','w','currentPrice','targetPrice','value','eps','epsYield','priceUpdatedAt','issuedShares','roe','capital','netIncome'] as const;
@@ -21,9 +21,12 @@ export async function financialStatementRoutes(app:FastifyInstance){
   const year=integer(request.query.year,currentYear(),2015,currentYear()),query=request.query.query?.trim()??'',market=request.query.market??'KOSPI',sort=request.query.sort??'w',direction=request.query.direction??'desc';
   if(query.length>100||!['KOSPI','KOSDAQ'].includes(market)||!orderKeys.includes(sort as typeof orderKeys[number])||!['asc','desc'].includes(direction))throw new ApiError(400,'INVALID_INPUT','조회 조건을 확인해 주세요.');
   let sorts;try{sorts=parseAnalysisSort(request.query.sorts,sort,direction);}catch{throw new ApiError(400,'INVALID_INPUT','정렬 조건을 확인해 주세요.');}
+  const limit=request.query.limit===undefined?undefined:integer(request.query.limit,100,1,10000);
+  if(request.query.compact!==undefined&&request.query.compact!=='1')throw new ApiError(400,'INVALID_INPUT','compact is invalid.');
+  const offset=integer(request.query.offset,0,0,100000);
   const result=await app.valueReadModel.get(year,{query,market:market as 'KOSPI'|'KOSDAQ'});
-  const rows=sortAnalysisRows(publicValueRows(result.rows).filter(row=>row.market===market&&(!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query))),sorts);
-  return {data:{year,market,query,sort,direction,sorts,rows,total:rows.length,cache:result.meta,basis:{targetPrice:'RIM_W_0.8',w:'RIM_W_0.8_DIV_CURRENT_PRICE',value:'RIM_W_0.8_DIV_CURRENT_PRICE',epsYield:'STORED_EPS_DIV_CURRENT_PRICE_PERCENT',statementPeriod:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL',flow:'ANNUAL',source:'STORED_ONLY'}}};
+  const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>row.market===market&&(!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query))),sorts);
+  return {data:{year,market,query,sort,direction,sorts,rows:limit===undefined?rows:rows.slice(offset,offset+limit),total:rows.length,...(limit===undefined||offset!==0?{}:{navigation:rows.map(({id,name,symbol})=>({id,name,symbol}))}),cache:result.meta,basis:{targetPrice:'RIM_W_0.8',w:'RIM_W_0.8_DIV_CURRENT_PRICE',value:'RIM_W_0.8_DIV_CURRENT_PRICE',epsYield:'STORED_EPS_DIV_CURRENT_PRICE_PERCENT',statementPeriod:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL',flow:'ANNUAL',source:'STORED_ONLY'}}};
  });
  const details=new PageCache(24*60*60_000,128);
  app.addHook('onClose',async()=>details.clear());

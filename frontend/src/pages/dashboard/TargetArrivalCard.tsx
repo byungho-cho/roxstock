@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { SettingsOutlined } from '@mui/icons-material';
 import { Alert, Box, Button, IconButton, Stack, Typography } from '@mui/material';
@@ -38,8 +39,8 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
   const failed = query.isError || query.accounts.isError;
   if (!full) return <HomeListCard naturalCover compactEmpty={!!report&&!failed&&report.meta.enabled&&report.meta.total===0&&report.meta.unavailableCount===0} stable pending={!report&&!failed&&(!!query.accountId||query.accounts.isPending)} testId="target-arrival-card" title="목표가 도래" timestampLabel="갱신 " count={report ? `${report.meta.total}건` : undefined}
     titleAction={() => navigate(targetSettingsPath)}
-    notice={failed&&report ? <Button size="small" sx={{p:0,minHeight:16,fontSize:9}} onClick={()=>{void query.refetch();void query.accounts.refetch();}}>조회 실패{report ? ' · 이전 결과' : ''} · 재시도</Button> : report?.meta.unavailableCount ? `시세·거래 데이터 판정 불가 ${report.meta.unavailableCount}건 · 확인 가능한 Lot 기준` : undefined} timestamp={report?.meta.priceAsOf??report?.meta.calculatedAt} updating={query.isFetching} more={report?.meta.enabled && report.meta.total > 5 ? () => navigate('/detail/target-arrivals') : undefined}>
-    {failed && !report && <HomeEmpty>목표가 도래 조회 실패{report && ' · 이전 결과'} <Button size="small" sx={{ minHeight: 20, p: 0 }} onClick={() => { void query.refetch(); void query.accounts.refetch(); }}>재시도</Button></HomeEmpty>}
+    notice={failed&&report ? <QueryErrorNotice message="조회 실패" onRetry={()=>{void query.refetch();void query.accounts.refetch();}}/> : report?.meta.unavailableCount ? `시세·거래 데이터 판정 불가 ${report.meta.unavailableCount}건 · 확인 가능한 Lot 기준` : undefined} timestamp={report?.meta.priceAsOf??report?.meta.calculatedAt} updating={query.isFetching} more={report?.meta.enabled && report.meta.total > 5 ? () => navigate('/detail/target-arrivals') : undefined}>
+    {failed && !report && <HomeEmpty><QueryErrorNotice message="목표가 도래 조회 실패" onRetry={() => { void query.refetch(); void query.accounts.refetch(); }}/></HomeEmpty>}
     {!report && !failed && (query.accountId || query.accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {report && !report.meta.enabled && <HomeEmpty>조건이 설정되지 않아 기능이 비활성화되었습니다. <Button onClick={() => navigate(targetSettingsPath)}>조건 설정</Button></HomeEmpty>}
     {report?.meta.enabled && <>
@@ -53,7 +54,7 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
       <Stack direction="row" sx={{ alignItems: 'center', gap: '4px' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{report ? `전체 ${report.meta.total}건` : '—'}</Typography><IconButton aria-label="목표가 도래 조건 설정" onClick={() => navigate(targetSettingsPath)} size="small" sx={{ p: '3px', color: colors.textMuted }}><SettingsOutlined sx={{ fontSize: 20 }} /></IconButton></Stack>
     </Stack>
     <Typography sx={{ fontSize: 11, color: colors.textSecondary, mb: '8px' }}>보유기간별 목표수익률 달성</Typography>
-    {failed && <Alert severity="error" sx={{ p: '4px 8px', fontSize: 11 }}>목표가 도래 조회에 실패했습니다.{report && ' 마지막 성공 결과를 표시합니다.'}<Button size="small" onClick={() => { void query.refetch(); void query.accounts.refetch(); }}>다시 시도</Button></Alert>}
+    {failed && <QueryErrorNotice message="목표가 도래 조회에 실패했습니다." onRetry={() => { void query.refetch(); void query.accounts.refetch(); }}/>}
     {!report && !failed && (query.accountId || query.accounts.isPending ? <Skeleton variant="rounded" height={76} /> : <Typography sx={{ fontSize: 12, color: colors.textMuted }}>계좌를 선택하면 목표가 도래 항목을 확인할 수 있습니다.</Typography>)}
     {report && !report.meta.enabled && <Box sx={{ py: 2 }}><Typography sx={{ fontSize: 12 }}>조건이 설정되지 않아 기능이 비활성화되었습니다.</Typography><Button onClick={() => navigate(targetSettingsPath)}>조건 설정</Button></Box>}
     {report?.meta.enabled && <>

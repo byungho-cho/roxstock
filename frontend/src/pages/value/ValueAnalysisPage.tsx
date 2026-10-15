@@ -1,7 +1,10 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
+import {formatShareCount} from '../../utils/shareCount';
+import {useIncrementalAnalysisList} from '../../hooks/useIncrementalAnalysisList';
 import {AnalysisSortHeader,defaultAnalysisSort,encodeSort,type AnalysisSort,type SortKey} from './AnalysisSort';
 import {circularNeighbors} from '../../utils/circularNeighbors';
 import {ClickInfo} from '../../components/common/ClickInfo';
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
+
 import {FairPriceCard} from './FairPriceCard';
 import {StockNavigation as StockHeaderNavigation} from '../stocks/StockNavigation';
 import {FinancialPeriodHeader} from './FinancialPeriodHeader';
@@ -16,14 +19,14 @@ import {useDetailSwipe} from '../../hooks/useDetailSwipe';
 import {useStocks} from '../../hooks/useMockData';
 import type {StockNavigation} from '../../hooks/useStockNeighbors';
 import { ValueStockCard } from './ValueStockCard';
-import { Box, Button, CircularProgress, Typography, useMediaQuery } from '@mui/material';
-import { useEffect,useRef,useState,type ReactNode } from 'react';
+import { Box, Button, Typography, useMediaQuery } from '@mui/material';
+import { useCallback,memo,useEffect,useRef,useState,type ReactNode } from 'react';
 import { useLocation,useNavigate,useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegionScrollbar';
-import { usePageMemory, useReturnNavigation } from '../../hooks/navigation/usePageMemory';
+import { usePageMemory, useReturnNavigation, useListNavigation } from '../../hooks/navigation/usePageMemory';
 import { ValueFinancialCharts } from './ValueFinancialCharts';
-import { detailValues,listValues,format,movement,number,seoulYear,type ValueDetail,type ValueList } from './valueApi';
+import { detailValues,listValues,format,movement,number,seoulYear,type ValueDetail,type ValueList,type ValueRow } from './valueApi';
 const muted='#94A3B8',cardStyle={bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
 function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>,enabled=true,accountScoped=true) {
  const {accountId,accounts}=useActiveAccount(),latest=useRef(request);latest.current=request;
@@ -31,31 +34,33 @@ function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>,e
  return {data:query.data,pending:enabled&&(query.isFetching||(accountScoped&&accounts.isLoading)),error:query.error?.message,retry:()=>void query.refetch()};
 }
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
- return <>{error&&<Box role="alert" sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}>조회에 실패했습니다. {error}<Button onClick={retry} sx={{fontSize:10,minWidth:0,p:'2px 8px'}}>재시도</Button></Box>}</>;
+ return <>{error&&<Box sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}><QueryErrorNotice message="조회에 실패했습니다." onRetry={retry}/></Box>}</>;
 }
 function Empty(){return <Box data-testid="value-empty" sx={{height:'100%',minHeight:160,flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:muted,fontSize:12}}>내용이 없습니다.</Box>;}
 function Line({label,children,color}:{label:string;children:ReactNode;color?:string}){return <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',minHeight:20,fontSize:12}}><span style={{color:muted}}>{label}</span><Box sx={{textAlign:'right',overflowWrap:'anywhere',fontWeight:600,color}}>{children}</Box></Box>;}
-function Detail({data,openCharts,refresh}:{data:ValueDetail;openCharts:()=>void;refresh:ReactNode}) {
+function Detail({data,openCharts,openFinancials,refresh}:{data:ValueDetail;openCharts:()=>void;openFinancials:()=>void;refresh:ReactNode}) {
  const price=number(data.security.currentPrice),previous=number(data.security.previousClosePrice),change=price!==null&&previous!==null?price-previous:null;
  const rate=change!==null&&previous!==null&&previous>0?change/previous*100:null,w=number(data.w),upside=w===null?null:(w-1)*100;
  const heading=(title:string,note?:string)=><Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',minHeight:20,mb:'8px'}}><Typography sx={{fontSize:15,fontWeight:600}}>{title}</Typography>{note&&<span style={{fontSize:10,color:muted}}>{note}</span>}</Box>;
  return <Box data-testid="value-detail" sx={{display:'grid',gap:'8px','& [data-value-row]':{minHeight:20}}}>
   <Box sx={{...cardStyle,display:'grid',gap:'8px'}}><Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',minHeight:28}}><Box sx={{display:'flex',alignItems:'center',gap:'8px',minWidth:0,flexWrap:'wrap'}}><span data-testid="value-current-price" style={{fontSize:22,fontWeight:600,color:movement(change)}}>{format(price,0,'원')}</span>{refresh}</Box><Box sx={{color:'#FBBF24',fontSize:10,fontWeight:600,border:'1px solid #FBBF24',borderRadius:'6px',px:'8px',py:'4px',flexShrink:0}}>W {format(w,2)}</Box></Box><Line label="전일대비" color={movement(change)}>{format(change,0,'원')} ({format(rate,1,'%')})</Line><Line label="상승여력 (W 0.8 기준)" color={movement(upside)}>{price===null||w===null?'—':format(price*(w-1),0,'원')} ({format(upside,1,'%')})</Line></Box>
   <FairPriceCard data={data}/>
-  <Box sx={cardStyle}>{heading('참고 결산 자본',data.closingDate?.slice(0,10)??'기준일 미확인')}<Box sx={{display:'grid',gap:'8px'}}><Line label="결산 총자본 (참고)">{largeMoney(data.equity)}</Line><Line label="결산 출처">{data.equityBasis?.source??"저장 자료 · 출처 기준 미제공"}</Line></Box></Box>
+  <Box sx={cardStyle}>{heading('참고 결산 자본',data.closingDate?.slice(0,10)??'기준일 미확인')}<Box sx={{display:'grid',gap:0}}><Line label="결산 총자본 (참고)">{largeMoney(data.equity)}</Line><Line label="결산 출처">{data.equityBasis?.source??"저장 자료 · 출처 기준 미제공"}</Line></Box></Box>
   <Box data-testid="value-rim-totals" sx={cardStyle}><Box sx={{display:'flex',alignItems:'center',gap:'4px',mb:'8px'}}><Typography sx={{fontSize:15,fontWeight:600}}>RIM 총액{data.rimBasis?.isEstimated?` · ${data.rimBasis.year}E`:""}</Typography><ClickInfo label="RIM 계산 근거">{data.rimReason??`검증된 자본 ${data.rimBasis?.equity}원 · ${data.rimBasis?.year}년 ${data.rimBasis?.division} · 출처 ${data.rimBasis?.source??"OPEN_DART"} · ${data.rimBasis?.shares?`분모 ${data.rimBasis.shares}주`:"분모 미확인"}`}{'\n'}초과이익 = 검증된 자기자본 × (ROE ÷ 100 − 0.08){'\n'}주주가치 = 자기자본 + 초과이익 × 0.8 ÷ 0.08{data.rimShareReason&&`\n${data.rimShareReason}`}{data.rimComparison?.perShare!=null&&`\n주당 ${data.rimComparison.perShare}원 / 기존 W0.8 ${data.rimComparison.existingW08}원 / 차이 ${data.rimComparison.difference}원`}</ClickInfo></Box><Line label="검증된 RIM 자본">{largeMoney(data.rimBasis?.equity)}</Line><Line label="동일 연간 ROE">{format(data.rimBasis?data.valuation?.roe:null,1,"%")}</Line><Line label="초과이익">{largeMoney(data.excessEarnings)}</Line><Line label="주주가치 총액">{largeMoney(data.shareholderValue)}</Line>{(data.rimReason||data.rimShareReason)&&<Typography sx={{fontSize:11,color:muted,mt:'4px',overflowWrap:'anywhere'}}>{data.rimReason??data.rimShareReason}</Typography>}</Box>
-  <Box sx={cardStyle}>{heading('핵심 재무지표' ,data.shareBasis?data.shareBasis.periodEndDate+' '+data.shareBasis.stockKind:data.year+' 기준')}<Box sx={{display:'grid',gap:'8px'}}><Box data-testid="value-issued-shares" sx={{fontWeight:700,'& span,& .MuiBox-root':{fontWeight:700}}}><Line label="발행주식수">{format(data.issuedShares,0,'주')}</Line></Box><Box data-testid="value-treasury-shares"><Line label="자기주식수">{format(data.treasuryShares,0,'주')}</Line></Box><Box data-testid="value-outstanding-shares"><Line label="유통주식수">{format(data.outstandingShares,0,'주')}</Line></Box>{data.shareMissingReason&&<Typography sx={{fontSize:11,color:muted}}>{data.shareMissingReason}</Typography>}<Line label="BPS">{format(data.valuation?.bps,0,'원')}</Line><Line label="EPS">{format(data.valuation?.eps,0,'원')}</Line><Line label="예상 ROE">{format(data.valuation?.roe,1,'%')}</Line><Line label="요구수익률">{format(data.requiredReturn,1,'%')}</Line><Line label="PER">{format(data.valuation?.per,2,'배')}</Line><Line label="PBR">{format(data.valuation?.pbr,2,'배')}</Line></Box></Box>
-  <Button onClick={openCharts} sx={{height:36,fontSize:12,bgcolor:'#111827',borderRadius:'8px',color:'#F1F5F9'}}>재무지표 보기</Button>
+  <Box sx={cardStyle}>{heading('핵심 재무지표' ,data.shareBasis?data.shareBasis.periodEndDate+' '+data.shareBasis.stockKind:data.year+' 기준')}<Box sx={{display:'grid',gap:0}}><Box data-testid="value-issued-shares" sx={{fontWeight:700,'& span,& .MuiBox-root':{fontWeight:700}}}><Line label="발행주식수">{formatShareCount(data.issuedShares)}</Line></Box><Box data-testid="value-treasury-shares"><Line label="자기주식수">{formatShareCount(data.treasuryShares)}</Line></Box><Box data-testid="value-outstanding-shares"><Line label="유통주식수">{formatShareCount(data.outstandingShares)}</Line></Box>{data.shareMissingReason&&<Typography sx={{fontSize:11,color:muted}}>{data.shareMissingReason}</Typography>}<Line label="BPS">{format(data.valuation?.bps,0,'원')}</Line><Line label="EPS">{format(data.valuation?.eps,0,'원')}</Line><Line label="예상 ROE">{format(data.valuation?.roe,1,'%')}</Line><Line label="요구수익률">{format(data.requiredReturn,1,'%')}</Line><Line label="PER">{format(data.valuation?.per,2,'배')}</Line><Line label="PBR">{format(data.valuation?.pbr,2,'배')}</Line></Box></Box>
+  <Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px'}}><Button onClick={openCharts} sx={{height:36,fontSize:12,bgcolor:'#111827',borderRadius:'8px',color:'#F1F5F9'}}>재무지표 보기</Button><ActionButton tone="primary" onClick={openFinancials} sx={{height:36,minHeight:36,fontSize:12,borderRadius:'8px'}}>재무제표 보기</ActionButton></Box>
   <Box sx={cardStyle}>{heading('적정주가 계산식')}<Typography sx={{fontSize:10,color:muted,lineHeight:'18px',overflowWrap:'anywhere'}}>BPS × [1 + (ROE ÷ 100 − 0.08) × 지속계수 ÷ 0.08]<br/>W = 지속계수 0.8 적정주가 ÷ 현재가</Typography></Box>
   <Box sx={cardStyle}>{heading('데이터 기준')}<Line label="기준연도">{data.year}</Line><Line label="결산 기준일">{data.closingDate??'—'}</Line><Line label="지표 기준일">{data.valuation?.metricDate??'—'}</Line><Line label="주가 기준일">{data.security.priceUpdatedAt?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'}).format(new Date(data.security.priceUpdatedAt)):'—'}</Line>{(!data.valuation||price===null)&&<Typography sx={{fontSize:10,color:muted,mt:'8px'}}>지표 또는 주가가 미수집되어 적정주가·W를 계산할 수 없습니다.</Typography>}</Box>
  </Box>;
 }
 export function ValueAnalysisPage(){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),params=new URLSearchParams(location.search),currentYear=seoulYear();
+ const goFinancials=useListNavigation();
  const returnToSource=useReturnNavigation('/more'),client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation});
  const source=location.state?.stockNavigation as StockNavigation|undefined,fromStockList=!!source;
  const sourceItems=source&&source.accountId===accountId?source.ids.flatMap(id=>{const item=accountStocks?.find(s=>s.id===id);return item?[item]:[];}):null;
  const [year,setYear]=useFinancialCondition('year',currentYear,currentYear),[draft,setDraft]=usePageMemory('value-draft',''),[query,setQuery]=usePageMemory('value-query','');
+ const [market,setMarket]=usePageMemory('value-market','KOSPI');
  const [rememberedSelected,setSelected]=usePageMemory<string|null>('value-selected',()=>stockId??params.get('selected'));
  const selected=stockId??params.get('selected')??rememberedSelected;
  const [mode,setMode]=useFinancialCondition<'annual'|'quarter'>('mode','annual',currentYear);
@@ -63,13 +68,13 @@ export function ValueAnalysisPage(){
  const endYear=centerYear+1,annualStart=centerYear-1;
  useEffect(()=>{if(mode==='annual'&&(params.get('centerYear')!==String(centerYear)||params.has('annualStart')||params.has('endYear')))setCenterYear(centerYear);},[endYear,mode,location.search]);
  const [sorts,setSorts]=usePageMemory<AnalysisSort[]>('value-multi-sort',defaultAnalysisSort);
- const [visibleCount,setVisibleCount]=usePageMemory('value-visible-count',20);
+
  const view=params.get('view')??(stockId?'detail':'list'),chart=view==='chart',coverDetail=(!tablet||fromStockList)&&view==='detail';
  const needsList=!fromStockList||(!chart&&!coverDetail);
- const listKey=JSON.stringify([year,query,encodeSort(sorts)]),list=useStoredQuery<ValueList>(listKey,signal=>listValues(year,query,signal,sorts),needsList,false);
- const [retainedList,setRetainedList]=useState<{accountId?:string;data:ValueList}>();
- useEffect(()=>{if(list.data)setRetainedList({accountId,data:list.data});},[list.data,accountId]);
- const listData=list.data??(retainedList?.accountId===accountId?retainedList?.data:undefined),listCurrent=!!list.data;
+ const listKey=JSON.stringify([year,market,query,encodeSort(sorts)]),list=useIncrementalAnalysisList<ValueRow,ValueList>(['valueStored','global',listKey,'pages'],(offset,limit,signal)=>listValues(year,query,signal,sorts,limit,offset,market),needsList);
+ const [retainedList,setRetainedList]=useState<{accountId?:string;market:string;data:ValueList}>();
+ useEffect(()=>{if(list.data)setRetainedList({accountId,market,data:list.data});},[list.data,accountId,market]);
+ const listData=list.data??(retainedList?.accountId===accountId&&retainedList?.market===market?retainedList?.data:undefined),listCurrent=!!list.data;
  const [startYear,startQuarter]=mode==='annual'?[annualStart,1]:quarterStart.split(':').map(Number),[quarterCount]=useFinancialCondition('count',tablet?10:3,currentYear);
  const count=mode==='annual'?3:quarterCount;
  const detailKey=JSON.stringify([selected,year,mode,startYear,startQuarter,count]);
@@ -79,10 +84,11 @@ export function ValueAnalysisPage(){
  const shownDetail=detail.data??(retainedDetail?.accountId===accountId&&retainedDetail?.data.security.id===selected&&retainedDetail.data.year===year?retainedDetail.data:undefined);
  const detailStatus=<><Status pending={detail.pending} error={detail.error} retry={detail.retry} hasData={!!shownDetail}/>{shownDetail&&!detail.data&&<Typography sx={{fontSize:10,color:muted,mb:'8px'}}>이전 기간 결과 · {shownDetail.mode==='annual'?'연간':'분기'} {shownDetail.rows[0]?.label}부터</Typography>}</>;
  const leftRef=useRef<HTMLDivElement>(null),rightRef=useRef<HTMLDivElement>(null),searchRef=useRef<HTMLInputElement>(null);
- useEffect(()=>{if(sourceItems||stockId||!list.data)return;const rows=list.data.rows;if(rows.length&&!rows.some(row=>row.id===selected))setSelected(rows[0].id);else if(!rows.length&&!stockId)setSelected(null);},[list.data,selected,setSelected,stockId,!!sourceItems]);
- const rows=fromStockList?(sourceItems??[]):list.data?.rows??[],{previous,next}=circularNeighbors<{id:string;name:string}>(rows,selected);
+ useEffect(()=>{if(sourceItems||stockId||!list.data)return;const rows=list.data.navigation??list.data.rows;if(rows.length&&!rows.some(row=>row.id===selected))setSelected(rows[0].id);else if(!rows.length&&!stockId)setSelected(null);},[list.data,selected,setSelected,stockId,!!sourceItems]);
+ const rows=fromStockList?(sourceItems??[]):(list.data?.navigation??list.data?.rows)??[],{previous,next}=circularNeighbors<{id:string;name:string}>(rows,selected);
  const goView=(target:string,id=selected,replace=false)=>{const search=new URLSearchParams(location.search);search.set('view',target);for(const [k,v] of Object.entries({year,mode,centerYear,quarterStart,count}))search.set(k,String(v));if(id)search.set('selected',id);else search.delete('selected');navigate(location.pathname+'?'+search,{replace,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
  const choose=(id:string)=>{setSelected(id);goView(!tablet&&view==='list'?'detail':view,id);};
+ const chooseRef=useRef(choose);chooseRef.current=choose;const stableChoose=useCallback((id:string)=>chooseRef.current(id),[]);
  const move=(direction:number)=>{const target=direction<0?previous:next;if(target&&(sourceItems||!fromStockList&&listCurrent)){setSelected(target.id);const search=new URLSearchParams(location.search);for(const [k,v] of Object.entries({selected:target.id,year,mode,centerYear,quarterStart,count}))search.set(k,String(v));navigate((sourceItems?`/stocks/${target.id}/value`:location.pathname)+'?'+search,{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});}};
  useEffect(()=>{
   if ((!chart && !coverDetail && !tablet) || !detail.data) return;
@@ -94,19 +100,20 @@ export function ValueAnalysisPage(){
  const currentSymbol=detail.data?.security.symbol??rows.find(row=>row.id===selected)?.symbol??'—';
  const composing=useRef(false),confirmedQuery=useRef(query);
  useEffect(()=>{confirmedQuery.current=query;},[query]);
- const confirmSearch=()=>{if(composing.current)return;const next=(searchRef.current?.value??draft).trim();if(next!==confirmedQuery.current){confirmedQuery.current=next;setQuery(next);setVisibleCount(20);}searchRef.current?.blur();};
+ const confirmSearch=()=>{if(composing.current)return;const next=(searchRef.current?.value??draft).trim();if(next!==confirmedQuery.current){confirmedQuery.current=next;setQuery(next);}searchRef.current?.blur();};
  const sortLabels:Record<SortKey,string>={name:'종목명',w:'W',currentPrice:'현재가',targetPrice:'목표가',value:'가치',eps:'EPS',epsYield:'EPS 수익률',priceUpdatedAt:'시세일자',issuedShares:'주식수',roe:'ROE',capital:'자본',netIncome:'당기순이익'};
- const listContent=<><Box sx={{display:'flex',gap:'8px',mb:'8px'}}>
+ const changeMarket=(next:string)=>{setMarket(next);setSelected(null);const search=new URLSearchParams(location.search);search.delete('selected');navigate({search:search.toString()},{replace:true,state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key}});};
+ const listContent=<><Box data-testid="value-market-navigation" sx={{display:'flex',justifyContent:'space-between',gap:'16px',height:28,mb:'8px',flexShrink:0}}>{[market==='KOSPI'?'KOSDAQ':'KOSPI',market,market==='KOSPI'?'KOSDAQ':'KOSPI'].map((m,i)=><Button key={i} aria-label={i===1?'현재 시장 '+m:(i===0?'이전':'다음')+' 시장 '+m} onClick={()=>changeMarket(m)} sx={{p:0,minWidth:0,minHeight:0,fontSize:i===1?12:10,color:i===1?'#F8FAFC':muted,fontWeight:400}}>{m}</Button>)}</Box><Box sx={{display:'flex',gap:'8px',mb:'8px'}}>
   <Box component="form" onSubmit={event=>{event.preventDefault();confirmSearch();}} sx={{flex:1,minWidth:0,display:'flex',gap:'8px',height:36,border:'1px solid #1e293b',alignItems:'center',bgcolor:'#111927','&:focus-within':{borderColor:'#3b82f6'},borderRadius:'8px',px:'8px'}}>
-   <button aria-label="검색 확인" type="submit" style={{border:0,padding:0,background:'transparent',height:28,display:'flex',alignItems:'center'}}><img src="/value-v04/search.svg" width="16" height="16" alt=""/></button>   <input ref={searchRef} enterKeyHint="done" onCompositionStart={()=>{composing.current=true;}} onCompositionEnd={()=>{composing.current=false;}} onKeyDown={event=>{if(event.key==='Enter'&&(composing.current||event.nativeEvent.isComposing||event.keyCode===229))event.preventDefault();}} aria-label="종목 검색" placeholder="종목명 또는 코드 검색" value={draft} onChange={event=>setDraft(event.target.value)} style={{...controlStyle,border:0,flex:1,minWidth:0,padding:0,outline:0}}/>{draft&&<button type="button" aria-label="검색어 지우기" onClick={()=>{setDraft('');setQuery('');setVisibleCount(20);searchRef.current?.focus();}} style={{background:'transparent',border:0,padding:0,display:'flex'}}><img src="/stocks-v03/clear.svg" alt="" width="16" height="16"/></button>}
-  </Box><select aria-label="기준연도" value={year} onChange={event=>{setYear(Number(event.target.value));setVisibleCount(20);}} style={{...controlStyle,height:36,width:78,appearance:'none',paddingRight:24,backgroundImage:'url(/value-v04/select.svg)',backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center'}}>{Array.from({length:currentYear-2015+1},(_,i)=>currentYear-i).map(y=><option key={y} value={y}>{y}</option>)}</select></Box>
-  <Box data-testid="value-sort-headers" sx={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'4px',mb:'8px'}}>{(Object.keys(sortLabels) as SortKey[]).map(column=><AnalysisSortHeader key={column} label={sortLabels[column]} column={column} sorts={sorts} onChange={next=>{setSorts(next);setVisibleCount(20);}}/>)}</Box>
+   <button aria-label="검색 확인" type="submit" style={{border:0,padding:0,background:'transparent',height:28,display:'flex',alignItems:'center'}}><img src="/value-v04/search.svg" width="16" height="16" alt=""/></button>   <input ref={searchRef} enterKeyHint="done" onCompositionStart={()=>{composing.current=true;}} onCompositionEnd={()=>{composing.current=false;}} onKeyDown={event=>{if(event.key==='Enter'&&(composing.current||event.nativeEvent.isComposing||event.keyCode===229))event.preventDefault();}} aria-label="종목 검색" placeholder="종목명 또는 코드 검색" value={draft} onChange={event=>setDraft(event.target.value)} style={{...controlStyle,border:0,flex:1,minWidth:0,padding:0,outline:0}}/>{draft&&<button type="button" aria-label="검색어 지우기" onClick={()=>{setDraft('');setQuery('');searchRef.current?.focus();}} style={{background:'transparent',border:0,padding:0,display:'flex'}}><img src="/stocks-v03/clear.svg" alt="" width="16" height="16"/></button>}
+  </Box><select aria-label="기준연도" value={year} onChange={event=>{setYear(Number(event.target.value));}} style={{...controlStyle,height:36,width:78,appearance:'none',paddingRight:24,backgroundImage:'url(/value-v04/select.svg)',backgroundRepeat:'no-repeat',backgroundPosition:'right 8px center'}}>{Array.from({length:currentYear-2015+1},(_,i)=>currentYear-i).map(y=><option key={y} value={y}>{y}</option>)}</select></Box>
+  <Box data-testid="value-sort-headers" sx={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'4px',mb:'8px'}}>{(Object.keys(sortLabels) as SortKey[]).map(column=><AnalysisSortHeader key={column} label={sortLabels[column]} column={column} sorts={sorts} onChange={next=>{setSorts(next);}}/>)}</Box>
   <Status pending={list.pending} error={list.error} retry={list.retry} hasData={!!listData}/>
-  {listData?.cache?.status==='STALE'&&<Box role="alert" sx={{fontSize:11,color:colors.warning}}>캐시 갱신 실패 · 마지막 정상 자료<Button onClick={list.retry} size="small">재시도</Button></Box>}
-  {list.pending&&!listData&&<Box aria-label="가치분석 목록 로딩" sx={{display:'grid',gap:'8px'}}>{[0,1,2].map(i=><Skeleton key={i} variant="rounded" height={148} sx={{borderRadius:'8px'}}/>)}</Box>}
-  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · {sorts.length===1&&sorts[0].key==='w'&&sorts[0].direction==='desc'?'W 내림차순':sorts.length?sorts.map(s=>sortLabels[s.key]+' '+(s.direction==='desc'?'↓':'↑')).join(' → '):'종목코드순'}{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.slice(0,visibleCount).map(row=><ValueStockCard key={row.id} row={{...row,cacheGeneratedAt:listData.cache?.generatedAt}} selected={row.id===selected} disabled={!listCurrent} onClick={()=>choose(row.id)}/>)}{visibleCount<listData.total&&<Button sx={{fontSize:12}} onClick={()=>setVisibleCount(n=>n+20)}>더 보기 ({Math.min(visibleCount,listData.total)} / {listData.total})</Button>}</Box>}</>}
+  {listData?.cache?.status==='STALE'&&<QueryErrorNotice message="캐시 갱신에 실패했습니다. 마지막 정상 자료를 표시합니다." onRetry={list.retry}/>}
+  {list.pending&&!listData&&<Box aria-busy="true" sx={{flex:1,minHeight:160}}/>}
+  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · {sorts.length===1&&sorts[0].key==='w'&&sorts[0].direction==='desc'?'W 내림차순':sorts.length?sorts.map(s=>sortLabels[s.key]+' '+(s.direction==='desc'?'↓':'↑')).join(' → '):'종목코드순'}{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.map(row=><StableValueCard key={row.id} row={row} cacheGeneratedAt={listData.cache?.generatedAt} selected={row.id===selected} disabled={!listCurrent} onChoose={stableChoose}/>)}{list.hasNextPage&&<Button disabled={list.isLoadingMore} sx={{fontSize:12,justifySelf:'center'}} onClick={list.loadMore}>더 보기 ({listData.rows.length.toLocaleString()} / {listData.total.toLocaleString()})</Button>}</Box>}</>}
  </>;
- const detailContent=<>{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')} refresh={<FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box sx={{p:'24px',textAlign:'center'}}><CircularProgress size={20}/></Box>:!detail.error?<Empty/>:null}</>;
+ const detailContent=<>{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')} openFinancials={()=>goFinancials('/detail/financials?'+new URLSearchParams({view:'detail',selected:shownDetail.security.id,centerYear:String(centerYear),year:String(year),quarterYear:String(startYear),mode,quarter:String(startQuarter),chart:'false'}))} refresh={<FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box aria-busy="true" sx={{minHeight:160}}/>:!detail.error?<Empty/>:null}</>;
  const swipe=useDetailSwipe(move,!refreshOpen&&(chart||coverDetail||tablet));
  const detailHeader=chart||coverDetail||(tablet&&!!selected);
  const headerBack=fromStockList?()=>chart?goView('detail',selected,true):returnToSource():chart?()=>goView('detail',selected,true):view==='detail'?()=>goView('list',selected,true):returnToSource;
@@ -132,3 +139,7 @@ export function ValueAnalysisPage(){
   </Box>:coverDetail?<Box {...swipe} data-detail-swipe data-scroll-region={tablet?"value-right":undefined} sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}>{detailContent}</Box>:listContent}
  </Box>;
 }
+
+const StableValueCard=memo(function StableValueCard({row,cacheGeneratedAt,selected,disabled,onChoose}:{row:ValueRow;cacheGeneratedAt?:string|null;selected:boolean;disabled:boolean;onChoose:(id:string)=>void}){
+ return <ValueStockCard row={{...row,cacheGeneratedAt}} selected={selected} disabled={disabled} onClick={()=>onChoose(row.id)}/>;
+});
