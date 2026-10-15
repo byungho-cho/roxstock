@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json",
+    "build": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json --noEmit",
     "test": "npm --workspace @roxstock/shared run build && node --import tsx --test src/domain/*.test.ts src/routes/*.test.ts",

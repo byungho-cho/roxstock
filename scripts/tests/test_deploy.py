@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DOCKER = '''#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$CALL_LOG"
 case "$*" in
+  *' config --images') echo "newrox/roxstock-frontend:$IMAGE_TAG" ;;
   'container inspect --format '*com.docker.compose.project*) echo "$OWNER" ;;
   'container inspect --format '*missing-healthcheck*) echo "$HEALTH" ;;
   *' pull frontend') exit "${PULL_EXIT:-0}" ;;

@@ -27,7 +27,7 @@ for network in roxstock_app roxstock-db_default; do docker network inspect "$net
 test "$(stat -c '%a' "$PROJECT_DIR/backend/.env.production")" = 600
 "${COMPOSE[@]}" config --quiet
 # Never emit interpolated Compose: env_file may contain secrets. Restricted server record only.
-record="$STATE_DIR/history/$(date -u +%Y%m%dT%H%M%S)-$ROLE-$TAG"
+record="$STATE_DIR/history/$(date -u +%Y%m%dT%H%M%S%N)-$ROLE-$TAG"
 install -d -m 700 "$record"
 umask 077
 "${COMPOSE[@]}" config > "$record/compose.yml"

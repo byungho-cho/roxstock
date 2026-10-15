@@ -45,7 +45,7 @@ jobs:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       TARGET_SHA: ${{ needs.scope.outputs.sha }}
-      VERIFY_MODE: ${{ inputs.mode || 'audit' }}
+      VERIFY_MODE: ${{ inputs.mode || 'representative' }}
     steps:
       - name: Configure SSH
         shell: bash
