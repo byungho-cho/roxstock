@@ -111,5 +111,5 @@ test('home and assets use identical unrounded color bands and missing-price neut
   }
  }
  f.state.pricingComplete=false;await page.goto('/detail/assets');
- await expect(page.getByTestId('asset-composition-card').getByRole('status')).toContainText('계산할 수 없습니다');
+ await expect(page.getByTestId('asset-composition-card').getByRole('status').filter({hasText:'계산할 수 없습니다'})).toHaveCount(1);
 });
