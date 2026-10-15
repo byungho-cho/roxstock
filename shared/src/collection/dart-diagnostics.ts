@@ -34,7 +34,7 @@ export function dartDiagnostic(error: unknown, stage: string) {
  const safeStage=/^[A-Z_]{1,40}$/.test(stage)?stage:'UNKNOWN_STAGE';
  const reasons:Record<string,string>={DATABASE:'수집 상태 또는 자료를 DB에 저장하지 못했습니다.',PARSING:'응답 파싱·검증에 실패했습니다. 기존 자료는 유지됩니다.',DART_API:'DART 요청을 완료하지 못했습니다. 오류 코드를 확인해 주세요.',INTERNAL:'수집 내부 처리 중 오류가 발생했습니다.'};
  // Never serialize raw message, stack, cause, URL, SQL or Prisma meta. Only known source locations survive.
- const frames=typeof e?.stack==='string'?[...e.stack.matchAll(/(?:backend[\\/])?(?:src|dist)[\\/]collector[\\/]([a-z0-9-]+\.(?:ts|js)):(\d+):(\d+)/g)].slice(0,8).map(m=>`collector/${m[1]}:${m[2]}:${m[3]}`):[];
+ const frames=typeof e?.stack==='string'?[...e.stack.matchAll(/(?:(?:backend[\\/])?(?:src|dist)[\\/]collector|collector[\\/](?:src|dist))[\\/]([a-z0-9-]+\.(?:ts|js)):(\d+):(\d+)/g)].slice(0,8).map(m=>`collector/${m[1]}:${m[2]}:${m[3]}`):[];
  return {context:error instanceof DartApiError?safeDartContext(error.diagnostics):{},stage:safeStage,category,code,exceptionClass,message:`${safeStage}: ${reasons[category]}`,frames};
 }
 export async function recordDartFailure(error:unknown,stage:string,runId:bigint|undefined,writes:Array<{stage:string;write:(reason:string)=>Promise<unknown>}>) {

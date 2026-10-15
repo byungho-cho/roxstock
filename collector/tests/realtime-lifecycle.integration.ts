@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Prisma, PrismaClient } from '@roxstock/shared/prisma';
-import { createRealtimeMonitor } from '../../collector/src/realtime-monitor.js';
-import { RealtimeLockLostError } from '../../collector/src/realtime-lifecycle.js';
+import { createRealtimeMonitor } from '../src/realtime-monitor.js';
+import { RealtimeLockLostError } from '../src/realtime-lifecycle.js';
 
 const db = new PrismaClient();
 test('real MariaDB: exclusive claim, serialized updates, expiry and old-owner fencing', async () => {

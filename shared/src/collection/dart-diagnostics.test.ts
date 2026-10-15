@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {dartDiagnostic,storedDartCode,recordDartFailure} from './dart-diagnostics.js';
-import {DartApiError} from '../../../collector/src/dart-provider.js';
+import {DartApiError} from './dart-types.js';
 test('codes retain distinct full identities and oversized identifiers do not collide by prefix',()=>{
  for(const code of ['NOT_DART_LISTED_EQUITY','DART_CORP_CODE_NOT_MAPPED','SECURITY_TYPE_NOT_APPLICABLE'])assert.equal(storedDartCode(code),code);
  assert.notEqual(storedDartCode('X'.repeat(80)+'A'),storedDartCode('X'.repeat(80)+'B'));

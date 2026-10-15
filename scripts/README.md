@@ -94,3 +94,5 @@ Docker나 운영 컨테이너에 접근하지 않는 모의 테스트입니다.
 bash -n scripts/deploy.sh
 python3 -B -m unittest discover -s scripts/tests -v
 ```
+
+최신 API·수집기 독립 빌드/변경 감지/배포/롤백은 [서비스 분리 운영 문서](../docs/collector-service-split.md)를 따릅니다.
