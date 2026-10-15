@@ -1,25 +1,17 @@
+import {CompositionCard,type ChartItem} from './CompositionCard';
 import {useListNavigation,usePageMemory} from '../../hooks/navigation/usePageMemory';
-import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {DashboardTrend} from './DashboardTrend';
-import {cashAllocation} from '../../utils/cashAllocation';
 import '../dashboard/home-font.css';
-import { Box, Button, ButtonBase, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Snackbar, useMediaQuery } from '@mui/material';
 import {useActiveAccount} from '../../hooks/useActiveAccount';
-import { type ReactNode } from 'react';
-import { AppCard } from '../../components/common/Common';
 import { AssetAnalysisPage } from './AssetAnalysisPage';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { assetComposition } from '../../data/mockData';
 import { liveApiEnabled } from '../../data/liveData';
 import { useDashboard } from '../../hooks/useMockData';
-import { colors } from '../../styles/tokens';
 import type { DashboardSummary } from '../../types/models';
-import { formatPercent, formatWon, getMarketColor } from '../../utils/format';
-import { homeTimestamp } from '../dashboard/HomeListCard';
 
-const weightColor=(percent:number,fallback:string)=>percent>50?colors.marketRise:percent>=30?colors.warning:percent<=10?colors.marketFall:fallback;
 const palette = ['#FA6170', '#60A5FA', '#34D399', '#A78BFA', '#FBC02D', '#94A3B8'];
-type ChartItem = { id: string; name: string; percent: number; color: string };
 
 export function AssetOverviewPage() {
   const navigate=useListNavigation();
@@ -27,7 +19,7 @@ export function AssetOverviewPage() {
   const { data, isPending, isError, isFetching, refetch, historyData, historyPending, historyError, historyRefetch } = useDashboard({ pollPrices: true, deferTrend: true, includeTrend: !tablet });
   const {accountId, accounts}=useActiveAccount();
   const pending=isPending&&!isError&&!accounts.isError;
-  const [mode, setMode] = usePageMemory<'cumulative' | 'ranked'>('asset-weight-mode','ranked');
+  const [mode, setMode] = usePageMemory<'cumulative' | 'ranked'>('asset-weight-mode','ranked',{adoptInitialAccount:true});
   const header = <PageHeader title="대시보드" variant="detail" backPath="/" showBackTablet showAdd={false} assetOverview backIcon={<Box component="span" sx={{ fontSize: 30, lineHeight: '30px' }}>‹</Box>} embedded action={<Box sx={{ width: 44, flexShrink: 0 }} />} />;
   const summary=data?.summary??unavailableSummary,holdings=data?.holdings??[];
   const today = new Intl.DateTimeFormat('sv-SE', {timeZone: 'Asia/Seoul'}).format(new Date());
@@ -53,36 +45,5 @@ export function AssetOverviewPage() {
   </>;
 }
 
-
-function CompositionCard({ onHome,onStocks,onStock,trend, summary, items, mode, onToggle, updating,allocationAvailable,loading=false,failed=false,retry }: {onHome:()=>void;onStocks:()=>void;onStock:(id:string)=>void;trend:ReactNode;loading?:boolean;failed?:boolean;retry:()=>void; summary: DashboardSummary; items: ChartItem[]; mode: 'cumulative' | 'ranked'; onToggle: () => void; updating: boolean;allocationAvailable:boolean }) {
-  const {available,stockPercent,cashPercent,stockColor,cashColor,stockBarColor,cashBarColor}=cashAllocation(summary.stockValue,summary.cashBalance,summary.pricingComplete!==false&&allocationAvailable);
-  const named = items.filter(item => item.id !== 'other');
-  return <AppCard data-testid="asset-composition-card" sx={{ minWidth: 0, position: 'relative', borderRadius: '8px', borderColor: '#25344D', px: '13px', pt: '15px', pb: '10px', overflow: 'visible' }}>
-    <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',gap:'8px',flexWrap:'wrap'}}><ButtonBase onClick={onHome} aria-label="자산구성 · 홈 보기"><Typography sx={{fontSize:15,fontWeight:600}}>자산구성</Typography></ButtonBase><Typography data-testid="composition-total" sx={{fontSize:16,fontWeight:700,color:getMarketColor(summary.dailyProfit),overflowWrap:'anywhere',minWidth:0}}>{loading?<Skeleton width={120}/>:formatWon(summary.totalAssets)}</Typography></Stack>
-    {loading?<Box sx={{height:271,pt:'16px'}}><Stack direction="row" sx={{justifyContent:'space-between'}}><Skeleton width={90} height={14} sx={{transform:'none'}}/><Skeleton width={90} height={14} sx={{transform:'none'}}/></Stack><Skeleton height={12} sx={{transform:'none',mt:'4px'}}/><Box sx={{display:'grid',gridTemplateColumns:'124.8px minmax(0,1fr)',gap:'8.8px',mt:'16px',height:178}}><Skeleton variant="circular" width={124.8} height={124.8} sx={{mt:'15.6px'}}/><Stack spacing={1}>{Array.from({length:6},(_,i)=><Skeleton key={i} height={14} sx={{transform:'none'}}/>)}</Stack></Box></Box>:failed&&!available?<Box sx={{height:272,display:'grid',placeItems:'center'}}><Button role="alert" onClick={retry}>자산구성 조회 실패 · 다시 시도</Button></Box>:!available ? <Box sx={{ height: 272, display: 'grid', placeItems: 'center' }}><Box><Stack direction="row" sx={{justifyContent:"space-between",color:colors.textMuted}}><span>{formatWon(summary.stockValue)} · —</span><span>{formatWon(summary.cashBalance)} · —</span></Stack><Typography role="status" sx={{ color: colors.textMuted, fontSize: 11 }}>{summary.pricingComplete === false ? '가격 미수집 종목이 있어 자산구성을 계산할 수 없습니다.' : !Number.isFinite(summary.totalAssets) ? '자산구성을 계산할 수 없습니다.' : '내용이 없습니다.'}</Typography></Box></Box> : <>
-      <Stack data-testid="composition-amounts" direction="row" sx={{ justifyContent: 'space-between', mt: '16px', height: 16, fontSize: 11, fontWeight: 600, color: stockColor }}><span>{formatWon(summary.stockValue)}</span><Box component="span" sx={{ color: cashColor }}>{formatWon(summary.cashBalance)}</Box></Stack>
-      <Stack component={ButtonBase} onClick={onHome} aria-label={`홈 보기 · 주식 ${formatPercent(stockPercent)}, 예수금 ${formatPercent(cashPercent)}`} direction="row" sx={{ alignItems:'stretch', width: '100%', height: 12, borderRadius: '6px', overflow: 'hidden', mt: '4px', bgcolor: colors.raised }}><Box sx={{ width: `${stockPercent}%`, bgcolor: stockBarColor }} /><Box sx={{ width: `${cashPercent}%`, bgcolor: cashBarColor }} /></Stack>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', mt: '5px', height: 25, borderBottom: '1px solid #25344D', fontSize: 11, fontWeight: 600, color: stockColor }}><Box component="span" sx={{color:stockColor}}>{formatPercent(stockPercent)}</Box><Box component="span" sx={{ color: cashColor }}>{formatPercent(cashPercent)}</Box></Stack>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '124.8px minmax(0, 1fr)', gap: '8.8px', mt: '16px', height: 178 }}>
-        <Box component={ButtonBase} onClick={onStocks} data-testid="asset-donut" aria-label="종목별 자산 구성 도넛 · 종목목록 보기" sx={{ position: 'relative', width: '100%', maxWidth: 124.8, height: 124.8, mt: '15.6px' }}>
-          <svg viewBox="0 0 156 156" width="100%" height="124.8" aria-hidden="true"><circle cx="78" cy="78" r="51" fill="none" stroke={colors.raised} strokeWidth="26" />{items.map((item, index) => <circle key={item.id} cx="78" cy="78" r="51" fill="none" stroke={item.color} strokeWidth="26" pathLength="100" strokeDasharray={`${item.percent} ${100 - item.percent}`} strokeDashoffset={-items.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0)} transform="rotate(-90 78 78)" />)}</svg>
-          <Stack sx={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: '2.4px' }}><Typography sx={{ fontSize: 10, lineHeight: '12px', color: colors.textMuted }}>주식평가액</Typography><Typography data-testid="asset-donut-value" sx={{ fontSize: 10, lineHeight: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>{Number.isFinite(summary.stockValue) ? `${(summary.stockValue / 10_000).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}만원` : '—'}</Typography></Stack>
-        </Box>
-        <Stack data-testid="asset-legend" spacing="11px" sx={{ minWidth: 0 }}>{items.map(item => <Box component={ButtonBase} onClick={()=>item.id==='other'?onStocks():onStock(item.id)} data-testid="asset-legend-row" key={item.id} sx={{ textAlign:'left', display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) minmax(36px, max-content)', alignItems: 'center', gap: '8px', height: 18 }}><Box sx={{ width: 8, height: 8, bgcolor: item.color, borderRadius: '50%' }} /><Typography noWrap sx={{ fontSize: 11 }}>{item.name}</Typography><Typography sx={{ fontSize: 11, textAlign: 'right', color: weightColor(item.percent,colors.textMuted), whiteSpace: 'nowrap' }}>{formatPercent(item.percent)}</Typography></Box>)}</Stack>
-      </Box>
-    </>}
-    {trend}
-    {loading?<Box sx={{pt:'12px'}}><Typography sx={{fontSize:16,height:24}}>종목별 비중</Typography><Skeleton height={12} sx={{transform:'none',mt:'14px'}}/><Stack spacing="9px" sx={{mt:'16px'}}>{Array.from({length:5},(_,i)=><Skeleton key={i} height={16} sx={{transform:'none'}}/>)}</Stack></Box>:<Box data-testid="asset-weights" sx={{ pt: '12px', borderTop: '1px solid #25344D' }}>
-        <Stack direction="row" sx={{ height: 24, alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 16, fontWeight: 600 }}>종목별 비중</Typography><Button onClick={onToggle} aria-label="종목별 비중 차트 방식 변경" sx={{ minWidth: 62, minHeight: 22, height: 22, borderRadius: '11px', bgcolor: colors.raised, color: colors.focus, fontSize: 10, p: 0 }}>{mode === 'cumulative' ? '누적형' : '순위형'}</Button></Stack>
-        <Stack direction="row" role="img" aria-label="종목별 비중 누적 막대" sx={{ mt: '14px', height: 12, borderRadius: '6px', bgcolor: colors.raised, overflow: 'hidden' }}>{items.map(item => <Box key={item.id} sx={{ width: `${item.percent}%`, bgcolor: item.color }} />)}</Stack>
-        <Stack spacing="9px" sx={{ mt: '16px' }}>{named.map((item, index) => {
-          const offset = mode === 'cumulative' ? named.slice(0, index).reduce((sum, previous) => sum + previous.percent, 0) : 0;
-          return <Box component={ButtonBase} onClick={()=>onStock(item.id)} data-testid="asset-weight-row" key={item.id} sx={{ textAlign:'left', display: 'grid', gridTemplateColumns: 'minmax(0, 100px) minmax(0, 1fr) 62px', alignItems: 'center', gap: '8px', height: 16 }}><Typography noWrap sx={{ fontSize: 10.5 }}>{item.name}</Typography><Box sx={{ height: 7, bgcolor: '#202B3E', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}><Box sx={{ width: `${offset}%`, height: '100%', bgcolor: '#2B374B' }} /><Box data-testid="asset-weight-fill" sx={{ position: 'absolute', top: 0, left: `${offset}%`, width: `${item.percent}%`, height: '100%', bgcolor: item.color, borderRadius: '4px' }} /></Box><Typography sx={{ textAlign: 'right', color: weightColor(item.percent,item.color), fontSize: 10.5, fontWeight: 600 }}>{formatPercent(item.percent)}</Typography></Box>;
-        })}</Stack>
-        {items.length === 0 && <Typography sx={{ mt: 2, fontSize: 11, color: colors.textMuted }}>내용이 없습니다.</Typography>}
-      </Box>}
-    <Typography data-testid="composition-updated-at" sx={{ mt: '24px', fontSize: 10, lineHeight: '20px', color: colors.textSecondary, opacity: .65 }}>갱신 {loading?<Skeleton component="span" width={70} height={10} sx={{display:'inline-block',transform:'none'}}/>:homeTimestamp(summary.collectedAt)}</Typography>
-  </AppCard>;
-}
 
 const unavailableSummary:DashboardSummary={totalAssets:NaN,stockValue:NaN,stockPurchaseAmount:NaN,cashBalance:NaN,dailyProfit:NaN,dailyProfitRate:NaN,stockMonthlyProfit:NaN,cashMonthlyProfit:NaN,totalProfit:NaN,totalProfitRate:NaN,collectedAt:'',pricingComplete:false};
