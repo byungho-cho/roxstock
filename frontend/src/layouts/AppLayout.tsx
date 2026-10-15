@@ -68,7 +68,7 @@ export function AppLayout() {
     <ErrorToastHost />
     <MainLoadingBar />
     <PullRefreshIndicator distance={pull.distance} refreshing={pull.refreshing} />
-    <QueryErrorNotice active={pull.error} message={"새로고침에 실패했습니다. 기존 데이터를 표시합니다."} inlineRetry={false} onRetry={pull.retry}/>
+    <QueryErrorNotice priority active={pull.error} message={"새로고침에 실패했습니다. 기존 데이터를 표시합니다."} inlineRetry={false} onRetry={pull.retry}/>
     <PageLayout securityManagement={location.pathname==='/detail/security-management'&&new URLSearchParams(location.search).has('selected')} valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><RouteContent><Outlet /></RouteContent></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}

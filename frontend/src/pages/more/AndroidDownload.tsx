@@ -14,8 +14,8 @@ export function AndroidDownload() {
       .then(value => {
         if (value && typeof value.version === 'string' && typeof value.updatedAt === 'string'
           && typeof value.url === 'string' && /^\/downloads\/android\/[A-Za-z0-9._-]+\.apk$/.test(value.url)) setRelease(value);
-        else if(value!==null)setFailed(true);
-      }).catch(() => {if(!controller.signal.aborted)setFailed(true);});
+        
+      }).catch(cause => {if(!controller.signal.aborted&&!(cause instanceof SyntaxError))setFailed(true);});
     return () => controller.abort();
   }, []);
   return <Box component={release?'a':'div'} href={release?.url} download={release?true:undefined} aria-label={release?'APK 다운로드':undefined} sx={{display:'block',textDecoration:'none',color:'inherit',p:1.25,'&:focus-visible':{outline:'2px solid #3D8CF5',outlineOffset:2}, border: '1px solid #21304A', borderRadius: 2 }}>

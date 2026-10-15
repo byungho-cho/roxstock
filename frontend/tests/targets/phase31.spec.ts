@@ -61,9 +61,9 @@ test('account switch isolates a late month response and an error can retry',asyn
  });
  await page.goto('/journal?date=2026-01-07');await expect.poll(()=>!!release).toBe(true);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
- await expect(page.getByTestId('journal-layout').getByRole('alert')).toBeVisible({timeout:15000});
+ await expect(page.locator('.MuiSnackbar-root [role=alert]')).toBeVisible({timeout:15000});
  await expect(page.getByTestId('journal-layout')).not.toContainText('내용이 없습니다.');
- failed=false;await page.getByTestId('journal-layout').getByRole('alert').click();
+ failed=false;await page.getByTestId('journal-layout').getByRole('button',{name:'다시 시도',exact:true}).first().click();
  await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
  release();await expect(page.getByTestId('journal-calendar-grid').locator('[data-testid^="journal-chip-"]')).toHaveCount(0);
 });
@@ -127,7 +127,7 @@ test('value list does not wait for accounts or prefetch invisible cover detail',
  const reads:string[]=[];let release!:()=>void;
  await fixture(page,{read:url=>{
   reads.push(url.pathname+url.search);
-  if(url.pathname==='/api/value-analysis')return {json:{data:{rows,total:rows.length,year:2026,query:''}}};
+  if(url.pathname==='/api/value-analysis'){const offset=Number(url.searchParams.get('offset')??0),limit=Number(url.searchParams.get('limit')??20);return {json:{data:{rows:rows.slice(offset,offset+limit),total:rows.length,year:2026,query:''}}};}
   if(url.pathname.startsWith('/api/value-analysis/'))return {status:503,json:{error:{message:'controlled detail failure'}}};
  }});
  await page.route('**/api/accounts',async route=>{await new Promise<void>(r=>release=r);await route.fulfill({json:{data:[{id:'1',name:'기본',isDefault:true,isActive:true}]}});});
@@ -135,10 +135,10 @@ test('value list does not wait for accounts or prefetch invisible cover detail',
  await expect.poll(()=>!!release).toBe(true);
  expect(reads.some(p=>p.includes('compact=1'))).toBe(true);
  expect(reads.filter(p=>/^\/api\/value-analysis\//.test(p))).toHaveLength(0);
- expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(20);
- console.log(JSON.stringify({kind:'value-list-account-independent',project:info.project.name,dataMs:Date.now()-start,rowsRendered:20,rowsAvailable:60,accountRequest:'still pending'}));
+ await expect(page.locator('[data-testid^="value-row-"]')).toHaveCount(50);
+ console.log(JSON.stringify({kind:'value-list-account-independent',project:info.project.name,dataMs:Date.now()-start,rowsRendered:50,rowsAvailable:60,accountRequest:'still pending'}));
  release();
  if(page.viewportSize()!.width<600){await expect(page.getByTestId('value-detail')).toHaveCount(0);}
- await page.getByRole('button',{name:/더 보기/}).click();expect(await page.locator('[data-testid^="value-row-"]').count()).toBe(40);
+ await page.getByRole('button',{name:/더 보기/}).click();await expect(page.locator('[data-testid^="value-row-"]')).toHaveCount(60);
  await page.screenshot({path:info.outputPath('value-list-fast.png')});
 });
