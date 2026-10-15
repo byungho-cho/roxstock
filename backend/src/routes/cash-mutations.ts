@@ -1,10 +1,10 @@
 import { lockCashAccount, readCurrentCash, requireCash, syncCurrentCash } from '../domain/current-cash.js';
 import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
-import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
-import { ApiError } from '../lib/api-error.js';
+import { CashTransactionType, Prisma } from '@roxstock/shared/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 
 type CashEditBody = { accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
 type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };

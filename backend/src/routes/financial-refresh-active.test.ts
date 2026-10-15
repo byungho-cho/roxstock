@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import Fastify from 'fastify';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { financialRefreshActiveRoutes } from './financial-refresh-active.js';
 
 test('active refresh is scoped, read only, and handles absent and completed jobs', async () => {

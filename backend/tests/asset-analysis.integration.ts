@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../src/app.js';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {seoulYear} from '../src/domain/compound-growth.js';
 
 test('asset analysis response joins real stored snapshots, ledger and plan with one interval', async () => {

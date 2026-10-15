@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../src/app.js';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',async()=>{
  const accounts=await Promise.all([1,2].map(i=>prisma.account.create({data:{name:'복리 자체검사 '+i,brokerName:'TEST',cashBalance:'500'}})));
  await prisma.cashTransaction.createMany({data:accounts.map(a=>({accountId:a.id,transactionType:'DEPOSIT' as const,transactionDate:new Date(),amount:'500',balanceAfter:'500'}))});

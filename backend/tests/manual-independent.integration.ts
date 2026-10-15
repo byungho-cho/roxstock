@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {buildApp} from '../src/app.js';
-import {enqueueManualRefresh,parseManualRefresh,type ManualRefreshMetadata} from '../src/collector/dart-manual-refresh.js';
-import {processIndependentRefresh,manualLimits} from '../src/collector/manual-refresh-jobs.js';
-import {NaverAnnualProvider,NaverAnnualError,type NaverAnnual} from '../src/collector/naver-annual.js';
-import {OpenDartProvider,DartApiError,mapPeriodicReports,type DartFinancialRow} from '../src/collector/dart-provider.js';
-import type {DartCollectorConfig} from '../src/collector/dart-collector.js';
-import {getSeoulClock} from '../src/collector/time.js';
+import {enqueueManualRefresh,parseManualRefresh,type ManualRefreshMetadata} from '../../collector/src/dart-manual-refresh.js';
+import {processIndependentRefresh,manualLimits} from '../../collector/src/manual-refresh-jobs.js';
+import {NaverAnnualProvider,NaverAnnualError,type NaverAnnual} from '../../collector/src/naver-annual.js';
+import {OpenDartProvider,DartApiError,mapPeriodicReports,type DartFinancialRow} from '../../collector/src/dart-provider.js';
+import type {DartCollectorConfig} from '../../collector/src/dart-collector.js';
+import {getSeoulClock} from '@roxstock/shared/collection/time';
 
 // Isolated CI MariaDB only; no real provider request or production data is used.
 test('independent manual API/job real DB: idempotency, faults, zero preservation, full statement refresh and lock release',async()=>{

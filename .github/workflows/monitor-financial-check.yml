@@ -2,7 +2,7 @@ name: Monitor and financial estimates
 on:
   pull_request:
     branches: [main]
-    paths: [frontend/**, backend/src/domain/stored-analysis.ts, backend/src/routes/financial-statements*, backend/src/routes/value-analysis*, backend/src/routes/stored-analysis.test.ts, .github/workflows/monitor-financial-check.yml]
+    paths: [frontend/**, shared/src/domain/stored-analysis.ts, backend/src/routes/financial-statements*, backend/src/routes/value-analysis*, backend/src/routes/stored-analysis.test.ts, .github/workflows/monitor-financial-check.yml]
 permissions:
   contents: read
 jobs:
@@ -22,7 +22,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prisma:generate
-      - run: node --import tsx --test backend/src/routes/stored-analysis.test.ts backend/src/routes/financial-statements.test.ts backend/src/routes/value-analysis.test.ts backend/src/domain/value-analysis.test.ts backend/src/domain/financial-statements.test.ts
+      - run: node --import tsx --test backend/src/routes/stored-analysis.test.ts backend/src/routes/financial-statements.test.ts backend/src/routes/value-analysis.test.ts shared/src/domain/value-analysis.test.ts backend/src/domain/financial-statements.test.ts
       - name: Prepare immutable previous UI for measured heights
         run: |
           git worktree add --detach monitor-baseline 031c0bd4de15687ed54984802d6f40747001f7e2

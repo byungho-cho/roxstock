@@ -4,8 +4,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
-RUN npm ci --workspace backend --include-workspace-root
+COPY collector/package.json collector/package.json
+COPY shared/package.json shared/package.json
+RUN npm ci --workspace backend --workspace shared --include-workspace-root
 COPY backend backend
+COPY shared shared
 COPY database database
 RUN npm --workspace backend run prisma:generate
 RUN npm --workspace backend run build
@@ -17,9 +20,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
-RUN npm ci --workspace backend --include-workspace-root --omit=dev && npm cache clean --force
+COPY collector/package.json collector/package.json
+COPY shared/package.json shared/package.json
+RUN npm ci --workspace backend --workspace shared --include-workspace-root --omit=dev && npm cache clean --force
 COPY --from=build /app/backend/dist backend/dist
-COPY --from=build /app/backend/src/generated backend/dist/generated
+COPY --from=build /app/shared/dist shared/dist
+COPY --from=build /app/shared/src/generated shared/src/generated
 COPY database database
 USER node
 EXPOSE 3300

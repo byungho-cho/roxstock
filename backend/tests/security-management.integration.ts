@@ -1,11 +1,11 @@
-import {collectPrices} from '../src/collector/price-collector.js';
+import {collectPrices} from '../../collector/src/price-collector.js';
 import test from 'node:test';import assert from 'node:assert/strict';
-import {PrismaClient} from '../src/generated/prisma/index.js';
-import {prisma} from '../src/lib/prisma.js';import {buildApp} from '../src/app.js';
-import {withCollection,collectionFetch,collectionFeatures,CollectionExcluded,eligibleWhere} from '../src/collector/collection-policy.js';
-import {PrismaCollectorRepository} from '../src/collector/repository.js';
-import {collectRealtimeCycle} from '../src/collector/realtime-price-collector.js';
-import {enqueueManualRefresh,parseManualRefresh} from '../src/collector/dart-manual-refresh.js';
+import {PrismaClient} from '@roxstock/shared/prisma';
+import {prisma} from '@roxstock/shared/lib/prisma';import {buildApp} from '../src/app.js';
+import {withCollection,collectionFetch,collectionFeatures,CollectionExcluded,eligibleWhere} from '@roxstock/shared/collection/collection-policy';
+import {PrismaCollectorRepository} from '../../collector/src/repository.js';
+import {collectRealtimeCycle} from '../../collector/src/realtime-price-collector.js';
+import {enqueueManualRefresh,parseManualRefresh} from '../../collector/src/dart-manual-refresh.js';
 import {realtimePriceCache} from '../src/realtime/price-cache.js';
 test('phase23 real MariaDB: master pages, provenance, code/history preservation, exclusion fencing, concurrency and deletion',async()=>{
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/,'Isolated CI DB only');

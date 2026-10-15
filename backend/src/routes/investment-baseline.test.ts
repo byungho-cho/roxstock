@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../app.js';
-import {prisma} from '../lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 
 test('investment baseline prefers previous year end, then account earliest snapshot, then zero input', async () => {
   const accountOriginal=prisma.account.findUnique;

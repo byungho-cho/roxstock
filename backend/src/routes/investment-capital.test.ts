@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 test('capital API isolates account, reads only stored snapshots and rejects inactive accounts',async()=>{
  const account=prisma.account.findUnique, snapshots=prisma.dailyAccountSnapshot.findMany;
  const year=Number(new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).slice(0,4));

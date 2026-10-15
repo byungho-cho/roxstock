@@ -1,10 +1,10 @@
 import { cashBasis } from '../domain/current-cash.js';
 import type { FastifyInstance } from 'fastify';
-import { CashTransactionType, Prisma } from '../generated/prisma/index.js';
+import { CashTransactionType, Prisma } from '@roxstock/shared/prisma';
 
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 
 type AccountParams = { accountId: string };
 type HistoryQuery = { from?: string; to?: string; types?: string; limit?: string; offset?: string };

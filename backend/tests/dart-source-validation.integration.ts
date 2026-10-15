@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {PrismaClient} from '../src/generated/prisma/index.js';
-import {PrismaDartRepository} from '../src/collector/dart-repository.js';
-import {mapPeriodicReports,normalizeDartFinancialRows,DartApiError,type RawReport,type DartFinancialRow} from '../src/collector/dart-provider.js';
-import {validateDartFiling} from '../src/collector/dart-filing-validation.js';
+import {PrismaClient} from '@roxstock/shared/prisma';
+import {PrismaDartRepository} from '../../collector/src/dart-repository.js';
+import {mapPeriodicReports,normalizeDartFinancialRows,DartApiError,type RawReport,type DartFinancialRow} from '../../collector/src/dart-provider.js';
+import {validateDartFiling} from '../../collector/src/dart-filing-validation.js';
 const url=new URL(process.env.DATABASE_URL??'');
 if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_dart_recovery_test'))throw Error('Isolated MariaDB required');
 const db=new PrismaClient(),repo=new PrismaDartRepository(db);

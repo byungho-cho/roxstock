@@ -1,6 +1,6 @@
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
-import { ApiError } from './api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 
 export function id(value: unknown, fieldName: string) {
   if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) {

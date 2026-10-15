@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Fastify from 'fastify';
-import {prisma} from '../src/lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {collectionPageRoutes} from '../src/routes/collection-pages.js';
 test('real MariaDB API: 0/49/50/51/105 rows, independent targets, filtered cursors and concurrent insert boundaries',async()=>{
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/,'Only isolated local CI database allowed');

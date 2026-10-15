@@ -1,4 +1,4 @@
-import {prisma} from '../lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import {buildApp} from '../app.js';
 /** These route unit tests intentionally exercise the no-snapshot path, independent of an integration DB. */
 export function buildAnalysisTestApp(){

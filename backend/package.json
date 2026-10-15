@@ -8,34 +8,25 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/domain/*.test.ts src/collector/*.test.ts src/routes/*.test.ts",
-    "collector": "tsx src/collector/worker.ts daemon",
-    "collector:realtime": "tsx src/collector/realtime-worker.ts",
-    "collector:dart": "tsx src/collector/dart-worker.ts",
-    "collector:once:prices": "tsx src/collector/worker.ts prices",
-    "collector:once:securities": "tsx src/collector/worker.ts securities",
-    "collector:once:snapshots": "tsx src/collector/worker.ts snapshots",
-    "collector:once": "tsx src/collector/worker.ts all",
+    "typecheck": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json --noEmit",
+    "test": "npm --workspace @roxstock/shared run build && node --import tsx --test src/domain/*.test.ts src/routes/*.test.ts",
     "prisma:format": "prisma format --schema ../database/prisma/schema.prisma",
     "prisma:validate": "prisma validate --schema ../database/prisma/schema.prisma",
-    "prisma:generate": "prisma generate --schema ../database/prisma/schema.prisma",
+    "prisma:generate": "npm --workspace @roxstock/shared run prisma:generate",
     "prisma:migrate:dev": "prisma migrate dev --schema ../database/prisma/schema.prisma",
-    "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma",
-    "verify:krx:samsung": "tsx src/scripts/verify-krx-samsung.ts",
-    "supplement:valuations": "tsx src/scripts/supplement-valuations.ts",
-    "supplement:shares": "tsx src/scripts/supplement-shares.ts"
+    "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
     "dotenv": "17.4.2",
-    "fastify": "5.12.5"
+    "fastify": "5.12.5",
+    "@roxstock/shared": "0.1.0",
+    "prisma": "6.19.3"
   },
   "devDependencies": {
     "@types/node": "20.19.43",
-    "prisma": "6.19.3",
     "tsx": "4.23.13",
     "typescript": "5.9.3"
   }

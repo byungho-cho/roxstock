@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prisma as db} from '../src/lib/prisma.js';
-import {runIndependentSupplement} from '../src/collector/independent-valuation-supplement.js';
-import type {NaverAnnualProvider, NaverAnnual} from '../src/collector/naver-annual.js';
+import {prisma as db} from '@roxstock/shared/lib/prisma';
+import {runIndependentSupplement} from '../../collector/src/independent-valuation-supplement.js';
+import type {NaverAnnualProvider, NaverAnnual} from '../../collector/src/naver-annual.js';
 const url=new URL(process.env.DATABASE_URL??'');
 if(!['127.0.0.1','localhost'].includes(url.hostname)||!url.pathname.endsWith('_phase16_test'))throw Error('Isolated test DB required');
 test('independent supplement uses stored filings only, preserves manual values and retries without DART',async()=>{

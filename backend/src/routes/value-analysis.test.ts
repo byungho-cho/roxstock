@@ -2,8 +2,8 @@ import {buildAnalysisTestApp} from './analysis-test-fixture.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/index.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { Prisma } from '@roxstock/shared/prisma';
 const annual=(year:number)=>({fiscalYear:year,periodType:'ANNUAL',totalEquity:new Prisma.Decimal(10000),updatedAt:new Date(`${year}-12-31`)});
 test('whole-master year/search selection, actual total, missing last and error distinct from empty',async()=>{
  const original=prisma.security.findMany;let args:any;let fail=false;

@@ -31,7 +31,7 @@ jobs:
             const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
             core.setOutput('sha', sha);
             const {data: commit} = await github.rest.repos.getCommit({...context.repo, ref: sha});
-            const changed = commit.files.some(f => ['backend/src/collector/dart-filing-validation.ts', 'backend/src/scripts/verify-dart-receipts.ts'].includes(f.filename));
+            const changed = commit.files.some(f => ['collector/src/dart-filing-validation.ts', 'collector/src/scripts/verify-dart-receipts.ts'].includes(f.filename));
             core.setOutput('enabled', String(sha === branch.commit.sha && (context.eventName === 'workflow_dispatch' || changed)));
   verify:
     needs: scope

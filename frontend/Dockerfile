@@ -5,6 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/package.json
 COPY backend/package.json backend/package.json
+COPY collector/package.json collector/package.json
+COPY shared/package.json shared/package.json
 
 RUN npm ci --workspace frontend --include-workspace-root=false
 
