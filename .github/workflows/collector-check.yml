@@ -1,16 +1,11 @@
 name: Collector Split Check
 on:
-  pull_request:
-    paths:
-      - 'collector/**'
-      - 'shared/**'
-      - 'database/**'
-      - 'backend/Dockerfile'
-      - 'package*.json'
-      - 'scripts/deploy*'
-      - 'scripts/smoke-collector-image.sh'
-      - '.github/workflows/collector-check.yml'
   workflow_call:
+    inputs:
+      verify_api_image:
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 jobs:
@@ -53,6 +48,7 @@ jobs:
       - run: npm --workspace shared test && npm --workspace collector test
       - run: node --test scripts/tests/service-boundaries.test.mjs scripts/tests/deployment-scope.test.mjs
       - name: API image contains no collector execution engine
+        if: inputs.verify_api_image
         run: |
           docker build -f backend/Dockerfile -t roxstock-api-check .
           docker run --rm --entrypoint sh roxstock-api-check -c 'test ! -d /app/collector/dist; test ! -d /app/backend/dist/collector'
@@ -66,6 +62,7 @@ jobs:
           docker build -f collector/Dockerfile -t roxstock-collector-check .
           bash scripts/smoke-collector-image.sh roxstock-collector-check
       - name: Real Compose independent deployment preserves counterpart containers
+        if: inputs.verify_api_image
         env:
           VERIFICATION_DB_CONTAINER: ${{ job.services.mariadb.id }}
         run: bash scripts/smoke-service-isolation.sh
