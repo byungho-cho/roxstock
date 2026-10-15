@@ -1,3 +1,4 @@
+import {StockLoadingRows} from './StockLoadingRows';
 import {ReportButton} from './ReportButton';
 import {PriceTimestamp} from './PriceTimestamp';
 import { Box, Button, Stack, Typography } from '@mui/material';
@@ -18,6 +19,7 @@ const mockW: Record<string, number> = { '005380': 1.35, '005930': 1.2, '000660':
 
 export function TabletStockTable({ stocks, activeTab, loading, error=false, favoriteIds, onSelect, onValue, onFavorite }: { stocks: StockItem[]; activeTab: StockListType; loading: boolean; error?: boolean; favoriteIds: Set<string>; onSelect: (stock: StockItem) => void; onValue?: (stock: StockItem) => void; onFavorite?: (stock: StockItem) => void }) {
   const rowsRef=useRef<HTMLDivElement>(null);
+  if(loading)return <StockLoadingRows/>;
   const holding = activeTab === 'holding';
   const traded = activeTab === 'traded';
   const heading = traded ? ['종목','마지막 매도일','누적 실현손익'] : holding ? ['종목', '가치지표', '현재가', '등락률', '보유수량', '평균단가', '매입총액', '평가금액', '손익률', '평가손익'] : ['종목', '가치지표', '영업이익', '현재가', '등락금액', '등락률', 'PER', 'PBR', 'ROE'];
@@ -28,7 +30,7 @@ export function TabletStockTable({ stocks, activeTab, loading, error=false, favo
       <Box role="table" aria-label={holding ? '보유종목' : traded ? '거래종목' : '관심종목'} sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Box role="row" sx={{ display: 'grid', gridTemplateColumns: columns, height: 28, flexShrink: 0, alignItems: 'center', borderBottom: `1px solid ${colors.borderStrong}` }}>{heading.map((label, index) => <Typography key={label} role="columnheader" noWrap sx={{ textAlign: index === 0 ? 'left' : 'right', fontSize: 8, color: colors.disabled }}>{label}</Typography>)}</Box>
         <Box ref={rowsRef} data-scroll-region="stock-table" role="rowgroup" tabIndex={stocks.length > 8 ? 0 : undefined} aria-label="종목 데이터 행" sx={{ minHeight: 0, flex: 1, pb:'80px', overflowY: 'auto', scrollbarWidth: 'none', scrollbarColor: `${colors.textMuted} transparent`, '&::-webkit-scrollbar': { display: 'none' }, '&::-webkit-scrollbar-thumb': { bgcolor: colors.textMuted, borderRadius: 4 } }}>
-        {loading ? Array.from({ length: 8 }, (_, index) => <Box key={index} data-testid="stock-loading-table-row" sx={{display:'grid',gridTemplateColumns:columns,height:28,alignItems:'center',border:'1px solid transparent'}}>{heading.map(label=><Box key={label} sx={{height:10}}/>)}</Box>) : stocks.map((stock) => <StockTableRow key={stock.id} stock={stock} columns={columns} favorite={favoriteIds.has(stock.id)} onSelect={onSelect}>
+        {stocks.map((stock) => <StockTableRow key={stock.id} stock={stock} columns={columns} favorite={favoriteIds.has(stock.id)} onSelect={onSelect}>
           {traded ? <><StockName stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/><Typography sx={cell}>{stock.lastSoldAt?new Date(stock.lastSoldAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}):'—'}</Typography><Typography sx={{...cell,color:getMarketColor(stock.realizedProfit??Number.NaN)}}>{won(stock.realizedProfit??Number.NaN)}</Typography></> : holding ? <HoldingRow stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/> : <WatchRow stock={stock} favorite={favoriteIds.has(stock.id)} onValue={onValue} onFavorite={onFavorite}/>}
         </StockTableRow>)}
         {!loading && !error && stocks.length === 0 && <Typography sx={{ py: 6, textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>내용이 없습니다.</Typography>}
