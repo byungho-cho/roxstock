@@ -1,3 +1,4 @@
+import {useJournalDayPosition} from './useJournalDayPosition';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import { storedQueryOptions } from '../../data/storedQueryOptions';
@@ -78,6 +79,7 @@ export function JournalPage() {
   const leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const lotsQuery = useQuery({ queryKey: ['buyLots', accountId, 'journal-all'], queryFn: () => getBuyLots(accountId!, undefined, false), enabled: liveApiEnabled && !!accountId, ...storedQueryOptions });
   const remoteLots = lotsQuery.data;
+  const dayPosition=useJournalDayPosition({tablet,enabled:detailMode==='trades',accountId,leftRef,rightRef});
   // An observed query deduplicates annual work and refreshes after transaction invalidation.
   // The timer yields a paint to the successful month before any annual read begins.
   const [backgroundPeriod, setBackgroundPeriod] = useState('');
@@ -158,7 +160,6 @@ export function JournalPage() {
   const pending=liveApiEnabled&&(accounts.isPending||(!!accountId&&tradesPending));
   const unavailable = liveApiEnabled && !remoteReport;
   const monthProfit = unavailable ? undefined : monthTotals.profit;
-  const monthBuy = monthTotals.buy;
   const dayProfit = unavailable ? undefined : dayTotals.profit;
   const dayBuy = dayTotals.buy, daySell = dayTotals.sell;
   const stockProfits=Array.from(dayEntries.reduce((map,entry)=>{const row=map.get(entry.stockId)??{id:entry.stockId,name:entry.stockName,profit:0,sells:0,complete:true};if(entry.type==='sell'){row.sells++;const profit=sellEvaluation(entry).profit;if(profit===undefined||!Number.isFinite(profit))row.complete=false;else row.profit+=profit;}map.set(entry.stockId,row);return map;},new Map<string,{id:string;name:string;profit:number;sells:number;complete:boolean}>()).values());
@@ -175,6 +176,7 @@ export function JournalPage() {
     navigate(entry.sample ? `/stocks/${entry.stockId}?tab=trades` : `/trade?${params}`);
   };
   const moveDay = (offset: number) => {
+    dayPosition.request();
     const next = new Date(`${selectedDate}T12:00:00`);
     next.setDate(next.getDate() + offset);
     const date = dateOf(next.getFullYear(), next.getMonth() + 1, next.getDate());
@@ -184,7 +186,7 @@ export function JournalPage() {
   const dateColor=holidays.has(selectedDate)||dayWeekday===0?colors.marketRise:dayWeekday===6?colors.marketFall:colors.textPrimary;
   const dayHeadingRef=useRef<HTMLDivElement>(null);
   const alignScroll=(heading:boolean)=>{requestAnimationFrame(()=>{const node=heading?dayHeadingRef.current:leftRef.current;if(!node)return;let parent=node.parentElement;while(parent&&getComputedStyle(parent).overflowY!=='auto'&&getComputedStyle(parent).overflowY!=='scroll')parent=parent.parentElement;if(parent)parent.scrollTo({top:heading?parent.scrollTop+node.getBoundingClientRect().top-parent.getBoundingClientRect().top:0,behavior:'auto'});});};
-  const dayGesture=useDetailSwipe(offset=>{moveDay(offset);alignScroll(true);});
+  const dayGesture=useDetailSwipe(offset=>{moveDay(offset);if(detailMode!=='trades')alignScroll(true);});
   const dayHeading = <Box ref={dayHeadingRef} data-testid="journal-day-heading" sx={{display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) 28px', alignItems: 'center', mb: '8px'}}>
     <IconButton aria-label="거래내역 이전 날짜" onClick={() => moveDay(-1)} sx={{width:28,height:28}}><ChevronLeftRounded sx={{fontSize:18}}/></IconButton>
     <Box sx={{position:'relative',minWidth:0}}><ButtonBase aria-label="거래현황 날짜 선택" onClick={()=>{const input=datePickerRef.current;if(input?.showPicker)input.showPicker();else input?.click();}} sx={{width:'100%',textAlign:'center',fontSize:14,fontWeight:600,color:dateColor}}>{selectedDate.replaceAll('-', '.')} · {weekdays[dayWeekday]}요일</ButtonBase><input ref={datePickerRef} type="date" aria-label="거래현황 선택 날짜" value={selectedDate} onChange={event=>{if(event.target.value)selectDate(event.target.value);}} tabIndex={-1} style={{position:'absolute',width:1,height:1,opacity:0,pointerEvents:'none',left:'50%',bottom:0,colorScheme:'dark'}}/></Box>
@@ -194,18 +196,32 @@ export function JournalPage() {
     <IconButton aria-label="이전 달" onClick={() => changeMonth(-1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronLeftRounded sx={{ fontSize: 18 }}/></IconButton>
     <Box sx={{ textAlign: 'center', minWidth: 0 }}>
       <ButtonBase aria-label={`${year}년 ${value}월, 월 선택`} onClick={() => { setPickerYear(year); setMonthPickerOpen(true); }} sx={{ display: 'block', mx: 'auto' }}><Typography sx={{ fontSize: 14, lineHeight: '22px', fontWeight: 600 }}>{year}년 {value}월</Typography></ButtonBase>
-      <Box sx={{ fontSize: 10, lineHeight: '14px', color: getProfitColor(monthProfit), overflowWrap: 'anywhere' }}>월손익 {pending?<Skeleton component="span" width={70} height={10} sx={{display:'inline-block',verticalAlign:'top',transform:'none'}}/>:<>{liveApiEnabled?'—':monthBuy&&monthProfit!==undefined?journalRate(monthProfit/monthBuy*100):'0.0%'} {signedWon(monthProfit)}</>}</Box>
     </Box>
     <IconButton aria-label="다음 달" onClick={() => changeMonth(1)} sx={{ width: 28, height: 36, color: colors.textMuted }}><ChevronRightRounded sx={{ fontSize: 18 }}/></IconButton>
   </Box>;
   const status=liveApiEnabled&&tradesError&&!remoteReport?<Button role="alert" onClick={()=>void reloadTrades()}>거래 조회 실패 · 다시 시도</Button>:null;
+  const monthlySummary = <Box ref={dayPosition.monthlyRef} component="section" data-testid="journal-month-summary" aria-labelledby="journal-month-summary-title" aria-busy={pending} sx={{ ...calendarPanel, mt: '8px', p: '10px 14px' }}>
+    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', mb: '6px' }}><Typography id="journal-month-summary-title" component="h2" sx={{ fontSize: 14, fontWeight: 600 }}>월별 거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{year}년 {value}월</Typography></Stack>
+    {[
+      {key:'buy',label:'매수',count:monthTotals.buyCount,amount:monthTotals.buy,color:colors.textPrimary},
+      {key:'sell',label:'매도',count:monthTotals.sellCount,amount:monthTotals.sell,color:getProfitColor(monthProfit)},
+      {key:'profit',label:'실현손익',count:null,amount:monthProfit,color:getProfitColor(monthProfit)},
+    ].map(row=><Box key={row.key} data-testid={`journal-month-${row.key}`} sx={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) minmax(0, 1.6fr)', gap: '8px', alignItems: 'center', minHeight: 26, fontSize: 12, borderTop: row.key==='profit'?`1px solid ${colors.border}`:undefined }}><Box sx={{color:colors.textMuted}}>{row.label}</Box><Box sx={{textAlign:'right',fontSize:11,color:row.key==='profit'?row.color:colors.textMuted,overflowWrap:'anywhere'}}>{pending?'':unavailable?'—':row.count===null?journalRate(monthTotals.cost&&monthProfit!==undefined?monthProfit/monthTotals.cost*100:undefined):`${row.count}건`}</Box><Box sx={{textAlign:'right',fontWeight:600,color:row.color,overflowWrap:'anywhere'}}>{pending?'':unavailable?'—':row.key==='profit'?signedWon(row.amount):won(row.amount)}</Box></Box>)}
+    {liveApiEnabled&&tradesError&&<Button onClick={()=>void reloadTrades()} sx={{fontSize:11,minHeight:28}}>{remoteReport?'최신 월별 거래 조회 실패 · 다시 시도':'월별 거래 조회 실패 · 다시 시도'}</Button>}
+  </Box>;
   const transactions=<>{status??<JournalTransactions loading={pending} entries={dayEntries} onOpen={entry=>detailMode==='profit'?navigate(`/journal/trade/${entry.type}/${entry.id}`,{state:{fromDate:selectedDate}}):openEntry(entry)}/>}</>;
   const titleRow = <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: '4px' }}>
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>거래현황</Typography><Typography sx={{ fontSize: 10, color: colors.textMuted }}>{pending?<Skeleton width={40} height={10} sx={{transform:'none'}}/>:unavailable?'—':`총 ${dayEntries.length}건`}</Typography>
   </Stack>;
-  const summary = <Box data-testid="journal-day-summary" sx={{ bgcolor: colors.raised, borderRadius: '8px', p: '8px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '4px', textAlign: 'right' }}>
-    {[['매수', unavailable ? undefined : dayBuy], ['매도', unavailable ? undefined : daySell], [journalRate(dayTotals.cost && dayProfit !== undefined ? dayProfit / dayTotals.cost * 100 : undefined), dayProfit]].map(([label, amount], index) =>
-      <Box key={index}><Typography sx={{ fontSize: 10, lineHeight: '14px', color: index === 2 ? getProfitColor(dayProfit) : colors.textMuted }}>{pending&&index===2?<Skeleton height={10} width={40} sx={{ml:'auto',transform:'none'}}/>:label}</Typography><Typography sx={{ fontSize: 12, lineHeight: '18px', fontWeight: 600, overflowWrap: 'anywhere', color: index === 2 ? getProfitColor(dayProfit) : colors.textSecondary }}>{pending?<Skeleton width="80%" height={12} sx={{transform:'none',ml:'auto'}}/>:index === 2 ? signedWon(amount as number | undefined) : won(amount as number | undefined)}</Typography></Box>)}
+  const summary = <Box data-testid="journal-day-summary" sx={{ bgcolor: colors.raised, borderRadius: '8px', p: '8px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
+    {[
+      {key:'buy',label:'매수',count:dayTotals.buyCount,amount:unavailable?undefined:dayBuy},
+      {key:'sell',label:'매도',count:dayTotals.sellCount,amount:unavailable?undefined:daySell},
+      {key:'profit',label:'손익',count:null,amount:dayProfit},
+    ].map(row=><Box key={row.key} data-testid={`journal-day-${row.key}`} sx={{minWidth:0,borderLeft:row.key==='buy'?undefined:`1px solid ${colors.borderStrong}`,pl:row.key==='buy'?0:'8px'}}>
+      <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'4px',minHeight:14,fontSize:10,lineHeight:'14px'}}><Box component="span" data-testid="day-summary-label" sx={{color:colors.textMuted,textAlign:'left',flexShrink:0}}>{row.label}</Box><Box component="span" data-testid="day-summary-detail" sx={{textAlign:'right',overflowWrap:'anywhere',color:row.key==='profit'?getProfitColor(dayProfit):colors.textMuted}}>{pending?'':unavailable?'—':row.count===null?journalRate(dayTotals.cost&&dayProfit!==undefined?dayProfit/dayTotals.cost*100:undefined):`${row.count}건`}</Box></Box>
+      <Typography data-testid="day-summary-amount" sx={{fontSize:12,lineHeight:'18px',minHeight:18,fontWeight:600,textAlign:'right',overflowWrap:'anywhere',color:row.key==='buy'?colors.textSecondary:getProfitColor(dayProfit)}}>{pending?'':row.key==='profit'?signedWon(row.amount):won(row.amount)}</Typography>
+    </Box>)}
   </Box>;
   const profitCards = <Stack spacing="8px">
     <Box sx={{ ...panel, p: '8px 16px' }}><Stack direction="row" sx={{ justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12 }}>전체 손익</Typography><Typography sx={{ fontSize: 12, color: getProfitColor(dayProfit) }}>{unavailable ? '—' : `매도 ${dayTotals.sellCount}건`}</Typography></Stack><Typography data-testid="journal-total-profit" sx={{ textAlign: 'right', fontSize: 30, lineHeight: '41px', fontWeight: 700, color: getProfitColor(dayProfit) }}>{signedWon(dayProfit)}</Typography></Box>
@@ -248,7 +264,8 @@ export function JournalPage() {
             </ButtonBase>;
           })}</Box>
         </Box>
-        {tablet && <Box data-testid="journal-left-clearance" sx={{ height: 80 }}/>}
+        {monthlySummary}
+        {tablet && <Box data-testid="journal-left-clearance" sx={{ height: dayPosition.calendarTail }}/>}
       </Box>}
       <Box ref={rightRef} data-scroll-region={tablet ? 'journal-detail' : undefined} data-list-condition={JSON.stringify([month, selectedDate, detailMode])}
         sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -265,7 +282,7 @@ export function JournalPage() {
           </>}
         </Stack> : detailMode === 'profit' ? <Box data-testid="journal-profit-body" {...dayGesture} sx={{touchAction:'pan-y'}}>{dateSelector}{profitCards}</Box> : detailMode === 'trade' && selectedTrade ? <>
           <Button onClick={() => setDetailMode('trades')} startIcon={<ArrowBackRounded/>} sx={{ minHeight: 32, fontSize: 12, mb: '8px' }}>거래현황으로 돌아가기</Button>{detail}
-        </> : <Box data-testid="journal-day-card" {...dayGesture} sx={{ ...calendarPanel, p: '8px 14px', touchAction: 'pan-y' }}>
+        </> : <Box data-testid="journal-day-card" {...dayGesture} sx={{ ...calendarPanel, p: '8px 14px', touchAction: 'pan-y', minHeight:dayPosition.dayMinHeight,boxSizing:'border-box',overflowAnchor:'none' }}>
           {dayHeading}
           {summary}<Box sx={{ mt: '8px' }}>{titleRow}{transactions}</Box>
           <ButtonBase onClick={() => setDetailMode('profit')} sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%', minHeight: 28, mt: '4px', color: colors.focus, fontSize: 10 }}>일별손익 보기 <ChevronRightRounded sx={{ fontSize: 16 }}/></ButtonBase>

@@ -224,3 +224,40 @@ test('existing buy edit refreshes matched Lot costs on return and keeps the sele
  await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-profit')).toHaveText('+60,000원');
  if(isTablet(page))await expect(page.getByRole('button',{name:/^2026-09-18 /})).toHaveAttribute('aria-pressed','true');
 });
+
+test('monthly summary follows the calendar month independently of selected day and replaces navigation profit',async({page},info)=>{
+ await setup(page);const monthly=page.getByTestId('journal-month-summary');
+ await expect(monthly.getByRole('heading',{name:'월별 거래현황'})).toBeAttached();
+ await expect(monthly.getByTestId('journal-month-buy')).toContainText('12건');await expect(monthly.getByTestId('journal-month-buy')).toContainText(format(totals.buy));
+ await expect(monthly.getByTestId('journal-month-sell')).toContainText('12건');await expect(monthly.getByTestId('journal-month-sell')).toContainText(format(totals.sell));await expect(monthly.getByTestId('journal-month-profit')).toContainText(format(totals.profit!));
+ await expect(page.getByText(/월손익/)).toHaveCount(0);
+ await page.getByRole('button',{name:/^2026-09-17 /}).click();await expect(monthly.getByTestId('journal-month-buy')).toContainText('12건');await expect(page.getByTestId('journal-day-card')).toContainText('총 0건');
+ await page.getByRole('button',{name:'다음 달',exact:true}).click();await expect(monthly).toContainText('2026년 10월');await expect(monthly.getByTestId('journal-month-buy')).toContainText('0건');await expect(monthly.getByTestId('journal-month-sell')).toContainText('0원');
+ await page.getByRole('button',{name:'이전 달',exact:true}).click();await expect(monthly.getByTestId('journal-month-sell')).toContainText('12건');
+ await monthly.scrollIntoViewIfNeeded();const frame=await monthly.boundingBox();expect(frame!.width).toBeGreaterThan(300);expect(await monthly.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await page.screenshot({path:info.outputPath('monthly-summary.png')});
+});
+
+test('daily summary aligns labels and counts/rate; daily and monthly sell amounts follow profit colors',async({page},info)=>{
+ await setup(page);const day=page.getByTestId('journal-day-summary'),monthly=page.getByTestId('journal-month-summary');
+ for(const type of ['buy','sell','profit']){const cell=day.getByTestId('journal-day-'+type);await expect(cell.getByTestId('day-summary-label')).toHaveCSS('text-align','left');await expect(cell.getByTestId('day-summary-detail')).toHaveCSS('text-align','right');await expect(cell.getByTestId('day-summary-label')).toHaveText(type==='buy'?'매수':type==='sell'?'매도':'손익');}
+ await expect(day.getByTestId('journal-day-buy')).toHaveCSS('border-left-width','0px');for(const key of ['sell','profit']){await expect(day.getByTestId('journal-day-'+key)).toHaveCSS('border-left-width','1px');await expect(day.getByTestId('journal-day-'+key)).toHaveCSS('border-left-color','rgb(51, 65, 85)');}await day.scrollIntoViewIfNeeded();await day.screenshot({path:info.outputPath('daily-summary-dividers.png')});
+ await expect(day.getByTestId('journal-day-buy').getByTestId('day-summary-detail')).toHaveText('12건');await expect(day.getByTestId('journal-day-sell').getByTestId('day-summary-detail')).toHaveText('12건');await expect(day.getByTestId('journal-day-profit').getByTestId('day-summary-detail')).toHaveText('+36.7%');
+ await expect(day.getByTestId('journal-day-sell').getByTestId('day-summary-amount')).toHaveCSS('color','rgb(255, 92, 102)');await expect(monthly.getByTestId('journal-month-sell').locator('div').last()).toHaveCSS('color','rgb(255, 92, 102)');
+ await page.route('**/api/accounts/*/trades**',route=>route.fulfill({json:{data:[{id:'negative',type:'SELL',buyTradeId:'missing',security:{id:'1',symbol:'005380',name:'검증'},tradedAt:'2026-09-18T03:00:00Z',quantity:'1',unitPrice:'80',amount:'80',realizedProfitLoss:'-20'}],summary:{buyAmount:'0',sellAmount:'80',realizedProfitLoss:'-20'},daily:[]}}));await page.reload();await expect(day.getByTestId('journal-day-sell').getByTestId('day-summary-amount')).toHaveCSS('color','rgb(66, 158, 255)');await expect(monthly.getByTestId('journal-month-sell').locator('div').last()).toHaveCSS('color','rgb(66, 158, 255)');
+ await page.route('**/api/accounts/*/trades**',route=>route.fulfill({json:{data:[],summary:{buyAmount:'0',sellAmount:'0',realizedProfitLoss:'0'},daily:[]}}));await page.reload();await expect(day.getByTestId('journal-day-buy').getByTestId('day-summary-detail')).toHaveText('0건');await expect(day.getByTestId('journal-day-profit').getByTestId('day-summary-detail')).toHaveText('—');await expect(day.getByTestId('journal-day-sell').getByTestId('day-summary-amount')).toHaveCSS('color','rgb(248, 250, 252)');await expect(monthly.getByTestId('journal-month-sell').locator('div').last()).toHaveCSS('color','rgb(248, 250, 252)');
+});
+
+test('day arrows and swipes keep monthly summary at the viewport top across long and empty days',async({page},info)=>{
+ await setup(page);const monthly=page.getByTestId('journal-month-summary'),day=page.getByTestId('journal-day-card');
+ const gap=()=>monthly.evaluate(el=>{const host=innerWidth>=600?document.querySelector('[data-scroll-region="journal-calendar"]')!:document.querySelector('main')!;return Math.abs(el.getBoundingClientRect().top-host.getBoundingClientRect().top);});
+ const pinned=async()=>{await expect.poll(gap).toBeLessThan(1);if(isTablet(page))await expect.poll(()=>page.locator('[data-scroll-region="journal-detail"]').evaluate(el=>el.scrollTop)).toBe(0);};
+ await day.scrollIntoViewIfNeeded();await page.getByRole('button',{name:'거래내역 다음 날짜',exact:true}).click();await expect(page.getByTestId('journal-day-heading')).toContainText('2026.09.19');await pinned();
+ await expect.poll(()=>day.evaluate(el=>{const main=document.querySelector('main')!;const monthly=document.querySelector('[data-testid="journal-month-summary"]')!;return el.getBoundingClientRect().height-(innerWidth>=600?main.clientHeight:main.clientHeight-monthly.getBoundingClientRect().height-8);})).toBeGreaterThanOrEqual(-1);
+ await page.getByRole('button',{name:'거래내역 이전 날짜',exact:true}).click();await expect(page.getByTestId('journal-entry-s0')).toBeAttached();await pinned();
+ const swipe=async(dx:number)=>page.getByTestId('journal-day-summary').evaluate((el,dx)=>{for(const [type,x] of [['touchstart',200],['touchmove',200+dx],['touchend',200+dx]] as const){const touch=new Touch({identifier:1,target:el,clientX:x,clientY:180});el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));}},dx);
+ await swipe(-120);await expect(page.getByTestId('journal-day-heading')).toContainText('2026.09.19');await pinned();await swipe(120);await expect(page.getByTestId('journal-day-heading')).toContainText('2026.09.18');await pinned();
+ // A month-crossing response changes many rows after the initial day navigation.
+ let release!:()=>void;await page.route('**/api/accounts/*/trades**',async route=>{const url=new URL(route.request().url());if(url.searchParams.get('from')==='2027-01-01'&&url.searchParams.get('to')==='2027-01-31')await new Promise<void>(resolve=>release=resolve);return route.fallback();});
+ await page.getByRole('button',{name:'2026년 9월, 월 선택',exact:true}).first().click();await page.getByRole('button',{name:'2026년 12월 선택',exact:true}).click();await page.getByRole('button',{name:/^2026-12-31 /}).evaluate(el=>(el as HTMLElement).click());await day.scrollIntoViewIfNeeded();await page.getByRole('button',{name:'거래내역 다음 날짜',exact:true}).click();await expect(page.getByTestId('journal-day-heading')).toContainText('2027.01.01');await pinned();await expect.poll(()=>!!release).toBe(true);release();await expect(monthly).toHaveAttribute('aria-busy','false');await pinned();
+ await page.screenshot({path:info.outputPath('day-navigation-pinned.png')});
+});
