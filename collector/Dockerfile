@@ -24,6 +24,5 @@ COPY shared/package.json shared/package.json
 RUN npm ci --workspace collector --workspace shared --include-workspace-root --omit=dev && npm cache clean --force
 COPY --from=build /app/collector/dist collector/dist
 COPY --from=build /app/shared/dist shared/dist
-COPY --from=build /app/shared/src/generated shared/src/generated
 USER node
 CMD ["node", "collector/dist/worker.js", "daemon"]
