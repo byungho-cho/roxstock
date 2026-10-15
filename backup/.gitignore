@@ -1,6 +1,0 @@
-# Plaintext production archives and passwords must never enter Git.
-*.sql
-*.sql.gz
-*.partial
-*password*
-*.env
