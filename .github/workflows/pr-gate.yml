@@ -51,7 +51,7 @@ jobs:
       - name: Validate workflows and deployment shell
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color -shellcheck=
-          node --test scripts/tests/pr-auto-merge.test.mjs scripts/tests/deployment-scope.test.mjs scripts/tests/service-deploy.test.mjs
+          node --test scripts/tests/pr-auto-merge.test.mjs scripts/tests/deployment-scope.test.mjs scripts/tests/production-revision.test.mjs scripts/tests/service-deploy.test.mjs
           python3 -m unittest discover -s scripts/tests -p 'test_deploy.py'
           bash -n scripts/deploy*.sh scripts/smoke*.sh scripts/rollback-production-component.sh
   gate:

@@ -35,7 +35,14 @@ jobs:
             core.setOutput('current', String(branch.commit.sha === sha));
             if (branch.commit.sha !== sha) core.notice('Superseded revision; deployment skipped');
             const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {...context.repo, workflow_id:'production-deploy.yml', status:'success', per_page:100});
-            const previous = runs.find(r => r.head_branch === 'main' && r.head_sha !== sha);
+            let previous;
+            for (const run of runs.filter(r => r.head_branch === 'main' && r.head_sha !== sha)) {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {...context.repo, run_id:run.id, filter:'latest', per_page:100});
+              if (jobs.some(j => j.conclusion === 'success' && /(?:^|\/ )(?:Backend Deploy|Collector Deploy|deploy)$/.test(j.name))) {
+                previous = run;
+                break;
+              }
+            }
             core.setOutput('base', previous?.head_sha || 'c351ae61a5315cb80c3f9019a83dfa7c0d403c99');
       - uses: actions/checkout@v4
         with:
