@@ -17,13 +17,12 @@ for(const item of cases)test(`${item.name}: account wait keeps fixed controls, n
  if(item.name==='analysis'||item.name==='stocks')await expect(page.getByTestId(item.shell).locator('.MuiSkeleton-root')).toHaveCount(0);else await expect(page.locator('[data-loading-indicator="visible"]')).not.toHaveCount(0);await expect(page.locator('[data-loading-indicator="waiting"]')).toHaveCount(0);await capture(page,item.name,'loading',info.project.name);
  const calendar=item.name==='journal'?await page.getByTestId('journal-calendar-card').boundingBox():null,chart=item.name==='analysis'?await page.getByTestId('analysis-chart-region').boundingBox():null;
  const accountHeight=item.name==='accounts'?(await page.getByTestId('account-loading-row').first().boundingBox())!.height:null;
- const stockRow=item.name==='stocks'?(page.viewportSize()!.width<600?await page.getByTestId('stock-loading-row').first().boundingBox():await page.getByTestId('stock-loading-table-row').first().boundingBox()):null;
+ if(item.name==='stocks'){await expect(page.getByTestId('stock-loading-row')).toHaveCount(0);await expect(page.getByTestId('stock-loading-table-row')).toHaveCount(0);await expect(page.getByRole('table')).toHaveCount(0);}
  held=false;releases.splice(0).forEach(r=>r());if(item.name==='stocks'&&page.viewportSize()!.width>=600)await expect(page.getByRole('row',{name:'종목1 상세보기'})).toBeVisible();else await expect(page.getByTestId(item.ready)).toBeVisible();
  if(calendar)expect(await page.getByTestId('journal-calendar-card').boundingBox()).toEqual(calendar);
  if(chart)expect(await page.getByTestId('analysis-chart-region').boundingBox()).toEqual(chart);
  if(accountHeight)expect((await page.getByTestId('account-card-1').boundingBox())!.height).toBe(accountHeight);
  if(item.name==='accounts'){const button=page.getByRole('button',{name:'계좌 추가',exact:true});expect((await button.boundingBox())!.y).toBeLessThan((await page.getByTestId('account-card-1').boundingBox())!.y);}
- if(stockRow)expect((await (page.viewportSize()!.width<600?page.getByTestId('stock-card-1'):page.getByRole('row',{name:'종목1 상세보기'})).boundingBox())!.height).toBe(stockRow.height);
  await capture(page,item.name,'ready',info.project.name);
 });
 test('analysis independent failure retains successful areas; condition changes never show previous values',async({page})=>{

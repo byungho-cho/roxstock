@@ -66,3 +66,11 @@ test('summary defers holding lots and stock trade detail; profit detail loads an
  expect(reads.filter(u=>u.pathname.endsWith('/investment-capital'))).toHaveLength(0);
  expect(reads.filter(u=>u.pathname.endsWith('/trades')&&u.searchParams.has('to')&&!u.searchParams.has('securityId'))).toHaveLength(0);
 });
+
+test('trades list and year totals include sells only while retaining linked buy details',async({page})=>{
+ await setup(page);let buysOnly=false;
+ const buy=(id:string,year:number)=>({id,type:'BUY',security:{id:'1',name:'종목1',symbol:'000001'},tradedAt:`${year}-01-01T03:00:00Z`,quantity:'10',unitPrice:'100',amount:'1000',realizedProfitLoss:null});
+ await page.route('**/api/accounts/*/trades?*',async route=>{const rows=[buy('b24',2024),buy('b25',2025),buy('b26',2026),...buysOnly?[]:[{id:'s25',type:'SELL',security:{id:'1',name:'종목1',symbol:'000001'},tradedAt:'2025-07-01T03:00:00Z',quantity:'5',unitPrice:'150',amount:'750',realizedProfitLoss:'250',buyTradeId:'b25'}]];await route.fulfill({json:{data:tradeFixtureData(new URL(route.request().url()),rows),summary:{realizedProfitLoss:buysOnly?'0':'250',buyAmount:'3000',sellAmount:buysOnly?'0':'750'},daily:[]}});});
+ await open(page,'trades');const year=page.getByTestId('trade-year-2025');await expect(page.getByTestId('trade-year-title')).toHaveCount(1);await expect(year.getByTestId('trade-year-title')).toContainText('1건');await expect(year.getByTestId('trade-year-title')).toContainText('250원');await expect(page.getByTestId('sell-s25')).toContainText('5 × 100원');await expect(page.locator('[data-testid^="buy-"]')).toHaveCount(0);await expect(page.getByRole('button',{name:'s25 매도 수정',exact:true})).toBeAttached();
+ buysOnly=true;await page.reload();await expect(page.getByTestId('stock-detail-content')).toContainText('내용이 없습니다.');await expect(page.getByTestId('trade-year-title')).toHaveCount(0);
+});
