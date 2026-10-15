@@ -59,7 +59,7 @@ PR 검사는 collector/shared 경로와 rename 이전 경로도 포함합니다.
 
 SHA 고정 SSH wrapper `scripts/deploy-production-component.sh <40자리 SHA> backend|collector|frontend`가 서버 전역 `flock`을 잡고 해당 커밋의 worktree에서 실행합니다. API는 `up --no-deps backend`만, 수집기는 `up --no-deps collector realtime-collector dart-collector`만 수행합니다. 상대 서비스의 컨테이너 ID와 StartedAt가 그대로인지 비교합니다. API 배포 때문에 수집기를 재시작하거나 수집기 배포 때문에 API를 재시작하지 않습니다. 이미지 GC는 사용 중 컨테이너/볼륨/백업을 건드리지 않으며 registry에서 재취득 가능한 미사용 이미지에만 적용합니다.
 
-API 배포 전 gzip DB 백업을 서버 `.deploy/backups`(0700/파일 0600)에 만들고 검증/해시를 남깁니다. 기존 profit/analysis-cache migration 복구 스크립트를 유지하고 migration deploy/status를 한 번 수행한 후 SHA marker를 기록합니다. 수집 시작·수집기별 컨테이너 시작에는 migration이 없습니다. collector-only 배포에는 migration이 없습니다. API health 실패는 이전 API 이미지, 수집 health 실패는 각 이전 수집 이미지만 자동 복구합니다.
+API 또는 수집기 배포 전 gzip DB 백업을 서버 `.deploy/backups`(0700/파일 0600)에 만들고 검증/해시를 남깁니다. 같은 SHA의 API·수집기 배포는 검증 완료 marker로 백업 한 번을 공유합니다. 기존 profit/analysis-cache migration 복구 스크립트를 유지하고 API 배포에서 migration deploy/status를 한 번 수행한 후 SHA marker를 기록합니다. 수집 시작·수집기별 컨테이너 시작에는 migration이 없습니다. collector-only 배포에는 migration이 없습니다. API health 실패는 이전 API 이미지, 수집 health 실패는 각 이전 수집 이미지만 자동 복구합니다.
 
 앱 버전은 기존 API `/api/version`에서 읽되 운영 API는 디렉터리 mount `/opt/roxstock/.deploy/runtime:/run/roxstock:ro`의 공개 `release.json`을 읽습니다. 성공한 컴포넌트 배포 후 파일을 atomic rename합니다. 따라서 버전 변경을 위해 변경 없는 API/frontend 이미지를 강제로 다시 만들 필요가 없습니다. 로컬/이전 배포에서는 번들 버전을 사용합니다.
 

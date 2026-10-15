@@ -72,7 +72,7 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
     unset existing_token
     echo "Preserved the existing runtime collector token in the deployment environment."
   fi
-  if [[ "$COMPONENT" == backend && ! -f "$SOURCE_TREE/.deploy/migrated-$IMAGE_TAG" ]]; then
+  if [[ ! -f "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG" ]]; then
   # Retain a restricted server-local backup before applying schema migrations.
   BACKUP_DIR="$SOURCE_TREE/.deploy/backups"
   install -d -m 700 "$BACKUP_DIR"
@@ -87,6 +87,7 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   gzip -t "$backup_file.partial"
   mv "$backup_file.partial" "$backup_file"
   sha256sum "$backup_file" > "$backup_file.sha256"
+  touch "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG"
   echo "Verified server-local pre-migration backup: $backup_file"
   fi
   export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"
