@@ -56,7 +56,7 @@ test('saved chart uses axes, gap and touch tooltip; empty and failure remain dis
  const chart=page.getByTestId('cash-trend-chart');await chart.scrollIntoViewIfNeeded();await expect(chart).toBeVisible();
  const rect=(await chart.locator('svg').boundingBox())!;await page.touchscreen.tap(rect.x+rect.width/2,rect.y+rect.height/2);
  await expect(page.getByTestId('asset-trend-tooltip')).toBeVisible();await expect(chart.locator('svg path[stroke="'+ '#60A5FA' +'"]').first()).toHaveAttribute('d',/M.*M/);
- state.fail('/asset-history');await page.getByRole('button',{name:'이전 기간',exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('추이 조회 실패');
+ state.fail('/asset-history');await page.getByRole('button',{name:'이전 기간',exact:true}).click();await expect(page.locator('.MuiSnackbar-root')).toContainText('추이 조회 실패');
  state.fail('');state.empty();await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('cash-trend')).toContainText('내용이 없습니다.');
 });
 
@@ -66,7 +66,7 @@ test('latest entry can be deleted and year tax refreshes; read failures never sh
  await page.getByRole('button',{name:'삭제',exact:true}).click();await page.locator('[role="dialog"]').last().getByRole('button',{name:'삭제',exact:true}).click();
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');expect(state.writes.at(-1)?.method).toBe('DELETE');
  await page.getByRole('button',{name:'이전 기간',exact:true}).click();await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');
- state.fail('/cash-overview');await page.reload();await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 조회 실패');
+ state.fail('/cash-overview');await page.reload();await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 —');
 });
 
 

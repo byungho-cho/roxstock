@@ -46,7 +46,7 @@ test('more failure keeps rows and retries, account switch clears prior account c
  await card.getByRole('button',{name:'더보기',exact:true}).click();
  await expect(page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true})).toBeVisible();
  await expect(card.getByTestId('recent-buy-lot')).toHaveCount(5);await expect(card.locator('.MuiSkeleton-root')).toHaveCount(0);
- fail=false;await card.getByRole('button',{name:'추가 조회 실패 · 재시도'}).click();await expect(card.getByTestId('recent-buy-lot')).toHaveCount(7);
+ fail=false;await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click();await expect(card.getByTestId('recent-buy-lot')).toHaveCount(7);
  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(card.getByTestId('recent-buy-lot')).toHaveCount(5);
 });
