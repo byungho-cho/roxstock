@@ -1,5 +1,5 @@
-import { Prisma } from '../generated/prisma/index.js';
-import { ApiError } from '../lib/api-error.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 
 export const latestCashOrder = [{ createdAt: 'desc' }, { id: 'desc' }] as const;
 export function cashBasis(latest: { id: bigint; balanceAfter: Prisma.Decimal | null; updatedAt: Date } | null | undefined) {

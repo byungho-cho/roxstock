@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mkdtempSync,cpSync,writeFileSync,readFileSync,readdirSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';import {resolve,join} from 'node:path';import {execFileSync} from 'node:child_process';import {gzipSync,gunzipSync} from 'node:zlib';import {createHash} from 'node:crypto';
-import {PrismaClient} from '../src/generated/prisma/index.js';
+import {PrismaClient} from '@roxstock/shared/prisma';
 test('phase23 actual migration preserves legacy zero/code/data and restores a verified old-schema backup',async()=>{
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/,'Isolated CI only');
  const container=process.env.PHASE23_DB_CONTAINER;assert.ok(container,'CI MariaDB service container required');

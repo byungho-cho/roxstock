@@ -12,16 +12,18 @@ jobs:
     outputs:
       frontend: ${{ steps.scope.outputs.frontend }}
       backend: ${{ steps.scope.outputs.backend }}
+      collector: ${{ steps.scope.outputs.collector }}
     steps:
-      - uses: actions/github-script@v7
-        id: scope
+      - uses: actions/checkout@v4
         with:
-          script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {...context.repo, pull_number: context.issue.number, per_page: 100});
-            const paths = files.map(f => f.filename);
-            const shared = paths.some(p => /^(\.github\/workflows\/|scripts\/deploy|package(-lock)?\.json$)/.test(p));
-            core.setOutput('frontend', String(shared || paths.some(p => p.startsWith('frontend/'))));
-            core.setOutput('backend', String(shared || paths.some(p => /^(backend\/|database\/|infra\/docker\/)/.test(p))));
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node --input-type=module -e 'import {compareScope} from "./scripts/deployment-scope.mjs"; for(const [k,v] of Object.entries(compareScope(process.env.BASE_SHA,process.env.HEAD_SHA))) console.log(k+"="+v)' >> "$GITHUB_OUTPUT"
   frontend:
     needs: scope
     if: needs.scope.outputs.frontend == 'true'
@@ -32,6 +34,12 @@ jobs:
     needs: scope
     if: needs.scope.outputs.backend == 'true'
     uses: ./.github/workflows/backend-check.yml
+  collector:
+    needs: scope
+    if: needs.scope.outputs.collector == 'true'
+    uses: ./.github/workflows/collector-check.yml
+    with:
+      verify_api_image: ${{ needs.scope.outputs.backend == 'true' }}
   automation:
     runs-on: ubuntu-latest
     steps:
@@ -45,12 +53,13 @@ jobs:
       - name: Validate workflows and deployment shell
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color -shellcheck=
-          node --test scripts/tests/pr-auto-merge.test.mjs
-          bash -n scripts/deploy.sh scripts/deploy-backend.sh scripts/deploy-production-component.sh
+          node --test scripts/tests/pr-auto-merge.test.mjs scripts/tests/deployment-scope.test.mjs scripts/tests/production-revision.test.mjs scripts/tests/service-deploy.test.mjs
+          python3 -m unittest discover -s scripts/tests -p 'test_deploy.py'
+          bash -n scripts/deploy*.sh scripts/smoke*.sh scripts/rollback-production-component.sh
   gate:
     name: PR Gate
     if: always()
-    needs: [scope, frontend, backend, automation]
+    needs: [scope, frontend, backend, collector, automation]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -58,7 +67,7 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
-          node -e 'const n=JSON.parse(process.env.RESULTS); for(const [k,v] of Object.entries(n)){if(!["success","skipped"].includes(v.result))throw Error(k+" "+v.result)}; for(const k of ["scope","automation"])if(n[k].result!=="success")throw Error(k); for(const k of ["frontend","backend"])if(n.scope.outputs[k]==="true" && n[k].result!=="success")throw Error(k)'
+          node -e 'const n=JSON.parse(process.env.RESULTS); for(const [k,v] of Object.entries(n)){if(!["success","skipped"].includes(v.result))throw Error(k+" "+v.result)}; for(const k of ["scope","automation"])if(n[k].result!=="success")throw Error(k); for(const k of ["frontend","backend","collector"])if(n.scope.outputs[k]==="true" && n[k].result!=="success")throw Error(k)'
       - name: Wait for all other PR workflows
         uses: actions/github-script@v7
         with:

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/index.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { Prisma } from '@roxstock/shared/prisma';
 
 test('buy-lots keeps sold lots on explicit false and supplies independent price valuation', async () => {
   const findAccount = prisma.account.findUnique; const findLots = prisma.buyTrade.findMany;

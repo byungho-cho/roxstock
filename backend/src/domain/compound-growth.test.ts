@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {parsePlan,parseGoal,project,serializePlan,seoulYear} from './compound-growth.js';
-import {Prisma} from '../generated/prisma/index.js';
+import {Prisma} from '@roxstock/shared/prisma';
 test('confirmed annual beginning contribution, inclusive years, no extra end year',()=>{
  assert.deepEqual(project('100','20','10',2025,2026),[{year:2025,asset:'132',contributed:'120'},{year:2026,asset:'167.2',contributed:'140'}]);
  assert.equal(project('123.45','0','0',2025,2025)[0]!.asset,'123.45');

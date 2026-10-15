@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildApp} from '../app.js';
-import {prisma} from '../lib/prisma.js';
-import {Prisma} from '../generated/prisma/index.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
+import {Prisma} from '@roxstock/shared/prisma';
 test('phase28 scoped trade API returns all years and >50 buys/split sells in one response',async()=>{
  const original={account:prisma.account.findUnique,buy:prisma.buyTrade.findMany,sell:prisma.sellTrade.findMany};
  const security={id:9n,symbol:'000009',name:'검증 종목',marketType:'KOSPI'},d=(n:number)=>new Prisma.Decimal(n);

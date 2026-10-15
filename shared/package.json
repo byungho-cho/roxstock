@@ -1,0 +1,33 @@
+{
+  "name": "@roxstock/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./prisma": {
+      "types": "./dist/generated/prisma/index.d.ts",
+      "default": "./dist/generated/prisma/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('src/generated', 'dist/generated', {recursive:true})\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test src/domain/*.test.ts src/collection/*.test.ts",
+    "prisma:generate": "prisma generate --schema ../database/prisma/schema.prisma && npm run build",
+    "prisma:validate": "prisma validate --schema ../database/prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "prisma": "6.19.3",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  }
+}

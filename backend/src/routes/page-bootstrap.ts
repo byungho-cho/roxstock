@@ -1,14 +1,14 @@
 import type { FastifyInstance } from 'fastify';
-import { PageCache } from '../domain/page-cache.js';
+import { PageCache } from '@roxstock/shared/domain/page-cache';
 import { id } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 import { loadAccounts } from './accounts.js';
 import { loadDashboard, loadPortfolio, serializeHolding } from './portfolio.js';
 import { loadSecurities } from './securities.js';
 import { targetArrivalsResult } from './target-arrivals.js';
 import { recentBuysResult } from './recent-buys.js';
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
 export function stockTradeSummary(portfolio: Awaited<ReturnType<typeof loadPortfolio>>) {
   const rows = new Map<string, { security: { id: string; symbol: string; name: string; marketType: string }; realizedProfitLoss: Prisma.Decimal; lastSoldAt: Date | null }>();

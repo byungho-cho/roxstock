@@ -1,6 +1,6 @@
-import { Prisma, type CompoundGrowthPlan, type CompoundGrowthGoal } from '../generated/prisma/index.js';
+import { Prisma, type CompoundGrowthPlan, type CompoundGrowthGoal } from '@roxstock/shared/prisma';
 import { annualInvestmentCapital } from './investment-capital.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 const D = Prisma.Decimal.clone({ precision: 400 });
 export const colors = ['#5EA1F0','#FFC21A','#2DCCA4','#FA616E','#A87AF4','#29BEC8','#CBD5E1'];
 export const seoulYear = (now = new Date()) => Number(new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(now).slice(0,4));

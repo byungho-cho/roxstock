@@ -1,0 +1,35 @@
+{
+  "name": "roxstock-collector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/worker.ts daemon",
+    "build": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json",
+    "typecheck": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json --noEmit",
+    "start": "node dist/worker.js daemon",
+    "collector": "tsx src/worker.ts daemon",
+    "collector:realtime": "tsx src/realtime-worker.ts",
+    "collector:dart": "tsx src/dart-worker.ts",
+    "collector:once:prices": "tsx src/worker.ts prices",
+    "collector:once:securities": "tsx src/worker.ts securities",
+    "collector:once:snapshots": "tsx src/worker.ts snapshots",
+    "collector:once": "tsx src/worker.ts all",
+    "test": "npm --workspace @roxstock/shared run build && node --import tsx --test src/*.test.ts src/tests/*.test.ts",
+    "verify:krx:samsung": "tsx src/scripts/verify-krx-samsung.ts",
+    "supplement:valuations": "tsx src/scripts/supplement-valuations.ts",
+    "supplement:shares": "tsx src/scripts/supplement-shares.ts"
+  },
+  "dependencies": {
+    "@roxstock/shared": "0.1.0",
+    "dotenv": "17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  }
+}

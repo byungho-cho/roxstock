@@ -18,6 +18,9 @@ jobs:
     outputs:
       sha: ${{ steps.revision.outputs.sha }}
       current: ${{ steps.revision.outputs.current }}
+      backend: ${{ steps.scope.outputs.backend }}
+      collector: ${{ steps.scope.outputs.collector }}
+      frontend: ${{ steps.scope.outputs.frontend }}
     steps:
       - uses: actions/github-script@v7
         id: revision
@@ -31,16 +34,50 @@ jobs:
             core.setOutput('sha', sha);
             core.setOutput('current', String(branch.commit.sha === sha));
             if (branch.commit.sha !== sha) core.notice('Superseded revision; deployment skipped');
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.revision.outputs.sha }}
+          fetch-depth: 0
+      - name: Read deployed component image identities
+        if: steps.revision.outputs.current == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker inspect --format '{{.Name}}|{{.Config.Image}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector roxstock-frontend" > "$RUNNER_TEMP/roxstock-deployed-images.txt"
+          cat "$RUNNER_TEMP/roxstock-deployed-images.txt" >> "$GITHUB_STEP_SUMMARY"
+      - id: scope
+        if: steps.revision.outputs.current == 'true'
+        env:
+          TARGET_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          node --input-type=module -e 'import {readFileSync} from "node:fs"; import {selectDeployedServices} from "./scripts/deployment-scope.mjs"; const lines=readFileSync(process.env.RUNNER_TEMP+"/roxstock-deployed-images.txt","utf8"); for(const [k,v] of Object.entries(selectDeployedServices(lines,process.env.TARGET_SHA))) console.log(k+"="+v)' >> "$GITHUB_OUTPUT"
   backend:
     needs: revision
-    if: needs.revision.outputs.current == 'true'
+    if: needs.revision.outputs.current == 'true' && needs.revision.outputs.backend == 'true'
     uses: ./.github/workflows/backend-deploy.yml
     with:
       target_sha: ${{ needs.revision.outputs.sha }}
     secrets: inherit
-  frontend:
+  collector:
     needs: [revision, backend]
-    if: needs.revision.outputs.current == 'true'
+    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.collector == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped')
+    uses: ./.github/workflows/collector-deploy.yml
+    with:
+      target_sha: ${{ needs.revision.outputs.sha }}
+    secrets: inherit
+  frontend:
+    needs: [revision, backend, collector]
+    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
     uses: ./.github/workflows/frontend-image.yml
     with:
       target_sha: ${{ needs.revision.outputs.sha }}

@@ -1,4 +1,4 @@
-import type {Prisma} from '../generated/prisma/index.js';
+import type {Prisma} from '@roxstock/shared/prisma';
 /** Every Account FK, including indirect children via buys/plans; no date/visibility filter. */
 export async function accountConnections(tx:Prisma.TransactionClient,accountId:bigint) {
  const [buyTrades,cashTransactions,dividends,accountSnapshots,positionSnapshots,compoundPlans,watchlistItems,tradeRequests]=await Promise.all([

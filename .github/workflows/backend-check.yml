@@ -1,14 +1,6 @@
 name: Backend Check
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "database/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/backend-check.yml"
-
   workflow_call:
 
 permissions:
@@ -85,7 +77,7 @@ jobs:
         run: node --import tsx --test backend/tests/phase18.integration.ts
 
       - name: Realtime lifecycle ownership and snapshot conflict (real MariaDB)
-        run: node --import tsx --test backend/tests/realtime-lifecycle.integration.ts
+        run: node --import tsx --test collector/tests/realtime-lifecycle.integration.ts
 
       - name: Changed compound-plan real database functions
         run: node --import tsx --test backend/tests/compound-growth.integration.ts
@@ -104,7 +96,7 @@ jobs:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_dart_recovery_test
         run: |
           node --import tsx backend/tests/prepare-dart-recovery.ts
-          node --import tsx --test --test-concurrency=1 backend/tests/dart-recovery.integration.ts backend/tests/dart-source-validation.integration.ts
+          node --import tsx --test --test-concurrency=1 collector/tests/dart-recovery.integration.ts collector/tests/dart-source-validation.integration.ts
 
       - name: Verify migration status
         run: npx prisma migrate status --schema database/prisma/schema.prisma
@@ -128,3 +120,13 @@ jobs:
 
       - name: Build backend
         run: npm run build:backend
+
+      - name: Independent production API image and startup boundary
+        run: |
+          docker build -f backend/Dockerfile -t roxstock-api-check .
+          docker run --rm --entrypoint sh roxstock-api-check -c 'test ! -d /app/collector/dist; test ! -d /app/backend/dist/collector'
+          docker run -d --name api-entry-check --network none -e DATABASE_URL=mysql://ci:ci@127.0.0.1:3306/ci roxstock-api-check
+          sleep 5
+          docker exec api-entry-check node -e "fetch('http://127.0.0.1:3300/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          docker stop -t 30 api-entry-check
+          test "$(docker inspect --format '{{.State.ExitCode}}' api-entry-check)" = 0

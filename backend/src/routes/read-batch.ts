@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { PageCache } from '../domain/page-cache.js';
+import { PageCache } from '@roxstock/shared/domain/page-cache';
 import { withReadScope } from '../domain/read-scope.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 const endpoint = '/api/pages/read';

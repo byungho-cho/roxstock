@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 test('stored history never loads live portfolio and preserves account/date scope',async()=>{
  const findAccount=prisma.account.findUnique,findSnapshots=prisma.dailyAccountSnapshot.findMany,findPlan=prisma.compoundGrowthPlan.findFirst,findPositions=prisma.dailyPositionSnapshot.findMany;
  let reads=0;

@@ -47,7 +47,7 @@ jobs:
       - name: Summary amount boundary checks
         run: node --import tsx --test frontend/tests/unit/compound-achievement.test.ts
       - name: Changed calculator and value API checks
-        run: node --import tsx --test backend/src/domain/compound-growth.test.ts backend/src/domain/value-analysis.test.ts backend/src/routes/value-analysis.test.ts
+        run: node --import tsx --test backend/src/domain/compound-growth.test.ts shared/src/domain/value-analysis.test.ts backend/src/routes/value-analysis.test.ts
       - name: Real database compound operations
         run: node --import tsx --test backend/tests/compound-growth.integration.ts
       - name: TypeScript and builds

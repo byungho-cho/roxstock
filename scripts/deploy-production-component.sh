@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 SHA="${1:-}"
 COMPONENT="${2:-}"
-[[ "$SHA" =~ ^[0-9a-f]{40}$ && "$COMPONENT" =~ ^(frontend|backend)$ ]] || exit 2
+[[ "$SHA" =~ ^[0-9a-f]{40}$ && "$COMPONENT" =~ ^(frontend|backend|collector)$ ]] || exit 2
 # A documentation-only descendant has identical runtime code. Do not lose an
 # already dispatched application deployment when an independent docs PR merges.
 deployment_revision_allowed() {
@@ -15,6 +15,7 @@ SOURCE_TREE=/opt/roxstock
 mkdir -p "$SOURCE_TREE/.deploy"
 exec 8>"$SOURCE_TREE/.deploy/production.lock"
 flock -w 1200 8
+export ROXSTOCK_DEPLOY_LOCKED=true
 git -C "$SOURCE_TREE" fetch origin main
 LATEST="$(git -C "$SOURCE_TREE" rev-parse origin/main)"
 if ! deployment_revision_allowed "$SOURCE_TREE" "$SHA" "$LATEST"; then
@@ -40,11 +41,11 @@ reclaim_old_images() {
     container_image="$(docker inspect --format '{{.Image}}' "$container_id")"
     used_ids+="$container_image"$'\n'
   done < <(docker ps -aq)
-  for repository in newrox/roxstock-backend newrox/roxstock-frontend; do
+  for repository in newrox/roxstock-backend newrox/roxstock-collector newrox/roxstock-frontend; do
     # Retain the two most recently created immutable tags as rollback candidates.
     keep_refs="$(docker image ls "$repository" --format '{{.Repository}}:{{.Tag}}' | awk '/:[s]ha-[0-9a-f]+$/ {if (++count <= 2) print}')"
     while read -r ref image_id; do
-      [[ "$ref" =~ ^newrox/roxstock-(backend|frontend):sha-[0-9a-f]{7,40}$ ]] || continue
+      [[ "$ref" =~ ^newrox/roxstock-(backend|collector|frontend):sha-[0-9a-f]{7,40}$ ]] || continue
       [[ "$ref" != "$repository:$IMAGE_TAG" ]] || continue
       grep -Fxq "$image_id" <<< "$used_ids" && continue
       grep -Fxq "$ref" <<< "$keep_refs" && continue
@@ -54,17 +55,7 @@ reclaim_old_images() {
     done < <(docker image ls "$repository" --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}}')
   done
 }
-if [[ "$COMPONENT" == backend ]]; then
-  already_current=true
-  for container in roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector; do
-    actual="$(docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
-    [[ "$actual" == "newrox/roxstock-backend:$IMAGE_TAG healthy" ]] || already_current=false
-  done
-  if [[ "$already_current" == true ]]; then
-    docker exec roxstock-backend node -e "fetch('http://127.0.0.1:3300/health/db').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-    echo "Backend and collectors already healthy at $SHA; duplicate deployment skipped"
-    exit 0
-  fi
+if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   reclaim_old_images
   # Only copy the existing server environment. Never read a CI/development env.
   test -f "$SOURCE_TREE/backend/.env.production"
@@ -81,6 +72,7 @@ if [[ "$COMPONENT" == backend ]]; then
     unset existing_token
     echo "Preserved the existing runtime collector token in the deployment environment."
   fi
+  if [[ ! -f "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG" ]]; then
   # Retain a restricted server-local backup before applying schema migrations.
   BACKUP_DIR="$SOURCE_TREE/.deploy/backups"
   install -d -m 700 "$BACKUP_DIR"
@@ -95,14 +87,13 @@ if [[ "$COMPONENT" == backend ]]; then
   gzip -t "$backup_file.partial"
   mv "$backup_file.partial" "$backup_file"
   sha256sum "$backup_file" > "$backup_file.sha256"
+  touch "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG"
   echo "Verified server-local pre-migration backup: $backup_file"
-  bash "$DEPLOY_TREE/scripts/deploy-backend.sh" "$IMAGE_TAG"
+  fi
+  export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"
+  install -d -m 755 "$SOURCE_TREE/.deploy/runtime"
+  bash "$DEPLOY_TREE/scripts/deploy-$COMPONENT.sh" "$IMAGE_TAG"
 else
-  # API must have deployed this exact commit before the frontend.
-  [[ "$(docker inspect --format '{{.Config.Image}}' roxstock-backend)" == "newrox/roxstock-backend:$IMAGE_TAG" ]] || {
-    echo "Matching backend has not deployed. Run Production Deploy first."
-    exit 1
-  }
   actual="$(docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-frontend 2>/dev/null || true)"
   if [[ "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG running" || "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG healthy" ]]; then
     curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
@@ -116,5 +107,8 @@ else
   export FRONTEND_COMPOSE_FILE="$SOURCE_TREE/compose.yml"
   bash "$DEPLOY_TREE/scripts/deploy.sh" "$IMAGE_TAG"
 fi
+install -d -m 755 "$SOURCE_TREE/.deploy/runtime"
+install -m 644 "$DEPLOY_TREE/backend/src/release.json" "$SOURCE_TREE/.deploy/runtime/release.json.next"
+mv "$SOURCE_TREE/.deploy/runtime/release.json.next" "$SOURCE_TREE/.deploy/runtime/release.json"
 echo "Verified deployment source: $SHA; component: $COMPONENT"
 docker inspect --format '{{.Name}} {{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "roxstock-$COMPONENT"

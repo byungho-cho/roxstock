@@ -64,7 +64,7 @@ jobs:
                 // Inspect filenames only; never checkout or execute PR code with write permissions.
                 const files = await github.paginate(github.rest.pulls.listFiles, {...context.repo, pull_number: number, per_page: 100});
                 const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
-                const needsDeployment = paths.some(path => !/\.md$/i.test(path) && /^(frontend\/|backend\/|database\/|infra\/|scripts\/deploy[^/]*\.sh$|package(-lock)?\.json$|compose[^/]*\.ya?ml$|\.dockerignore$|\.github\/workflows\/(production-deploy|backend-deploy|frontend-image)\.yml$)/.test(path));
+                const needsDeployment = paths.some(path => !/\.md$/i.test(path) && /^(frontend\/|backend\/|collector\/|shared\/|database\/|infra\/|scripts\/deploy[^/]*\.sh$|package(-lock)?\.json$|compose[^/]*\.ya?ml$|\.dockerignore$|\.github\/workflows\/(production-deploy|backend-deploy|collector-deploy|frontend-image)\.yml$)/.test(path));
                 if (!needsDeployment) {
                   core.notice('No application/deployment changes; production skipped for PR #' + number);
                   continue;

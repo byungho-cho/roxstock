@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { id } from '../lib/input.js';
-import { ApiError } from '../lib/api-error.js';
-import { consensusRatios, type AnnualConsensus } from '../collector/annual-consensus.js';
-import { getSeoulClock } from '../collector/time.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
+import { consensusRatios, type AnnualConsensus } from '@roxstock/shared/collection/consensus-math';
+import { getSeoulClock } from '@roxstock/shared/collection/time';
 export async function annualConsensusRoutes(app:FastifyInstance){
  app.get<{Params:{id:string};Querystring:{year?:string}}>('/securities/:id/annual-estimates',async request=>{
   const securityId=id(request.params.id,'id'),year=Number(request.query.year??getSeoulClock().dateKey.slice(0,4));

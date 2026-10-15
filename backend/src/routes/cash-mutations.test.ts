@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Prisma } from '../generated/prisma/index.js';
-import { prisma } from '../lib/prisma.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { buildApp } from '../app.js';
 const d=(v:number)=>new Prisma.Decimal(v);
 function fixture(type='DEPOSIT') {

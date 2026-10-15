@@ -1,4 +1,4 @@
-import {prisma} from '../lib/prisma.js';
+import {prisma} from '@roxstock/shared/lib/prisma';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import Fastify from 'fastify';

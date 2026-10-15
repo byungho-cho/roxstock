@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
+    "frontend",
     "backend",
-    "frontend"
+    "collector",
+    "shared"
   ],
   "scripts": {
     "dev:frontend": "npm --workspace frontend run dev",
@@ -13,9 +15,14 @@
     "dev:backend": "npm --workspace backend run dev",
     "build:backend": "npm --workspace backend run build",
     "typecheck:backend": "npm --workspace backend run typecheck",
-    "prisma:generate": "npm --workspace backend run prisma:generate",
-    "prisma:validate": "npm --workspace backend run prisma:validate",
-    "prisma:migrate:deploy": "npm --workspace backend run prisma:migrate:deploy",
-    "release:bump": "node scripts/release-version.mjs --bump"
+    "prisma:generate": "npm --workspace @roxstock/shared run prisma:generate",
+    "prisma:validate": "npm --workspace @roxstock/shared run prisma:validate",
+    "prisma:migrate:deploy": "npm --workspace @roxstock/shared run prisma:migrate:deploy",
+    "release:bump": "node scripts/release-version.mjs --bump",
+    "dev:collector": "npm --workspace collector run dev",
+    "build:collector": "npm --workspace collector run build",
+    "typecheck:collector": "npm --workspace collector run typecheck",
+    "build:shared": "npm --workspace @roxstock/shared run build",
+    "test:collector": "npm --workspace collector test"
   }
 }

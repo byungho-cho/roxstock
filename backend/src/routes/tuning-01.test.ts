@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { Prisma } from '../generated/prisma/index.js';
-import { PageCache } from '../domain/page-cache.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { Prisma } from '@roxstock/shared/prisma';
+import { PageCache } from '@roxstock/shared/domain/page-cache';
 import { stockTradeSummary } from './page-bootstrap.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 

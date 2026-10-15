@@ -1,7 +1,7 @@
 import { lockCashAccount } from './current-cash.js';
 import { createHash } from 'node:crypto';
-import { Prisma } from '../generated/prisma/index.js';
-import { ApiError } from '../lib/api-error.js';
+import { Prisma } from '@roxstock/shared/prisma';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { serializable } from '../lib/transaction.js';
 import { requireActiveAccount } from './classification.js';
 

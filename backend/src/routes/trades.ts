@@ -1,13 +1,13 @@
 import { readCurrentCash, requireCash } from '../domain/current-cash.js';
 import type { FastifyInstance } from 'fastify';
-import { Prisma } from '../generated/prisma/index.js';
+import { Prisma } from '@roxstock/shared/prisma';
 
 import { calculateBuyBalance, calculateRemainingQuantity, calculateSellBalance } from '../domain/trade.js';
 import { valueBuyLot } from '../domain/lot-valuation.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
-import { ApiError } from '../lib/api-error.js';
+import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, nonNegativeDecimal, optionalMemo, positiveDecimal } from '../lib/input.js';
-import { prisma } from '../lib/prisma.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
 import { serializable } from '../lib/transaction.js';
 import { registerTrade, requestId } from '../domain/trade-request.js';
 

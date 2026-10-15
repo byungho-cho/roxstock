@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildApp } from '../app.js';
-import { prisma } from '../lib/prisma.js';
-import { PrismaDartRepository } from '../collector/dart-repository.js';
+import { prisma } from '@roxstock/shared/lib/prisma';
+import { CollectionJobRepository as PrismaDartRepository } from '@roxstock/shared/collection/job-repository';
 
 test('manual refresh POST validates, queues once and GET cannot access another security request', async () => {
   const oldKey=process.env.DART_API_KEY; const oldEnabled=process.env.DART_COLLECTOR_ENABLED;
