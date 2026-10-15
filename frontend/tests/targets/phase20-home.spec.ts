@@ -2,7 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {fixture} from './phase3-fixture';
 // Phase26 intentionally lets the target card resize once its result is known; its loading/error/empty heights are checked in phase26.spec.ts.
 const cards=['home-total-card','home-quick-cards','asset-performance-card'];
-async function geometry(page:Page){const top=(await page.getByTestId('home-shell').boundingBox())!.y;return Promise.all(cards.map(async id=>{const b=(await page.getByTestId(id).boundingBox())!;return {id,height:b.height,top:b.y-top};}));}
+async function geometry(page:Page){let result:unknown;await expect.poll(async()=>{result=await page.evaluate(ids=>{const root=document.querySelector('[data-testid="home-shell"]');if(!root)return null;const top=root.getBoundingClientRect().y;const nodes=ids.map(id=>document.querySelector('[data-testid="'+id+'"]'));return nodes.every(Boolean)?nodes.map((node,i)=>({id:ids[i],height:node!.getBoundingClientRect().height,top:node!.getBoundingClientRect().y-top})):null;},cards);return result!==null;}).toBe(true);return result;}
 async function titles(page:Page){for(const name of ['평가자산','일별손익','주식평가액','예수금'])await expect(page.getByTestId('home-summary-area').getByText(name,{exact:true}).first()).toBeVisible();for(const id of ['asset-performance-card','home-holdings-card','target-arrival-card','recent-buys-card'])await expect(page.getByTestId(id).getByRole('heading')).toBeVisible();}
 test('account wait paints every home shell and label without fake results',async({page},info)=>{
  await fixture(page);let release!:()=>void;
@@ -10,7 +10,7 @@ test('account wait paints every home shell and label without fake results',async
  await page.goto('/');await expect(page.getByTestId('home-shell')).toBeVisible();await titles(page);
  await expect(page.getByTestId('home-shell')).not.toContainText('내용이 없습니다.');await expect(page.getByTestId('home-summary-area')).not.toContainText('0원');
  const before=await geometry(page);await expect(page.locator('[data-loading-indicator="visible"]')).not.toHaveCount(0);await page.screenshot({path:info.outputPath('home-partial-loading.png')});
- release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);
+ await expect.poll(()=>!!release).toBe(true);release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);
  await page.screenshot({path:info.outputPath('home-ready.png')});
 });
 test('chart and targets paint before slow dashboard; recent remains a titled shell until primary settles',async({page})=>{
@@ -21,7 +21,7 @@ test('chart and targets paint before slow dashboard; recent remains a titled she
 const p=new URL(r.request().url()).pathname;if(p!=='/api/version')reads.push(p);if(p.endsWith('/dashboard'))await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
  await page.goto('/');await titles(page);await expect(page.getByTestId('home-trend-card')).toHaveCount(0);await expect(page.getByTestId('target-arrival-card')).toContainText('0건');
  await expect(page.getByTestId('home-total-card')).toHaveAttribute('aria-busy','true');expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
- const before=await geometry(page);release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);
+ const before=await geometry(page);await expect.poll(()=>!!release).toBe(true);release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);
  // StrictMode can cancel the initial request, but this change adds no new API endpoints.
  expect([...new Set(reads.filter(p=>p.startsWith('/api/accounts/')).map(p=>p.split('/').at(-1)))] .sort()).toEqual(['dashboard','recent-buys','target-arrivals']);
  const count=reads.length;await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'더보기',exact:true}).click();await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(reads.length).toBe(count);await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);
@@ -32,7 +32,7 @@ test('obsolete home chart requests are removed without affecting recent rows',as
 test('empty results are displayed only after completion; five-row bodies remain reserved',async({page})=>{
  await fixture(page,{history:[]});let release!:()=>void;
  await page.route('**/api/accounts/*/dashboard',async r=>{await new Promise<void>(resolve=>{release=resolve;});return r.fulfill({json:{data:{account:{id:'1'},totalAssetValue:'0',stockValue:'0',cashBalance:'0',purchaseAmount:'0',pricingComplete:true,holdings:[]}}});});
- await page.goto('/');await expect(page.getByTestId('home-total-card')).toHaveAttribute('aria-busy','true');await expect(page.getByTestId('home-holdings-card')).not.toContainText('내용이 없습니다.');const before=await geometry(page);release();await expect(page.getByTestId('home-holdings-card')).toContainText('내용이 없습니다.');await expect(page.getByTestId('home-total-card')).toContainText('0원');expect(await geometry(page)).toEqual(before);
+ await page.goto('/');await expect(page.getByTestId('home-total-card')).toHaveAttribute('aria-busy','true');await expect(page.getByTestId('home-holdings-card')).not.toContainText('내용이 없습니다.');const before=await geometry(page);await expect.poll(()=>!!release).toBe(true);release();await expect(page.getByTestId('home-holdings-card')).toContainText('내용이 없습니다.');await expect(page.getByTestId('home-total-card')).toContainText('0원');expect(await geometry(page)).toEqual(before);
 });
 test('account change clears old values and a late response cannot replace the new account',async({page})=>{
  await fixture(page);await page.clock.install();await page.goto('/');await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);

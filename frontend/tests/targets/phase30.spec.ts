@@ -15,7 +15,7 @@ test('dashboard layout, shared periods, weights and single scroll',async({page},
  }else{
   await expect(card.getByTestId('asset-trend-chart')).toBeVisible();const t=(await card.getByTestId('dashboard-trend').boundingBox())!,d=(await card.getByTestId('asset-donut').boundingBox())!;expect(d.y+d.height).toBeLessThanOrEqual(t.y); const a=(await card.getByTestId('composition-amounts').boundingBox())!;expect(Math.abs(t.x-a.x)).toBeLessThan(1);expect(Math.abs(t.width-a.width)).toBeLessThan(1);
  }
- const chart=page.getByTestId('asset-trend-chart');await chart.scrollIntoViewIfNeeded();const svg=chart.locator('svg');await expect(svg).toHaveCSS('touch-action','pan-y');
+ const chart=page.getByTestId('asset-trend-chart');if(!tablet)await expect(chart).not.toHaveAttribute('data-point-count','0');await chart.scrollIntoViewIfNeeded();const svg=chart.locator('svg');await expect(svg).toHaveCSS('touch-action','pan-y');
  const r=(await svg.boundingBox())!,cdp=await page.context().newCDPSession(page),y=r.y+r.height/2;
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width*.2,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:r.x+r.width*.95,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  const tip=page.getByTestId('asset-trend-tooltip');await expect(tip).toBeVisible();const t=(await tip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);expect(t.y+t.height).toBeLessThanOrEqual(page.viewportSize()!.height);await page.screenshot({path:info.outputPath('dashboard-tooltip-after.png')});await page.keyboard.press('Escape');

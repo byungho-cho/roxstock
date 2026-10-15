@@ -27,7 +27,7 @@ export function AssetTrendChart({ points, height, dateMode = 'month', color = co
     setSelected(nearest?.date ?? null);
   };
   const point = points.find(p => p.date === selected);
-  return <Box data-no-detail-swipe data-no-pull-refresh data-testid="asset-trend-chart" sx={{ position: 'relative', minWidth: 0, mt: '7px' }}>
+  return <Box data-no-detail-swipe data-no-pull-refresh data-testid="asset-trend-chart" data-point-count={points.length} sx={{ position: 'relative', minWidth: 0, mt: '7px' }}>
     <Box ref={boundary} sx={{ height, position: 'relative' }}>
       <Box component="svg" role="img" aria-label="자산추이 · 날짜별 금액 조회" viewBox="0 0 340 104" preserveAspectRatio="none"
         onPointerDown={e => { gesture.current = { x: e.clientX, y: e.clientY, vertical: false }; selectAt(e); e.currentTarget.setPointerCapture(e.pointerId); }}
