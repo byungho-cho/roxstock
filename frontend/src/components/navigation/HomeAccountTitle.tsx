@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../common/QueryErrorNotice';
 import { Box, Button, ButtonBase, Dialog, IconButton, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { useMoreAccounts } from '../../hooks/useMoreAccounts';
@@ -18,7 +19,7 @@ export function HomeAccountTitle() {
         <IconButton aria-label="계좌 선택 닫기" onClick={() => void close()} sx={{p:0,fontSize:20,color:'#91a1b8'}}>×</IconButton>
       </Stack>
       <Stack spacing="8px" sx={{overflowY:'auto',minHeight:0}}>
-        {query.isError && <Button onClick={()=>void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>}
+        {query.isError && <QueryErrorNotice message="계좌 조회 실패 · 다시 시도" onRetry={()=>void query.refetch()}/>}
         {accounts.map(account => <ButtonBase key={account.id} onClick={async()=>{await close();void select(account.id);}} sx={{height:40,minHeight:40,px:'8px',gap:'4px',justifyContent:'space-between',borderRadius:'6px',bgcolor:account.id===selected?.id?'#1f385c':undefined}}>
           <Typography noWrap title={`${account.name}(${account.accountNumber || '—'})`} sx={{minWidth:0,fontSize:13,fontWeight:700,color:account.id===selected?.id?'#66abff':'#ebf0f7'}}>{account.name}({account.accountNumber || '—'})</Typography>
           {account.id===selected?.id && <Typography sx={{flexShrink:0,fontSize:11,fontWeight:700,color:'#33cc8c'}}>사용 중</Typography>}

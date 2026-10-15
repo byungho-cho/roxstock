@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {invalidatePortfolio} from '../../data/invalidatePortfolio';
 import { usePopupHistory } from '../../hooks/usePopupHistory';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
@@ -26,7 +27,7 @@ export function ValueIndicatorDialog({stock,onClose,navigationState}:{stock:Stoc
   <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',flexShrink:0}}><Typography id="value-popup-title" sx={{fontSize:16,fontWeight:600}}>가치지표</Typography><IconButton aria-label="가치지표 닫기" onClick={()=>void close()} sx={{p:0}}><Box component="img" src="/stocks-v03/close.svg" alt=""/></IconButton></Stack>
   <Stack direction="row" sx={{justifyContent:'space-between',alignItems:'center',flexShrink:0,gap:1,minHeight:24}}><Typography sx={{fontSize:14,fontWeight:500,overflowWrap:'anywhere'}}>{stock?.name} · {stock?.symbol}</Typography><Box sx={{border:'1px solid #FBBF2488',borderRadius:'6px',px:'6px',fontSize:10,color:'#FBBF24',whiteSpace:'nowrap'}}>W {format(data?.w??stock?.valuationW,2)}</Box></Stack>
   <Box data-testid="value-popup-body" tabIndex={0} aria-label="가치지표 본문" sx={{overflowY:'auto',minHeight:0,overscrollBehavior:'contain',display:'grid',gap:'8px'}}>
-   {query.isError&&<Button role="alert" onClick={()=>void query.refetch()}>가치지표 조회 실패 · 다시 시도</Button>}
+   {query.isError&&<QueryErrorNotice message="가치지표 조회 실패 · 다시 시도" onRetry={()=>void query.refetch()}/>}
    <FairPriceCard data={data??empty} compact/>
    {data?<ValuePopupCharts rows={data.rows}/>:<Typography role="status" sx={{fontSize:12,color:colors.textMuted,p:2}}>{query.isPending?'불러오는 중…':'재무 데이터 없음'}</Typography>}
   </Box>

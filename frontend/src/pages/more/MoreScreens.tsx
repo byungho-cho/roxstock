@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useMoreAccounts} from '../../hooks/useMoreAccounts';
 export {useMoreAccounts} from '../../hooks/useMoreAccounts';
@@ -54,7 +55,7 @@ export function useTargetAccount(){const state=useMoreAccounts();const [params]=
 export function AccountForm({ add }: { add: boolean }) {
   const { selected, query } = useTargetAccount();
   if (!add && query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
-  if (!add && query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (!add && query.isError && liveApiEnabled) return <QueryErrorNotice message="계좌 조회 실패 · 다시 시도" onRetry={() => void query.refetch()}/>;
   if (!add && !selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
   return <AccountFormContent key={add ? 'add' : selected!.id} add={add} />;
 }
@@ -101,7 +102,7 @@ function AccountFormContent({ add }: { add: boolean }) {
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', py: '8px' }}><Typography sx={{ fontSize: 13 }}>기본 계좌로 사용</Typography><ButtonBase role="switch" aria-label="기본 계좌로 사용" aria-checked={isDefault} disabled={saving || (!add && selected?.isDefault)} onClick={() => setDefault(!isDefault)} sx={{ width: 42, height: 24, borderRadius: '12px', bgcolor: '#334054', flexShrink: 0 }}>{isDefault ? <Box component="img" src="/settings-v03/switch-on.svg" alt="" /> : <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: 'white', position: 'absolute', left: 2 }} />}</ButtonBase></Stack>
     <Typography sx={hint}>계좌번호는 목록에서 일부만 표시됩니다.</Typography>
     {error && <Typography role="alert" sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere' }} color="error">{error}</Typography>}
-    {!add&&state.isError&&<Button role="alert" onClick={()=>void state.refetch()}>계좌 상태 조회 실패 · 다시 시도</Button>}
+    {!add&&state.isError&&<QueryErrorNotice message="계좌 상태 조회 실패 · 다시 시도" onRetry={()=>void state.refetch()}/>}
     <Stack direction="row" spacing="8px">{!add&&<Button variant="contained" sx={{flex:1,height:42,bgcolor:'#EF4444',color:'#fff'}} disabled={saving||!liveApiEnabled||state.isPending||state.isError||!state.data||state.isFetching} onClick={()=>state.data?.hasData?navigate('/detail/settings?view=reset&accountId='+selected!.id):setConfirmDelete(true)}>{state.data?.hasData?'데이터 초기화':state.data?'계좌 삭제':'상태 확인 중'}</Button>}
     <Button type="submit" variant="contained" disabled={!name.trim()||!broker.trim()||!number.replace(/[\s-]/g,'')||saving||(!add&&!selected)} sx={{height:42,flex:1,bgcolor:colors.buttonPrimary,color:'#fff'}}>{saving?'처리 중…':add?'추가':'변경'}</Button></Stack>
     <Dialog open={confirmDelete} onClose={()=>{if(!busy.current)setConfirmDelete(false)}} aria-labelledby="delete-account-title" slotProps={{backdrop:{sx:{bgcolor:'rgba(0,0,0,.6)'}},paper:{sx:{width:306,maxWidth:'calc(100vw - 64px)',m:0,p:'20px 16px',borderRadius:'8px',bgcolor:colors.surface,backgroundImage:'none'}}}}>
@@ -115,7 +116,7 @@ export function CashAdjustment() {
   const navigate = useNavigate();
   const { selected, query } = useMoreAccounts();
   if (query.isPending && liveApiEnabled) return <Skeleton height={80}/>;
-  if (query.isError && liveApiEnabled) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (query.isError && liveApiEnabled) return <QueryErrorNotice message="계좌 조회 실패 · 다시 시도" onRetry={() => void query.refetch()}/>;
   if (!selected) return <Typography role="status" sx={hint}>계좌를 선택해 주세요.</Typography>;
   if (liveApiEnabled) return <Stack spacing="14px"><Typography sx={hint}>현재예수금은 최신 등록 내역의 세후예수금입니다. 예수금 화면의 현재예수금 카드를 눌러 해당 내역을 수정해 주세요.</Typography><Button variant="contained" onClick={() => navigate('/detail/cash')}>예수금 내역 편집으로 이동</Button></Stack>;
   return <CashAdjustmentContent key={selected.id} />;
@@ -137,7 +138,7 @@ function CashAdjustmentContent() {
     finally { setSaving(false); }
   };
   if (liveApiEnabled && query.isPending) return <LabelledCard title="계좌 정보"><Skeleton height={80}/></LabelledCard>;
-  if (liveApiEnabled && query.isError) return <Button role="alert" onClick={() => void query.refetch()}>계좌 조회 실패 · 다시 시도</Button>;
+  if (liveApiEnabled && query.isError) return <QueryErrorNotice message="계좌 조회 실패 · 다시 시도" onRetry={() => void query.refetch()}/>;
   if (liveApiEnabled && !selected) return <Typography role="status">선택된 계좌가 없습니다.</Typography>;
   return <Stack spacing="14px" component="form" onSubmit={event => { event.preventDefault(); void submit(); }}>
     <NumberField size="small" clearIconSrc="/settings-v03/clear.svg" label="현재 예수금" value={base} onChange={() => {}} readOnly suffix="원" />
@@ -162,7 +163,7 @@ export function CollectionSettings() {
     <LabelledCard><Stack spacing="14px">
       {[['수집 상태', feature ? labels[feature.status] ?? '상태 미확인' : monitor.isPending ? '조회 중' : '미수집'], ['마지막 시도', dateLabel(feature?.lastAttemptAt)], ['마지막 성공', dateLabel(feature?.lastSuccessAt)], ['다음 수집', dateLabel(feature?.nextAt)], ['수집 실패', feature?.recent.failed != null ? feature.recent.failed + '건' : '—']].map(([label,value]) => <Stack key={label} direction="row" sx={{ justifyContent: 'space-between', gap: '8px' }}><Typography sx={hint}>{label}</Typography><Typography sx={{ fontSize: 12, textAlign: 'right', overflowWrap: 'anywhere', minWidth: 0 }}>{value}</Typography></Stack>)}
     </Stack>
-    {(monitor.isError || status.isError) && <Button role="alert" onClick={() => { void monitor.refetch(); void status.refetch(); }}>수집 상태 조회 실패 · 다시 시도</Button>}
+    {(monitor.isError || status.isError) && <QueryErrorNotice message="수집 상태 조회 실패 · 다시 시도" onRetry={() => { void monitor.refetch(); void status.refetch(); }}/>}
     </LabelledCard>
     <LabelledCard title="자동 수집">
       <Typography sx={{ ...hint, mt: '12px', textAlign: 'right' }}>{feature?.schedule ?? '수집 일정 미수집'}</Typography>

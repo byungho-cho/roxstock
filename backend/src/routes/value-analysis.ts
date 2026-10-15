@@ -4,7 +4,7 @@ import {selectValueListAnalysis,orderValueGroups,shareholderTotals} from '@roxst
 import {securityCacheRevision} from '../domain/security-cache-revision.js';
 import {selectStoredAnalysis,storedAnalysisInclude} from '@roxstock/shared/domain/stored-analysis';
 import { hasInitialQuery, matchesStockSearch } from '@roxstock/shared/domain/stock-search';
-import {displayShares} from '@roxstock/shared/domain/share-counts';
+import {latestStoredDisplayShares} from '@roxstock/shared/domain/share-counts';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@roxstock/shared/prisma';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -12,7 +12,7 @@ import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
 import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '@roxstock/shared/domain/value-analysis';
 
-type Query = { year?: string; query?: string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string; sorts?:string; compact?:string };
+type Query = { year?: string; query?: string; market?:string; mode?: string; startYear?: string; startQuarter?: string; count?: string; shareClass?: string; sorts?:string; compact?:string; offset?:string;limit?:string };
 const currentYear = (now=new Date()) => Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now).slice(0, 4));
 function integer(value: string | undefined, fallback: number, min: number, max: number, name: string) {
   if (value === undefined) return fallback;
@@ -24,12 +24,16 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
   app.get<{ Querystring: Query }>('/value-analysis', async request => {
     const year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
     const query = request.query.query?.trim() ?? '';
+    const market=request.query.market;
+    if(market!==undefined&&!['KOSPI','KOSDAQ'].includes(market))throw new ApiError(400,'INVALID_INPUT','시장을 확인해 주세요.');
     if (query.length > 100) throw new ApiError(400, 'INVALID_INPUT', 'query is too long.');
     let sorts;try{sorts=parseAnalysisSort(request.query.sorts);}catch{throw new ApiError(400,'INVALID_INPUT','정렬 조건을 확인해 주세요.');}
-    const result=await app.valueReadModel.get(year,{query});
+    const limit=request.query.limit===undefined?undefined:integer(request.query.limit,20,1,10000,'limit');
+    const offset=integer(request.query.offset,0,0,100000,'offset');
+    const result=await app.valueReadModel.get(year,{query,...(market?{market:market as 'KOSPI'|'KOSDAQ'}:{})});
     if(request.query.compact!==undefined&&request.query.compact!=='1')throw new ApiError(400,'INVALID_INPUT','compact is invalid.');
-    const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query)),sorts);
-    return {data:{rows,total:rows.length,year,query,sorts,cache:result.meta,timezone:'Asia/Seoul',metricBasis:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL'}};
+    const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>(!market||row.market===market)&&(!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query))),sorts);
+    return {data:{rows:limit===undefined?rows:rows.slice(offset,offset+limit),total:rows.length,...(limit===undefined||offset!==0?{}:{navigation:rows.map(({id,name,symbol})=>({id,name,symbol}))}),year,query,...(market?{market}:{}),sorts,cache:result.meta,timezone:'Asia/Seoul',metricBasis:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL'}};
   });
   app.get<{ Params: { id: string }; Querystring: Query }>('/value-analysis/:id', async request => {
     const securityId = id(request.params.id, 'id'), year = integer(request.query.year, currentYear(), 2015, currentYear(), 'year');
@@ -53,17 +57,18 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
         tx.valuationMetric.findMany({ where: { securityId, metricDate: { gte: new Date(Date.UTC(fromYear, 0, 1)), lt: new Date(Date.UTC(toYear + 1, 0, 1)) } }, orderBy: { metricDate: 'desc' } }),
       ]);
       const calculated=await tx.periodValuation.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}}});
-      const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:{gte:year-1,lte:year}}});
+      const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:{lte:year},shareClass,OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc'},{receiptNo:'desc'}],take:2});
       const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}});
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
       const price=cachedRow?cachedRow.currentPrice:security.marketPrice?.currentPrice.toString()??null;
       const analysis=selectValueListAnalysis({year,price,metrics,periods:calculated,manual,filings});
       const metric=cachedRow?cachedRow.valuation:analysis.metric,rimRow=calculated.find(row=>row.fiscalYear===analysis.metricBasis.year&&row.periodType===(analysis.dataPriority===1?'ESTIMATE':'ANNUAL'));
       const rim=cachedRow?{excessEarnings:cachedRow.excessEarnings,shareholderValue:cachedRow.shareholderValue,rimReason:cachedRow.rimReason,rimBasis:cachedRow.rimBasis,rimComparison:cachedRow.rimComparison}:shareholderTotals(metric,rimRow,filings),shareYear=cachedRow?.metricBasis.year??analysis.metricBasis.year??year;
+      const displayedShares=latestStoredDisplayShares(shareRows,filings,year,shareClass);
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: cachedRow?cachedRow.previousClosePrice:security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: cachedRow?cachedRow.priceUpdatedAt:security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
-        ...displayShares(shareRows,filings.filter(f=>f.periodType==='ANNUAL'),shareYear,shareClass),
-        ...rim,shareMissingReason:displayShares(shareRows,filings.filter(f=>f.periodType==='ANNUAL'),shareYear,shareClass).issuedShares===null?'해당 연도·보고기간·주식 종류의 동일 공시 주식수 저장값이 없습니다.':null,
+        ...displayedShares,
+        ...rim,shareMissingReason:displayedShares.issuedShares===null?'해당 연도·보고기간·주식 종류의 동일 공시 주식수 저장값이 없습니다.':null,
         year, metricBasis:cachedRow?.metricBasis??analysis.metricBasis, valuation: metric, w: cachedRow?cachedRow.w:weight(metric, price), fairPrices: cachedRow?cachedRow.fairPrices:['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null,equityBasis:annual?{year:annual.fiscalYear,source:annual.basis,attribution:'TOTAL_EQUITY',collectedAt:annual.collectedAt}:null, closingDate: annual?.periodEndDate ?? null,
         rows: financialRows(selected, statements, metrics,calculated).map(row=>{const task=tasks.find(t=>t.fiscalYear===row.year&&t.periodType===(row.quarter===null?'ANNUAL':'Q'+row.quarter));return {...row,availability:security.listingYear&&row.year<security.listingYear?'PRE_LISTING':row.source?'STORED':task?.status==='NO_FILING'?'NO_FILING':task?.status==='FAILED'?'FAILED':'NOT_COLLECTED'};}), mode, startYear, startQuarter: quarter, count,

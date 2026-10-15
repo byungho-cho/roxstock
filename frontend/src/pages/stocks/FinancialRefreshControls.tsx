@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import {ActionButton} from '../../components/common/Common';
 import { Alert, Box, Button, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography, CircularProgress, Snackbar } from '@mui/material';
@@ -81,8 +82,8 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <Typography sx={{fontSize:11,color:'text.secondary'}}>현재 종목만 갱신합니다. 실패·미공시 자료는 기존 데이터를 유지합니다.</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>저장 데이터 수집 시각: {collectedAt?new Date(collectedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미수집'}</Typography>
     {mutation.isError&&<Alert severity="error">{mutation.error instanceof ApiError?mutation.error.message:errorText()}</Alert>}
-    {active.isError&&<Alert severity="warning">진행 작업 확인에 실패했습니다. 서버 상태를 다시 확인합니다.<Button onClick={()=>void active.refetch().then(result=>{if(!result.isError)setUncertain(false);})}>상태 다시 확인</Button></Alert>}
-    {status.isError&&<Alert severity="warning">진행 상태 조회 오류 · 작업 종료 여부를 확인 중입니다.<Button size="small" onClick={()=>void status.refetch()}>상태 다시 확인</Button></Alert>}
+    {active.isError&&<QueryErrorNotice message="진행 작업 확인에 실패했습니다. 서버 상태를 다시 확인해 주세요." onRetry={()=>void active.refetch().then(result=>{if(!result.isError)setUncertain(false);})}/>}
+    {status.isError&&<QueryErrorNotice message="진행 상태 조회에 실패했습니다. 작업 종료 여부를 다시 확인해 주세요." onRetry={()=>void status.refetch()}/>}
     {finished?.terminalCode&&<Alert severity="warning">시간 제한으로 작업이 종료되었습니다. 기존 데이터는 유지했습니다.</Alert>}
     {finished&&<Alert severity={outcome==='실패'?'error':outcome==='완료'?'success':'warning'}>
       <Typography sx={{fontSize:12}}>{finished.startYear??finished.fiscalYear}–{finished.endYear??finished.fiscalYear}년 · {outcome}</Typography>

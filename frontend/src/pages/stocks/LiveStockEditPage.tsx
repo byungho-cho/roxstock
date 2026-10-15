@@ -1,3 +1,4 @@
+import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { Button, Stack, TextField, Typography } from '@mui/material';
@@ -56,7 +57,7 @@ function AccountStockEdit() {
   };
   return <Stack spacing={1.5} sx={{ pb: 2 }}>
     <PageHeader embedded showAdd={false} title="종목 정보 수정" subtitle={data?.security.name} onBack={() => navigate(-1)} />
-    {isError && !data ? <Button onClick={() => void refetch()}>조회 실패 · 다시 시도</Button> : isPending || valuesFor !== stockId ? <Stack role="status" aria-label="종목 정보를 불러오는 중"><Skeleton variant="rounded" height={52} /><Skeleton variant="rounded" height={52} /><Skeleton variant="rounded" height={52} /></Stack> : <>
+    {isError && !data ? <QueryErrorNotice message="조회 실패 · 다시 시도" onRetry={() => void refetch()}/> : isPending || valuesFor !== stockId ? <Stack role="status" aria-label="종목 정보를 불러오는 중"><Skeleton variant="rounded" height={52} /><Skeleton variant="rounded" height={52} /><Skeleton variant="rounded" height={52} /></Stack> : <>
       <Typography sx={{ fontSize: 11, color: colors.textMuted }}>직접 입력한 값은 최근 연간 재무 정보와 계산 기초 데이터로 저장됩니다. 데이터가 없으면 빈칸으로 표시됩니다.</Typography>
       {fields.map(([key, label, unit]) => <TextField key={key} size="small" label={label} value={values[key] ?? ''} onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value.replace(/[^0-9]/g, '') }))} slotProps={{ htmlInput: { inputMode: 'numeric' } }} helperText={unit} />)}
       {data?.security.watchlistItemId && <TextField label="메모" value={values.memo ?? ''} onChange={(event) => setValues((current) => ({ ...current, memo: event.target.value.slice(0, 500) }))} multiline minRows={3} />}
