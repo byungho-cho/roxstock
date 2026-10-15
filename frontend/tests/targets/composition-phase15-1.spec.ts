@@ -36,12 +36,12 @@ for(const [ratio,stockShade,cashShade] of cases) test(`cash ${ratio}%: fixed tex
    if(path==='/'){ 
     for(const [name,value,color] of [['주식평가액',(100-ratio)*10000,stockColor],['예수금',ratio*10000,cashColor]] as const)await expect(quick(page,name).getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true})).toHaveCSS('color',`rgb(${color})`);
     await expect(quick(page,'주식평가액').getByText(`${(100-ratio).toFixed(1)}%`,{exact:true})).toHaveCSS('color',`rgb(${stockColor})`);await expect(quick(page,'예수금').getByText(`${ratio.toFixed(1)}%`,{exact:true})).toHaveCSS('color',`rgb(${cashColor})`);
-    if(path==='/detail/assets')await barCheck(page.getByTestId('asset-composition-card').getByRole('img',{name:/^주식 /}),ratio,stockShade,cashShade);
+    if(path==='/detail/assets')await barCheck(page.getByTestId('asset-composition-card').getByRole('button',{name:/^홈 보기 · 주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/detail/assets'){
     const card=page.getByTestId('asset-composition-card');
     for(const [value,color,index] of [[(100-ratio)*10000,stockColor,0],[ratio*10000,cashColor,1]] as const){const values=card.getByTestId('composition-amounts').getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
     for(const [value,color,index] of [[100-ratio,stockColor,0],[ratio,cashColor,1]] as const){const values=card.getByText(`${value.toFixed(1)}%`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
-    await barCheck(card.getByRole('img',{name:/^주식 /}),ratio,stockShade,cashShade);
+    await barCheck(card.getByRole('button',{name:/^홈 보기 · 주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/assets'){
     const card=page.getByTestId('analysis-composition');
     for(const id of ['composition-amounts','composition-ratios']){await expect(card.getByTestId(id).locator(':scope > *').first()).toHaveCSS('color',`rgb(${stockColor})`);await expect(card.getByTestId(id).locator(':scope > *').last()).toHaveCSS('color',`rgb(${cashColor})`);}
