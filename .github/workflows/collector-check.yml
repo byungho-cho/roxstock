@@ -18,7 +18,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci_phase16_test
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: ci_phase16_test
+          MARIADB_USER: ci
+          MARIADB_PASSWORD: ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,6 +39,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prisma:generate
+      - run: npm run prisma:migrate:deploy
+      - name: Collector DB storage, leases and durable manual queue compatibility
+        run: |
+          node --import tsx --test --test-concurrency=1 collector/tests/realtime-lifecycle.integration.ts collector/tests/independent-supplement.integration.ts backend/tests/manual-collector.integration.ts backend/tests/manual-independent.integration.ts
+      - name: DART receipt storage and recovery in a separate fixture database
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_dart_recovery_test
+        run: |
+          node --import tsx backend/tests/prepare-dart-recovery.ts
+          node --import tsx --test --test-concurrency=1 collector/tests/dart-recovery.integration.ts collector/tests/dart-source-validation.integration.ts
       - run: npm run typecheck:collector && npm run build:collector
       - run: npm --workspace shared test && npm --workspace collector test
       - run: node --test scripts/tests/service-boundaries.test.mjs scripts/tests/deployment-scope.test.mjs

@@ -11,8 +11,10 @@ docker run --rm --network none --entrypoint sh "$image" -c '
 cleanup() { docker rm -f collector-entry-smoke >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 for entry in worker realtime-worker dart-worker; do
-  docker run -d --name collector-entry-smoke --network none \
-    -e DATABASE_URL=mysql://smoke:smoke@127.0.0.1:3306/smoke \
+  docker run -d --name collector-entry-smoke --network host \
+    -e DATABASE_URL="${DATABASE_URL:?isolated verification DB required}" \
+    -e COLLECTOR_PRICE_PROVIDER=mock -e COLLECTOR_SECURITY_MASTER_HOUR=23 \
+    -e COLLECTOR_PRICE_COLLECTION_HOUR=23 -e COLLECTOR_SNAPSHOT_HOURS=23 \
     -e COLLECTOR_REALTIME_ENABLED=false -e DART_COLLECTOR_ENABLED=false \
     "$image" node "collector/dist/$entry.js"
   sleep 3

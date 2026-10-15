@@ -1,4 +1,6 @@
-# Backend and collector
+API 실행 코드는 이 디렉터리, 수집 실행·설정·테스트는 [`collector/`](../collector/README.md), 공통 DB·계산은 [`shared/`](../shared/README.md)에 있습니다. 최신 빌드·배포·롤백 절차는 [서비스 분리 운영 문서](../docs/collector-service-split.md)를 따릅니다. 아래 수집 정책 설명은 기존 정책을 보존한 참고입니다.
+
+# Backend API
 
 Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수집기입니다. 두 프로세스는 Prisma 연결과 타입만 공유하며 운영 Compose에서는 \`backend\`, \`collector\` 서비스로 분리됩니다. 수집기 장애나 재시작은 API 컨테이너에 영향을 주지 않습니다.
 
@@ -48,7 +50,7 @@ npm --workspace backend run dev
 
 # 다른 터미널
 export COLLECTOR_INTERNAL_TOKEN='replace-with-the-same-value'
-npm --workspace backend run collector:realtime
+npm --workspace collector run collector:realtime
 \`\`\`
 
 주요 환경변수는 다음과 같습니다.
@@ -106,22 +108,22 @@ npm --workspace backend run prisma:migrate:deploy
 npm --workspace backend run dev
 
 # 스케줄러
-npm --workspace backend run collector
+npm --workspace collector run collector
 
 # 장중 실시간 수집기
-npm --workspace backend run collector:realtime
+npm --workspace collector run collector:realtime
 
 # 수동 1회 실행
-npm --workspace backend run collector:once:securities
-npm --workspace backend run collector:once:prices
-npm --workspace backend run collector:once:snapshots
-npm --workspace backend run collector:once
+npm --workspace collector run collector:once:securities
+npm --workspace collector run collector:once:prices
+npm --workspace collector run collector:once:snapshots
+npm --workspace collector run collector:once
 \`\`\`
 
 실제 가격 원천을 소수 종목으로 먼저 확인할 때는 종목코드를 쉼표로 구분해 전달합니다. 종목코드를 생략하면 활성 종목 전체를 수집합니다.
 
 \`\`\`bash
-npm --workspace backend exec -- tsx src/collector/worker.ts prices 005930,005380
+npm --workspace collector exec -- tsx src/worker.ts prices 005930,005380
 \`\`\`
 
 스케줄은 \`Asia/Seoul\` 기준입니다. 가격은 기본 매일 20시에 한 번 수집하고 계좌 스냅샷은 23시에 생성합니다. 일부 종목 실패는 실패 종목만 즉시 한 번 재시도하고, 전체 원천 장애는 기본 60분 뒤 전체를 한 번 재시도합니다. 전 종목이 휴장·미갱신 데이터이면 \`SKIPPED\`로 기록하고 재시도하지 않습니다. \`COLLECTOR_PRICE_COLLECTION_HOUR\`, \`COLLECTOR_PRICE_RETRY_DELAY_MINUTES\`, \`COLLECTOR_SNAPSHOT_HOURS\`로 조정할 수 있습니다.
@@ -130,9 +132,9 @@ npm --workspace backend exec -- tsx src/collector/worker.ts prices 005930,005380
 
 \`\`\`bash
 cd /opt/roxstock
-BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
-  run --rm --no-deps collector node backend/dist/collector/worker.js securities
+  run --rm --no-deps collector node collector/dist/worker.js securities
 \`\`\`
 
 키 자체는 로그·명령행·Git에 출력하지 않습니다. 결과는 \`collector_runs\`의 \`job_type=security-master\`와 대응 \`collector_run_items\`에서 확인합니다.
@@ -149,18 +151,18 @@ docker inspect --format='{{.State.Health.Status}}' roxstock-collector
 
 # 운영 서버에서 수동 재실행 (스케줄러와 DB 락 공유)
 cd /opt/roxstock
-BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
-  run --rm --no-deps collector node backend/dist/collector/worker.js prices
+  run --rm --no-deps collector node collector/dist/worker.js prices
 \`\`\`
 
 운영 서버에서 삼성전자와 현대차만 먼저 검증하려면 다음처럼 마지막 인수에 종목코드를 지정합니다.
 
 \`\`\`bash
 cd /opt/roxstock
-BACKEND_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
+COLLECTOR_IMAGE_TAG="$(docker inspect --format='{{.Config.Image}}' roxstock-backend | sed 's/.*://')" \
   docker compose --project-name roxstock-backend -f infra/docker/compose.prod-backend.yml \
-  run --rm --no-deps collector node backend/dist/collector/worker.js prices 005930,005380
+  run --rm --no-deps collector node collector/dist/worker.js prices 005930,005380
 \`\`\`
 
 실패·0원·빈 응답은 \`market_prices\`에 쓰지 않으므로 마지막 정상 가격이 유지됩니다. 수동 수정 가격도 다음 정상 수집 성공 시에만 갱신됩니다.

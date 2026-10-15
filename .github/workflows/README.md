@@ -44,3 +44,5 @@
 `frontend-image.yml`, `backend-deploy.yml`, `compound-deployment-check.yml`, `value-deployment-check.yml`은 main push를 제거하고 **workflow_dispatch만 허용**한다. 이 변경의 main 병합은 GitHub 코드 반영이며 운영 배포가 아니다. 후속 명시 요청 전까지 수동 dispatch, 과거 배포 run 재실행, 이미지 빌드/푸시, 서버 배포를 수행하지 않는다. Actions 한도·결제 설정은 변경하지 않는다.
 
 이번 제스처 작업은 로컬 TypeScript/빌드 및 격리된 변경 기능 검사로 확인하고 `[skip ci]` 커밋으로 반영한다. 기존 CI 미실행을 검사 통과로 간주하지 않는다. 로컬 실행 명령은 `frontend/playwright.gestures.config.ts`를 사용하며 종합 회귀/Figma QA는 범위 밖이다.
+
+최신 API·수집기 독립 빌드/변경 감지/배포/롤백은 [서비스 분리 운영 문서](../../docs/collector-service-split.md)를 따릅니다.

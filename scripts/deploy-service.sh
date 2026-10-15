@@ -4,8 +4,11 @@ set -Eeuo pipefail
 ROLE="${1:-}"
 TAG="${2:-}"
 [[ "$ROLE" =~ ^(backend|collector)$ && "$TAG" =~ ^sha-[0-9a-f]{40}$ ]] || exit 2
+[[ "${ROXSTOCK_DEPLOY_LOCKED:-}" == true ]] || { echo 'Use the locked production component wrapper'; exit 2; }
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE_DIR="${ROXSTOCK_STATE_DIR:-/opt/roxstock/.deploy}"
+exec 9>"$STATE_DIR/$ROLE-deploy.lock"
+flock -n 9 || { echo "Another $ROLE deployment is running"; exit 1; }
 COMPOSE=(docker compose --project-name roxstock-backend --file "$PROJECT_DIR/infra/docker/compose.prod-backend.yml")
 export BACKEND_IMAGE="$(docker inspect --format '{{.Config.Image}}' roxstock-backend)"
 export COLLECTOR_IMAGE="$(docker inspect --format '{{.Config.Image}}' roxstock-collector)"
@@ -29,6 +32,8 @@ install -d -m 700 "$record"
 umask 077
 "${COMPOSE[@]}" config > "$record/compose.yml"
 cp "$PROJECT_DIR/infra/docker/compose.prod-backend.yml" "$record/compose-template.yml"
+# Includes the actual pre-deployment commands, mounts and environment, server-local only.
+docker inspect roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector > "$record/before-containers.json"
 for s in backend collector realtime-collector dart-collector; do
   docker inspect --format '{{.Name}} {{.Config.Image}} {{.Image}} {{.Id}} {{.State.StartedAt}}' "roxstock-$s" >> "$record/before.txt"
 done
@@ -38,6 +43,13 @@ for s in "${services[@]}"; do
   [[ "$image" =~ ^newrox/roxstock-(backend|collector):sha-[0-9a-f]{7,40}$ ]] || { echo 'Previous image is not immutable'; exit 1; }
   printf '%s %s\n' "$s" "$image" >> "$record/previous-images.txt"
 done
+already=true
+for s in "${services[@]}"; do
+  expected="$BACKEND_IMAGE"; [[ "$ROLE" == backend ]] || expected="$COLLECTOR_IMAGE"
+  actual="$(docker inspect --format '{{.Config.Image}} {{.State.Health.Status}}' "roxstock-$s")"
+  [[ "$actual" == "$expected healthy" ]] || already=false
+done
+if [[ "$already" == true ]]; then echo "Healthy $ROLE already at $TAG; duplicate recreation skipped"; exit 0; fi
 "${COMPOSE[@]}" pull "${services[@]}"
 if [[ "$ROLE" == backend && ! -f "$STATE_DIR/migrated-$TAG" ]]; then
   # Backup is performed by the locked wrapper before reaching this point.

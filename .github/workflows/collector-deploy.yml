@@ -36,7 +36,7 @@ jobs:
       - run: npm run prisma:validate
       - run: npm run prisma:generate
       - run: npm --workspace collector run typecheck
-      - run: npm --workspace collector test
+      - run: npm --workspace shared test && npm --workspace collector test
 
   build:
     name: Collector Build
@@ -60,6 +60,20 @@ jobs:
     name: Collector Docker Build
     needs: build
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: ci
+          MARIADB_USER: ci
+          MARIADB_PASSWORD: ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
     outputs:
       image_tag: ${{ steps.image.outputs.tag }}
     steps:
@@ -81,6 +95,12 @@ jobs:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/roxstock-collector
           tags: |
             type=raw,value=sha-${{ env.TARGET_SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --workspace shared
+      - run: npm run prisma:generate && npm run prisma:migrate:deploy
       - name: Smoke test production collector image
         shell: bash
         run: |

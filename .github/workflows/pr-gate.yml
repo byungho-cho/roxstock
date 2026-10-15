@@ -14,16 +14,16 @@ jobs:
       backend: ${{ steps.scope.outputs.backend }}
       collector: ${{ steps.scope.outputs.collector }}
     steps:
-      - uses: actions/github-script@v7
-        id: scope
+      - uses: actions/checkout@v4
         with:
-          script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {...context.repo, pull_number: context.issue.number, per_page: 100});
-            const paths = files.flatMap(f => [f.filename,f.previous_filename].filter(Boolean));
-            const shared = paths.some(p => /^(\.github\/workflows\/|scripts\/deploy|package(-lock)?\.json$)/.test(p));
-            core.setOutput('frontend', String(shared || paths.some(p => p.startsWith('frontend/'))));
-            core.setOutput('collector', String(shared || paths.some(p => /^(collector\/|shared\/|database\/|infra\/docker\/)/.test(p))));
-            core.setOutput('backend', String(shared || paths.some(p => /^(backend\/|shared\/|database\/|infra\/docker\/)/.test(p))));
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node --input-type=module -e 'import {compareScope} from "./scripts/deployment-scope.mjs"; for(const [k,v] of Object.entries(compareScope(process.env.BASE_SHA,process.env.HEAD_SHA))) console.log(k+"="+v)' >> "$GITHUB_OUTPUT"
   frontend:
     needs: scope
     if: needs.scope.outputs.frontend == 'true'
@@ -51,8 +51,9 @@ jobs:
       - name: Validate workflows and deployment shell
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color -shellcheck=
-          node --test scripts/tests/pr-auto-merge.test.mjs scripts/tests/deployment-scope.test.mjs
-          bash -n scripts/deploy*.sh scripts/smoke-collector-image.sh
+          node --test scripts/tests/pr-auto-merge.test.mjs scripts/tests/deployment-scope.test.mjs scripts/tests/service-deploy.test.mjs
+          python3 -m unittest discover -s scripts/tests -p 'test_deploy.py'
+          bash -n scripts/deploy*.sh scripts/smoke-collector-image.sh scripts/rollback-production-component.sh
   gate:
     name: PR Gate
     if: always()

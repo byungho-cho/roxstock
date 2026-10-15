@@ -15,6 +15,7 @@ SOURCE_TREE=/opt/roxstock
 mkdir -p "$SOURCE_TREE/.deploy"
 exec 8>"$SOURCE_TREE/.deploy/production.lock"
 flock -w 1200 8
+export ROXSTOCK_DEPLOY_LOCKED=true
 git -C "$SOURCE_TREE" fetch origin main
 LATEST="$(git -C "$SOURCE_TREE" rev-parse origin/main)"
 if ! deployment_revision_allowed "$SOURCE_TREE" "$SHA" "$LATEST"; then
