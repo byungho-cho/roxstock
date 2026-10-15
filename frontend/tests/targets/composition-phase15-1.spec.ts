@@ -61,7 +61,7 @@ test('unknown prices and zero denominator preserve amounts; valid zero stays dis
  const state=await fixture(page);state.missing=true;
  for(const path of ['/','/detail/assets','/assets','/detail/cash','/detail/settings?view=account']){
   await page.goto(path);
-  const value=path==='/assets'?page.getByTestId('composition-amounts').getByText('220,000원'):path==='/detail/assets'?page.getByTestId('asset-composition-card').getByText('220,000원 · —'):path==='/detail/cash'?page.getByTestId('cash-balance-value'):path.includes('settings')?page.getByTestId('account-card-1').getByTestId('account-cash'):quick(page,'예수금').getByText('220,000원',{exact:true});
+  const value=path==='/assets'?page.getByTestId('composition-amounts').getByText('220,000원'):path==='/detail/assets'?page.getByTestId('asset-composition-card').getByTestId('composition-amounts').getByText('220,000원',{exact:true}):path==='/detail/cash'?page.getByTestId('cash-balance-value'):path.includes('settings')?page.getByTestId('account-card-1').getByTestId('account-cash'):quick(page,'예수금').getByText('220,000원',{exact:true});
   await expect(value).toHaveCSS('color','rgb(148, 163, 184)');await expect(value).toContainText('220,000원');
   if(path==='/assets'){await expect(page.getByTestId('composition-ratios')).toHaveText('——');await expect(page.getByTestId('analysis-composition').getByRole('status')).toContainText('계산 불가');await page.getByTestId('analysis-composition').screenshot({path:`test-results/phase15/unknown-${info.project.name}.png`});}
  }
