@@ -18,7 +18,7 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: |
-          git worktree add --detach phase28-baseline 9a933a0
+          git worktree add --detach phase28-baseline f2c100032e38596c67765a6cc24dedc2d37b93c7
           ln -s ../node_modules phase28-baseline/node_modules
           ln -s ../../frontend/node_modules phase28-baseline/frontend/node_modules
           VITE_DATA_SOURCE=api npm --prefix phase28-baseline/frontend run build

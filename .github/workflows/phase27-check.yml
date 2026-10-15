@@ -40,7 +40,7 @@ jobs:
       - run: node --import tsx --test frontend/tests/unit/circularNeighbors.test.ts
       - name: Build pre-change production baseline
         run: |
-          git worktree add --detach phase27-baseline 258ee8d06db93d171d6ed71504f5dc9198f4daae
+          git worktree add --detach phase27-baseline 308239a343159d686fb12879609256638289ed5f
           ln -s ../node_modules phase27-baseline/node_modules
           ln -s ../../frontend/node_modules phase27-baseline/frontend/node_modules
           VITE_DATA_SOURCE=api npm --prefix phase27-baseline/frontend run build

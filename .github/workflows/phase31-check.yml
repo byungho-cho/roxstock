@@ -18,8 +18,8 @@ jobs:
       - run: npm ci
       - run: node scripts/release-version.mjs
       - run: |
-          git fetch --no-tags origin 4b850e5fd4080afa01fd98dd903c728f1a3a827f
-          git worktree add --detach phase31-baseline 4b850e5fd4080afa01fd98dd903c728f1a3a827f
+          git fetch --no-tags origin c5e25d086c1415f10207968cc87a2a86dbb75e58
+          git worktree add --detach phase31-baseline c5e25d086c1415f10207968cc87a2a86dbb75e58
           ln -s ../node_modules phase31-baseline/node_modules
           ln -s ../../frontend/node_modules phase31-baseline/frontend/node_modules
           VITE_DATA_SOURCE=api npm --prefix phase31-baseline/frontend run build
