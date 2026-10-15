@@ -64,7 +64,7 @@ test('phase10 real progress survives status errors, reentry and completes with c
  await page.route('**/api/securities/1/financial-refresh/99',async route=>{statusReads++;if(statusError)return route.fulfill({status:503,json:{error:{code:'UNAVAILABLE',message:'조회 오류'}}});return route.fulfill({json:{data:{state:terminal?'FINISHED':'PROCESSING',status:terminal?'PARTIAL':'RUNNING',fiscalYear:2024,startYear:2024,endYear:2025,period:'ANNUAL',finishedAt:terminal?'2026-10-07T05:00:00Z':null,progress:{currentYear:2025,currentPeriod:'ANNUAL',stage:'VALUATION',completed:1,total:2},results:[{fiscalYear:2024,period:'ANNUAL',status:'SUCCESS',valuationStatus:'SUCCESS'},...(terminal?[{fiscalYear:2025,period:'ANNUAL',status:'SUCCESS',valuationStatus:'PARTIAL',valuationReasons:{per:'종가 부족',pbr:'종가 부족'}}]:[])]}}});});
  await page.goto('/stocks/1/financials?endYear=2025');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await select(page,'갱신범위','사업보고서');await page.getByRole('button',{name:/수동 업데이트/}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();
  await expect(page.getByRole('status')).toContainText('2024년 처리 완료 · 2025년 사업보고서 가치지표 보충 중');await expect(page.getByRole('combobox',{name:'시작연도'})).toBeDisabled();
- statusError=true;await expect(page.getByText(/진행 상태 조회 오류/)).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:/갱신 중/})).toBeDisabled();expect(s.posts).toBe(1);
+ statusError=true;await expect(page.getByText(/진행 상태 조회에 실패했습니다/)).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:/갱신 중/})).toBeDisabled();expect(s.posts).toBe(1);
  await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();expect(s.posts).toBe(1);statusError=false;terminal=true;
  await expect(page.getByRole('button',{name:/수동 업데이트/})).toBeEnabled({timeout:12000});await expect(page.getByText('가치지표 보충 완료 1 · 보충 실패/근거 부족 1')).toBeVisible();await expect(page.getByText('종가 부족',{exact:true})).toBeHidden();await page.locator('summary').click();await expect(page.getByText('종가 부족',{exact:true})).toHaveCount(1);
  const n=statusReads;await page.waitForTimeout(3500);expect(statusReads).toBe(n);
@@ -83,3 +83,4 @@ test('phase10 quarter refresh excludes future placeholder years without changing
  }
  expect(state.posts).toBe(0);
 });
+
