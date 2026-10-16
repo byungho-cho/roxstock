@@ -32,7 +32,7 @@ test('home month count, local month expansion, holdings navigation and asset cha
   await expect(recent).toContainText('총 5건');await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5);
   await recent.getByRole('button',{name:'더보기'}).dblclick();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(9);await expect(page).toHaveURL(/\/$/);await expect(recent).toContainText('총 9건');
   await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(10);
-  await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(11);await expect(recent.getByRole('button',{name:'더보기'})).toHaveCount(0);
+  await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(11);await expect(recent.getByRole('button',{name:'더보기'})).toBeDisabled();await recent.getByRole('button',{name:'초기화'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5);
   await expect(recent.getByText(/시세·거래 데이터 판정 불가/)).toHaveCount(0);
   await expect(page.getByTestId('asset-performance-card')).toContainText('평가손익');await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
   await page.screenshot({path:info.outputPath('home-performance.png')});
