@@ -68,4 +68,4 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/investor_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/investor_key" "$HOME/.ssh/known_hosts"
-          ssh -i "$HOME/.ssh/investor_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$TARGET_SHA'" < scripts/deploy-investor-crawler.sh
+          node scripts/run-production-component.mjs "$TARGET_SHA" investor-crawler "$HOME/.ssh/investor_key"

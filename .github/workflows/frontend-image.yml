@@ -98,6 +98,5 @@ jobs:
       - name: Deploy frontend
         shell: bash
         run: |
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash -s -- '$TARGET_SHA' frontend" < scripts/deploy-production-component.sh
+          node scripts/run-production-component.mjs "$TARGET_SHA" frontend
           curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors https://newrox.cafe24.com/ >/dev/null
