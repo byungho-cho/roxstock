@@ -135,8 +135,7 @@ jobs:
       - name: Deploy immutable backend image
         shell: bash
         run: |
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash -s -- '$TARGET_SHA' backend" < scripts/deploy-production-component.sh
+          node scripts/run-production-component.mjs "$TARGET_SHA" backend
       - name: Verify external API
         shell: bash
         run: |

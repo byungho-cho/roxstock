@@ -4,6 +4,31 @@ import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,copyFileSync,chmodSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {runProductionComponent} from '../run-production-component.mjs';
+
+test('deployment uploads an immutable script and closes stdin for every SSH/SCP child',()=>{
+ const calls=[],sha='d'.repeat(40),env={DEPLOY_HOST:'example.test',DEPLOY_USER:'deploy',DEPLOY_PORT:'22'};
+ runProductionComponent(sha,'backend','/private/key',env,(command,args,options)=>calls.push({command,args,options}));
+ assert.deepEqual(calls.map(x=>x.command),['ssh','scp','ssh']);
+ for(const call of calls)assert.equal(call.options.stdio[0],'ignore');
+ assert.equal(calls[1].args.at(-2),'scripts/deploy-production-component.sh');
+ assert.match(calls[2].args.at(-1),/exec bash '.*\.sh' '[a-f0-9]{40}' 'backend' <\/dev\/null$/);
+ assert.doesNotMatch(calls[2].args.at(-1),/bash -s/);
+ assert.throws(()=>runProductionComponent('main','backend','key',env),/Immutable/);
+ assert.throws(()=>runProductionComponent(sha,'backend','key',{...env,DEPLOY_HOST:'host;echo secret'}),/Invalid/);
+});
+
+test('file execution retains post-deployment steps when a child consumes stdin',{skip:process.platform==='win32'},()=>{
+ const dir=mkdtempSync(join(tmpdir(),'roxstock-stdin-'));
+ try{
+  const child=join(dir,'child.sh'),parent=join(dir,'parent.sh');
+  writeFileSync(child,'cat >/dev/null\n');const script=`bash '${child}'\nprintf 'METADATA_PUBLISHED\\n'\n`;writeFileSync(parent,script);
+  const streamed=spawnSync('bash',['-s'],{input:script,encoding:'utf8'});
+  assert.equal(streamed.status,0);assert.doesNotMatch(streamed.stdout,/METADATA_PUBLISHED/);
+  const stored=spawnSync('bash',[parent],{stdio:['ignore','pipe','pipe'],encoding:'utf8'});
+  assert.equal(stored.status,0,stored.stderr);assert.match(stored.stdout,/METADATA_PUBLISHED/);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 
 test('deployment replaces only its own containers, migrates once and rolls back only a failed target',{skip:process.platform==='win32'},()=>{
  const dir=mkdtempSync(join(tmpdir(),'roxstock-service-deploy-'));
