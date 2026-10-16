@@ -3,7 +3,7 @@ import {setTimeout as wait} from 'node:timers/promises';
 import {Prisma} from '../../shared/dist/generated/prisma/index.js';
 import {ProviderError,dateKey} from './provider.mjs';
 
-const jobType='investor-trends-backfill',lockName='investor-trends';
+const lockName='investor-trends';
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
 const dayBefore=value=>new Date(Date.parse(value+'T00:00:00Z')-86400000).toISOString().slice(0,10);
 const terminal=state=>['COMPLETE','EXHAUSTED'].includes(state);
@@ -21,7 +21,10 @@ function currentlyHeldOrWatched(security){
  return security.buyTrades.some(buy=>buy.quantity.minus(buy.sellTrades.reduce((sum,sell)=>sum.plus(sell.quantity),new Prisma.Decimal(0))).greaterThan(0));
 }
 /** Persistent per-target cursor and rows commit together. Shares the live collector's owner-checked lease. */
-export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',requestLimit=Infinity,requestDelayMs=2000,log=()=>{}}){
+export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',exchangeScope='KRX',requestLimit=Infinity,requestDelayMs=2000,log=()=>{}}){
+ if(!['KRX','NXT'].includes(exchangeScope))throw new ProviderError('INVALID_EXCHANGE_SCOPE');
+ if(exchangeScope==='NXT'&&from<'2025-03-04')from='2025-03-04';
+ const jobType=exchangeScope==='NXT'?'investor-trends-nxt-backfill':'investor-trends-backfill';
  dateKey(from);const owner=randomUUID();let campaign,requests=0,lastRequest=0,lost=false;
  const now=new Date();
  const acquired=await db.collectorLock.updateMany({where:{jobName:lockName,lockedUntil:{lt:now}},data:{ownerToken:owner,lockedUntil:new Date(Date.now()+120000)}});
@@ -31,9 +34,9 @@ export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',reque
  const lease=async tx=>{const rows=await tx.$queryRaw`SELECT owner_token FROM collector_locks WHERE job_name=${lockName} AND locked_until>${new Date()} FOR UPDATE`;if(rows[0]?.owner_token!==owner)throw new ProviderError('LOCK_OWNERSHIP_LOST');};
  try{
   campaign=await db.collectorRun.findFirst({where:{jobType,provider:'KIS_API'},orderBy:{id:'desc'}});
-  if(campaign?.metadata?.from!==from||campaign?.metadata?.actorSchema!==2)campaign=null;
+  if(campaign?.metadata?.from!==from||campaign?.metadata?.actorSchema!==2||(campaign?.metadata?.exchangeScope??'KRX')!==exchangeScope)campaign=null;
   const initial=!campaign;
-  if(!campaign)campaign=await db.collectorRun.create({data:{jobType,provider:'KIS_API',metadata:{from,actorSchema:2,initialUntil:today(),mode:'reverse-pages',naverCollectionEnabled:false}}});
+  if(!campaign)campaign=await db.collectorRun.create({data:{jobType,provider:'KIS_API',metadata:{from,actorSchema:2,exchangeScope,initialUntil:today(),mode:'reverse-pages',naverCollectionEnabled:false}}});
   const securities=await db.security.findMany({where:{isActive:true,collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}},OR:[{buyTrades:{some:{}}},{accountWatchlistItems:{some:{}}}]},include:{buyTrades:{select:{quantity:true,sellTrades:{select:{quantity:true}}}},accountWatchlistItems:{select:{listType:true}}},orderBy:{symbol:'asc'}});
   let items=await db.collectorRunItem.findMany({where:{runId:campaign.id},orderBy:{id:'asc'}});
   const queued=new Set(items.map(item=>`${item.securityId}:${item.symbol}`));
@@ -42,7 +45,7 @@ export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',reque
    const state={state:'PENDING',from,until:today(),cursor:today(),pages:0,rows:0,failures:0,emptyResponses:0,tradingDates:[]};
    const item=await db.collectorRunItem.create({data:{runId:campaign.id,securityId:security.id,symbol:security.symbol,status:'STALE',message:'BACKFILL_PENDING',diagnostics:state}});items.push(item);
   }
-  for(const symbol of typeof kis.marketFlows==='function'?['KOSPI','KOSDAQ']:[]){
+  for(const symbol of exchangeScope==='KRX'&&typeof kis.marketFlows==='function'?['KOSPI','KOSDAQ']:[]){
    if(items.some(item=>item.symbol===symbol&&item.securityId==null))continue;
    items.push(await db.collectorRunItem.create({data:{runId:campaign.id,symbol,status:'STALE',message:'BACKFILL_PENDING',diagnostics:{state:'PENDING',targetType:'MARKET',from,until:today(),cursor:today(),pages:0,rows:0,failures:0,emptyResponses:0,tradingDates:[]}}}));
   }
@@ -65,7 +68,9 @@ export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',reque
     const pause=Math.max(0,Math.max(2000,requestDelayMs)-(Date.now()-lastRequest));
     if(pause)await wait(pause,undefined,{signal});check();lastRequest=Date.now();requests++;
     try{
-     const page=backfillPage(await (market?kis.marketFlows(item.symbol,state.cursor):kis.stockFlows(item.symbol,state.cursor)),state.cursor,from);check();
+     const response=await (market?kis.marketFlows(item.symbol,state.cursor):kis.stockFlows(item.symbol,state.cursor,exchangeScope));
+     if(!market&&response.some(row=>row.exchangeScope!==exchangeScope))throw new ProviderError('BACKFILL_EXCHANGE_SCOPE_MISMATCH');
+     const page=backfillPage(response,state.cursor,from);check();
      const next={...state,failures:0,retryAfter:null,state:page.complete?'COMPLETE':'PENDING',cursor:page.nextCursor,pages:state.pages+1,rows:state.rows+page.rows.length,oldest:page.oldest??state.oldest??null,tradingDates:[...new Set([...(state.tradingDates??[]),...page.rows.map(row=>row.tradeDate)])].sort()};
      if(!page.oldest){
       next.emptyResponses=(state.emptyResponses??0)+1;next.pages=state.pages;

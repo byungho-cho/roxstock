@@ -34,11 +34,13 @@ export class KisInvestorProvider{
   }).finally(()=>{this.pending=null;});
   return this.pending;
  }
- async stockFlows(symbol,selected=today()){
+ async stockFlows(symbol,selected=today(),exchangeScope='KRX'){
   if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new ProviderError('EXCLUDED_SYMBOL');
+  const branch={KRX:'J',NXT:'NX'}[exchangeScope];
+  if(!branch)throw new ProviderError('INVALID_EXCHANGE_SCOPE');
   const date=dateKey(selected);if(date>today())throw new ProviderError('INVALID_DATE');
   const token=await this.authenticate();
-  const query=new URLSearchParams({FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:symbol,FID_INPUT_DATE_1:date.replaceAll('-',''),FID_ORG_ADJ_PRC:'',FID_ETC_CLS_CODE:''});
+  const query=new URLSearchParams({FID_COND_MRKT_DIV_CODE:branch,FID_INPUT_ISCD:symbol,FID_INPUT_DATE_1:date.replaceAll('-',''),FID_ORG_ADJ_PRC:'',FID_ETC_CLS_CODE:''});
   const body=await this.json('/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily?'+query,{headers:{authorization:'Bearer '+token,appkey:this.appKey,appsecret:this.appSecret,tr_id:'FHPTJ04160001',custtype:'P','content-type':'application/json'}});
   if(!Array.isArray(body.output2))throw new ProviderError('KIS_RESPONSE_SCHEMA');
   const identities=new Set();
@@ -53,9 +55,30 @@ export class KisInvestorProvider{
     // Each source amount is an integer million KRW; independently rounded fields can differ by one unit.
     if(delta!==null&&(delta < -1n||delta > 1n))throw new ProviderError('KIS_NET_AMOUNT_MISMATCH');
     const won=value=>value===null?null:(BigInt(value)*1000000n).toString();
-    return {tradeDate,investorCode,investorName,exchangeScope:'KRX',source:'KIS_API',buyQuantity,sellQuantity,netQuantity,buyAmount:won(buy),sellAmount:won(sell),netAmount:won(net),quantityUnit:'SHARE',amountUnit:'KRW',publicationStatus:'UNSPECIFIED',reason:'한국투자증권 KRX · 금액 원본 백만원 단위 · 누락은 null · 공급자 확정 여부 미제공',raw:{date:item.stck_bsop_date,branch:'J',amountUnit:'MILLION_KRW',buyAmount:buy,sellAmount:sell,netAmount:net,amountRoundingDifference:delta?.toString()??null,closingPrice:integer(item.stck_clpr),closeChange:signedPriceChange(item.prdy_vrss,item.prdy_vrss_sign),priceChangeSign:item.prdy_vrss_sign??null,buy:buyQuantity,sell:sellQuantity,net:netQuantity}};
+    return {tradeDate,investorCode,investorName,exchangeScope,source:'KIS_API',buyQuantity,sellQuantity,netQuantity,buyAmount:won(buy),sellAmount:won(sell),netAmount:won(net),quantityUnit:'SHARE',amountUnit:'KRW',publicationStatus:'UNSPECIFIED',reason:'한국투자증권 '+exchangeScope+' · 금액 원본 백만원 단위 · 누락은 null · 공급자 확정 여부 미제공',raw:{date:item.stck_bsop_date,branch,amountUnit:'MILLION_KRW',buyAmount:buy,sellAmount:sell,netAmount:net,amountRoundingDifference:delta?.toString()??null,closingPrice:numeric(item.stck_clpr)===null?null:integer(item.stck_clpr),closeChange:signedPriceChange(item.prdy_vrss,item.prdy_vrss_sign),priceChangeSign:item.prdy_vrss_sign??null,buy:buyQuantity,sell:sellQuantity,net:netQuantity}};
    });
   });
+ }
+ async currentFundamentals(symbol){
+  if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new ProviderError('EXCLUDED_SYMBOL');
+  const token=await this.authenticate();
+  const query=new URLSearchParams({FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:symbol});
+  const body=await this.json('/uapi/domestic-stock/v1/quotations/inquire-price?'+query,{headers:{authorization:'Bearer '+token,appkey:this.appKey,appsecret:this.appSecret,tr_id:'FHKST01010100',custtype:'P','content-type':'application/json'}});
+  const item=body.output;
+  if(!item||typeof item!=='object'||Array.isArray(item)||item.stck_shrn_iscd!==symbol)throw new ProviderError('KIS_SYMBOL_OR_SCHEMA_MISMATCH');
+  const fields={per:'per',pbr:'pbr',eps:'eps',bps:'bps',listedShares:'lstn_stcn',foreignHoldingShares:'frgn_hldn_qty',foreignExhaustionRate:'hts_frgn_ehrt'};
+  const values={},raw={};
+  for(const [field,key] of Object.entries(fields)){
+   const value=numeric(item[key]);
+   if(value!==null&&(!/^-?\d+(\.\d{1,4})?$/.test(value)||value.replace(/[-.]/g,'').length>24))throw new ProviderError('KIS_INVALID_FUNDAMENTAL');
+   if(value!==null&&['listedShares','foreignHoldingShares'].includes(field)&&(!/^\d+$/.test(value)))throw new ProviderError('KIS_INVALID_SHARE_COUNT');
+   if(value!==null&&field==='foreignExhaustionRate'&&(Number(value)<0||Number(value)>100))throw new ProviderError('KIS_INVALID_FOREIGN_RATE');
+   // Nonpositive valuation multiples/BPS are unsupported, not zero-valued estimates.
+   values[field]=value!==null&&['per','pbr','bps','listedShares'].includes(field)&&Number(value)<=0?null:value;
+   raw[key]=typeof item[key]==='string'?item[key]:null;
+  }
+  if(Object.values(values).every(value=>value===null))throw new ProviderError('KIS_NO_FUNDAMENTALS');
+  return {...values,source:'KIS_API',exchangeScope:'KRX',collectedAt:new Date(),raw:{...raw,endpoint:'inquire-price',symbol,price:item.stck_prpr??null,periodBasis:'CURRENT_REFERENCE_ONLY',shareUnit:'SHARE',rateUnit:'PERCENT',ratioBasis:'FOREIGN_SHARES_DIVIDED_BY_LISTED_SHARES',exhaustionField:'hts_frgn_ehrt'}};
  }
  async marketFlows(market,selected=today()){
   const config={KOSPI:['0001','KSP'],KOSDAQ:['1001','KSQ']}[market];

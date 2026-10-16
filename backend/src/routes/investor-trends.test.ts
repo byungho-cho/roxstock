@@ -86,3 +86,33 @@ test('account target classification uses holdings then watch then trade history'
  ]}} as unknown as typeof prisma;
  const app=Fastify();await app.register(investorTrendRoutes,{db:fake});try{const reply=await app.inject('/accounts/1/investor-targets');assert.equal(reply.statusCode,200);assert.deepEqual(reply.json().data.map((r:any)=>r.classification),['보유','관심','거래']);}finally{await app.close();}
 });
+
+test('market raw quantities are displayed consistently in thousand shares without changing storage',async()=>{
+ const tradeDate=new Date('2026-10-15T00:00:00Z');
+ const observations=actors.map((investorCode,index)=>({tradeDate,investorCode,investorName:investorCode,source:'KIS_API',exchangeScope:'KIS_MARKET',quantityUnit:null,amountUnit:'KRW',netQuantity:null,netAmount:new Prisma.Decimal(1000000),raw:{netQuantity:['-12.5','0','8'][index],quantityUnit:'UNVERIFIED'},updatedAt:tradeDate}));
+ const fake={investorFlowDaily:{findMany:async()=>observations,groupBy:async()=>[{tradeDate}]}} as unknown as typeof prisma;
+ const app=Fastify();await app.register(investorTrendRoutes,{db:fake});
+ try{
+  const path='?type=MARKET&target=KOSDAQ&date=2026-10-15&metric=quantity';
+  const report=(await app.inject('/investor-trends'+path)).json().data;
+  assert.equal(report.unit,'THOUSAND_SHARES');assert.deepEqual(report.rows.map((r:any)=>r.net),['-12.5','0','8']);
+  assert.equal(report.points[0].values.INDIVIDUAL,'-12.5');
+  const history=(await app.inject('/investor-trends/history'+path)).json().data;
+  assert.equal(history.unit,'THOUSAND_SHARES');assert.equal(history.rows[0].values.FOREIGN,'0');
+  assert.ok(observations.every(row=>row.netQuantity===null&&row.quantityUnit===null));
+ }finally{await app.close();}
+});
+
+test('combined stock API and history agree while legacy KRX-only callers stay compatible',async()=>{
+ const day=new Date('2026-10-15');
+ const observations=['KRX','NXT'].flatMap(exchangeScope=>actors.map(investorCode=>({tradeDate:day,investorCode,investorName:investorCode,source:'KIS_API',exchangeScope,quantityUnit:'SHARE',amountUnit:'KRW',netQuantity:new Prisma.Decimal(exchangeScope==='KRX'?'10':'-2'),netAmount:new Prisma.Decimal(exchangeScope==='KRX'?'1000000':'500000'),buyQuantity:null,sellQuantity:null,buyAmount:null,sellAmount:null,raw:{closingPrice:'100'},updatedAt:day})));
+ const fake={investorFlowDaily:{findMany:async()=>observations,groupBy:async()=>[{tradeDate:day}]}} as unknown as typeof prisma;
+ const app=Fastify();await app.register(investorTrendRoutes,{db:fake});
+ try{
+  const params='?type=STOCK&target=005930&date=2026-10-15&metric=quantity';
+  const integrated=(await app.inject('/investor-trends'+params+'&scope=COMBINED')).json().data;
+  assert.equal(integrated.rows.length,3);assert.equal(integrated.rows[0].net,'8');assert.equal(integrated.points[0].values.INDIVIDUAL,'8');
+  assert.equal((await app.inject('/investor-trends/history'+params+'&scope=COMBINED')).json().data.rows[0].values.INDIVIDUAL,'8');
+  const legacy=(await app.inject('/investor-trends'+params)).json().data;assert.equal(legacy.rows.length,3);assert.equal(legacy.rows[0].net,'10');
+ }finally{await app.close();}
+});
