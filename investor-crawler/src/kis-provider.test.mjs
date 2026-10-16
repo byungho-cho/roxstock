@@ -32,3 +32,16 @@ test('KIS respects rounded source amounts, preserves zeros and sanitizes authori
  const rows=await provider.stockFlows('008770','2026-10-15');assert.equal(rows[0].netAmount,'-1000000');assert.equal(rows[0].raw.amountRoundingDifference,'-1');assert.equal(rows[1].netAmount,'0');
  const denied=new KisInvestorProvider({appKey:'key',appSecret:'secret',fetcher:async()=>new Response(JSON.stringify({msg1:'secret token'}),{status:403})});await assert.rejects(denied.stockFlows('008770'),e=>e.code==='KIS_AUTH_OR_PERMISSION_FAILED'&&!e.message.includes('secret'));
 });
+
+test('NXT collection uses NX and keeps separate exchange identity',async()=>{
+ const provider=new KisInvestorProvider({appKey:'key',appSecret:'secret',accessToken:'token',expiresAt:Date.now()+3600000,fetcher:async(url)=>{assert.equal(new URL(url).searchParams.get('FID_COND_MRKT_DIV_CODE'),'NX');return new Response(JSON.stringify({rt_cd:'0',output2:[sample()]}));}});
+ const rows=await provider.stockFlows('005930','2026-10-15','NXT');assert.equal(rows[0].exchangeScope,'NXT');assert.equal(rows[0].raw.branch,'NX');assert.equal(rows[0].netAmount,'-2000000');
+ await assert.rejects(provider.stockFlows('005930','2026-10-15','UN'),{code:'INVALID_EXCHANGE_SCOPE'});
+});
+
+test('NXT explicit zero flows survive missing optional closing price',async()=>{
+ const data=sample();data.stck_clpr='';
+ for(const key of Object.keys(data))if(/^(prsn|frgn|orgn)_/.test(key))data[key]='0';
+ const provider=new KisInvestorProvider({appKey:'key',appSecret:'secret',accessToken:'token',expiresAt:Date.now()+3600000,fetcher:async()=>new Response(JSON.stringify({rt_cd:'0',output2:[data]}))});
+ const rows=await provider.stockFlows('069500','2026-10-15','NXT');assert.equal(rows[0].netQuantity,'0');assert.equal(rows[0].netAmount,'0');assert.equal(rows[0].raw.closingPrice,null);
+});

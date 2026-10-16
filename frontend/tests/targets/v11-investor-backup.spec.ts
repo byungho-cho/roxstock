@@ -16,7 +16,7 @@ async function fixture(page:Page){
   if(path==='/api/investor-trends'){
    const stock=url.searchParams.get('type')==='STOCK',quantity=url.searchParams.get('metric')==='quantity',selectedDate=url.searchParams.get('date');
    const values=stock?['9007199254740993','0',null]:['-4','5','0'];
-   return route.fulfill({json:{data:{selectedDate,actualFrom:'2026-10-16',actualTo:'2026-10-16',unit:quantity?'SHARE':'KRW',updatedAt:'2026-10-16T03:00:00Z',partial:true,reason:'검증 자료 · 미제공 값은 —',rows:['INDIVIDUAL','FOREIGN','INSTITUTION'].map((code,i)=>({code,name:code,buy:values[i],sell:'0',net:values[i],source:'TEST',exchangeScope:'KRX',publicationStatus:'UNSPECIFIED',reason:'partial'})),points:[{date:'2026-10-14',values:{INDIVIDUAL:'1',FOREIGN:'0',INSTITUTION:'-1'}},{date:'2026-10-15',values:{INDIVIDUAL:null,FOREIGN:null,INSTITUTION:null}},{date:'2026-10-16',values:{INDIVIDUAL:'2',FOREIGN:'0',INSTITUTION:'-2'}}]}}});
+   return route.fulfill({json:{data:{selectedDate,actualFrom:'2026-10-16',actualTo:'2026-10-16',unit:quantity?'SHARE':'KRW',updatedAt:'2026-10-16T03:00:00Z',partial:true,reason:'검증 자료 · 미제공 값은 —',rows:['INDIVIDUAL','FOREIGN','INSTITUTION'].map((code,i)=>({code,name:code,buy:values[i],sell:'0',net:values[i],source:'TEST',exchangeScope:'KRX',publicationStatus:'UNSPECIFIED',reason:'partial'})),points:[{date:'2026-10-14',close:'3200.25',closeChange:'-1.5',values:{INDIVIDUAL:'1',FOREIGN:'0',INSTITUTION:'-1'}},{date:'2026-10-15',values:{INDIVIDUAL:null,FOREIGN:null,INSTITUTION:null}},{date:'2026-10-16',close:'3201.25',closeChange:'1',values:{INDIVIDUAL:'2',FOREIGN:'0',INSTITUTION:'-2'}}]}}});
   }
   if(path==='/api/backups/session')return route.fulfill({json:{data:{authenticated,configured:true,csrf:authenticated?'test-csrf':null}}});
   if(path==='/api/backups/login'){authenticated=true;return route.fulfill({json:{data:{authenticated:true,csrf:'test-csrf'}}});}
@@ -42,7 +42,7 @@ test('investor header, navigation, units, gap chart and tooltips use one fixed l
  expect(cards[0].x).toBeCloseTo(grid!.x,0);expect(cards[1].x).toBeCloseTo(grid!.x,0);
  expect((await page.locator('header').boundingBox())!.height).toBe(44);await expect(page.getByRole('navigation',{name:'하단 메뉴'})).toHaveCSS('height','44px');
  const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveCSS('height','124px');expect((await page.getByTestId('investor-line-INDIVIDUAL').getAttribute('d'))!.match(/M/g)).toHaveLength(2);
- await svg.hover({position:{x:50,y:40}});await expect(page.locator('[data-chart-tooltip]')).not.toContainText('누적');await expect(page.locator('[data-chart-tooltip]')).toContainText('백만원');
+ await svg.hover({position:{x:50,y:40}});await expect(page.locator('[data-chart-tooltip]')).not.toContainText('누적');await expect(page.locator('[data-chart-tooltip]')).toContainText('백만원');await expect(page.getByTestId('chart-tooltip-close')).toContainText('3,200.25 포인트');await expect(page.getByTestId('chart-tooltip-close')).toHaveCSS('color','rgb(96, 165, 250)');
  await page.getByRole('button',{name:'다음 시장 또는 종목',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('KOSDAQ');
  await page.getByRole('button',{name:'종목별',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('삼성전자 (보유)');
  await page.getByRole('combobox',{name:'거래대금 또는 거래량'}).click();await page.getByRole('option',{name:'거래량',exact:true}).click();await expect(page.getByRole('table')).toContainText('9,007,199,254,740,993');
@@ -81,4 +81,48 @@ test('investor monitoring links summaries and details without turning limited da
  await page.goto('/detail/collection-monitoring/investor-trends/items');await expect(page.getByTestId('monitor-target-row')).toHaveCount(3);
  for(const label of ['원문만 저장','KRX 수량 저장','자료 미제공 대기'])await expect(page.getByTestId('monitor-results-data')).toContainText(label);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('date navigation changes only daily net purchases and retains chart plus appended history',async({page})=>{
+ await fixture(page);
+ const requests:string[]=[];page.on('request',request=>{if(request.url().includes('/api/investor-trends'))requests.push(request.url());});
+ await page.goto('/detail/investor-trends?date=2026-10-16');
+ const history=page.getByTestId('investor-history-card'),chart=page.getByTestId('investor-chart-frame');
+ await expect(page.getByTestId('investor-history-row')).toHaveCount(50);
+ await history.getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(52);
+ const chartHtml=await chart.innerHTML(),historyHtml=await history.innerHTML();
+ await page.evaluate(()=>{(window as any).__firstHistory=document.querySelector('[data-testid="investor-history-row"]');});
+ const start=requests.length;await page.getByRole('button',{name:'이전 날짜',exact:true}).click();
+ await expect(page.getByLabel('투자동향 기준일')).toHaveValue('2026-10-15');
+ await expect.poll(()=>requests.slice(start).some(url=>new URL(url).searchParams.get('date')==='2026-10-15')).toBe(true);
+ expect(requests.slice(start)).toHaveLength(1);expect(requests.slice(start)[0]).not.toContain('/history');
+ expect(await chart.innerHTML()).toBe(chartHtml);expect(await history.innerHTML()).toBe(historyHtml);
+ expect(await page.evaluate(()=>(window as any).__firstHistory===document.querySelector('[data-testid="investor-history-row"]'))).toBe(true);
+ for(const cell of await page.getByTestId('investor-history-row').first().getByRole('cell').all()){
+  expect(await cell.evaluate(node=>node.getBoundingClientRect().height)).toBe(17);
+ }
+ await expect(history).not.toContainText('순매수:');
+});
+
+test('daily date changes retain numeric values until delayed response replaces them',async({page})=>{
+ await fixture(page);let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+ await page.route('**/api/investor-trends?**',async route=>{
+  const url=new URL(route.request().url()),selectedDate=url.searchParams.get('date');
+  if(selectedDate==='2026-10-15')await gate;
+  const value=selectedDate==='2026-10-15'?'2000000':'1000000';
+  return route.fulfill({json:{data:{selectedDate,actualFrom:selectedDate,actualTo:selectedDate,unit:'KRW',partial:false,rows:['INDIVIDUAL','FOREIGN','INSTITUTION'].map(code=>({code,net:value})),points:[]}}});
+ });
+ await page.goto('/detail/investor-trends?date=2026-10-16');
+ const card=page.getByTestId('investor-daily-card');await expect(card.getByText('+100만원',{exact:true})).toHaveCount(3);
+ await page.getByRole('button',{name:'이전 날짜',exact:true}).click();await expect(page.getByLabel('투자동향 기준일')).toHaveValue('2026-10-15');
+ await expect(card.getByText('+100만원',{exact:true})).toHaveCount(3);await expect(card).not.toContainText('—');
+ release();await expect(card.getByText('+200만원',{exact:true})).toHaveCount(3);await expect(card).not.toContainText('—');
+});
+
+test('source tooltip groups readable lines and contains the exchange notice instead of card footer',async({page})=>{
+ await fixture(page);await page.goto('/detail/investor-trends?mode=stock&symbol=005930&date=2026-10-16');
+ const card=page.getByTestId('investor-daily-card');await expect(card).not.toContainText('KRX+NXT 합계');
+ await page.getByRole('button',{name:'투자동향 자료 기준'}).hover();
+ const tooltip=page.getByTestId('investor-source-tooltip');await expect(tooltip).toBeVisible();await expect(tooltip).toContainText('KRX+NXT 합계 · 종가 KRX 기준');
+ await expect(tooltip).toHaveCSS('white-space','pre-line');await expect(tooltip).toHaveCSS('gap','6px');await expect(tooltip).toContainText('순매수 = 매수 − 매도');
 });

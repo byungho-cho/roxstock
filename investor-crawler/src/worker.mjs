@@ -5,6 +5,7 @@ import {PrismaClient,Prisma} from '../../shared/dist/generated/prisma/index.js';
 import {ProviderError,dateKey} from './provider.mjs';
 import {KisInvestorProvider} from './kis-provider.mjs';
 import {runInvestorBackfill} from './backfill.mjs';
+import {runKisSupplements} from './kis-supplements.mjs';
 
 const db=new PrismaClient(),job='investor-trends',owner=randomUUID();
 const kis=new KisInvestorProvider();
@@ -42,16 +43,16 @@ async function run(){
   // This worker acquired an absent/expired lease. Older unfinished executions
   // cannot own it now; retain their original record and mark interruption.
   await db.collectorRun.updateMany({where:{jobType:job,status:'RUNNING'},data:{status:'FAILED',finishedAt:new Date(),failureReason:'WORKER_INTERRUPTED: expired owner lease; previous result not promoted to success'}});
-  runRecord=await db.collectorRun.create({data:{jobType:job,provider:'KIS_API',metadata:{startDate,owner,mode:'forward-only',naverCollectionEnabled:false,scope:'KRX stock quantities and million-KRW source amounts; market net amounts in separate KIS_MARKET scope'}}});
+  runRecord=await db.collectorRun.create({data:{jobType:job,provider:'KIS_API',metadata:{startDate,owner,mode:'forward-only',naverCollectionEnabled:false,scope:'KRX and NXT stock observations stored separately; market remains KIS_MARKET'}}});
   const securities=await db.security.findMany({where:{isActive:true,collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}},OR:[{buyTrades:{some:{}}},{accountWatchlistItems:{some:{}}}]},select:{id:true,symbol:true,collectionRevision:true}});
-  const targets=[...['KOSPI','KOSDAQ'].map(key=>({type:'MARKET',key})),...securities.map(s=>({type:'STOCK',key:s.symbol,security:s}))];
+  const targets=[...['KOSPI','KOSDAQ'].map(key=>({type:'MARKET',key})),...securities.flatMap(s=>['KRX','NXT'].map(exchangeScope=>({type:'STOCK',key:s.symbol,security:s,exchangeScope})))];
   let stored=0,failed=0,pending=0;
   const since=new Date(Math.max(Date.parse(startDate+'T00:00:00Z'),Date.parse(today()+'T00:00:00Z')-3*86400000)).toISOString().slice(0,10);
   for(const target of targets){
    if(stop.signal.aborted||lost)throw new ProviderError(lost?'LOCK_OWNERSHIP_LOST':'WORKER_STOPPED');
    try{
     if(target.security){const current=await db.security.findUnique({where:{id:target.security.id}});if(!current||current.collectionExcluded||!current.isActive||current.symbol.startsWith('Z99')||current.symbol!==target.key||current.collectionRevision!==target.security.collectionRevision)throw new ProviderError('TARGET_CHANGED_OR_EXCLUDED');}
-    const rows=(await (target.type==='MARKET'?kis.marketFlows(target.key):kis.stockFlows(target.key))).filter(r=>r.tradeDate>=since&&r.tradeDate<=today());
+    const rows=(await (target.type==='MARKET'?kis.marketFlows(target.key):kis.stockFlows(target.key,today(),target.exchangeScope))).filter(r=>r.tradeDate>=since&&r.tradeDate<=today());
     validate(rows);
     if(!rows.length){pending++;await db.collectorRunItem.create({data:{runId:runRecord.id,securityId:target.security?.id,symbol:target.key,status:'SKIPPED',message:'NO_CURRENT_DATA: 시작일 이후 공급 자료가 아직 없습니다.'}});await delay(requestDelay,undefined,{signal:stop.signal});continue;}
     await db.$transaction(async tx=>{
@@ -64,7 +65,7 @@ async function run(){
       const update=Object.fromEntries(Object.entries(data).filter(([,value])=>value!==null));
       await tx.investorFlowDaily.upsert({where:{targetType_targetKey_tradeDate_source_exchangeScope_investorCode:identity},create:data,update});
      }
-     await tx.collectorRunItem.create({data:{runId:runRecord.id,securityId:target.security?.id,symbol:target.key,status:'STALE',message:target.type==='MARKET'?'PARTIAL_FIELDS: 시장 순매수 금액 저장 · 수량 단위·확정 여부 미제공':'PARTIAL_FIELDS: KRX 수량·금액 저장, 금액 원본 백만원 단위·확정 여부 미제공',observedAt:new Date(),diagnostics:{rows:rows.length,scope:rows[0].exchangeScope,source:rows[0].source,amountUnit:rows[0].amountUnit}}});
+     await tx.collectorRunItem.create({data:{runId:runRecord.id,securityId:target.security?.id,symbol:target.key,status:'STALE',message:target.type==='MARKET'?'PARTIAL_FIELDS: 시장 순매수 금액 저장 · 수량 단위·확정 여부 미제공':'PARTIAL_FIELDS: '+target.exchangeScope+' 수량·금액 저장, 금액 원본 백만원 단위·확정 여부 미제공',observedAt:new Date(),diagnostics:{rows:rows.length,scope:rows[0].exchangeScope,source:rows[0].source,amountUnit:rows[0].amountUnit}}});
     });
     stored++;
    }catch(error){
@@ -90,7 +91,8 @@ async function run(){
 }
 
 try{
- if(process.argv.includes('--backfill'))await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',log:safeLog});
+ if(process.argv.includes('--supplement-once'))await runKisSupplements({db,kis,signal:stop.signal,limit:10,log:safeLog});
+ else if(process.argv.includes('--backfill'))await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',exchangeScope:process.argv.includes('--nxt')?'NXT':'KRX',log:safeLog});
  else if(process.argv.includes('--once'))await run();
  else{
   // Trial hours are configurable; no claim of provider finality at these times.
@@ -105,8 +107,13 @@ try{
     if(!recent)await run();
    }
    let backfillRequests=0;
+   if(hour>=18&&process.env.KIS_SUPPLEMENT_ENABLED!=='false'&&process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){
+    try{await runKisSupplements({db,kis,signal:stop.signal,limit:10,log:safeLog});}catch(error){safeLog('KIS_SUPPLEMENT_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
+   }
    if(process.env.INVESTOR_BACKFILL_ENABLED!=='false'&&process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){
     try{const result=await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',requestLimit:10,log:safeLog});backfillRequests=result.requests;}catch(error){safeLog('BACKFILL_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
+    await delay(2000,undefined,{signal:stop.signal});
+    try{const result=await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',exchangeScope:'NXT',requestLimit:10,log:safeLog});backfillRequests+=result.requests;}catch(error){safeLog('NXT_BACKFILL_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
    }
    await delay(backfillRequests?2000:30000,undefined,{signal:stop.signal}).catch(()=>{});
   }

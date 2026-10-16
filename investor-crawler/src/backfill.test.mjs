@@ -50,3 +50,9 @@ test('empty initial history is not complete and successive requests are at least
  const f=fixture(),times=[];await runInvestorBackfill({db:f.db,kis:{stockFlows:async()=>{times.push(Date.now());return [];}}});
  assert.equal(times.length,2);assert.ok(times[1]-times[0]>=1950);assert.equal(f.items()[0].diagnostics.state,'BLOCKED');assert.equal(f.items()[0].message,'BACKFILL_NO_HISTORY');assert.equal(f.stored.size,0);
 });
+
+test('NXT backfill has its own campaign and never starts before exchange launch or queues partial market sums',async()=>{
+ const f=fixture();let args;const kis={stockFlows:async(...input)=>{args=input;return rows('2025-03-04').map(row=>({...row,exchangeScope:'NXT'}));},marketFlows:async()=>{throw Error('Must not sum a partial universe');}};
+ const result=await runInvestorBackfill({db:f.db,kis,exchangeScope:'NXT'});
+ assert.equal(f.campaign().jobType,'investor-trends-nxt-backfill');assert.equal(f.campaign().metadata.from,'2025-03-04');assert.equal(args[2],'NXT');assert.equal(result.total,1);assert.equal(result.complete,1);
+});

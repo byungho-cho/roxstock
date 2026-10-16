@@ -1,0 +1,21 @@
+CREATE TABLE `kis_fundamental_snapshots` (
+ `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+ `security_id` BIGINT UNSIGNED NOT NULL,
+ `collection_symbol` VARCHAR(20) NOT NULL,
+ `observed_date` DATE NOT NULL,
+ `collected_at` DATETIME(3) NOT NULL,
+ `source` VARCHAR(32) NOT NULL DEFAULT 'KIS_API',
+ `per` DECIMAL(24,4) NULL,
+ `pbr` DECIMAL(24,4) NULL,
+ `eps` DECIMAL(24,4) NULL,
+ `bps` DECIMAL(24,4) NULL,
+ `listed_shares` DECIMAL(24,0) NULL,
+ `foreign_holding_shares` DECIMAL(24,0) NULL,
+ `foreign_holding_ratio` DECIMAL(12,6) NULL,
+ `foreign_exhaustion_rate` DECIMAL(9,4) NULL,
+ `raw` JSON NOT NULL,
+ PRIMARY KEY (`id`),
+ UNIQUE INDEX `kis_fundamental_identity` (`security_id`,`collection_symbol`,`observed_date`),
+ INDEX `kis_fundamental_snapshots_security_id_collected_at_idx` (`security_id`,`collected_at`),
+ CONSTRAINT `kis_fundamental_snapshots_security_id_fkey` FOREIGN KEY (`security_id`) REFERENCES `securities` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

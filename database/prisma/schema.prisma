@@ -163,6 +163,7 @@ model Security {
   dartBackfillTasks      DartBackfillTask[]
   dartFinancialFilings   DartFinancialFiling[]
   dartShareSnapshots     DartShareSnapshot[]
+  kisFundamentalSnapshots KisFundamentalSnapshot[]
   dartDailyCompanyChecks DartDailyCompanyCheck[]
 
   @@unique([marketType, symbol])
@@ -642,6 +643,29 @@ model SecurityFundamentals {
   security          Security @relation(fields: [securityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("security_fundamentals")
+}
+
+// Current observations only: never a fiscal-year/quarter replacement for DART.
+model KisFundamentalSnapshot {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId BigInt @map("security_id") @db.UnsignedBigInt
+  collectionSymbol String @map("collection_symbol") @db.VarChar(20)
+  observedDate DateTime @map("observed_date") @db.Date
+  collectedAt DateTime @map("collected_at") @db.DateTime(3)
+  source String @default("KIS_API") @db.VarChar(32)
+  per Decimal? @db.Decimal(24,4)
+  pbr Decimal? @db.Decimal(24,4)
+  eps Decimal? @db.Decimal(24,4)
+  bps Decimal? @db.Decimal(24,4)
+  listedShares Decimal? @map("listed_shares") @db.Decimal(24,0)
+  foreignHoldingShares Decimal? @map("foreign_holding_shares") @db.Decimal(24,0)
+  foreignHoldingRatio Decimal? @map("foreign_holding_ratio") @db.Decimal(12,6)
+  foreignExhaustionRate Decimal? @map("foreign_exhaustion_rate") @db.Decimal(9,4)
+  raw Json
+  security Security @relation(fields:[securityId],references:[id],onDelete:Restrict,onUpdate:Cascade)
+  @@unique([securityId,collectionSymbol,observedDate],map:"kis_fundamental_identity")
+  @@index([securityId,collectedAt])
+  @@map("kis_fundamental_snapshots")
 }
 
 model DartShareSnapshot {
