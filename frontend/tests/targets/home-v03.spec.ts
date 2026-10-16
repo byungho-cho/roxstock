@@ -72,3 +72,10 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(page.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
 });
+
+
+test('home list timestamps stay beside titles and target rows open holdings',async({page})=>{
+ await fixture(page,6);await page.goto('/');
+ for(const id of ['recent-buys-card','target-arrival-card']){const card=page.getByTestId(id);await expect(card.getByRole('heading')).toContainText('(10/01 12:10)');await expect(card.getByTestId('home-card-footer')).not.toContainText('12:10');}
+ await page.getByTestId('target-arrival-card').getByTestId('target-lot').first().click();await expect(page).toHaveURL(/\/stocks\/1\?detailTab=holding/);
+});
