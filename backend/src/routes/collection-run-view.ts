@@ -1,5 +1,6 @@
 import {skipKind, priceRunResult} from '@roxstock/shared/domain/collection-health';
 import {prisma} from '@roxstock/shared/lib/prisma';
+import {investorMonitorCounts} from '../domain/investor-monitor.js';
 
 export async function runViews(ids: bigint[]) {
   const groups = ids.length ? await prisma.collectorRunItem.groupBy({where:{runId:{in:ids},NOT:{symbol:{startsWith:'MASTER:'}}},by:['runId','status','message'],_count:{_all:true}}) : [];
@@ -8,7 +9,7 @@ export async function runViews(ids: bigint[]) {
     const count=(status:string)=>rows.filter(row=>row.status===status).reduce((n,row)=>n+row._count._all,0);
     const excluded=rows.filter(row=>row.status==='SKIPPED'&&skipKind(row.message)==='EXCLUDED').reduce((n,row)=>n+row._count._all,0);
     const reasons=Object.fromEntries(['EXCLUDED','LOCK_CONFLICT','INACTIVE','IDENTITY_CHANGED','UNKNOWN'].map(kind=>[kind,rows.filter(row=>row.status==='SKIPPED'&&skipKind(row.message)===kind).reduce((n,row)=>n+row._count._all,0)]));
-    return [String(id),{target:rows.reduce((n,row)=>n+row._count._all,0),success:count('SUCCESS'),failed:count('FAILED'),stale:count('STALE'),skipped:count('SKIPPED')+count('NO_DATA')+count('NOT_APPLICABLE'),excluded,skipReasons:reasons}];
+    return [String(id),{target:rows.reduce((n,row)=>n+row._count._all,0),success:count('SUCCESS'),failed:count('FAILED'),stale:count('STALE'),skipped:count('SKIPPED')+count('NO_DATA')+count('NOT_APPLICABLE'),excluded,skipReasons:reasons,investor:investorMonitorCounts(rows)}];
   }));
 }
 

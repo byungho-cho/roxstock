@@ -31,6 +31,10 @@ test('investor header, navigation, units, gap chart and tooltips use one fixed l
  await fixture(page);await page.goto('/detail/investor-trends');
  await expect(page.getByRole('heading',{name:'투자동향',exact:true})).toHaveCount(1);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
  await expect(page.getByRole('table',{name:'주체별 거래실적'})).toContainText('-4');
+ const grid=await page.getByTestId('investor-card-grid').boundingBox();const cards=await page.getByTestId('investor-card-grid').locator('.MuiCard-root').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));
+ const expected=info.project.name==='cover'?grid!.width:(grid!.width-8)/2;
+ for(const card of cards)expect(card.width).toBeCloseTo(expected,0);
+ expect(cards[0].x).toBeCloseTo(grid!.x,0);expect(cards[1].x).toBeCloseTo(grid!.x,0);
  expect((await page.locator('header').boundingBox())!.height).toBe(44);await expect(page.getByRole('navigation',{name:'하단 메뉴'})).toHaveCSS('height','44px');
  const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveAttribute('height','124');expect((await svg.locator('path').first().getAttribute('d'))!.match(/M/g)).toHaveLength(2);
  await svg.hover({position:{x:50,y:40}});await expect(page.getByRole('tooltip')).toContainText('누적');
@@ -51,4 +55,19 @@ test('menu keeps settings and monitoring equal and places investor between cash 
  await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(14);
  const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['설정','모니터링']);expect(names.indexOf('투자동향')).toBe(names.indexOf('예수금')+1);expect(names.indexOf('자산분석')).toBe(names.indexOf('투자동향')+1);
  const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeCloseTo(monitor!.y,1);
+});
+
+test('investor monitoring links summaries and details without turning limited data into success or failure',async({page},info)=>{
+ await fixture(page);
+ const feature={id:'investor-trends',name:'투자동향',schedule:'시험 KST 18:00·21:00',status:'PARTIAL',lastAttemptAt:'2026-10-16T03:00:00Z',lastSuccessAt:null,lastDataAt:'2026-10-16T00:00:00Z',lastCollectedAt:'2026-10-16T03:01:00Z',nextAt:null,recent:{target:3,processed:0,success:0,failed:0,skipped:3,excluded:0},resultScope:{runId:'99',label:'최근 실행 대상 결과'},lastExecution:{id:'99',status:'PARTIAL',startedAt:'2026-10-16T03:00:00Z',finishedAt:'2026-10-16T03:01:00Z'},investor:{rawOnly:1,quantityStored:1,waiting:1,failed:0,other:0,dataScope:'현재 연결 DB의 기록',scheduleEnabled:false,notice:'원격 격리 시험 DB 기록은 포함하지 않습니다. 원문 저장·수량 저장은 전체 수집 성공이 아닙니다.'}};
+ const items=[{id:'1',symbol:'KOSPI',status:'STALE',reason:'RAW_OBSERVATION_ONLY: 단위 검증 대기'},{id:'2',symbol:'005930',status:'STALE',reason:'PARTIAL_FIELDS: KRX 수량 저장'},{id:'3',symbol:'000660',status:'SKIPPED',reason:'NO_CURRENT_DATA: 미제공'}];
+ await page.route('**/api/collection/monitoring**',route=>{const path=new URL(route.request().url()).pathname;return route.fulfill({json:{data:path==='/api/collection/monitoring'?{features:[feature],generatedAt:'2026-10-16T03:01:00Z'}:path.endsWith('/items')?{rows:items,hasNext:false,nextCursor:null}:path.endsWith('/runs')?{rows:[{id:'99',status:'PARTIAL',target:3,success:0,failed:0,skipped:3,excluded:0}],hasNext:false,nextCursor:null}:{id:'investor-trends',name:'투자동향'}}});});
+ await page.goto('/detail/collection-monitoring');
+ const card=page.getByRole('link',{name:'투자동향 상세 보기'});await expect(card).toContainText('자료 제한');await expect(card).toContainText('수량 저장 1');await card.click();
+ await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('원문만 저장');await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('전체 수집 성공이 아닙니다');
+ await expect(page.getByTestId('monitor-current')).toContainText('자동 실행 연결 미확인');
+ await page.screenshot({path:info.outputPath('investor-monitoring.png')});
+ await page.goto('/detail/collection-monitoring/investor-trends/items');await expect(page.getByTestId('monitor-target-row')).toHaveCount(3);
+ for(const label of ['원문만 저장','KRX 수량 저장','자료 미제공 대기'])await expect(page.getByTestId('monitor-results-data')).toContainText(label);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

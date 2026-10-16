@@ -14,7 +14,7 @@ type Point={date:string;values:Record<string,string|null>};
 type Report={selectedDate:string;actualFrom:string|null;actualTo:string|null;rows:FlowRow[];points:Point[];reason:string;updatedAt:string|null;partial:boolean;unit:string|null;status:string;collectionStartDate:string};
 const subjects=[{code:'INDIVIDUAL',name:'개인',color:'#A78BFA'},{code:'FOREIGN',name:'외국인',color:'#34D399'},{code:'INSTITUTION',name:'기관',color:'#FBBF24'}];
 const periods=[['30','30일'],['60','60일'],['120','120일'],['180','180일'],['1y','1년'],['3y','3년']];
-const panel={p:'12px 16px',borderRadius:'8px',border:`1px solid ${colors.border}`,bgcolor:colors.surface,minWidth:0};
+const panel={p:'12px 16px',borderRadius:'8px',border:`1px solid ${colors.border}`,bgcolor:colors.surface,minWidth:0,width:'100%',boxSizing:'border-box'};
 const heading={fontSize:14,fontWeight:600,lineHeight:'20px'};
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
 function amount(value:string|null|undefined){if(value==null)return '—';const [whole,fraction]=value.split('.');return BigInt(whole!).toLocaleString('ko-KR')+(fraction&&Number(fraction)?'.'+fraction.replace(/0+$/,''):'');}
@@ -46,8 +46,8 @@ export function InvestorTrendsPage(){
     <ButtonBase aria-label="다음 시장 또는 종목" onClick={()=>navigate(1)} disabled={list.length<2} sx={{justifyContent:'flex-end',fontSize:10,color:colors.textSecondary,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',display:'block',textAlign:'right'}}>{list.length>1?list[(index+1)%list.length]?.name:''}</ButtonBase>
    </Box>
    <Box sx={{height:40,display:'flex',alignItems:'center',justifyContent:'space-between',bgcolor:colors.surface,border:`1px solid ${colors.border}`,borderRadius:'8px',px:'8px'}}><IconButton aria-label="이전 날짜" onClick={()=>changeDay(-1)} sx={{fontSize:20,width:28,height:32}}>‹</IconButton><TextField type="date" value={selectedDate} onChange={e=>{if(e.target.value&&e.target.value<=today())set({date:e.target.value});}} slotProps={{htmlInput:{max:today(),'aria-label':'투자동향 기준일'}}} sx={{'& input':{textAlign:'center',p:0,fontSize:14},'& fieldset':{border:0}}}/><IconButton aria-label="다음 날짜" onClick={()=>changeDay(1)} disabled={selectedDate>=today()} sx={{fontSize:20,width:28,height:32}}>›</IconButton></Box></Box>
-   <Box sx={{display:{xs:'flex',sm:'grid'},flexDirection:'column',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',alignItems:'start'}}>
-    <Stack spacing="8px" sx={{minWidth:0}}>
+   <Box data-testid="investor-card-grid" sx={{display:{xs:'flex',sm:'grid'},flexDirection:'column',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',alignItems:{xs:'stretch',sm:'start'},width:'100%',minWidth:0}}>
+    <Stack spacing="8px" sx={{minWidth:0,width:'100%'}}>
      <Card sx={panel}><Box sx={{display:'flex',alignItems:'center',height:28,mb:'4px',gap:'8px'}}><Typography component="h2" sx={heading}>당일 순매수</Typography><Tooltip title={explanation} enterTouchDelay={0}><IconButton aria-label="투자동향 자료 기준" sx={{p:0}}><img src="/investor-v1/info.svg" alt=""/></IconButton></Tooltip><Select size="small" value={metric} onChange={e=>set({metric:e.target.value})} inputProps={{'aria-label':'거래대금 또는 거래량'}} sx={{ml:'auto',height:28,fontSize:11,minWidth:92,bgcolor:colors.raised}}><MenuItem value="amount">거래대금</MenuItem><MenuItem value="quantity">거래량</MenuItem></Select></Box>
       {subjects.map(actor=>{const row=report?.rows.find(r=>r.code===actor.code);return <Box key={actor.code} sx={{display:'flex',justifyContent:'space-between',alignItems:'center',minHeight:26}}><Typography sx={{fontSize:12}}>{actor.name}</Typography><Typography sx={{fontSize:16,fontWeight:600,color:valueColor(row?.net)}}>{amount(row?.net)}{row?.net!=null?' '+unit:''}</Typography></Box>;})}
      </Card>
