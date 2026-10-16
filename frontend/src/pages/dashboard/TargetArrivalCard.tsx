@@ -26,7 +26,7 @@ export const lotRate = (value?: string | null) => value == null ? '—' : `${Num
 
 export function TargetLotRow({ lot, full = false }: { lot: TargetLot; full?: boolean }) {
   const navigate = useNavigate();
-  return <HomeTwoLineRow testId="target-lot" large={full} onClick={() => navigate(full ? lotDetailPath(lot, 'targets') : `/trade?type=sell&stock=${lot.securityId}&lot=${lot.lotId}`)}
+  return <HomeTwoLineRow testId="target-lot" large={full} onClick={() => navigate(full ? lotDetailPath(lot, 'targets') : `/stocks/${lot.securityId}?detailTab=holding`)}
     first={[lot.name, <Box component="span" aria-label="잔여수량과 매수단가" sx={{ color: colors.textSecondary }}>{Number(lot.remainingQuantity).toLocaleString('ko-KR')} × {targetWon(lot.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{targetWon(lot.currentPrice)}</Box>]}
     second={[<Box component="span" sx={{ color: colors.textSecondary }}>{lot.buyDate.slice(2).replaceAll('-', '.')} ({lot.holdingDays}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(lot.returnRate) }}>{lotRate(lot.returnRate)}</Box>, <Box component="span" aria-label="평가이익액" sx={{ color: lotMarketColor(lot.profitLoss) }}>{targetWon(lot.profitLoss)}</Box>]} />;
 }
@@ -37,7 +37,7 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
   const [visible, setVisible] = useState(20);
   const report = query.data?.meta.accountId === query.accountId ? query.data : undefined;
   const failed = query.isError || query.accounts.isError;
-  if (!full) return <HomeListCard naturalCover compactEmpty={!!report&&!failed&&report.meta.enabled&&report.meta.total===0&&report.meta.unavailableCount===0} stable pending={!report&&!failed&&(!!query.accountId||query.accounts.isPending)} testId="target-arrival-card" title="목표가 도래" timestampLabel="갱신 " count={report ? `${report.meta.total}건` : undefined}
+  if (!full) return <HomeListCard naturalCover compactEmpty={!!report&&!failed&&report.meta.enabled&&report.meta.total===0&&report.meta.unavailableCount===0} stable pending={!report&&!failed&&(!!query.accountId||query.accounts.isPending)} testId="target-arrival-card" title="목표가 도래" timestampInTitle count={report ? `${report.meta.total}건` : undefined}
     titleAction={() => navigate(targetSettingsPath)}
     notice={failed&&report ? <QueryErrorNotice message="조회 실패" onRetry={()=>{void query.refetch();void query.accounts.refetch();}}/> : report?.meta.unavailableCount ? `시세·거래 데이터 판정 불가 ${report.meta.unavailableCount}건 · 확인 가능한 Lot 기준` : undefined} timestamp={report?.meta.priceAsOf??report?.meta.calculatedAt} updating={query.isFetching} more={report?.meta.enabled && report.meta.total > 5 ? () => navigate('/detail/target-arrivals') : undefined}>
     {failed && !report && <HomeEmpty><QueryErrorNotice message="목표가 도래 조회 실패" onRetry={() => { void query.refetch(); void query.accounts.refetch(); }}/></HomeEmpty>}

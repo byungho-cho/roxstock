@@ -45,12 +45,12 @@ test('rapid navigation cannot let delayed stock lots replace the current stock',
 test('profit-only targets update with prices; remaining quantity total and all tooltip close paths',async({page},info)=>{
  const f=await fixture(page);await page.goto('/stocks/1?detailTab=holding');const card=page.getByTestId('lot-1-0');await expect(card).toBeVisible();
  await expect(card.getByText('수익',{exact:true})).toBeVisible();await expect(card.getByText('목표수익률',{exact:true})).toHaveCount(0);
- const target=card.getByRole('button',{name:'5% 목표 총액',exact:true});await expect(target).toHaveText('5% · 319,200원');
- await target.click();await expect(page.getByRole('tooltip')).toHaveText('목표 총액 2,234,400원');await expect(page.getByRole('tooltip')).toBeInViewport();await expect(page.getByRole('dialog')).toHaveCount(0);
+ const target=card.getByRole('button',{name:'15% 목표 총액',exact:true});await expect(target).toContainText('15%');await expect(target).toContainText('349,600원');
+ await target.click();await expect(page.getByRole('tooltip')).toHaveText('목표 총액 2,447,200원');await expect(page.getByRole('tooltip')).toBeInViewport();await expect(page.getByRole('dialog')).toHaveCount(0);
  await page.screenshot({path:info.outputPath('tooltip.png')});await target.click();await expect(page.getByRole('tooltip')).toHaveCount(0);
  await target.click();await page.keyboard.press('Escape');await expect(page.getByRole('tooltip')).toHaveCount(0);
  await target.click();await page.mouse.click(2,100);await expect(page.getByRole('tooltip')).toHaveCount(0);
- await target.click();await page.getByTestId('lot-1-1').getByRole('button',{name:'10% 목표 총액',exact:true}).click();await expect(page.getByRole('tooltip')).toHaveCount(1);await expect(target).toHaveAttribute('aria-expanded','false');await page.keyboard.press('Escape');
+ await target.click();await page.getByTestId('lot-1-1').getByRole('button',{name:'20% 목표 총액',exact:true}).click();await expect(page.getByRole('tooltip')).toHaveCount(1);await expect(target).toHaveAttribute('aria-expanded','false');await page.keyboard.press('Escape');
  const profitHeight=(await card.boundingBox())!.height;
  for(const price of [300000,304000,null]){await f.setPrice(price);await expect(card.getByText(`7 × ${price===null?'—':price.toLocaleString('ko-KR')+'원'}`,{exact:true}).last()).toBeVisible();await expect(card.getByTestId('lot-targets')).toHaveCount(0);await expect(card.getByRole('button',{name:'1-0 매수 수정'})).toBeVisible();expect((await card.boundingBox())!.height).toBeLessThan(profitHeight);}
  await f.setPrice(350000);await expect(card.getByTestId('lot-target')).toHaveCount(3);expect(f.writes).toHaveLength(0);
@@ -86,4 +86,15 @@ test('long holding period and large amounts remain readable without overlap or o
  await card.getByRole('button',{name:'15% 목표 총액'}).click();await expect(page.getByRole('tooltip')).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath('large.png')});
+});
+
+
+test('target range retains only the nearest passed step and keeps exact boundaries',async({page})=>{
+ const f=await fixture(page);await page.goto('/stocks/1?detailTab=holding');const card=page.getByTestId('lot-1-0');
+ for(const [price,rates] of [[334400,[5,10,15]],[345952,[10,15,20]],[349600,[10,15,20]],[358720,[15,20,25]],[364800,[15,20,25]]] as const){
+  await f.setPrice(price);await expect(card.getByText('7 × '+price.toLocaleString('ko-KR')+'원',{exact:true}).last()).toBeVisible();
+  await expect(card.getByTestId('lot-target').locator('span:first-child')).toHaveText(rates.map(r=>r+'%'));
+  for(const rate of rates){const button=card.getByRole('button',{name:rate+'% 목표 총액',exact:true});await expect(button).toHaveCSS('justify-content','space-between');await expect(button).toHaveCSS('color',price>304000*(1+rate/100)?'rgba(146, 155, 168, 0.7)':'rgb(248, 113, 113)');}
+ }
+ expect(f.writes).toHaveLength(0);
 });
