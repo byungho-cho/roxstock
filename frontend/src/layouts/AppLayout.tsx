@@ -47,6 +47,7 @@ export function AppLayout() {
   const isValueChart = isValue && new URLSearchParams(location.search).get('view') === 'chart';
   const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
   const isCompound = location.pathname === '/detail/compound';
+  const isInvestor = location.pathname === '/detail/investor-trends';
   const isAnalysis = location.pathname === '/assets';
   const isJournal = location.pathname === '/journal';
   useEffect(() => {
@@ -59,7 +60,7 @@ export function AppLayout() {
   }, [location.pathname]);
   const isMoreMenu = location.pathname === '/more';
   const isMoreSettings = location.pathname === '/detail/settings'; const isCollectionMonitoring = location.pathname.startsWith('/detail/collection-monitoring');
-  const hasPageHeader = location.pathname==='/detail/security-management' || isTargetPage || isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings || isAnalysis || isInvestment || isValue || isCompound || isFinancial;
+  const hasPageHeader = isInvestor || location.pathname==='/detail/security-management' || isTargetPage || isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings || isAnalysis || isInvestment || isValue || isCompound || isFinancial;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: `${pageMetrics.headerHeight}px` }}>
     <Box component="div" ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
       {isMoreMenu && <PageHeader title="메뉴" showAdd={false} action={<ReleaseVersion />} />}
@@ -69,7 +70,7 @@ export function AppLayout() {
     <MainLoadingBar />
     <PullRefreshIndicator distance={pull.distance} refreshing={pull.refreshing} />
     <QueryErrorNotice priority active={pull.error} message={"새로고침에 실패했습니다. 기존 데이터를 표시합니다."} inlineRetry={false} onRetry={pull.retry}/>
-    <PageLayout securityManagement={location.pathname==='/detail/security-management'&&new URLSearchParams(location.search).has('selected')} valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><RouteContent><Outlet /></RouteContent></PageLayout>
+    <PageLayout investor={isInvestor} securityManagement={location.pathname==='/detail/security-management'&&new URLSearchParams(location.search).has('selected')} valueChart={isValueChart||isFinancial} scrollRef={scrollRef} settings={isMoreSettings} moreMenu={isMoreMenu} trade={isTradePage} journal={isJournal} cash={isCash} analysis={isAnalysis || isInvestment || isValue || isCompound} targetFlow={isTargetPage || isTargetSettings} more={isMoreSettings || location.pathname === '/more'} home={isHomePage} assetOverview={location.pathname === '/detail/assets'} stocks={isStockFlowPage && !isValue && !isFinancial} stockAdd={location.pathname === "/stocks/add"} collectionMonitoring={isCollectionMonitoring}><RouteContent><Outlet /></RouteContent></PageLayout>
     {!isCash && <OverlayPageScrollbar scrollRef={scrollRef} hasHeader hasBottomNav />}
     {new URLSearchParams(location.search).get('viewport') === '1' && <ViewportMetricsPanel />}
     {<><Zoom in={!isCash && showScrollTop}><IconButton aria-label="맨 위로" onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })} sx={{ position: 'fixed', right: { xs: 16, sm: 28 }, bottom: pageMetrics.headerHeight + 8, zIndex: 12, width: 40, height: 40, bgcolor: colors.raised, color: colors.textPrimary, border: `1px solid ${colors.border}` }}><ArrowUpwardRounded /></IconButton></Zoom><BottomNav /></>}

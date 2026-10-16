@@ -48,14 +48,14 @@ async function geometry(page:Page){
 async function capture(page:Page,name:string,project:string){if(project==='cover-370'||project==='tablet-725'){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:'test-results/utility/'+name+'-'+project+'.png'});}}
 test('menu order, equal theme widths and fixed geometry',async({page},info)=>{
  await fixture(page);await page.goto('/more');await expect(page.getByRole('heading',{name:'메뉴',exact:true})).toBeVisible();await geometry(page);
- const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveText(['홈','대시보드','종목목록','매매일지','예수금','자산분석','투자금','투자손익','가치분석','재무제표','복리계획','설정']);
+ const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveText(['홈','대시보드','종목목록','매매일지','예수금','투자동향','자산분석','투자금','투자손익','가치분석','재무제표','복리계획','설정','모니터링']);
  const rects=await menu.locator('button').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));for(const r of rects)expect(r.height).toBeCloseTo(rects[0].height,1);
  if(info.project.name.startsWith('tablet')){
   const panel=page.getByTestId('more-settings-panel'),buttons=page.getByTestId('theme-buttons').getByRole('button');const p=await panel.boundingBox(),m=await menu.boundingBox();expect(p!.x-m!.x-m!.width).toBeCloseTo(8,1);
   const b=await buttons.evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));for(const r of b)expect(r.width).toBeCloseTo(b[0].width,1);expect(b[1].left-b[0].right).toBeCloseTo(8,1);expect(b[0].left-p!.x).toBeCloseTo(14,1);expect(p!.x+p!.width-b[2].right).toBeCloseTo(14,1);
   await buttons.nth(1).click();await expect(buttons.nth(1)).toHaveAttribute('aria-pressed','true');
  }
- await expect.poll(()=>menu.locator('img').evaluateAll(ns=>ns.every(n=>(n as HTMLImageElement).naturalWidth===20))).toBe(true);
+ await expect.poll(()=>menu.locator('img').evaluateAll(ns=>ns.every(n=>(n as HTMLImageElement).naturalWidth===((n as HTMLImageElement).src.includes('investor-trends')?16:20)))).toBe(true);
  await capture(page,'menu',info.project.name);
 });
 test('monitoring selection resets detail only, states and failed refresh preserve results',async({page},info)=>{

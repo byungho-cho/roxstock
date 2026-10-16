@@ -1,3 +1,4 @@
+const InvestorTrendsPage=lazy(()=>import('./pages/investor/InvestorTrendsPage').then(m=>({default:m.InvestorTrendsPage})));
 const SecurityManagementPage=lazy(()=>import('./pages/more/SecurityManagementPage').then(m=>({default:m.SecurityManagementPage})));
 import { StockInputContext } from './pages/stocks/StockInputContext';
 import { RouteContent } from './components/common/RouteLoading';
@@ -60,6 +61,7 @@ export function App() {
         <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
+        <Route path="detail/investor-trends" element={<InvestorTrendsPage/>} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />

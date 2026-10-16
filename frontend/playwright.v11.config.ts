@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/targets',testMatch:'v11-investor-backup.spec.ts',workers:2,reporter:'list',outputDir:'test-results/v11',use:{baseURL:'http://127.0.0.1:3111',locale:'ko-KR',timezoneId:'Asia/Seoul',screenshot:'only-on-failure',trace:'retain-on-failure'},projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}}],webServer:{command:'npm run preview -- --host 127.0.0.1 --port 3111',url:'http://127.0.0.1:3111',reuseExistingServer:false}});

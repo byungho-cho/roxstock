@@ -1,0 +1,31 @@
+services:
+  investor-crawler:
+    image: ${INVESTOR_CRAWLER_IMAGE:?Set a separate immutable investor crawler image}
+    container_name: roxstock-investor-crawler
+    restart: unless-stopped
+    init: true
+    user: node
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    mem_limit: 160m
+    stop_grace_period: 45s
+    env_file:
+      - ../../backend/.env.production
+    environment:
+      TZ: Asia/Seoul
+      INVESTOR_START_DATE: 2026-10-16
+      INVESTOR_REQUEST_DELAY_MS: 2000
+      INVESTOR_COLLECTION_HOURS: ${INVESTOR_COLLECTION_HOURS:-18,21}
+    networks:
+      - db
+    healthcheck:
+      test: [CMD, node, -e, "const fs=require('fs'); const t=Number(fs.readFileSync('/tmp/roxstock-investor-heartbeat','utf8')); if(Date.now()-t>900000)process.exit(1)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+networks:
+  db:
+    external: true
+    name: ${DB_NETWORK:-roxstock-db_default}
