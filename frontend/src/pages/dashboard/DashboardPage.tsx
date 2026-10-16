@@ -20,6 +20,9 @@ export function DashboardPage() {
   const navigate = useListNavigation();
   const { data, isPending, isError, isFetching, refetch } = useDashboard({ pollPrices: true, includeTrend: false });
   const { accountId, accounts } = useActiveAccount();
+  const [holdingsView,setHoldingsView] = useState<{accountId?:string;count:number}>({accountId,count:5});
+  const visibleHoldings = holdingsView.accountId===accountId?holdingsView.count:5;
+  useEffect(()=>{setHoldingsView({accountId,count:5});},[accountId]);
   const targets = useTargetArrivals({poll:false});
   const [recentReady,setRecentReady] = useState<string>();
   const prioritiesSettled = !isPending && !targets.isPending;
@@ -31,8 +34,8 @@ export function DashboardPage() {
   const retry = () => void refetch();
   return <Box data-testid="home-shell" className="rox-home" sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gridTemplateAreas: { sm: '"summary recent" "holdings targets"' }, columnGap: '8px', rowGap: '8px', alignItems: 'start', '& [data-testid="home-holding"], & [data-testid="target-lot"], & [data-testid="recent-buy-lot"]': { pr: '8px' } }}>
     <HomeSummaryCards allocationAvailable={!isError} summary={summary} pending={pending} failed={isError||accounts.isError} retry={()=>{if(accounts.isError)void accounts.refetch();else retry();}}/>
-    <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard blankLoading height="auto" stable pending={pending} testId="home-holdings-card" title="보유종목" titleHint="(상세보기)" titleAction={() => navigate('/stocks?tab=holding')} timestampLabel="갱신 " count={holdings ? `${holdings.length}종목` : undefined} notice={isError&&holdings ? <QueryErrorNotice message="조회 실패 · 이전 결과" onRetry={retry}/> : summary?.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary?.collectedAt} updating={isFetching}>
-      {holdings?.slice(0, 5).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}?detailTab=summary`)} />)}
+    <Box sx={{ gridArea: { sm: 'holdings' } }}><HomeListCard blankLoading height="auto" stable pending={pending} testId="home-holdings-card" title="보유종목" reset={()=>setHoldingsView({accountId,count:5})} resetDisabled={visibleHoldings<=5} more={()=>setHoldingsView({accountId,count:visibleHoldings+5})} moreDisabled={!holdings || visibleHoldings>=holdings.length} count={holdings ? `총 ${Math.min(holdings.length,visibleHoldings)}건` : undefined} notice={isError&&holdings ? <QueryErrorNotice message="조회 실패 · 이전 결과" onRetry={retry}/> : summary?.pricingComplete === false ? '시세 미수집 · 평가금액 판정 불가' : undefined} timestamp={summary?.collectedAt} updating={isFetching}>
+      {holdings?.slice(0, visibleHoldings).map(holding => <HoldingRow key={holding.id} stock={holding} onClick={() => navigate(`/stocks/${holding.id}?detailTab=summary`)} />)}
       {pending && <HomeListBlank compact/>}
       {(isError||accounts.isError)&&!holdings&&<HomeEmpty><QueryErrorNotice message="보유종목 조회 실패"/><Button size="small" onClick={()=>{if(accounts.isError)void accounts.refetch();else retry();}}>재시도</Button></HomeEmpty>}
       {noAccount&&<HomeEmpty>등록된 계좌가 없습니다.<Button onClick={()=>navigate("/detail/settings?view=add")}>계좌 추가</Button></HomeEmpty>}

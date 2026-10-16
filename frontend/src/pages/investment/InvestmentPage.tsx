@@ -20,7 +20,7 @@ import { loadInvestment, moneyText, periodRange, quarterAvailable, quarters, seo
 const enableChartDetail = true; // Pilot: disable here without affecting the summary chart.
 const card = { border: 0, borderRadius: '8px', bgcolor: '#0F1726', p: '8px 16px', minWidth: 0, flexShrink: 0 };
 const small = { fontSize: 10, lineHeight: '14px', color: colors.textMuted };
-const rowStyle = { display: 'grid', gridTemplateColumns: '48px repeat(3, minmax(0, 1fr))', gap: '4px', minHeight: 20, alignItems: 'center' };
+const rowStyle = { display: 'grid', gridTemplateColumns: '28px minmax(0,1.15fr) minmax(0,1.15fr) 54px minmax(0,1fr)', gap: '4px', minHeight: 20, alignItems: 'center' };
 const pnlColor = (value: bigint | null) => value === null || value === 0n ? colors.textPrimary : value > 0n ? colors.marketRise : colors.marketFall;
 
 export function InvestmentPage() {
@@ -30,7 +30,7 @@ export function InvestmentPage() {
   const [storedQuarter, setQuarter] = usePageMemory<QuarterSelection>('investment-quarter', 0,{adoptInitialAccount:true});
   const quarter = quarterAvailable(year, storedQuarter, today) ? storedQuarter : 0;
   useEffect(() => { if (storedQuarter !== quarter) setQuarter(0); }, [storedQuarter, quarter, setQuarter]);
-  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment', accountId, year], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false });
+  const query = useQuery({ ...storedQueryOptions, queryKey: ['investment', accountId, year, 'daily-rate-v1'], queryFn: ({ signal }) => loadInvestment(accountId!, year, today, signal), enabled: !!accountId, retry: false });
   const tablet = useMediaQuery('(min-width:600px)'), leftRef = useRef<HTMLDivElement>(null), rightRef = useRef<HTMLDivElement>(null);
   const chartHeading=useRef<HTMLDivElement>(null), alignRequested=useRef(false);
   const [alignmentRequest,requestAlignment]=useState(0);
@@ -58,7 +58,7 @@ export function InvestmentPage() {
     else {const params=new URLSearchParams(location.search);params.delete('chart');navigate({pathname:location.pathname,search:params.toString()}, {replace:true,state:location.state});}
   };
   const [detailYear,setDetailYear]=useState(year);
-  const detailQueries=useQueries({queries:Array.from({length:currentYear-detailYear+1},(_,i)=>detailYear+i).map(value=>({...storedQueryOptions,queryKey:['investment',accountId,value],queryFn:({signal}:{signal:AbortSignal})=>loadInvestment(accountId!,value,today,signal),enabled:!!accountId&&detail,retry:false}))});
+  const detailQueries=useQueries({queries:Array.from({length:currentYear-detailYear+1},(_,i)=>detailYear+i).map(value=>({...storedQueryOptions,queryKey:['investment',accountId,value,'daily-rate-v1'],queryFn:({signal}:{signal:AbortSignal})=>loadInvestment(accountId!,value,today,signal),enabled:!!accountId&&detail,retry:false}))});
   const detailPending=detailQueries.some(result=>result.isPending),detailError=detailQueries.some(result=>result.isError);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const changeYear = (direction: number) => {
@@ -68,6 +68,11 @@ export function InvestmentPage() {
   };
   const data = query.data, range = periodRange(year, quarter, today);
   const points = (data?.points ?? []).filter(point => point.date >= range.from && point.date <= range.to);
+  const historyKey = JSON.stringify([accountId,year,range.from,range.to]);
+  const [historyView,setHistoryView] = useState({key:historyKey,count:100});
+  const historyLimit = historyView.key===historyKey?historyView.count:100;
+  useEffect(()=>{setHistoryView({key:historyKey,count:100});},[historyKey]);
+  const historyRows = [...points].reverse().slice(0,historyLimit);
   const detailRange = {from:`${detailYear}-01-01`,to:today};
   const detailPoints = detailQueries.flatMap(result=>result.data?.points ?? []).filter(point => point.date >= detailRange.from && point.date <= detailRange.to);
   const delta = data?.evaluation != null && data.investment != null ? data.evaluation - data.investment : null;
@@ -94,11 +99,11 @@ export function InvestmentPage() {
       <Stack direction="row" spacing="4px" data-testid="investment-quarters" sx={{ mt: '8px' }}>{quarters.map(value => <Button key={value} aria-pressed={quarterSelected(quarter,value)} disabled={!quarterAvailable(year, value, today)||!canToggleQuarter(quarter,value)} onClick={() => changeQuarter(value)} sx={{ flex: 1, minWidth: 0, p: 0, height: 28, minHeight: 28, borderRadius: '8px', fontSize: 11, fontWeight: 600, bgcolor: quarterSelected(quarter,value) ? '#337DF5' : '#1A2433', color: quarterSelected(quarter,value) ? 'white' : '#A6B2C4' }}>{value ? `${value}분기` : '전체'}</Button>)}</Stack>
     </AppCard>
   </>;
-  const table = <AppCard data-testid="investment-history" sx={card}><Typography sx={{ fontSize: 16, fontWeight: 600, mb: '8px' }}>투자내역</Typography><Stack spacing="8px"><Box sx={rowStyle}>{['날짜', '투자금', '평가금액', '일별손익'].map((title, index) => <Typography key={title} sx={{ ...small, textAlign: index ? 'right' : 'left' }}>{title}</Typography>)}</Box>
+  const table = <AppCard data-testid="investment-history" sx={card}><Typography sx={{ fontSize: 16, fontWeight: 600, mb: '8px' }}>투자내역</Typography><Stack spacing="8px"><Box sx={rowStyle}>{['날짜', '투자금', '평가금액', '손익률', '일별손익'].map((title, index) => <Typography key={title} sx={{ ...small, textAlign: index ? 'right' : 'left' }}>{title}</Typography>)}</Box>
     <Box sx={{minHeight:84,display:'flex',flexDirection:'column',gap:'8px'}}>
-    {[...points].reverse().map(point => <Box key={point.date} data-testid="investment-row" data-scroll-item={point.date} data-date={point.date} data-market-closed={isMarketClosed(point.date)} sx={{...rowStyle,...(isMarketClosed(point.date)?{'& .MuiTypography-root':{color:colors.textMuted}}:{})}}><Typography sx={{ fontSize: 9 }}>{point.date.slice(2).replaceAll('-', '.')}</Typography>{[point.investment, point.evaluation, point.dailyProfit ?? null].map((value, i) => <Typography key={i} sx={{ fontSize: 9, textAlign: 'right', color: i === 2 ? pnlColor(value) : undefined, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(value, i === 2).replace('−', '-')}</Typography>)}</Box>)}
+    {historyRows.map(point => <Box key={point.date} data-testid="investment-row" data-scroll-item={point.date} data-date={point.date} data-market-closed={isMarketClosed(point.date)} sx={{...rowStyle,...(isMarketClosed(point.date)?{'& .MuiTypography-root':{color:colors.textMuted}}:{})}}><Typography sx={{ fontSize: 9 }}>{point.date.slice(5).replace('-', '/')}</Typography>{[point.investment, point.evaluation].map((value, i) => <Typography key={i} sx={{ fontSize: 9, textAlign: 'right', color: i===1?pnlColor(value!=null&&point.dailyProfitBase!=null?value-point.dailyProfitBase:null):undefined, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{moneyText(value)}</Typography>)}<Typography data-testid="investment-daily-rate" sx={{fontSize:9,textAlign:'right',color:pnlColor(point.dailyProfitBase!=null&&point.dailyProfitBase>0n?point.dailyProfit??null:null),fontVariantNumeric:'tabular-nums'}}>{rate(point.dailyProfit??null,point.dailyProfitBase??null)}</Typography><Typography sx={{fontSize:9,textAlign:'right',color:pnlColor(point.dailyProfit??null),overflowWrap:'anywhere',fontVariantNumeric:'tabular-nums'}}>{moneyText(point.dailyProfit??null,true).replace('−','-')}</Typography></Box>)}
     {!pending&&!points.length && <Typography role="status" sx={{ ...small, py: '8px', textAlign: 'center' }}>{status}</Typography>}
-    </Box></Stack><Typography sx={{ ...small, mt: '8px' }}>초기투자금 기준: {pending&&!data?'':data?.initialAsOf??'스냅샷 없음 · 0원'} · 배당은 선택 연도 세후 금액</Typography>{data?.historicalUnavailable && <Typography sx={{ ...small, mt: '4px' }}>과거 기준금액을 확인할 수 없는 투자금은 —로 표시합니다.</Typography>}
+    </Box></Stack>{points.length>0&&<Button data-testid="investment-more" disabled={historyRows.length>=points.length} onClick={()=>setHistoryView(previous=>({key:historyKey,count:Math.min((previous.key===historyKey?previous.count:100)+100,points.length)}))} sx={{display:'block',mx:'auto',mt:'8px',minHeight:28,fontSize:11}}>더보기 ({historyRows.length}/{points.length})</Button>}<Typography sx={{ ...small, mt: '8px' }}>초기투자금 기준: {pending&&!data?'':data?.initialAsOf??'스냅샷 없음 · 0원'} · 배당은 선택 연도 세후 금액</Typography>{data?.historicalUnavailable && <Typography sx={{ ...small, mt: '4px' }}>과거 기준금액을 확인할 수 없는 투자금은 —로 표시합니다.</Typography>}
   </AppCard>;
   return <><PageHeader title="투자금" variant="detail" onBack={back} showAdd={false} embedded assetOverview backIcon={<Box component="span" sx={{ fontSize: 28 }}>‹</Box>} />
     <Box className="rox-home" data-testid="investment-page" data-screen-id={tablet ? 'T1500' : 'C1500'} data-restoration-ready={!pending} data-list-condition={String(year)} sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>

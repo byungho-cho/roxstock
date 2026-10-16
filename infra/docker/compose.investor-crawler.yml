@@ -11,6 +11,7 @@ services:
     mem_limit: 160m
     stop_grace_period: 45s
     env_file:
+      # Same private server environment as backend/DART/KRX; includes KIS_APP_KEY and KIS_APP_SECRET.
       - ../../backend/.env.production
     environment:
       TZ: Asia/Seoul

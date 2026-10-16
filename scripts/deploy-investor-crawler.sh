@@ -12,6 +12,7 @@ TREE="$ROOT/.deploy/commits/$SHA"
 [[ -d "$TREE" ]] || git -C "$ROOT" worktree add --detach "$TREE" "$SHA"
 [[ "$(git -C "$TREE" rev-parse HEAD)" == "$SHA" ]] || exit 1
 test -f "$ROOT/backend/.env.production"
+# Canonical shared credentials (DART/KRX/KIS). Copy privately; never render values in logs.
 install -m 600 "$ROOT/backend/.env.production" "$TREE/backend/.env.production"
 # Schema deployment belongs to the backend pipeline, never to this worker.
 docker exec roxstock-backend node -e 'const {PrismaClient}=require("./shared/dist/generated/prisma/index.js");const db=new PrismaClient();db.$queryRawUnsafe("SELECT id FROM investor_flow_daily LIMIT 0").then(()=>db.$disconnect()).catch(()=>process.exit(1))'

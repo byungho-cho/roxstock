@@ -68,6 +68,7 @@ function Updating({ initialIcon = false }: { initialIcon?: boolean }) {
   return <CircularProgress aria-label="갱신 중" size={13} color="inherit" sx={{ visibility: visible ? 'visible' : 'hidden' }} />;
 }
 function QueryNotice({ error, retry }: { error: boolean; retry: () => void }) {
+  if (!error) return null;
   return <Box sx={{ height: 24, display: 'flex', alignItems: 'center', gap: 1 }}>
     {error && <><QueryErrorNotice message="조회 실패 · 수집기 상태와 별개입니다."/><Button onClick={retry} sx={{ minWidth: 0, p: 0, fontSize: 10 }}>다시 시도</Button></>}
   </Box>;
@@ -200,8 +201,14 @@ function InvestorDiagnostics({feature}:{feature:Feature}){
  const data=feature.investor;
  return <Box data-testid="monitor-investor-diagnostics" sx={{...cardSx,p:'8px 12px',fontSize:11}}>
   <Typography sx={{fontSize:12,fontWeight:600,mb:'4px'}}>투자동향 자료별 결과</Typography>
-  {([['검증된 KRX 수량 저장',data?.quantityStored],['원문만 저장 · 단위 검증 대기',data?.rawOnly],['시작일 이후 자료 미제공 대기',data?.waiting],['조회·검증·저장 실패',data?.failed],['기타 결과',data?.other]]as const).map(([label,count])=><Box key={label} sx={{display:'flex',justifyContent:'space-between',gap:'8px',py:'2px'}}><span>{label}</span><DataValue width={24}>{numberText(count)}건</DataValue></Box>)}
+  {([['검증된 KRX 자료 저장',data?.quantityStored],['원문만 저장 · 단위 검증 대기',data?.rawOnly],['시작일 이후 자료 미제공 대기',data?.waiting],['조회·검증·저장 실패',data?.failed],['기타 결과',data?.other]]as const).map(([label,count])=><Box key={label} sx={{display:'flex',justifyContent:'space-between',gap:'8px',py:'2px'}}><span>{label}</span><DataValue width={24}>{numberText(count)}건</DataValue></Box>)}
   <Typography sx={{fontSize:10,color:colors.textMuted,mt:'6px',overflowWrap:'anywhere'}}>{data?.notice??'현재 연결 DB의 기록을 조회합니다.'}</Typography>
+  {data?.backfill&&<Box data-testid="monitor-investor-backfill" sx={{borderTop:`1px solid ${colors.border}`,mt:'8px',pt:'8px'}}>
+   <Typography sx={{fontSize:12,fontWeight:600}}>과거 자료 보충 · {data.backfill.from??'기준 확인 중'}부터</Typography>
+   <Typography sx={{fontSize:11,mt:'4px'}}>완료 {data.backfill.complete}/{data.backfill.total??'—'}종목 · 저장 구간 {data.backfill.pages}개 · 실패 {data.backfill.failed}종목</Typography>
+   {data.backfill.exhausted>0&&<Typography sx={{fontSize:10,color:colors.textMuted}}>제공 가능한 과거 자료까지 확보 {data.backfill.exhausted}종목</Typography>}
+   <Typography sx={{fontSize:10,color:colors.textMuted}}>실행 #{data.backfill.id} · 갱신 {dateText(data.backfill.updatedAt)} · 종목 완료는 과거 보충 범위 기준입니다.</Typography>
+  </Box>}
  </Box>;
 }
 
@@ -242,7 +249,7 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
     <Box data-testid="monitor-results-data" sx={{minHeight:pending?42:0}}>
       {pending ? <Stack spacing={1}><DataValue width={180}/><DataValue width={220}/></Stack> : items.length ? items.map(item=>{
         const style=statusStyle[String(item.status)]??unknownStatus;
-        const label=feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?'KRX 수량 저장':feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':style.label;
+        const label=feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?(item.reason.includes('시장 순매수')?'시장 순매수 금액 저장':item.reason.includes('수량·금액')?'KRX 수량·금액 저장':'KRX 수량 저장'):feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':feature==='investor-trends'&&item.reason?.startsWith('API_MARKET_NOT_READY:')?'시장 API 검증 대기':style.label;
         return <Box key={item.id} data-testid="monitor-target-row" data-scroll-item={`item-${item.id}`} sx={{py:0.5,borderBottom:'1px solid #26334A',minWidth:0,overflowWrap:'anywhere'}}>
           <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{feature==='realtime-prices'&&item.security?`${item.security.name}(${String(item.symbol).split(':')[0]})`:item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{label}</Typography>{item.status==='FAILED'&&item.security?.id&&featureLabels[feature]&&<CollectionSettingToggle security={item.security as ManagedSecurity} feature={feature}/>}</Stack>
           <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
@@ -286,7 +293,7 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
   const update=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);changeFilters(next);};
   const loadMore=async()=>{if(lock.current || query.isFetching || !query.hasNextPage)return;lock.current=true;try{await query.fetchNextPage();}finally{lock.current=false;}};
   return <Box sx={{pb:'32px'}} data-list-condition={`${feature}:${stream}:${JSON.stringify(filters)}`} data-restoration-ready={query.isPending?'false':'true'}>
-    <Stack direction="row" sx={{alignItems:'center',gap:1,py:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
+    <Stack direction="row" sx={{alignItems:'center',gap:1,pt:0,pb:1}}><Typography sx={{fontSize:12,fontWeight:600,flex:1}}>{featureNames[feature]} · {stream==='runs'?'실행 이력':'대상별 상태'}</Typography><Button onClick={()=>setFiltersOpen(v=>!v)} startIcon={<FilterListRounded/>} sx={{fontSize:11}}>필터</Button><Button onClick={()=>changeFilters(new URLSearchParams())} sx={{fontSize:11}}>전체 기록</Button></Stack>
     {filters.runId&&<Typography sx={{fontSize:10,color:colors.textMuted}}>최근 실행 대상 결과 · 실행 #{filters.runId}</Typography>}
     <Collapse in={filtersOpen}><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:0.5,mb:1}}><CollectionFilters itemStream={stream==='items'} feature={feature} resultFilter={filters.result??''} setResultFilter={v=>update('result',v)} phaseFilter={filters.phase??''} setPhaseFilter={v=>update('phase',v)} symbolFilter={filters.symbol??''} setSymbolFilter={v=>update('symbol',v)} marketFilter={filters.market??''} setMarketFilter={v=>update('market',v)} accountFilter={filters.accountId??''} setAccountFilter={v=>update('accountId',v)} from={filters.from??''} setFrom={v=>update('from',v)} to={filters.to??''} setTo={v=>update('to',v)}/></Box></Collapse>
     {query.data?.pages[0]?.note&&<Typography sx={{fontSize:11,color:colors.warning,my:1}}>{query.data.pages[0].note}</Typography>}

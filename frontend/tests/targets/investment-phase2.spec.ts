@@ -17,8 +17,8 @@ test('stored chart/table, pointer selection, detail return and quarter boundarie
   return route.fulfill({json:{data:[]}});
  });
  await page.goto('/detail/investment');await expect(page.getByTestId('investment-row')).toHaveCount(4);
- await expect(page.getByTestId('investment-row').filter({hasText:'26.01.01'})).toContainText('0원');
- await expect(page.getByTestId('investment-row').filter({hasText:'26.04.01'})).toContainText('+10,000원');
+ await expect(page.getByTestId('investment-row').filter({hasText:'01/01'})).toContainText('0원');
+ await expect(page.getByTestId('investment-row').filter({hasText:'04/01'})).toContainText('+10,000원');
  await expect(page.getByTestId('investment-row').first()).toContainText('—');
  await page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'}).click();
  await expect(page.getByTestId('investment-row')).toHaveCount(2);

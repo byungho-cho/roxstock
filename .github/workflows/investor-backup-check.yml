@@ -34,7 +34,7 @@ jobs:
       - run: npm run build:shared
       - name: Provider, authorization, storage and cumulative regressions
         run: |
-          node --test investor-crawler/src/provider.test.mjs
+          node --test investor-crawler/src/*.test.mjs
           node --import tsx --test backend/src/domain/backup-auth.test.ts backend/src/domain/backup-service.test.ts backend/src/routes/investor-trends.test.ts
       - run: npm run build:frontend
       - run: npx playwright install --with-deps chromium

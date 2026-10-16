@@ -49,7 +49,7 @@ export function returnRate(evaluation: bigint | null, investment: bigint | null)
 }
 type Snapshot = AssetHistoryDto['data'][number] & { updatedAt?: string };
 type Transaction = CashTransactionDto & { createdAt?: string; updatedAt?: string };
-export type InvestmentPoint = { date: string; evaluation: bigint | null; investment: bigint | null; dailyProfit?: bigint | null };
+export type InvestmentPoint = { date: string; evaluation: bigint | null; investment: bigint | null; dailyProfit?: bigint | null; dailyProfitBase?: bigint | null };
 export type InvestmentData = {
   points: InvestmentPoint[];
   asOf: string | null;
@@ -103,7 +103,7 @@ export function calculateInvestment(snapshots: Snapshot[], transactions: Transac
       netDeposit = value === null || netDeposit === null ? null : netDeposit + (row.transactionType === 'DEPOSIT' ? value : -value);
     }
     return { date: snapshot.date, evaluation, investment: totals(snapshot).investment,
-      dailyProfit: evaluation === null || previousValue === null || netDeposit === null ? null : evaluation - previousValue - netDeposit };
+      dailyProfitBase: previousValue, dailyProfit: evaluation === null || previousValue === null || netDeposit === null ? null : evaluation - previousValue - netDeposit };
   });
   const point = points.at(-1), latest = ordered.find(row => row.date === point?.date);
   return { points, asOf: latest?.date ?? null, evaluation: point?.evaluation ?? null, investment: point?.investment ?? null,

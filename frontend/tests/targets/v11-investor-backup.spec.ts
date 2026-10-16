@@ -8,6 +8,11 @@ async function fixture(page:Page){
   if(path.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'legacy fixture'}}});
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'검증 계좌',brokerName:'TEST',cashBalance:'0',isActive:true,isDefault:true}]}});
   if(path.endsWith('/investor-targets'))return route.fulfill({json:{data:[{id:'1',symbol:'005930',name:'삼성전자',classification:'보유'},{id:'2',symbol:'000660',name:'매우 긴 관심 종목 이름',classification:'관심'}]}});
+  if(path==='/api/investor-trends/history'){
+   const stock=url.searchParams.get('type')==='STOCK',quantity=url.searchParams.get('metric')==='quantity',cursor=url.searchParams.get('cursor');
+   const count=cursor?2:50;
+   return route.fulfill({json:{data:{rows:Array.from({length:count},(_,index)=>({date:new Date(Date.UTC(2026,9,16-(cursor?50:0)-index)).toISOString().slice(0,10),close:stock?'73000':'3200.25',closeChange:index%2?'1':'-1',values:{INDIVIDUAL:stock&&quantity?'9007199254740993':'-3200000000',FOREIGN:'0',INSTITUTION:null}})),nextCursor:cursor?null:'2026-08-28'}}});
+  }
   if(path==='/api/investor-trends'){
    const stock=url.searchParams.get('type')==='STOCK',quantity=url.searchParams.get('metric')==='quantity',selectedDate=url.searchParams.get('date');
    const values=stock?['9007199254740993','0',null]:['-4','5','0'];
@@ -30,17 +35,21 @@ async function fixture(page:Page){
 test('investor header, navigation, units, gap chart and tooltips use one fixed layout',async({page},info)=>{
  await fixture(page);await page.goto('/detail/investor-trends');
  await expect(page.getByRole('heading',{name:'투자동향',exact:true})).toHaveCount(1);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
- await expect(page.getByRole('table',{name:'주체별 거래실적'})).toContainText('-4');
+ await expect(page.getByRole('table',{name:'일자별 거래실적'})).toContainText('-3,200');
  const grid=await page.getByTestId('investor-card-grid').boundingBox();const cards=await page.getByTestId('investor-card-grid').locator('.MuiCard-root').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));
  const expected=info.project.name==='cover'?grid!.width:(grid!.width-8)/2;
  for(const card of cards)expect(card.width).toBeCloseTo(expected,0);
  expect(cards[0].x).toBeCloseTo(grid!.x,0);expect(cards[1].x).toBeCloseTo(grid!.x,0);
  expect((await page.locator('header').boundingBox())!.height).toBe(44);await expect(page.getByRole('navigation',{name:'하단 메뉴'})).toHaveCSS('height','44px');
- const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveAttribute('height','124');expect((await svg.locator('path').first().getAttribute('d'))!.match(/M/g)).toHaveLength(2);
- await svg.hover({position:{x:50,y:40}});await expect(page.getByRole('tooltip')).toContainText('누적');
- await page.getByRole('button',{name:'다음 시장 또는 종목',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('코스닥');
+ const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveCSS('height','124px');expect((await page.getByTestId('investor-line-INDIVIDUAL').getAttribute('d'))!.match(/M/g)).toHaveLength(2);
+ await svg.hover({position:{x:50,y:40}});await expect(page.locator('[data-chart-tooltip]')).not.toContainText('누적');await expect(page.locator('[data-chart-tooltip]')).toContainText('백만원');
+ await page.getByRole('button',{name:'다음 시장 또는 종목',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('KOSDAQ');
  await page.getByRole('button',{name:'종목별',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('삼성전자 (보유)');
  await page.getByRole('combobox',{name:'거래대금 또는 거래량'}).click();await page.getByRole('option',{name:'거래량',exact:true}).click();await expect(page.getByRole('table')).toContainText('9,007,199,254,740,993');
+ await expect(page.getByTestId('investor-history-row')).toHaveCount(50);
+ const first=await page.getByTestId('investor-history-row').first().elementHandle();
+ await page.getByTestId('investor-history-card').getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(52);await expect(page.getByTestId('investor-history-card').getByRole('button',{name:'더보기',exact:true})).toHaveCount(0);expect(await first!.evaluate(n=>n.isConnected)).toBe(true);
+ await page.getByRole('combobox',{name:'거래대금 또는 거래량'}).click();await page.getByRole('option',{name:'거래대금',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(50);await expect(page.getByRole('table')).toContainText('-3,200');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('investor.png')});
 });
 test('backup login, latest automatic confirmation and failure preserve the list',async({page},info)=>{
@@ -53,7 +62,7 @@ test('backup login, latest automatic confirmation and failure preserve the list'
 });
 test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
  await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(14);
- const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['설정','모니터링']);expect(names.indexOf('투자동향')).toBe(names.indexOf('예수금')+1);expect(names.indexOf('자산분석')).toBe(names.indexOf('투자동향')+1);
+ const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('예수금')+1);expect(names.indexOf('자산분석')).toBe(names.indexOf('투자동향')+1);
  const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeCloseTo(monitor!.y,1);
 });
 

@@ -91,6 +91,9 @@ async function summary() {
     const recent=recorded?{...actualRecent,excluded}:{target:null,processed:null,success:null,failed:null,skipped:null};
     const resultScope={label:recorded?'최근 실행 대상 결과':'이전 실행의 대상별 결과 미기록',runId:run?String(run.id):'0',startedAt:iso(run?.startedAt)};
     if(job.id==='investor-trends'){
+      const history=await prisma.collectorRun.findFirst({where:{jobType:'investor-trends-backfill',provider:'KIS_API'},orderBy:{id:'desc'}});
+      const progress=history?.metadata as {from?:string;targetCount?:number;complete?:number;failed?:number;totalPages?:number;exhausted?:number;updatedAt?:string}|null;
+      const backfill=history?{id:String(history.id),status:history.status,from:progress?.from??null,total:progress?.targetCount??null,complete:progress?.complete??0,failed:progress?.failed??0,pages:progress?.totalPages??0,exhausted:progress?.exhausted??0,updatedAt:progress?.updatedAt??null}:null;
       const counts=view?.investor??{rawOnly:0,quantityStored:0,waiting:0,failed:0,other:0};
       const stored=run?await prisma.investorFlowDaily.findFirst({orderBy:[{tradeDate:'desc'},{updatedAt:'desc'}],select:{tradeDate:true,updatedAt:true}}):null;
       const hours=(process.env.INVESTOR_COLLECTION_HOURS??'18,21').split(',').map(Number).filter(h=>Number.isInteger(h)&&h>=0&&h<=23);
@@ -101,7 +104,7 @@ async function summary() {
       return {id:job.id,name:job.name,schedule:hours.length?`시험 KST ${hours.map(h=>String(h).padStart(2,'0')+':00').join('·')} · 10/16부터`:job.schedule,status:await statusFor(job,run??emptyRun(job.jobType,now),now),
         lastAttemptAt:iso(run?.startedAt),lastSuccessAt:iso(successfulRuns[index]?.finishedAt),lastCollectedAt:iso(run?.finishedAt),lastDataAt:iso(stored?.tradeDate),statsGeneratedAt:now.toISOString(),nextAt:scheduled?iso(next):null,
         recent,resultScope,skipReasons,lastExecution:run?{id:String(run.id),status:run.status,originalStatus:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null,scheduleState,lastError:safeReason(run?.failureReason),
-        investor:{...counts,dataScope:'현재 연결 DB의 기록',scheduleEnabled:scheduled,notice:'원격 격리 시험 DB 기록은 포함하지 않습니다. 원문 저장·수량 저장은 전체 수집 성공이 아닙니다. 금액·기관 세부·확정 여부는 미제공이며 시장 단위는 검증 대기입니다.'}};
+        investor:{...counts,backfill,dataScope:'현재 연결 DB의 기록',scheduleEnabled:scheduled,notice:'원격 격리 시험 DB 기록은 포함하지 않습니다. 원문 저장·자료 저장은 전체 수집 성공이 아닙니다. 한국투자증권 금액 원본은 백만원 단위입니다. 네이버 신규 수집은 중지했습니다. 시장별 순매수 금액을 별도 범위로 저장합니다. 시장 수량 단위와 공급자 확정 여부는 미확인입니다.'}};
     }
     if (job.id === 'dart-financial-statements') {
       const [state, usage, progress, priorityBehind, universeBehind] = await Promise.all([

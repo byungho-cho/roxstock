@@ -4,13 +4,13 @@ import { useRef, useState, type PointerEvent } from 'react';
 import { colors } from '../../styles/tokens';
 
 export type SnapshotChartPoint = { date: string; values: Record<string, number | null>; text: Record<string, string> };
-export type SnapshotChartSeries = { key: string; label: string; color: string; lineTestId?: string };
+export type SnapshotChartSeries = { key: string; label: string; color: string; lineTestId?: string; strokeDasharray?: string };
 /** Numeric values are geometry only; tooltip text retains source precision. Stored dates only. */
 export function SnapshotChart({ points, series, from, to, height = 164, rightAxis = false, legend = false, fill = false,
-  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false, emptyFrame = false }: {
+  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false, emptyFrame = false, formatAxisLabel, leftAxisWidth = 0, topGap = 8, tooltipUnit }: {
   points: SnapshotChartPoint[]; series: SnapshotChartSeries[]; from: string; to: string;
   height?: number | string; fill?: boolean; rightAxis?: boolean; legend?: boolean; testId: string; ariaLabel: string;
-  dateLabels?: { date: string; label: string }[]; dateColor?: string; dottedTooltipDate?: boolean; emptyFrame?: boolean;
+  dateLabels?: { date: string; label: string }[]; dateColor?: string; dottedTooltipDate?: boolean; emptyFrame?: boolean; formatAxisLabel?: (value:number)=>string; leftAxisWidth?: number; topGap?: number; tooltipUnit?: string;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const gesture = useRef<{ x: number; y: number; vertical: boolean } | null>(null);
@@ -39,14 +39,14 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
     setSelected(nearest?.date ?? null);
   };
   const point = points.find(item => item.date === selected);
-  const amounts = [0, 1, 2, 3].map(i => emptyFrame && !values.length ? '—' : `${Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만`);
-  const gutter = fill && !rightAxis ? Math.max(...amounts.map(label => label.length * 6)) + 4 : 0;
+  const amounts = [0, 1, 2, 3].map(i => emptyFrame && !values.length ? '—' : formatAxisLabel ? formatAxisLabel(max-i/3*(max-min)) : `${Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만`);
+  const gutter = fill && !rightAxis ? Math.max(...amounts.map(label => label.length * 6)) + 4 : leftAxisWidth;
   const tooltipLeft = rightAxis ? 4 : Math.max(...amounts.map(label => label.length * 6)) + 8;
   const labels = dateLabels ?? Array.from({ length: 5 }, (_, i) => {
     const date = new Date(start + duration * i / 4).toISOString().slice(0, 10);
     return { date, label: date.slice(5).replace('-', '.') };
   });
-  return <Box data-no-detail-swipe data-no-pull-refresh data-testid={testId} data-dates={points.map(item => item.date).join(',')} sx={{ position: 'relative', mt: '8px', minWidth: 0, ...(fill ? {display:'flex',flexDirection:'column',flex:1,minHeight:0} : {}) }}>
+  return <Box data-no-detail-swipe data-no-pull-refresh data-testid={testId} data-dates={points.map(item => item.date).join(',')} sx={{ position: 'relative', mt: topGap+'px', minWidth: 0, ...(fill ? {display:'flex',flexDirection:'column',flex:1,minHeight:0} : {}) }}>
     <Box ref={boundary} sx={{ position: 'relative', height:fill?undefined:height, ...(fill?{flex:1,minHeight:0}:{}) }}>
       {[0, 1, 2, 3].map(i => <Box data-testid={`${testId}-amount`} key={i} sx={{ position: 'absolute', ...(rightAxis ? { right: 0 } : { left: 2 }), pointerEvents: 'none', zIndex: 1, bgcolor: '#111927bb', top: `${(12 + i * 46) / 164 * 100}%`, transform: 'translateY(-50%)', color: colors.textMuted, fontSize: 9 }}>{amounts[i]}</Box>)}
       <Box component="svg" role="img" aria-label={ariaLabel} viewBox="0 0 260 164" preserveAspectRatio="none"
@@ -55,11 +55,11 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
         onPointerUp={() => { gesture.current = null; }} onPointerCancel={() => { gesture.current = null; }}
         sx={{ display: 'block', ml:gutter+'px', width: `calc(100% - ${rightAxis ? 64 : gutter}px)`, height: '100%', touchAction: 'pan-y', userSelect: 'none' }}>
         {[0, 1, 2, 3].map(i => <path key={i} d={`M4 ${12 + i * 46} H256`} stroke={colors.border} />)}
-        {series.filter(item=>!emptyFrame||points.some(point=>finite(point.values[item.key]))).map(item => <g key={item.key}><path data-testid={item.lineTestId} d={path(item.key)} stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />{points.map((point,index) => finite(point.values[item.key]) && !finite(points[index-1]?.values[item.key]) && !finite(points[index+1]?.values[item.key]) && <circle key={point.date} cx={x(point.date)} cy={y(point.values[item.key]!)} r="2" fill={item.color} />)}</g>)}
+        {series.filter(item=>!emptyFrame||points.some(point=>finite(point.values[item.key]))).map(item => <g key={item.key}><path data-testid={item.lineTestId} d={path(item.key)} stroke={item.color} strokeDasharray={item.strokeDasharray} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />{points.map((point,index) => finite(point.values[item.key]) && !finite(points[index-1]?.values[item.key]) && !finite(points[index+1]?.values[item.key]) && <circle key={point.date} cx={x(point.date)} cy={y(point.values[item.key]!)} r="2" fill={item.color} />)}</g>)}
         {point && <g data-testid={testId === 'investment-chart' ? 'investment-selection' : `${testId}-selection-guide`}><path data-testid={testId === 'asset-trend-chart' ? 'asset-trend-guide' : undefined} d={`M${x(point.date)} 8 V154`} stroke={colors.textMuted} /></g>}
       </Box>
       {point && series.map(item => finite(point.values[item.key]) && <Box data-testid={testId === 'asset-trend-chart' ? 'asset-trend-selection' : undefined} key={item.key} sx={{ position: 'absolute', pointerEvents: 'none', left: `calc(${gutter}px + ${x(point.date) / 260 * 100}% - ${(rightAxis ? 64 : gutter) * x(point.date) / 260}px)`, top: `${y(point.values[item.key]!) / 164 * 100}%`, transform: 'translate(-50%, -50%)', width: 6, height: 6, borderRadius: '50%', bgcolor: item.color }} />)}
-    {point && <Box data-testid={testId === 'investment-chart' ? 'investment-tooltip' : 'asset-trend-tooltip'} data-chart-tooltip role="status" sx={{ position: 'absolute', pointerEvents: 'auto', zIndex: 2, top: legend ? 32 : 18, left: x(point.date) > 130 ? `${tooltipLeft}px` : undefined, right: x(point.date) <= 130 ? rightAxis ? '68px' : '4px' : undefined, maxWidth: rightAxis ? 'calc(100% - 72px)' : `calc(100% - ${x(point.date) > 130 ? tooltipLeft + 4 : 8}px)`, p: '8px', bgcolor: '#111927', border: `1px solid ${colors.border}`, borderRadius: '8px', overflowWrap: 'anywhere' }}><Typography sx={{ fontSize: 10 }}>{dottedTooltipDate ? point.date.replaceAll('-', '.') : point.date}</Typography>{series.map(item => <Typography key={item.key} sx={{ fontSize: 11, color: item.color }}>{series.length > 1 ? `${item.label} ` : ''}{point.text[item.key] ?? '—'}</Typography>)}</Box>}
+    {point && <Box data-testid={testId === 'investment-chart' ? 'investment-tooltip' : 'asset-trend-tooltip'} data-chart-tooltip role="status" sx={{ position: 'absolute', pointerEvents: 'auto', zIndex: 2, top: legend ? 32 : 18, left: x(point.date) > 130 ? `${tooltipLeft}px` : undefined, right: x(point.date) <= 130 ? rightAxis ? '68px' : '4px' : undefined, maxWidth: rightAxis ? 'calc(100% - 72px)' : `calc(100% - ${x(point.date) > 130 ? tooltipLeft + 4 : 8}px)`, minWidth: tooltipUnit ? 150 : undefined, p: '8px', bgcolor: '#111927', border: `1px solid ${colors.border}`, borderRadius: '8px', overflowWrap: 'anywhere' }}>{tooltipUnit ? <><Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',mb:'4px'}}><Typography sx={{fontSize:12}}>{dottedTooltipDate ? point.date.replaceAll('-', '.') : point.date}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>{tooltipUnit}</Typography></Box>{series.map(item=><Box key={item.key} sx={{display:'flex',justifyContent:'space-between',gap:'16px',color:item.color,fontVariantNumeric:'tabular-nums'}}><Typography sx={{fontSize:11,textAlign:'left'}}>{item.label}</Typography><Typography sx={{fontSize:11,textAlign:'right',whiteSpace:'nowrap'}}>{point.text[item.key]??'—'}</Typography></Box>)}</> : <><Typography sx={{ fontSize: 10 }}>{dottedTooltipDate ? point.date.replaceAll('-', '.') : point.date}</Typography>{series.map(item => <Typography key={item.key} sx={{ fontSize: 11, color: item.color }}>{series.length > 1 ? `${item.label} ` : ''}{point.text[item.key] ?? '—'}</Typography>)}</>}</Box>}
     </Box>
     {legend && <Stack data-testid="investment-legend" direction="row" spacing="8px" sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', bgcolor: '#111927dd', px: '4px', pointerEvents: 'auto', whiteSpace: 'nowrap' }}>{series.map(item => <Typography key={item.key} sx={{ fontSize: 10, color: item.color }}>● {item.label}</Typography>)}</Stack>}
 

@@ -36,7 +36,7 @@ export async function stockFlows(symbol, fetcher=fetch) {
       buyQuantity:numeric(item.krx[prefix+'BuyVolume']),sellQuantity:numeric(item.krx[prefix+'SellVolume']),netQuantity:numeric(item.krx[prefix+'NetVolume']),
       buyAmount:null,sellAmount:null,netAmount:null,quantityUnit:'SHARE',amountUnit:null,
       publicationStatus:'UNSPECIFIED',reason:'금액·기관 세부 주체·공급자 확정 여부 미제공',
-      raw:{date:item.localTradedAt,branch:'krx',buy:item.krx[prefix+'BuyVolume']??null,sell:item.krx[prefix+'SellVolume']??null,net:item.krx[prefix+'NetVolume']??null},
+      raw:{date:item.localTradedAt,branch:'krx',closingPrice:numeric(item.krx.closingPrice),closeChange:numeric(item.krx.changePrice),buy:item.krx[prefix+'BuyVolume']??null,sell:item.krx[prefix+'SellVolume']??null,net:item.krx[prefix+'NetVolume']??null},
     }));
   });
 }
