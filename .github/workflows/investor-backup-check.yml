@@ -13,6 +13,9 @@ on:
       - '.github/workflows/investor-backup-check.yml'
 permissions:
   contents: read
+concurrency:
+  group: investor-backup-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   investor-backup:
     runs-on: ubuntu-latest

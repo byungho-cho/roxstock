@@ -38,8 +38,8 @@ const featureNames: Record<string, string> = {
   'realtime-prices': '실시간 주가',
   'market-prices': '전체 종목 주가',
   'account-snapshots': '일별 계좌 스냅샷',
-  'dart-financial-statements': 'DART 재무제표',
   'investor-trends': '투자동향',
+  'dart-financial-statements': 'DART 재무제표',
 };
 const dateText = (value?: string | null) => value
   ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })

@@ -10,8 +10,8 @@ services:
       ROXSTOCK_RELEASE_FILE: /run/roxstock/release.json
       HOST: 0.0.0.0
       PORT: 3300
-      BACKUP_ENABLED: ${BACKUP_ENABLED:-false}
-      BACKUP_AUTO_ENABLED: ${BACKUP_AUTO_ENABLED:-false}
+      # Enable flags and the admin hash come only from the private env_file.
+      # Missing flags remain disabled in the service; do not override them here.
       BACKUP_DIRECTORY: /var/lib/roxstock/backups
       BACKUP_PUBLIC_ORIGIN: https://newrox.cafe24.com
       DART_BACKFILL_DAILY_CALL_LIMIT: ${DART_BACKFILL_DAILY_CALL_LIMIT:-10000}
