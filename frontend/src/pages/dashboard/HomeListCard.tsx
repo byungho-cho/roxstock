@@ -37,7 +37,7 @@ export function HomeEmpty({ children = '내용이 없습니다.' }: { children?:
 export function HomeTwoLineRow({ testId, onClick, first, second, color = colors.textPrimary, large = false }: {
   testId: string; onClick: () => void; first: [ReactNode, ReactNode, ReactNode]; second: [ReactNode, ReactNode, ReactNode]; color?: string; large?: boolean;
 }) {
-  const compactSpacing=testId==='home-holding'||testId==='recent-buy-lot';
+  const compactSpacing=testId==='home-holding'||testId==='recent-buy-lot'||(testId==='target-lot'&&!large);
   return <CardActionArea data-testid={testId} onClick={onClick} sx={{ display: 'block', textAlign: 'left', color, borderRadius: 0, borderBottom: `1px solid ${colors.borderStrong}`, pl: '8px', pr: 0, py: compactSpacing?'6px':0, height: compactSpacing||large?'auto':43, minHeight: compactSpacing?0:43, '&:last-child': { borderBottom: 0, height:compactSpacing||large?'auto':38,minHeight:compactSpacing?0:38 } }}>
     <Box sx={{ display: 'grid', gridTemplateColumns: large ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, .92fr)' : 'minmax(0, 1fr) minmax(max-content, 1fr) minmax(max-content, 1fr)', columnGap: '8px', rowGap: compactSpacing?'0px':'2px', alignItems: 'center', fontVariantNumeric: 'tabular-nums', '& > *': { minWidth: 0, fontSize: 10, lineHeight: '16px', textAlign: 'right', overflowWrap: large ? 'anywhere' : undefined, whiteSpace: large ? undefined : 'nowrap' }, '& > :nth-of-type(3n + 1)': { textAlign: 'left' }, '& > :first-child': { fontSize: 12, lineHeight: '20px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' } }}>
       {first.map((cell, i) => <Box key={`first-${i}`}>{cell}</Box>)}

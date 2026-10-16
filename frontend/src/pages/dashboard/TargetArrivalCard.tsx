@@ -37,11 +37,11 @@ export function TargetArrivalCard({ full = false }: { full?: boolean }) {
   const [visible, setVisible] = useState(20);
   const report = query.data?.meta.accountId === query.accountId ? query.data : undefined;
   const failed = query.isError || query.accounts.isError;
-  if (!full) return <HomeListCard naturalCover compactEmpty={!!report&&!failed&&report.meta.enabled&&report.meta.total===0&&report.meta.unavailableCount===0} stable pending={!report&&!failed&&(!!query.accountId||query.accounts.isPending)} testId="target-arrival-card" title="목표가 도래" timestampInTitle count={report ? `${report.meta.total}건` : undefined}
+  if (!full) return <HomeListCard naturalCover compactEmpty={!!report&&!failed&&report.meta.enabled&&report.meta.total===0&&report.meta.unavailableCount===0} stable pending={!report&&!failed&&(!!query.accountId||query.accounts.isPending)} testId="target-arrival-card" height="auto" title="목표가 도래" timestampInTitle count={report ? `${report.meta.total}건` : undefined}
     titleAction={() => navigate(targetSettingsPath)}
     notice={failed&&report ? <QueryErrorNotice message="조회 실패" onRetry={()=>{void query.refetch();void query.accounts.refetch();}}/> : report?.meta.unavailableCount ? `시세·거래 데이터 판정 불가 ${report.meta.unavailableCount}건 · 확인 가능한 Lot 기준` : undefined} timestamp={report?.meta.priceAsOf??report?.meta.calculatedAt} updating={query.isFetching} more={report?.meta.enabled && report.meta.total > 5 ? () => navigate('/detail/target-arrivals') : undefined}>
     {failed && !report && <HomeEmpty><QueryErrorNotice message="목표가 도래 조회 실패" onRetry={() => { void query.refetch(); void query.accounts.refetch(); }}/></HomeEmpty>}
-    {!report && !failed && (query.accountId || query.accounts.isPending ? <HomeListLoading /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
+    {!report && !failed && (query.accountId || query.accounts.isPending ? <HomeListLoading compact /> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {report && !report.meta.enabled && <HomeEmpty>조건이 설정되지 않아 기능이 비활성화되었습니다. <Button onClick={() => navigate(targetSettingsPath)}>조건 설정</Button></HomeEmpty>}
     {report?.meta.enabled && <>
       {report.data.slice(0, 5).map(lot => <TargetLotRow key={lot.lotId} lot={lot} />)}
