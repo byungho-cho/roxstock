@@ -74,7 +74,7 @@ test('investor monitoring links summaries and details without turning limited da
  await page.goto('/detail/collection-monitoring');
  await expect(page.getByRole('link',{name:'투자동향 상세 보기'})).toBeVisible();await expect(page.getByRole('link',{name:'DART 재무제표 상세 보기'})).toBeVisible();
  const ids=await page.locator('[data-testid^="monitor-feature-"]').evaluateAll(ns=>ns.map(n=>n.getAttribute('data-testid')));expect(ids.indexOf('monitor-feature-investor-trends')).toBeLessThan(ids.indexOf('monitor-feature-dart-financial-statements'));
- const card=page.getByRole('link',{name:'투자동향 상세 보기'});await expect(card).toContainText('자료 제한');await expect(card).toContainText('수량 저장 1');await card.click();
+ const card=page.getByRole('link',{name:'투자동향 상세 보기'});await expect(card).toContainText('자료 제한');await expect(card).toContainText('자료 저장 1');await card.click();
  await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('원문만 저장');await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('전체 수집 성공이 아닙니다');
  await expect(page.getByTestId('monitor-current')).toContainText('자동 실행 연결 미확인');
  await page.screenshot({path:info.outputPath('investor-monitoring.png')});
