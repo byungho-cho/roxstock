@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {investorValue,investorDailyValue} from '../../src/pages/investor/InvestorHistoryCard.tsx';
+import {investorValue,investorDailyValue,investorDailyUnit} from '../../src/pages/investor/InvestorHistoryCard.tsx';
 
 test('investor amounts use millions without losing integer precision or inventing missing values',()=>{
  assert.equal(investorValue(null,'amount'),'—');
@@ -11,15 +11,14 @@ test('investor amounts use millions without losing integer precision or inventin
  assert.equal(investorValue('9007199254740993','quantity',true),'+9,007,199,254,740,993');
 });
 
-test('daily amounts and quantities use adaptive units',()=>{
+test('daily values use adaptive units without losing market quantity scale',()=>{
  assert.equal(investorDailyValue(null,'amount'),'—');
- assert.equal(investorDailyValue('0','amount'),'0만원');
- assert.equal(investorDailyValue('100000000','amount'),'+1억원');
- assert.equal(investorDailyValue('-123456789','amount'),'-1.23억원');
- assert.equal(investorDailyValue('99990000','amount'),'+9,999만원');
- assert.equal(investorDailyValue('123456','quantity'),'+12.35만주');
- assert.equal(investorDailyValue('100000000','quantity'),'+1억주');
- assert.equal(investorDailyValue('100000','quantity',true),'+1억주');
- assert.equal(investorDailyValue('-123.45','quantity',true),'-12.35만주');
- assert.equal(investorDailyValue('9007199254740993','quantity'),'+90,071,992.55억주');
+ assert.equal(investorDailyValue('100000000','amount'),'+1');
+ assert.equal(investorDailyUnit('100000000','amount'),'억원');
+ assert.equal(investorDailyValue('-123456789','amount'),'-1.23');
+ assert.equal(investorDailyValue('123456','quantity'),'+12.35');
+ assert.equal(investorDailyUnit('123456','quantity'),'만주');
+ assert.equal(investorDailyValue('100000','quantity',true),'+1');
+ assert.equal(investorDailyUnit('100000','quantity',true),'억주');
+ assert.equal(investorDailyValue('-123.45','quantity',true),'-12.35');
 });

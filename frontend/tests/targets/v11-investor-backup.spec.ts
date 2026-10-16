@@ -34,22 +34,22 @@ async function fixture(page:Page){
 }
 test('investor header, navigation, units, gap chart and tooltips use one fixed layout',async({page},info)=>{
  await fixture(page);await page.goto('/detail/investor-trends');
- await expect(page.getByRole('heading',{name:'투자동향',exact:true})).toHaveCount(1);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:/^투자동향/})).toHaveCount(1);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
  await expect(page.getByRole('table',{name:'일자별 거래실적'})).toContainText('-3,200');
  const grid=await page.getByTestId('investor-card-grid').boundingBox();const cards=await page.getByTestId('investor-card-grid').locator('.MuiCard-root').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));
  const expected=info.project.name==='cover'?grid!.width:(grid!.width-8)/2;
  for(const card of cards)expect(card.width).toBeCloseTo(expected,0);
  expect(cards[0].x).toBeCloseTo(grid!.x,0);expect(cards[1].x).toBeCloseTo(grid!.x,0);
  expect((await page.locator('header').boundingBox())!.height).toBe(44);await expect(page.getByRole('navigation',{name:'하단 메뉴'})).toHaveCSS('height','44px');
- const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveCSS('height','124px');expect((await page.getByTestId('investor-line-INDIVIDUAL').getAttribute('d'))!.match(/M/g)).toHaveLength(2);
- await svg.hover({position:{x:50,y:40}});await expect(page.locator('[data-chart-tooltip]')).not.toContainText('누적');await expect(page.locator('[data-chart-tooltip]')).toContainText('백만원');await expect(page.getByTestId('chart-tooltip-close')).toContainText('3,200.25 포인트');await expect(page.getByTestId('chart-tooltip-close')).toHaveCSS('color','rgb(96, 165, 250)');
+ const svg=page.getByLabel('투자자 누적 순매수 차트');await expect(svg).toHaveCSS('height','221px');expect((await page.getByTestId('investor-line-INDIVIDUAL').getAttribute('d'))!.match(/M/g)).toHaveLength(2);
+ await svg.hover({position:{x:50,y:40}});await expect(page.locator('[data-chart-tooltip]')).not.toContainText('누적');await expect(page.locator('[data-chart-tooltip]')).toContainText('백만원');await expect(page.getByTestId('chart-tooltip-close')).toContainText('3,200.25');await expect(page.getByTestId('chart-tooltip-close')).not.toContainText('포인트');await expect(page.getByTestId('chart-tooltip-close')).toHaveCSS('color','rgb(96, 165, 250)');
  await page.getByRole('button',{name:'다음 시장 또는 종목',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('KOSDAQ');
  await page.getByRole('button',{name:'종목별',exact:true}).click();await expect(page.getByTestId('investor-navigation')).toContainText('삼성전자 (보유)');
- await page.getByRole('combobox',{name:'거래대금 또는 거래량'}).click();await page.getByRole('option',{name:'거래량',exact:true}).click();await expect(page.getByRole('table')).toContainText('9,007,199,254,740,993');
+ await expect(page.getByRole('button',{name:'거래대금 또는 거래량',exact:true})).toHaveText('거래량');await expect(page.getByRole('table')).toContainText('9,007,199,254,740,993');
  await expect(page.getByTestId('investor-history-row')).toHaveCount(50);
  const first=await page.getByTestId('investor-history-row').first().elementHandle();
  await page.getByTestId('investor-history-card').getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(52);await expect(page.getByTestId('investor-history-card').getByRole('button',{name:'더보기',exact:true})).toHaveCount(0);expect(await first!.evaluate(n=>n.isConnected)).toBe(true);
- await page.getByRole('combobox',{name:'거래대금 또는 거래량'}).click();await page.getByRole('option',{name:'거래대금',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(50);await expect(page.getByRole('table')).toContainText('-3,200');
+ await page.getByRole('button',{name:'거래대금 또는 거래량',exact:true}).click();await expect(page.getByTestId('investor-history-row')).toHaveCount(50);await expect(page.getByRole('table')).toContainText('-3,200');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('investor.png')});
 });
 test('backup login, latest automatic confirmation and failure preserve the list',async({page},info)=>{
@@ -125,4 +125,14 @@ test('source tooltip groups readable lines and contains the exchange notice inst
  await page.getByRole('button',{name:'투자동향 자료 기준'}).hover();
  const tooltip=page.getByTestId('investor-source-tooltip');await expect(tooltip).toBeVisible();await expect(tooltip).toContainText('KRX+NXT 합계 · 종가 KRX 기준');
  await expect(tooltip).toHaveCSS('white-space','pre-line');await expect(tooltip).toHaveCSS('gap','6px');await expect(tooltip).toContainText('순매수 = 매수 − 매도');
+});
+
+test('investor chart detail opens with current scope and supports returning to summary',async({page})=>{
+ await fixture(page);await page.goto('/detail/investor-trends?date=2026-10-16&mode=market&metric=amount&period=60');
+ const title=page.getByRole('heading',{name:'누적 순매수 추이',exact:true});const caption=page.getByTestId('investor-chart-caption');
+ expect((await caption.boundingBox())!.y).toBeGreaterThan((await title.boundingBox())!.y);
+ await page.getByRole('button',{name:'상세보기 ›',exact:true}).click();await expect(page).toHaveURL(/chart=detail/);
+ const dialog=page.getByRole('dialog',{name:'누적 순매수 차트 상세보기'});await expect(dialog).toBeVisible();await expect(dialog).toContainText('KOSPI · 거래대금');await expect(dialog.getByRole('button',{name:'60일',exact:true})).toHaveAttribute('aria-pressed','true');
+ await dialog.getByRole('button',{name:'120일',exact:true}).click();await expect(dialog.getByRole('button',{name:'120일',exact:true})).toHaveAttribute('aria-pressed','true');
+ await dialog.getByRole('button',{name:'차트 상세 뒤로가기'}).click();await expect(dialog).not.toBeVisible();await expect(page).not.toHaveURL(/chart=detail/);await expect(page.getByTestId('investor-daily-card')).toBeVisible();
 });

@@ -59,6 +59,27 @@ export class KisInvestorProvider{
    });
   });
  }
+ /** Annual endpoints return dated fiscal rows, never the undated current quote EPS. */
+ async annualFundamentals(symbol,{sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),signal}={}){
+  if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new ProviderError('EXCLUDED_SYMBOL');
+  const token=await this.authenticate(),tables=[];
+  for(const [endpoint,tr]of [['financial-ratio','FHKST66430300'],['balance-sheet','FHKST66430100'],['income-statement','FHKST66430200']]){
+   await sleep(2000,undefined,{signal});
+   if(signal?.aborted)throw new ProviderError('WORKER_STOPPED');
+   const params=new URLSearchParams({FID_DIV_CLS_CODE:'0',fid_div_cls_code:'0',fid_cond_mrkt_div_code:'J',fid_input_iscd:symbol});
+   const data=await this.json('/uapi/domestic-stock/v1/finance/'+endpoint+'?'+params,{headers:{authorization:'Bearer '+token,appkey:this.appKey,appsecret:this.appSecret,tr_id:tr,custtype:'P'}});
+   if(!Array.isArray(data.output))throw new ProviderError('KIS_ANNUAL_SCHEMA');
+   const map=new Map();
+   for(const row of data.output){
+    if(!/^\d{4}12$/.test(row.stac_yymm)||row.stac_yymm>today().replaceAll('-','').slice(0,6))continue;
+    if(map.has(row.stac_yymm))throw new ProviderError('KIS_DUPLICATE_ANNUAL_PERIOD');
+    map.set(row.stac_yymm,row);
+   }tables.push(map);
+  }
+  const number=value=>{const n=numeric(value);if(n!==null&&(!/^-?\d+(\.\d{1,4})?$/.test(n)||n.replace(/[-.]/g,'').length>24))throw new ProviderError('KIS_ANNUAL_INVALID_NUMBER');return n;};
+  const won=value=>{const n=number(value);if(n===null)return null;const negative=n.startsWith('-'),[w,f='']=n.replace('-','').split('.');return ((negative?-1n:1n)*(BigInt(w)*100000000n+BigInt(f.padEnd(8,'0')))).toString();};
+  return [...tables[0]].map(([ym,r])=>{const b=tables[1].get(ym),i=tables[2].get(ym);return {source:'KIS_API',periodType:'ANNUAL',fiscalYear:Number(ym.slice(0,4)),periodEnd:ym.slice(0,4)+'-12-31',stacYymm:ym,eps:number(r.eps),bps:number(r.bps),roe:number(r.roe_val),equity:won(b?.total_cptl),assets:won(b?.total_aset),netIncome:won(i?.thtr_ntin),revenue:won(i?.sale_account),collectedAt:new Date().toISOString(),raw:{ratio:r,balance:b??null,income:i??null},currency:'KRW',amountUnit:'HUNDRED_MILLION_KRW',division:'UNVERIFIED'};});
+ }
  async currentFundamentals(symbol){
   if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new ProviderError('EXCLUDED_SYMBOL');
   const token=await this.authenticate();
