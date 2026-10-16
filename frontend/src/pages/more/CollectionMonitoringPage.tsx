@@ -143,7 +143,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
     </Typography>
     <Typography sx={{ color: '#F2F7FC', fontSize: 10, lineHeight: '12px', mt: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {dart ? <>1단계 <DataValue width={65}>{numberText((item.backfill?.success ?? 0) + (item.backfill?.noFiling ?? 0) + (item.backfill?.notApplicable ?? 0))}/{numberText(item.backfill?.planned)}</DataValue> · 2단계 <DataValue width={35}>{item.phase === 'CURRENT' ? '확인 중' : '대기'}</DataValue></>
-        : item.id==='investor-trends'?<>수량 저장 {numberText(item.investor?.quantityStored)} · 원문만 {numberText(item.investor?.rawOnly)} · 대기 {numberText(item.investor?.waiting)}</>
+        : item.id==='investor-trends'?<>자료 저장 {numberText(item.investor?.quantityStored)} · 원문만 {numberText(item.investor?.rawOnly)} · 대기 {numberText(item.investor?.waiting)}</>
         : realtime ? <>수신 <DataValue width={40}>{numberText(item.recent.processed)}</DataValue>건 · 다음 장중</>
         : <><DataValue width={65}>{numberText(item.recent.success)}/{numberText(item.recent.target)}</DataValue>건 성공 · 다음 <DataValue width={35}>{clockText(item.nextAt)}</DataValue></>}
     </Typography>
@@ -201,7 +201,7 @@ function InvestorDiagnostics({feature}:{feature:Feature}){
  const data=feature.investor;
  return <Box data-testid="monitor-investor-diagnostics" sx={{...cardSx,p:'8px 12px',fontSize:11}}>
   <Typography sx={{fontSize:12,fontWeight:600,mb:'4px'}}>투자동향 자료별 결과</Typography>
-  {([['검증된 KRX 자료 저장',data?.quantityStored],['원문만 저장 · 단위 검증 대기',data?.rawOnly],['시작일 이후 자료 미제공 대기',data?.waiting],['조회·검증·저장 실패',data?.failed],['기타 결과',data?.other]]as const).map(([label,count])=><Box key={label} sx={{display:'flex',justifyContent:'space-between',gap:'8px',py:'2px'}}><span>{label}</span><DataValue width={24}>{numberText(count)}건</DataValue></Box>)}
+  {([['API 자료 저장 · 수량 또는 금액',data?.quantityStored],['원문만 저장 · 단위 검증 대기',data?.rawOnly],['시작일 이후 자료 미제공 대기',data?.waiting],['조회·검증·저장 실패',data?.failed],['기타 결과',data?.other]]as const).map(([label,count])=><Box key={label} sx={{display:'flex',justifyContent:'space-between',gap:'8px',py:'2px'}}><span>{label}</span><DataValue width={24}>{numberText(count)}건</DataValue></Box>)}
   <Typography sx={{fontSize:10,color:colors.textMuted,mt:'6px',overflowWrap:'anywhere'}}>{data?.notice??'현재 연결 DB의 기록을 조회합니다.'}</Typography>
   {data?.backfill&&<Box data-testid="monitor-investor-backfill" sx={{borderTop:`1px solid ${colors.border}`,mt:'8px',pt:'8px'}}>
    <Typography sx={{fontSize:12,fontWeight:600}}>과거 자료 보충 · {data.backfill.from??'기준 확인 중'}부터</Typography>
