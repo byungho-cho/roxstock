@@ -55,6 +55,9 @@ test('year and quarter filter share chart/table, include boundaries and keep sum
   await periods.getByRole('button', { name: '2분기' }).click();
   await expect(periods.getByRole('button', { name: '1분기' })).toHaveAttribute('aria-pressed','true');
   await expect(periods.getByRole('button', { name: '2분기' })).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByTestId('investment-row')).toHaveCount(100);
+  const retained=await page.getByTestId('investment-row').first().elementHandle();await page.getByTestId('investment-more').click();
+  await expect(page.getByTestId('investment-row')).toHaveCount(166);expect(await retained.evaluate(node=>node.isConnected)).toBe(true);
   await expect(page.getByTestId('investment-row').last()).toHaveAttribute('data-date','2026-01-01');
   await periods.getByRole('button', { name: '1분기' }).click();
   const q2 = await page.getByTestId('investment-row').evaluateAll(rows => rows.map(row => row.getAttribute('data-date')));
@@ -129,7 +132,7 @@ test('empty, missing and failed results remain distinct', async ({ page }) => {
   const f = await fixture(page, 'empty'); await page.goto('/detail/investment');
   await expect(page.getByTestId('investment-history')).toContainText('내용이 없습니다.');
   await expect(page.getByTestId('investment-quarters').getByRole('button', { name: '2분기' })).toBeEnabled();
-  f.setMode('missing'); await page.reload(); await expect(page.getByTestId('investment-row')).toHaveCount(166);
+  f.setMode('missing'); await page.reload(); await expect(page.getByTestId('investment-row')).toHaveCount(100);await page.getByTestId('investment-more').click();await expect(page.getByTestId('investment-row')).toHaveCount(166);await expect(page.getByTestId('investment-more')).toBeDisabled();
   await expect(page.getByTestId('investment-value')).toHaveText('—'); await expect(page.getByTestId('investment-history')).not.toContainText('내용이 없습니다.');
   f.setMode('error'); await page.reload(); await expect(page.getByRole('alert')).toContainText('조회에 실패했습니다.');
   await expect(page.getByTestId('investment-history')).not.toContainText('내용이 없습니다.'); await expect(page.getByTestId('investment-value')).toHaveText('—');
