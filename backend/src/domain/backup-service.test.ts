@@ -56,3 +56,14 @@ test('monthly KST boundary and restart catch-up create one current-month backup'
   await restarted.scheduled(new Date('2026-12-05T00:00:00Z'));await restarted.waitForIdle();assert.equal((await restarted.list()).items.length,2);await restarted.close();
  }finally{await service.close();if(previous===undefined)delete process.env.BACKUP_AUTO_ENABLED;else process.env.BACKUP_AUTO_ENABLED=previous;}
 }));
+
+test('backup-only credentials retain the application database target and reject a different database',()=>temporary(async root=>{
+ const previous=process.env.BACKUP_DATABASE_URL;let dumps=0;
+ const service=new BackupService(fakeDb(),root,()=>{dumps++;return Readable.from([sql]);});
+ try{
+  process.env.BACKUP_DATABASE_URL='mysql://backup:private@127.0.0.1:3306/another_database';
+  const wrong=await service.start('MANUAL');assert.ok(wrong);const rejected=await settle(service,wrong.id);assert.equal(rejected?.reason,'BACKUP_DB_CONFIG');assert.equal(dumps,0);
+  process.env.BACKUP_DATABASE_URL='mysql://backup:private@127.0.0.1:3306/isolated_test';
+  const correct=await service.start('MANUAL');assert.ok(correct);assert.equal((await settle(service,correct.id))?.status,'COMPLETE');assert.equal(dumps,1);
+ }finally{await service.close();if(previous===undefined)delete process.env.BACKUP_DATABASE_URL;else process.env.BACKUP_DATABASE_URL=previous;}
+}));

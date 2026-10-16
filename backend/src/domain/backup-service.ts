@@ -62,7 +62,9 @@ export class BackupService{
    const space=await statfs(root,{bigint:true});const latest=(await this.records()).find(r=>r.status==='COMPLETE');
    const estimated=BigInt(Math.ceil((latest?.bytes??0)*(latest?.kind==='AUTO'?15:2)));
    if(space.bavail*space.bsize<(estimated>536870912n?estimated:536870912n))throw err(507,'BACKUP_DISK_FULL','백업 저장 공간이 부족합니다.');
-   const url=new URL(process.env.DATABASE_URL!);const database=url.pathname.slice(1);
+   const url=new URL(process.env.BACKUP_DATABASE_URL??process.env.DATABASE_URL!);const database=url.pathname.slice(1);
+   const application=new URL(process.env.DATABASE_URL!);
+   if(url.protocol!==application.protocol||url.hostname!==application.hostname||(url.port||'3306')!==(application.port||'3306')||url.pathname!==application.pathname)throw err(500,'BACKUP_DB_CONFIG','백업 DB 설정을 확인해 주세요.');
    if(!/^[a-zA-Z0-9_]+$/.test(database))throw err(500,'BACKUP_DB_CONFIG','백업 DB 설정을 확인해 주세요.');
    let input:NodeJS.ReadableStream,done:Promise<void>;
    if(this.dumpTest){input=this.dumpTest();done=Promise.resolve();}else{
