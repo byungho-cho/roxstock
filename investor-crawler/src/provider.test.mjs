@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {stockFlows,marketFlows,numeric,dateKey} from './provider.mjs';
 const fetchJson=body=>async()=>new Response(JSON.stringify(body),{status:200});
 test('stock adapter keeps exact quantities, real zero and missing amounts without mixing NXT',async()=>{
- const rows=await stockFlows('0163Y0',fetchJson({isSuccess:true,result:{items:[{localTradedAt:'2026-10-16',krx:{individualBuyVolume:'9007199254740993',individualSellVolume:'0',individualNetVolume:'9007199254740993',foreignBuyVolume:'0',foreignSellVolume:'0',foreignNetVolume:'0'},nxt:{individualNetVolume:'999'}}]}}));
+ const rows=await stockFlows('0163Y0',fetchJson({isSuccess:true,result:{items:[{localTradedAt:'2026-10-16',krx:{closingPrice:'73,000',individualBuyVolume:'9007199254740993',individualSellVolume:'0',individualNetVolume:'9007199254740993',foreignBuyVolume:'0',foreignSellVolume:'0',foreignNetVolume:'0'},nxt:{individualNetVolume:'999',closingPrice:'999'}}]}}));
  assert.equal(rows.length,3);assert.equal(rows[0].buyQuantity,'9007199254740993');assert.equal(rows[1].netQuantity,'0');assert.equal(rows[2].netQuantity,null);assert.equal(rows[0].netAmount,null);assert.equal(rows[0].exchangeScope,'KRX');
+ assert.equal(rows[0].raw.closingPrice,'73000');
 });
 test('market raw observations never masquerade as known money or scope',async()=>{
  const rows=await marketFlows('KOSPI',fetchJson({bizdate:'20261016',personalValue:'-1,183',foreignValue:'0',institutionalValue:'+760'}));

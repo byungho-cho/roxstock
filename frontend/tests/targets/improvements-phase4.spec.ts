@@ -37,13 +37,13 @@ test('equal navigation columns, long name ellipsis, search variants and normal f
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('stocks.png')});
 });
 
-test('displayed recent count grows once; holdings hint typography matches count',async({page},info)=>{
+test('displayed counts grow once; holdings keep count typography without the retired hint',async({page},info)=>{
   await fixture(page);await page.goto('/');const recent=page.getByTestId('recent-buys-card');
   await expect(recent).toContainText('총 5건');await recent.getByRole('button',{name:'더보기'}).dblclick();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(9);await expect(recent).toContainText('총 9건');
-  const hint=page.getByTestId('home-title-hint');await expect(hint).toHaveCSS('font-weight','400');await expect(hint).toHaveCSS('font-size','11px');
-  const card=page.getByTestId('home-holdings-card');const count=card.getByText('6종목');
-  expect(await hint.evaluate(e=>getComputedStyle(e).color)).toBe(await count.evaluate(e=>getComputedStyle(e).color));
-  await page.screenshot({path:info.outputPath('home.png')});await card.getByRole('button',{name:'보유종목 (상세보기)'}).click();await expect(page).toHaveURL(/stocks\?tab=holding/);
+  await expect(page.getByTestId('home-title-hint')).toHaveCount(0);
+  const card=page.getByTestId('home-holdings-card');const count=card.getByText('총 5건');await expect(count).toHaveCSS('font-size','11px');
+  await expect(card.getByTestId('home-holding')).toHaveCount(5);await card.getByRole('button',{name:'더보기'}).click();await expect(card.getByTestId('home-holding')).toHaveCount(6);await expect(card).toContainText('총 6건');await expect(card.getByRole('button',{name:'더보기'})).toBeDisabled();await card.getByRole('button',{name:'초기화'}).click();await expect(card.getByTestId('home-holding')).toHaveCount(5);
+  await page.screenshot({path:info.outputPath('home.png')});await card.getByTestId('home-holding').first().click();await expect(page).toHaveURL(/stocks\/[^?]+\?detailTab=summary/);
 });
 
 test('closed-day whole row is gray; weekday zero remains neutral',async({page},info)=>{

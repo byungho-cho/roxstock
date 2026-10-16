@@ -4,29 +4,30 @@ import type { ReactNode } from 'react';
 import { AppCard } from '../../components/common/Common';
 import { colors } from '../../styles/tokens';
 
-export function HomeListCard({ title, count, testId, action, children, timestamp, more, moreDisabled=false, notice, titleAction, titleHint, timestampLabel = '', timestampInTitle = false, height = 290, compactFooter = false, stable = false, pending=false, compactEmpty=false, naturalCover=false, blankLoading=false,tabletMinHeight=0 }: {
+export function HomeListCard({ title, count, testId, action, children, timestamp, more, moreDisabled=false, moreLabel="더보기", reset, resetDisabled=false, notice, titleAction, titleHint, timestampLabel = '', height = 290, compactFooter = false, stable = false, pending=false, compactEmpty=false, naturalCover=false, blankLoading=false,tabletMinHeight=0 }: {
   title: string; titleHint?: string; count?: string; testId: string; action?: ReactNode; children: ReactNode;
-  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; timestampInTitle?: boolean; height?: number | 'auto'; compactFooter?: boolean; stable?:boolean; pending?:boolean; compactEmpty?:boolean; naturalCover?:boolean; blankLoading?:boolean;tabletMinHeight?:number;
+  timestamp?: string | null; updating?: boolean; more?: () => void; moreDisabled?: boolean; moreLabel?: string; reset?: () => void; resetDisabled?: boolean; notice?: ReactNode; titleAction?: () => void; timestampLabel?: string; height?: number | 'auto'; compactFooter?: boolean; stable?:boolean; pending?:boolean; compactEmpty?:boolean; naturalCover?:boolean; blankLoading?:boolean;tabletMinHeight?:number;
 }) {
   return <AppCard data-testid={testId} data-empty-compact={compactEmpty} sx={{ minWidth: 0,minHeight:{sm:tabletMinHeight}, height: compactEmpty?{xs:98,sm:height}:naturalCover?{xs:'auto',sm:height}:compactFooter || stable ? height : { xs: 'auto', sm: height }, border: 0, borderRadius: '8px', p: '8px 14px', display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
     <Box sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', mb: '4px' }}>
-      <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600, display:'flex', alignItems:'center', gap:'6px', minWidth:0 }}>{titleAction ? <ButtonBase aria-label={titleHint ? `${title} ${titleHint}` : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit', gap: '6px' }}>{title}{titleHint && <Box component="span" data-testid="home-title-hint" sx={{fontSize:11,color:colors.textMuted,fontWeight:400}}>{titleHint}</Box>}</ButtonBase> : title}{timestampInTitle && !pending && timestamp && Number.isFinite(Date.parse(timestamp)) && <Box component="span" title={timestamp} sx={{fontSize:9,lineHeight:'16px',fontWeight:400,color:colors.textMuted,whiteSpace:'nowrap'}}>({new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit'}).format(new Date(timestamp)).split('/').reverse().join('/')} {new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(timestamp))})</Box>}</Typography>
+      <Typography component="h2" sx={{ fontSize: 16, lineHeight: '24px', fontWeight: 600, display:'flex', alignItems:'center', gap:'6px', minWidth:0 }}>{titleAction ? <ButtonBase aria-label={titleHint ? `${title} ${titleHint}` : `${title} 조건 설정`} onClick={titleAction} sx={{ font: 'inherit', color: 'inherit', lineHeight: 'inherit', gap: '6px' }}>{title}{titleHint && <Box component="span" data-testid="home-title-hint" sx={{fontSize:11,color:colors.textMuted,fontWeight:400}}>{titleHint}</Box>}</ButtonBase> : title}</Typography>
       <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{pending ? blankLoading?null:<DelayedSkeleton width={30} height={14}/> : count ?? '—'}</Typography>{action}</Box>
     </Box>
     <Box data-testid="home-list-region" aria-busy={pending} sx={{'& > [role="status"]':compactEmpty?{minHeight:26,pb:0}:undefined, flex: 1, minHeight: 0 }}>{children}</Box>
-    <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+    <Box data-testid="home-card-footer" sx={{ height: 24, flexShrink: 0, display: reset?'grid':'flex', gridTemplateColumns:reset?'minmax(0,1fr) auto minmax(0,1fr)':undefined, alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
       <Box sx={{ minWidth: 0 }}><Typography title={timestamp ?? undefined} sx={{ minWidth: 0, fontSize: 9, lineHeight: notice ? '12px' : '16px', color: colors.textMuted }}>
-        {!timestampInTitle && (pending ? blankLoading?null:<DelayedSkeleton width={90} height={12}/> : <>{timestampLabel}{homeTimestamp(timestamp)}</>)}
+        {pending ? blankLoading?null:<DelayedSkeleton width={90} height={12}/> : <>{timestampLabel}{homeTimestamp(timestamp,true)}</>}
       </Typography>{notice && <Box role="status" sx={{ fontSize: 8, lineHeight: '10px', color: colors.warning }}>{notice}</Box>}</Box>
-      {more && <Button disabled={moreDisabled} onClick={more} sx={{ minHeight: 24, minWidth: 48, p: 0, fontSize: 11, lineHeight: '20px', fontWeight: 400, color: colors.focus }}>더보기</Button>}
+      {reset && <Button disabled={resetDisabled} onClick={reset} sx={{gridColumn:2,minHeight:24,minWidth:48,p:0,fontSize:11,lineHeight:'20px',fontWeight:400,color:colors.focus}}>초기화</Button>}
+      {more && <Button disabled={moreDisabled} onClick={more} sx={{ gridColumn:reset?3:undefined, justifySelf:reset?'end':undefined, minHeight: 24, minWidth: 48, p: 0, fontSize: 11, lineHeight: '20px', fontWeight: 400, color: colors.focus }}>{moreLabel}</Button>}
     </Box>
   </AppCard>;
 }
 
-export function homeTimestamp(value?: string | null) {
+export function homeTimestamp(value?: string | null, compact = false) {
   if (!value || !Number.isFinite(Date.parse(value))) return '—';
   const parts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
-  return parts.replaceAll('-', '.');
+  return compact ? parts.slice(3).replace('-', '/') : parts.replaceAll('-', '.');
 }
 
 export function HomeEmpty({ children = '내용이 없습니다.' }: { children?: ReactNode }) {

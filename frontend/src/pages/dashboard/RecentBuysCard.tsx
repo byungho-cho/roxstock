@@ -27,6 +27,11 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
   const prices = rows.map(row => row.priceUpdatedAt).filter((value): value is string => !!value).sort();
   const failed = accounts.isError || (home && months === 0 ? page.data?.recent === null : query.isError);
   const retry = () => home && months === 0 ? page.refetch() : query.refetch();
+  const reset = () => {
+    generation.current++; lock.current=false;
+    setMoreBusy(false); setMoreError(false);
+    setExpanded({accountId,months:0});
+  };
   const more = async () => {
     if (lock.current || !accountId || !report) return;
     lock.current = true; setMoreBusy(true); setMoreError(false);
@@ -46,7 +51,7 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
       if (currentGeneration === generation.current) { lock.current = false; setMoreBusy(false); }
     }
   };
-  return <HomeListCard blankLoading stable pending={!report&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" timestampInTitle count={report ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={moreError ? <QueryErrorNotice message="추가 조회 실패" onRetry={() => void more()}/> : failed&&report ? <><QueryErrorNotice message="조회 실패 · 이전 결과"/><Button size="small" onClick={() => void retry()}>재시도</Button></> : undefined} updating={query.isFetching} moreDisabled={moreBusy} more={view?.more ? () => void more() : undefined} height="auto">
+  return <HomeListCard blankLoading stable pending={!report&&!failed&&(!!accountId||accounts.isPending)} testId="recent-buys-card" title="최근 매수" count={report ? `총 ${view!.count}건` : undefined} timestamp={prices[0]} notice={moreError ? <QueryErrorNotice message="추가 조회 실패" onRetry={() => void more()}/> : failed&&report ? <><QueryErrorNotice message="조회 실패 · 이전 결과"/><Button size="small" onClick={() => void retry()}>재시도</Button></> : undefined} updating={query.isFetching} reset={reset} resetDisabled={months===0&&!moreBusy} moreDisabled={moreBusy||!view?.more} more={() => void more()} height="auto">
     {failed && !report && <HomeEmpty><QueryErrorNotice message="최근 매수 조회 실패" onRetry={() => { void retry(); void accounts.refetch(); }}/></HomeEmpty>}
     {!report && !failed && (accountId || accounts.isPending ? <HomeListBlank compact/> : <HomeEmpty>계좌를 선택해 주세요.</HomeEmpty>)}
     {!failed && report && rows.length === 0 && <HomeEmpty />}
@@ -57,6 +62,6 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
 const RecentBuyRow = memo(function RecentBuyRow({ row }: { row: BuyLotDto }) {
   const navigate = useNavigate();
   return <HomeTwoLineRow testId="recent-buy-lot" onClick={() => navigate(`/stocks/${row.security.id}?detailTab=holding`)}
-      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: colors.textSecondary }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
+      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
       second={[<Box component="span" sx={{ color: colors.textSecondary }}>{row.buyDate?.slice(2).replaceAll('-', '.') ?? new Date(row.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(2).replaceAll('-', '.')} ({row.holdingDays ?? '—'}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(row.returnRate) }}>{lotRate(row.returnRate)}</Box>, <Box component="span" aria-label="평가손익" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.profitLoss == null ? '—' : targetWon(row.profitLoss)}</Box>]} />;
 });

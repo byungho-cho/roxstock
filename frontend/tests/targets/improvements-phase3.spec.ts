@@ -32,11 +32,11 @@ test('home month count, local month expansion, holdings navigation and asset cha
   await expect(recent).toContainText('총 5건');await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5);
   await recent.getByRole('button',{name:'더보기'}).dblclick();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(9);await expect(page).toHaveURL(/\/$/);await expect(recent).toContainText('총 9건');
   await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(10);
-  await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(11);await expect(recent.getByRole('button',{name:'더보기'})).toHaveCount(0);
+  await page.waitForTimeout(210);await recent.getByRole('button',{name:'더보기'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(11);await expect(recent.getByRole('button',{name:'더보기'})).toBeDisabled();await recent.getByRole('button',{name:'초기화'}).click();await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5);
   await expect(recent.getByText(/시세·거래 데이터 판정 불가/)).toHaveCount(0);
   await expect(page.getByTestId('asset-performance-card')).toContainText('평가손익');await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
   await page.screenshot({path:info.outputPath('home-performance.png')});
-  const title=page.getByRole('button',{name:'보유종목 (상세보기)'});await title.click();await expect(page).toHaveURL(/stocks\?tab=holding/);await page.goBack();await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('button',{name:'보유종목 (상세보기)'})).toHaveCount(0);await page.getByTestId('home-holding').first().click();await expect(page).toHaveURL(/stocks\/[^?]+\?detailTab=summary/);await page.goBack();await expect(page).toHaveURL(/\/$/);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(recent).toContainText('총 0건');
   await noOverflow(page);
 });
