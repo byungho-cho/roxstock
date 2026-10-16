@@ -39,15 +39,15 @@ for(const [ratio,stockShade,cashShade] of cases) test(`cash ${ratio}%: fixed tex
     if(path==='/detail/assets')await barCheck(page.getByTestId('asset-composition-card').getByRole('button',{name:/^홈 보기 · 주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/detail/assets'){
     const card=page.getByTestId('asset-composition-card');
-    for(const [value,color,index] of [[(100-ratio)*10000,stockColor,0],[ratio*10000,cashColor,1]] as const){const values=card.getByTestId('composition-amounts').getByText(`${Math.round(value).toLocaleString('ko-KR')}원`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
-    for(const [value,color,index] of [[100-ratio,stockColor,0],[ratio,cashColor,1]] as const){const values=card.getByText(`${value.toFixed(1)}%`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
+    for(const [value,color,index] of [[(100-ratio)*10000,stockColor,0],[ratio*10000,cashColor,1]] as const){const values=card.getByTestId('composition-amounts').getByText(`${Math.round(value).toLocaleString('ko-KR')} (${(index===0?100-ratio:ratio).toFixed(1)}%)`,{exact:true});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
+    for(const [value,color,index] of [[100-ratio,stockColor,0],[ratio,cashColor,1]] as const){const values=card.getByTestId('composition-amounts').locator(':scope > *').filter({hasText:`(${value.toFixed(1)}%)`});await expect(index===0?values.first():values.last()).toHaveCSS('color',`rgb(${color})`);}
     await barCheck(card.getByRole('button',{name:/^홈 보기 · 주식 /}),ratio,stockShade,cashShade);
    }else if(path==='/assets'){
     const card=page.getByTestId('analysis-composition');
-    for(const id of ['composition-amounts','composition-ratios']){await expect(card.getByTestId(id).locator(':scope > *').first()).toHaveCSS('color',`rgb(${stockColor})`);await expect(card.getByTestId(id).locator(':scope > *').last()).toHaveCSS('color',`rgb(${cashColor})`);}
+    for(const id of ['composition-labels','composition-amounts']){await expect(card.getByTestId(id).locator(':scope > *').first()).toHaveCSS('color',`rgb(${stockColor})`);await expect(card.getByTestId(id).locator(':scope > *').last()).toHaveCSS('color',`rgb(${cashColor})`);}
     await barCheck(card.getByRole('img'),ratio,stockShade,cashShade);
-    await expect(card.getByText('주식',{exact:true})).toHaveCount(0);await expect(card.getByText('예수금',{exact:true})).toHaveCount(0);
-    const boxes=await card.evaluate(el=>['composition-amounts',null,'composition-ratios'].map(id=>(id?el.querySelector(`[data-testid="${id}"]`):el.querySelector('[role="img"]'))!.getBoundingClientRect().toJSON()));
+    await expect(card.getByTestId('composition-labels')).toHaveText('평가자산예수금');
+    const boxes=await card.evaluate(el=>['composition-labels',null,'composition-amounts'].map(id=>(id?el.querySelector(`[data-testid="${id}"]`):el.querySelector('[role="img"]'))!.getBoundingClientRect().toJSON()));
     expect(boxes[0].bottom).toBeLessThanOrEqual(boxes[1].top);expect(boxes[1].bottom).toBeLessThanOrEqual(boxes[2].top);
     if(ratio===22||ratio===60){await card.screenshot({path:`test-results/phase15/analysis-${ratio}-${info.project.name}.png`});await page.screenshot({path:`test-results/phase15/analysis-screen-${ratio}-${info.project.name}.png`});
      if(ratio===22){const scroll=page.viewportSize()!.width>=600?page.locator('[data-scroll-region="analysis-left"]'):page.locator('main');await scroll.evaluate(el=>{el.scrollTop=el.scrollHeight;});await card.scrollIntoViewIfNeeded();await barCheck(card.getByRole('img'),ratio,stockShade,cashShade);await card.screenshot({path:`test-results/phase15/analysis-scrolled-${info.project.name}.png`});}
@@ -61,15 +61,15 @@ test('unknown prices and zero denominator preserve amounts; valid zero stays dis
  const state=await fixture(page);state.missing=true;
  for(const path of ['/','/detail/assets','/assets','/detail/cash','/detail/settings?view=account']){
   await page.goto(path);
-  const value=path==='/assets'?page.getByTestId('composition-amounts').getByText('220,000원'):path==='/detail/assets'?page.getByTestId('asset-composition-card').getByTestId('composition-amounts').getByText('220,000원',{exact:true}):path==='/detail/cash'?page.getByTestId('cash-balance-value'):path.includes('settings')?page.getByTestId('account-card-1').getByTestId('account-cash'):quick(page,'예수금').getByText('220,000원',{exact:true});
-  await expect(value).toHaveCSS('color','rgb(148, 163, 184)');await expect(value).toContainText('220,000원');
-  if(path==='/assets'){await expect(page.getByTestId('composition-ratios')).toHaveText('——');await expect(page.getByTestId('analysis-composition').getByRole('status')).toContainText('계산 불가');await page.getByTestId('analysis-composition').screenshot({path:`test-results/phase15/unknown-${info.project.name}.png`});}
+  const value=path==='/assets'?page.getByTestId('composition-amounts').getByText('220,000 (—)'):path==='/detail/assets'?page.getByTestId('asset-composition-card').getByTestId('composition-amounts').getByText('220,000 (—)',{exact:true}):path==='/detail/cash'?page.getByTestId('cash-balance-value'):path.includes('settings')?page.getByTestId('account-card-1').getByTestId('account-cash'):quick(page,'예수금').getByText('220,000원',{exact:true});
+  await expect(value).toHaveCSS('color','rgb(148, 163, 184)');await expect(value).toContainText(path==='/assets'||path==='/detail/assets'?'220,000 (—)':'220,000원');
+  if(path==='/assets'){await expect(page.getByTestId('composition-amounts')).toContainText('(—)');await expect(page.getByTestId('analysis-composition').getByRole('status')).toContainText('계산 불가');await page.getByTestId('analysis-composition').screenshot({path:`test-results/phase15/unknown-${info.project.name}.png`});}
  }
- state.missing=false;state.zero=true;await page.goto('/assets');await expect(page.getByTestId('composition-amounts')).toHaveText('0원0원');await expect(page.getByTestId('composition-ratios')).toHaveText('——');
- state.zero=false;state.ratio=0;await page.goto('/assets');await expect(page.getByTestId('composition-ratios')).toHaveText('100.0%0.0%');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),0,'239, 68, 68','191, 219, 254');
+ state.missing=false;state.zero=true;await page.goto('/assets');await expect(page.getByTestId('composition-amounts')).toHaveText('0 (—)0 (—)');await expect(page.getByTestId('composition-amounts')).toContainText('(—)');
+ state.zero=false;state.ratio=0;await page.goto('/assets');await expect(page.getByTestId('composition-amounts')).toHaveText('1,000,000 (100.0%)0 (0.0%)');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),0,'239, 68, 68','191, 219, 254');
 });
 test('account switch preserves selected border and profit sign colors',async({page},info)=>{
  await fixture(page);await page.goto('/detail/settings?view=account');await page.getByTestId('account-card-2').getByRole('button',{name:/계좌 선택/}).click();await expect(page.getByTestId('account-card-2')).toHaveCSS('border-top-color','rgb(250, 204, 21)');
- await page.goto('/assets');await expect(page.getByTestId('composition-ratios')).toHaveText('60.0%40.0%');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),40,'251, 175, 175','85, 148, 248');
+ await page.goto('/assets');await expect(page.getByTestId('composition-amounts')).toHaveText('600,000 (60.0%)400,000 (40.0%)');await barCheck(page.getByTestId('analysis-composition').getByRole('img'),40,'251, 175, 175','85, 148, 248');
  await expect(page.getByTestId('analysis-metric-기간 투자손익').getByText('+10,000원')).toHaveCSS('color','rgb(248, 113, 113)');await page.getByTestId('analysis-composition').screenshot({path:`test-results/phase15/switch-${info.project.name}.png`});
 });

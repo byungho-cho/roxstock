@@ -18,7 +18,7 @@ import { colors } from '../../styles/tokens';
 import { loadInvestment, moneyText, periodRange, quarterAvailable, quarters, seoulToday, type Quarter, type QuarterSelection, quarterSelected, canToggleQuarter, toggleQuarter } from './investmentData';
 
 const enableChartDetail = true; // Pilot: disable here without affecting the summary chart.
-const card = { border: 0, borderRadius: '8px', bgcolor: '#0F1726', p: '12px 16px', minWidth: 0, flexShrink: 0 };
+const card = { border: 0, borderRadius: '8px', bgcolor: '#0F1726', p: '8px 16px', minWidth: 0, flexShrink: 0 };
 const small = { fontSize: 10, lineHeight: '14px', color: colors.textMuted };
 const rowStyle = { display: 'grid', gridTemplateColumns: '48px repeat(3, minmax(0, 1fr))', gap: '4px', minHeight: 20, alignItems: 'center' };
 const pnlColor = (value: bigint | null) => value === null || value === 0n ? colors.textPrimary : value > 0n ? colors.marketRise : colors.marketFall;
@@ -87,7 +87,7 @@ export function InvestmentPage() {
       {year === currentYear && <Typography data-testid="investment-profit-basis" sx={{...small,mt:'4px'}}>올해 실현손익 + 현재가 기준 잔여 Lot 평가손익 · 예수금·배당 제외{data && displayedProfit === null ? ' · 시세 미수집 또는 계산 불가' : ''}</Typography>}
     </AppCard>
     <AppCard data-testid="investment-summary" sx={card}><Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>{[{ label: '초기투자금', value: data?.initialInvestment ?? null }, { label: '누적투자금', value: data?.investment ?? null }, { label: '배당', value: data?.dividend ?? null }].map((item, index) => <Box key={item.label} sx={{ minWidth: 0, pl: index ? '8px' : 0, borderLeft: index ? `1px solid ${colors.border}` : undefined, color: index === 2 ? colors.marketRise : undefined }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>{item.label}</Typography><Typography data-testid={`investment-metric-${index}`} sx={{ mt: '3px', minHeight:15,fontSize: 10, textAlign: 'right', overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{pending&&!data?'':moneyText(item.value)}</Typography></Box>)}</Box></AppCard>
-    <AppCard data-testid="investment-trend" sx={{ ...card, bgcolor: '#111927', pt: '6px', pb: '8px' }}>
+    <AppCard data-testid="investment-trend" sx={{ ...card, bgcolor: '#111927', py: '8px' }}>
       <Stack ref={chartHeading} data-testid="investment-chart-heading" direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 12, fontWeight: 600 }}>일별 평가금액 · 추이</Typography>{enableChartDetail && <Button onClick={openDetail} sx={{ fontSize: 10, minHeight: 28 }}>상세보기 ›</Button>}</Stack>
 
       <Box data-testid="investment-chart-region" aria-busy={pending} sx={{height:188,display:'flow-root',position:'relative'}}><InvestmentChart points={points} from={range.from} to={range.to}/>{!pending&&!points.length&&<Typography role="status" sx={{...small,position:'absolute',inset:0,display:'grid',placeItems:'center',textAlign:'center'}}>{status}</Typography>}</Box>
