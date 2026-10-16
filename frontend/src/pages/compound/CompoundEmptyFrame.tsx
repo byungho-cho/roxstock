@@ -3,9 +3,9 @@ import {Box,useMediaQuery} from '@mui/material';
 import {useLocation} from 'react-router-dom';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {GrowthChart} from './GrowthChart';
-const muted='#94A3B8',card={bgcolor:'#0E1729',borderRadius:'8px',p:'10px 16px',minWidth:0};
-function Asset(){return <Box sx={{...card,p:'14px 16px',minHeight:95,boxSizing:'border-box'}}><Box sx={{fontSize:14,fontWeight:600,lineHeight:'20px',minHeight:20,color:muted}}>현재 자산</Box><Box sx={{height:29,my:'3px'}}/><Box sx={{height:12}}/></Box>;}
-function Target(){return <Box sx={{...card,p:'10px 14px',border:'2px solid transparent',boxSizing:'border-box'}}><Box sx={{minHeight:20}}/><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',mt:'2px'}}>{['올해 목표','최종 목표'].map((label,i)=><Box key={label} sx={{textAlign:i?'right':'left'}}><Box sx={{fontSize:11,color:muted,height:20,lineHeight:'20px'}}>{label}</Box><Box sx={{height:20}}/></Box>)}</Box><Box sx={{mt:'4px',height:8}}/><Box sx={{minHeight:19,mt:'3px'}}/><Box sx={{fontSize:10,lineHeight:'14px',mt:'2px',color:muted}}>현재 진행률</Box><Box sx={{height:24,mt:'4px'}}/></Box>;}
+const muted='#94A3B8',card={bgcolor:'#0E1729',borderRadius:'8px',p:'8px 16px',minWidth:0};
+function Asset(){return <Box sx={{...card,p:'8px 16px',minHeight:95,boxSizing:'border-box'}}><Box sx={{fontSize:14,fontWeight:600,lineHeight:'20px',minHeight:20,color:muted}}>현재 자산</Box><Box sx={{height:29,my:'3px'}}/><Box sx={{height:12}}/></Box>;}
+function Target(){return <Box sx={{...card,p:'8px 14px',border:'2px solid transparent',boxSizing:'border-box'}}><Box sx={{minHeight:20}}/><Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'8px',mt:'2px'}}>{['올해 목표','최종 목표'].map((label,i)=><Box key={label} sx={{textAlign:i?'right':'left'}}><Box sx={{fontSize:11,color:muted,height:20,lineHeight:'20px'}}>{label}</Box><Box sx={{height:20}}/></Box>)}</Box><Box sx={{mt:'4px',height:8}}/><Box sx={{minHeight:19,mt:'3px'}}/><Box sx={{fontSize:10,lineHeight:'14px',mt:'2px',color:muted}}>현재 진행률</Box><Box sx={{height:24,mt:'4px'}}/></Box>;}
 export function CompoundEmptyFrame({header=false,notice}:{header?:boolean;notice?:ReactNode}){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),params=new URLSearchParams(location.search),view=params.get('view')??'list';
  const column={display:'grid',alignContent:'start',gap:'10px',minWidth:0,minHeight:0,overflowY:{sm:'auto'},pb:{sm:'80px'},scrollbarWidth:'none'};

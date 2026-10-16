@@ -133,13 +133,13 @@ export function CashPage() {
 
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: `${pageMetrics.gap}px`, sm: '16px' }} onTouchStart={(event) => { const touch = event.touches[0]; touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null; }} onTouchEnd={(event) => { const touch = event.changedTouches[0]; if (touch) handleSwipe(touch.clientX, touch.clientY); }} onTouchCancel={() => { touchStart.current = null; }} sx={{ alignItems: 'flex-start', touchAction: 'pan-y' }}>
       <Stack spacing={`${pageMetrics.gap}px`} sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0 }}>
-        <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, p: { xs: `11px ${pageMetrics.cardInset}px`, sm: '16px 17px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
+        <AppCard sx={{ minHeight: { xs: 112, sm: 126 }, px: { xs: pageMetrics.cardInset + 'px', sm: '17px' }, py: '8px', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ color: colors.textMuted, fontSize: 12 }}>현재 예수금</Typography><Button onClick={() => openEditor('balance')} sx={{ display: { sm: 'none' }, minWidth: 54, minHeight: 23, height: 23, p: 0, borderRadius: 3, bgcolor: colors.raised, color: colors.focus, fontSize: 10 }}>수정</Button></Stack>
           <Typography onClick={() => openEditor('balance')} title="예수금 수정" sx={{ color: allocation.cashColor, fontSize: { xs: 28, sm: 30 }, fontWeight: 700, textAlign: { xs: 'right', sm: 'left' }, lineHeight: { xs: '36px', sm: '42px' }, mt: { sm: '8px' }, whiteSpace: 'nowrap', cursor: 'pointer' }}>{amountText(balance)}</Typography>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end', gap: 1 }}><Typography sx={{ display: { xs: 'none', sm: 'block' }, color: tone(monthChange), fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>이번 달 {amountText(Math.abs(monthChange))} {monthChange >= 0 ? '증가' : '감소'}</Typography><Typography sx={{ flex: 1, textAlign: 'right', color: colors.textMuted, fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap' }}>09.20 05:30</Typography></Stack>
         </AppCard>
 
-        <AppCard sx={{ minHeight: { xs: 116, sm: 314 }, p: { xs: `12px ${pageMetrics.cardInset}px`, sm: '12px 17px 16px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+        <AppCard sx={{ minHeight: { xs: 116, sm: 314 }, px: { xs: pageMetrics.cardInset + 'px', sm: '17px' }, py: '8px', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
           <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: { xs: '7px', sm: 0 } }}>
             <Stack direction="row" sx={{ alignItems: 'center', flex: 1 }}>
               <IconButton aria-label="이전 기간" size="small" onClick={() => changePeriod(-1)} sx={{ display: { sm: 'none' } }}><ChevronLeftRounded sx={{ fontSize: 18 }} /></IconButton>
@@ -160,7 +160,7 @@ export function CashPage() {
         </AppCard>
       </Stack>
 
-      <AppCard sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0, minHeight: { xs: 434, sm: 452 }, height: { sm: 452 }, p: { xs: `12px ${pageMetrics.cardInset}px`, sm: '15px 17px 16px' }, borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
+      <AppCard sx={{ width: { xs: '100%', sm: 'calc((100% - 16px) / 2)' }, minWidth: 0, minHeight: { xs: 434, sm: 452 }, height: { sm: 452 }, px: { xs: pageMetrics.cardInset + 'px', sm: '17px' }, py: '8px', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 15, fontWeight: 600 }}>최근 변경</Typography><Typography sx={{ color: colors.textMuted, fontSize: 11 }}>최근 10개</Typography></Stack>
         <Box sx={{ display: { xs: 'grid', sm: 'none' }, gridTemplateColumns: '100px 72px minmax(0, 1fr)', columnGap: '8px', mt: '14px', height: 38, flexShrink: 0, alignItems: 'center', borderTop: `1px solid ${colors.borderStrong}`, color: colors.textMuted, fontSize: 10 }}><span>구분</span><span>날짜</span><span style={{ textAlign: 'right' }}>금액</span></Box>
         <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateColumns: '74px 50px 104px minmax(0, 1fr)', mt: '14px', height: 38, flexShrink: 0, alignItems: 'center', borderTop: `1px solid ${colors.borderStrong}`, color: colors.textMuted, fontSize: 10 }}><span>날짜</span><span style={{ textAlign: 'center' }}>구분</span><span style={{ textAlign: 'right' }}>금액</span><span style={{ textAlign: 'right' }}>잔액</span></Box>

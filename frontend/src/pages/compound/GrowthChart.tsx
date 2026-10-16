@@ -24,7 +24,7 @@ export function GrowthChart({goal,currentYear,assets,pending=false}:{goal?:Goal;
  const path=(key:'value'|'contributed'|'realized')=>{let started=false;return points.map((p,i)=>{const value=p[key];if(value===null){started=false;return '';}const command=(started?'L':'M')+x(i)+','+y(value);started=true;return command;}).join(' ');};
  const selectAt=(event:PointerEvent<SVGSVGElement>)=>{const rect=event.currentTarget.getBoundingClientRect();setSelected(points.length?Math.max(0,Math.min(points.length-1,Math.round(((event.clientX-rect.left)/rect.width*320-32)/272*Math.max(1,points.length-1)))):null);};
  const currentIndex=points.findIndex(p=>p.year===currentYear),chosen=selected===null?null:rows[selected];
- return <Box sx={{bgcolor:'#0E1729',borderRadius:'8px',p:'10px 16px',minWidth:0}}>
+ return <Box sx={{bgcolor:'#0E1729',borderRadius:'8px',p:'8px 16px',minWidth:0}}>
   <Box sx={{fontSize:12,mb:'8px'}}>연도별 예상 자산</Box>
   <Box sx={{fontSize:10,color:colors.textMuted,display:'flex',flexWrap:'wrap',gap:'12px',mb:'4px'}}><span style={{color:goal?.displayColor??colors.textMuted}}>예상 자산</span><span>누적 투입금</span><span style={{color:colors.marketRise}}>실현금액</span></Box>
   <Box ref={boundary} data-no-detail-swipe data-no-pull-refresh sx={{position:'relative',minWidth:0}}>
@@ -46,7 +46,7 @@ export function GrowthChart({goal,currentYear,assets,pending=false}:{goal?:Goal;
     <Box>{chosen.year}년</Box>{[{label:'목표금액',value:chosen.asset},{label:'누적 투입금',value:chosen.contributed},{label:'실현금액',value:chosen.realizedAsset}].map(row=><Box key={row.label} sx={{display:'flex',justifyContent:'space-between',gap:'6px'}}><span>{row.label}</span><Box sx={{minWidth:0,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{pending&&row.value==null?'':row.value==null?'데이터 없음':format(row.value,0,'원')}</Box></Box>)}
    </Box>}
   </Box>
-  <Box role="table" aria-label="연도별 평가금액과 투자금액 및 목표금액" sx={{mt:'8px',fontSize:{xs:10,sm:11},lineHeight:'16px',fontVariantNumeric:'tabular-nums'}}>
+  <Box role="table" aria-label="연도별 평가금액과 투자금액 및 목표금액" sx={{mt:'8px','& > [role="row"]:last-child':{mb:0},fontSize:{xs:10,sm:11},lineHeight:'16px',fontVariantNumeric:'tabular-nums'}}>
    <Box role="row" sx={{display:'grid',gridTemplateColumns:'32px repeat(3,minmax(0,1fr))',gap:'4px',color:colors.textMuted,mb:'8px'}}>{['연도','평가금액','투자금액','목표금액'].map((label,i)=><Box key={label} role="columnheader" sx={{textAlign:i?'right':'left'}}>{label}</Box>)}</Box>
    {rows.map(row=>{const realized=row.evaluationAmount??null,met=(number(realized)!==null&&number(row.asset)!==null?number(realized)!>=number(row.asset)!:null),color=realized==null?colors.textMuted:row.year<currentYear?(met?'#FA616E':'#60A5FA'):colors.textPrimary;
     return <Box key={row.year} role="row" data-testid={'compound-year-'+row.year} title={row.valuationDate?`평가·투자 기준일 ${row.valuationDate}`:'기준 자료 없음'} sx={{display:'grid',gridTemplateColumns:'32px repeat(3,minmax(0,1fr))',gap:'4px',mb:'8px',alignItems:'start'}}>

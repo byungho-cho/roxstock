@@ -41,14 +41,14 @@ export function PriorityRouteShell(){
    <Box data-testid="analysis-download-shell" aria-busy sx={{height:{sm:'100%'},minHeight:0,display:'grid',gridTemplateColumns:{xs:'1fr',sm:'repeat(2,minmax(0,1fr))'},gap:'8px'}}>
     <Stack spacing="8px" sx={{minWidth:0,minHeight:0,overflowY:{xs:'visible',sm:'auto'},pb:{xs:0,sm:'80px'},scrollbarWidth:'none'}}>
      <AppCard sx={{border:0,borderRadius:"8px",p:'8px 16px',height:92,flexShrink:0}}><Typography sx={title}>총자산 <Box component="span" sx={{fontSize:10,color:colors.textMuted,fontWeight:400}}>(상세보기)</Box></Typography></AppCard>
-     <AppCard sx={{border:0,borderRadius:"8px",p:'8px 16px',height:91,flexShrink:0}}><Typography sx={title}>자산구성</Typography></AppCard>
-     <AppCard data-testid="analysis-download-trend" sx={{border:0,borderRadius:"8px",p:'8px 16px 2px',flexShrink:0}}><Stack direction="row" sx={{gap:"4px",alignItems:"center",minHeight:23}}><Typography sx={title}>자산추이</Typography><Typography sx={{fontSize:10,color:colors.textMuted,fontWeight:400}}>(상세보기)</Typography></Stack>
+     <AppCard sx={{border:0,borderRadius:"8px",p:'8px 16px',height:96,flexShrink:0}}><Typography sx={title}>자산구성</Typography></AppCard>
+     <AppCard data-testid="analysis-download-trend" sx={{border:0,borderRadius:"8px",p:'8px 16px',flexShrink:0}}><Stack direction="row" sx={{gap:"4px",alignItems:"center",minHeight:23}}><Typography sx={title}>자산추이</Typography><Typography sx={{fontSize:10,color:colors.textMuted,fontWeight:400}}>(상세보기)</Typography></Stack>
       <Box data-testid="analysis-download-chart" sx={{height:224,display:'flow-root'}}><AssetAnalysisChart points={[]} period={assetPeriod} range={analysisRange(assetPeriod,today)}/></Box>
-      <Stack direction="row" spacing="4px" sx={{my:'8px'}}>{analysisPeriods.map(period=><Button key={period.value} aria-pressed={assetPeriod===period.value} onClick={()=>{setAssetPeriod(period.value);}} sx={{flex:1,minWidth:0,height:24,minHeight:24,p:0,borderRadius:'4px',fontSize:10,bgcolor:assetPeriod===period.value?colors.buttonPrimary:colors.raised,color:assetPeriod===period.value?colors.textPrimary:colors.textSecondary}}>{period.label}</Button>)}</Stack>
+      <Stack direction="row" spacing="4px" sx={{mt:'8px'}}>{analysisPeriods.map(period=><Button key={period.value} aria-pressed={assetPeriod===period.value} onClick={()=>{setAssetPeriod(period.value);}} sx={{flex:1,minWidth:0,height:24,minHeight:24,p:0,borderRadius:'4px',fontSize:10,bgcolor:assetPeriod===period.value?colors.buttonPrimary:colors.raised,color:assetPeriod===period.value?colors.textPrimary:colors.textSecondary}}>{period.label}</Button>)}</Stack>
      </AppCard>
     </Stack>
     <Stack spacing="8px" sx={{minWidth:0,minHeight:0,overflowY:{xs:'visible',sm:'auto'},pb:{xs:0,sm:'80px'},scrollbarWidth:'none'}}>
-     <AppCard sx={{border:0,borderRadius:"8px",p:'0 16px 14px',flexShrink:0}}><Box sx={{pt:'14px',pb:'4px',borderBottom:'1px solid '+colors.border}}><Typography sx={title}>기간 성과 구성</Typography></Box>
+     <AppCard sx={{border:0,borderRadius:"8px",p:'8px 16px',flexShrink:0}}><Box sx={{pt:0,pb:'4px',borderBottom:'1px solid '+colors.border}}><Typography sx={title}>기간 성과 구성</Typography></Box>
       <Stack spacing="4px" sx={{mt:'4px',minHeight:270}}>{labels.map((label,index)=><Box key={label}>{[4,7].includes(index)&&<Box sx={{borderTop:'1px solid '+colors.border,mb:'4px'}}/>}<Stack direction="row" sx={{height:20,justifyContent:'space-between',alignItems:'center'}}><Typography sx={{fontSize:12,color:colors.textSecondary}}>{label}</Typography><Box sx={{width:90,height:12}}/></Stack></Box>)}</Stack>
       <Typography sx={{mt:'8px',fontSize:10,color:colors.textMuted,lineHeight:'14px'}}>평가손익은 기초 대비 증감, 배당은 세전, 수수료·세금은 차감 기준입니다.</Typography>
      </AppCard>

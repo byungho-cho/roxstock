@@ -13,13 +13,13 @@ test('home monthly profit labels account profit separately from cash change', as
   });
   await page.goto('/');
   const cards = page.getByTestId('home-quick-cards');
-  await expect(cards).toContainText('이번달 손익 +12,345원');
-  await expect(cards).toContainText('이번달 -50,000원');
-  await expect(cards.getByText('이번달 손익 +12,345원', {exact:true})).toHaveCSS('color','rgb(248, 113, 113)');
+  await expect(cards.getByText('이번달 손익',{exact:true}).locator('..')).toContainText('+12,345원');
+  await expect(cards.getByText('이번달 증감',{exact:true}).locator('..')).toContainText('-50,000원');
+  await expect(cards.getByText('+12,345원', {exact:true})).toHaveCSS('color','rgb(248, 113, 113)');
   profit = '-2345'; await page.reload();
-  await expect(cards.getByText('이번달 손익 -2,345원', {exact:true})).toHaveCSS('color','rgb(96, 165, 250)');
+  await expect(cards.getByText('-2,345원', {exact:true})).toHaveCSS('color','rgb(96, 165, 250)');
   profit = null; await page.reload();
-  await expect(cards).toContainText('이번달 손익 —');
+  await expect(cards.getByText('이번달 손익',{exact:true}).locator('..')).toContainText('—');
 });
 
 for (const path of ['/', '/assets']) test(`cold ${path} loads only needed screens and valid precompressed code`, async ({ page }) => {

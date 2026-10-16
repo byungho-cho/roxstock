@@ -101,8 +101,8 @@ test('home and assets use identical unrounded color bands and missing-price neut
     await expect(cashCard.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
    } else {
     const card=page.getByTestId('asset-composition-card');
-    await expect(card.getByText(`${Math.round(100-ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${stock})`);
-    await expect(card.getByText(`${Math.round(ratio)}원`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
+    await expect(card.getByTestId('composition-amounts').getByText(`${Math.round(100-ratio)} (${(100-ratio).toFixed(1)}%)`,{exact:true})).toHaveCSS('color',`rgb(${stock})`);
+    await expect(card.getByTestId('composition-amounts').getByText(`${Math.round(ratio)} (${ratio.toFixed(1)}%)`,{exact:true})).toHaveCSS('color',`rgb(${cash})`);
    }
    if(path.includes('assets')){
     const bar=page.getByTestId('asset-composition-card').getByRole('button',{name:/^홈 보기 · 주식 /});
