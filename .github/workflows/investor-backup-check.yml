@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 15
     env:
       DATABASE_URL: mysql://isolated:unused@127.0.0.1:3306/roxstock_unit_no_db
+      VITE_DATA_SOURCE: api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
