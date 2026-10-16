@@ -25,6 +25,8 @@ test('public release metadata changes without restarting the API and invalid met
   assert.equal((await app.inject('/api/version')).json().data.version,'1.0.999');
   await writeFile(file,'{"version":"1.0.1000"}');
   assert.equal((await app.inject('/api/version')).json().data.version,'1.0.1000');
+  await writeFile(file,'{"version":"1.1.0"}');
+  assert.equal((await app.inject('/api/version')).json().data.version,'1.1.0');
   await writeFile(file,'{"version":"invalid"}');
   assert.equal((await app.inject('/api/version')).json().data.version,release.version);
  }finally{

@@ -15,6 +15,7 @@ const jobs: CollectionJob[] = [
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
   { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '매일 20:00', hour: 20 },
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
+  { id: 'investor-trends', name: '투자동향', jobType: 'investor-trends', schedule: '시험 수집 KST 18·21시 · 10/16부터, 3년 보충 보류' },
   { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
 ];
 
@@ -32,7 +33,7 @@ async function currentRun(jobType: string) {
   return prisma.collectorRun.findFirst({ where: { jobType, NOT: {items:{some:{message:'another execution holds the collector lock'}}} }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
 }
 async function lastSuccessfulRun(jobType: string) {
-  return prisma.collectorRun.findFirst({ where: { jobType, status: { in: ['SUCCESS', 'PARTIAL'] } }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
+  return prisma.collectorRun.findFirst({ where: { jobType, status: { in: jobType==='investor-trends'?['SUCCESS']:['SUCCESS', 'PARTIAL'] } }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
 }
 async function priorityOverdueCount(cutoff: Date): Promise<number> {
   const ids = await new PrismaDartRepository(prisma).prioritySecurityIds();
@@ -89,6 +90,19 @@ async function summary() {
     const recorded=itemCounts.length>0||!run||run.successCount+run.failureCount+run.skippedCount+run.staleCount===0;
     const recent=recorded?{...actualRecent,excluded}:{target:null,processed:null,success:null,failed:null,skipped:null};
     const resultScope={label:recorded?'최근 실행 대상 결과':'이전 실행의 대상별 결과 미기록',runId:run?String(run.id):'0',startedAt:iso(run?.startedAt)};
+    if(job.id==='investor-trends'){
+      const counts=view?.investor??{rawOnly:0,quantityStored:0,waiting:0,failed:0,other:0};
+      const stored=run?await prisma.investorFlowDaily.findFirst({orderBy:[{tradeDate:'desc'},{updatedAt:'desc'}],select:{tradeDate:true,updatedAt:true}}):null;
+      const hours=(process.env.INVESTOR_COLLECTION_HOURS??'18,21').split(',').map(Number).filter(h=>Number.isInteger(h)&&h>=0&&h<=23);
+      const next=hours.length?new Date(Math.min(...hours.map(h=>localSchedule(h,now).getTime()))):null;
+      // A one-off preview run is not evidence that an automatic worker is deployed here.
+      const scheduled=process.env.INVESTOR_MONITOR_SCHEDULE_ENABLED==='true';
+      const scheduleState=scheduled&&hours.length?dailyScheduleHealth(now,hours,run??null,10,30):null;
+      return {id:job.id,name:job.name,schedule:hours.length?`시험 KST ${hours.map(h=>String(h).padStart(2,'0')+':00').join('·')} · 10/16부터`:job.schedule,status:await statusFor(job,run??emptyRun(job.jobType,now),now),
+        lastAttemptAt:iso(run?.startedAt),lastSuccessAt:iso(successfulRuns[index]?.finishedAt),lastCollectedAt:iso(run?.finishedAt),lastDataAt:iso(stored?.tradeDate),statsGeneratedAt:now.toISOString(),nextAt:scheduled?iso(next):null,
+        recent,resultScope,skipReasons,lastExecution:run?{id:String(run.id),status:run.status,originalStatus:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null,scheduleState,lastError:safeReason(run?.failureReason),
+        investor:{...counts,dataScope:'현재 연결 DB의 기록',scheduleEnabled:scheduled,notice:'원격 격리 시험 DB 기록은 포함하지 않습니다. 원문 저장·수량 저장은 전체 수집 성공이 아닙니다. 금액·기관 세부·확정 여부는 미제공이며 시장 단위는 검증 대기입니다.'}};
+    }
     if (job.id === 'dart-financial-statements') {
       const [state, usage, progress, priorityBehind, universeBehind] = await Promise.all([
         prisma.dartCollectorState.findUnique({ where: { id: 1 } }),

@@ -1,0 +1,71 @@
+name: Dedicated Investor Crawler
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Full immutable main commit SHA
+        required: true
+        type: string
+      deploy:
+        description: Deploy only the dedicated investor crawler after publishing
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: roxstock-investor-crawler
+  cancel-in-progress: false
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+      - name: Validate revision and provider adapter
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(git rev-parse origin/main)" = "$TARGET_SHA"
+          node --test investor-crawler/src/provider.test.mjs
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: investor-crawler/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: newrox/roxstock-investor-crawler:sha-${{ inputs.target_sha }}
+          cache-from: type=gha,scope=investor-crawler
+          cache-to: type=gha,mode=max,scope=investor-crawler
+  deploy:
+    needs: image
+    if: inputs.deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+      - name: Deploy separate image and service
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/investor_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/investor_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/investor_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- '$TARGET_SHA'" < scripts/deploy-investor-crawler.sh

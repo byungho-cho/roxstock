@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {fixture} from './phase3-fixture';
 import path from 'node:path';
-const ids=['security-master','realtime-prices','market-prices','account-snapshots','dart-financial-statements'];
+const ids=['security-master','realtime-prices','market-prices','account-snapshots','investor-trends','dart-financial-statements'];
 const at='2026-10-11T03:00:00Z';
 const summary=(failed=false)=>({generatedAt:at,timezone:'Asia/Seoul',features:ids.map(id=>({id,name:id,status:failed?'FAILED':'OK',phase:'CURRENT',lastAttemptAt:at,lastSuccessAt:at,nextAt:at,recent:{target:123,processed:120,success:120,failed:failed?3:0,skipped:0},backfillCompletedAt:at,backfill:{planned:123,success:120,noFiling:0,notApplicable:0},dailyApiCalls:12,dailyApiLimit:100,priorityPending:1,universePending:2,companyChecks:12,realtime:{heartbeatAt:at,session:'OPEN',lastPriceReceivedAt:at,lastSourcePriceAt:at,lastDbSavedAt:at,lastSsePublishedAt:at,sourceError:failed?'원천 연결 실패':null}}))});
 const detail=(failed=false)=>({runs:[{id:'r1',status:failed?'FAILED':'SUCCESS',startedAt:at,target:123,success:120,failed:failed?3:0,skipped:0,failureReason:failed?'실제 수집 실패':null}],items:[{symbol:'005930',status:failed?'FAILED':'SUCCESS',occurredAt:at,reason:failed?'실제 수집 실패':null}],dart:{backfill:{planned:127488,byStatus:{SUCCESS:120000,FAILED:448,PENDING:7040}},priority:{planned:12,securities:4,byStatus:{SUCCESS:10}},current:{priorityCheckedWithinDay:5,universeOver90Days:2},holidayCalendar:'AVAILABLE'}});

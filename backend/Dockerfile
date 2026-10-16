@@ -14,7 +14,7 @@ RUN npm --workspace backend run prisma:generate
 RUN npm --workspace backend run build
 
 FROM node:20-bookworm-slim AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates mariadb-client && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3300
 WORKDIR /app
 COPY package.json package-lock.json ./

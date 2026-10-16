@@ -28,5 +28,8 @@ test('actual route applies bounded reads, stable ordering and independent item r
    const t=(await app.inject('/api/collection/monitoring/security-master/items?limit=50')).json().data;assert.equal(t.rows.length,50);assert.notEqual(t.rows[0].symbol,t.rows[1].symbol);
    assert.equal(calls[0].take,51);assert.deepEqual(calls[0].orderBy,[{startedAt:'desc'},{id:'desc'}]);assert.equal(calls[1].where.AND[2].OR[1].id.lt,51n);assert.equal(calls[2].where.AND[0].run.is.jobType,'security-master');assert.equal(calls[2].where.AND[0].runId,undefined);
    assert.equal((await app.inject('/api/collection/monitoring/security-master/items?cursor='+p.nextCursor)).statusCode,400);
+   assert.equal((await app.inject('/api/collection/monitoring/investor-trends/runs')).statusCode,200);
+   assert.equal((await app.inject('/api/collection/monitoring/investor-trends/items')).statusCode,200);
+   assert.equal(calls.at(-1).where.AND[0].run.is.jobType,'investor-trends');
  }finally{await app.close();prisma.collectorRun.aggregate=originals.ra;prisma.collectorRun.findMany=originals.rf;prisma.collectorRunItem.groupBy=originals.ig;prisma.collectorRunItem.aggregate=originals.ia;prisma.collectorRunItem.findMany=originals.if;}
 });

@@ -10,7 +10,7 @@ export function ReleaseVersion() {
     queryKey: ['release-version'],
     queryFn: async () => {
       const result = await apiRequest<{ version: string }>('/version', { cache: 'no-store' });
-      if (!/^1\.0\.\d+$/.test(result.version)) throw new Error('Invalid release version');
+      if (!/^1\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(result.version)) throw new Error('Invalid release version');
       return result;
     },
     enabled: liveApiEnabled, staleTime: 0, refetchOnMount: 'always',

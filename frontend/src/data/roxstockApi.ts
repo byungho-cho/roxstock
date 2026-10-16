@@ -252,6 +252,7 @@ export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/colle
 export interface CollectionMonitorSummary {
   generatedAt: string; timezone: string;
   features: Array<{ id: string; name: string; schedule: string; status: string; lastAttemptAt: string | null; lastSuccessAt: string | null; lastDataAt: string | null; statsGeneratedAt: string; nextAt: string | null;
+    investor?:{rawOnly:number;quantityStored:number;waiting:number;failed:number;other:number;dataScope:string;scheduleEnabled:boolean;notice:string};
     scheduleState?:{status:string;reason:string|null;dueAt:string;nextAt:string;graceMinutes:number;maxMinutes:number}|null;
     lastExecution?:{id:string;status:string;originalStatus?:string;startedAt:string|null;finishedAt:string|null}|null;
     duplicateRequest?:{id:string;startedAt:string|null;reason:string}|null;

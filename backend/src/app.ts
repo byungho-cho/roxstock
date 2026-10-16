@@ -1,5 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import release from './release.json' with { type: 'json' };
+import {investorTrendRoutes} from './routes/investor-trends.js';
+import {backupRoutes} from './routes/backups.js';
 import {ValueReadModel} from '@roxstock/shared/read-model/value-cache';
 import { installPageBootstrap } from './routes/page-bootstrap.js';
 import { installReadBatch } from './routes/read-batch.js';
@@ -32,6 +34,7 @@ export function buildApp() {
   app.addHook('onClose',async()=>app.valueReadModel.clear());
   installPageBootstrap(app);
   installReadBatch(app);
+  void app.register(backupRoutes);
   const started=new WeakMap<FastifyRequest,bigint>();
   app.addHook('onRequest',async request=>{started.set(request,process.hrtime.bigint());});
   app.addHook('onSend',async(request,reply,payload)=>{
@@ -46,7 +49,7 @@ export function buildApp() {
     if (process.env.ROXSTOCK_RELEASE_FILE) {
       try {
         const metadata = JSON.parse(await readFile(process.env.ROXSTOCK_RELEASE_FILE, 'utf8'));
-        if (/^1\.0\.\d+$/.test(metadata.version)) current = {version: metadata.version};
+        if (/^1\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(metadata.version)) current = {version: metadata.version};
       } catch { /* Local development and pre-split deployments use the bundled version. */ }
     }
     return { data: current };
@@ -82,6 +85,7 @@ export function buildApp() {
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });
+  void app.register(investorTrendRoutes, {prefix:'/api'});
   void app.register(investmentProfitRoutes, {prefix:'/api'});
   void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });

@@ -8,6 +8,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Additive v1.1 storage: source observations are independent of account history.
+model InvestorFlowDaily {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  targetType String @map("target_type") @db.VarChar(12)
+  targetKey String @map("target_key") @db.VarChar(20)
+  tradeDate DateTime @map("trade_date") @db.Date
+  investorCode String @map("investor_code") @db.VarChar(32)
+  investorName String @map("investor_name") @db.VarChar(64)
+  source String @db.VarChar(32)
+  exchangeScope String @map("exchange_scope") @db.VarChar(24)
+  buyAmount Decimal? @map("buy_amount") @db.Decimal(32,4)
+  sellAmount Decimal? @map("sell_amount") @db.Decimal(32,4)
+  netAmount Decimal? @map("net_amount") @db.Decimal(32,4)
+  buyQuantity Decimal? @map("buy_quantity") @db.Decimal(32,4)
+  sellQuantity Decimal? @map("sell_quantity") @db.Decimal(32,4)
+  netQuantity Decimal? @map("net_quantity") @db.Decimal(32,4)
+  amountUnit String? @map("amount_unit") @db.VarChar(24)
+  quantityUnit String? @map("quantity_unit") @db.VarChar(24)
+  publicationStatus String @map("publication_status") @db.VarChar(24)
+  reason String? @db.VarChar(500)
+  raw Json
+  collectedAt DateTime @default(now()) @map("collected_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  @@unique([targetType,targetKey,tradeDate,source,exchangeScope,investorCode],map:"investor_flow_identity")
+  @@index([targetType,targetKey,tradeDate])
+  @@map("investor_flow_daily")
+}
+
 enum MarketType {
   KOSPI
   KOSDAQ

@@ -7,6 +7,7 @@ import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegio
 import { PageHeader } from '../../components/navigation/Navigation';
 import type {MoreView} from './MoreScreens';
 import {SettingsMenu} from './SettingsMenu';
+const DatabaseBackup=lazy(()=>import('./DatabaseBackup').then(m=>({default:m.DatabaseBackup})));
 const AccountForm=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountForm})));
 import {AccountManagement} from './AccountManagement';
 const CashAdjustment=lazy(()=>import('./MoreScreens').then(m=>({default:m.CashAdjustment})));
@@ -15,7 +16,7 @@ const ThemeSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.ThemeSe
 const AccountResetFlow=lazy(()=>import('./AccountResetFlow').then(m=>({default:m.AccountResetFlow})));
 const TargetArrivalSettings=lazy(()=>import('./TargetArrivalSettings').then(m=>({default:m.TargetArrivalSettings})));
 
-const labels: Record<MoreView, string> = { 'target-arrival': '목표가 도래 조건', settings: '설정', account: '계좌 관리', add: '계좌 추가', edit: '계좌 정보 수정', cash: '예수금 수정', collection: '시세 수집', theme: '테마 설정', reset: '계좌 데이터 초기화' };
+const labels: Record<MoreView, string> = { backup:'DB 백업', 'target-arrival': '목표가 도래 조건', settings: '설정', account: '계좌 관리', add: '계좌 추가', edit: '계좌 정보 수정', cash: '예수금 수정', collection: '시세 수집', theme: '테마 설정', reset: '계좌 데이터 초기화' };
 export function SettingsPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -34,6 +35,7 @@ export function SettingsPage() {
       {detailView !== 'settings' && <Box ref={detailRef} data-scroll-region="settings-detail" data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0, '& .MuiButton-root': { borderRadius: '8px' }, '& .settings-condition-delete': { borderRadius: '2px' } }}>
         <Box sx={{ px: 0, pt: detailView === 'target-arrival' ? 0 : '14px', pb: '80px' }}>
           <Suspense fallback={<Skeleton aria-label="설정 상세 코드 불러오는 중" height={100}/>} >
+          {detailView === 'backup' && <DatabaseBackup />}
           {detailView === 'target-arrival' && <TargetArrivalSettings />}
           {detailView === 'account' && <AccountManagement openReset={() => navigate('/detail/settings?view=reset')} />}
           {detailView === 'add' && <AccountForm key={'add'} add />}

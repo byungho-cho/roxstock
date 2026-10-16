@@ -1,0 +1,50 @@
+name: Investor and Backup Check
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'investor-crawler/**'
+      - 'backend/src/domain/backup-*'
+      - 'backend/src/routes/backups.ts'
+      - 'backend/src/routes/investor-trends*'
+      - 'frontend/src/pages/investor/**'
+      - 'frontend/src/pages/more/DatabaseBackup.tsx'
+      - 'frontend/tests/targets/v11-investor-backup.spec.ts'
+      - '.github/workflows/investor-backup-check.yml'
+permissions:
+  contents: read
+concurrency:
+  group: investor-backup-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  investor-backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: mysql://isolated:unused@127.0.0.1:3306/roxstock_unit_no_db
+      VITE_DATA_SOURCE: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run build:shared
+      - name: Provider, authorization, storage and cumulative regressions
+        run: |
+          node --test investor-crawler/src/provider.test.mjs
+          node --import tsx --test backend/src/domain/backup-auth.test.ts backend/src/domain/backup-service.test.ts backend/src/routes/investor-trends.test.ts
+      - run: npm run build:frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Cover and tablet behavior
+        run: npx playwright test --config playwright.v11.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: investor-backup-qa
+          path: frontend/test-results/v11
+          if-no-files-found: ignore

@@ -10,6 +10,10 @@ services:
       ROXSTOCK_RELEASE_FILE: /run/roxstock/release.json
       HOST: 0.0.0.0
       PORT: 3300
+      # Enable flags and the admin hash come only from the private env_file.
+      # Missing flags remain disabled in the service; do not override them here.
+      BACKUP_DIRECTORY: /var/lib/roxstock/backups
+      BACKUP_PUBLIC_ORIGIN: https://newrox.cafe24.com
       DART_BACKFILL_DAILY_CALL_LIMIT: ${DART_BACKFILL_DAILY_CALL_LIMIT:-10000}
       DART_BACKFILL_MIN_DELAY_MS: ${DART_BACKFILL_MIN_DELAY_MS:-2000}
       DART_DAILY_CALL_LIMIT: ${DART_DAILY_CALL_LIMIT:-3000}
@@ -20,6 +24,7 @@ services:
       ENABLE_ACCOUNT_DATA_RESET: ${ENABLE_ACCOUNT_DATA_RESET:-true}
     volumes:
       - ${ROXSTOCK_RUNTIME_DIR:-/opt/roxstock/.deploy/runtime}:/run/roxstock:ro
+      - ${ROXSTOCK_MANAGED_BACKUP_DIR:-/opt/roxstock/backups/managed}:/var/lib/roxstock/backups
     expose:
       - "3300"
     networks:
