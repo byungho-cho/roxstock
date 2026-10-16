@@ -14,7 +14,7 @@ services:
       - ../../backend/.env.production
     environment:
       TZ: Asia/Seoul
-      INVESTOR_START_DATE: 2026-10-16
+      INVESTOR_START_DATE: '2026-10-16'
       INVESTOR_REQUEST_DELAY_MS: 2000
       INVESTOR_COLLECTION_HOURS: ${INVESTOR_COLLECTION_HOURS:-18,21}
     networks:
