@@ -10,7 +10,11 @@ test('deployment uploads an immutable script and closes stdin for every SSH/SCP 
  const calls=[],sha='d'.repeat(40),env={DEPLOY_HOST:'example.test',DEPLOY_USER:'deploy',DEPLOY_PORT:'22'};
  runProductionComponent(sha,'backend','/private/key',env,(command,args,options)=>calls.push({command,args,options}));
  assert.deepEqual(calls.map(x=>x.command),['ssh','scp','ssh']);
- for(const call of calls)assert.equal(call.options.stdio[0],'ignore');
+ for(const call of calls){
+  assert.equal(call.options.stdio[0],'ignore');
+  assert.ok(call.args.includes('ServerAliveInterval=30'));
+  assert.ok(call.args.includes('ServerAliveCountMax=6'));
+ }
  assert.equal(calls[1].args.at(-2),'scripts/deploy-production-component.sh');
  assert.match(calls[2].args.at(-1),/exec bash '.*\.sh' '[a-f0-9]{40}' 'backend' <\/dev\/null$/);
  assert.doesNotMatch(calls[2].args.at(-1),/bash -s/);

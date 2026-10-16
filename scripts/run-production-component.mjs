@@ -10,7 +10,9 @@ export function runProductionComponent(sha,component,keyFile=join(homedir(),'.ss
  const host=env.DEPLOY_HOST,user=env.DEPLOY_USER,port=env.DEPLOY_PORT||'22';
  if(!/^[A-Za-z0-9_.-]+$/.test(host??'')||!/^[A-Za-z0-9_-]+$/.test(user??'')||!/^\d{1,5}$/.test(port)||Number(port)<1||Number(port)>65535)throw Error('Invalid deployment connection');
  const directory='/opt/roxstock/.deploy/launchers',target=`${directory}/${sha}-${component}-${randomUUID()}.sh`,destination=user+'@'+host;
- const options=['-i',keyFile,'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes'];
+ // A graceful DART shutdown can be silent for 12 minutes. Keep idle network
+ // connections alive without shortening that shutdown or bypassing the lock.
+ const options=['-i',keyFile,'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ServerAliveInterval=30','-o','ServerAliveCountMax=6'];
  const ssh=[...options,'-p',port,destination];
  const source=component==='investor-crawler'?'scripts/deploy-investor-crawler.sh':'scripts/deploy-production-component.sh';
  const stdio=['ignore','inherit','inherit'];
