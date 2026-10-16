@@ -73,3 +73,19 @@ test('legacy v1 receipt link is accepted only with the original share basis and 
   const x=basis();Object.assign(x.row.provenance,{version:1});delete x.row.provenance.sharesReceiptNo;edit(x);assert.equal(shareholderTotals(x.metric,x.row,[x.f]).shareholderValue,null);
  }
 });
+
+// A legacy spelling must never become permission to use a mismatching denominator.
+test('legacy OFS generic BPS label reconciles exact annual capital and common shares',()=>{
+ const b=basis();Object.assign(b.row.provenance,{version:1,bpsBasis:'OWNERS_EQUITY_DIV_PERIOD_END_OUTSTANDING_NO_PREFERRED'});delete b.row.provenance.sharesReceiptNo;
+ assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,'1200');
+ b.row.supplemental.shares.outstanding='11';assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
+ b.row.supplemental.shares.outstanding='10';b.row.provenance.version=2;assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
+});
+
+test('reconciled fiscal KIS gaps participate in RIM only with the exact original DART receipt and share denominator',()=>{
+ const b=basis();const evidence={...b.row.provenance,source:'KIS_API',validation:'DART_BALANCE_AND_FLOW_RECONCILED',fiscalYear:2025,periodType:'ANNUAL',stacYymm:'202512'};
+ b.row.provenance.perMetric={bps:evidence,roe:evidence};b.row.supplemental.kisAnnual={source:'KIS_API',fiscalYear:2025,periodEnd:'2025-12-31',currency:'KRW',matchedReceiptNo:'r',matchedDivision:'OFS',bps:'100',roe:'10'};
+ assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,'1200');assert.equal(shareholderTotals(b.metric,b.row,[b.f]).rimBasis?.source,'OPEN_DART/KIS_API');
+ b.row.supplemental.kisAnnual.fiscalYear=2024;assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
+ b.row.supplemental.kisAnnual.fiscalYear=2025;b.metric.bps=null as any;assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
+});

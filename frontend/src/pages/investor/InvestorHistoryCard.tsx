@@ -27,11 +27,15 @@ export function investorDailyValue(value:string|null|undefined,metric:string,mar
  const scale=10n**BigInt(fraction.length);
  // Market quantity is stored in thousands of shares.
  const absolute=(BigInt(whole)*scale+BigInt(fraction||'0'))*(metric==='quantity'&&market?1000n:1n);
- const large=absolute>=100000000n*scale,divisor=(large?100000000n:10000n)*scale;
+ const divisor=(absolute>=100000000n*scale?100000000n:10000n)*scale;
  const hundredths=(absolute*100n+divisor/2n)/divisor;
  const integer=hundredths/100n,decimal=(hundredths%100n).toString().padStart(2,'0').replace(/0+$/,'');
- const unit=metric==='amount'?(large?'억원':'만원'):(large?'억주':'만주');
- return (hundredths===0n?'':negative?'-':'+')+integer.toLocaleString('ko-KR')+(decimal?'.'+decimal:'')+unit;
+ return (hundredths===0n?'':negative?'-':'+')+integer.toLocaleString('ko-KR')+(decimal?'.'+decimal:'');
+}
+export function investorDailyUnit(value:string,metric:string,market=false){
+ const whole=BigInt(value.replace(/^[+-]/,'').split('.')[0]||'0');
+ const large=whole>=(metric==='quantity'&&market?100000n:100000000n);
+ return metric==='amount'?(large?'억원':'만원'):(large?'억주':'만주');
 }
 export const investorColor=(value:string|null|undefined)=>value==null?colors.textMuted:Number(value)>0?colors.marketRise:Number(value)<0?colors.marketFall:colors.textPrimary;
 export function InvestorHistoryCard({mode,target,date,metric}:{mode:string;target?:string;date:string;metric:string}){
