@@ -83,7 +83,7 @@ export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',reque
        await tx.investorFlowDaily.upsert({where:{targetType_targetKey_tradeDate_source_exchangeScope_investorCode:identity},create:data,update:data});
       }
       await tx.collectorRunItem.update({where:{id:item.id},data:{status:terminal(next.state)?'SUCCESS':'STALE',message:next.state==='EXHAUSTED'?'BACKFILL_AVAILABLE_HISTORY_COMPLETE':next.state==='COMPLETE'?'BACKFILL_COMPLETE':'BACKFILL_PROGRESS',observedAt:new Date(),diagnostics:next}});
-     });
+     },{maxWait:10000,timeout:60000});
      item.diagnostics=next;changed=!terminal(next.state)||changed;
      if(requests%10===0){
       const progress={complete:mutable.filter(item=>terminal(item.diagnostics.state)).length,totalPages:mutable.reduce((sum,item)=>sum+(item.diagnostics.pages??0),0)};
