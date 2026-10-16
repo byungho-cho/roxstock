@@ -46,7 +46,7 @@ export function buildApp() {
     if (process.env.ROXSTOCK_RELEASE_FILE) {
       try {
         const metadata = JSON.parse(await readFile(process.env.ROXSTOCK_RELEASE_FILE, 'utf8'));
-        if (/^1\.0\.\d+$/.test(metadata.version)) current = {version: metadata.version};
+        if (/^1\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(metadata.version)) current = {version: metadata.version};
       } catch { /* Local development and pre-split deployments use the bundled version. */ }
     }
     return { data: current };
