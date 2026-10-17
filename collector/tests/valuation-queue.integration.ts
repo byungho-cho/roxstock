@@ -6,7 +6,7 @@ import {PrismaClient,Prisma} from '@roxstock/shared/prisma';
 import {CollectionJobRepository} from '@roxstock/shared/collection/job-repository';
 import {withFinancialLease,FinancialLeaseLost} from '@roxstock/shared/collection/financial-lease';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
-import {claimSupplement,recoverSupplementTasks,finishSupplement,dueSupplementIds,scanSupplementCandidates,candidateRows,registerCandidate} from '../src/valuation-supplement-queue.js';
+import {claimSupplement,recoverSupplementTasks,finishSupplement,dueSupplementIds,scanSupplementCandidates,candidateRows,registerCandidate,supplementSourceVersion} from '../src/valuation-supplement-queue.js';
 import {runIndependentSupplement} from '../src/independent-valuation-supplement.js';
 import {processManualRefresh} from '../src/dart-manual-refresh.js';
 const url=new URL(process.env.DATABASE_URL??'');
@@ -144,4 +144,13 @@ test('SQL selection distinguishes string-positive, NULL, zero, loss and unsuppor
  for(const eps of ['0','-10']){await db.periodValuation.update({where,data:{values:{eps,bps:'10',roe:'0',per:null,pbr:'1'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),0);}
  await db.periodValuation.update({where,data:{values:{eps:null,bps:'10',roe:'0',per:null,pbr:'1'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),1);
  await db.dartFinancialFiling.update({where:{id:f.id},data:{sourceValidation:{currency:'USD'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.unsupported),1);
+});
+test('a changed prior capital supplement reopens dependent input; timestamp-only retries do not',async()=>{
+ const f=await db.dartFinancialFiling.findFirstOrThrow({where:{fiscalYear:2016,periodType:'ANNUAL'},orderBy:{id:'asc'}}),prior=await db.dartFinancialFiling.findFirstOrThrow({where:{securityId:f.securityId,fiscalYear:2015,periodType:'ANNUAL'}});
+ const where={securityId_fiscalYear_periodType:{securityId:f.securityId,fiscalYear:2015,periodType:'ANNUAL'}};
+ const version=()=>candidateRows(db,[f.id],2026).then(rows=>supplementSourceVersion(rows[0]!));
+ const before=await version(),supplemental={accounts:{receiptNo:prior.receiptNo,fsDivision:'OFS',collectedAt:now().toISOString(),sources:{totalEquity:{amount:'500'}}}};
+ await db.periodValuation.upsert({where,create:{securityId:f.securityId,fiscalYear:2015,periodType:'ANNUAL',status:'PARTIAL',values:{},provenance:{},reasons:{},supplemental},update:{supplemental}});
+ const changed=await version();assert.notEqual(changed,before);
+ supplemental.accounts.collectedAt=new Date(Date.now()+1000).toISOString();await db.periodValuation.update({where,data:{supplemental}});assert.equal(await version(),changed);
 });

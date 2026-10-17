@@ -3,8 +3,8 @@ import {Prisma,type PrismaClient,type ValuationSupplementTask} from '@roxstock/s
 import {getSeoulClock} from '@roxstock/shared/collection/time';
 
 export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v2'} as const;
-type Candidate={id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
-export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')).digest('hex');
+type Candidate={id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;prior_basis?:string;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
+export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.prior_basis,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')).digest('hex');
 /** Only computed flags and keys leave SQL. Financial JSON never crosses the candidate boundary. */
 export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  if(!ids.length)return [];
@@ -12,6 +12,7 @@ export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  return db.$queryRaw<Candidate[]>`SELECT f.id,f.security_id,f.fiscal_year,f.period_type,f.receipt_no,f.collected_at,f.normalization_version,
  s.symbol,s.collection_revision,s.code_revision,v.updated_at AS valuation_at,v.next_attempt_at AS retry_at,m.corp_code,
  p.id AS prior_id,p.collected_at AS prior_at,CAST(p.total_equity AS CHAR) AS prior_equity,
+ MD5(CONCAT_WS('|',p.fs_division,p.normalization_version,p.receipt_no,JSON_EXTRACT(p.account_sources,'$.parentEquity.amount'),JSON_EXTRACT(pv.supplemental,'$.accounts.receiptNo'),JSON_EXTRACT(pv.supplemental,'$.accounts.fsDivision'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.totalEquity.amount'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.totalEquity.ytdAmount'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.parentEquity.amount'))) AS prior_basis,
  MD5(CONCAT_WS('|',f.fs_division,f.period_end_date,f.receipt_date,COALESCE(CAST(f.revenue_ytd AS CHAR),'NULL'),COALESCE(CAST(f.net_income_ytd AS CHAR),'NULL'),COALESCE(CAST(f.total_equity AS CHAR),'NULL'),COALESCE(CAST(f.total_assets AS CHAR),'NULL'),COALESCE(CAST(f.total_liabilities AS CHAR),'NULL'))) AS basis_version,
  (v.security_id IS NULL OR
    (COALESCE(JSON_EXTRACT(v.values,'$.eps'),'null')='null') OR
@@ -30,6 +31,7 @@ export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  LEFT JOIN period_valuations v ON v.security_id=f.security_id AND v.fiscal_year=f.fiscal_year AND v.period_type=f.period_type AND (s.code_revision=0 AND v.collection_symbol IS NULL OR v.collection_symbol=s.symbol)
  LEFT JOIN dart_corp_mappings m ON m.security_id=s.id
  LEFT JOIN dart_financial_filings p ON p.id=(SELECT p1.id FROM dart_financial_filings p1 WHERE p1.security_id=f.security_id AND p1.fiscal_year=f.fiscal_year-1 AND p1.period_type='ANNUAL' AND p1.is_withdrawn=0 AND (s.code_revision=0 AND p1.collection_symbol IS NULL OR p1.collection_symbol=s.symbol) ORDER BY p1.receipt_date DESC,p1.collected_at DESC,p1.receipt_no DESC LIMIT 1)
+ LEFT JOIN period_valuations pv ON pv.security_id=f.security_id AND pv.fiscal_year=f.fiscal_year-1 AND pv.period_type='ANNUAL' AND (s.code_revision=0 AND pv.collection_symbol IS NULL OR pv.collection_symbol=s.symbol)
  WHERE f.id IN (${Prisma.join(ids)}) AND f.is_withdrawn=0 AND f.fiscal_year BETWEEN 2015 AND ${year} AND f.period_type IN ('ANNUAL','Q1','Q2','Q3')
  AND s.is_active=1 AND s.security_type='STOCK' AND s.collection_excluded=0 AND s.symbol NOT LIKE 'Z99%'
  AND (s.excluded_features IS NULL OR JSON_CONTAINS(s.excluded_features,JSON_QUOTE('valuation'))=0)
