@@ -68,6 +68,7 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
   if(availability)reasons.unshift(availability);
   if(row.metricProvenance?.bpsReferenceOnly)reasons.push('BPS·PBR: 보통주·우선주 합산 유통주식수 기준 참고 계산입니다. 보통주 전용 자본 배분값이 아니며 적정주가·RIM에는 사용하지 않습니다.');
   if(row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION')reasons.push('ROE: 전체 연결/별도 자본 기준');
+  if(row.metricProvenance?.fiscalDuration){const d=row.metricProvenance.fiscalDuration;reasons.push(`실제 회계기간: ${d.start} ~ ${d.end} (${d.annualization==='ACT_365'?d.days+'일':d.months+'개월'}). EPS·PER·ROE는 ${d.annualization==='ACT_365'?'365일 기준으로 ':''}이 기간 실적을 연환산한 참고 지표이며 TTM이 아닙니다.`);}
   if(row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM')reasons.push('누적 실적 연환산(TTM 아님)');
   if(row.metricProvenance?.fsDivision)reasons.push('재무제표 기준: '+row.metricProvenance.fsDivision);
   if(row.metricProvenance?.priceDate)reasons.push('종가 기준일: '+row.metricProvenance.priceDate);

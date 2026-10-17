@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
 import {buildApp} from '../src/app.js';
-import {saveBugEvent,scanCollectionBugs,reclassifyBugReportsPage} from '../src/domain/collection-bug-reports.js';
+import {saveBugEvent,scanCollectionBugs,reclassifyBugReportsPage,reconcileBugReportsPage,consolidateBugReportsPage} from '../src/domain/collection-bug-reports.js';
 const url=new URL(process.env.DATABASE_URL??'');if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/roxstock_bugreports_test'&&process.env.CI!=='true')throw Error('Isolated local/CI DB required');
 test('report persistence, concurrency, replay, review, recurrence and resolved deletion through real MariaDB/API',async()=>{
  const suffix=String(Date.now()),feature='bug-test-'+suffix,app=buildApp(),event={sourceKey:'test:'+suffix,feature,code:'DART_TEST_FAILURE',severity:'ERROR' as const,summary:'테스트 오류',observedAt:new Date(),symbol:'005930',metric:'per'};
@@ -47,4 +47,28 @@ test('report persistence, concurrency, replay, review, recurrence and resolved d
   await db.collectionBugOccurrence.deleteMany({where:{OR:[{reportId:{in:reports.map(r=>r.id)}},{eventKey:{in:[event.sourceKey,event.sourceKey+':recurrence',event.sourceKey+':new'].map(key=>createHash('sha256').update(key).digest('hex'))}}]}});
   await db.collectionBugReport.deleteMany({where:{feature:{startsWith:feature}}});if(runId)await db.collectorRun.delete({where:{id:runId}});await app.close();await db.$disconnect();
  }
+});
+test('reconciliation resolves only repaired targets, counts repeated attempts once and preserves history',async()=>{
+ const suffix=String(Date.now()),feature='reconcile-test-'+suffix,app=buildApp(),securities:bigint[]=[];
+ try{
+  for(const n of [1,2])securities.push((await db.security.create({data:{symbol:'TEST'+suffix.slice(-5)+n,name:'검증용',marketType:'KOSPI'}})).id);
+  for(const [index,id] of securities.entries())await db.periodValuation.create({data:{securityId:id,fiscalYear:2025,periodType:'ANNUAL',status:'PARTIAL',values:{per:index===0?'10':null},reasons:{},provenance:{}}});
+  const event={feature,code:'PERIOD_PER_MISSING',severity:'WARNING' as const,summary:'PER 부족',observedAt:new Date(Date.now()-60000),fiscalYear:2025,periodType:'ANNUAL',metric:'per'};
+  for(const [n,id] of securities.entries())for(let attempt=0;attempt<(n===0?2:1);attempt++)await saveBugEvent(db,{...event,securityId:id,sourceKey:suffix+':'+id+':'+attempt});
+  const report=await db.collectionBugReport.findFirstOrThrow({where:{feature}});await reconcileBugReportsPage(db);
+  assert.equal(await db.collectionBugOccurrence.count({where:{reportId:report.id,resolvedAt:{not:null}}}),2);
+  assert.equal((await db.collectionBugReport.findUniqueOrThrow({where:{id:report.id}})).state,'OPEN');
+  const detail=(await app.inject({method:'GET',url:'/api/collection/bug-reports/'+report.id})).json().data;assert.equal(detail.activeTargets,1);assert.equal(detail.totalTargets,2);assert.equal(detail.occurrences,3);
+  await db.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:securities[1]!,fiscalYear:2025,periodType:'ANNUAL'}},data:{values:{per:'11'}}});await reconcileBugReportsPage(db);
+  assert.equal((await db.collectionBugReport.findUniqueOrThrow({where:{id:report.id}})).state,'RESOLVED');assert.equal(await db.collectionBugOccurrence.count({where:{reportId:report.id}}),3);
+  assert.equal((await reconcileBugReportsPage(db)).resolved,0);
+  for(const metric of ['per','pbr']){
+   const fingerprint=createHash('sha256').update(feature+':PERIOD_PRICE_BASIS_UNCONFIRMED:'+metric).digest('hex');
+   const old=await db.collectionBugReport.create({data:{fingerprint,feature,code:'PERIOD_PRICE_BASIS_UNCONFIRMED',severity:'WARNING',summary:'기존 개별 지표',occurrences:1,firstSeenAt:event.observedAt,lastSeenAt:event.observedAt}});
+   await db.collectionBugOccurrence.create({data:{eventKey:createHash('sha256').update(suffix+metric).digest('hex'),reportId:old.id,securityId:securities[0],fiscalYear:2025,periodType:'ANNUAL',metric,observedAt:event.observedAt}});
+  }
+  let cursor:bigint|undefined;for(let page=0;page<20;page++){const [r]=await Promise.all([consolidateBugReportsPage(db,cursor),consolidateBugReportsPage(db,cursor)]);if(!r.hasNext)break;cursor=r.cursor;}
+  const consolidated=await db.collectionBugReport.findMany({where:{feature,code:'PERIOD_PRICE_BASIS_UNCONFIRMED'}});assert.equal(consolidated.length,1);assert.equal(consolidated[0]!.occurrences,2);
+  const grouped=(await app.inject({method:'GET',url:'/api/collection/bug-reports/'+consolidated[0]!.id})).json().data;assert.equal(grouped.activeTargets,1);assert.equal(grouped.events.length,2,'raw history is preserved');
+ }finally{await db.collectionBugOccurrence.deleteMany({where:{report:{feature}}});await db.collectionBugReport.deleteMany({where:{feature}});await db.periodValuation.deleteMany({where:{securityId:{in:securities}}});await db.security.deleteMany({where:{id:{in:securities}}});await app.close();await db.$disconnect();}
 });

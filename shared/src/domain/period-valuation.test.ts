@@ -47,3 +47,17 @@ test('annual comparative capital from the exact filing fills ROE without inventi
 test('unverified multiple fiscal durations never invent twelve-month valuation ratios',()=>{
  const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{originalReason:'MULTIPLE_ANNUAL_PERIODS'}}});const result=calculatePeriod(f,undefined,{price:{value:'100',date:'2025-12-30',source:'TEST'}});assert.ok(Object.values(result.values).every(v=>v===null));assert.match(result.reasons.roe!,/회계기간/);assert.equal(result.provenance.calculationState,'FISCAL_DURATION_REVIEW_REQUIRED');
 });
+test('verified short fiscal period annualizes EPS and ROE using exact fiscal opening equity',()=>{
+ const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{}},accountSources:{basicEps:{amount:'5'}}});
+ const supplemental={fiscalDuration:{method:'DART_MAJOR_ACCOUNTS_MATCH' as const,receiptNo:f.receiptNo,fsDivision:'CFS',start:'2025-10-01',end:'2025-12-31',months:3,openingEquity:'180',openingDate:'2025-09-30',verifiedAt:new Date().toISOString()},price:{value:'100',date:'2025-12-30',source:'TEST'}};
+ const result=calculatePeriod(f,filing(2024,'ANNUAL',{totalEquity:d(1)}),supplemental);assert.equal(result.values.eps,'20');assert.equal(result.values.per,'5');assert.equal(result.values.roe,'40');assert.equal(result.provenance.months,3);
+ assert.equal(calculatePeriod(f,undefined,{...supplemental,fiscalDuration:{...supplemental.fiscalDuration,receiptNo:'wrong'}}).values.eps,null);
+});
+test('unverified flow duration does not block a verified period-end BPS or PBR',()=>{
+ const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{}},fsDivision:'OFS'});const r=calculatePeriod(f,undefined,{shares:{receiptNo:f.receiptNo,outstanding:'10',preferred:false},price:{value:'110',date:'2025-12-30',source:'TEST'}});assert.equal(r.values.bps,'22');assert.equal(r.values.pbr,'5');assert.equal(r.values.eps,null);
+});
+test('irregular formation periods use exact disclosed days, never a rounded calendar quarter',()=>{
+ const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{}},accountSources:{basicEps:{amount:'72'}}});
+ const fiscalDuration={method:'DART_MAJOR_ACCOUNTS_MATCH' as const,receiptNo:f.receiptNo,fsDivision:'CFS',start:'2025-10-21',end:'2025-12-31',months:3,annualization:'ACT_365' as const,days:72,verifiedAt:new Date().toISOString()};
+ assert.equal(calculatePeriod(f,undefined,{fiscalDuration}).values.eps,'365');assert.equal(calculatePeriod(f,undefined,{fiscalDuration:{...fiscalDuration,days:73}}).values.eps,null);
+});
