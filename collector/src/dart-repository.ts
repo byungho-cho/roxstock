@@ -181,7 +181,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async reserveApiCall(limit: number, now = new Date(), owner?: string): Promise<boolean> {
-    if (owner) await this.prisma.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 900 SECOND), updated_at=UTC_TIMESTAMP(3) WHERE job_name='dart-financial-statements' AND owner_token=${owner}`;
+    if (owner) await this.renewFinancialLease(owner);
     const usageDate = toDatabaseDate(getSeoulClock(now).dateKey);
     const changed = await this.prisma.$executeRaw`
       INSERT INTO dart_api_daily_usage (usage_date, api_call_count, company_check_count, error_count, no_data_count, updated_at)

@@ -1,4 +1,5 @@
 import {collectionIdentity,CollectionExcluded,withCollection} from '@roxstock/shared/collection/collection-policy';
+import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
 import {processIndependentRefresh,expireManualRun,type ManualTaskResult} from './manual-refresh-jobs.js';
@@ -23,6 +24,8 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
   db=collectionClient(db);
   const run = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } }, orderBy: [{ startedAt: 'asc' },{id:'asc'}] });
   if (!run) return false;
+  const turn=await db.valuationSupplementScan?.findUnique({where:{id:1},select:{automaticTurnUntil:true,heartbeatAt:true}});
+  if((run.metadata as unknown as ManualRefreshMetadata).manualState==='QUEUED'&&turn?.automaticTurnUntil&&turn.automaticTurnUntil>new Date()&&turn.heartbeatAt&&Date.now()-turn.heartbeatAt.getTime()<90_000)return true;
   if((run.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE')return processIndependentRefresh(db,config,run);
   const repo = new PrismaDartRepository(db);
   const owner = randomUUID();
@@ -32,6 +35,7 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
   catch (error) { await repo.releaseLock(owner); throw error; }
   if (fresh?.status !== 'RUNNING') { await repo.releaseLock(owner); return true; }
   const metadata = fresh.metadata as unknown as ManualRefreshMetadata;
+  metadata.lockOwner=owner;
   const results: NonNullable<ManualRefreshMetadata['results']> = [];
   const startYear=metadata.startYear??metadata.fiscalYear, endYear=metadata.endYear??metadata.fiscalYear;
   const prototype=metadata.executionMode==='MANUAL_PROTOTYPE';
@@ -41,7 +45,7 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
     metadata.progress={currentYear,currentPeriod,stage,completed:results.length,total:periods.length*(endYear-startYear+1)};
     await db.collectorRun.update({where:{id:run.id},data:{metadata:{...metadata,manualState:'PROCESSING',results:[...results]} as unknown as Prisma.InputJsonValue}});
   };
-  try {
+  return withFinancialLease(owner,async()=>{try {
     if (!config.enabled || !config.apiKey) throw new DartApiError('API_KEY_MISSING', 'DART 수집 설정을 확인해 주세요.');
     await db.collectorRun.update({ where: { id: run.id }, data: { metadata: { ...metadata, manualState: 'PROCESSING' } as unknown as Prisma.InputJsonValue } });
     const provider = new OpenDartProvider({ apiKey: config.apiKey, dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs,
@@ -110,5 +114,5 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
     } catch(error) { await recordDartFailure(error,'RUN_FINISH',run.id,[]); }
     finally { try{await repo.releaseLock(owner);}catch(error){await recordDartFailure(error,'LOCK_RELEASE',run.id,[]);} }
   }
-  return true;
+  return true;});
 }

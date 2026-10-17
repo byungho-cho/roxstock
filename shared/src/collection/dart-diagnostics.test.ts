@@ -20,3 +20,9 @@ test('diagnostics never export raw messages, cause, credentials or stack URLs',a
  assert.equal(dartDiagnostic(new Error(secret),'TASK_QUERY').category,'INTERNAL');
  }finally{console.error=old;}
 });
+
+test('safe DB diagnostics retain Prisma/native codes and model without SQL, meta target or secrets',()=>{
+ const error=Object.assign(new Error('private SQL password'),{name:'PrismaClientKnownRequestError',code:'P2010',meta:{code:'1020',modelName:'DartFinancialFiling',message:'private SQL password',target:['private-secret']}});
+ const result=dartDiagnostic(error,'DART_FILING_UPDATE');assert.deepEqual(result.database,{prismaCode:'P2010',nativeCode:'1020',model:'DartFinancialFiling'});
+ assert.ok(!JSON.stringify(result).includes('private'));assert.equal(dartDiagnostic({name:'PrismaClientValidationError'},'DART_FILING_SAVE').exceptionClass,'PrismaClientValidationError');
+});

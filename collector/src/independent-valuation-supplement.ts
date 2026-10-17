@@ -1,86 +1,116 @@
 import {leaseOwnerId} from '@roxstock/shared/collection/manual-requests';
+import {withFinancialLease,FinancialLeaseLost,financialHeartbeatMs} from '@roxstock/shared/collection/financial-lease';
 import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
-import {CollectionExcluded,withCollection,eligibleWhere} from '@roxstock/shared/collection/collection-policy';
+import {CollectionExcluded,withCollection} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
+import {dartDiagnostic} from '@roxstock/shared/collection/dart-diagnostics';
 import {randomUUID} from 'node:crypto';
-import type {PrismaClient,Prisma} from '@roxstock/shared/prisma';
+import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';
 import {PrismaDartRepository} from './dart-repository.js';
 import {OpenDartProvider,DartApiError} from './dart-provider.js';
-import {metricKeys,type MetricValues,type Supplemental} from '@roxstock/shared/domain/period-valuation';
+import {type MetricValues,type Supplemental} from '@roxstock/shared/domain/period-valuation';
 import {completeShares} from '@roxstock/shared/domain/share-counts';
 import {supplementStoredPeriod,loadPeriodSupplement,needsDartAccounts} from './valuation-supplement.js';
 import {dartWindowOpen} from '@roxstock/shared/collection/dart-policy';
 import {getSeoulClock} from '@roxstock/shared/collection/time';
+import {budgetDay,candidateRows,claimSupplement,dueSupplementIds,finishSupplement,recoverSupplementTasks,scanSupplementCandidates,supplementLimits,supplementSourceVersion} from './valuation-supplement-queue.js';
+import {boundedManualJob,checkedManualDb,manualFetch} from './manual-job-budget.js';
 const jobType='VALUATION_SUPPLEMENT';
 type Config={windowStartHour:number;windowEndHour:number;apiKey?:string;dailyCallLimit?:number;minDelayMs?:number};
 type Options={serviceManual?:()=>Promise<boolean>;load?:NonNullable<Parameters<typeof supplementStoredPeriod>[4]>['load'];clock?:()=>Date;sleep?:(ms:number)=>Promise<void>};
-/** Automatic and manual supplementation share period-scoped DART/KIS/KRX evidence and preservation. */
+/** Durable, bounded discovery is outside the common financial execution lease. */
 export async function runIndependentSupplement(db:PrismaClient,config:Config,now=new Date(),options:Options={}){
  db=collectionClient(db);
  if(process.env.VALUATION_SUPPLEMENT_ENABLED==='false')return {status:'DISABLED'};
  const clock=options.clock??(()=>new Date()),open=(date:Date)=>dartWindowOpen(date,config.windowStartHour,config.windowEndHour,[],true);
  if(!open(now))return {status:'OUTSIDE_WINDOW'};
- const repo=new PrismaDartRepository(db),owner=randomUUID();if(!await repo.acquireLock(owner,900))return {status:'LOCKED'};
- let runId:bigint|undefined;let success=0,failed=0,skipped=0;
+ const day=budgetDay(now),dayStart=new Date(getSeoulClock(now).dateKey+'T00:00:00+09:00');
+ if(!await db.valuationSupplementBudget.findUnique({where:{day}})){
+  const legacy=await db.$queryRaw<Array<{used:bigint}>>`SELECT COALESCE(SUM(COALESCE(JSON_EXTRACT(metadata,'$.reservedPeriods'),JSON_EXTRACT(metadata,'$.reservedCalls'),0)),0) AS used FROM collector_runs WHERE job_type=${jobType} AND started_at>=${dayStart}`;
+  await db.valuationSupplementBudget.createMany({data:[{day,reserved:Math.min(200,Number(legacy[0]?.used??0))}],skipDuplicates:true});
+ }
+ const budget=await db.valuationSupplementBudget.findUniqueOrThrow({where:{day}}),repo=new PrismaDartRepository(db),apiUsage=await repo.getDailyUsage(now);
+ if(budget.reserved>=200||Boolean(config.apiKey)&&(apiUsage?.apiCallCount??0)>=(config.dailyCallLimit??3000))return {status:'QUOTA_BLOCKED'};
+ const scan=await db.valuationSupplementScan.findUnique({where:{id:1},select:{phase:true,updatedAt:true}});
+ if(scan?.phase==='QUOTA_BLOCKED'&&getSeoulClock(scan.updatedAt).dateKey===getSeoulClock(now).dateKey)return {status:'QUOTA_BLOCKED'};
+ const owner=randomUUID(),deadline=clock().getTime()+supplementLimits.cycleMs;
+ let success=0,failed=0,skipped=0,processed=0,scanned=0;
+ const runId=(await repo.createRun(jobType,'OPEN_DART_KIS_KRX',{phase:'SUPPLEMENT_SCAN',ownerId:leaseOwnerId(owner),limits:supplementLimits,timezone:'Asia/Seoul'})).id;
+ const boundary=async()=>{
+  const pending=await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},select:{id:true}});
+  if(!pending)return false;
+  const state=await db.valuationSupplementScan.findUnique({where:{id:1}}),since=state?.lastAutomaticAt??new Date(now.getTime()-600_000);
+  const completed=await db.collectorRun.count({where:{jobType:'dart-financial-statements',finishedAt:{gte:since},metadata:{path:'$.phase',equals:'MANUAL'}}});
+  if(clock().getTime()-since.getTime()>=600_000&&completed>=3&&await db.valuationSupplementTask.findFirst({where:{status:{in:['PENDING','RETRY']},nextAttemptAt:{lte:clock()}},select:{id:true}})){
+   await db.valuationSupplementScan.update({where:{id:1},data:{automaticTurnUntil:new Date(clock().getTime()+690_000),heartbeatAt:clock()}});return false;
+  }
+  if(options.serviceManual)await options.serviceManual();
+  return true;
+ };
  try{
-  const year=Number(getSeoulClock(now).dateKey.slice(0,4)),dayStart=new Date(getSeoulClock(now).dateKey+'T00:00:00+09:00');
-  const usage=await db.collectorRun.findMany({where:{jobType,startedAt:{gte:dayStart}},select:{metadata:true}});
-  const used=usage.reduce((n,r)=>n+Number((r.metadata as {reservedPeriods?:number;reservedCalls?:number}|null)?.reservedPeriods??(r.metadata as {reservedCalls?:number}|null)?.reservedCalls??0),0);
-  const priority=new Set((await repo.prioritySecurityIds()).map(String));
-  const filings=await db.dartFinancialFiling.findMany({where:{isWithdrawn:false,fiscalYear:{gte:2015,lte:year},security:{...eligibleWhere('valuation'),isActive:true,securityType:'STOCK'}},distinct:['securityId','fiscalYear','periodType'],orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}],include:{security:{select:{symbol:true,marketType:true,dartCorpMapping:{select:{corpCode:true}}}}}});
-  const metrics=await db.periodValuation.findMany({where:{fiscalYear:{gte:2015,lte:year}},select:{securityId:true,fiscalYear:true,periodType:true,status:true,values:true,supplemental:true,nextAttemptAt:true}});
-  const key=(r:{securityId:bigint;fiscalYear:number;periodType:string})=>String(r.securityId)+':'+r.fiscalYear+':'+r.periodType;
-  const previous=new Map(metrics.map(r=>[key(r),r]));
-  const pending=filings.filter(f=>{const m=previous.get(key(f)),saved=(m?.supplemental??{}) as Supplemental;
-   return ['ANNUAL','Q1','Q2','Q3'].includes(f.periodType)&&!(m?.nextAttemptAt&&m.nextAttemptAt>now)&&(!valueCompletion((m?.values??{}) as Partial<MetricValues>).complete||!completeShares(saved.shares,f.receiptNo)||needsDartAccounts(f,saved));
-  });
-  pending.sort((a,b)=>Number(priority.has(String(b.securityId)))-Number(priority.has(String(a.securityId)))||b.fiscalYear-a.fiscalYear||key(a).localeCompare(key(b)));
-  const batch=pending.slice(0,Math.max(0,Math.min(10,200-used)));
-  if(!batch.length)return {status:pending.length?'QUOTA_BLOCKED':'IDLE'};
-  const reservedPeriods=batch.length;
-  runId=(await repo.createRun(jobType,'OPEN_DART_KIS_KRX',{ownerId:leaseOwnerId(owner),phase:'INDEPENDENT_SUPPLEMENT',reservedPeriods,timezone:'Asia/Seoul',policy:'SHARED_MANUAL_AUTOMATIC_PERIOD_SUPPLEMENT'})).id;
-  const apiKey=config.apiKey??process.env.DART_API_KEY??'';
+  const yielded=await boundary();
+  await recoverSupplementTasks(db,clock());
+  scanned=await scanSupplementCandidates(db,owner,now,clock);
+  if(yielded){await repo.finishRun(runId,'SKIPPED',{success:0,failed:0,skipped:0},undefined,{phase:'YIELDED_TO_MANUAL',scanned});return {status:'YIELDED'};}
+  const batch=await dueSupplementIds(db,clock(),Math.min(10,200-budget.reserved)),apiKey=config.apiKey??process.env.DART_API_KEY??'';
   const provider=apiKey?new OpenDartProvider({apiKey,dailyCallLimit:config.dailyCallLimit??3000,minDelayMs:config.minDelayMs??2000,
    reserveCall:limit=>{if(!open(clock()))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window ended.');return repo.reserveApiCall(limit,clock(),owner);},
    isCallAllowed:()=>open(clock()),onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')}):null;
-  for(const row of batch){
-   if(options.serviceManual){
-    const pending=await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},orderBy:[{startedAt:'asc'},{id:'asc'}]});
-    if(pending){
-     await repo.releaseLock(owner);
-     try{await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(config.minDelayMs??2000);await options.serviceManual();}
-     finally{await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(config.minDelayMs??2000);if(!await repo.acquireLock(owner,900))throw Error('SUPPLEMENT_LOCK_LOST');}
-    }
-   }
-   if(!open(clock()))break;
-   const lease=await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner,lockedUntil:{gt:clock()}},data:{lockedUntil:new Date(clock().getTime()+900000)}});if(lease.count!==1)throw Error('SUPPLEMENT_LOCK_LOST');
-   const where={securityId_fiscalYear_periodType:{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType}};
+  for(const key of batch){
+   if(clock().getTime()>=deadline||!open(clock())||await boundary())break;
+   if(!await repo.acquireLock(owner,90))break;
+   let task:Awaited<ReturnType<typeof claimSupplement>>=null;
+   let timer:ReturnType<typeof setInterval>|undefined,pulse:Promise<unknown>|null=null;
    try{
-    await withCollection(db,row.securityId,'valuation',async()=>{
-     const mapping=row.security.dartCorpMapping;
-     const load=options.load??loadPeriodSupplement(provider,row.security.symbol,mapping?.corpCode??'',undefined,row.security.marketType,'AUTOMATIC',{dartRequests:Boolean(apiKey&&mapping)});
-     const before=await db.periodValuation.findUnique({where});
-     const beforeValues=JSON.stringify(before?.values);
-     const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType,{load});
-     if(!result){skipped++;return;}
-     // One retry per day for unresolved source gaps; successful source repairs leave no busy-loop.
-     const complete=result.status==='SUCCESS',saved=(result.supplemental??{}) as Supplemental;
-     const sourceMissing=!completeShares(saved.shares,row.receiptNo)||needsDartAccounts(row,saved);
-     const nextAttemptAt=complete&&!sourceMissing?null:new Date(now.getTime()+86400000);
-     const projected=supplementedFilings([row],[{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType,supplemental:saved as Prisma.JsonObject}])[0]!;
-     const financialComplete=[projected.revenueYtd,projected.operatingProfitYtd,projected.netIncomeYtd,projected.totalAssets,projected.totalLiabilities,projected.totalEquity].every(v=>v!=null);
-     await db.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...saved,...(complete||beforeValues!==JSON.stringify(result.values)?{verifiedAt:clock().toISOString()}:{}),automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
-     complete?success++:skipped++;
-    },{symbol:row.security.symbol});
-   }catch(error){if(error instanceof CollectionExcluded){skipped++;continue;}failed++;
-    const code=typeof error==='object'&&error&&'code'in error&&/^[A-Z0-9_]+$/.test(String(error.code))?String(error.code):'SUPPLEMENT_SOURCE_FAILED';
-    const existing=await db.periodValuation.findUnique({where});const data={nextAttemptAt:new Date(now.getTime()+86400000),supplemental:JSON.parse(JSON.stringify({...((existing?.supplemental??{}) as object),independentAttempt:{code,at:now.toISOString()}}))};
-    if(existing)await db.periodValuation.update({where,data});else await db.periodValuation.create({data:{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType,status:'FAILED',values:{},provenance:{},reasons:{source:code},...data}});
-    if(['020','DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(code))break;
-   }
-   await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(2000);
+    task=await claimSupplement(db,key.id,owner,clock());if(!task)continue;
+    processed++;const activeTask=task;
+    timer=setInterval(()=>{if(pulse)return;pulse=db.valuationSupplementTask.updateMany({where:{id:activeTask.id,status:'PROCESSING',ownerToken:owner,leaseUntil:{gt:new Date()}},data:{heartbeatAt:new Date(),leaseUntil:new Date(Date.now()+supplementLimits.leaseMs)}}).catch(()=>{}).finally(()=>{pulse=null;});},financialHeartbeatMs);timer.unref();
+    await db.valuationSupplementScan.update({where:{id:1},data:{lastAutomaticAt:clock(),automaticTurnUntil:null}});
+    const candidate=(await candidateRows(db,[task.filingId],Number(getSeoulClock(clock()).dateKey.slice(0,4))))[0];
+    if(!candidate||candidate.unsupported||supplementSourceVersion(candidate)!==task.sourceVersion){
+     await finishSupplement(db,task,owner,{status:'UNAVAILABLE',lastError:!candidate?'INPUT_CHANGED_OR_EXCLUDED':candidate.unsupported?'UNSUPPORTED_SOURCE':'INPUT_CHANGED'},clock());skipped++;continue;
+    }
+    const scoped=checkedManualDb(db);
+    await boundedManualJob(()=>withFinancialLease(owner,async()=>{
+     const security=await db.security.findUniqueOrThrow({where:{id:task!.securityId},select:{symbol:true,collectionRevision:true,marketType:true,dartCorpMapping:{select:{corpCode:true}}}});
+     await withCollection(db,task!.securityId,'valuation',async()=>{
+      const where={securityId_fiscalYear_periodType:{securityId:task!.securityId,fiscalYear:task!.fiscalYear,periodType:task!.periodType}};
+      const filing=await db.dartFinancialFiling.findFirst({where:{id:task!.filingId}});
+      if(!filing)throw new CollectionExcluded('보완 기준 공시 변경','IDENTITY');
+      const before=await db.periodValuation.findUnique({where}),saved=(before?.supplemental??{}) as Supplemental;
+      if(valueCompletion((before?.values??{}) as Partial<MetricValues>).complete&&completeShares(saved.shares,filing.receiptNo)&&!needsDartAccounts(filing,saved))return;
+      const result=await supplementStoredPeriod(scoped,task!.securityId,task!.fiscalYear,task!.periodType,{load:options.load??loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'AUTOMATIC',{dartRequests:Boolean(apiKey&&security.dartCorpMapping),fetcher:manualFetch})});
+      if(!result)return;
+      const supplement=(result.supplemental??{}) as Supplemental,complete=valueCompletion(result.values as Partial<MetricValues>).complete;
+      const projected=supplementedFilings([filing],[{securityId:filing.securityId,fiscalYear:filing.fiscalYear,periodType:filing.periodType,supplemental:supplement as Prisma.JsonObject}])[0]!;
+      const financialComplete=[projected.revenueYtd,projected.operatingProfitYtd,projected.netIncomeYtd,projected.totalAssets,projected.totalLiabilities,projected.totalEquity].every(value=>value!=null);
+      const nextAttemptAt=complete&&completeShares(supplement.shares,filing.receiptNo)&&!needsDartAccounts(filing,supplement)?null:new Date(clock().getTime()+supplementLimits.retryMs);
+      await scoped.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...supplement,...(complete||JSON.stringify(before?.values)!==JSON.stringify(result.values)?{verifiedAt:clock().toISOString()}:{}),automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
+     },{symbol:candidate.symbol,collectionRevision:candidate.collection_revision});
+    },activeTask.id),Math.max(1,Math.min(120_000,deadline-clock().getTime())));
+    const after=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType}}});
+    const filing=await db.dartFinancialFiling.findFirst({where:{id:task.filingId}}),saved=(after?.supplemental??{}) as Supplemental;
+    const complete=Boolean(filing&&valueCompletion((after?.values??{}) as Partial<MetricValues>).complete&&completeShares(saved.shares,filing.receiptNo)&&!needsDartAccounts(filing,saved));
+    const permanent=!['AUTH','PERMISSION','PARSE','COMMUNICATION','RATE_LIMIT','PROVIDER'].includes(saved.errors?.priceCategory??'')&&!Object.values(saved.errors??{}).some(code=>/COMMUNICATION|HTTP|TIMEOUT|AUTH|RATE|LIMIT|NETWORK|PROVIDER_ERROR|SERVER_ERROR/.test(code)),unavailable=!complete&&permanent&&task.attempts>=3;
+    await withFinancialLease(owner,()=>finishSupplement(db,task!,owner,{status:complete?'COMPLETE':unavailable?'UNAVAILABLE':'RETRY',lastError:complete?null:unavailable?'SOURCE_NOT_PROVIDED':'SOURCE_INCOMPLETE',valuationAt:after?.updatedAt??null,nextAttemptAt:new Date(clock().getTime()+supplementLimits.retryMs),diagnostics:{missing:Object.entries(after?.values??{}).filter(([,v])=>v===null).map(([k])=>k),nonApplicable:valueCompletion((after?.values??{}) as Partial<MetricValues>).notApplicable}},clock()));
+    complete?success++:skipped++;
+   }catch(error){
+    if(error instanceof FinancialLeaseLost)throw error;
+    const diagnostic=dartDiagnostic(error,'VALUATION_SUPPLEMENT');
+    if(!(error instanceof CollectionExcluded))console.warn(JSON.stringify({event:'valuation_supplement_failure',runId:String(runId),taskId:task?String(task.id):null,fiscalYear:task?.fiscalYear,period:task?.periodType,...diagnostic}));
+    if(task){
+     if(!(error instanceof CollectionExcluded))await withFinancialLease(owner,()=>db.periodValuation.updateMany({where:{securityId:task!.securityId,fiscalYear:task!.fiscalYear,periodType:task!.periodType},data:{nextAttemptAt:new Date(clock().getTime()+supplementLimits.retryMs)}}),task.id);
+     const existing=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType}},select:{updatedAt:true}});
+     await finishSupplement(db,task,owner,{status:error instanceof CollectionExcluded?'UNAVAILABLE':'RETRY',lastError:error instanceof CollectionExcluded?'COLLECTION_EXCLUDED':diagnostic.code,valuationAt:existing?.updatedAt??null,diagnostics:diagnostic as unknown as Prisma.InputJsonValue,nextAttemptAt:new Date(clock().getTime()+supplementLimits.retryMs)},clock());
+    }
+    if(error instanceof CollectionExcluded)skipped++;else failed++;
+    if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code))){if(error.quotaExceeded||error.code==='DAILY_CALL_LIMIT')await db.valuationSupplementScan.update({where:{id:1},data:{phase:'QUOTA_BLOCKED'}});break;}
+   }finally{if(timer)clearInterval(timer);await pulse;await repo.releaseLock(owner);}
+   await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(Math.max(2000,config.minDelayMs??2000));
   }
-  await repo.finishRun(runId,failed?'PARTIAL':'SUCCESS',{success,failed,skipped},undefined,{phase:'INDEPENDENT_SUPPLEMENT',reservedPeriods});return {status:failed?'PARTIAL':'SUCCESS',success,failed,skipped};
- }catch(error){if(runId)await repo.finishRun(runId,'FAILED',{success,failed:failed+1,skipped},'SUPPLEMENT_INTERNAL_ERROR');throw error;}finally{await repo.releaseLock(owner);}
+  await repo.finishRun(runId,failed?'PARTIAL':'SUCCESS',{success,failed,skipped},undefined,{phase:'INDEPENDENT_SUPPLEMENT',processed,scanned});
+  return {status:processed?failed?'PARTIAL':'SUCCESS':'IDLE',success,failed,skipped,processed,scanned};
+ }catch(error){await repo.finishRun(runId,'FAILED',{success,failed:failed+1,skipped},dartDiagnostic(error,'SUPPLEMENT_RUN').code);throw error;}
+ finally{if(processed||!open(clock()))await db.valuationSupplementScan.updateMany({where:{id:1,automaticTurnUntil:{not:null}},data:{automaticTurnUntil:null}});}
 }

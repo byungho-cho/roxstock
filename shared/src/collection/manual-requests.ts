@@ -7,7 +7,7 @@ import {getSeoulClock} from './time.js';
 import {CollectionJobRepository as PrismaDartRepository} from './job-repository.js';
 import type {DartPeriodType,DartReportCode} from './dart-types.js';
 export type ManualTaskState='QUEUED'|'RUNNING'|'SUCCESS'|'PARTIAL'|'FAILED'|'NO_DATA'|'UNAVAILABLE'|'SKIPPED';
-export type ManualTaskResult={state:ManualTaskState;code?:string;durationMs?:number};
+export type ManualTaskResult={state:ManualTaskState;code?:string;durationMs?:number;diagnostics?:{stage:string;category:string;code:string;database?:Record<string,string>}};
 export const manualLimits={requestMs:20_000,taskMs:120_000,runMs:600_000,queueMs:1_800_000};
 
 export const manualJson=(value:unknown)=>JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -85,15 +85,15 @@ export async function manualTrace(db:PrismaClient,run:CollectorRun){
  let relatedRunId:string|undefined;
  const lease=m.manualState!=='FINISHED'?await db.collectorLock.findUnique({where:{jobName:'dart-financial-statements'}}):null;
  const active=lease&&lease.lockedUntil.getTime()>Date.now()&&Date.now()-Math.max(lease.updatedAt.getTime(),m.manualState==='PROCESSING'?Date.parse(m.lastProgressAt??'')||0:0)<120_000;
- if(m.manualState==='QUEUED'&&active){
+ if(m.manualState==='QUEUED'&&lease&&lease.lockedUntil.getTime()>Date.now()){
    const ownerId=leaseOwnerId(lease.ownerToken);
-   const ownerRun=await db.collectorRun.findFirst({where:{jobType:{in:['dart-financial-statements','VALUATION_SUPPLEMENT']},status:'RUNNING',OR:[{metadata:{path:'$.ownerId',equals:ownerId}},{metadata:{path:'$.lockOwner',equals:lease.ownerToken}}]},orderBy:{startedAt:'desc'}});
+   const ownerRun=await db.collectorRun.findFirst({where:{jobType:{in:['dart-financial-statements','VALUATION_SUPPLEMENT','kis-fundamentals']},status:'RUNNING',OR:[{metadata:{path:'$.ownerId',equals:ownerId}},{metadata:{path:'$.lockOwner',equals:lease.ownerToken}}]},orderBy:{startedAt:'desc'}});
    relatedRunId=ownerRun?.id.toString();
-   waitReason=ownerRun?( (ownerRun.metadata as {phase?:string}).phase==='MANUAL'?'PREVIOUS_REQUEST':'AUTOMATIC'):'LOCK';
+   waitReason=active&&ownerRun?( (ownerRun.metadata as {phase?:string}).phase==='MANUAL'?'PREVIOUS_REQUEST':'AUTOMATIC'):'LOCK';
  }
  if(m.manualState==='QUEUED')await manualWait(db,run,waitReason??'CHECKING',relatedRunId);
  const activityState=m.manualState==='FINISHED'?'FINISHED':m.manualState==='QUEUED'?'QUEUED':active&&lease.ownerToken===m.lockOwner?'ACTIVE':'CHECKING';
- return {activityState,acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt??null,lastProgressAt:m.lastProgressAt??null,
+ return {activityState,leaseState:lease&&lease.lockedUntil.getTime()>Date.now()?active?'ALIVE':'CHECK_REQUIRED':null,acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt??null,lastProgressAt:m.lastProgressAt??null,
    waitReason:activityState==='CHECKING'?'CHECKING':waitReason??null,waitReasonChangedAt:m.waitReason===waitReason?m.waitReasonChangedAt??null:new Date().toISOString(),relatedRunId:relatedRunId??m.relatedRunId??null,
    financialCollectedAt:m.financialCollectedAt??null,supplementUpdatedAt:m.supplementUpdatedAt??null};
 }
