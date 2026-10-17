@@ -44,7 +44,7 @@ function Detail({data,openCharts,openFinancials,refresh}:{data:ValueDetail;openC
  const infoLabel=(name:string,message:string,labelColor='#FDE68A',yearSuffix=' (최신)')=><Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:'4px',color:labelColor}}>{name}{yearSuffix}<ClickInfo tone="muted" label={name+' 데이터 기준'}>{message}</ClickInfo></Box>;
  const settledColor='#60A5FA',referenceColor='#FDE68A';
  const metricLabel=(name:string,key:'eps'|'bps'|'per'|'pbr'|'roe')=>{
-  const latest=data.valuation?.[key]==null&&key!=='roe'&&data.currentSupplement?.[key]!=null;
+  const latest=(key==='per'||key==='pbr')&&data.valuation?.[key]==null&&data.currentSupplement?.[key]!=null;
   const evidence=data.valuation?.provenance?.perMetric?.[key]??data.valuation?.provenance;
   const source=latest?(data.currentSupplement?.fieldSources?.[key]?.source??data.currentSupplement?.source):evidence?.source;
   if((latest?data.currentSupplement?.[key as 'eps']:data.valuation?.[key])==null)return name;
