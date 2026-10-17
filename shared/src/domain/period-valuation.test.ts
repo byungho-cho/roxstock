@@ -36,3 +36,11 @@ test('negative EPS and negative equity yield signed ratios; zero denominators re
  const zero=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'0'},parentEquity:{amount:'0'}}});
  assert.equal(calculatePeriod(zero,undefined,sources).values.per,null);assert.equal(calculatePeriod(zero,undefined,sources).values.pbr,null);
 });
+test('annual comparative capital from the exact filing fills ROE without inventing a previous filing',()=>{
+ const f=filing(2015,'ANNUAL',{accountSources:{parentNetIncome:{amount:'20'},parentEquity:{amount:'220'}}});
+ const supplemental={accounts:{receiptNo:f.receiptNo,fsDivision:'CFS',collectedAt:'2026-10-17',sources:{openingParentEquity:{amount:'180',periodEnd:'2014-12-31'}}}};
+ const result=calculatePeriod(f,undefined,supplemental);assert.equal(result.values.roe,'10');assert.equal(result.provenance.roeOpeningSource,'SAME_FILING_COMPARATIVE_BALANCE');
+ supplemental.accounts.sources.openingParentEquity.periodEnd='2013-12-31';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
+ supplemental.accounts.sources.openingParentEquity.periodEnd='2014-12-31';supplemental.accounts.receiptNo='wrong';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
+ supplemental.accounts.receiptNo=f.receiptNo;supplemental.accounts.fsDivision='OFS';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
+});

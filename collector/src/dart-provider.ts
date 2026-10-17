@@ -351,6 +351,9 @@ export class OpenDartProvider {
         statementDivision: String(row.sj_div ?? ''), statementName: String(row.sj_nm ?? ''),
         accountId: String(row.account_id ?? ''), accountName: String(row.account_nm ?? ''),
         currentAmount: numericText(row.thstrm_amount), currentYtdAmount: numericText(row.thstrm_add_amount),
+        previousAmount:numericText(row.frmtrm_amount),
+        previousPeriodSequential:reportCode==='11011'&&/^제\s*\d+\s*기$/.test(String(row.thstrm_nm??''))&&/^제\s*\d+\s*기$/.test(String(row.frmtrm_nm??''))&&Number(String(row.thstrm_nm).replace(/\D/g,''))===Number(String(row.frmtrm_nm).replace(/\D/g,''))+1,
+        previousPeriodEnd:(String(row.frmtrm_dt??'').match(/^(\d{4})[.\/-](\d{2})[.\/-](\d{2})(?:\s*현재)?$/)?.slice(1).join('-'))??null,
         currency: String(row.currency ?? ''),
       }];
     });

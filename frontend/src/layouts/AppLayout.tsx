@@ -22,6 +22,7 @@ import { PageLayout } from './PageLayout';
 
 function getHeaderTitle(pathname: string): string {
   const collectionTitles: Record<string, string> = { 'security-master': '종목 마스터', 'realtime-prices': '실시간 주가', 'market-prices': '전체 종목 주가', 'account-snapshots': '일별 계좌 스냅샷', 'investor-trends': '투자동향', 'dart-financial-statements': 'DART 재무제표' };
+  if (pathname === '/detail/collection-monitoring/bug-reports') return '오류 리포트';
   if (pathname.startsWith('/detail/collection-monitoring')) return pathname.endsWith('/runs') ? '실행 이력' : pathname.endsWith('/items') ? '대상별 상태' : collectionTitles[pathname.split('/')[3] ?? ''] ?? '수집 모니터링';
   if (pathname.startsWith('/stocks')) return '종목목록'; if (pathname.startsWith('/journal')) return '매매일지';
   if (pathname.startsWith('/assets')) return '자산분석'; if (pathname.startsWith('/more')) return '더보기';

@@ -28,7 +28,8 @@ const errorText = (code?: string) => {
 type Props = { stockId: string; collectedAt: string|null; startYear?:number; endYear?:number; initialPeriod?:RefreshPeriod; onComplete?:()=>void; onSelection?:(year:number,period:RefreshPeriod)=>void; fixedYear?:number; allReports?:boolean; visible?:boolean;hasExistingData?:boolean };
 export function FinancialRefreshControls({stockId,collectedAt,startYear:initialStart,endYear:initialEnd,initialPeriod='ALL',onComplete,fixedYear,allReports,visible=true}:Props) {
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
-  const boundYear=(year:number)=>Math.max(2015,Math.min(currentYear,year));
+  const minimumYear=initialPeriod==='ANNUAL'&&!allReports?2015:2020;
+  const boundYear=(year:number)=>Math.max(minimumYear,Math.min(currentYear,year));
   const defaultStart=boundYear(initialStart??fixedYear??currentYear-2),defaultEnd=boundYear(initialEnd??fixedYear??currentYear);
   const [startYear,setStartYear]=useState(defaultStart),[endYear,setEndYear]=useState(defaultEnd),[period,setPeriod]=useState<RefreshPeriod>(allReports?'ALL':initialPeriod);
   const [requestId,setRequestId]=useState<string|null>(()=>sessionStorage.getItem(`financialRefresh:${stockId}`));
@@ -59,7 +60,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const busy=uncertain||mutation.isPending||Boolean(active.data?.requestId&&active.data.state!=='FINISHED')||Boolean(requestId&&status.data?.state!=='FINISHED'),invalid=startYear>endYear;
   useEffect(()=>{if(!busy){setStartYear(defaultStart);setEndYear(defaultEnd);setPeriod(allReports?'ALL':initialPeriod);}},[defaultStart,defaultEnd,initialPeriod,allReports]);
   const finished=status.data?.state==='FINISHED'?status.data:null,range=`${startYear}–${endYear}년 ${labels[period]}`;
-  const years=Array.from({length:currentYear-2015+1},(_,i)=>({value:String(currentYear-i),label:String(currentYear-i)}));
+  const years=Array.from({length:currentYear-(period==='ANNUAL'?2015:2020)+1},(_,i)=>({value:String(currentYear-i),label:String(currentYear-i)}));
   const submit=(mode:'FULL'|'SUPPLEMENT')=>{if(busy||active.isPending||active.isError||invalid||submitLock.current)return;submitLock.current=true;mutation.mutate(mode);};
   const current=status.data??active.data;
   const financialAt=[current?.financialCollectedAt,materialTimes.data?.financialCollectedAt,collectedAt].filter((at):at is string=>Boolean(at)).sort().at(-1);
@@ -81,7 +82,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1.35fr)',gap:'6px','& .MuiSelect-select':{fontSize:11,py:0,pl:0,pr:'16px !important'},'& .MuiSelect-icon':{fontSize:16,right:0}}}>
       <Box sx={{display:'flex',alignItems:'center',height:36,px:'6px',gap:'4px',minWidth:0,bgcolor:colors.raised,border:'1px solid',borderColor:colors.borderStrong,borderRadius:'8px'}}>
         <Typography sx={{fontSize:10,color:colors.textSecondary,whiteSpace:'nowrap'}}>갱신범위</Typography>
-        <Select inputProps={{'aria-label':'갱신범위'}} variant="standard" disableUnderline value={period} onChange={e=>setPeriod(e.target.value as RefreshPeriod)} disabled={busy} sx={{flex:1,minWidth:0,textAlign:'right'}}>{Object.entries(labels).map(([value,label])=><MenuItem key={value} value={value}>{label}</MenuItem>)}</Select>
+        <Select inputProps={{'aria-label':'갱신범위'}} variant="standard" disableUnderline value={period} onChange={e=>{const next=e.target.value as RefreshPeriod;setPeriod(next);if(next!=='ANNUAL'){setStartYear(y=>Math.max(2020,y));setEndYear(y=>Math.max(2020,y));}}} disabled={busy} sx={{flex:1,minWidth:0,textAlign:'right'}}>{Object.entries(labels).map(([value,label])=><MenuItem key={value} value={value}>{label}</MenuItem>)}</Select>
       </Box>
       <Box role="group" aria-label="갱신연도" sx={{display:'flex',alignItems:'center',height:36,px:'6px',gap:'4px',minWidth:0,bgcolor:colors.raised,border:'1px solid',borderColor:invalid?'error.main':colors.borderStrong,borderRadius:'8px'}}>
         <Typography sx={{fontSize:10,color:colors.textSecondary,whiteSpace:'nowrap'}}>갱신연도</Typography>
@@ -111,8 +112,8 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     {finished&&outcome&&<Alert severity={outcome.severity} sx={outcome.tone==='neutral'?{color:'#94A3B8',bgcolor:'#1E293B','& .MuiAlert-icon':{color:'#94A3B8'}}:undefined}>
       <Typography sx={{fontSize:12}}>{finished.startYear??finished.fiscalYear}–{finished.endYear??finished.fiscalYear}년 · {outcome.title}</Typography>
       {finished.refreshMode==='SUPPLEMENT'?<Typography sx={{fontSize:11}}>기존 재무제표 유지 · 보완자료만 수집</Typography>:<Typography sx={{fontSize:11}}>보고서 기준: 공시 확인 완료 {completed} · 미공시 {noData} · 수집 실패 {failed}</Typography>}
-      <Typography sx={{fontSize:11}}>성공 {outcome.completed}건 · 실패 {outcome.failed}건</Typography>
-      {outcome.missing>0&&<Typography sx={{fontSize:11}}>실패 건수에는 자료 부족으로 보완되지 않은 기간도 포함합니다. 기존 값은 유지했습니다.</Typography>}
+      <Typography sx={{fontSize:11}}>완료 {outcome.completed}건 · 일부 자료 부족 {outcome.missing}건 · 오류 {outcome.failed}건</Typography>
+      {outcome.missing>0&&<Typography sx={{fontSize:11}}>계산 근거나 원천 자료가 부족한 항목이 있습니다. 기존 값은 유지했습니다.</Typography>}
       <Box component="details" sx={{mt:1,fontSize:11}}><Box component="summary" sx={{cursor:'pointer'}}>상세 내용</Box>
         {finished.results.map((r,i)=><Box key={i} sx={{mt:1}}>{r.fiscalYear??finished.fiscalYear}년 {labels[r.period]}: {r.tasks?`재무제표 ${r.tasks.dart.state==='SKIPPED'?'기존 자료 유지':taskLabels[r.tasks.dart.state]??r.tasks.dart.state} / 가치지표 보완 ${taskLabels[r.tasks.valuation.state]??r.tasks.valuation.state}`:r.status==='SUCCESS'?'공시 확인 완료 · '+(r.valuationStatus==='SUCCESS'?'가치지표 보충 완료':'가치지표 보충 미완료'):r.status==='NO_DATA'?'미공시 · 기존 데이터 유지':errorText(r.code)}{r.tasks?.dart.state==='FAILED'&&<Typography sx={{fontSize:11}}>기존 재무제표는 유지했습니다.</Typography>}
           {[...new Set([...Object.values(r.valuationReasons??{}),...Object.values(r.valuationErrors??{}).map(code=>errorText(code))])].map(reason=><Typography key={reason} sx={{fontSize:11}}>{reason}</Typography>)}

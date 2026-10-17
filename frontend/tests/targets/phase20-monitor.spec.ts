@@ -60,13 +60,14 @@ test('APK name and original URL from settings entry paths',async({page})=>{
 });
 
 
-test('bug report review, resolve and deletion are available below the collector list',async({page})=>{
+test('bug report review, resolve and deletion are available through summary details',async({page})=>{
  await setup(page);let state='OPEN',deleted=false;
  const report=()=>({id:'900',feature:'dart-financial-statements',code:'PERIOD_EPS_MISSING',severity:'WARNING',summary:'EPS 보완 미완료',state,occurrences:4,firstSeenAt:at,lastSeenAt:at,reviewNote:null});
  await page.route('**/api/collection/bug-reports**',async route=>{
+  if(new URL(route.request().url()).pathname.endsWith('/summary'))return route.fulfill({json:{data:{open:deleted?0:1,reviewing:0,resolved:0,lastSeenAt:at}}});
   if(route.request().method()==='PATCH'){state=route.request().postDataJSON().state;return route.fulfill({json:{data:report()}});}
   if(route.request().method()==='DELETE'){deleted=true;return route.fulfill({json:{data:{deleted:true}}});}
   return route.fulfill({json:{data:new URL(route.request().url()).pathname.endsWith('/900')?{...report(),events:[{eventKey:'test',observedAt:at,securityName:'테스트종목',symbol:'005930',fiscalYear:2021,periodType:'ANNUAL'}]}:{rows:deleted?[]:[report()],hasNext:false}}});
  });
- await page.goto('/detail/collection-monitoring');const panel=page.getByTestId('collection-bug-reports');await panel.scrollIntoViewIfNeeded();await panel.getByRole('button').filter({hasText:'EPS 보완 미완료'}).click();const dialog=page.getByRole('dialog');await expect(dialog).toContainText('테스트종목');await dialog.getByLabel('검토 메모').fill('계산 근거 확인');await dialog.getByRole('button',{name:'검토 중',exact:true}).click();await expect(dialog).toContainText('상태: 검토 중');await dialog.getByRole('button',{name:'해결 완료',exact:true}).click();await dialog.getByRole('button',{name:'리포트 삭제',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(panel).toContainText('해당 조건의 리포트가 없습니다.');
+ await page.goto('/detail/collection-monitoring');await page.getByTestId('collection-bug-report-summary').click();await expect(page).toHaveURL(/collection-monitoring\/bug-reports$/);const panel=page.getByTestId('collection-bug-reports');await panel.scrollIntoViewIfNeeded();await panel.getByRole('button').filter({hasText:'EPS 보완 미완료'}).click();const dialog=page.getByRole('dialog');await expect(dialog).toContainText('테스트종목');await dialog.getByLabel('검토 메모').fill('계산 근거 확인');await dialog.getByRole('button',{name:'검토 중',exact:true}).click();await expect(dialog).toContainText('상태: 검토 중');await dialog.getByRole('button',{name:'해결 완료',exact:true}).click();await dialog.getByRole('button',{name:'리포트 삭제',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(panel).toContainText('해당 조건의 리포트가 없습니다.');
 });

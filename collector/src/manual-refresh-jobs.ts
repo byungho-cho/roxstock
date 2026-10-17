@@ -73,6 +73,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
   const naver=new NaverAnnualProvider(manualFetch),currentYear=Number(getSeoulClock().dateKey.slice(0,4));
   for(let year=start;year<=end;year++)for(const period of periods){
    if(results.some(r=>r.fiscalYear===year&&r.period===period))continue;
+   if(year<2020&&period!=='ANNUAL'){results.push({fiscalYear:year,period,status:'SKIPPED',code:'QUARTER_BEFORE_COLLECTION_START',tasks:{dart:{state:'SKIPPED'},valuation:{state:'SKIPPED'}}});continue;}
    m.progress={currentYear:year,currentPeriod:period,stage:'VALUATION',completed:results.length,total:(end-start+1)*periods.length,tasks:{dart:{state:'QUEUED'},valuation:{state:'QUEUED'}}};
    let previousSupplementValues:string|undefined;
    let valuation:Awaited<ReturnType<typeof refreshManualAnnual>>|undefined;

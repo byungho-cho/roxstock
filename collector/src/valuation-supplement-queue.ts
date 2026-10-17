@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {Prisma,type PrismaClient,type ValuationSupplementTask} from '@roxstock/shared/prisma';
 import {getSeoulClock} from '@roxstock/shared/collection/time';
 
-export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v2'} as const;
+export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v3-historical-evidence'} as const;
 type Candidate={id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;prior_basis?:string;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
 export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.prior_basis,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')).digest('hex');
 /** Only computed flags and keys leave SQL. Financial JSON never crosses the candidate boundary. */
@@ -32,7 +32,7 @@ export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  LEFT JOIN dart_corp_mappings m ON m.security_id=s.id
  LEFT JOIN dart_financial_filings p ON p.id=(SELECT p1.id FROM dart_financial_filings p1 WHERE p1.security_id=f.security_id AND p1.fiscal_year=f.fiscal_year-1 AND p1.period_type='ANNUAL' AND p1.is_withdrawn=0 AND (s.code_revision=0 AND p1.collection_symbol IS NULL OR p1.collection_symbol=s.symbol) ORDER BY p1.receipt_date DESC,p1.collected_at DESC,p1.receipt_no DESC LIMIT 1)
  LEFT JOIN period_valuations pv ON pv.security_id=f.security_id AND pv.fiscal_year=f.fiscal_year-1 AND pv.period_type='ANNUAL' AND (s.code_revision=0 AND pv.collection_symbol IS NULL OR pv.collection_symbol=s.symbol)
- WHERE f.id IN (${Prisma.join(ids)}) AND f.is_withdrawn=0 AND f.fiscal_year BETWEEN 2015 AND ${year} AND f.period_type IN ('ANNUAL','Q1','Q2','Q3')
+ WHERE f.id IN (${Prisma.join(ids)}) AND f.is_withdrawn=0 AND f.fiscal_year BETWEEN 2015 AND ${year} AND f.period_type IN ('ANNUAL','Q1','Q2','Q3') AND (f.period_type='ANNUAL' OR f.fiscal_year>=2020)
  AND s.is_active=1 AND s.security_type='STOCK' AND s.collection_excluded=0 AND s.symbol NOT LIKE 'Z99%'
  AND (s.excluded_features IS NULL OR JSON_CONTAINS(s.excluded_features,JSON_QUOTE('valuation'))=0)
  AND (s.code_revision=0 AND f.collection_symbol IS NULL OR f.collection_symbol=s.symbol)
@@ -78,7 +78,7 @@ export async function recoverSupplementTasks(db:PrismaClient,now:Date){
  return expired.length;
 }
 export async function dueSupplementIds(db:PrismaClient,now:Date,limit:number){
- return db.valuationSupplementTask.findMany({where:{ready:true,nextAttemptAt:{lte:now}},orderBy:[{nextAttemptAt:'asc'},{priority:'asc'},{id:'asc'}],take:Math.min(10,limit),select:{id:true}});
+ return db.valuationSupplementTask.findMany({where:{ready:true,nextAttemptAt:{lte:now},OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]},orderBy:[{nextAttemptAt:'asc'},{priority:'asc'},{id:'asc'}],take:Math.min(10,limit),select:{id:true}});
 }
 /** Reserving the daily slot and claiming one period share a short transaction; no provider I/O. */
 export async function claimSupplement(db:PrismaClient,id:bigint,owner:string,now:Date):Promise<ValuationSupplementTask|null>{

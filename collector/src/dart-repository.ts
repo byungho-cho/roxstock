@@ -100,7 +100,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
       const tasks = historicalPlanActive ? slice.flatMap(({ id }) => {
         const result: Array<{ securityId: bigint; fiscalYear: number; reportCode: DartReportCode; periodType: DartPeriodType }> = [];
         for (let year = existing?.backfillEndYear ?? endYear; year >= Math.max(2015,existing?.backfillStartYear ?? startYear); year -= 1) {
-          for (const report of REPORTS) result.push({ securityId: id, fiscalYear: year, ...report });
+          for (const report of REPORTS.filter(report=>year>=2020||report.periodType==='ANNUAL')) result.push({ securityId: id, fiscalYear: year, ...report });
         }
         return result;
       }) : [];
@@ -110,7 +110,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
     }
     if(extendsPlan){
       // Idempotent extension: never reset completed historical report tasks.
-      for(let i=0;i<securities.length;i+=200){const slice=securities.slice(i,i+200);const tasks=slice.flatMap(({id})=>Array.from({length:endYear-existing!.backfillEndYear!},(_,j)=>existing!.backfillEndYear!+1+j).flatMap(fiscalYear=>REPORTS.map(report=>({securityId:id,fiscalYear,...report}))));
+      for(let i=0;i<securities.length;i+=200){const slice=securities.slice(i,i+200);const tasks=slice.flatMap(({id})=>Array.from({length:endYear-existing!.backfillEndYear!},(_,j)=>existing!.backfillEndYear!+1+j).flatMap(fiscalYear=>REPORTS.filter(report=>fiscalYear>=2020||report.periodType==='ANNUAL').map(report=>({securityId:id,fiscalYear,...report}))));
         await this.prisma.dartBackfillTask.createMany({data:tasks,skipDuplicates:true});
         await this.prisma.dartSecurityState.updateMany({where:{securityId:{in:slice.map(s=>s.id)}},data:{backfillCompletedAt:null}});
       }
@@ -165,7 +165,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
-      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
+      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
       select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true },
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
@@ -271,7 +271,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async completeSecurityIfDone(securityId: bigint, now = new Date()): Promise<boolean> {
-    const pending = await this.prisma.dartBackfillTask.count({ where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const pending = await this.prisma.dartBackfillTask.count({ where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
     if (pending) return false;
     await this.prisma.dartSecurityState.update({ where: { securityId }, data: { backfillCompletedAt: now, lastError: null } });
     return true;
@@ -293,7 +293,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async markBackfillCompleteIfReady(now = new Date()): Promise<boolean> {
-    const remaining = await this.prisma.dartBackfillTask.count({ where: { security:{...eligibleWhere('dart-financial-statements')},fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const remaining = await this.prisma.dartBackfillTask.count({ where: { security:{...eligibleWhere('dart-financial-statements')},fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
     if (remaining) return false;
     await this.setState({ phase: 'CURRENT', backfillCompletedAt: now, phase2StartedAt: now, lastError: null });
     return true;

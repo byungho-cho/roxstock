@@ -1,3 +1,4 @@
+const CollectionBugReports=lazy(()=>import('./pages/more/CollectionBugReports').then(m=>({default:m.CollectionBugReports})));
 const InvestorTrendsPage=lazy(()=>import('./pages/investor/InvestorTrendsPage').then(m=>({default:m.InvestorTrendsPage})));
 const SecurityManagementPage=lazy(()=>import('./pages/more/SecurityManagementPage').then(m=>({default:m.SecurityManagementPage})));
 import { StockInputContext } from './pages/stocks/StockInputContext';
@@ -67,6 +68,7 @@ export function App() {
         <Route path="more" element={<MorePage />} />
         <Route path="detail/security-management" element={<SecurityManagementPage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
+        <Route path="detail/collection-monitoring/bug-reports" element={<CollectionBugReports />} />
         <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature/:stream" element={<CollectionMonitoringPage />} />
         <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />

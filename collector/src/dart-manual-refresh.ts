@@ -68,6 +68,7 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
     await publish(fiscalYear,'DISCLOSURE');
     let reports:Awaited<ReturnType<typeof provider.listPeriodicReports>>|undefined;
     for (const period of periods) {
+      if(fiscalYear<2020&&period!=='ANNUAL'){results.push({fiscalYear,period,status:'SKIPPED',code:'QUARTER_BEFORE_COLLECTION_START'});continue;}
       try {
         await publish(fiscalYear,'FINANCIALS',period);
         if(prototype&&period==='ANNUAL'&&fiscalYear===Number(getSeoulClock().dateKey.slice(0,4))){
