@@ -3,7 +3,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {kisHistoricalClose} from './kis-historical-close.js';
+import {kisHistoricalClose,verifyPeriodPriceBasis} from './kis-historical-close.js';
 import {calculatePeriod} from '@roxstock/shared/domain/period-valuation';
 import {Prisma} from '@roxstock/shared/prisma';
 const tokenDirectory=await mkdtemp(join(tmpdir(),'roxstock-price-token-test-'));
@@ -21,4 +21,15 @@ test('KIS requests original KRX period-end close and separately checks adjusted 
   sources.basis={receiptNo:'receipt',epsPriceCompatible:true,bpsPriceCompatible:true};const value=calculatePeriod(f,undefined,sources).values;assert.equal(value.per,'20');assert.equal(value.pbr,'2');
   sources.basis.epsPriceCompatible=false;sources.basis.bpsPriceCompatible=false;assert.equal(calculatePeriod(f,undefined,sources).values.pbr,null);
  }finally{for(const [i,key]of ['KIS_APP_KEY','KIS_APP_SECRET'].entries()){if(old[i]===undefined)delete process.env[key];else process.env[key]=old[i];}}
+});
+
+test('period evidence permits a common later adjustment but rejects changes, missing coverage, split flags and mismatched dates',()=>{
+ const row=(date:string,value:string)=>({stck_bsop_date:date,stck_clpr:value,prtt_rate:'0.00',mod_yn:'N',revl_issu_reas:''});
+ const raw=[row('20211230','24600'),row('20220104','25000'),row('20220110','26000')],adjusted=[row('20211230','22738'),row('20220104','23108'),row('20220110','24032')];
+ assert.ok(verifyPeriodPriceBasis(raw,adjusted,'20211230','20220110'));
+ assert.equal(verifyPeriodPriceBasis(raw,[adjusted[0]!,adjusted[1]!,row('20220110','13000')],'20211230','20220110'),undefined);
+ assert.equal(verifyPeriodPriceBasis(raw.slice(1),adjusted.slice(1),'20211230','20220110'),undefined);
+ assert.equal(verifyPeriodPriceBasis(raw,adjusted.slice(1),'20211230','20220110'),undefined);
+ assert.equal(verifyPeriodPriceBasis(raw,adjusted,'20211230','20220120'),undefined);
+ assert.equal(verifyPeriodPriceBasis([raw[0]!,{...raw[1]!,mod_yn:'Y'},raw[2]!],adjusted,'20211230','20220110'),undefined);
 });

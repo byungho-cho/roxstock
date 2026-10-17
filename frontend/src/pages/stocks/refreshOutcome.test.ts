@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {refreshOutcome} from './refreshOutcome.js';
 const result=(valuation:string,dart='SKIPPED')=>({status:'SUCCESS',tasks:{dart:{state:dart},valuation:{state:valuation}}});
-test('supplement completion distinguishes unavailable inputs from actual failures',()=>{
-  const outcome=refreshOutcome({status:'PARTIAL',refreshMode:'SUPPLEMENT',results:[...Array.from({length:5},()=>result('SUCCESS')),...Array.from({length:7},()=>result('PARTIAL'))]});
-  assert.deepEqual(outcome,{completed:5,missing:7,valuationFailed:0,disclosureFailed:0,severity:'info',title:'보완 수집 완료'});
+test('missing or failed supplements count as unsuccessful reports without double counting',()=>{
+ const outcome=refreshOutcome({status:'PARTIAL',refreshMode:'SUPPLEMENT',results:[...Array.from({length:2},()=>result('SUCCESS')),...Array.from({length:9},()=>result('PARTIAL')),result('FAILED','FAILED')]});
+ assert.equal(outcome.completed,2);assert.equal(outcome.failed,10);assert.equal(outcome.tone,'warning');
 });
-test('real valuation failures and interrupted jobs retain warning presentation',()=>{
-  assert.equal(refreshOutcome({status:'PARTIAL',refreshMode:'SUPPLEMENT',results:[result('FAILED')]}).severity,'warning');
-  assert.equal(refreshOutcome({status:'PARTIAL',terminalCode:'TIMEOUT',results:[result('SUCCESS')]}).title,'일부 처리 후 종료');
-  assert.equal(refreshOutcome({status:'FAILED',results:[result('FAILED','FAILED')]}).severity,'error');
+test('all completed reports are green; all unsuccessful reports are neutral',()=>{
+ assert.equal(refreshOutcome({status:'SUCCESS',results:[result('SUCCESS','SUCCESS')]}).tone,'success');
+ for(const state of ['PARTIAL','UNAVAILABLE','FAILED'])assert.equal(refreshOutcome({status:'PARTIAL',refreshMode:'SUPPLEMENT',results:[result(state)]}).tone,'neutral');
+ assert.equal(refreshOutcome({status:'FAILED',results:[]}).tone,'neutral');
+});
+test('full refresh includes failed disclosures; timeouts cannot show complete success',()=>{
+ assert.equal(refreshOutcome({status:'PARTIAL',results:[result('SUCCESS','FAILED')]}).failed,1);
+ assert.equal(refreshOutcome({status:'PARTIAL',terminalCode:'TIMEOUT',results:[result('SUCCESS','SUCCESS')]}).tone,'warning');
 });

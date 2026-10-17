@@ -1,3 +1,4 @@
+import {CollectionBugReports} from './CollectionBugReports';
 import {summarizeMonitorStatuses} from './monitorStatusSummary';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
@@ -365,6 +366,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
       <Box sx={{ display: 'grid', gap: '4px' }}>
         {features.map(item => <FeatureSummaryCard key={item.id} item={item} selected={selected === item.id} onOpen={() => onOpen ? onOpen(item.id) : navigate('/detail/collection-monitoring/' + item.id)} />)}
       </Box>
+      <CollectionBugReports/>
     </Box></PendingData.Provider></FailedData.Provider>;
   }
 

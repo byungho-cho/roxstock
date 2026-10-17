@@ -1,3 +1,4 @@
+import {Prisma} from '@roxstock/shared/prisma';
 import {persistentKisToken} from '@roxstock/shared/lib/kis-token-cache';
 import {collectionFetch,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
 import type {Supplemental} from '@roxstock/shared/domain/period-valuation';
@@ -12,12 +13,13 @@ async function request(path:string,init:RequestInit,fetcher:typeof fetch):Promis
  return body;
 }
 /** Original KRX close, with a separate adjusted-price comparison; never a current quote. */
-export async function kisHistoricalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch):Promise<Supplemental['price']>{
+export async function kisHistoricalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch,disclosedAt?:Date):Promise<Supplemental['price']>{
  const appkey=process.env.KIS_APP_KEY?.trim(),appsecret=process.env.KIS_APP_SECRET?.trim();
  if(!appkey||!appsecret)throw new HistoricalPriceError('KIS_PRICE_KEY_MISSING','AUTH');
  if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new HistoricalPriceError('KIS_PRICE_SYMBOL','PARSE');
  const date=(d:Date)=>d.toISOString().slice(0,10).replaceAll('-','');
- const to=date(end),from=date(new Date(end.getTime()-7*86400000));
+ const periodEnd=date(end),to=date(disclosedAt??end),from=date(new Date(end.getTime()-7*86400000));
+ if(disclosedAt&&(disclosedAt<end||disclosedAt.getTime()-end.getTime()>150*86400000))throw new HistoricalPriceError('KIS_PRICE_DISCLOSURE_WINDOW','NO_DATA');
  if(to>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-',''))throw new HistoricalPriceError('KIS_PRICE_FUTURE_PERIOD','NO_DATA');
  const access=await persistentKisToken({appKey:appkey,appSecret:appsecret,origin,issue:async()=>{
   const body=await request('/oauth2/tokenP',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey,appsecret})},fetcher);
@@ -31,9 +33,35 @@ export async function kisHistoricalClose(symbol:string,end:Date,fetcher:typeof f
   if(body.output1?.stck_shrn_iscd!==symbol||!Array.isArray(body.output2))throw new HistoricalPriceError('KIS_PRICE_SYMBOL_OR_SCHEMA','PARSE');
   const valid=body.output2.filter((r:any)=>/^\d{8}$/.test(r.stck_bsop_date??'')&&r.stck_bsop_date>=from&&r.stck_bsop_date<=to&&/^\d+$/.test(r.stck_clpr??'')&&BigInt(r.stck_clpr)>0n).sort((a:any,b:any)=>b.stck_bsop_date.localeCompare(a.stck_bsop_date));
   if(!valid.length)throw new HistoricalPriceError('KIS_PRICE_NO_DATA','NO_DATA');
-  if(new Set(valid.map((r:any)=>r.stck_bsop_date)).size!==valid.length)throw new HistoricalPriceError('KIS_PRICE_DUPLICATE_DATE','PARSE');rows.push(valid[0]);
+  if(new Set(valid.map((r:any)=>r.stck_bsop_date)).size!==valid.length)throw new HistoricalPriceError('KIS_PRICE_DUPLICATE_DATE','PARSE');rows.push(valid);
  }
- const [raw,adjusted]=rows;
- const compatible=raw.stck_bsop_date===adjusted.stck_bsop_date&&raw.stck_clpr===adjusted.stck_clpr;
- return {value:raw.stck_clpr,date:raw.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),source:'KIS_KRX_UNADJUSTED_CLOSE',collectedAt:new Date().toISOString(),shareBasis:compatible?'ORIGINAL_EQUALS_ADJUSTED':'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
+ const rawSeries=rows[0]!,adjustedSeries=rows[1]!;
+ const raw=rawSeries.find((r:any)=>r.stck_bsop_date<=periodEnd),adjusted=adjustedSeries.find((r:any)=>r.stck_bsop_date===raw?.stck_bsop_date);
+ if(!raw||!adjusted)throw new HistoricalPriceError('KIS_PRICE_PERIOD_COVERAGE','NO_DATA');
+ const compatible=raw.stck_clpr===adjusted.stck_clpr;
+ const periodBasis=disclosedAt?verifyPeriodPriceBasis(rawSeries,adjustedSeries,raw.stck_bsop_date,to):undefined;
+ return {value:raw.stck_clpr,date:raw.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),source:'KIS_KRX_UNADJUSTED_CLOSE',collectedAt:new Date().toISOString(),shareBasis:compatible?'ORIGINAL_EQUALS_ADJUSTED':'CORPORATE_ACTION_BASIS_UNCONFIRMED',...(periodBasis?{periodBasis:{...periodBasis,symbol,periodEnd:end.toISOString().slice(0,10),disclosedAt:disclosedAt!.toISOString().slice(0,10)}}:{})};
+}
+
+/** Later corporate actions may adjust the entire past series. Check only the reporting interval.
+ * An intersecting factor interval permits one won of provider rounding, not percentage drift. */
+export function verifyPeriodPriceBasis(raw:any[],adjusted:any[],start:string,end:string){
+ const originals=raw.filter(r=>r.stck_bsop_date>=start&&r.stck_bsop_date<=end).sort((a,b)=>a.stck_bsop_date.localeCompare(b.stck_bsop_date));
+ const adjustedRows=adjusted.filter(r=>r.stck_bsop_date>=start&&r.stck_bsop_date<=end);
+ if(originals.length<2||originals.length!==adjustedRows.length||originals[0]?.stck_bsop_date!==start)return undefined;
+ const byDate=new Map(adjustedRows.map(r=>[r.stck_bsop_date,r]));
+ if(byDate.size!==adjustedRows.length||new Set(originals.map(r=>r.stck_bsop_date)).size!==originals.length)return undefined;
+ const day=(s:string)=>Date.parse(s.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'));
+ if(day(end)-day(originals.at(-1)!.stck_bsop_date)>7*86400000)return undefined;
+ let lower=new Prisma.Decimal(0),upper=new Prisma.Decimal('1e20');
+ for(let i=0;i<originals.length;i++){
+  const r=originals[i]!,a=byDate.get(r.stck_bsop_date);
+  if(!a||!/^\d+$/.test(r.stck_clpr??'')||!/^\d+$/.test(a.stck_clpr??'')||BigInt(r.stck_clpr)<=0n||BigInt(a.stck_clpr)<=0n)return undefined;
+  if(r.mod_yn!=='N'||!/^0(?:\.0+)?$/.test(r.prtt_rate??'')||r.revl_issu_reas?.trim())return undefined;
+  if(i&&day(r.stck_bsop_date)-day(originals[i-1]!.stck_bsop_date)>10*86400000)return undefined;
+  const price=new Prisma.Decimal(r.stck_clpr),adjustedPrice=new Prisma.Decimal(a.stck_clpr);
+  lower=Prisma.Decimal.max(lower,adjustedPrice.minus(1).div(price));upper=Prisma.Decimal.min(upper,adjustedPrice.plus(1).div(price));
+  if(lower.gt(upper))return undefined;
+ }
+ return {method:'KIS_CONSTANT_ADJUSTMENT_FACTOR_NO_SPLIT_TO_DISCLOSURE',from:start.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),through:originals.at(-1)!.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),observations:originals.length,verifiedAt:new Date().toISOString()};
 }

@@ -196,6 +196,7 @@ model CollectorRun {
   items         CollectorRunItem[]
 
   @@index([jobType, startedAt])
+  @@index([finishedAt, id], map: "collector_runs_finished_scan_idx")
   @@map("collector_runs")
 }
 
@@ -756,6 +757,7 @@ model PeriodValuation {
   security Security @relation(fields:[securityId],references:[id],onDelete:Restrict,onUpdate:Cascade)
   @@id([securityId,fiscalYear,periodType])
   @@index([status,nextAttemptAt])
+  @@index([updatedAt,securityId,fiscalYear,periodType], map: "period_valuations_updated_scan_idx")
   @@map("period_valuations")
 }
 
@@ -825,4 +827,41 @@ model AnalysisReadCache {
   payload Json
   generatedAt DateTime @default(now()) @map("generated_at") @db.DateTime(3)
   @@map("analysis_read_cache")
+}
+
+model CollectionBugReport {
+ id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+ fingerprint String @unique @db.Char(64)
+ feature String @db.VarChar(100)
+ code String @db.VarChar(80)
+ severity String @db.VarChar(16)
+ summary String @db.VarChar(300)
+ state String @default("OPEN") @db.VarChar(16)
+ occurrences Int @default(0) @db.UnsignedInt
+ firstSeenAt DateTime @map("first_seen_at") @db.DateTime(3)
+ lastSeenAt DateTime @map("last_seen_at") @db.DateTime(3)
+ reviewNote String? @map("review_note") @db.VarChar(1000)
+ resolvedAt DateTime? @map("resolved_at") @db.DateTime(3)
+ events CollectionBugOccurrence[]
+ @@index([state,lastSeenAt,id])
+ @@map("collection_bug_reports")
+}
+model CollectionBugOccurrence {
+ eventKey String @id @map("event_key") @db.Char(64)
+ reportId BigInt? @map("report_id") @db.UnsignedBigInt
+ observedAt DateTime @map("observed_at") @db.DateTime(3)
+ securityId BigInt? @map("security_id") @db.UnsignedBigInt
+ symbol String? @db.VarChar(20)
+ fiscalYear Int? @map("fiscal_year") @db.UnsignedSmallInt
+ periodType String? @map("period_type") @db.VarChar(10)
+ runId BigInt? @map("run_id") @db.UnsignedBigInt
+ metric String? @db.VarChar(20)
+ report CollectionBugReport? @relation(fields:[reportId],references:[id],onDelete:SetNull)
+ @@index([reportId,observedAt])
+ @@map("collection_bug_occurrences")
+}
+model CollectionBugScanState {
+ key String @id @db.VarChar(40)
+ scannedAt DateTime @map("scanned_at") @db.DateTime(3)
+ @@map("collection_bug_scan_state")
 }

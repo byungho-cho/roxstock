@@ -1,0 +1,2 @@
+CREATE INDEX collector_runs_finished_scan_idx ON collector_runs(finished_at,id);
+CREATE INDEX period_valuations_updated_scan_idx ON period_valuations(updated_at,security_id,fiscal_year,period_type);

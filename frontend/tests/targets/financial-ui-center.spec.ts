@@ -4,7 +4,7 @@ import {swipeStock} from './financial-chart-gestures';
 test('center boundaries clamp 2015 and 2026, preserve stock and quarter selection',async({page},info)=>{
  const s=await setup(page);await page.goto('/detail/value?view=chart&selected=1&centerYear=2015');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2016');await expect(page.getByRole('button',{name:'이전 연도 2015'})).toBeDisabled();await page.getByRole('button',{name:'다음 연도 2017'}).click();await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2017');
  await page.goto('/detail/value?view=chart&selected=1&centerYear=2026');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');await expect(page.getByRole('button',{name:'다음 연도 2026'})).toBeDisabled();await swipeStock(page,true);await expect(page.getByRole('heading',{level:1})).toContainText('종목2');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');
- await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('시작기간').selectOption('2025:4');await swipeStock(page,false);await expect(page.getByRole('heading',{level:1})).toContainText('종목1');await expect(page.getByLabel('시작기간')).toHaveValue('2025:4');expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('quarter-header.png')});
+ await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('재무지표 중앙분기').click();await page.getByRole('option',{name:'2026 1Q',exact:true}).click();await swipeStock(page,false);await expect(page.getByRole('heading',{level:1})).toContainText('종목1');await expect(page.getByLabel('재무지표 중앙분기')).toHaveText('2026 1Q');expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('quarter-header.png')});
 });
 for(const mode of ['annual','quarter'])test(`full ${mode} chart reads all periods and restores both backs`,async({page},info)=>{
  const s=await setup(page);await page.goto(`/detail/value?view=chart&selected=1&mode=${mode}`);
@@ -16,9 +16,9 @@ for(const mode of ['annual','quarter'])test(`full ${mode} chart reads all period
 test('server discovers running job with cleared session and enables after completion',async({page},info)=>{
  const s=await setup(page);let finished=false;
  await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:finished?null:{requestId:'99',state:'PROCESSING'}}}));
- await page.goto('/detail/value?view=chart&selected=1');await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('button',{name:/갱신 중/})).toBeDisabled();
+ await page.goto('/detail/value?view=chart&selected=1');await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.evaluate(()=>sessionStorage.clear());await page.reload();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();
- finished=true;s.finished=true;await expect(dialog.getByRole('button',{name:/수동 업데이트/})).toBeEnabled({timeout:12000});expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('discovered-job.png')});
+ finished=true;s.finished=true;await expect(dialog.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled({timeout:12000});expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('discovered-job.png')});
 });
 test('full chart keeps leading missing and real zero distinct, does not fill internal gaps',async({page})=>{
  await setup(page);await page.route('**/api/value-analysis/1?**',route=>{
@@ -43,10 +43,10 @@ test('API forecast marker uses server blue state and bold and touch guide select
 test('new refresh remains visible in header after popup closes without duplicate POST',async({page})=>{
  const s=await setup(page);
  await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:s.posts&&!s.finished?{requestId:'99',state:'QUEUED'}:null}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:/수동 업데이트/}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByRole('button',{name:/갱신 중/})).toBeDisabled();await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');expect(s.posts).toBe(1);
+ await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');expect(s.posts).toBe(1);
 });
 
 test('collector provided report counts take precedence over the compatibility fallback',async({page})=>{
  await setup(page);await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:{requestId:'99',state:'FINISHED',status:'PARTIAL',fiscalYear:2024,startYear:2024,endYear:2026,period:'ALL',finishedAt:'2026-10-08T00:00:00Z',results:[],counts:{processed:12,disclosureCompleted:10,valuationCompleted:8,noDisclosure:1,disclosureFailed:1,supplementFailed:2}}}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:/수동 업데이트/}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByText('보고서 기준: 공시 확인 완료 10 · 미공시 1 · 수집 실패 1')).toBeVisible();await expect(page.getByText('가치지표 보충 완료 8 · 보충 실패/근거 부족 2')).toBeVisible();
+ await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByText('보고서 기준: 공시 확인 완료 10 · 미공시 1 · 수집 실패 1')).toBeVisible();await expect(page.getByText('성공 8건 · 실패 4건')).toBeVisible();
 });

@@ -1,3 +1,4 @@
+import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {CollectionExcluded,withCollection,eligibleWhere} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
@@ -31,7 +32,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
   const key=(r:{securityId:bigint;fiscalYear:number;periodType:string})=>String(r.securityId)+':'+r.fiscalYear+':'+r.periodType;
   const previous=new Map(metrics.map(r=>[key(r),r]));
   const pending=filings.filter(f=>{const m=previous.get(key(f)),saved=(m?.supplemental??{}) as Supplemental;
-   return ['ANNUAL','Q1','Q2','Q3'].includes(f.periodType)&&!(m?.nextAttemptAt&&m.nextAttemptAt>now)&&(!metricKeys.every(k=>(m?.values as Partial<MetricValues>|null)?.[k]!=null)||!completeShares(saved.shares,f.receiptNo)||needsDartAccounts(f,saved));
+   return ['ANNUAL','Q1','Q2','Q3'].includes(f.periodType)&&!(m?.nextAttemptAt&&m.nextAttemptAt>now)&&(!valueCompletion((m?.values??{}) as Partial<MetricValues>).complete||!completeShares(saved.shares,f.receiptNo)||needsDartAccounts(f,saved));
   });
   pending.sort((a,b)=>Number(priority.has(String(b.securityId)))-Number(priority.has(String(a.securityId)))||b.fiscalYear-a.fiscalYear||key(a).localeCompare(key(b)));
   const batch=pending.slice(0,Math.max(0,Math.min(10,200-used)));

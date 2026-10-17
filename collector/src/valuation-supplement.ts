@@ -1,3 +1,5 @@
+import {kisHistoricalClose} from './kis-historical-close.js';
+import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {withCollection,CollectionExcluded,componentExcluded} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
@@ -73,13 +75,13 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
   const verified=linked&&(evidence?.source==='OPEN_DART'||evidence?.source==='KIS_API'&&evidence.validation==='DART_BALANCE_AND_FLOW_RECONCILED'&&evidence.fiscalYear===fiscalYear&&evidence.periodType==='ANNUAL'&&annual?.matchedReceiptNo===filing.receiptNo&&annual.matchedDivision===filing.fsDivision&&annual.fiscalYear===fiscalYear&&annual.periodEnd===evidence.periodEnd&&typeof annual[base]==='string'&&oldValues?.[base]!=null&&new Prisma.Decimal(annual[base] as string).eq(oldValues[base]));
   const price=supplemental.price,basis=supplemental.basis,age=price?(filing.periodEndDate.getTime()-Date.parse(price.date))/86400000:NaN;
   const compatible=basis?.receiptNo===filing.receiptNo&&(base==='eps'?basis.epsPriceCompatible:basis.bpsPriceCompatible);
-  if(periodType==='ANNUAL'&&result.values[base]===null&&oldValues?.[base]!=null&&oldValues[ratio]==null&&verified&&price?.source==='KIS_KRX_UNADJUSTED_CLOSE'&&compatible&&age>=0&&age<=7&&new Prisma.Decimal(oldValues[base]).gt(0)&&new Prisma.Decimal(price.value).gt(0)){
+  if(periodType==='ANNUAL'&&result.values[base]===null&&oldValues?.[base]!=null&&oldValues[ratio]==null&&verified&&price?.source==='KIS_KRX_UNADJUSTED_CLOSE'&&compatible&&age>=0&&age<=7&&!new Prisma.Decimal(oldValues[base]).isZero()&&new Prisma.Decimal(price.value).gt(0)){
    result.values[ratio]=new Prisma.Decimal(price.value).div(oldValues[base]).toDecimalPlaces(4).toString();
    ratioEvidence[ratio]={...result.provenance,denominatorEvidence:evidence,denominatorValue:oldValues[base]};
   }
  }
  const values=preserveValues(existing?.values,result.values),reasons=Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null));
- const status=metricKeys.every(k=>values[k]!==null)?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
+ const status=valueCompletion(values).complete?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
  const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:ratioEvidence[k]??result.provenance]));
  const data={status,values:values as Prisma.InputJsonValue,provenance:{...result.provenance,perMetric} as Prisma.InputJsonValue,reasons:reasons as Prisma.InputJsonValue,supplemental:supplemental as Prisma.InputJsonValue,attempts:(existing?.attempts??0)+1,nextAttemptAt:status==='SUCCESS'||!options.load?null:new Date(Date.now()+86400000)};
  if(!options.dryRun){
@@ -126,9 +128,15 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   try{if(!price){price=await historicalClose(symbol,f.periodEndDate,options.fetcher??fetch,market,mode);}}catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;const failure=error instanceof HistoricalPriceError?error:new HistoricalPriceError('HISTORICAL_PRICE_COMMUNICATION','COMMUNICATION');const descriptions={AUTH:'과거 종가 API 인증 오류',PERMISSION:'과거 종가 API 서비스 활용 권한 오류',PARSE:'과거 종가 응답 해석 오류',COMMUNICATION:'과거 종가 API 통신 오류',RATE_LIMIT:'과거 종가 API 호출 제한',PROVIDER:'과거 종가 공급자 응답 오류',NO_DATA:'해당 기간·종목의 과거 종가 조회 결과 없음',INTERNAL_LIMIT:'검증되지 않은 종목에 대한 내부 적용 제한'};errors.price=descriptions[failure.category];errors.priceCode=failure.code;errors.priceCategory=failure.category; if(failure.providerCode)errors.priceProviderCode=failure.providerCode;console.warn(JSON.stringify({event:'historical_price_failure',securityId:f.securityId.toString(),symbol,fiscalYear:f.fiscalYear,period:f.periodType,code:failure.code,category:failure.category,providerCode:failure.providerCode}));}
   let basis=saved.basis;
   if(price?.source==='KIS_KRX_UNADJUSTED_CLOSE'){
-   const exactShares=shares?.receiptNo===f.receiptNo,compatible=price.shareBasis==='ORIGINAL_EQUALS_ADJUSTED';
+   const samePeriodEvidence=(p:NonNullable<Supplemental['price']>)=>p.periodBasis?.symbol===normalizeProviderSymbol(symbol)&&p.periodBasis.periodEnd===f.periodEndDate.toISOString().slice(0,10)&&p.periodBasis.disclosedAt===f.receiptDate.toISOString().slice(0,10)&&p.periodBasis.from===p.date&&p.periodBasis.method==='KIS_CONSTANT_ADJUSTMENT_FACTOR_NO_SPLIT_TO_DISCLOSURE';
+   if(price.shareBasis!=='ORIGINAL_EQUALS_ADJUSTED'&&!samePeriodEvidence(price)){
+    try{const verified=await kisHistoricalClose(normalizeProviderSymbol(symbol),f.periodEndDate,options.fetcher??fetch,f.receiptDate);
+     if(verified?.value===price.value&&verified.date===price.date&&samePeriodEvidence(verified))price=verified;
+    }catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;errors.basis=error instanceof HistoricalPriceError?error.code:'PERIOD_SHARE_BASIS_VERIFICATION_FAILED';}
+   }
+   const exactShares=shares?.receiptNo===f.receiptNo,compatible=price.shareBasis==='ORIGINAL_EQUALS_ADJUSTED'||samePeriodEvidence(price);
    const ordinaryEps=accounts?.sources.basicEps?.ordinaryEpsVerified===true||/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
-   basis={epsPriceCompatible:compatible&&exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:compatible&&exactShares&&bookValueShares(shares,f.receiptNo)!==null,source:'KIS_ORIGINAL_ADJUSTED_CLOSE_COMPARISON_WITH_EXACT_DART_SHARES',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:compatible?'ORIGINAL_EQUALS_ADJUSTED_EXACT_RECEIPT_REQUIRED':'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
+   basis={epsPriceCompatible:compatible&&exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:compatible&&exactShares&&bookValueShares(shares,f.receiptNo)!==null,source:samePeriodEvidence(price)?'KIS_PERIOD_END_TO_DISCLOSURE_FACTOR_WITH_EXACT_DART_SHARES':'KIS_ORIGINAL_ADJUSTED_CLOSE_COMPARISON_WITH_EXACT_DART_SHARES',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:compatible?'ORIGINAL_EQUALS_ADJUSTED_EXACT_RECEIPT_REQUIRED':'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
   }
   if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo)){
    try{

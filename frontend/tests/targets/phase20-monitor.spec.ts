@@ -20,9 +20,9 @@ const boxes=async(page:Page)=>page.locator('[data-testid^="monitor-"]:not([data-
 test('summary slow first load keeps all cards, labels and geometry',async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto('/detail/collection-monitoring');
  await expect(page.getByTestId('monitor-summary')).toContainText('전체 상태');for(const id of ids)await expect(page.getByTestId(`monitor-feature-${id}`)).toBeAttached();
- await expect(page.getByTestId('monitor-summary')).not.toContainText('정상');await expect(page.locator('main')).not.toContainText('0건');await expect(page.getByRole('button',{name:'통계 새로고침'}).first()).toBeVisible();
+ await expect(page.getByTestId('monitor-summary')).not.toContainText('정상');await expect(page.locator('main')).not.toContainText('0건');await expect(page.getByTestId('monitor-summary').getByRole('button')).toHaveCount(0);
  await expect(page.locator('[data-loading-indicator="visible"]').first()).toBeVisible();const before=await boxes(page);await capture(page,'loading',info.project.name);
- f.release();await expect(page.getByTestId('monitor-summary')).toContainText('정상');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,'ready',info.project.name);
+ f.release();await expect(page.getByTestId('monitor-summary')).toContainText('완료 6건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,'ready',info.project.name);
 });
 for(const id of ids)test(`${id}: independent slow data preserves detail card sizes`,async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto(`/detail/collection-monitoring/${id}`);
@@ -59,3 +59,14 @@ test('APK name and original URL from settings entry paths',async({page})=>{
  await page.goto('/more');await page.getByTestId('bottom-menu-scroll').getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('link',{name:'APK 다운로드',exact:true})).toHaveAttribute('href',url);
 });
 
+
+test('bug report review, resolve and deletion are available below the collector list',async({page})=>{
+ await setup(page);let state='OPEN',deleted=false;
+ const report=()=>({id:'900',feature:'dart-financial-statements',code:'PERIOD_EPS_MISSING',severity:'WARNING',summary:'EPS 보완 미완료',state,occurrences:4,firstSeenAt:at,lastSeenAt:at,reviewNote:null});
+ await page.route('**/api/collection/bug-reports**',async route=>{
+  if(route.request().method()==='PATCH'){state=route.request().postDataJSON().state;return route.fulfill({json:{data:report()}});}
+  if(route.request().method()==='DELETE'){deleted=true;return route.fulfill({json:{data:{deleted:true}}});}
+  return route.fulfill({json:{data:new URL(route.request().url()).pathname.endsWith('/900')?{...report(),events:[{eventKey:'test',observedAt:at,securityName:'테스트종목',symbol:'005930',fiscalYear:2021,periodType:'ANNUAL'}]}:{rows:deleted?[]:[report()],hasNext:false}}});
+ });
+ await page.goto('/detail/collection-monitoring');const panel=page.getByTestId('collection-bug-reports');await panel.scrollIntoViewIfNeeded();await panel.getByRole('button').filter({hasText:'EPS 보완 미완료'}).click();const dialog=page.getByRole('dialog');await expect(dialog).toContainText('테스트종목');await dialog.getByLabel('검토 메모').fill('계산 근거 확인');await dialog.getByRole('button',{name:'검토 중',exact:true}).click();await expect(dialog).toContainText('상태: 검토 중');await dialog.getByRole('button',{name:'해결 완료',exact:true}).click();await dialog.getByRole('button',{name:'리포트 삭제',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(panel).toContainText('해당 조건의 리포트가 없습니다.');
+});

@@ -1,0 +1,1 @@
+export const negativeRatioWarning=(key:'per'|'pbr')=>key==='per'?'PER = 해당 기간 말 종가 ÷ 해당 기간 EPS\nEPS가 음수인 적자 기간이므로 PER도 음수입니다.\n음수 PER은 일반적인 저평가·고평가 비교에 적합하지 않습니다. 수집 실패가 아닙니다.':'PBR = 해당 기간 말 종가 ÷ 해당 기간 BPS\nBPS가 음수인 자본잠식 상태이므로 PBR도 음수입니다.\n음수 PBR은 일반적인 저평가·고평가 비교에 적합하지 않습니다. 수집 실패가 아닙니다.';
