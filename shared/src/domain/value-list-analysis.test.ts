@@ -89,3 +89,8 @@ test('reconciled fiscal KIS gaps participate in RIM only with the exact original
  b.row.supplemental.kisAnnual.fiscalYear=2024;assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
  b.row.supplemental.kisAnnual.fiscalYear=2025;b.metric.bps=null as any;assert.equal(shareholderTotals(b.metric,b.row,[b.f]).shareholderValue,null);
 });
+
+test('combined-class reference BPS remains visible but cannot produce RIM prices or totals',()=>{
+ const b=basis();b.row.provenance.bpsReferenceOnly=true;b.row.provenance.bpsBasis='OWNERS_EQUITY_DIV_ALL_OUTSTANDING_REFERENCE';b.row.supplemental.shares.preferred=true;
+ const r=selectValueListAnalysis(input([b.row],[b.f]));assert.equal(r.metric?.bps,'100');assert.equal(r.metric?.rimCompatible,false);assert.equal(r.targetPrice,null);assert.equal(r.shareholderValue,null);
+});

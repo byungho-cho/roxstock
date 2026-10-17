@@ -30,3 +30,21 @@ test('missing accounts are supplemented independently; source errors cannot eras
  const result=await loadPeriodSupplement(provider,'005930','00126380',db,'KOSPI')(f,saved);
  assert.equal(financialCalls,1);assert.equal(shareCalls,1);assert.deepEqual(result.price,saved.price);assert.equal(result.shares?.outstanding,'10');assert.equal(result.errors?.accounts,'ACCOUNTS_COMMUNICATION');
 });
+
+test('a dated reconciled KIS EPS can fill PER; mismatched fiscal receipt cannot',async()=>{
+ const f:any={securityId:1n,normalizationVersion:3,fiscalYear:2024,periodType:'ANNUAL',fsDivision:'OFS',receiptNo:'receipt',receiptDate:new Date('2025-03-01'),periodEndDate:new Date('2024-12-31'),netIncomeYtd:d(20),totalEquity:d(220),accountSources:{}};
+ const evidence={source:'KIS_API',fiscalYear:2024,periodType:'ANNUAL',receiptNo:'receipt',fsDivision:'OFS',periodEnd:'2024-12-31',validation:'DART_BALANCE_AND_FLOW_RECONCILED'};
+ let saved:any={status:'PARTIAL',values:{eps:'10',bps:'22',per:null,pbr:null,roe:'10'},provenance:{perMetric:{eps:evidence}},supplemental:{price:{value:'100',date:'2024-12-30',source:'KIS_KRX_UNADJUSTED_CLOSE'},basis:{receiptNo:'receipt',epsPriceCompatible:true,bpsPriceCompatible:true},kisAnnual:{fiscalYear:2024,periodEnd:'2024-12-31',matchedReceiptNo:'receipt',matchedDivision:'OFS',eps:'10.00'}}};
+ let db:any;db={$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db),security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'008420',collectionExcluded:false,excludedFeatures:[],collectionRevision:0})},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===2024?f:null},periodValuation:{findUnique:async()=>saved,upsert:async(q:any)=>(saved={...saved,...q.update})}};
+ let result:any=await supplementStoredPeriod(db,1n,2024,'ANNUAL',{dryRun:true});assert.equal(result.values.per,'10');assert.equal(result.provenance.perMetric.per.denominatorEvidence.source,'KIS_API');
+ saved.provenance.perMetric.eps={...evidence,receiptNo:'wrong'};result=await supplementStoredPeriod(db,1n,2024,'ANNUAL',{dryRun:true});assert.equal(result.values.per,null);
+ saved.provenance.perMetric.eps=evidence;saved.supplemental.basis.epsPriceCompatible=false;result=await supplementStoredPeriod(db,1n,2024,'ANNUAL',{dryRun:true});assert.equal(result.values.per,null);
+});
+
+test('same-filing capital supplements and missing previous capital are used in ROE without rewriting filings',async()=>{
+ const f:any={securityId:1n,normalizationVersion:3,fiscalYear:2018,periodType:'ANNUAL',fsDivision:'OFS',receiptNo:'current',receiptDate:new Date('2019-06-18'),periodEndDate:new Date('2018-12-31'),netIncomeYtd:null,totalEquity:null,accountSources:{}};
+ const previous={...f,fiscalYear:2017,receiptNo:'previous',periodEndDate:new Date('2017-12-31')};let previousSaved=false;
+ let db:any;db={$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db),security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'008420',collectionExcluded:false,excludedFeatures:[],collectionRevision:0})},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===2018?f:previous},periodValuation:{findUnique:async()=>null,upsert:async(q:any)=>{if(q.create.fiscalYear===2017)previousSaved=true;return q.create;}}};
+ const result:any=await supplementStoredPeriod(db,1n,2018,'ANNUAL',{load:async(filing,saved,sharesOnly,accountsOnly)=>{if(filing!.fiscalYear===2017)assert.equal(accountsOnly,true);return {accounts:{receiptNo:filing!.receiptNo,fsDivision:'OFS',collectedAt:new Date().toISOString(),sources:{totalEquity:{amount:filing!.fiscalYear===2017?'100':'200'},netIncome:{amount:'15'}}}};}});
+ assert.equal(result.values.roe,'10');assert.equal(previousSaved,true);assert.equal(f.totalEquity,null);assert.equal(previous.totalEquity,null);
+});

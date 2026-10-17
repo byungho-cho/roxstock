@@ -7,7 +7,9 @@ export function valueCompletion(values:Partial<MetricValues>) {
  return {complete:metricKeys.every(k=>values[k]!=null||k in notApplicable),notApplicable};
 }
 export function periodCollectionState(computed:{status:string;supplemental?:unknown;values:unknown}|undefined,financialComplete:boolean):CollectionState {
- const saved=computed?.supplemental as {manualAttempt?:{state?:CollectionState}}|null;
+ const saved=computed?.supplemental as {manualAttempt?:{state?:CollectionState;startedAt?:string;finishedAt?:string};automaticAttempt?:{state?:CollectionState;at?:string}}|null;
+ const manualAt=Date.parse(saved?.manualAttempt?.finishedAt??saved?.manualAttempt?.startedAt??'')||0;
+ if(saved?.automaticAttempt?.state&&(Date.parse(saved.automaticAttempt.at??'')||0)>manualAt)return saved.automaticAttempt.state;
  if(saved?.manualAttempt?.state)return saved.manualAttempt.state;
  if(computed?.status==='FAILED')return 'FINAL_FAILED';
  if(financialComplete&&computed?.status==='SUCCESS')return 'COMPLETE';

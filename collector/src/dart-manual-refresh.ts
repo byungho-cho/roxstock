@@ -66,7 +66,7 @@ export async function processManualRefresh(db: PrismaClient, config: DartCollect
     for (const period of periods) {
       try {
         await publish(fiscalYear,'FINANCIALS',period);
-        if(prototype&&period==='ANNUAL'&&fiscalYear>=2021){
+        if(prototype&&period==='ANNUAL'&&fiscalYear===Number(getSeoulClock().dateKey.slice(0,4))){
           await publish(fiscalYear,'VALUATION',period);
           results.push(await refreshManualAnnual(db,{...security,dartCorpMapping:mapping},fiscalYear,provider,naver,repo,run.id));continue;
         }

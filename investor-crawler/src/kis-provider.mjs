@@ -1,3 +1,4 @@
+import {persistentKisToken} from '../../shared/dist/lib/kis-token-cache.js';
 import {ProviderError,numeric,dateKey} from './provider.mjs';
 
 const origin='https://openapi.koreainvestment.com:9443';
@@ -11,9 +12,9 @@ function signedPriceChange(value,sign){
 }
 /** Read-only KRX investor endpoint. Credentials never enter URLs, observations or errors. */
 export class KisInvestorProvider{
- constructor({appKey=process.env.KIS_APP_KEY,appSecret=process.env.KIS_APP_SECRET,fetcher=fetch,accessToken=null,expiresAt=0}={}){
+ constructor({appKey=process.env.KIS_APP_KEY,appSecret=process.env.KIS_APP_SECRET,fetcher=fetch,accessToken=null,expiresAt=0,tokenCacheDirectory}={}){
   this.appKey=appKey?.trim();this.appSecret=appSecret?.trim();this.fetcher=fetcher;
-  this.token=accessToken;this.expiresAt=expiresAt;this.pending=null;
+  this.tokenCacheDirectory=tokenCacheDirectory;this.token=accessToken;this.expiresAt=expiresAt;this.pending=null;
  }
  async json(path,options){
   let response,body;
@@ -28,10 +29,11 @@ export class KisInvestorProvider{
  async authenticate(){
   if(!this.appKey||!this.appSecret)throw new ProviderError('KIS_CREDENTIALS_MISSING');
   if(this.token&&this.expiresAt>Date.now()+60000)return this.token;
-  if(!this.pending)this.pending=this.json('/oauth2/tokenP',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey:this.appKey,appsecret:this.appSecret})}).then(body=>{
+  if(!this.pending)this.pending=persistentKisToken({appKey:this.appKey,appSecret:this.appSecret,origin,directory:this.tokenCacheDirectory,issue:async()=>{
+   const body=await this.json('/oauth2/tokenP',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey:this.appKey,appsecret:this.appSecret})});
    if(typeof body.access_token!=='string'||!body.access_token||!Number.isFinite(Number(body.expires_in))||Number(body.expires_in)<=60)throw new ProviderError('KIS_INVALID_TOKEN_RESPONSE');
-   this.token=body.access_token;this.expiresAt=Date.now()+Math.min(Number(body.expires_in),86400)*1000;return this.token;
-  }).finally(()=>{this.pending=null;});
+   return {token:body.access_token,expiresAt:Date.now()+Math.min(Number(body.expires_in),86400)*1000};
+  }}).then(value=>{this.token=value.token;this.expiresAt=value.expiresAt;return this.token;}).finally(()=>{this.pending=null;});
   return this.pending;
  }
  async stockFlows(symbol,selected=today(),exchangeScope='KRX'){

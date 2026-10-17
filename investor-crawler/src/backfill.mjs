@@ -101,7 +101,7 @@ export async function runInvestorBackfill({db,kis,signal,from='2020-01-01',excha
      const failures=(state.failures??0)+1;
      const retryable=['KIS_CONNECTION_FAILED','KIS_RATE_LIMIT','KIS_REQUEST_FAILED','BACKFILL_DB_OR_INTERNAL_ERROR'].includes(code);
      const next={...state,failures,state:retryable&&failures<3?'PENDING':'BLOCKED',lastError:code,retryAfter:retryable&&failures>=3?new Date(Date.now()+3600000).toISOString():null};
-     await db.collectorRunItem.update({where:{id:item.id},data:{status:'FAILED',message:code,diagnostics:next}});item.diagnostics=next;
+     await db.collectorRunItem.update({where:{id:item.id},data:{status:'FAILED',message:code,observedAt:new Date(),diagnostics:next}});item.diagnostics=next;
      changed=retryable&&failures<3||changed;log('BACKFILL_TARGET_ERROR',{symbol:item.symbol,code});
     }
    }

@@ -1,3 +1,4 @@
+import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {manualLimits,expireManualRun,manualJson as json,manualPeriods as allPeriods,type ManualTaskState,type ManualTaskResult} from '@roxstock/shared/collection/manual-requests';
 export {manualLimits,expireManualRun,type ManualTaskState,type ManualTaskResult} from '@roxstock/shared/collection/manual-requests';
 import {withCollection,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
@@ -94,22 +95,23 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      return {state:'SUCCESS' as const};
     },m),
     valuation:async()=>withCollection(scopedDb,security.id,'valuation',async()=>{
-     if(period==='ANNUAL'&&year>=2021){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':valuation.valuationStatus==='PARTIAL'?'PARTIAL':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
-     const metric=await supplementStoredPeriod(scopedDb,security.id,year,period,{load:loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'MANUAL_PROTOTYPE',{dartRequests:false,fetcher:manualFetch})});
+     if(period==='ANNUAL'&&year===currentYear){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':valuation.valuationStatus==='PARTIAL'?'PARTIAL':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
+     const metric=await supplementStoredPeriod(scopedDb,security.id,year,period,{load:loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'MANUAL_PROTOTYPE',{fetcher:manualFetch})});
      return {state:metric?.status==='SUCCESS'?'SUCCESS':metric?.status==='PARTIAL'?'PARTIAL':'UNAVAILABLE',code:metric?.status==='SUCCESS'?undefined:'VALUATION_BASE_MISSING'};
     },m),
    },{signal,milliseconds:Math.max(1,Math.min(manualLimits.taskMs,deadline-Date.now())),onState:async(source,result)=>{
     m.progress!.tasks![source]=result;await publish();
-    if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':'NAVER_AND_STORED_DATA',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
+    if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':year===currentYear?'ANNUAL_CONSENSUS':'DART_AND_PERIOD_END_PRICE',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
    }});
    const saved=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
    const stored=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
-   const financialComplete=Boolean(stored&&[stored.revenueYtd,stored.operatingProfitYtd,stored.netIncomeYtd,stored.totalAssets,stored.totalLiabilities,stored.totalEquity].every(v=>v!=null));
+   const displayStored=stored&&saved?supplementedFilings([stored],[saved])[0]:stored;
+   const financialComplete=Boolean(displayStored&&[displayStored.revenueYtd,displayStored.operatingProfitYtd,displayStored.netIncomeYtd,displayStored.totalAssets,displayStored.totalLiabilities,displayStored.totalEquity].every(v=>v!=null));
    if(saved&&period==='ANNUAL'&&tasks.valuation.state!=='SKIPPED'){
     const supplemental=(saved.supplemental??{}) as Record<string,unknown>,attempt=(supplemental.manualAttempt??{}) as Record<string,unknown>;
     const complete=valueCompletion(saved.values as Partial<MetricValues>).complete;
     const state=year===currentYear?complete?'ESTIMATE_READY':attempt.state:financialComplete&&complete?'COMPLETE':financialComplete?'FINANCIAL_ONLY':'FINAL_FAILED';
-    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks}})}}),m);
+    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks,finishedAt:new Date().toISOString()}})}}),m);
    }
    results.push({...valuation,fiscalYear:year,period,status:tasks.dart.code==='COLLECTION_EXCLUDED'&&tasks.valuation.state==='SKIPPED'?'SKIPPED':tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
    m.progress.completed=results.length;m.progress.stage='REPORT_DONE';await publish();

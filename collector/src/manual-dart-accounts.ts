@@ -1,5 +1,5 @@
 import { normalizeDartFinancialRows, type DartFinancialRow } from './dart-provider.js';
-/** Manual-only aliases: exact account names and statement divisions, never substring matching. */
+/** Shared supplemental aliases for automatic and manual collection: exact account names and statement divisions, never substring matching. */
 export function normalizeManualDartAccounts(rows:DartFinancialRow[]) {
  const normalized=normalizeDartFinancialRows(rows);
  const aliases:Record<string,{statements:string[];names:string[]}>= {

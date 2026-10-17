@@ -19,3 +19,20 @@ test('stored filings use separately collected exact-receipt accounts without alt
  const result=calculatePeriod(f,undefined,inputs);assert.equal(result.values.per,'10');assert.equal(result.values.pbr,'5');assert.deepEqual(f.accountSources,{});
  assert.equal(calculatePeriod(f,undefined,{...inputs,accounts:{...inputs.accounts,receiptNo:'different'}}).values.eps,null);
 });
+
+test('preferred companies have an explicitly combined-class reference BPS only with a reconciled share total',()=>{
+ const current=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'10'},parentEquity:{amount:'200'}}});
+ const row=(stockKind:string,shareClass:string,count:string)=>({stockKind,shareClass,outstandingShares:count,issuedShares:count,treasuryShares:'0',periodEndDate:'2025-12-31'});
+ const shares={receiptNo:current.receiptNo,outstanding:'10',preferred:true,rows:[row('보통주','COMMON','10'),row('우선주','PREFERRED','10'),row('합계','TOTAL','20')]};
+ const sources={shares,price:{value:'100',date:'2025-12-30',source:'KIS_KRX_UNADJUSTED_CLOSE'},basis:{receiptNo:current.receiptNo,epsPriceCompatible:true,bpsPriceCompatible:true,source:'TEST',verifiedAt:new Date().toISOString()}};
+ const result=calculatePeriod(current,undefined,sources);assert.equal(result.values.bps,'10');assert.equal(result.values.pbr,'10');assert.equal(result.provenance.bpsReferenceOnly,true);assert.equal(result.provenance.bpsBasis,'OWNERS_EQUITY_DIV_ALL_OUTSTANDING_REFERENCE');
+ const broken=structuredClone(sources);broken.shares.rows[2].outstandingShares='21';assert.equal(calculatePeriod(current,undefined,broken).values.bps,null);
+});
+
+test('negative EPS and negative equity yield signed ratios; zero denominators remain unavailable',()=>{
+ const sources={shares:{outstanding:'10',preferred:false,receiptNo:'20260301000001'},price:{value:'100',date:'2025-12-30',source:'FSC'}};
+ const f=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'-10'},parentEquity:{amount:'-200'}}});
+ const result=calculatePeriod(f,undefined,sources);assert.equal(result.values.per,'-10');assert.equal(result.values.pbr,'-5');
+ const zero=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'0'},parentEquity:{amount:'0'}}});
+ assert.equal(calculatePeriod(zero,undefined,sources).values.per,null);assert.equal(calculatePeriod(zero,undefined,sources).values.pbr,null);
+});

@@ -15,9 +15,12 @@ services:
       - ../../backend/.env.production
     environment:
       TZ: Asia/Seoul
+      KIS_TOKEN_CACHE_DIR: /var/lib/roxstock/kis-tokens
       INVESTOR_START_DATE: '2026-10-16'
       INVESTOR_REQUEST_DELAY_MS: 2000
       INVESTOR_COLLECTION_HOURS: ${INVESTOR_COLLECTION_HOURS:-18,21}
+    volumes:
+      - kis-token-cache:/var/lib/roxstock/kis-tokens
     networks:
       - db
     healthcheck:
@@ -30,3 +33,7 @@ networks:
   db:
     external: true
     name: ${DB_NETWORK:-roxstock-db_default}
+
+volumes:
+  kis-token-cache:
+    name: roxstock-kis-token-cache

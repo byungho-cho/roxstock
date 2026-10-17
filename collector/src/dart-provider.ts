@@ -191,7 +191,7 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
   ];
   for (const rule of rules) {
     const source = rows.find((row) => rule.statement.includes(row.statementDivision)
-      && (rule.accountIds.includes(row.accountId) || (!row.accountId && rule.accountNames.includes(row.accountName))));
+      && (rule.accountIds.some(id=>row.accountId===id||row.accountId===id.replace('ifrs-full_','ifrs_')) || (!row.accountId && rule.accountNames.includes(row.accountName))));
     if (!source) continue;
     const value = numericText(source[rule.amount])
       ?? (rule.amount === 'currentYtdAmount' && source.reportCode === '11011' ? numericText(source.currentAmount) : null);
@@ -211,6 +211,11 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
   ] as const) {
     const row=rows.find(r=>(r.statementDivision===statement||(statement==='IS'&&r.statementDivision==='CIS'))&&(r.accountId===id||r.accountId===id.replace('ifrs-full_','ifrs_')));
     if(row)result.accountSources[field]={statementDivision:row.statementDivision,accountId:row.accountId,accountName:row.accountName,amount:numericText(row.currentAmount),ytdAmount:numericText(row.currentYtdAmount)};
+  }
+  const epsRows=rows.filter(r=>['IS','CIS'].includes(r.statementDivision)&&['ifrs-full_BasicEarningsLossPerShare','ifrs_BasicEarningsLossPerShare'].includes(r.accountId));
+  if(result.accountSources.basicEps){
+   const unique=new Set(epsRows.map(r=>JSON.stringify([numericText(r.currentAmount),numericText(r.currentYtdAmount)])));
+   result.accountSources.basicEps.ordinaryEpsVerified=epsRows.length>0&&unique.size===1&&!epsRows.some(r=>/우선|preferred/i.test(r.accountName));
   }
   return result;
 };

@@ -1,3 +1,4 @@
+import {collectionBugReportRoutes} from './routes/collection-bug-reports.js';
 import {readFile} from 'node:fs/promises';
 import release from './release.json' with { type: 'json' };
 import {investorTrendRoutes} from './routes/investor-trends.js';
@@ -97,6 +98,7 @@ export function buildApp() {
   void app.register(cashRoutes, { prefix: '/api' });
   void app.register(cashMutationRoutes, { prefix: '/api' });
   void app.register(collectionStatusRoutes, { prefix: '/api' });
+  void app.register(collectionBugReportRoutes, { prefix: '/api' });
   void app.register(internalPriceRoutes);
 
   return app;

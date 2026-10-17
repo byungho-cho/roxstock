@@ -24,5 +24,6 @@ COPY shared/package.json shared/package.json
 RUN npm ci --workspace collector --workspace shared --include-workspace-root --omit=dev && npm cache clean --force
 COPY --from=build /app/collector/dist collector/dist
 COPY --from=build /app/shared/dist shared/dist
+RUN mkdir -p /var/lib/roxstock/kis-tokens && chown node:node /var/lib/roxstock/kis-tokens && chmod 700 /var/lib/roxstock/kis-tokens
 USER node
 CMD ["node", "collector/dist/worker.js", "daemon"]

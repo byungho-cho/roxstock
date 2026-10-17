@@ -70,6 +70,9 @@ jobs:
       - name: Phase21 independent cursor pagination (real MariaDB API)
         run: node --import tsx --test backend/tests/monitoring-pages.integration.ts
 
+      - name: Collection bug report persistence and review lifecycle (real MariaDB API)
+        run: node --import tsx --test backend/tests/collection-bug-reports.integration.ts
+
       - name: Account classification and trade consistency (real MariaDB API)
         run: node --import tsx --test backend/tests/account-classification.integration.ts
 

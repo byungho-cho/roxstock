@@ -1,3 +1,4 @@
+import {startCollectionBugReporter} from './domain/collection-bug-reports.js';
 import 'dotenv/config';
 
 import { buildApp } from './app.js';
@@ -11,6 +12,8 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 }
 
 const app = buildApp();
+let stopReports:(()=>Promise<void>)|undefined;
+app.addHook('onClose',async()=>{await stopReports?.();});
 
 async function shutdown(signal: string) {
   app.log.info({ signal }, 'Shutting down server');
@@ -23,6 +26,7 @@ process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
 try {
   await app.listen({ host, port });
+  stopReports=startCollectionBugReporter(prisma,()=>app.log.error({code:'BUG_REPORT_SCAN_FAILED'},'오류 리포트 기록 실패; 다음 주기에 재시도합니다.'));
 } catch (error) {
   app.log.error(error);
   await prisma.$disconnect();

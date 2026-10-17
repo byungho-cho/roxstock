@@ -9,7 +9,7 @@ type Input=Parameters<typeof selectStoredAnalysis>[0];
 export function shareholderTotals(metric:StoredValuation|null,row:PeriodValuation|undefined,filings:DartFinancialFiling[]){
  const unavailable=(reason:string)=>({excessEarnings:null,shareholderValue:null,rimReason:reason,rimBasis:null,rimComparison:null});
  if(!metric||!row)return unavailable('RIM 계산에 사용한 기간별 원천 근거가 없습니다.');
- if(metric.rimCompatible===false)return unavailable('기존 RIM 가격의 자기자본·ROE 기준이 확인되지 않았습니다.');
+ if(metric.rimCompatible===false){const evidence=obj(metric.provenance);return unavailable(evidence.bpsReferenceOnly===true||obj(obj(evidence.perMetric).bps).bpsReferenceOnly===true?'BPS는 보통주·우선주 합산 유통주식수 기준 참고값이므로 보통주 적정주가·RIM 계산에는 사용하지 않습니다.':'기존 RIM 가격의 자기자본·ROE 기준이 확인되지 않았습니다.');}
  const p=obj(row.provenance),per=obj(p.perMetric),bpsEvidence=obj(per.bps??p),roeEvidence=obj(per.roe??p);
  // A same-provider annual estimate proves parent equity + annual ROE without inventing a BPS denominator.
  // Totals do not require shares. The per-share reconciliation stays null until that independent input is known.
@@ -61,7 +61,7 @@ export function selectValueListAnalysis(input:Input){
  if(priority!==3){
   const rawValues=obj(chosen?.values),p=obj(chosen?.provenance),source=obj(obj(chosen?.supplemental).manualSource);
   const values=Object.fromEntries(['eps','bps','roe','per','pbr'].map(key=>{const v=dec(rawValues[key]),e=obj(obj(p.perMetric)[key]??p);const valid=v!==null&&(!source.division||p.fsDivision===source.division)&&(!e.fsDivision||e.fsDivision===(source.division??p.fsDivision))&&(!e.division||e.division===(source.division??p.fsDivision))&&(!e.kind||e.kind===(priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL'))&&(!e.periodType||e.periodType===(priority===1?'ESTIMATE':'ANNUAL')||(priority===1&&e.periodType==='ANNUAL'&&e.kind==='ANNUAL_ESTIMATE'))&&(!e.flow||['ANNUAL','FULL_YEAR','FULL_YEAR_ESTIMATE'].includes(e.flow))&&(!e.periodEnd||e.periodEnd===`${basisYear}-12-31`)&&(!e.fiscalYear||e.fiscalYear===basisYear)&&(!source.values||obj(source.values)[key]==null||v.eq(obj(source.values)[key]));return [key,valid?v.toString():null];}));
-  metric=chosen?{...selected.metric,kind:priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',fiscalYear:basisYear,periodType:priority===1?'ESTIMATE':'ANNUAL',provenance:chosen.provenance,metricDate:p.periodEnd??`${basisYear}-12-31`,eps:values.eps??null,bps:values.bps??null,per:values.per??null,pbr:values.pbr??null,roe:values.roe??null,rimCompatible:p.fsDivision==='OFS'?(!obj(obj(p.perMetric).roe).roeBasis||obj(obj(p.perMetric).roe).roeBasis==='TOTAL_SAME_DIVISION'):(obj(obj(p.perMetric).roe).roeBasis??p.roeBasis)==='OWNERS_OF_PARENT'}:selected.metric;
+  metric=chosen?{...selected.metric,kind:priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',fiscalYear:basisYear,periodType:priority===1?'ESTIMATE':'ANNUAL',provenance:chosen.provenance,metricDate:p.periodEnd??`${basisYear}-12-31`,eps:values.eps??null,bps:values.bps??null,per:values.per??null,pbr:values.pbr??null,roe:values.roe??null,rimCompatible:obj(obj(p.perMetric).bps).bpsReferenceOnly===true||p.bpsReferenceOnly===true?false:p.fsDivision==='OFS'?(!obj(obj(p.perMetric).roe).roeBasis||obj(obj(p.perMetric).roe).roeBasis==='TOTAL_SAME_DIVISION'):(obj(obj(p.perMetric).roe).roeBasis??p.roeBasis)==='OWNERS_OF_PARENT'}:selected.metric;
  }
  const totals=shareholderTotals(metric,chosen,filings as DartFinancialFiling[]);
  const supplement=obj(chosen?.supplemental),estimateSource=obj(supplement.manualSource),estimateFinancials=obj(supplement.estimateFinancials);
