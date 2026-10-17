@@ -84,7 +84,7 @@ export async function manualTrace(db:PrismaClient,run:CollectorRun){
  const active=lease&&lease.lockedUntil.getTime()>Date.now()&&Date.now()-lease.updatedAt.getTime()<120_000;
  if(m.manualState==='QUEUED'&&active){
    const ownerId=leaseOwnerId(lease.ownerToken);
-   const ownerRun=await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',OR:[{metadata:{path:'$.ownerId',equals:ownerId}},{metadata:{path:'$.lockOwner',equals:lease.ownerToken}}]},orderBy:{startedAt:'desc'}});
+   const ownerRun=await db.collectorRun.findFirst({where:{jobType:{in:['dart-financial-statements','VALUATION_SUPPLEMENT']},status:'RUNNING',OR:[{metadata:{path:'$.ownerId',equals:ownerId}},{metadata:{path:'$.lockOwner',equals:lease.ownerToken}}]},orderBy:{startedAt:'desc'}});
    relatedRunId=ownerRun?.id.toString();
    waitReason=ownerRun?( (ownerRun.metadata as {phase?:string}).phase==='MANUAL'?'PREVIOUS_REQUEST':'AUTOMATIC'):'LOCK';
  }

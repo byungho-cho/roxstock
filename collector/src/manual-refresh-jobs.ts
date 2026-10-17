@@ -39,7 +39,7 @@ export async function runIndependentPeriod(tasks:{dart:()=>Promise<ManualTaskRes
  const [dart,valuation]=await Promise.all([execute('dart'),execute('valuation')]);return {dart,valuation};
 }
 
-export async function processIndependentRefresh(db:PrismaClient,config:DartCollectorConfig,run:CollectorRun){
+export async function processIndependentRefresh(db:PrismaClient,config:Pick<DartCollectorConfig,'enabled'|'apiKey'|'dailyCallLimit'|'minDelayMs'>,run:CollectorRun){
  db=collectionClient(db);
  if(await boundedManualJob(()=>expireManualRun(db,run),10_000))return true;
  const owner=randomUUID(),repo=new PrismaDartRepository(db);

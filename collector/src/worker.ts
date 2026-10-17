@@ -1,3 +1,4 @@
+import {processManualRefresh} from './dart-manual-refresh.js';
 import {warmValueCaches} from '@roxstock/shared/read-model/value-cache';
 import {runIndependentSupplement} from './independent-valuation-supplement.js';
 import 'dotenv/config';
@@ -125,7 +126,7 @@ const daemon = async (): Promise<void> => {
   void tick();
   const timer = setInterval(() => void tick(), config.schedulerTickSeconds * 1000);
   let supplementRunning=false;
-  const supplementTick=async()=>{if(supplementRunning)return;supplementRunning=true;try{const result=await runIndependentSupplement(prisma,{windowStartHour:config.dartWindowStartHour,windowEndHour:config.dartWindowEndHour,apiKey:process.env.DART_API_KEY,dailyCallLimit:config.dartDailyCallLimit,minDelayMs:config.dartMinDelayMs});if(!['IDLE','LOCKED','OUTSIDE_WINDOW','DISABLED','QUOTA_BLOCKED'].includes(result.status))log('info','independent valuation supplement finished',result);}catch{log('error','independent valuation supplement failed',{code:'SUPPLEMENT_INTERNAL_ERROR'});}finally{supplementRunning=false;}};
+  const supplementTick=async()=>{if(supplementRunning)return;supplementRunning=true;try{const result=await runIndependentSupplement(prisma,{windowStartHour:config.dartWindowStartHour,windowEndHour:config.dartWindowEndHour,apiKey:process.env.DART_API_KEY,dailyCallLimit:config.dartDailyCallLimit,minDelayMs:config.dartMinDelayMs},new Date(),{serviceManual:async()=>{const state=await prisma.dartCollectorState.findUnique({where:{id:1}});return processManualRefresh(prisma,{enabled:config.dartEnabled,apiKey:process.env.DART_API_KEY??'',dailyCallLimit:state?.backfillCompletedAt?config.dartDailyCallLimit:config.dartBackfillDailyCallLimit,minDelayMs:state?.backfillCompletedAt?config.dartMinDelayMs:config.dartBackfillMinDelayMs});}});if(!['IDLE','LOCKED','OUTSIDE_WINDOW','DISABLED','QUOTA_BLOCKED'].includes(result.status))log('info','independent valuation supplement finished',result);}catch{log('error','independent valuation supplement failed',{code:'SUPPLEMENT_INTERNAL_ERROR'});}finally{supplementRunning=false;}};
   void supplementTick();const supplementTimer=setInterval(()=>void supplementTick(),60000);
   const stop = async () => { shutdown.abort(); clearInterval(timer); clearInterval(supplementTimer); while(ticking || supplementRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
   process.on('SIGTERM', () => void stop());

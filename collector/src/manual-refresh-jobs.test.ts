@@ -80,3 +80,10 @@ test('manual supplementation requests missing DART shares even when financial st
  OpenDartProvider.prototype.fetchPeriodShares=async(corp,requestedYear,report,receipt)=>{calls++;assert.equal(requestedYear,year);assert.equal(receipt,'20260301000001');return shares;};
  try{await processIndependentRefresh(f.db,config,f.run);assert.equal(calls,1);assert.equal(f.record().values.per,'10');assert.equal(f.record().values.pbr,'1');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).results?.[0]?.tasks?.dart.state,'SKIPPED');assert.equal(f.filingWrites(),0);}finally{PrismaDartRepository.prototype.acquireLock=old.acquire;OpenDartProvider.prototype.fetchPeriodShares=old.shares;}
 });
+test('a transaction already waiting for a late response cannot commit after its budget expires',async()=>{
+ let release:()=>void=()=>{},commits=0;const pending=new Promise<void>(resolve=>{release=resolve;});
+ const db=checkedManualDb({$transaction:async(fn:(tx:object)=>Promise<unknown>)=>{const result=await fn({});commits++;return result;}});
+ let late:Promise<unknown>|undefined;
+ await assert.rejects(boundedManualJob(()=>{late=db.$transaction(async()=>{await pending;return 'late result';});return late;},10));
+ release();await assert.rejects(late!);assert.equal(commits,0);
+});
