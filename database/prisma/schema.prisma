@@ -214,6 +214,8 @@ model CollectorRunItem {
   security   Security?           @relation(fields: [securityId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([runId, status])
+  @@index([status,createdAt,id], map: "collector_items_created_scan_idx")
+  @@index([status,observedAt,id], map: "collector_items_observed_scan_idx")
   @@index([securityId])
   @@map("collector_run_items")
 }

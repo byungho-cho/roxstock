@@ -44,8 +44,8 @@ export async function scanCollectionBugs(db:PrismaClient,now=new Date()){
   if(rows.length<100)break;after=rows.at(-1)!;
  }
  for(let skip=0;;skip+=100){
-  const items=await db.collectorRunItem.findMany({where:{createdAt:{gte:since,lte:now},status:'FAILED'},include:{run:{select:{jobType:true,provider:true}}},orderBy:[{createdAt:'asc'},{id:'asc'}],skip,take:100});
-  for(const item of items){const diagnostic=object(item.diagnostics);const code=safeBugCode(diagnostic.code??diagnostic.errorCode??item.message);if(await saveBugEvent(db,{sourceKey:'item:'+item.id,feature:featureOf(item.run.jobType),code,severity:'ERROR',summary:'수집 항목 처리 실패 · 원천 응답 또는 저장 처리 확인 필요',observedAt:item.createdAt,securityId:item.securityId??undefined,symbol:item.symbol,runId:item.runId}))count++;}
+  const items=await db.collectorRunItem.findMany({where:{OR:[{createdAt:{gte:since,lte:now}},{observedAt:{gte:since,lte:now}}],status:'FAILED'},include:{run:{select:{jobType:true,provider:true}}},orderBy:[{createdAt:'asc'},{id:'asc'}],skip,take:100});
+  for(const item of items){const diagnostic=object(item.diagnostics),observedAt=item.observedAt&&item.observedAt>item.createdAt?item.observedAt:item.createdAt;const code=safeBugCode(diagnostic.code??diagnostic.errorCode??item.message);if(await saveBugEvent(db,{sourceKey:'item:'+item.id+':'+observedAt.toISOString(),feature:featureOf(item.run.jobType),code,severity:'ERROR',summary:'수집 항목 처리 실패 · 원천 응답 또는 저장 처리 확인 필요',observedAt,securityId:item.securityId??undefined,symbol:item.symbol,runId:item.runId}))count++;}
   if(items.length<100)break;
  }
  for(let skip=0;;skip+=100){

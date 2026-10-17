@@ -27,6 +27,10 @@ test('report persistence, concurrency, replay, review, recurrence and resolved d
   runId=(await db.collectorRun.create({data:{jobType:feature+'-scan',provider:'TEST',status:'FAILED',finishedAt:new Date(),failureCount:1,failureReason:'https://secret.invalid?token=do-not-store'}})).id;
   await scanCollectionBugs(db);await scanCollectionBugs(db);
   const scanned=await db.collectionBugReport.findFirstOrThrow({where:{feature:feature+'-scan'}});assert.equal(scanned.occurrences,1);assert.equal(scanned.code,'COLLECTION_FAILED');assert.doesNotMatch(JSON.stringify(scanned,(_,v)=>typeof v==='bigint'?String(v):v),/secret.invalid|do-not-store/);
+  const item=await db.collectorRunItem.create({data:{runId,status:'FAILED',symbol:'005930',message:'KIS_CONNECTION_FAILED',createdAt:new Date(Date.now()-86400000),observedAt:new Date()}});
+  await scanCollectionBugs(db);let repeated=await db.collectionBugReport.findFirstOrThrow({where:{feature:feature+'-scan',code:'KIS_CONNECTION_FAILED'}});assert.equal(repeated.occurrences,1);
+  await db.collectorRunItem.update({where:{id:item.id},data:{observedAt:new Date(Date.now()+1000)}});await scanCollectionBugs(db,new Date(Date.now()+2000));repeated=await db.collectionBugReport.findUniqueOrThrow({where:{id:repeated.id}});assert.equal(repeated.occurrences,2);
+
  }finally{
   const reports=await db.collectionBugReport.findMany({where:{feature:{startsWith:feature}},select:{id:true}});
   await db.collectionBugOccurrence.deleteMany({where:{OR:[{reportId:{in:reports.map(r=>r.id)}},{eventKey:{in:[event.sourceKey,event.sourceKey+':recurrence',event.sourceKey+':new'].map(key=>createHash('sha256').update(key).digest('hex'))}}]}});
