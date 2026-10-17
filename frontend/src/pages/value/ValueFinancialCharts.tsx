@@ -64,6 +64,7 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
   const reasons=[...new Set(Object.values(row.metricReasons??{}))];
   const availability=row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':null;
   if(availability)reasons.unshift(availability);
+  if(row.metricProvenance?.bpsReferenceOnly)reasons.push('BPS·PBR: 보통주·우선주 합산 유통주식수 기준 참고 계산입니다. 보통주 전용 자본 배분값이 아니며 적정주가·RIM에는 사용하지 않습니다.');
   if(row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION')reasons.push('ROE: 전체 연결/별도 자본 기준');
   if(row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM')reasons.push('누적 실적 연환산(TTM 아님)');
   if(row.metricProvenance?.fsDivision)reasons.push('재무제표 기준: '+row.metricProvenance.fsDivision);

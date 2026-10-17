@@ -1,0 +1,39 @@
+import {persistentKisToken} from '@roxstock/shared/lib/kis-token-cache';
+import {collectionFetch,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
+import type {Supplemental} from '@roxstock/shared/domain/period-valuation';
+import {HistoricalPriceError} from './historical-price-error.js';
+const origin='https://openapi.koreainvestment.com:9443';
+let lastRequest=0;
+async function request(path:string,init:RequestInit,fetcher:typeof fetch):Promise<any>{
+ const at=Math.max(Date.now(),lastRequest+2000);lastRequest=at;const wait=at-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
+ let response:Response;try{response=await collectionFetch(fetcher,'market-prices')(origin+path,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});}catch(error){if(error instanceof CollectionExcluded)throw error;throw new HistoricalPriceError('KIS_PRICE_COMMUNICATION','COMMUNICATION');}
+ let body:any;try{body=await response.json();}catch{throw new HistoricalPriceError('KIS_PRICE_PARSE','PARSE');}
+ if(!response.ok||body.error_code||body.rt_cd!=null&&body.rt_cd!=='0')throw new HistoricalPriceError(response.status===429?'KIS_PRICE_RATE_LIMIT':'KIS_PRICE_PROVIDER',response.status===429?'RATE_LIMIT':response.status===401||response.status===403?'AUTH':'PROVIDER');
+ return body;
+}
+/** Original KRX close, with a separate adjusted-price comparison; never a current quote. */
+export async function kisHistoricalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch):Promise<Supplemental['price']>{
+ const appkey=process.env.KIS_APP_KEY?.trim(),appsecret=process.env.KIS_APP_SECRET?.trim();
+ if(!appkey||!appsecret)throw new HistoricalPriceError('KIS_PRICE_KEY_MISSING','AUTH');
+ if(!/^[A-Z0-9]{6}$/.test(symbol)||symbol.startsWith('Z99'))throw new HistoricalPriceError('KIS_PRICE_SYMBOL','PARSE');
+ const date=(d:Date)=>d.toISOString().slice(0,10).replaceAll('-','');
+ const to=date(end),from=date(new Date(end.getTime()-7*86400000));
+ if(to>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-',''))throw new HistoricalPriceError('KIS_PRICE_FUTURE_PERIOD','NO_DATA');
+ const access=await persistentKisToken({appKey:appkey,appSecret:appsecret,origin,issue:async()=>{
+  const body=await request('/oauth2/tokenP',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey,appsecret})},fetcher);
+  if(typeof body.access_token!=='string'||!body.access_token||!Number.isFinite(Number(body.expires_in))||Number(body.expires_in)<=60)throw new HistoricalPriceError('KIS_PRICE_TOKEN_PARSE','PARSE');
+  return {token:body.access_token,expiresAt:Date.now()+Math.min(86400,Number(body.expires_in))*1000};
+ }});
+ const rows=[];
+ for(const adjusted of ['1','0']){
+  const params=new URLSearchParams({FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:symbol,FID_INPUT_DATE_1:from,FID_INPUT_DATE_2:to,FID_PERIOD_DIV_CODE:'D',FID_ORG_ADJ_PRC:adjusted});
+  const body=await request('/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?'+params,{headers:{authorization:'Bearer '+access.token,appkey,appsecret,tr_id:'FHKST03010100',custtype:'P'}},fetcher);
+  if(body.output1?.stck_shrn_iscd!==symbol||!Array.isArray(body.output2))throw new HistoricalPriceError('KIS_PRICE_SYMBOL_OR_SCHEMA','PARSE');
+  const valid=body.output2.filter((r:any)=>/^\d{8}$/.test(r.stck_bsop_date??'')&&r.stck_bsop_date>=from&&r.stck_bsop_date<=to&&/^\d+$/.test(r.stck_clpr??'')&&BigInt(r.stck_clpr)>0n).sort((a:any,b:any)=>b.stck_bsop_date.localeCompare(a.stck_bsop_date));
+  if(!valid.length)throw new HistoricalPriceError('KIS_PRICE_NO_DATA','NO_DATA');
+  if(new Set(valid.map((r:any)=>r.stck_bsop_date)).size!==valid.length)throw new HistoricalPriceError('KIS_PRICE_DUPLICATE_DATE','PARSE');rows.push(valid[0]);
+ }
+ const [raw,adjusted]=rows;
+ const compatible=raw.stck_bsop_date===adjusted.stck_bsop_date&&raw.stck_clpr===adjusted.stck_clpr;
+ return {value:raw.stck_clpr,date:raw.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),source:'KIS_KRX_UNADJUSTED_CLOSE',collectedAt:new Date().toISOString(),shareBasis:compatible?'ORIGINAL_EQUALS_ADJUSTED':'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
+}

@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('src/generated', 'dist/generated', {recursive:true})\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/domain/*.test.ts src/collection/*.test.ts",
+    "test": "node --import tsx --test src/domain/*.test.ts src/collection/*.test.ts src/lib/kis-token-cache.test.ts",
     "prisma:generate": "prisma generate --schema ../database/prisma/schema.prisma && npm run build",
     "prisma:validate": "prisma validate --schema ../database/prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma"

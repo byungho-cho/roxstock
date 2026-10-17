@@ -1,3 +1,4 @@
+import {refreshOutcome} from './refreshOutcome';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
 import {ActionButton} from '../../components/common/Common';
@@ -62,13 +63,11 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const reportCount=period==='ALL'?4:1;
   const completedYears=Array.from({length:endYear-startYear+1},(_,i)=>startYear+i).filter(y=>(status.data?.results??[]).filter(r=>(r.fiscalYear??status.data?.fiscalYear)===y).length===reportCount);
   const stageText:Record<string,string>={DISCLOSURE:'공시 확인 중',FINANCIALS:'재무제표 수집 중',VALUATION:'가치지표 보충 중',REPORT_DONE:'처리 중'};
-  const taskLabels:Record<string,string>={QUEUED:'대기',RUNNING:'중',SUCCESS:'완료',PARTIAL:'부분 완료',FAILED:'실패',NO_DATA:'미공시',UNAVAILABLE:'보완 불가',SKIPPED:'요청 없음'};
+  const taskLabels:Record<string,string>={QUEUED:'대기',RUNNING:'중',SUCCESS:'완료',PARTIAL:'일부 자료 부족',FAILED:'실패',NO_DATA:'미공시',UNAVAILABLE:'자료 미제공',SKIPPED:'요청 없음'};
   const taskText=progress?.tasks?`DART 수집 ${taskLabels[progress.tasks.dart.state]??progress.tasks.dart.state} · 가치지표 보완 ${taskLabels[progress.tasks.valuation.state]??progress.tasks.valuation.state}`:null;
   const progressText=taskText??([...completedYears.map(y=>`${y}년 처리 완료`),...(progress&&!completedYears.includes(progress.currentYear)?[`${progress.currentYear}년 ${progress.currentPeriod?labels[progress.currentPeriod]+' ':''}${stageText[progress.stage]??'처리 중'}`]:[])].join(' · ')||'서버 처리 대기 중');
   const completed=finished?.counts?.disclosureCompleted??finished?.results.filter(r=>r.status==='SUCCESS').length??0,noData=finished?.counts?.noDisclosure??finished?.results.filter(r=>r.status==='NO_DATA').length??0,failed=finished?.counts?.disclosureFailed??finished?.results.filter(r=>r.status==='FAILED').length??0;
-  const supplemented=finished?.counts?.valuationCompleted??finished?.results.filter(r=>r.status==='SUCCESS'&&r.valuationStatus==='SUCCESS').length??0;
-  const incomplete=finished?.counts?.supplementFailed??completed-supplemented;
-  const outcome=finished?.status==='FAILED'?'실패':finished?.status==='SKIPPED'?'미공시':finished?.status==='PARTIAL'||failed||noData||incomplete?'부분 완료':'완료';
+  const outcome=finished?refreshOutcome(finished):null;
   return <Stack spacing={1.5} data-testid="financial-refresh-form">
     <Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:1}}>
       <FormSelect size="small" label="시작연도" value={String(startYear)} onChange={v=>setStartYear(Number(v))} options={years} disabled={busy}/>
@@ -85,17 +84,18 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     {active.isError&&<QueryErrorNotice message="진행 작업 확인에 실패했습니다. 서버 상태를 다시 확인해 주세요." onRetry={()=>void active.refetch().then(result=>{if(!result.isError)setUncertain(false);})}/>}
     {status.isError&&<QueryErrorNotice message="진행 상태 조회에 실패했습니다. 작업 종료 여부를 다시 확인해 주세요." onRetry={()=>void status.refetch()}/>}
     {finished?.terminalCode&&<Alert severity="warning">시간 제한으로 작업이 종료되었습니다. 기존 데이터는 유지했습니다.</Alert>}
-    {finished&&<Alert severity={outcome==='실패'?'error':outcome==='완료'?'success':'warning'}>
-      <Typography sx={{fontSize:12}}>{finished.startYear??finished.fiscalYear}–{finished.endYear??finished.fiscalYear}년 · {outcome}</Typography>
-      <Typography sx={{fontSize:11}}>보고서 기준: 공시 확인 완료 {completed} · 미공시 {noData} · 수집 실패 {failed}</Typography>
-      <Typography sx={{fontSize:11}}>가치지표 보충 완료 {supplemented} · 보충 실패/근거 부족 {incomplete}</Typography>
+    {finished&&outcome&&<Alert severity={outcome.severity}>
+      <Typography sx={{fontSize:12}}>{finished.startYear??finished.fiscalYear}–{finished.endYear??finished.fiscalYear}년 · {outcome.title}</Typography>
+      {finished.refreshMode==='SUPPLEMENT'?<Typography sx={{fontSize:11}}>기존 재무제표 유지 · 보완자료만 수집</Typography>:<Typography sx={{fontSize:11}}>보고서 기준: 공시 확인 완료 {completed} · 미공시 {noData} · 수집 실패 {failed}</Typography>}
+      <Typography sx={{fontSize:11}}>보고서 기준: 지표 보완 완료 {outcome.completed} · 일부 자료 부족 {outcome.missing} · 보완 수집 실패 {outcome.valuationFailed}</Typography>
+      {outcome.missing>0&&<Typography sx={{fontSize:11}}>일부 기간은 계산 근거가 부족해 빈 항목이 남아 있습니다. 기존 값은 유지했습니다.</Typography>}
       <Box component="details" sx={{mt:1,fontSize:11}}><Box component="summary" sx={{cursor:'pointer'}}>상세 내용</Box>
-        {finished.results.map((r,i)=><Box key={i} sx={{mt:1}}>{r.fiscalYear??finished.fiscalYear}년 {labels[r.period]}: {r.tasks?`재무제표 ${r.tasks.dart.state==='SKIPPED'?'요청 없음':taskLabels[r.tasks.dart.state]??r.tasks.dart.state} / 가치지표 보완 ${taskLabels[r.tasks.valuation.state]??r.tasks.valuation.state}`:r.status==='SUCCESS'?'공시 확인 완료 · '+(r.valuationStatus==='SUCCESS'?'가치지표 보충 완료':'가치지표 보충 미완료'):r.status==='NO_DATA'?'미공시 · 기존 데이터 유지':errorText(r.code)}{r.tasks?.dart.state==='FAILED'&&<Typography sx={{fontSize:11}}>기존 재무제표는 유지했습니다.</Typography>}
+        {finished.results.map((r,i)=><Box key={i} sx={{mt:1}}>{r.fiscalYear??finished.fiscalYear}년 {labels[r.period]}: {r.tasks?`재무제표 ${r.tasks.dart.state==='SKIPPED'?'기존 자료 유지':taskLabels[r.tasks.dart.state]??r.tasks.dart.state} / 가치지표 보완 ${taskLabels[r.tasks.valuation.state]??r.tasks.valuation.state}`:r.status==='SUCCESS'?'공시 확인 완료 · '+(r.valuationStatus==='SUCCESS'?'가치지표 보충 완료':'가치지표 보충 미완료'):r.status==='NO_DATA'?'미공시 · 기존 데이터 유지':errorText(r.code)}{r.tasks?.dart.state==='FAILED'&&<Typography sx={{fontSize:11}}>기존 재무제표는 유지했습니다.</Typography>}
           {[...new Set([...Object.values(r.valuationReasons??{}),...Object.values(r.valuationErrors??{}).map(code=>errorText(code))])].map(reason=><Typography key={reason} sx={{fontSize:11}}>{reason}</Typography>)}
         </Box>)}
       </Box>
     </Alert>}
-    <HistoryDialog open={chooseMode} onClose={()=>setChooseMode(false)} fullWidth maxWidth="xs"><DialogTitle sx={{fontSize:15}}>갱신 방식을 선택해 주세요.</DialogTitle><DialogContent><Typography sx={{fontSize:12}}>기존 재무제표를 유지하고 누락된 가치지표만 보완할 수 있습니다.</Typography></DialogContent><DialogActions sx={{flexWrap:'wrap',gap:.5}}><Button onClick={()=>setChooseMode(false)}>취소</Button><Button onClick={()=>submit('SUPPLEMENT')}>보완자료만 수집</Button><Button onClick={()=>submit('FULL')}>전체 갱신</Button></DialogActions></HistoryDialog>
+    <HistoryDialog open={chooseMode} onClose={()=>setChooseMode(false)} fullWidth maxWidth="xs"><DialogTitle sx={{fontSize:15}}>갱신 방식을 선택해 주세요.</DialogTitle><DialogContent><Typography sx={{fontSize:12}}>기존 재무제표를 유지하고 누락된 가치지표만 보완할 수 있습니다.</Typography></DialogContent><DialogActions sx={{p:2,display:'grid',gridTemplateColumns:'0.7fr 1fr 1.4fr',gap:'8px','& > :not(style) ~ :not(style)':{ml:0},'&& .MuiButton-root':{height:36,minHeight:36,maxHeight:36,minWidth:0,px:'8px',py:0,fontSize:12,whiteSpace:'nowrap'}}}><ActionButton size="small" tone="muted" onClick={()=>setChooseMode(false)}>취소</ActionButton><ActionButton size="small" tone="danger" onClick={()=>submit('FULL')}>전체 갱신</ActionButton><ActionButton size="small" tone="primary" onClick={()=>submit('SUPPLEMENT')}>보완자료만 수집</ActionButton></DialogActions></HistoryDialog>
     <Snackbar open={Boolean(toast)} autoHideDuration={6000} onClose={()=>setToast('')} message={toast}/>
   </Stack>;
 }

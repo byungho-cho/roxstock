@@ -169,3 +169,15 @@ test('corporation errors, empty lists and malformed responses are never successf
  const api=new OpenDartProvider({apiKey:'fixture',dailyCallLimit:10,minDelayMs:1,reserveCall:async()=>true,fetchFn:async()=>new Response(new Uint8Array([80,75,0,0]))});
  await assert.rejects(api.fetchCorporations(),DartApiError);
 });
+
+test('legacy ifrs accounts retain exact identity and populate annual financial totals',()=>{
+ const row=(accountId:string,currentAmount:string,statementDivision='BS'):DartFinancialRow=>({receiptNo:'20190618000154',fiscalYear:2018,reportCode:'11011',corpCode:'00123456',statementDivision,accountId,accountName:'공시 계정',currentAmount,currentYtdAmount:null,currency:'KRW'});
+ const result=normalizeDartFinancialRows([row('ifrs_Revenue','100','CIS'),row('ifrs_ProfitLoss','-5','CIS'),row('ifrs_Equity','200'),row('ifrs_Assets','300'),row('ifrs_Liabilities','100'),row('other_Revenue','999','CIS')]);
+ assert.equal(result.revenueYtd,'100');assert.equal(result.netIncomeYtd,'-5');assert.equal(result.totalEquity,'200');assert.equal(result.totalAssets,'300');assert.equal(result.totalLiabilities,'100');assert.equal(result.accountSources.totalEquity.accountId,'ifrs_Equity');
+});
+
+test('unambiguous IFRS basic EPS identifies ordinary earnings; conflicting classes are never guessed',()=>{
+ const row=(amount:string,name='기본주당순이익(손실)'):DartFinancialRow=>({receiptNo:'20200330003962',fiscalYear:2019,reportCode:'11011',corpCode:'00149655',statementDivision:'CIS',accountId:'ifrs-full_BasicEarningsLossPerShare',accountName:name,currentAmount:amount,currentYtdAmount:null,currency:'KRW'});
+ assert.equal(normalizeDartFinancialRows([row('6366')]).accountSources.basicEps.ordinaryEpsVerified,true);
+ assert.equal(normalizeDartFinancialRows([row('6366'),row('6400','우선주 기본주당이익')]).accountSources.basicEps.ordinaryEpsVerified,false);
+});

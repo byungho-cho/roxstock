@@ -1,3 +1,4 @@
+import {kisHistoricalClose} from './kis-historical-close.js';
 import {collectionFetch,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
 import { normalizeProviderSymbol } from '@roxstock/shared/domain/security-symbol';
 import type { Supplemental } from '@roxstock/shared/domain/period-valuation';
@@ -11,6 +12,16 @@ function providerError(code:string):HistoricalPriceError {
 }
 /** Exact ordinary-share symbol and period-end window; no live-price fallback. */
 export async function historicalClose(symbol:string,end:Date,fetcher:typeof fetch=fetch,market?:string,mode:'AUTOMATIC'|'MANUAL_PROTOTYPE'='AUTOMATIC'):Promise<Supplemental['price']> {
+ if(process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){
+  try{return await kisHistoricalClose(normalizeProviderSymbol(symbol),end,fetcher);}catch(error){
+   if(error instanceof CollectionExcluded)throw error;
+   if(!process.env.KRX_API_KEY?.trim()&&!process.env.DATA_GO_KR_STOCK_PRICE_KEY?.trim()&&!process.env.DATA_GO_KR_SERVICE_KEY?.trim())throw error;
+   try{return await legacyHistoricalClose(symbol,end,fetcher,market,mode);}catch{throw error;}
+  }
+ }
+ return legacyHistoricalClose(symbol,end,fetcher,market,mode);
+}
+async function legacyHistoricalClose(symbol:string,end:Date,fetcher:typeof fetch,market?:string,mode:'AUTOMATIC'|'MANUAL_PROTOTYPE'='AUTOMATIC'):Promise<Supplemental['price']> {
  if(process.env.KRX_API_KEY?.trim()){
   const allowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim());
   const manualValidated=mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(normalizeProviderSymbol(symbol));

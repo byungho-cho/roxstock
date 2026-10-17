@@ -1,3 +1,4 @@
+import {summarizeMonitorStatuses} from './monitorStatusSummary';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
 import '../dashboard/home-font.css';
@@ -92,30 +93,15 @@ function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: 
   </Button>;
 }
 
-function SummaryStatus({ features, generatedAt, refreshing, onRefresh }: { features: Feature[]; generatedAt: string; refreshing: boolean; onRefresh: () => void }) {
-  const pending = useContext(PendingData);
-  const limited=features.filter(item=>item.id==='investor-trends'&&item.status==='PARTIAL'&&!item.recent.failed).length;
-  const failed = features.filter((item) => item.status === 'FAILED' || (item.status === 'PARTIAL'&&!(item.id==='investor-trends'&&!item.recent.failed))).length;
-  const delayed = features.filter((item) => item.status === 'DELAYED').length;
-  const unavailable = features.filter((item) => !['OK', 'SUCCESS', 'RUNNING', 'FAILED', 'PARTIAL', 'DELAYED'].includes(item.status)).length;
-  const needsAttention = failed + delayed + unavailable + limited;
-  const badge = needsAttention ? {
-    label: `확인 필요 ${needsAttention}`, background: '#FAB83B', foreground: '#050A12',
-  } : { label: '정상', background: '#3D8CF5', foreground: '#050A12' };
-  return <Box data-testid="monitor-summary" sx={{ ...cardSx, mx: 0, mt: 0, mb: '7px', px: '12px', py: '12px', minHeight: 74, position: 'relative', boxSizing: 'border-box', borderRadius: '8px', '& > p:first-of-type': { mt: '3px' }, '& > p:last-of-type': { mt: '2px' } }}>
-    <Stack direction="row" spacing={0.5} sx={{ minHeight: 20, alignItems: 'center' }}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>전체 상태</Typography>
-      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', px: 1.5, width: 82, height: 19, borderRadius: '999px', bgcolor: pending ? 'transparent' : badge.background, color: badge.foreground, fontSize: 10, fontWeight: 600 }}><DataValue width={60}>{badge.label}</DataValue></Box>
-
-    </Stack>
-    <Typography sx={{ color: !pending && needsAttention ? '#FAB83B' : '#7A8CA8', fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      오류 <DataValue width={15}>{failed}</DataValue> · 지연 <DataValue width={15}>{delayed}</DataValue><DataValue>{unavailable > 0 ? ` · 미설정/미구현/미수집 ${unavailable}` : ''}</DataValue>
-      {limited>0&&<DataValue>{` · 자료 제한 ${limited}`}</DataValue>}
-    </Typography>
-    <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-      통계 갱신 <DataValue width={130}>{dateText(generatedAt)}</DataValue>
-      <Box component="span" sx={{position:'absolute',right:10,bottom:0}}><ManualRefresh refreshing={refreshing} onClick={onRefresh}/></Box>
-    </Typography>
+function SummaryStatus({ features, generatedAt }: { features: Feature[]; generatedAt: string }) {
+  const counts=summarizeMonitorStatuses(features);
+  const groups=[{label:'완료',count:counts.completed,color:'#3D8CF5'},{label:'오류',count:counts.failed,color:'#F26A6F'},{label:'경고',count:counts.warning,color:'#FAB83B'},{label:'대기',count:counts.waiting,color:'#7A8CA8'},{label:'진행 중',count:counts.running,color:'#34D399'}];
+  return <Box data-testid="monitor-summary" sx={{ ...cardSx, mb:'7px', p:'12px' }}>
+    <Typography sx={{color:'#F2F7FC',fontSize:12,fontWeight:600}}>전체 상태</Typography>
+    <Box sx={{display:'flex',flexWrap:'wrap',gap:'4px 12px',mt:'6px'}}>
+      {groups.map(group=><Typography key={group.label} sx={{color:group.color,fontSize:11,lineHeight:'16px'}}>{group.label} <DataValue width={20}>{group.count}건</DataValue></Typography>)}
+    </Box>
+    <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px',mt:'4px'}}>통계 갱신 <DataValue width={130}>{dateText(generatedAt)}</DataValue></Typography>
   </Box>;
 }
 
@@ -375,7 +361,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     
     return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box sx={{ pb: '80px' }}>
       <QueryNotice error={summary.isError} retry={() => { void summary.refetch(); }} />
-      <SummaryStatus features={features} generatedAt={generatedAt} refreshing={summary.isFetching} onRefresh={() => { void summary.refetch(); }} />
+      <SummaryStatus features={features} generatedAt={generatedAt} />
       <Box sx={{ display: 'grid', gap: '4px' }}>
         {features.map(item => <FeatureSummaryCard key={item.id} item={item} selected={selected === item.id} onOpen={() => onOpen ? onOpen(item.id) : navigate('/detail/collection-monitoring/' + item.id)} />)}
       </Box>

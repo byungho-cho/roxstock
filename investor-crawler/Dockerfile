@@ -19,5 +19,6 @@ COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/shared shared
 COPY --from=build /app/database database
 COPY investor-crawler/src investor-crawler/src
+RUN mkdir -p /var/lib/roxstock/kis-tokens && chown node:node /var/lib/roxstock/kis-tokens && chmod 700 /var/lib/roxstock/kis-tokens
 USER node
 CMD ["node","investor-crawler/src/worker.mjs"]

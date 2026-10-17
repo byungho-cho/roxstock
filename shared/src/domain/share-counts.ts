@@ -33,3 +33,17 @@ export function latestStoredDisplayShares(rows:DartShareSnapshot[],filings:Param
  const known=filings.find(f=>f.receiptNo===latest.receiptNo);
  return displayShares(eligible,[{receiptNo:latest.receiptNo,fiscalYear:latest.fiscalYear,periodEndDate:latest.periodEndDate,receiptDate:known?.receiptDate??latest.collectedAt}],latest.fiscalYear,shareClass);
 }
+/** A combined-class book value is a reference ratio, never an ordinary-share RIM denominator. */
+export function bookValueShares(shares:PeriodShares|undefined,receiptNo:string){
+ if(shares?.receiptNo!==receiptNo)return null;
+ const positive=(v:string|null|undefined)=>typeof v==='string'&&/^\d+$/.test(v)&&BigInt(v)>0n;
+ if(!shares.preferred)return positive(shares.outstanding)?{count:shares.outstanding!,referenceOnly:false}:null;
+ const rows=shares.rows??[],common=rows.filter(r=>r.shareClass==='COMMON'),total=rows.filter(r=>r.shareClass==='TOTAL');
+ if(!positive(shares.outstanding))return null;
+ if(common.length!==1||total.length!==1||common[0]!.outstandingShares!==shares.outstanding||!rows.some(r=>r.shareClass==='PREFERRED'))return null;
+ const classes=rows.filter(r=>r.shareClass!=='TOTAL');
+ if(classes.some(r=>!['COMMON','PREFERRED'].includes(r.shareClass)||r.outstandingShares==null||!/^\d+$/.test(r.outstandingShares)))return null;
+ const sum=classes.reduce((n,r)=>n+BigInt(r.outstandingShares!),0n);
+ if(sum<=0n||sum.toString()!==total[0]!.outstandingShares)return null;
+ return {count:sum.toString(),referenceOnly:true};
+}

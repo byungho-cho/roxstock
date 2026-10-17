@@ -51,12 +51,15 @@ services:
     environment:
       NODE_ENV: production
       TZ: Asia/Seoul
+      KIS_TOKEN_CACHE_DIR: /var/lib/roxstock/kis-tokens
       COLLECTOR_SECURITY_MASTER_HOUR: ${COLLECTOR_SECURITY_MASTER_HOUR:-6}
       COLLECTOR_PRICE_COLLECTION_HOUR: ${COLLECTOR_PRICE_COLLECTION_HOUR:-20}
       COLLECTOR_PRICE_RETRY_DELAY_MINUTES: ${COLLECTOR_PRICE_RETRY_DELAY_MINUTES:-60}
       COLLECTOR_SNAPSHOT_HOURS: ${COLLECTOR_SNAPSHOT_HOURS:-23}
       COLLECTOR_LOCK_TTL_SECONDS: ${COLLECTOR_LOCK_TTL_SECONDS:-7200}
     command: ["node", "${COLLECTOR_ENTRY_ROOT:-collector/dist}/worker.js", "daemon"]
+    volumes:
+      - kis-token-cache:/var/lib/roxstock/kis-tokens
     networks:
       - db
     healthcheck:
@@ -111,6 +114,7 @@ services:
     environment:
       NODE_ENV: production
       TZ: Asia/Seoul
+      KIS_TOKEN_CACHE_DIR: /var/lib/roxstock/kis-tokens
       DART_COLLECTOR_ENABLED: ${DART_COLLECTOR_ENABLED:-true}
       DART_DAILY_CALL_LIMIT: ${DART_DAILY_CALL_LIMIT:-3000}
       DART_MIN_DELAY_MS: ${DART_MIN_DELAY_MS:-5000}
@@ -127,6 +131,8 @@ services:
       DART_NIGHT_WINDOW_END_HOUR: ${DART_NIGHT_WINDOW_END_HOUR:-6}
       DART_CORP_CODE_REFRESH_HOURS: ${DART_CORP_CODE_REFRESH_HOURS:-24}
     command: ["node", "${COLLECTOR_ENTRY_ROOT:-collector/dist}/dart-worker.js"]
+    volumes:
+      - kis-token-cache:/var/lib/roxstock/kis-tokens
     networks:
       - db
     healthcheck:
@@ -144,3 +150,7 @@ networks:
     external: true
     name: roxstock-db_default
 
+
+volumes:
+  kis-token-cache:
+    name: roxstock-kis-token-cache
