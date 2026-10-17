@@ -24,18 +24,18 @@ export async function boundedManualJob<T>(work:()=>Promise<T>,milliseconds:numbe
  finally{clearTimeout(timer);signal.removeEventListener('abort',rejectAbort);controller.abort(timeout);}
 }
 /** Only manual workers use this proxy. Reads may complete late; every subsequent write is fenced. */
-export function checkedManualDb<T extends object>(db:T):T{
+export function checkedManualDb<T extends object>(db:T,inTransaction=false):T{
  const writes=new Set(['create','createMany','update','updateMany','upsert','delete','deleteMany']);
  const delegates=new Map<PropertyKey,unknown>();
  return new Proxy(db,{get(target,key){
   const value=Reflect.get(target,key);
   if(key==='$transaction'&&typeof value==='function')return (work:unknown,...args:unknown[])=>{
    checkManualJob();
-   return value.call(target,typeof work==='function'?(tx:object)=>(async()=>{const result=await work(checkedManualDb(tx));checkManualJob();return result;})():work,...args);
+   return value.call(target,typeof work==='function'?(tx:object)=>(async()=>{const result=await work(checkedManualDb(tx,true));checkManualJob();return result;})():work,...args);
   };
   if(typeof value==='function')return value.bind(target);
   if(!value||typeof value!=='object')return value;
-  if(!delegates.has(key))delegates.set(key,new Proxy(value,{get(delegate,method){const call=Reflect.get(delegate,method);return typeof call==='function'?(...args:unknown[])=>{if(writes.has(String(method)))checkManualJob();return call.apply(delegate,args);}:call;}}));
+  if(!delegates.has(key))delegates.set(key,new Proxy(value,{get(delegate,method){const call=Reflect.get(delegate,method);return typeof call==='function'?async(...args:unknown[])=>{if(writes.has(String(method))){checkManualJob();const transaction=Reflect.get(target,'$transaction');if(!inTransaction&&typeof transaction==='function')return transaction.call(target,async(tx:object)=>{checkManualJob();const checked=checkedManualDb(tx,true);const result=await Reflect.get(Reflect.get(checked,key),method)(...args);checkManualJob();return result;});}return call.apply(delegate,args);}:call;}}));
   return delegates.get(key);
  }});
 }

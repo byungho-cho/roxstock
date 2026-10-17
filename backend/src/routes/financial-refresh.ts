@@ -10,11 +10,11 @@ import { enqueueManualRefresh, parseManualRefresh, type ManualRefreshMetadata } 
 export async function financialRefreshRoutes(app: FastifyInstance) {
   app.get<{Params:{id:string}}>('/securities/:id/financial-refresh/material-times',async request=>{
     const securityId=id(request.params.id,'id');
-    const [filing,supplement]=await Promise.all([
+    const [filing,supplements]=await Promise.all([
       prisma.dartFinancialFiling.findFirst({where:{securityId,isWithdrawn:false},orderBy:{collectedAt:'desc'},select:{collectedAt:true}}),
-      prisma.collectorRun.findFirst({where:{jobType:'dart-financial-statements',AND:[{metadata:{path:'$.phase',equals:'MANUAL'}},{metadata:{path:'$.securityId',equals:String(securityId)}},{metadata:{path:'$.supplementUpdatedAt',not:Prisma.AnyNull}}]},orderBy:{startedAt:'desc'},select:{metadata:true}}),
+      prisma.periodValuation.findMany({where:{securityId,supplemental:{path:'$.verifiedAt',not:Prisma.AnyNull}},select:{supplemental:true}}),
     ]);
-    return {data:{financialCollectedAt:filing?.collectedAt.toISOString()??null,supplementUpdatedAt:(supplement?.metadata as unknown as ManualRefreshMetadata)?.supplementUpdatedAt??null}};
+    return {data:{financialCollectedAt:filing?.collectedAt.toISOString()??null,supplementUpdatedAt:supplements.flatMap(row=>{const at=(row.supplemental as {verifiedAt?:unknown}|null)?.verifiedAt;return typeof at==='string'&&Number.isFinite(Date.parse(at))?[at]:[];}).sort().at(-1)??null}};
   });
   app.post<{ Params: { id: string }; Body: unknown }>('/securities/:id/financial-refresh', async (request, reply) => {
     const securityId = id(request.params.id, 'id');

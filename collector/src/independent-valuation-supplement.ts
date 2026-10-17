@@ -60,6 +60,8 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
     await withCollection(db,row.securityId,'valuation',async()=>{
      const mapping=row.security.dartCorpMapping;
      const load=options.load??loadPeriodSupplement(provider,row.security.symbol,mapping?.corpCode??'',undefined,row.security.marketType,'AUTOMATIC',{dartRequests:Boolean(apiKey&&mapping)});
+     const before=await db.periodValuation.findUnique({where});
+     const beforeValues=JSON.stringify(before?.values);
      const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType,{load});
      if(!result){skipped++;return;}
      // One retry per day for unresolved source gaps; successful source repairs leave no busy-loop.
@@ -68,7 +70,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
      const nextAttemptAt=complete&&!sourceMissing?null:new Date(now.getTime()+86400000);
      const projected=supplementedFilings([row],[{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType,supplemental:saved as Prisma.JsonObject}])[0]!;
      const financialComplete=[projected.revenueYtd,projected.operatingProfitYtd,projected.netIncomeYtd,projected.totalAssets,projected.totalLiabilities,projected.totalEquity].every(v=>v!=null);
-     await db.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...saved,automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
+     await db.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...saved,...(complete||beforeValues!==JSON.stringify(result.values)?{verifiedAt:clock().toISOString()}:{}),automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
      complete?success++:skipped++;
     },{symbol:row.security.symbol});
    }catch(error){if(error instanceof CollectionExcluded){skipped++;continue;}failed++;

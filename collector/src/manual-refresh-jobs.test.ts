@@ -18,7 +18,7 @@ function fixture(mode:'FULL'|'SUPPLEMENT'='FULL',oldValues:Record<string,string|
  const run:any={id:1n,jobType:'dart-financial-statements',status:'RUNNING',startedAt:new Date(),metadata:{phase:'MANUAL',executionMode:'MANUAL_PROTOTYPE',refreshMode:mode,securityId:'1',startYear:year,endYear:year,fiscalYear:year,period:'ANNUAL',manualState:'QUEUED'}};
  let releases=0,writes=0;const snapshots:ManualRefreshMetadata[]=[];
  const filing={securityId:1n,normalizationVersion:3,receiptDate:new Date(`${year+1}-03-01`),receiptNo:'20260301000001',fiscalYear:year,periodType:'ANNUAL',fsDivision:'CFS',revenueYtd:new Prisma.Decimal(0),operatingProfitYtd:new Prisma.Decimal(0),netIncomeYtd:new Prisma.Decimal(0),totalAssets:new Prisma.Decimal(1050),totalLiabilities:new Prisma.Decimal(50),totalEquity:new Prisma.Decimal(1000),accountSources:{investingCashFlow:{amount:'0'},financingCashFlow:{amount:'0'},cashEquivalents:{amount:'0'},basicEps:{amount:'100'},parentEquity:{amount:'1000'},parentNetIncome:{amount:'0'}},periodEndDate:new Date(`${year}-12-31`)};
- let db:any;db={dartShareSnapshot:{findUnique:async()=>null,upsert:async()=>({})},collectorRunItem:{createMany:async()=>({count:1})},$queryRaw:async()=>[], $transaction:async(fn:any)=>fn(db),collectorRun:{findUnique:async()=>run,updateMany:async(q:any)=>{if(run.status!=='RUNNING')return {count:0};Object.assign(run,q.data);snapshots.push(structuredClone(run.metadata));return {count:1};}},security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],marketType:'KOSPI',securityType:'STOCK',isActive:true,dartCorpMapping:{corpCode:'00126380'}})},dartFinancialFiling:{findFirst:async(q:any)=>({...filing,fiscalYear:q.where.fiscalYear??year}),update:async()=>{writes++;}},periodValuation:{findUnique:async()=>valuation,upsert:async(q:any)=>{valuation={...valuation,...q.update};return valuation;},update:async(q:any)=>{valuation={...valuation,...q.data};return valuation;}},collectorLock:{deleteMany:async()=>{releases++;return {count:1};}}} as unknown as PrismaClient;
+ let db:any;db={dartShareSnapshot:{findUnique:async()=>null,upsert:async()=>({})},collectorRunItem:{createMany:async()=>({count:1})},$queryRaw:async()=>[], $transaction:async(fn:any)=>fn(db),collectorRun:{findUnique:async()=>run,updateMany:async(q:any)=>{if(run.status!=='RUNNING')return {count:0};Object.assign(run,q.data);snapshots.push(structuredClone(run.metadata));return {count:1};}},security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],marketType:'KOSPI',securityType:'STOCK',isActive:true,dartCorpMapping:{corpCode:'00126380'}})},dartFinancialFiling:{findFirst:async(q:any)=>({...filing,fiscalYear:q.where.fiscalYear??year}),update:async()=>{writes++;}},periodValuation:{findUnique:async()=>valuation,upsert:async(q:any)=>{valuation={...valuation,...q.update};return valuation;},update:async(q:any)=>{valuation={...valuation,...q.data};return valuation;}},collectorLock:{findUnique:async()=>null,deleteMany:async()=>{releases++;return {count:1};}}} as unknown as PrismaClient;
  return {db,run:run as CollectorRun,record:()=>valuation,filingWrites:()=>writes,snapshots,releases:()=>releases};
 }
 for(const scenario of ['dart-error','dart-timeout','supplement','both-fail'] as const)test(`durable independent worker: ${scenario}`,async()=>{
@@ -39,7 +39,7 @@ for(const scenario of ['dart-error','dart-timeout','supplement','both-fail'] as 
   assert.equal(result.tasks?.dart.state,scenario==='supplement'?'SKIPPED':'FAILED');
   assert.equal(result.tasks?.valuation.state,scenario==='both-fail'?'FAILED':'SUCCESS');
   assert.equal(f.run.status,scenario==='both-fail'?'FAILED':scenario==='supplement'?'SUCCESS':'PARTIAL');
-  if(scenario!=='both-fail'){assert.equal(f.record().values.roe,'0');assert.equal(refreshSummary(m.results!).valuationCompleted,1);}
+  if(scenario!=='both-fail'){assert.ok(Number.isFinite(Date.parse(f.record().supplemental.verifiedAt)));assert.equal(f.record().values.roe,'0');assert.equal(refreshSummary(m.results!).valuationCompleted,1);}
   if(scenario==='dart-timeout')assert.equal(result.tasks?.dart.code,'DART_TIMEOUT');
   assert.ok(f.snapshots.some(s=>s.progress?.tasks?.valuation.state==='SUCCESS'||scenario==='both-fail'));
  }finally{PrismaDartRepository.prototype.acquireLock=old.acquire;OpenDartProvider.prototype.listPeriodicReports=old.list;NaverAnnualProvider.prototype.annual=old.naver;manualLimits.taskMs=old.limit;}
@@ -86,4 +86,10 @@ test('a transaction already waiting for a late response cannot commit after its 
  let late:Promise<unknown>|undefined;
  await assert.rejects(boundedManualJob(()=>{late=db.$transaction(async()=>{await pending;return 'late result';});return late;},10));
  release();await assert.rejects(late!);assert.equal(commits,0);
+});
+test('implicit delegate writes also roll back when the response arrives after timeout',async()=>{
+ let release:()=>void=()=>{},commits=0;const pending=new Promise<void>(resolve=>{release=resolve;});
+ const db=checkedManualDb({record:{update:async()=>{throw Error('unguarded delegate must not run');}},$transaction:async(fn:(tx:any)=>Promise<unknown>)=>{const result=await fn({record:{update:async()=>{await pending;return 'saved';}}});commits++;return result;}});
+ let late:Promise<unknown>|undefined;
+ await assert.rejects(boundedManualJob(()=>{late=db.record.update();return late;},10));release();await assert.rejects(late!);assert.equal(commits,0);
 });

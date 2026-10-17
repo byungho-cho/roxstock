@@ -43,6 +43,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
  db=collectionClient(db);
  if(await boundedManualJob(()=>expireManualRun(db,run),10_000))return true;
  const owner=randomUUID(),repo=new PrismaDartRepository(db);
+ console.info(JSON.stringify({event:'manual_refresh_lock_attempt',requestId:String(run.id),ownerId:leaseOwnerId(owner),at:new Date().toISOString()}));
  try{if(!await boundedManualJob(()=>repo.acquireLock(owner,660),10_000)){await manualWait(db,run,'LOCK');return true;}}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
  let publishTail=Promise.resolve();
  let fresh:CollectorRun|null;
@@ -111,7 +112,9 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
     if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':year===currentYear?'ANNUAL_CONSENSUS':'DART_AND_PERIOD_END_PRICE',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
    }});
    const saved=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
-   if(saved&&(tasks.valuation.state==='SUCCESS'||tasks.valuation.state==='PARTIAL'&&previousSupplementValues!==JSON.stringify(saved.values)))m.supplementUpdatedAt=new Date().toISOString();
+   const supplementVerifiedAt=saved&&(tasks.valuation.state==='SUCCESS'||tasks.valuation.state==='PARTIAL'&&previousSupplementValues!==JSON.stringify(saved.values))?new Date().toISOString():undefined;
+   if(supplementVerifiedAt)m.supplementUpdatedAt=supplementVerifiedAt;
+   if(saved&&supplementVerifiedAt&&period!=='ANNUAL')await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...((saved.supplemental??{}) as object),verifiedAt:supplementVerifiedAt})}}),m);
    const stored=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
    const displayStored=stored&&saved?supplementedFilings([stored],[saved])[0]:stored;
    const financialComplete=Boolean(displayStored&&[displayStored.revenueYtd,displayStored.operatingProfitYtd,displayStored.netIncomeYtd,displayStored.totalAssets,displayStored.totalLiabilities,displayStored.totalEquity].every(v=>v!=null));
@@ -119,7 +122,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
     const supplemental=(saved.supplemental??{}) as Record<string,unknown>,attempt=(supplemental.manualAttempt??{}) as Record<string,unknown>;
     const complete=valueCompletion(saved.values as Partial<MetricValues>).complete;
     const state=year===currentYear?complete?'ESTIMATE_READY':attempt.state:financialComplete&&complete?'COMPLETE':financialComplete?'FINANCIAL_ONLY':'FINAL_FAILED';
-    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks,finishedAt:new Date().toISOString()}})}}),m);
+    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,...(supplementVerifiedAt?{verifiedAt:supplementVerifiedAt}:{}),manualAttempt:{...attempt,state,tasks,finishedAt:new Date().toISOString()}})}}),m);
    }
    results.push({...valuation,fiscalYear:year,period,status:tasks.dart.code==='COLLECTION_EXCLUDED'&&tasks.valuation.state==='SKIPPED'?'SKIPPED':tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
    m.progress.completed=results.length;m.progress.stage='REPORT_DONE';await publish();

@@ -17,7 +17,7 @@ export type RefreshPeriod = 'Q1' | 'Q2' | 'Q3' | 'ANNUAL' | 'ALL';
 type RefreshCounts = { processed:number; disclosureCompleted:number; valuationCompleted:number; noDisclosure:number; disclosureFailed:number; supplementFailed:number };
 type Task={state:string;code?:string};
 type Result = { tasks?:{dart:Task;valuation:Task}; fiscalYear?: number; period: RefreshPeriod; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?:Record<string,string> };
-type RefreshStatus = {acceptedAt?:string;executionStartedAt?:string|null;lastProgressAt?:string|null;waitReason?:string|null;financialCollectedAt?:string|null;supplementUpdatedAt?:string|null;startedAt?:string; requestId:string; state: 'QUEUED' | 'PROCESSING' | 'FINISHED'; status: string; finishedAt: string | null; fiscalYear: number; startYear?: number; endYear?: number; period: RefreshPeriod; results: Result[]; counts?:RefreshCounts; terminalCode?:string;refreshMode?:'FULL'|'SUPPLEMENT';progress?: {tasks?:{dart:Task;valuation:Task};currentYear:number;currentPeriod?:RefreshPeriod;stage:string;completed:number;total:number}|null };
+type RefreshStatus = {activityState?:string;acceptedAt?:string;executionStartedAt?:string|null;lastProgressAt?:string|null;waitReason?:string|null;financialCollectedAt?:string|null;supplementUpdatedAt?:string|null;startedAt?:string; requestId:string; state: 'QUEUED' | 'PROCESSING' | 'FINISHED'; status: string; finishedAt: string | null; fiscalYear: number; startYear?: number; endYear?: number; period: RefreshPeriod; results: Result[]; counts?:RefreshCounts; terminalCode?:string;refreshMode?:'FULL'|'SUPPLEMENT';progress?: {tasks?:{dart:Task;valuation:Task};currentYear:number;currentPeriod?:RefreshPeriod;stage:string;completed:number;total:number}|null };
 const labels: Record<RefreshPeriod, string> = { Q1: '1분기', Q2: '반기', Q3: '3분기', ANNUAL: '사업보고서', ALL: '연도 전체' };
 const errorText = (code?: string) => {
   if (['010', '011', '012', 'API_KEY_MISSING', 'DART_NOT_CONFIGURED'].includes(code ?? '')) return '인증·접근 설정을 확인해 주세요.';
@@ -62,6 +62,8 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const years=Array.from({length:currentYear-2015+1},(_,i)=>({value:String(currentYear-i),label:String(currentYear-i)}));
   const submit=(mode:'FULL'|'SUPPLEMENT')=>{if(busy||active.isPending||active.isError||invalid||submitLock.current)return;submitLock.current=true;mutation.mutate(mode);};
   const current=status.data??active.data;
+  const financialAt=[current?.financialCollectedAt,materialTimes.data?.financialCollectedAt,collectedAt].filter((at):at is string=>Boolean(at)).sort().at(-1);
+  const supplementAt=[current?.supplementUpdatedAt,materialTimes.data?.supplementUpdatedAt].filter((at):at is string=>Boolean(at)).sort().at(-1);
   const elapsed=(at?:string|null)=>at?`${Math.max(0,Math.floor((clock-Date.parse(at))/1000))}초`:'미기록';
   const waitLabels:Record<string,string>={CHECKING:'대기 사유 확인 중',AUTOMATIC:'자동 수집 종료 대기',PREVIOUS_REQUEST:'앞선 요청 처리 대기',LOCK:'실행 잠금 대기'};
   const progress=status.data?.progress;
@@ -91,8 +93,8 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <Stack sx={{gap:'4px'}}>
     {initialEnd!==undefined&&initialEnd>currentYear&&<Typography sx={{fontSize:11,color:'text.secondary'}}>미래 기간은 제외하고 {currentYear}년까지 갱신합니다.</Typography>}
     <Typography sx={{fontSize:11,color:'text.secondary'}}>현재 종목만 갱신합니다. 실패·미공시 자료는 기존 데이터를 유지합니다.</Typography>
-    <Typography sx={{fontSize:11,color:'text.secondary'}}>재무제표 수집 시각: {(current?.financialCollectedAt??materialTimes.data?.financialCollectedAt??collectedAt)?new Date((current?.financialCollectedAt??materialTimes.data?.financialCollectedAt??collectedAt)!).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
-    <Typography sx={{fontSize:11,color:'text.secondary'}}>보완자료 갱신 시각: {(current?.supplementUpdatedAt??materialTimes.data?.supplementUpdatedAt)?new Date((current?.supplementUpdatedAt??materialTimes.data?.supplementUpdatedAt)!).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
+    <Typography sx={{fontSize:11,color:'text.secondary'}}>재무제표 수집 시각: {financialAt?new Date(financialAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
+    <Typography sx={{fontSize:11,color:'text.secondary'}}>보완자료 갱신 시각: {supplementAt?new Date(supplementAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>보완자료만 갱신하면 기존 재무제표를 유지하고 누락된 가치지표를 보완합니다.</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>갱신 대상: {range}</Typography>
     </Stack>
@@ -100,7 +102,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
       <ActionButton size="small" tone="danger" disabled={busy||active.isPending||active.isError||invalid} startIcon={busy&&mutation.variables==='FULL'?<HourglassEmptyIcon/>:undefined} onClick={()=>submit('FULL')}>전체 갱신</ActionButton>
       <ActionButton size="small" tone="primary" disabled={busy||active.isPending||active.isError||invalid} startIcon={busy&&mutation.variables==='SUPPLEMENT'?<HourglassEmptyIcon/>:undefined} onClick={()=>submit('SUPPLEMENT')}>보완자료만 갱신</ActionButton>
     </Box>
-    {busy&&!status.isError&&!active.isError&&<Typography role="status" aria-live="polite" sx={{fontSize:11,lineHeight:'18px',overflowWrap:'anywhere'}}>{current?.state==='QUEUED'?`${waitLabels[current.waitReason??'CHECKING']??waitLabels.CHECKING} · 대기 ${elapsed(current.acceptedAt??current.startedAt)}`:`처리 중 · 실행 ${elapsed(current?.executionStartedAt)} · ${progressText}`}{progress?` (${progress.completed}/${progress.total} 보고서)`:''}</Typography>}
+    {busy&&!status.isError&&!active.isError&&<Typography role="status" aria-live="polite" sx={{fontSize:11,lineHeight:'18px',overflowWrap:'anywhere'}}>{current?.activityState==='CHECKING'?'실행 상태 확인 중 · 최근 활동과 실행 잠금을 확인하고 있습니다.':current?.state==='QUEUED'?`${waitLabels[current.waitReason??'CHECKING']??waitLabels.CHECKING} · 대기 ${elapsed(current.acceptedAt??current.startedAt)}`:`처리 중 · 실행 ${elapsed(current?.executionStartedAt)} · ${progressText}`}{progress?` (${progress.completed}/${progress.total} 보고서)`:''}</Typography>}
     {mutation.isError&&<Alert severity="error">{mutation.error instanceof ApiError?mutation.error.message:errorText()}</Alert>}
     {active.isError&&<QueryErrorNotice message="진행 작업 확인에 실패했습니다. 서버 상태를 다시 확인해 주세요." onRetry={()=>void active.refetch().then(result=>{if(!result.isError)setUncertain(false);})}/>}
     {status.isError&&<QueryErrorNotice message="진행 상태 조회에 실패했습니다. 작업 종료 여부를 다시 확인해 주세요." onRetry={()=>void status.refetch()}/>}

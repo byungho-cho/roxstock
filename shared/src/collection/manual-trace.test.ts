@@ -24,3 +24,9 @@ test('a stale expiration snapshot cannot overwrite execution progress',async()=>
  const db={collectorRun:{updateMany:async(q:any)=>{assert.deepEqual(q.where.metadata.equals,row.metadata);return {count:0};}}} as unknown as PrismaClient;
  assert.equal(await expireManualRun(db,row),false);
 });
+for(const scenario of ['owned','absent','other-owner','expired','stale'] as const)test(`PROCESSING needs a current owner and activity: ${scenario}`,async()=>{
+ const row=run();row.metadata={...row.metadata as object,manualState:'PROCESSING',lockOwner:'owner',lastProgressAt:new Date(Date.now()-(scenario==='stale'?180000:0)).toISOString()};
+ const db={collectorLock:{findUnique:async()=>scenario==='absent'?null:{ownerToken:scenario==='other-owner'?'other':'owner',lockedUntil:new Date(Date.now()+(scenario==='expired'?-1:60000)),updatedAt:new Date(Date.now()-(scenario==='stale'?180000:0))}}} as unknown as PrismaClient;
+ const trace=await manualTrace(db,row);assert.equal(trace.activityState,scenario==='owned'?'ACTIVE':'CHECKING');
+ if(scenario!=='owned')assert.equal(trace.waitReason,'CHECKING');
+});

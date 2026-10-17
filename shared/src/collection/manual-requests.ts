@@ -44,7 +44,8 @@ export async function enqueueManualRefresh(db: PrismaClient, securityId: bigint,
     const pending = await db.collectorRun.count({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } } });
     if (pending >= 20) throw new ApiError(429, 'DART_REFRESH_QUEUE_FULL', '업데이트 요청이 많습니다. 잠시 후 다시 시도해 주세요.');
     const metadata: ManualRefreshMetadata = { phase: 'MANUAL', executionMode:'MANUAL_PROTOTYPE', securityId: securityId.toString(),symbol:identity.symbol,collectionRevision:identity.collectionRevision, ...input, manualState: 'QUEUED',acceptedAt:new Date().toISOString(),waitReason:'CHECKING',waitReasonChangedAt:new Date().toISOString() };
-    return db.collectorRun.create({ data: { jobType: 'dart-financial-statements', provider: 'OPEN_DART', status: 'RUNNING', metadata: metadata as unknown as Prisma.InputJsonValue } });
+    const accepted=await db.collectorRun.create({ data: { jobType: 'dart-financial-statements', provider: 'OPEN_DART', status: 'RUNNING', metadata: metadata as unknown as Prisma.InputJsonValue } });
+    console.info(JSON.stringify({event:'manual_refresh_accepted',requestId:String(accepted.id),acceptedAt:metadata.acceptedAt}));return accepted;
   } finally { await repo.releaseLock(owner, lock); }
 }
 
@@ -57,9 +58,10 @@ export async function expireManualRun(db:PrismaClient,run:CollectorRun,now=Date.
  if(now<expires)return false;
  const results=[...(m.results??[])];for(let year=m.startYear??m.fiscalYear;year<=(m.endYear??m.fiscalYear);year++)for(const period of allPeriods(m))if(!results.some(r=>r.fiscalYear===year&&r.period===period))results.push({fiscalYear:year,period,status:'FAILED',code:'MANUAL_RUN_TIMEOUT',valuationStatus:'FAILED',tasks:{dart:{state:'FAILED',code:'DART_TIMEOUT'},valuation:{state:'FAILED',code:'VALUATION_TIMEOUT'}}});
  const terminal={...m,results,manualState:'FINISHED',terminalCode:'MANUAL_RUN_TIMEOUT',progress:m.progress?{...m.progress,tasks:{dart:{state:'FAILED',code:'DART_TIMEOUT'},valuation:{state:'FAILED',code:'VALUATION_TIMEOUT'}}}:undefined};
+ const lease=m.manualState==='PROCESSING'?await db.collectorLock.findUnique({where:{jobName:'dart-financial-statements'}}):null;
  const changed=await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING',metadata:{equals:run.metadata as Prisma.InputJsonValue}},data:{status:results.some(r=>r.status==='SUCCESS'||r.valuationStatus==='SUCCESS')?'PARTIAL':'FAILED',finishedAt:new Date(now),failureReason:'MANUAL_RUN_TIMEOUT',metadata:json(terminal)}});
  // Keep an active lease until its owner exits or its TTL expires. Expiry never unlocks running I/O.
- if(changed.count)console.info(JSON.stringify({event:'manual_refresh_expired',requestId:String(run.id),at:new Date(now).toISOString(),deadlineAt:new Date(expires).toISOString(),ownerId:m.lockOwner?leaseOwnerId(m.lockOwner):null}));
+ if(changed.count)console.info(JSON.stringify({ownsValidLease:Boolean(lease&&lease.ownerToken===m.lockOwner&&lease.lockedUntil.getTime()>now),event:'manual_refresh_expired',requestId:String(run.id),at:new Date(now).toISOString(),deadlineAt:new Date(expires).toISOString(),ownerId:m.lockOwner?leaseOwnerId(m.lockOwner):null}));
  return Boolean(changed.count);
 }
 
@@ -71,7 +73,8 @@ export async function sweepManualRequests(db:PrismaClient){
 export async function manualWait(db:PrismaClient,run:CollectorRun,reason:NonNullable<ManualRefreshMetadata['waitReason']>,relatedRunId?:string){
  const m=run.metadata as unknown as ManualRefreshMetadata;
  if(m.manualState!=='QUEUED'||m.waitReason===reason&&m.relatedRunId===relatedRunId)return;
- await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},data:{metadata:manualJson({...m,waitReason:reason,waitReasonChangedAt:new Date().toISOString(),relatedRunId})}});
+ const changed=await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},data:{metadata:manualJson({...m,waitReason:reason,waitReasonChangedAt:new Date().toISOString(),relatedRunId})}});
+ if(changed.count)console.info(JSON.stringify({event:'manual_refresh_wait_changed',requestId:String(run.id),reason,relatedRunId,at:new Date().toISOString()}));
 }
 
 export const leaseOwnerId=(owner:string)=>createHash('sha256').update(owner).digest('hex').slice(0,16);
@@ -80,8 +83,8 @@ export async function manualTrace(db:PrismaClient,run:CollectorRun){
  const m=run.metadata as unknown as ManualRefreshMetadata;
  let waitReason:ManualRefreshMetadata['waitReason']=m.manualState==='QUEUED'?'CHECKING':undefined;
  let relatedRunId:string|undefined;
- const lease=m.manualState==='QUEUED'?await db.collectorLock.findUnique({where:{jobName:'dart-financial-statements'}}):null;
- const active=lease&&lease.lockedUntil.getTime()>Date.now()&&Date.now()-lease.updatedAt.getTime()<120_000;
+ const lease=m.manualState!=='FINISHED'?await db.collectorLock.findUnique({where:{jobName:'dart-financial-statements'}}):null;
+ const active=lease&&lease.lockedUntil.getTime()>Date.now()&&Date.now()-Math.max(lease.updatedAt.getTime(),m.manualState==='PROCESSING'?Date.parse(m.lastProgressAt??'')||0:0)<120_000;
  if(m.manualState==='QUEUED'&&active){
    const ownerId=leaseOwnerId(lease.ownerToken);
    const ownerRun=await db.collectorRun.findFirst({where:{jobType:{in:['dart-financial-statements','VALUATION_SUPPLEMENT']},status:'RUNNING',OR:[{metadata:{path:'$.ownerId',equals:ownerId}},{metadata:{path:'$.lockOwner',equals:lease.ownerToken}}]},orderBy:{startedAt:'desc'}});
@@ -89,7 +92,8 @@ export async function manualTrace(db:PrismaClient,run:CollectorRun){
    waitReason=ownerRun?( (ownerRun.metadata as {phase?:string}).phase==='MANUAL'?'PREVIOUS_REQUEST':'AUTOMATIC'):'LOCK';
  }
  if(m.manualState==='QUEUED')await manualWait(db,run,waitReason??'CHECKING',relatedRunId);
- return {acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt??null,lastProgressAt:m.lastProgressAt??null,
-   waitReason:waitReason??null,waitReasonChangedAt:m.waitReason===waitReason?m.waitReasonChangedAt??null:new Date().toISOString(),relatedRunId:relatedRunId??m.relatedRunId??null,
+ const activityState=m.manualState==='FINISHED'?'FINISHED':m.manualState==='QUEUED'?'QUEUED':active&&lease.ownerToken===m.lockOwner?'ACTIVE':'CHECKING';
+ return {activityState,acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt??null,lastProgressAt:m.lastProgressAt??null,
+   waitReason:activityState==='CHECKING'?'CHECKING':waitReason??null,waitReasonChangedAt:m.waitReason===waitReason?m.waitReasonChangedAt??null:new Date().toISOString(),relatedRunId:relatedRunId??m.relatedRunId??null,
    financialCollectedAt:m.financialCollectedAt??null,supplementUpdatedAt:m.supplementUpdatedAt??null};
 }
