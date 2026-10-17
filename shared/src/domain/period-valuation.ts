@@ -9,6 +9,8 @@ const text=(v:Prisma.Decimal|null)=>v?.toDecimalPlaces(4).toString()??null;
 function source(f:DartFinancialFiling,key:string,ytd=false){const sources=f.accountSources as Record<string,{amount?:string;ytdAmount?:string}>|null;return dec(ytd?sources?.[key]?.ytdAmount:sources?.[key]?.amount);}
 /** Period-end retrospective ratios, not point-in-time investment signals. */
 export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFiling|undefined,supplemental:Supplemental={}) {
+ const resolution=(f.sourceValidation as {periodResolution?:{originalReason?:string}}|null)?.periodResolution;
+ if(resolution)return {values:Object.fromEntries(metricKeys.map(k=>[k,null])) as MetricValues,reasons:Object.fromEntries(metricKeys.map(k=>[k,'실제 회계기간 길이 검증 전 연환산 지표 계산 보류'])),provenance:{version:2,source:'OPEN_DART',receiptNo:f.receiptNo,periodEnd:f.periodEndDate.toISOString().slice(0,10),fsDivision:f.fsDivision,calculationState:'FISCAL_DURATION_REVIEW_REQUIRED',retrospective:true}};
  const accounts=supplemental.accounts?.receiptNo===f.receiptNo&&supplemental.accounts.fsDivision===f.fsDivision?supplemental.accounts:undefined;
  const periodSource=(key:string,ytd=false)=>source(f,key,ytd)??dec(ytd?accounts?.sources[key]?.ytdAmount:accounts?.sources[key]?.amount);
  const annual=f.periodType==='ANNUAL',months=annual?12:f.periodType==='Q1'?3:f.periodType==='Q2'?6:9;

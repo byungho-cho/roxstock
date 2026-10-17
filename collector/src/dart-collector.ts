@@ -161,7 +161,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const values = normalizeDartFinancialRows(filing.rows);
             stage = 'SAVE';
             const saved = await repo.saveFiling({securityId:security.id,fiscalYear:task.fiscalYear,periodType:report.periodType,reportCode:spec.code,fsDivision:filing.division,...source,collectedAt:new Date(),values});
-            await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:report.receiptNo,diagnostics:source.sourceValidation as unknown as import('@roxstock/shared/prisma').Prisma.InputJsonValue,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
+            await repo.updateTask(task.id,{status:'SUCCESS',selectedReceiptNo:source.sourceValidation.selectedReceiptNo,diagnostics:source.sourceValidation as unknown as import('@roxstock/shared/prisma').Prisma.InputJsonValue,processedAt:new Date(),errorCode:null,errorMessage:null,nextAttemptAt:null});
             await repo.addRunItem(runId!,security,task,'SUCCESS',saved.created?undefined:'동일 접수번호 저장됨'); succeeded += 1;
            },security);
           } catch(error) {
@@ -170,12 +170,12 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const failure = dartFailure(error,stage,config.apiKey);
             const retry = retryDecision(failure.code,task.attempts+1,new Date());
             try{await withCollection(prisma,security.id,'dart-financial-statements',async()=>{
-            await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,diagnostics:{...dartDiagnostic(error,stage).context,originalCode:failure.code,stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol,corpCode:security.corpCode,taskFiscalYear:task.fiscalYear,apiFiscalYear:task.fiscalYear,reportCode:task.reportCode},errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
+            await repo.updateTask(task.id,{status:retry.status,errorCode:retry.code,diagnostics:{...dartDiagnostic(error,stage).context,originalCode:failure.code,periodResolutionPolicy:'receipt-period-v1',stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol,corpCode:security.corpCode,taskFiscalYear:task.fiscalYear,apiFiscalYear:task.fiscalYear,reportCode:task.reportCode},errorMessage:`${failure.code}: ${failure.message}`,nextAttemptAt:retry.nextAttemptAt,processedAt:null,...(retry.stop ? {attempts:task.attempts} : {})});
             await repo.markSecurityError(security.id,`${failure.code}: ${failure.message}`);
             },security);}catch(changed){if(changed instanceof CollectionExcluded){skipped++;await repo.addRunItem(runId!,security,task,'SKIPPED',changed.message);continue;}throw changed;}
             if (retry.stop) { stoppedCode = failure.code; stop = true; skipped += 1; break; }
             apiErrors += 1; failures += 1;
-            await repo.addRunItem(runId!,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`,{...dartDiagnostic(error,stage).context,originalCode:failure.code,stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol});
+            await repo.addRunItem(runId!,security,task,'FAILED',`${retry.code}: ${failure.code}: ${failure.message}`,{...dartDiagnostic(error,stage).context,originalCode:failure.code,periodResolutionPolicy:'receipt-period-v1',stage,attempt:task.attempts+1,runId:String(runId),symbol:security.symbol});
             log('warn','DART task failed',{runId,...dartDiagnostic(error,stage),symbol:security.symbol,year:task.fiscalYear,report:task.reportCode,stage,code:failure.code,attempt:task.attempts+1,review:retry.code==='REVIEW_REQUIRED'});
           }
         }
@@ -211,7 +211,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
                 if(fiscalYear<2020&&report.periodType!=='ANNUAL')continue;
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
                 requireDartReportPeriod(report,security.corpCode!,fiscalYear);
-                if (await repo.hasStoredReceipt(report.receiptNo)) continue;
+                if (!report.selection?.periodError&&await repo.hasStoredReceipt(report.receiptNo)) continue;
                 stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
                 if (!fetched.rows.length) continue;
                 stage='VERIFY_SOURCE'; const source=validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:fiscalYear,report,rows:fetched.rows,fsDivision:fetched.division});

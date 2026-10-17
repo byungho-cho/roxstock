@@ -156,7 +156,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async listStartedBackfillSecurities(now = new Date()): Promise<DartSecurityRecord[]> {
     const states = await this.prisma.dartSecurityState.findMany({
       where: { backfillStartedAt: { not: null }, backfillCompletedAt: null,
-        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
+        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{}], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
       select: { securityId: true, security: { select: { collectionRevision:true,symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
       orderBy: { backfillStartedAt: 'asc' },
     });
@@ -166,10 +166,15 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
       where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
-      select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true },
+      select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true, errorCode:true,diagnostics:true },
+      take:100,
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
-    return tasks as DartBackfillTaskRecord[];
+    return tasks.filter(task=>{
+      if(task.errorCode!=='REVIEW_REQUIRED')return true;
+      const d=task.diagnostics as {validationResult?:string;periodResolutionPolicy?:string}|null;
+      return d?.periodResolutionPolicy!=='receipt-period-v1'&&['CLOSING_MONTH_CHANGED','CLOSING_MONTH_UNAVAILABLE','MULTIPLE_ANNUAL_PERIODS'].includes(d?.validationResult??'');
+    }) as DartBackfillTaskRecord[];
   }
 
   async markCompanyChecked(securityId: bigint, phase: string, now = new Date()): Promise<void> {

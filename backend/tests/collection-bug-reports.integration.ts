@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
 import {buildApp} from '../src/app.js';
-import {saveBugEvent,scanCollectionBugs} from '../src/domain/collection-bug-reports.js';
+import {saveBugEvent,scanCollectionBugs,reclassifyBugReportsPage} from '../src/domain/collection-bug-reports.js';
 const url=new URL(process.env.DATABASE_URL??'');if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/roxstock_bugreports_test'&&process.env.CI!=='true')throw Error('Isolated local/CI DB required');
 test('report persistence, concurrency, replay, review, recurrence and resolved deletion through real MariaDB/API',async()=>{
  const suffix=String(Date.now()),feature='bug-test-'+suffix,app=buildApp(),event={sourceKey:'test:'+suffix,feature,code:'DART_TEST_FAILURE',severity:'ERROR' as const,summary:'테스트 오류',observedAt:new Date(),symbol:'005930',metric:'per'};
@@ -30,6 +30,17 @@ test('report persistence, concurrency, replay, review, recurrence and resolved d
   const item=await db.collectorRunItem.create({data:{runId,status:'FAILED',symbol:'005930',message:'KIS_CONNECTION_FAILED',createdAt:new Date(Date.now()-86400000),observedAt:new Date()}});
   await scanCollectionBugs(db);let repeated=await db.collectionBugReport.findFirstOrThrow({where:{feature:feature+'-scan',code:'KIS_CONNECTION_FAILED'}});assert.equal(repeated.occurrences,1);
   await db.collectorRunItem.update({where:{id:item.id},data:{observedAt:new Date(Date.now()+1000)}});await scanCollectionBugs(db,new Date(Date.now()+2000));repeated=await db.collectionBugReport.findUniqueOrThrow({where:{id:repeated.id}});assert.equal(repeated.occurrences,2);
+
+  const reviewItem=await db.collectorRunItem.create({data:{runId,status:'FAILED',symbol:'005930',message:'REVIEW_REQUIRED: generic',diagnostics:{originalCode:'DART_SOURCE_REVIEW',validationResult:'MULTIPLE_ANNUAL_PERIODS'}}});
+  const sourceKey='item:'+reviewItem.id+':'+reviewItem.createdAt.toISOString();
+  await saveBugEvent(db,{sourceKey,feature:feature+'-scan',code:'COLLECTION_FAILED',severity:'ERROR',summary:'기존 일반 분류',observedAt:reviewItem.createdAt,runId});
+  const oldGeneric=await db.collectionBugReport.findFirstOrThrow({where:{feature:feature+'-scan',code:'COLLECTION_FAILED'}});
+  const beforeCount=await db.collectionBugOccurrence.count({where:{report:{feature:{startsWith:feature}}}});
+  const repair=await reclassifyBugReportsPage(db);assert.equal(repair.changed,1);
+  const warning=await db.collectionBugReport.findFirstOrThrow({where:{feature:feature+'-scan',code:'DART_REVIEW_MULTIPLE_ANNUAL_PERIODS'}});assert.equal(warning.severity,'WARNING');assert.equal(warning.occurrences,1);
+  assert.equal(await db.collectionBugOccurrence.count({where:{report:{feature:{startsWith:feature}}}}),beforeCount,'classification preserves occurrence count');
+  assert.equal((await db.collectionBugReport.findUniqueOrThrow({where:{id:oldGeneric.id}})).occurrences,oldGeneric.occurrences-1);
+  assert.equal((await reclassifyBugReportsPage(db)).changed,0,'repeat repair is idempotent');
 
  }finally{
   const reports=await db.collectionBugReport.findMany({where:{feature:{startsWith:feature}},select:{id:true}});

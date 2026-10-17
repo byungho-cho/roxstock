@@ -44,3 +44,6 @@ test('annual comparative capital from the exact filing fills ROE without inventi
  supplemental.accounts.sources.openingParentEquity.periodEnd='2014-12-31';supplemental.accounts.receiptNo='wrong';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
  supplemental.accounts.receiptNo=f.receiptNo;supplemental.accounts.fsDivision='OFS';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
 });
+test('unverified multiple fiscal durations never invent twelve-month valuation ratios',()=>{
+ const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{originalReason:'MULTIPLE_ANNUAL_PERIODS'}}});const result=calculatePeriod(f,undefined,{price:{value:'100',date:'2025-12-30',source:'TEST'}});assert.ok(Object.values(result.values).every(v=>v===null));assert.match(result.reasons.roe!,/회계기간/);assert.equal(result.provenance.calculationState,'FISCAL_DURATION_REVIEW_REQUIRED');
+});
