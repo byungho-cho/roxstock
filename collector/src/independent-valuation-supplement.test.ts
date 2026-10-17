@@ -41,3 +41,5 @@ test('automatic daily period cap stops before any source request',async()=>{
  const f=fixture();f.db.collectorRun.findMany=async()=>[{metadata:{reservedPeriods:200}}] as any;
  const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,load:async()=>{throw Error('Source must not run');}}));assert.equal(result.status,'QUOTA_BLOCKED');assert.equal(f.finish(),undefined);assert.equal(f.releases(),1);
 });
+
+test('missing DART credentials still permit stored-price supplementation without creating an authenticated provider',async()=>{const f=fixture(),old=process.env.DART_API_KEY;delete process.env.DART_API_KEY;try{const result=await withRepo(f,()=>runIndependentSupplement(f.db,{windowStartHour:18,windowEndHour:6},now,{clock:()=>now,sleep:async()=>{}}));assert.equal(result.status,'SUCCESS');assert.equal(result.skipped,1);assert.equal(f.record().values.bps,'10');}finally{if(old===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=old;}});

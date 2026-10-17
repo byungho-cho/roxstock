@@ -11,7 +11,7 @@ async function prepare(page:Page){
 }
 test('report icon is isolated, popup matches periods, scrolls internally and restores source',async({page},info)=>{
  const state=await prepare(page);await page.goto('/stocks?tab=holding');const report=page.getByRole('button',{name:'현대자동차 가치지표 보고서',exact:true});await expect(report).toBeVisible();
- const image=report.locator('img');expect(await image.evaluate((e:HTMLImageElement)=>e.complete&&e.naturalWidth>0)).toBe(true);const bounds=await image.boundingBox();expect(bounds?.width).toBe(18);expect(bounds?.height).toBe(18);
+ const image=report.locator('img');await expect.poll(()=>image.evaluate((e:HTMLImageElement)=>e.complete&&e.naturalWidth>0)).toBe(true);const bounds=await image.boundingBox();expect(bounds?.width).toBe(18);expect(bounds?.height).toBe(18);
  const name=page.getByRole('button',{name:'현대자동차 가치지표',exact:true});const r=(await report.boundingBox())!,n=(await name.boundingBox())!;expect(n.x-r.x-r.width).toBeCloseTo(4,0);
  await page.screenshot({path:info.outputPath('list.png')});await report.click();await expect(page).toHaveURL(/tab=holding$/);const dialog=page.getByRole('dialog');await expect(dialog.getByText('2026E 추정 기준',{exact:true})).toBeVisible();expect(state.writes).toHaveLength(0);
  await expect(dialog.getByTestId('fair-price-card')).toContainText('10,000원');const body=dialog.getByTestId('value-popup-body'),footer=dialog.getByTestId('value-popup-footer');const before=(await footer.boundingBox())!;

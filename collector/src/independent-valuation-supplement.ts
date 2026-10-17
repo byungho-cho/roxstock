@@ -40,9 +40,9 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
   const reservedPeriods=batch.length;
   runId=(await repo.createRun(jobType,'OPEN_DART_KIS_KRX',{phase:'INDEPENDENT_SUPPLEMENT',reservedPeriods,timezone:'Asia/Seoul',policy:'SHARED_MANUAL_AUTOMATIC_PERIOD_SUPPLEMENT'})).id;
   const apiKey=config.apiKey??process.env.DART_API_KEY??'';
-  const provider=new OpenDartProvider({apiKey,dailyCallLimit:config.dailyCallLimit??3000,minDelayMs:config.minDelayMs??2000,
+  const provider=apiKey?new OpenDartProvider({apiKey,dailyCallLimit:config.dailyCallLimit??3000,minDelayMs:config.minDelayMs??2000,
    reserveCall:limit=>{if(!open(clock()))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window ended.');return repo.reserveApiCall(limit,clock(),owner);},
-   isCallAllowed:()=>open(clock()),onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')});
+   isCallAllowed:()=>open(clock()),onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')}):null;
   for(const row of batch){
    if(!open(clock()))break;
    const lease=await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner,lockedUntil:{gt:clock()}},data:{lockedUntil:new Date(clock().getTime()+900000)}});if(lease.count!==1)throw Error('SUPPLEMENT_LOCK_LOST');

@@ -25,6 +25,7 @@ export async function saveBugEvent(db:PrismaClient,event:BugEvent){
   const inserted=await tx.collectionBugOccurrence.createMany({data:{eventKey,observedAt:event.observedAt,securityId:event.securityId,symbol:event.symbol&&/^[A-Z0-9]{6}$/.test(event.symbol)?event.symbol:null,fiscalYear:event.fiscalYear,periodType:event.periodType,runId:event.runId,metric:event.metric},skipDuplicates:true});
   if(!inserted.count)return false;
   const report=await tx.collectionBugReport.upsert({where:{fingerprint},create:{fingerprint,feature:event.feature,code:event.code,severity:event.severity,summary:event.summary,occurrences:1,firstSeenAt:event.observedAt,lastSeenAt:event.observedAt},update:{occurrences:{increment:1}}});
+  await tx.collectionBugReport.updateMany({where:{id:report.id,firstSeenAt:{gt:event.observedAt}},data:{firstSeenAt:event.observedAt}});
   await tx.collectionBugReport.updateMany({where:{id:report.id,lastSeenAt:{lt:event.observedAt}},data:{lastSeenAt:event.observedAt}});
   if(event.severity==='ERROR'&&report.severity!=='ERROR')await tx.collectionBugReport.update({where:{id:report.id},data:{severity:'ERROR'}});
   if(report.state==='RESOLVED'&&(!report.resolvedAt||event.observedAt>report.resolvedAt))await tx.collectionBugReport.update({where:{id:report.id},data:{state:'OPEN',resolvedAt:null}});

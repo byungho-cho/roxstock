@@ -24,6 +24,12 @@ jobs:
         with:
           ref: ${{ inputs.target_sha }}
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --workspace shared --include-workspace-root
+      - run: npm run prisma:generate
       - name: Validate revision and provider adapter
         env:
           TARGET_SHA: ${{ inputs.target_sha }}
