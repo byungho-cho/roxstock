@@ -56,7 +56,7 @@ test('phase10 single-row header and bounded touch tooltip',async({page},info)=>{
  const box=await tooltip.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(info.project.use.viewport!.width);
  await expect(tooltip.locator('..')).toHaveCSS('opacity','1');await page.screenshot({path:info.outputPath('phase10-tooltip.png')});await page.keyboard.press('Escape');await expect(tooltip).toBeHidden();await icon.tap();await page.mouse.click(1,1);await expect(tooltip).toBeHidden();
  await button.click();const dialog=page.getByRole('dialog');const start=dialog.getByRole('combobox',{name:'갱신 시작연도'}),end=dialog.getByRole('combobox',{name:'갱신 종료연도'});const a=await start.boundingBox(),b=await end.boundingBox();expect(a!.y).toBe(b!.y);
- await expect(start.locator('../..')).toHaveCSS('height','36px');await expect(dialog.getByRole('combobox',{name:'갱신범위'})).toContainText('연도 전체');
+ await expect(start.locator('../..')).toHaveCSS('height','36px');await expect(dialog.getByRole('combobox',{name:'갱신범위'})).toContainText('사업보고서');
  await expect(dialog.locator('..')).toHaveCSS('opacity','1');await page.screenshot({path:info.outputPath('phase10-popup.png')});
 });
 test('phase10 real progress survives status errors, reentry and completes with collapsed report results',async({page})=>{
@@ -66,13 +66,13 @@ test('phase10 real progress survives status errors, reentry and completes with c
  await expect(page.getByRole('status')).toContainText('2024년 처리 완료 · 2025년 사업보고서 가치지표 보충 중');await expect(page.getByRole('combobox',{name:'갱신 시작연도'})).toBeDisabled();
  statusError=true;await expect(page.getByText(/진행 상태 조회에 실패했습니다/)).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect(s.posts).toBe(1);
  await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();expect(s.posts).toBe(1);statusError=false;terminal=true;
- await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled({timeout:12000});await expect(page.getByText('성공 1건 · 실패 1건')).toBeVisible();await expect(page.getByText('종가 부족',{exact:true})).toBeHidden();await page.locator('summary').click();await expect(page.getByText('종가 부족',{exact:true})).toHaveCount(1);
+ await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled({timeout:12000});await expect(page.getByText('완료 1건 · 일부 자료 부족 1건 · 오류 0건')).toBeVisible();await expect(page.getByText('종가 부족',{exact:true})).toBeHidden();await page.locator('summary').click();await expect(page.getByText('종가 부족',{exact:true})).toHaveCount(1);
  const n=statusReads;await page.waitForTimeout(3500);expect(statusReads).toBe(n);
 });
 
 for(const kind of ['SUCCESS','SKIPPED'] as const)test(`phase10 ${kind} summary and retry enablement`,async({page})=>{
  await setup(page);await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:{state:'FINISHED',status:kind,fiscalYear:2025,startYear:2025,endYear:2025,period:'ANNUAL',finishedAt:'2026-10-07T05:00:00Z',results:[{fiscalYear:2025,period:'ANNUAL',status:kind==='SUCCESS'?'SUCCESS':'NO_DATA',valuationStatus:kind==='SUCCESS'?'SUCCESS':undefined}]}}}));
- await page.goto('/stocks/1/financials?endYear=2025');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled();await expect(page.getByText(kind==='SUCCESS'?'성공 1건 · 실패 0건':'보고서 기준: 공시 확인 완료 0 · 미공시 1 · 수집 실패 0')).toBeVisible();
+ await page.goto('/stocks/1/financials?endYear=2025');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled();await expect(page.getByText(kind==='SUCCESS'?'완료 1건 · 일부 자료 부족 0건 · 오류 0건':'보고서 기준: 공시 확인 완료 0 · 미공시 1 · 수집 실패 0')).toBeVisible();
 });
 
 test('phase10 quarter refresh excludes future placeholder years without changing chart selection',async({page},info)=>{

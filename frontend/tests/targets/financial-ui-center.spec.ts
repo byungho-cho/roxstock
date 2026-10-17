@@ -48,5 +48,5 @@ test('new refresh remains visible in header after popup closes without duplicate
 
 test('collector provided report counts take precedence over the compatibility fallback',async({page})=>{
  await setup(page);await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:{requestId:'99',state:'FINISHED',status:'PARTIAL',fiscalYear:2024,startYear:2024,endYear:2026,period:'ALL',finishedAt:'2026-10-08T00:00:00Z',results:[],counts:{processed:12,disclosureCompleted:10,valuationCompleted:8,noDisclosure:1,disclosureFailed:1,supplementFailed:2}}}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByText('보고서 기준: 공시 확인 완료 10 · 미공시 1 · 수집 실패 1')).toBeVisible();await expect(page.getByText('성공 8건 · 실패 4건')).toBeVisible();
+ await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByText('보고서 기준: 공시 확인 완료 10 · 미공시 1 · 수집 실패 1')).toBeVisible();await expect(page.getByText('완료 8건 · 일부 자료 부족 1건 · 오류 3건')).toBeVisible();
 });

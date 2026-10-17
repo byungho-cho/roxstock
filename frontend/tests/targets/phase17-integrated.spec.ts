@@ -22,9 +22,9 @@ for(const refreshMode of ['SUPPLEMENT','FULL'])test(`manual ${refreshMode}: inde
  await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:status()}}));
  await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();
  expect(state.posts).toBe(0);await page.getByRole('button',{name:refreshMode==='FULL'?'전체 갱신':'보완자료만 갱신',exact:true}).tap();
- await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect((state.body as any).refreshMode).toBe(refreshMode);expect((state.body as any).period).toBe('ALL');expect((state.body as any).clientRequestId).toMatch(/^[\w-]{16,80}$/);expect(state.posts).toBe(1);
+ await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect((state.body as any).refreshMode).toBe(refreshMode);expect((state.body as any).period).toBe('ANNUAL');expect((state.body as any).clientRequestId).toMatch(/^[\w-]{16,80}$/);expect(state.posts).toBe(1);
  await page.reload();await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect(state.posts).toBe(1);
- finished=true;await expect(page.getByText(refreshMode==='FULL'?'성공 0건 · 실패 1건':'성공 1건 · 실패 0건')).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled();await page.getByText('상세 내용', {exact:true}).click();await expect(page.getByText(/가치지표 보완 완료/)).toBeVisible();await page.screenshot({path:info.outputPath('phase17-refresh-'+refreshMode+'.png')});await overflow(page);
+ finished=true;await expect(page.getByText(refreshMode==='FULL'?'완료 0건 · 일부 자료 부족 0건 · 오류 1건':'완료 1건 · 일부 자료 부족 0건 · 오류 0건')).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled();await page.getByText('상세 내용', {exact:true}).click();await expect(page.getByText(/가치지표 보완 완료/)).toBeVisible();await page.screenshot({path:info.outputPath('phase17-refresh-'+refreshMode+'.png')});await overflow(page);
 });
 test('compound selection is one line, compact tooltip stays inside, first outside tap navigates',async({page},info)=>{
  await stockFixture(page);

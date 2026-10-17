@@ -16,3 +16,6 @@ test('full refresh includes failed disclosures; timeouts cannot show complete su
  assert.equal(refreshOutcome({status:'PARTIAL',results:[result('SUCCESS','FAILED')]}).failed,1);
  assert.equal(refreshOutcome({status:'PARTIAL',terminalCode:'TIMEOUT',results:[result('SUCCESS','SUCCESS')]}).tone,'warning');
 });
+test('legacy count-only responses separate known errors from incomplete reports',()=>{
+ const outcome=refreshOutcome({status:'PARTIAL',counts:{processed:12,valuationCompleted:8,disclosureFailed:1,supplementFailed:2},results:[]});assert.equal(outcome.completed,8);assert.equal(outcome.failed,3);assert.equal(outcome.missing,1);assert.equal(outcome.tone,'warning');
+});
