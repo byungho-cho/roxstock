@@ -7,6 +7,7 @@ import { CollectionJobRepository as PrismaDartRepository } from '@roxstock/share
 test('manual refresh POST validates, queues once and GET cannot access another security request', async () => {
   const oldKey=process.env.DART_API_KEY; const oldEnabled=process.env.DART_COLLECTOR_ENABLED;
   const originals={security:prisma.security.findUnique,first:prisma.collectorRun.findFirst,count:prisma.collectorRun.count,create:prisma.collectorRun.create,unique:prisma.collectorRun.findUnique,acquire:PrismaDartRepository.prototype.acquireLock,release:PrismaDartRepository.prototype.releaseLock};
+  const oldLease=prisma.collectorLock.findUnique;prisma.collectorLock.findUnique=(async()=>null) as typeof oldLease;
   let run: any=null; let creates=0;
   process.env.DART_API_KEY='test-key';process.env.DART_COLLECTOR_ENABLED='true';
   prisma.security.findUnique=(async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],isActive:true,securityType:'STOCK'})) as unknown as typeof originals.security;
@@ -29,7 +30,7 @@ test('manual refresh POST validates, queues once and GET cannot access another s
     delete process.env.DART_API_KEY;
     const missing=await app.inject({method:'POST',url:'/api/securities/1/financial-refresh',payload:{fiscalYear:2024,period:'Q1'}});assert.equal(missing.statusCode,409);
   } finally {
-    await app.close();prisma.security.findUnique=originals.security;prisma.collectorRun.findFirst=originals.first;prisma.collectorRun.count=originals.count;prisma.collectorRun.create=originals.create;prisma.collectorRun.findUnique=originals.unique;PrismaDartRepository.prototype.acquireLock=originals.acquire;PrismaDartRepository.prototype.releaseLock=originals.release;
+    await app.close();prisma.collectorLock.findUnique=oldLease;prisma.security.findUnique=originals.security;prisma.collectorRun.findFirst=originals.first;prisma.collectorRun.count=originals.count;prisma.collectorRun.create=originals.create;prisma.collectorRun.findUnique=originals.unique;PrismaDartRepository.prototype.acquireLock=originals.acquire;PrismaDartRepository.prototype.releaseLock=originals.release;
     if(oldKey===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=oldKey;
     if(oldEnabled===undefined)delete process.env.DART_COLLECTOR_ENABLED;else process.env.DART_COLLECTOR_ENABLED=oldEnabled;
   }

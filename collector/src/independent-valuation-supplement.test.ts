@@ -18,10 +18,10 @@ async function withRepo<T>(f:ReturnType<typeof fixture>,work:()=>Promise<T>){con
 test('automatic supplement fetches missing DART accounts through the same alias normalizer, calculates KIS-close ratios and preserves zero/originals',async()=>{
  const f=fixture(),old=OpenDartProvider.prototype.fetchFinancials;let calls=0;
  OpenDartProvider.prototype.fetchFinancials=async()=>{calls++;return [{receiptNo:'20260301000001',fiscalYear:2025,reportCode:'11011',corpCode:'00123456',statementDivision:'CIS',accountId:'custom-eps',accountName:'기본주당순이익',currentAmount:'10',currentYtdAmount:null,currency:'KRW'}];};
- try{const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,sleep:async()=>{}}));assert.equal(calls,1);assert.equal(result.success,1);assert.equal(f.record().values.per,'20');assert.equal(f.record().values.pbr,'20');assert.equal(f.record().values.roe,'0');assert.equal(f.record().nextAttemptAt,null);assert.equal(f.releases(),1);assert.equal(JSON.stringify(f.filing,(_,v)=>typeof v==='bigint'?String(v):v),f.original);assert.equal(periodCollectionState(f.record(),true),'COMPLETE');}finally{OpenDartProvider.prototype.fetchFinancials=old;}
+ try{const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,sleep:async()=>{}}));assert.equal(calls,1);assert.equal(result.success,1);assert.equal(f.record().values.per,'20');assert.equal(f.record().values.pbr,'20');assert.equal(f.record().values.roe,'0');assert.equal(f.record().nextAttemptAt,null);assert.equal(f.record().supplemental.verifiedAt,now.toISOString());assert.equal(f.releases(),1);assert.equal(JSON.stringify(f.filing,(_,v)=>typeof v==='bigint'?String(v):v),f.original);assert.equal(periodCollectionState(f.record(),true),'COMPLETE');}finally{OpenDartProvider.prototype.fetchFinancials=old;}
 });
 test('automatic quota failure retains saved values and defers retry; later source failure cannot erase financial success',async()=>{
- const f=fixture();f.record().values.eps='10';const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,sleep:async()=>{},load:async()=>{throw new DartApiError('020','quota',true);}}));assert.equal(result.failed,1);assert.equal(f.record().values.eps,'10');assert.equal(f.record().values.roe,'0');assert.ok(f.record().nextAttemptAt>now);assert.equal(f.releases(),1);
+ const f=fixture();f.record().values.eps='10';const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,sleep:async()=>{},load:async()=>{throw new DartApiError('020','quota',true);}}));assert.equal(result.failed,1);assert.equal(f.record().values.eps,'10');assert.equal(f.record().values.roe,'0');assert.ok(f.record().nextAttemptAt>now);assert.equal(f.record().supplemental.verifiedAt,undefined);assert.equal(f.releases(),1);
 });
 test('automatic pending retry respects nextAttemptAt; normal complete sources remain idle',async()=>{
  const f=fixture();f.record().nextAttemptAt=new Date(now.getTime()+3600000);const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now}));assert.equal(result.status,'IDLE');assert.equal(f.releases(),1);
@@ -43,3 +43,8 @@ test('automatic daily period cap stops before any source request',async()=>{
 });
 
 test('missing DART credentials still permit stored-price supplementation without creating an authenticated provider',async()=>{const f=fixture(),old=process.env.DART_API_KEY;delete process.env.DART_API_KEY;try{const result=await withRepo(f,()=>runIndependentSupplement(f.db,{windowStartHour:18,windowEndHour:6},now,{clock:()=>now,sleep:async()=>{}}));assert.equal(result.status,'SUCCESS');assert.equal(result.skipped,1);assert.equal(f.record().values.bps,'10');}finally{if(old===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=old;}});
+test('independent supplement yields its lease before manual work and resumes a safe period',async()=>{
+ const f=fixture();let manual=0;f.db.collectorRun.findFirst=(async()=>({id:8n})) as any;
+ const result=await withRepo(f,()=>runIndependentSupplement(f.db,config,now,{clock:()=>now,sleep:async()=>{},serviceManual:async()=>{assert.equal(f.releases(),1);manual++;return true;},load:async(_,saved)=>saved}));
+ assert.equal(manual,1);assert.equal(result.status,'SUCCESS');assert.equal(f.releases(),2);
+});

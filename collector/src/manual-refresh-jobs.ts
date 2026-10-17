@@ -1,5 +1,5 @@
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
-import {manualLimits,expireManualRun,manualJson as json,manualPeriods as allPeriods,type ManualTaskState,type ManualTaskResult} from '@roxstock/shared/collection/manual-requests';
+import {manualLimits,leaseOwnerId,manualWait,expireManualRun,manualJson as json,manualPeriods as allPeriods,type ManualTaskState,type ManualTaskResult} from '@roxstock/shared/collection/manual-requests';
 export {manualLimits,expireManualRun,type ManualTaskState,type ManualTaskResult} from '@roxstock/shared/collection/manual-requests';
 import {withCollection,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
@@ -39,21 +39,24 @@ export async function runIndependentPeriod(tasks:{dart:()=>Promise<ManualTaskRes
  const [dart,valuation]=await Promise.all([execute('dart'),execute('valuation')]);return {dart,valuation};
 }
 
-export async function processIndependentRefresh(db:PrismaClient,config:DartCollectorConfig,run:CollectorRun){
+export async function processIndependentRefresh(db:PrismaClient,config:Pick<DartCollectorConfig,'enabled'|'apiKey'|'dailyCallLimit'|'minDelayMs'>,run:CollectorRun){
  db=collectionClient(db);
  if(await boundedManualJob(()=>expireManualRun(db,run),10_000))return true;
  const owner=randomUUID(),repo=new PrismaDartRepository(db);
- try{if(!await boundedManualJob(()=>repo.acquireLock(owner,660),10_000))return true;}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
+ console.info(JSON.stringify({event:'manual_refresh_lock_attempt',requestId:String(run.id),ownerId:leaseOwnerId(owner),at:new Date().toISOString()}));
+ try{if(!await boundedManualJob(()=>repo.acquireLock(owner,660),10_000)){await manualWait(db,run,'LOCK');return true;}}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
  let publishTail=Promise.resolve();
  let fresh:CollectorRun|null;
  try{fresh=await boundedManualJob(()=>db.collectorRun.findUnique({where:{id:run.id}}),10_000);}catch(error){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});throw error;}
  if(!fresh||fresh.status!=='RUNNING'){await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});return true;}
  const m=fresh.metadata as unknown as ManualRefreshMetadata;
- const results:NonNullable<ManualRefreshMetadata['results']>=[];
- const start=m.startYear??m.fiscalYear,end=m.endYear??m.fiscalYear,periods=allPeriods(m),deadline=Date.now()+manualLimits.runMs;
+ const results:NonNullable<ManualRefreshMetadata['results']>=[...(m.results??[])];
+ const start=m.startYear??m.fiscalYear,end=m.endYear??m.fiscalYear,periods=allPeriods(m),deadline=m.manualState==='PROCESSING'&&m.deadlineAt?Date.parse(m.deadlineAt):Date.now()+manualLimits.runMs;
+ m.executionStartedAt??=new Date().toISOString();m.lastProgressAt=m.executionStartedAt;m.waitReason=undefined;m.relatedRunId=String(run.id);
+ console.info(JSON.stringify({event:'manual_refresh_started',requestId:String(run.id),acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt,ownerId:leaseOwnerId(owner)}));
  m.deadlineAt=new Date(deadline).toISOString();m.lockOwner=owner;m.manualState='PROCESSING';
- const signal=AbortSignal.timeout(manualLimits.runMs);
- const publish=()=>{if(Date.now()>=deadline)return Promise.resolve();const snapshot=json({...m,results:[...results]});publishTail=publishTail.then(async()=>{await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{metadata:snapshot}});});return publishTail;};
+ const signal=AbortSignal.timeout(Math.max(1,deadline-Date.now()));
+ const publish=()=>{if(Date.now()>=deadline)return Promise.resolve();m.lastProgressAt=new Date().toISOString();const snapshot=json({...m,results:[...results]});publishTail=publishTail.then(async()=>{const changed=await db.collectorRun.updateMany({where:{id:run.id,status:'RUNNING'},data:{metadata:snapshot}});if(!changed.count)throw Object.assign(new Error('Manual request already terminated'),{code:'MANUAL_RUN_TERMINATED'});});return publishTail;};
  try{
   await boundedManualJob(async()=>{
   await publish();
@@ -66,7 +69,9 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
    reserveCall:limit=>{checkManualJob();return repo.reserveApiCall(limit,new Date(),owner);},onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')});
   const naver=new NaverAnnualProvider(manualFetch),currentYear=Number(getSeoulClock().dateKey.slice(0,4));
   for(let year=start;year<=end;year++)for(const period of periods){
+   if(results.some(r=>r.fiscalYear===year&&r.period===period))continue;
    m.progress={currentYear:year,currentPeriod:period,stage:'VALUATION',completed:results.length,total:(end-start+1)*periods.length,tasks:{dart:{state:'QUEUED'},valuation:{state:'QUEUED'}}};
+   let previousSupplementValues:string|undefined;
    let valuation:Awaited<ReturnType<typeof refreshManualAnnual>>|undefined;
    const tasks=await runIndependentPeriod({
     dart:async()=>withCollection(scopedDb,security.id,'dart-financial-statements',async()=>{
@@ -89,12 +94,15 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
      const previous=candidate&&(candidate.receiptNo===source.receiptNo||oldPeriod===source.periodEndDate.toISOString().slice(0,10)&&declared===source.sourceValidation.reportPeriod&&(candidate.sourceValidation as {currency?:string}|null)?.currency==='KRW')?candidate:null;
      for(const key of Object.keys(values) as (keyof typeof values)[])if(key!=='accountSources'&&values[key]==null&&previous?.[key]!=null){values[key]=String(previous[key]);const evidence=previous.accountSources as Record<string,unknown>|null;values.accountSources[key]={...(evidence?.[key] as typeof values.accountSources[string]),retainedFromReceipt:previous.receiptNo} as typeof values.accountSources[string];}
      values.accountSources={...((previous?.accountSources??{}) as typeof values.accountSources),...values.accountSources};
-     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt:new Date(),values});
+     const collectedAt=new Date();
+     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt,values});
      const {accountSources,...amounts}=values;
-     await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources)}});
+     await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources),collectedAt}});
+     m.financialCollectedAt=collectedAt.toISOString();
      return {state:'SUCCESS' as const};
     },m),
     valuation:async()=>withCollection(scopedDb,security.id,'valuation',async()=>{
+     const before=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});previousSupplementValues=JSON.stringify(before?.values);
      if(period==='ANNUAL'&&year===currentYear){valuation=await refreshManualAnnual(scopedDb,security,year,provider,naver,scopedRepo,run.id,{storedOnly:true,missingOnly:m.refreshMode==='SUPPLEMENT'});return {state:valuation.valuationStatus==='SUCCESS'?'SUCCESS':valuation.valuationStatus==='PARTIAL'?'PARTIAL':Object.keys(valuation.valuationErrors).length?'FAILED':'UNAVAILABLE',code:valuation.valuationStatus==='SUCCESS'?undefined:'VALUATION_INCOMPLETE'};}
      const metric=await supplementStoredPeriod(scopedDb,security.id,year,period,{load:loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'MANUAL_PROTOTYPE',{fetcher:manualFetch})});
      return {state:metric?.status==='SUCCESS'?'SUCCESS':metric?.status==='PARTIAL'?'PARTIAL':'UNAVAILABLE',code:metric?.status==='SUCCESS'?undefined:'VALUATION_BASE_MISSING'};
@@ -104,6 +112,9 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
     if(result.state!=='RUNNING')console.info(JSON.stringify({event:'manual_refresh_task',jobId:String(run.id),source:source==='dart'?'OPEN_DART':year===currentYear?'ANNUAL_CONSENSUS':'DART_AND_PERIOD_END_PRICE',fiscalYear:year,period,durationMs:result.durationMs,code:result.code??result.state}));
    }});
    const saved=await scopedDb.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year,periodType:period==='ANNUAL'&&year===currentYear?'ESTIMATE':period}}});
+   const supplementVerifiedAt=saved&&(tasks.valuation.state==='SUCCESS'||tasks.valuation.state==='PARTIAL'&&previousSupplementValues!==JSON.stringify(saved.values))?new Date().toISOString():undefined;
+   if(supplementVerifiedAt)m.supplementUpdatedAt=supplementVerifiedAt;
+   if(saved&&supplementVerifiedAt&&period!=='ANNUAL')await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...((saved.supplemental??{}) as object),verifiedAt:supplementVerifiedAt})}}),m);
    const stored=await scopedDb.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:year,periodType:period,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'}]});
    const displayStored=stored&&saved?supplementedFilings([stored],[saved])[0]:stored;
    const financialComplete=Boolean(displayStored&&[displayStored.revenueYtd,displayStored.operatingProfitYtd,displayStored.netIncomeYtd,displayStored.totalAssets,displayStored.totalLiabilities,displayStored.totalEquity].every(v=>v!=null));
@@ -111,17 +122,18 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
     const supplemental=(saved.supplemental??{}) as Record<string,unknown>,attempt=(supplemental.manualAttempt??{}) as Record<string,unknown>;
     const complete=valueCompletion(saved.values as Partial<MetricValues>).complete;
     const state=year===currentYear?complete?'ESTIMATE_READY':attempt.state:financialComplete&&complete?'COMPLETE':financialComplete?'FINANCIAL_ONLY':'FINAL_FAILED';
-    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,manualAttempt:{...attempt,state,tasks,finishedAt:new Date().toISOString()}})}}),m);
+    await withCollection(scopedDb,security.id,'valuation',()=>scopedDb.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:saved.securityId,fiscalYear:saved.fiscalYear,periodType:saved.periodType}},data:{supplemental:json({...supplemental,...(supplementVerifiedAt?{verifiedAt:supplementVerifiedAt}:{}),manualAttempt:{...attempt,state,tasks,finishedAt:new Date().toISOString()}})}}),m);
    }
    results.push({...valuation,fiscalYear:year,period,status:tasks.dart.code==='COLLECTION_EXCLUDED'&&tasks.valuation.state==='SKIPPED'?'SKIPPED':tasks.dart.state==='SUCCESS'?'SUCCESS':tasks.dart.state==='FAILED'?'FAILED':tasks.dart.state==='SKIPPED'&&tasks.valuation.state==='SUCCESS'?'SUCCESS':'NO_DATA',code:tasks.dart.code,financialComplete,valuationStatus:tasks.valuation.state==='SUCCESS'?'SUCCESS':tasks.valuation.state,tasks});
    m.progress.completed=results.length;m.progress.stage='REPORT_DONE';await publish();
   }
-  },manualLimits.runMs,signal);
+  },Math.max(1,deadline-Date.now()),signal);
  }catch(error){
   const code=errorCode(error);for(let year=start;year<=end;year++)for(const period of periods)if(!results.some(r=>r.fiscalYear===year&&r.period===period))results.push({fiscalYear:year,period,status:error instanceof CollectionExcluded?'SKIPPED':'FAILED',code,valuationStatus:error instanceof CollectionExcluded?'SKIPPED':'FAILED'});
  }finally{
   try{
    await boundedManualJob(()=>publishTail,10_000).catch(()=>{});
+   if(Date.now()>=deadline){const latest=await db.collectorRun.findUnique({where:{id:run.id}});if(latest)await expireManualRun(db,latest,Date.now());return true;}
    const success=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='SUCCESS'||t.state==='PARTIAL'):r.status==='SUCCESS').length;
    const failed=results.filter(r=>r.tasks?Object.values(r.tasks).some(t=>t.state==='FAILED'||t.state==='UNAVAILABLE'||t.state==='PARTIAL'):r.status==='FAILED').length;
    const items=results.map(r=>{
@@ -136,7 +148,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:DartColle
     if(changed.count&&items.length)await tx.collectorRunItem.createMany({data:items});
    }),10_000);
   }catch(error){console.warn(JSON.stringify({event:'manual_refresh_finalization_failed',jobId:String(run.id),code:errorCode(error)}));}
-  finally{await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});}
+  finally{console.info(JSON.stringify({event:'manual_refresh_finished',requestId:String(run.id),at:new Date().toISOString()}));await boundedManualJob(()=>repo.releaseLock(owner),10_000).catch(()=>{});}
  }
  return true;
 }

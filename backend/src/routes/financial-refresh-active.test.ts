@@ -6,6 +6,7 @@ import { financialRefreshActiveRoutes } from './financial-refresh-active.js';
 
 test('active refresh is scoped, read only, and handles absent and completed jobs', async () => {
   const original = prisma.collectorRun.findFirst;
+  const oldLease=prisma.collectorLock.findUnique;prisma.collectorLock.findUnique=(async()=>null) as typeof oldLease;
   let row: any = null;
   prisma.collectorRun.findFirst = (async (args: any) => {
     assert.equal(args.where.jobType, 'dart-financial-statements');
@@ -28,5 +29,5 @@ test('active refresh is scoped, read only, and handles absent and completed jobs
     assert.equal(data.progress.currentYear, 2025);assert.equal(data.endYear, 2026);
     row.metadata.securityId = '3';assert.equal((await get()).json().data, null);
     row.metadata.securityId = '2';row.metadata.manualState = 'FINISHED';assert.equal((await get()).json().data, null);
-  } finally { prisma.collectorRun.findFirst = original; await app.close(); }
+  } finally { prisma.collectorLock.findUnique=oldLease;prisma.collectorRun.findFirst = original; await app.close(); }
 });

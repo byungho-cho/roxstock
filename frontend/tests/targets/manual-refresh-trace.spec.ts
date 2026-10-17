@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+import {setup} from './financial-ui-fixture';
+test('refresh tracks queued, error, resume, completion and retry in the shared dialog',async({page})=>{
+ const fixture=await setup(page,{allMetrics:true});let phase='QUEUED',fail=false,verified=true;
+ const status=()=>({activityState:verified?'ACTIVE':'CHECKING',requestId:'99',state:phase,status:phase==='FINISHED'?'PARTIAL':'RUNNING',acceptedAt:new Date(Date.now()-65000).toISOString(),executionStartedAt:phase==='QUEUED'?null:new Date(Date.now()-5000).toISOString(),waitReason:'AUTOMATIC',financialCollectedAt:'2026-10-10T01:00:00Z',supplementUpdatedAt:phase==='FINISHED'?'2026-10-17T09:00:00Z':null,fiscalYear:2024,startYear:2024,endYear:2026,period:'ALL',results:[],counts:{processed:0,disclosureCompleted:0,valuationCompleted:0,noDisclosure:0,disclosureFailed:0,supplementFailed:0}});
+ await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:fixture.posts&&phase!=='FINISHED'?status():null}}));
+ await page.route('**/api/securities/1/financial-refresh/99',route=>fail?route.fulfill({status:503,json:{error:{code:'UNAVAILABLE',message:'조회 실패'}}}):route.fulfill({json:{data:status()}}));
+ await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();
+ await page.getByRole('button',{name:'보완자료만 갱신',exact:true}).click();
+ await expect(page.getByRole('status')).toContainText('자동 수집 종료 대기 · 대기');
+ await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();phase='PROCESSING';
+ await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await expect(page.getByRole('status')).toContainText('처리 중 · 실행');
+ verified=false;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.getByRole('status')).toContainText('실행 상태 확인 중');
+ verified=true;fail=true;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(page.getByText('진행 상태 조회에 실패했습니다. 작업 종료 여부를 다시 확인해 주세요.')).toBeVisible({timeout:15000});await expect(page.getByRole('status')).toHaveCount(0);
+ fail=false;phase='FINISHED';await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(page.getByRole('button',{name:'보완자료만 갱신',exact:true})).toBeEnabled({timeout:15000});
+ await expect(page.getByText(/보완자료 갱신 시각:.*2026/)).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});

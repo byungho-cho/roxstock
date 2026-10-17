@@ -1,7 +1,10 @@
+import {createHash} from 'node:crypto';
 import {Prisma,type PrismaClient} from "../generated/prisma/index.js";
 export class CollectionJobRepository {
   constructor(protected readonly prisma:PrismaClient) {}
   async acquireLock(owner: string, ttlSeconds: number, jobName = 'dart-financial-statements'): Promise<boolean> {
+    const ownerId=createHash('sha256').update(owner).digest('hex').slice(0,16);
+    console.info(JSON.stringify({event:'collector_lock_attempt',jobName,ownerId,at:new Date().toISOString(),expiresAt:new Date(Date.now()+ttlSeconds*1000).toISOString()}));
     const changed = await this.prisma.$executeRaw`
       INSERT INTO collector_locks (job_name, owner_token, locked_until, created_at, updated_at)
       VALUES (${jobName}, ${owner}, DATE_ADD(UTC_TIMESTAMP(3), INTERVAL ${ttlSeconds} SECOND), UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))
@@ -10,12 +13,14 @@ export class CollectionJobRepository {
         locked_until = IF(locked_until < UTC_TIMESTAMP(3), VALUES(locked_until), locked_until),
         updated_at = IF(locked_until < UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), updated_at)
     `;
-    if (!changed) return false;
-    const rows = await this.prisma.$queryRaw<Array<{ owner_token: string }>>`SELECT owner_token FROM collector_locks WHERE job_name = ${jobName}`;
-    return rows[0]?.owner_token === owner;
+    const rows = await this.prisma.$queryRaw<Array<{ owner_token: string;locked_until?:Date }>>`SELECT owner_token, locked_until FROM collector_locks WHERE job_name = ${jobName}`;
+    const acquired=Boolean(changed)&&rows[0]?.owner_token === owner;
+    console.info(JSON.stringify({event:acquired?'collector_lock_acquired':'collector_lock_failed',jobName,ownerId,holderId:rows[0]?.owner_token?createHash('sha256').update(rows[0].owner_token).digest('hex').slice(0,16):null,lockedUntil:rows[0]?.locked_until?.toISOString()??null,at:new Date().toISOString()}));
+    return acquired;
   }
   async releaseLock(owner: string, jobName = 'dart-financial-statements'): Promise<void> {
-    await this.prisma.collectorLock.deleteMany({ where: { jobName, ownerToken: owner } });
+    const released=await this.prisma.collectorLock.deleteMany({ where: { jobName, ownerToken: owner } });
+    console.info(JSON.stringify({event:'collector_lock_release',jobName,ownerId:createHash('sha256').update(owner).digest('hex').slice(0,16),released:released.count,at:new Date().toISOString()}));
   }
   async prioritySecurityIds(): Promise<bigint[]> {
     const trades = await this.prisma.buyTrade.findMany({where:{account:{isActive:true},security:{securityType:'STOCK'}},select:{securityId:true,quantity:true,sellTrades:{select:{quantity:true}}}});

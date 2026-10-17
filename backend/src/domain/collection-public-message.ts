@@ -11,6 +11,6 @@ export function collectionPublicMessage(value:string|null|undefined):string|null
 
 export function collectionPublicMetadata(value:unknown):unknown {
  if(Array.isArray(value))return value.map(collectionPublicMetadata);
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,/(?:key|token|secret|password|authorization|stack|exception|raw|url)/i.test(key)?'[민감 원문 숨김]':collectionPublicMetadata(v)]));
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,key==='lockOwner'||/(?:key|token|secret|password|authorization|stack|exception|raw|url)/i.test(key)?'[민감 원문 숨김]':collectionPublicMetadata(v)]));
  return typeof value==='string'?collectionPublicMessage(value):value;
 }

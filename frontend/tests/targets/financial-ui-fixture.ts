@@ -8,6 +8,7 @@ export async function setup(page:Page,options:{allMetrics?:boolean;longName?:boo
 
   const u=new URL(route.request().url()),p=u.pathname;
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'계좌',isActive:true,isDefault:true}]}});
+  if(p.endsWith('/financial-refresh/material-times'))return route.fulfill({json:{data:{financialCollectedAt:null,supplementUpdatedAt:null}}});
   if(p.endsWith('/financial-refresh/active'))return route.fulfill({json:{data:null}});
   if(p.endsWith('/financial-refresh')&&route.request().method()==='POST'){state.posts++;state.body=route.request().postDataJSON();return route.fulfill({status:202,json:{data:{requestId:'99',state:'QUEUED'}}});}
   if(p.endsWith('/financial-refresh/99'))return route.fulfill({json:{data:{state:state.finished?'FINISHED':'QUEUED',status:state.fail?'FAILED':state.finished?'PARTIAL':'RUNNING',startYear:2024,endYear:2025,fiscalYear:2024,period:'ALL',finishedAt:state.finished?'2026-10-07T05:00:00Z':null,results:state.finished?[{fiscalYear:2024,period:'ANNUAL',status:state.fail?'FAILED':'SUCCESS',valuationStatus:'PARTIAL',valuationReasons:{per:'기간 말 과거 종가 부족'}}]:[]}}});

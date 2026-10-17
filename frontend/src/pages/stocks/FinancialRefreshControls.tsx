@@ -17,7 +17,7 @@ export type RefreshPeriod = 'Q1' | 'Q2' | 'Q3' | 'ANNUAL' | 'ALL';
 type RefreshCounts = { processed:number; disclosureCompleted:number; valuationCompleted:number; noDisclosure:number; disclosureFailed:number; supplementFailed:number };
 type Task={state:string;code?:string};
 type Result = { tasks?:{dart:Task;valuation:Task}; fiscalYear?: number; period: RefreshPeriod; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?:Record<string,string> };
-type RefreshStatus = { requestId:string; state: 'QUEUED' | 'PROCESSING' | 'FINISHED'; status: string; finishedAt: string | null; fiscalYear: number; startYear?: number; endYear?: number; period: RefreshPeriod; results: Result[]; counts?:RefreshCounts; terminalCode?:string;refreshMode?:'FULL'|'SUPPLEMENT';progress?: {tasks?:{dart:Task;valuation:Task};currentYear:number;currentPeriod?:RefreshPeriod;stage:string;completed:number;total:number}|null };
+type RefreshStatus = {activityState?:string;acceptedAt?:string;executionStartedAt?:string|null;lastProgressAt?:string|null;waitReason?:string|null;financialCollectedAt?:string|null;supplementUpdatedAt?:string|null;startedAt?:string; requestId:string; state: 'QUEUED' | 'PROCESSING' | 'FINISHED'; status: string; finishedAt: string | null; fiscalYear: number; startYear?: number; endYear?: number; period: RefreshPeriod; results: Result[]; counts?:RefreshCounts; terminalCode?:string;refreshMode?:'FULL'|'SUPPLEMENT';progress?: {tasks?:{dart:Task;valuation:Task};currentYear:number;currentPeriod?:RefreshPeriod;stage:string;completed:number;total:number}|null };
 const labels: Record<RefreshPeriod, string> = { Q1: '1분기', Q2: '반기', Q3: '3분기', ANNUAL: '사업보고서', ALL: '연도 전체' };
 const errorText = (code?: string) => {
   if (['010', '011', '012', 'API_KEY_MISSING', 'DART_NOT_CONFIGURED'].includes(code ?? '')) return '인증·접근 설정을 확인해 주세요.';
@@ -32,12 +32,16 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const defaultStart=boundYear(initialStart??fixedYear??currentYear-2),defaultEnd=boundYear(initialEnd??fixedYear??currentYear);
   const [startYear,setStartYear]=useState(defaultStart),[endYear,setEndYear]=useState(defaultEnd),[period,setPeriod]=useState<RefreshPeriod>(allReports?'ALL':initialPeriod);
   const [requestId,setRequestId]=useState<string|null>(()=>sessionStorage.getItem(`financialRefresh:${stockId}`));
+  const [clock,setClock]=useState(Date.now());
+  useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(timer);},[]);
   const [uncertain,setUncertain]=useState(false),[toast,setToast]=useState('');
   const token=useRef<string|null>(null),toastHandled=useRef('');
   const client=useQueryClient(),submitLock=useRef(false),handled=useRef<string|null>(null),callback=useRef(onComplete);callback.current=onComplete;
   const mutation=useMutation({mutationFn:(refreshMode:'FULL'|'SUPPLEMENT')=>{token.current??=crypto.randomUUID();return apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period,refreshMode,clientRequestId:token.current}),signal:AbortSignal.timeout(15000)});},onSuccess:data=>{setUncertain(false);token.current=null;sessionStorage.setItem(`financialRefresh:${stockId}`,data.requestId);setRequestId(data.requestId);void active.refetch();},onError:error=>{if(error instanceof ApiError&&error.code==='REFRESH_REQUEST_MISMATCH')token.current=null;setUncertain(true);void active.refetch().then(result=>{if(!result.isError)setUncertain(false);});},onSettled:()=>{submitLock.current=false;}});
+  const materialTimes=useQuery({queryKey:['financialMaterialTimes',stockId],queryFn:({signal})=>apiRequest<{financialCollectedAt:string|null;supplementUpdatedAt:string|null}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/material-times`,{signal}),enabled:visible});
   const active=useQuery({queryKey:['financialRefreshActive',stockId],queryFn:({signal})=>apiRequest<RefreshStatus|null>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/active`,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])}),staleTime:0,retry:1,refetchInterval:q=>visible&&(q.state.data?.requestId||q.state.error)?3000:false});
-  useEffect(()=>{if(visible)void active.refetch();},[visible,stockId]);
+  useEffect(()=>{if(visible){void active.refetch();if(requestId)void status.refetch();}},[visible,stockId]);
+  useEffect(()=>{const sync=()=>{if(document.visibilityState==='visible'){void active.refetch();if(requestId)void status.refetch();}};window.addEventListener('focus',sync);document.addEventListener('visibilitychange',sync);return()=>{window.removeEventListener('focus',sync);document.removeEventListener('visibilitychange',sync);};},[stockId,requestId]);
   useEffect(()=>{if(active.data?.requestId&&active.data.state!=='FINISHED'){
     sessionStorage.setItem(`financialRefresh:${stockId}`,active.data.requestId);setRequestId(active.data.requestId);
   }},[active.data,stockId]);
@@ -46,7 +50,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   useEffect(()=>{
     if(status.data?.state!=='FINISHED'||handled.current===requestId)return;
     handled.current=requestId;sessionStorage.removeItem(`financialRefresh:${stockId}`);
-    for(const key of ['securityAnalysis','financialDetail','financialPreview','financialChartAll'])void client.invalidateQueries({queryKey:[key,stockId]});
+    for(const key of ['financialMaterialTimes','securityAnalysis','financialDetail','financialPreview','financialChartAll'])void client.invalidateQueries({queryKey:[key,stockId]});
     for(const key of ['financialList','valueStored'])void client.invalidateQueries({queryKey:[key]});
     client.setQueryData<RefreshStatus|null>(['financialRefreshActive',stockId],current=>current?.requestId===requestId?null:current);
     void active.refetch();
@@ -57,6 +61,11 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
   const finished=status.data?.state==='FINISHED'?status.data:null,range=`${startYear}–${endYear}년 ${labels[period]}`;
   const years=Array.from({length:currentYear-2015+1},(_,i)=>({value:String(currentYear-i),label:String(currentYear-i)}));
   const submit=(mode:'FULL'|'SUPPLEMENT')=>{if(busy||active.isPending||active.isError||invalid||submitLock.current)return;submitLock.current=true;mutation.mutate(mode);};
+  const current=status.data??active.data;
+  const financialAt=[current?.financialCollectedAt,materialTimes.data?.financialCollectedAt,collectedAt].filter((at):at is string=>Boolean(at)).sort().at(-1);
+  const supplementAt=[current?.supplementUpdatedAt,materialTimes.data?.supplementUpdatedAt].filter((at):at is string=>Boolean(at)).sort().at(-1);
+  const elapsed=(at?:string|null)=>at?`${Math.max(0,Math.floor((clock-Date.parse(at))/1000))}초`:'미기록';
+  const waitLabels:Record<string,string>={CHECKING:'대기 사유 확인 중',AUTOMATIC:'자동 수집 종료 대기',PREVIOUS_REQUEST:'앞선 요청 처리 대기',LOCK:'실행 잠금 대기'};
   const progress=status.data?.progress;
   useEffect(()=>{const failed=progress?.tasks?.dart.state==='FAILED'||status.data?.results.some(r=>r.tasks?.dart.state==='FAILED');if(failed&&requestId&&toastHandled.current!==requestId){toastHandled.current=requestId;setToast('DART 수집 실패·시간 초과 · 가치지표 보완은 계속 진행합니다.');}},[progress,status.data,requestId]);
   const reportCount=period==='ALL'?4:1;
@@ -84,7 +93,8 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <Stack sx={{gap:'4px'}}>
     {initialEnd!==undefined&&initialEnd>currentYear&&<Typography sx={{fontSize:11,color:'text.secondary'}}>미래 기간은 제외하고 {currentYear}년까지 갱신합니다.</Typography>}
     <Typography sx={{fontSize:11,color:'text.secondary'}}>현재 종목만 갱신합니다. 실패·미공시 자료는 기존 데이터를 유지합니다.</Typography>
-    <Typography sx={{fontSize:11,color:'text.secondary'}}>저장 데이터 수집 시각: {collectedAt?new Date(collectedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미수집'}</Typography>
+    <Typography sx={{fontSize:11,color:'text.secondary'}}>재무제표 수집 시각: {financialAt?new Date(financialAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
+    <Typography sx={{fontSize:11,color:'text.secondary'}}>보완자료 갱신 시각: {supplementAt?new Date(supplementAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미기록'}</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>보완자료만 갱신하면 기존 재무제표를 유지하고 누락된 가치지표를 보완합니다.</Typography>
     <Typography sx={{fontSize:11,color:'text.secondary'}}>갱신 대상: {range}</Typography>
     </Stack>
@@ -92,7 +102,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
       <ActionButton size="small" tone="danger" disabled={busy||active.isPending||active.isError||invalid} startIcon={busy&&mutation.variables==='FULL'?<HourglassEmptyIcon/>:undefined} onClick={()=>submit('FULL')}>전체 갱신</ActionButton>
       <ActionButton size="small" tone="primary" disabled={busy||active.isPending||active.isError||invalid} startIcon={busy&&mutation.variables==='SUPPLEMENT'?<HourglassEmptyIcon/>:undefined} onClick={()=>submit('SUPPLEMENT')}>보완자료만 갱신</ActionButton>
     </Box>
-    {busy&&<Typography role="status" aria-live="polite" sx={{fontSize:11,lineHeight:'18px',whiteSpace:'nowrap',overflowX:'auto'}}>{progressText}{progress?` (${progress.completed}/${progress.total} 보고서)`:''}</Typography>}
+    {busy&&!status.isError&&!active.isError&&<Typography role="status" aria-live="polite" sx={{fontSize:11,lineHeight:'18px',overflowWrap:'anywhere'}}>{current?.activityState==='CHECKING'?'실행 상태 확인 중 · 최근 활동과 실행 잠금을 확인하고 있습니다.':current?.state==='QUEUED'?`${waitLabels[current.waitReason??'CHECKING']??waitLabels.CHECKING} · 대기 ${elapsed(current.acceptedAt??current.startedAt)}`:`처리 중 · 실행 ${elapsed(current?.executionStartedAt)} · ${progressText}`}{progress?` (${progress.completed}/${progress.total} 보고서)`:''}</Typography>}
     {mutation.isError&&<Alert severity="error">{mutation.error instanceof ApiError?mutation.error.message:errorText()}</Alert>}
     {active.isError&&<QueryErrorNotice message="진행 작업 확인에 실패했습니다. 서버 상태를 다시 확인해 주세요." onRetry={()=>void active.refetch().then(result=>{if(!result.isError)setUncertain(false);})}/>}
     {status.isError&&<QueryErrorNotice message="진행 상태 조회에 실패했습니다. 작업 종료 여부를 다시 확인해 주세요." onRetry={()=>void status.refetch()}/>}

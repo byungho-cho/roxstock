@@ -1,3 +1,4 @@
+import {leaseOwnerId} from '@roxstock/shared/collection/manual-requests';
 import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {CollectionExcluded,withCollection,eligibleWhere} from '@roxstock/shared/collection/collection-policy';
@@ -13,7 +14,7 @@ import {dartWindowOpen} from '@roxstock/shared/collection/dart-policy';
 import {getSeoulClock} from '@roxstock/shared/collection/time';
 const jobType='VALUATION_SUPPLEMENT';
 type Config={windowStartHour:number;windowEndHour:number;apiKey?:string;dailyCallLimit?:number;minDelayMs?:number};
-type Options={load?:NonNullable<Parameters<typeof supplementStoredPeriod>[4]>['load'];clock?:()=>Date;sleep?:(ms:number)=>Promise<void>};
+type Options={serviceManual?:()=>Promise<boolean>;load?:NonNullable<Parameters<typeof supplementStoredPeriod>[4]>['load'];clock?:()=>Date;sleep?:(ms:number)=>Promise<void>};
 /** Automatic and manual supplementation share period-scoped DART/KIS/KRX evidence and preservation. */
 export async function runIndependentSupplement(db:PrismaClient,config:Config,now=new Date(),options:Options={}){
  db=collectionClient(db);
@@ -38,12 +39,20 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
   const batch=pending.slice(0,Math.max(0,Math.min(10,200-used)));
   if(!batch.length)return {status:pending.length?'QUOTA_BLOCKED':'IDLE'};
   const reservedPeriods=batch.length;
-  runId=(await repo.createRun(jobType,'OPEN_DART_KIS_KRX',{phase:'INDEPENDENT_SUPPLEMENT',reservedPeriods,timezone:'Asia/Seoul',policy:'SHARED_MANUAL_AUTOMATIC_PERIOD_SUPPLEMENT'})).id;
+  runId=(await repo.createRun(jobType,'OPEN_DART_KIS_KRX',{ownerId:leaseOwnerId(owner),phase:'INDEPENDENT_SUPPLEMENT',reservedPeriods,timezone:'Asia/Seoul',policy:'SHARED_MANUAL_AUTOMATIC_PERIOD_SUPPLEMENT'})).id;
   const apiKey=config.apiKey??process.env.DART_API_KEY??'';
   const provider=apiKey?new OpenDartProvider({apiKey,dailyCallLimit:config.dailyCallLimit??3000,minDelayMs:config.minDelayMs??2000,
    reserveCall:limit=>{if(!open(clock()))throw new DartApiError('SCHEDULE_WINDOW_ENDED','Collection window ended.');return repo.reserveApiCall(limit,clock(),owner);},
    isCallAllowed:()=>open(clock()),onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')}):null;
   for(const row of batch){
+   if(options.serviceManual){
+    const pending=await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},orderBy:[{startedAt:'asc'},{id:'asc'}]});
+    if(pending){
+     await repo.releaseLock(owner);
+     try{await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(config.minDelayMs??2000);await options.serviceManual();}
+     finally{await (options.sleep??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(config.minDelayMs??2000);if(!await repo.acquireLock(owner,900))throw Error('SUPPLEMENT_LOCK_LOST');}
+    }
+   }
    if(!open(clock()))break;
    const lease=await db.collectorLock.updateMany({where:{jobName:'dart-financial-statements',ownerToken:owner,lockedUntil:{gt:clock()}},data:{lockedUntil:new Date(clock().getTime()+900000)}});if(lease.count!==1)throw Error('SUPPLEMENT_LOCK_LOST');
    const where={securityId_fiscalYear_periodType:{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType}};
@@ -51,6 +60,8 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
     await withCollection(db,row.securityId,'valuation',async()=>{
      const mapping=row.security.dartCorpMapping;
      const load=options.load??loadPeriodSupplement(provider,row.security.symbol,mapping?.corpCode??'',undefined,row.security.marketType,'AUTOMATIC',{dartRequests:Boolean(apiKey&&mapping)});
+     const before=await db.periodValuation.findUnique({where});
+     const beforeValues=JSON.stringify(before?.values);
      const result=await supplementStoredPeriod(db,row.securityId,row.fiscalYear,row.periodType,{load});
      if(!result){skipped++;return;}
      // One retry per day for unresolved source gaps; successful source repairs leave no busy-loop.
@@ -59,7 +70,7 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
      const nextAttemptAt=complete&&!sourceMissing?null:new Date(now.getTime()+86400000);
      const projected=supplementedFilings([row],[{securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType,supplemental:saved as Prisma.JsonObject}])[0]!;
      const financialComplete=[projected.revenueYtd,projected.operatingProfitYtd,projected.netIncomeYtd,projected.totalAssets,projected.totalLiabilities,projected.totalEquity].every(v=>v!=null);
-     await db.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...saved,automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
+     await db.periodValuation.update({where,data:{nextAttemptAt,supplemental:JSON.parse(JSON.stringify({...saved,...(complete||beforeValues!==JSON.stringify(result.values)?{verifiedAt:clock().toISOString()}:{}),automaticAttempt:{at:clock().toISOString(),status:complete?'SUCCESS':'PARTIAL',state:financialComplete?(complete?'COMPLETE':'FINANCIAL_ONLY'):'FINAL_FAILED',provider:'OPEN_DART_KIS_KRX'}})) as Prisma.InputJsonValue}});
      complete?success++:skipped++;
     },{symbol:row.security.symbol});
    }catch(error){if(error instanceof CollectionExcluded){skipped++;continue;}failed++;

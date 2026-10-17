@@ -19,9 +19,9 @@ import { getCfsThenOfs, type DartCollectorConfig } from './dart-collector.js';
 import {manualReports,type ManualRefreshMetadata} from '@roxstock/shared/collection/manual-requests';
 export {manualReports,parseManualRefresh,enqueueManualRefresh,type ManualRefreshMetadata} from '@roxstock/shared/collection/manual-requests';
 /** Durable requests are consumed by the existing worker; interrupted runs resume under the shared DB lock. */
-export async function processManualRefresh(db: PrismaClient, config: DartCollectorConfig) {
+export async function processManualRefresh(db: PrismaClient, config: Pick<DartCollectorConfig,'enabled'|'apiKey'|'dailyCallLimit'|'minDelayMs'>) {
   db=collectionClient(db);
-  const run = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } }, orderBy: { startedAt: 'asc' } });
+  const run = await db.collectorRun.findFirst({ where: { jobType: 'dart-financial-statements', status: 'RUNNING', metadata: { path: '$.phase', equals: 'MANUAL' } }, orderBy: [{ startedAt: 'asc' },{id:'asc'}] });
   if (!run) return false;
   if((run.metadata as unknown as ManualRefreshMetadata).executionMode==='MANUAL_PROTOTYPE')return processIndependentRefresh(db,config,run);
   const repo = new PrismaDartRepository(db);

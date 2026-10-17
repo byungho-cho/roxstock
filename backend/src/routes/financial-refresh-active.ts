@@ -1,4 +1,4 @@
-import {expireManualRun} from '@roxstock/shared/collection/manual-requests';
+import {manualTrace,expireManualRun} from '@roxstock/shared/collection/manual-requests';
 import { refreshSummary } from '@roxstock/shared/collection/refresh-summary';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -23,7 +23,7 @@ export async function financialRefreshActiveRoutes(app: FastifyInstance) {
     const m = run?.metadata as unknown as ManualRefreshMetadata | undefined;
     if (!run || !m || m.phase !== 'MANUAL' || m.securityId !== securityId || m.manualState === 'FINISHED') return { data: null };
     return { data: {
-      requestId: run.id.toString(), state: m.manualState, status: run.status,
+      ...await manualTrace(prisma,run), requestId: run.id.toString(), state: m.manualState, status: run.status,
       fiscalYear: m.fiscalYear, startYear: m.startYear ?? m.fiscalYear,
       endYear: m.endYear ?? m.fiscalYear, period: m.period, refreshMode:m.refreshMode??'FULL', terminalCode:m.terminalCode??null,
       startedAt: run.startedAt.toISOString(), finishedAt: run.finishedAt?.toISOString() ?? null,
