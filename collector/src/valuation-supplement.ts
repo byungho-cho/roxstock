@@ -1,6 +1,7 @@
 import {withCollection,CollectionExcluded,componentExcluded} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
 import {validateStoredDartRows} from './dart-filing-validation.js';
+import {normalizeProviderSymbol} from '@roxstock/shared/domain/security-symbol';
 import { configuredKrx, type KrxMarket } from './krx-provider.js';
 import { collectAnnualConsensus, settleAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import { historicalClose, HistoricalPriceError } from './historical-close.js';
@@ -10,6 +11,12 @@ import {calculatePeriod,preserveValues,metricKeys,type Supplemental} from '@roxs
 import { normalizeManualDartAccounts } from './manual-dart-accounts.js';
 import {completeShares} from '@roxstock/shared/domain/share-counts';
 import {storeShareCounts} from './share-counts.js';
+function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>>,saved:Supplemental){
+ if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision)return false;
+ const sources=f.accountSources as Record<string,{amount?:string|null;ytdAmount?:string|null}>|null;
+ const required=['basicEps','investingCashFlow','financingCashFlow','cashEquivalents',...(f.fsDivision==='CFS'?['parentNetIncome','parentEquity']:[])];
+ return required.some(key=>sources?.[key]?.amount==null&&sources?.[key]?.ytdAmount==null);
+}
 export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,fiscalYear:number,periodType:string,options:{dryRun?:boolean;load?:(f:Awaited<ReturnType<typeof db.dartFinancialFiling.findFirst>>,stored:Supplemental,sharesOnly?:boolean)=>Promise<Supplemental>}={}) {
  db=collectionClient(db);
  return withCollection(db,securityId,'valuation',async()=>{
@@ -22,8 +29,8 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  if(!filing)return null;
  let supplemental=(existing?.supplemental??{}) as Supplemental;
  if(existing?.status==='SUCCESS'){
-  if(options.load&&!completeShares(supplemental.shares,filing.receiptNo)){
-   supplemental=await options.load(filing,supplemental,true);
+  if(options.load&&(!completeShares(supplemental.shares,filing.receiptNo)||needsDartAccounts(filing,supplemental))){
+   supplemental=await options.load(filing,supplemental,!needsDartAccounts(filing,supplemental));
    if(!options.dryRun){await storeShareCounts(db,filing,supplemental.shares);await db.periodValuation.update({where,data:{supplemental:supplemental as Prisma.InputJsonValue}});}
    return {...existing,supplemental};
   }
@@ -74,7 +81,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   if(sharesOnly)return {...saved,...(shares?{shares}:{}),errors};
   // DART account supplementation is validated against the exact stored filing.
   // KRX's separate historical-price rollout must not block a DART EPS request.
-  if(options.dartRequests!==false&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
+  if(options.dartRequests!==false&&needsDartAccounts(f,saved)){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     validateStoredDartRows(rows,f,corpCode,f.fsDivision);
