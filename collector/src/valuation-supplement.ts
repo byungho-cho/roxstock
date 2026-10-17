@@ -1,7 +1,7 @@
 import {withCollection,CollectionExcluded,componentExcluded} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
 import {validateStoredDartRows} from './dart-filing-validation.js';
-import { normalizeProviderSymbol } from '@roxstock/shared/domain/security-symbol';
+import {normalizeProviderSymbol} from '@roxstock/shared/domain/security-symbol';
 import { configuredKrx, type KrxMarket } from './krx-provider.js';
 import { collectAnnualConsensus, settleAnnualConsensus, freezePastEstimates } from './annual-consensus.js';
 import { historicalClose, HistoricalPriceError } from './historical-close.js';
@@ -11,6 +11,12 @@ import {calculatePeriod,preserveValues,metricKeys,type Supplemental} from '@roxs
 import { normalizeManualDartAccounts } from './manual-dart-accounts.js';
 import {completeShares} from '@roxstock/shared/domain/share-counts';
 import {storeShareCounts} from './share-counts.js';
+function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>>,saved:Supplemental){
+ if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision)return false;
+ const sources=f.accountSources as Record<string,{amount?:string|null;ytdAmount?:string|null}>|null;
+ const required=['basicEps','investingCashFlow','financingCashFlow','cashEquivalents',...(f.fsDivision==='CFS'?['parentNetIncome','parentEquity']:[])];
+ return required.some(key=>sources?.[key]?.amount==null&&sources?.[key]?.ytdAmount==null);
+}
 export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,fiscalYear:number,periodType:string,options:{dryRun?:boolean;load?:(f:Awaited<ReturnType<typeof db.dartFinancialFiling.findFirst>>,stored:Supplemental,sharesOnly?:boolean)=>Promise<Supplemental>}={}) {
  db=collectionClient(db);
  return withCollection(db,securityId,'valuation',async()=>{
@@ -23,8 +29,8 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  if(!filing)return null;
  let supplemental=(existing?.supplemental??{}) as Supplemental;
  if(existing?.status==='SUCCESS'){
-  if(options.load&&!completeShares(supplemental.shares,filing.receiptNo)){
-   supplemental=await options.load(filing,supplemental,true);
+  if(options.load&&(!completeShares(supplemental.shares,filing.receiptNo)||needsDartAccounts(filing,supplemental))){
+   supplemental=await options.load(filing,supplemental,!needsDartAccounts(filing,supplemental));
    if(!options.dryRun){await storeShareCounts(db,filing,supplemental.shares);await db.periodValuation.update({where,data:{supplemental:supplemental as Prisma.InputJsonValue}});}
    return {...existing,supplemental};
   }
@@ -73,9 +79,9 @@ export function loadPeriodSupplement(provider:OpenDartProvider,symbol:string,cor
   const errors:Record<string,string>={};let shares=saved.shares,price=saved.price,accounts=saved.accounts;
   try{if(options.dartRequests!==false&&!completeShares(shares,f.receiptNo)){const fetched=await provider.fetchPeriodShares(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.receiptNo);if(fetched)shares=fetched;else {errors.shares='주식수 미공시 또는 미제공';errors.sharesCode='SHARES_NO_DATA';}}}catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.shares='동일 공시 주식수 보충 조회 실패';errors.sharesCode=error instanceof DartApiError?error.code:'SHARES_COMMUNICATION';}
   if(sharesOnly)return {...saved,...(shares?{shares}:{}),errors};
-  const sourceAllowed=(process.env.KRX_VALIDATED_SYMBOLS??'005930').split(',').map(s=>s.trim()).includes(normalizeProviderSymbol(symbol))||(mode==='MANUAL_PROTOTYPE'&&['005930','000660','035420'].includes(normalizeProviderSymbol(symbol)));
-  if(!sourceAllowed)errors.accounts='VALUATION_SOURCE_ROLLOUT_NOT_VALIDATED';
-  if(options.dartRequests!==false&&sourceAllowed&&(!accounts||accounts.receiptNo!==f.receiptNo)&&(!((f.accountSources as Record<string,unknown>|null)?.basicEps)||!((f.accountSources as Record<string,unknown>|null)?.parentEquity))){
+  // DART account supplementation is validated against the exact stored filing.
+  // KRX's separate historical-price rollout must not block a DART EPS request.
+  if(options.dartRequests!==false&&needsDartAccounts(f,saved)){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     validateStoredDartRows(rows,f,corpCode,f.fsDivision);

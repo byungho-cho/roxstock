@@ -12,6 +12,13 @@ test('current endpoint validates symbol, preserves loss EPS and foreign zero, an
  output.stck_shrn_iscd='000660';await assert.rejects(provider.currentFundamentals('005930'),{code:'KIS_SYMBOL_OR_SCHEMA_MISMATCH'});
  await assert.rejects(provider.currentFundamentals('Z99001'),{code:'EXCLUDED_SYMBOL'});
 });
+
+test('KIS current failure stores KRX in the same shared table and leaves annual DART data untouched',async()=>{
+ let owner,stored,runStatus,annualCalls=0;
+ const db={collectorLock:{updateMany:async({data})=>{owner=data.ownerToken;return {count:1}},deleteMany:async()=>({count:1})},security:{findMany:async()=>[{...security,marketType:'KOSPI'}]},collectorRun:{updateMany:async()=>({count:0}),create:async()=>({id:8n}),update:async({data})=>{runStatus=data.status}},collectorRunItem:{create:async()=>({})},$transaction:async fn=>fn({$queryRaw:async()=>[{owner_token:owner}],security:{findUnique:async()=>security},analysisRevision:{upsert:async()=>({})},fundamentalSnapshot:{findUnique:async()=>null,upsert:async({create,update})=>{assert.deepEqual(update,{});stored=create}},collectorRunItem:{create:async()=>({})}})};
+ const result=await runKisSupplements({db,kis:{currentFundamentals:async()=>{throw Error('unavailable')},annualFundamentals:async()=>{annualCalls++;return []}},krx:{currentFundamentals:async(symbol,market)=>{assert.equal(symbol,'005930');assert.equal(market,'KOSPI');return {source:'KRX',sourceAsOf:'2026-10-16',listedShares:'1234',collectedAt:new Date(),raw:{LIST_SHRS:'1234'}}}},sleep:async()=>{}});
+ assert.equal(result.stored,1);assert.equal(result.referenceFailures,1);assert.equal(stored.source,'KRX');assert.equal(stored.listedShares,'1234');assert.equal(stored.per,null);assert.equal(annualCalls,0);assert.equal(runStatus,'PARTIAL');
+});
 test('ownership and exhaustion are separate; per-feature exclusions redact original fields too',()=>{
  const data=supplementData(observation,security,new Date('2026-10-16'));
  assert.equal(data.foreignHoldingRatio,'25');assert.equal(data.foreignExhaustionRate,'30');assert.equal(data.raw.sourceAsOf,null);
@@ -23,8 +30,8 @@ test('ownership and exhaustion are separate; per-feature exclusions redact origi
 test('collector revalidates identity under owner lock and stores current snapshots without touching period models',async()=>{
  let owner,stored,finalRun,query,minimumDelay=0;
  const current={...security};
- const db={collectorLock:{updateMany:async({data})=>{owner=data.ownerToken;return {count:1}},deleteMany:async()=>({count:1})},security:{findMany:async(q)=>{query=q;return [security]}},collectorRun:{updateMany:async()=>({count:0}),create:async()=>({id:7n}),update:async({data})=>{finalRun=data}},collectorRunItem:{create:async()=>({})},$transaction:async fn=>fn({$queryRaw:async()=>[{owner_token:owner}],security:{findUnique:async()=>current},kisFundamentalSnapshot:{upsert:async({create,update})=>{assert.deepEqual(update,{});stored=create}},collectorRunItem:{create:async()=>({})}})};
+ const db={collectorLock:{updateMany:async({data})=>{owner=data.ownerToken;return {count:1}},deleteMany:async()=>({count:1})},security:{findMany:async(q)=>{query=q;return [security]}},collectorRun:{updateMany:async()=>({count:0}),create:async()=>({id:7n}),update:async({data})=>{finalRun=data}},collectorRunItem:{create:async()=>({})},$transaction:async fn=>fn({$queryRaw:async()=>[{owner_token:owner}],security:{findUnique:async()=>current},analysisRevision:{upsert:async()=>({})},fundamentalSnapshot:{findUnique:async()=>null,upsert:async({create,update})=>{assert.deepEqual(update,{});stored=create}},collectorRunItem:{create:async()=>({})}})};
  const result=await runKisSupplements({db,kis:{currentFundamentals:async()=>observation},now:()=>new Date('2026-10-16T01:00:00Z'),sleep:async(ms)=>{minimumDelay=ms}});
- assert.equal(result.stored,1);assert.equal(stored.collectionSymbol,'005930');assert.equal(finalRun.status,'SUCCESS');assert.equal(minimumDelay,2000);assert.equal(query.where.kisFundamentalSnapshots.none.observedDate.toISOString(),'2026-10-16T00:00:00.000Z');
+ assert.equal(result.stored,1);assert.equal(stored.collectionSymbol,'005930');assert.equal(finalRun.status,'SUCCESS');assert.equal(minimumDelay,2000);assert.equal(query.where.fundamentalSnapshots.none.observedDate.toISOString(),'2026-10-16T00:00:00.000Z');
  stored=null;current.collectionRevision=1;const changed=await runKisSupplements({db,kis:{currentFundamentals:async()=>observation},sleep:async()=>{}});assert.equal(changed.skipped,1);assert.equal(stored,null);
 });

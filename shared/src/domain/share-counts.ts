@@ -8,7 +8,11 @@ export function completeShares(shares:PeriodShares|undefined,receiptNo:string){r
 export function displayShares(rows:DartShareSnapshot[],filings:{receiptNo:string;fiscalYear:number;periodEndDate:Date;isWithdrawn?:boolean;receiptDate:Date}[],year:number,shareClass='COMMON',quarter?:number|null){
  const matches=filings.filter(f=>f.fiscalYear===year&&!f.isWithdrawn&&(!quarter||f.periodEndDate.getUTCMonth()===quarter*3-1)).sort((a,b)=>b.periodEndDate.getTime()-a.periodEndDate.getTime()||b.receiptDate.getTime()-a.receiptDate.getTime()||b.receiptNo.localeCompare(a.receiptNo));
  const filing=matches[0],candidates=filing?rows.filter(r=>r.receiptNo===filing.receiptNo&&r.shareClass===shareClass):[];const row=candidates.length===1?candidates[0]:undefined;
- return {issuedShares:row?.issuedShares?.toString()??null,treasuryShares:row?.treasuryShares?.toString()??null,outstandingShares:row?.outstandingShares?.toString()??null,shareBasis:row?{receiptNo:row.receiptNo,stockKind:row.stockKind,shareClass:row.shareClass,fiscalYear:row.fiscalYear,reportCode:row.reportCode,periodEndDate:row.periodEndDate.toISOString().slice(0,10),collectedAt:row.collectedAt.toISOString()}:null};
+ const issuedShares=row?.issuedShares?.toString()??null,outstandingShares=row?.outstandingShares?.toString()??null;
+ let treasuryShares=row?.treasuryShares?.toString()??null;
+ const treasuryCalculated=row?.shareClass==='COMMON'&&treasuryShares===null&&issuedShares!==null&&outstandingShares!==null&&BigInt(issuedShares)>=BigInt(outstandingShares);
+ if(treasuryCalculated)treasuryShares=(BigInt(issuedShares!)-BigInt(outstandingShares!)).toString();
+ return {issuedShares,treasuryShares,outstandingShares,shareBasis:row?{receiptNo:row.receiptNo,stockKind:row.stockKind,shareClass:row.shareClass,fiscalYear:row.fiscalYear,reportCode:row.reportCode,periodEndDate:row.periodEndDate.toISOString().slice(0,10),collectedAt:row.collectedAt.toISOString(),treasuryCalculated}:null};
 }
 /** Display-only: one filing/class; estimates may explicitly fall back to the previous final annual filing. */
 export function latestDisplayShares(rows:DartShareSnapshot[],filings:(Parameters<typeof displayShares>[1][number]&{periodType?:string})[],year:number,shareClass='COMMON',allowPreviousAnnual=false){

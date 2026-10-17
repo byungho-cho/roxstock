@@ -1,3 +1,4 @@
+import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {publicValueRows} from '@roxstock/shared/read-model/value-rows';
 import {parseAnalysisSort,sortAnalysisRows} from '@roxstock/shared/domain/analysis-sort';
 import {selectValueListAnalysis,orderValueGroups,shareholderTotals} from '@roxstock/shared/domain/value-list-analysis';
@@ -5,7 +6,7 @@ import {securityCacheRevision} from '../domain/security-cache-revision.js';
 import {selectStoredAnalysis,storedAnalysisInclude} from '@roxstock/shared/domain/stored-analysis';
 import { hasInitialQuery, matchesStockSearch } from '@roxstock/shared/domain/stock-search';
 import {latestStoredDisplayShares} from '@roxstock/shared/domain/share-counts';
-import {currentKisSupplement} from '@roxstock/shared/domain/kis-supplement';
+import {currentFundamentalSupplement} from '@roxstock/shared/domain/financial-supplement';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@roxstock/shared/prisma';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -52,12 +53,13 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       if (!security?.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
       if(cachedRow&&(cachedRow.symbol!==security.symbol||cachedRow.codeRevision!==security.codeRevision))cachedRow=undefined;
       const fromYear = Math.min(startYear - 1, year - 1), toYear = Math.max(last, year);
-      const [manual, filings, metrics] = await Promise.all([
+      const [manual, rawFilings, metrics] = await Promise.all([
         tx.financialStatement.findMany({ where: { securityId, fiscalYear: { gte: fromYear, lte: toYear } }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }] }),
         tx.dartFinancialFiling.findMany({ where: { securityId, isWithdrawn: false, fiscalYear: { gte: fromYear, lte: toYear } }, orderBy: [{ fiscalYear: 'desc' }, { periodType: 'desc' }, { receiptDate: 'desc' }, { collectedAt: 'desc' }, { receiptNo: 'desc' }] }),
         tx.valuationMetric.findMany({ where: { securityId, metricDate: { gte: new Date(Date.UTC(fromYear, 0, 1)), lt: new Date(Date.UTC(toYear + 1, 0, 1)) } }, orderBy: { metricDate: 'desc' } }),
       ]);
       const calculated=await tx.periodValuation.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}}});
+      const filings=supplementedFilings(rawFilings,calculated);
       const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:{lte:year},shareClass,OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc'},{receiptNo:'desc'}],take:2});
       const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}});
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
@@ -66,7 +68,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const metric=cachedRow?cachedRow.valuation:analysis.metric,rimRow=calculated.find(row=>row.fiscalYear===analysis.metricBasis.year&&row.periodType===(analysis.dataPriority===1?'ESTIMATE':'ANNUAL'));
       const rim=cachedRow?{excessEarnings:cachedRow.excessEarnings,shareholderValue:cachedRow.shareholderValue,rimReason:cachedRow.rimReason,rimBasis:cachedRow.rimBasis,rimComparison:cachedRow.rimComparison}:shareholderTotals(metric,rimRow,filings),shareYear=cachedRow?.metricBasis.year??analysis.metricBasis.year??year;
       const displayedShares=latestStoredDisplayShares(shareRows,filings,year,shareClass);
-      const currentSupplement=currentKisSupplement(await tx.kisFundamentalSnapshot.findFirst({where:{securityId,collectionSymbol:security.symbol},orderBy:{collectedAt:'desc'}}));
+      const currentSupplement=currentFundamentalSupplement(await tx.fundamentalSnapshot.findFirst({where:{securityId,collectionSymbol:security.symbol},orderBy:{collectedAt:'desc'}}));
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: cachedRow?cachedRow.previousClosePrice:security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: cachedRow?cachedRow.priceUpdatedAt:security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
         ...displayedShares,

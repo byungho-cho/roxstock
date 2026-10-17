@@ -163,7 +163,7 @@ model Security {
   dartBackfillTasks      DartBackfillTask[]
   dartFinancialFilings   DartFinancialFiling[]
   dartShareSnapshots     DartShareSnapshot[]
-  kisFundamentalSnapshots KisFundamentalSnapshot[]
+  fundamentalSnapshots FundamentalSnapshot[]
   dartDailyCompanyChecks DartDailyCompanyCheck[]
 
   @@unique([marketType, symbol])
@@ -645,8 +645,10 @@ model SecurityFundamentals {
   @@map("security_fundamentals")
 }
 
-// Current observations only: never a fiscal-year/quarter replacement for DART.
-model KisFundamentalSnapshot {
+// Shared KIS-first / KRX-fallback current observations for financial and value analysis.
+// Legacy physical table/index names are retained for in-place compatibility and rollback.
+// Current observations never replace DART fiscal-period values.
+model FundamentalSnapshot {
   id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
   securityId BigInt @map("security_id") @db.UnsignedBigInt
   collectionSymbol String @map("collection_symbol") @db.VarChar(20)
