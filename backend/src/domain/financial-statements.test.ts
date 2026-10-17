@@ -12,3 +12,6 @@ test('missing periods stay missing and real zero stays zero',()=>{
  const result=statementPeriods([{key:'2025:ANNUAL',label:'2025',year:2025,quarter:null},{key:'2026:ANNUAL',label:'2026',year:2026,quarter:null}],[row(2025,'0')]);
  assert.equal(result[0]!.values.revenue,'0');assert.equal(result[1]!.values.revenue,null);
 });
+test('reviewed fiscal dates are exposed and unmatched durations never produce growth',()=>{
+ const current={...row(2025,'100'),periodReview:true,periodEndDate:'2025-06-30'};assert.equal(yearGrowth(current,row(2024,'50'),'revenue'),null);const [shown]=statementPeriods([{key:'2025:ANNUAL',label:'2025',year:2025,quarter:null}],[current]);assert.equal(shown?.periodEndDate,'2025-06-30');assert.equal(shown?.periodReview,true);
+});

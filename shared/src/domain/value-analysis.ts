@@ -24,8 +24,9 @@ export function orderByWeight<T extends { w: string | null; symbol: string; id: 
     a.w !== null && b.w !== null && !new Prisma.Decimal(a.w).eq(b.w) ? new Prisma.Decimal(b.w).cmp(a.w) :
     a.symbol.localeCompare(b.symbol) || a.id.localeCompare(b.id));
 }
+const fiscalPeriodReview=(f:Omit<DartFinancialFiling,'accountSources'>|undefined)=>Boolean((f?.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution);
 export type Statement = {
-  fiscalYear: number; periodType: string; periodEndDate: string; revenue: string | null; operatingProfit: string | null; netIncome: string | null;
+  periodReview?:boolean; fiscalYear: number; periodType: string; periodEndDate: string; revenue: string | null; operatingProfit: string | null; netIncome: string | null;
   totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null; basis: string; collectedAt: string | null; isDerived: boolean;
 };
 // Reuse existing analysis precedence: manual non-null values, latest non-withdrawn DART, same-basis Q4 = annual YTD - Q3 YTD.
@@ -35,12 +36,13 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
   for (const row of filings) { const key = row.fiscalYear + ':' + row.periodType; if (!filingMap.has(key)) filingMap.set(key, row); }
   const keys = new Set([...manualMap.keys(), ...filingMap.keys()]);
   for (const row of filings.filter(row => row.periodType === 'ANNUAL')) {
-    if (filingMap.get(row.fiscalYear + ':Q3')?.fsDivision === row.fsDivision) keys.add(row.fiscalYear + ':Q4');
+    if (!fiscalPeriodReview(row)&&!fiscalPeriodReview(filingMap.get(row.fiscalYear + ':Q3'))&&filingMap.get(row.fiscalYear + ':Q3')?.fsDivision === row.fsDivision) keys.add(row.fiscalYear + ':Q4');
   }
   return [...keys].map(key => {
-    const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), m = manualMap.get(key), f = filingMap.get(key);
+    const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), candidate = manualMap.get(key), f = filingMap.get(key);
+    const m=fiscalPeriodReview(f)&&candidate?.periodEndDate.getTime()!==f?.periodEndDate.getTime()?undefined:candidate;
     const annual = filingMap.get(year + ':ANNUAL'), q3 = filingMap.get(year + ':Q3');
-    const derived = periodType === 'Q4' && !f && !!annual && !!q3 && annual.fsDivision === q3.fsDivision;
+    const derived = periodType === 'Q4' && !f && !!annual && !!q3 && annual.fsDivision === q3.fsDivision&&!fiscalPeriodReview(annual)&&!fiscalPeriodReview(q3);
     const flow = (name: 'revenue' | 'operatingProfit' | 'netIncome') => {
       if (m?.[name] != null) return text(m[name]);
       if (derived) {
@@ -54,7 +56,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
       return text(f?.[key]);
     };
     const balance = (name: 'totalAssets' | 'totalLiabilities' | 'totalEquity') => text(m?.[name] ?? (derived ? annual?.[name] : f?.[name]));
-    return { fiscalYear, periodType, periodEndDate: (m?.periodEndDate ?? f?.periodEndDate ?? (derived ? annual?.periodEndDate : undefined))?.toISOString().slice(0, 10) ?? fiscalYear + '-12-31',
+    return { periodReview:fiscalPeriodReview(f),fiscalYear, periodType, periodEndDate: (m?.periodEndDate ?? f?.periodEndDate ?? (derived ? annual?.periodEndDate : undefined))?.toISOString().slice(0, 10) ?? fiscalYear + '-12-31',
       revenue: flow('revenue'), operatingProfit: flow('operatingProfit'), netIncome: flow('netIncome'),
       totalAssets: balance('totalAssets'), totalLiabilities: balance('totalLiabilities'), totalEquity: balance('totalEquity'),
       basis: (m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
@@ -70,7 +72,7 @@ export function periods(year: number, quarter: number | null, count: number): Pe
   });
 }
 export function growth(current: Statement | undefined, previous: Statement | undefined, field: 'revenue' | 'netIncome'): string | null {
-  if (!current || !previous || current.basis !== previous.basis) return null;
+  if (!current || !previous || current.periodReview||previous.periodReview||current.basis !== previous.basis) return null;
   const a = decimal(current[field]), b = decimal(previous[field]);
   return a && b?.gt(0) ? a.minus(b).div(b).mul(100).toString() : null;
 }
@@ -90,7 +92,7 @@ export function financialRows(selected: Period[], statements: Statement[], metri
     const equity = decimal(row?.totalEquity), liabilities = decimal(row?.totalLiabilities);
     return { ...period,isEstimated:estimate, label:estimate?`${period.year}E`:period.label,collectionState:periodCollectionState(computed,financialComplete),latestAttempt:(computed?.supplemental as {manualAttempt?:unknown}|null)?.manualAttempt??null,
       revenue:estimate?estimateFinancials?.revenue??null:row?.revenue??null, operatingProfit:estimate?estimateFinancials?.operatingProfit??null:row?.operatingProfit??null, netIncome:estimate?estimateFinancials?.netIncome??null:row?.netIncome??null,
-      per: values?.per??text(periodMetric?.per)??null, pbr: values?.pbr??text(periodMetric?.pbr)??null, roe: values?.roe??text(periodMetric?.roe)??null, metricDate: periodMetric?.metricDate.toISOString().slice(0, 10) ?? (computed?.provenance as {periodEnd?:string}|undefined)?.periodEnd??null,
+      per:row?.periodReview?null:values?.per??text(periodMetric?.per)??null, pbr:row?.periodReview?null:values?.pbr??text(periodMetric?.pbr)??null, roe:row?.periodReview?null:values?.roe??text(periodMetric?.roe)??null, metricDate: periodMetric?.metricDate.toISOString().slice(0, 10) ?? (computed?.provenance as {periodEnd?:string}|undefined)?.periodEnd??null,
       metricStatus:computed?.status??'NOT_COLLECTED',metricReasons:computed?.reasons??{},metricProvenance:computed?.provenance??null,
       debtRatio: !estimate&&equity?.gt(0) && liabilities ? liabilities.div(equity).mul(100).toString() : null,
       currentRatio: null, revenueGrowth: estimate?null:growth(row, before, 'revenue'), profitGrowth: estimate?null:growth(row, before, 'netIncome'),

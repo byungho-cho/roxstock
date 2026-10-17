@@ -4,7 +4,7 @@ import { mergeStatements, type Period } from '@roxstock/shared/domain/value-anal
 export const financialFields = ['revenue','operatingProfit','netIncome','parentNetIncome','totalAssets','totalLiabilities','totalEquity','parentEquity','operatingCashFlow','investingCashFlow','financingCashFlow','cashEquivalents'] as const;
 export type FinancialField = typeof financialFields[number];
 type Values = Record<FinancialField, string | null>;
-export type StoredFinancial = Values & { fiscalYear: number; periodType: string; basis: string; collectedAt: string | null; isDerived: boolean };
+export type StoredFinancial = Values & { periodEndDate?:string;periodReview?:boolean; fiscalYear: number; periodType: string; basis: string; collectedAt: string | null; isDerived: boolean };
 const text = (v: {toString():string} | null | undefined) => v?.toString() ?? null;
 function source(row: DartFinancialFiling | undefined, key: string, ytd: boolean) {
   const sources = row?.accountSources;
@@ -18,7 +18,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
   const filingMap = new Map<string,DartFinancialFiling>();
   for (const f of filings) { const key=f.fiscalYear+':'+f.periodType; if(!filingMap.has(key))filingMap.set(key,f); }
   return mergeStatements(manual,filings).map(row => {
-    const key=row.fiscalYear+':'+row.periodType,m=manual.find(m=>m.fiscalYear+':'+m.periodType===key),f=filingMap.get(key);
+    const key=row.fiscalYear+':'+row.periodType,m=manual.find(m=>m.fiscalYear+':'+m.periodType===key&&(!row.periodReview||m.periodEndDate.toISOString().slice(0,10)===row.periodEndDate)),f=filingMap.get(key);
     const annual=filingMap.get(row.fiscalYear+':ANNUAL'),q3=filingMap.get(row.fiscalYear+':Q3');
     const snapshot = row.isDerived ? annual : f;
     const extraFlow = (field:string):string|null => {
@@ -30,6 +30,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
       }
       // Income statement currentAmount is the individual quarter. CF currentAmount is cumulative.
       if(field==='parentNetIncome')return source(f,field,false);
+      if(row.periodReview&&row.periodType!=='Q1')return null;
       const cumulative=source(f,field,true);
       if(row.periodType==='Q1')return cumulative;
       const previous=filingMap.get(row.fiscalYear+':'+(row.periodType==='Q2'?'Q1':'Q2'));
@@ -44,6 +45,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
         if(!annual||!q3||annual.fsDivision!==q3.fsDivision||annual.operatingCashFlowYtd==null||q3.operatingCashFlowYtd==null)return null;
         return annual.operatingCashFlowYtd.minus(q3.operatingCashFlowYtd).toString();
       }
+      if(row.periodReview&&row.periodType!=='Q1')return null;
       const cumulative=source(f,'operatingCashFlow',true)??text(f?.operatingCashFlowYtd);
       if(row.periodType==='Q1')return cumulative;
       const previous=filingMap.get(row.fiscalYear+':'+(row.periodType==='Q2'?'Q1':'Q2'));
@@ -54,7 +56,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
   });
 }
 export function yearGrowth(current: StoredFinancial | undefined, previous: StoredFinancial | undefined, field: FinancialField): string | null {
-  if(!current||!previous||current.basis!==previous.basis||current[field]===null||previous[field]===null)return null;
+  if(!current||!previous||current.periodReview||previous.periodReview||current.basis!==previous.basis||current[field]===null||previous[field]===null)return null;
   const before=new Prisma.Decimal(previous[field]);
   return before.isZero()?null:new Prisma.Decimal(current[field]).minus(before).div(before.abs()).mul(100).toString();
 }
@@ -62,6 +64,6 @@ export function statementPeriods(selected: Period[], rows: StoredFinancial[]) {
   const map=new Map(rows.map(row=>[row.fiscalYear+':'+row.periodType,row]));
   return selected.map(period=>{
     const row=map.get(period.key),previous=map.get(period.year-1+':'+(period.quarter===null?'ANNUAL':'Q'+period.quarter));
-    return {...period,values:Object.fromEntries(financialFields.map(key=>[key,row?.[key]??null])) as Values,growth:Object.fromEntries(financialFields.map(key=>[key,yearGrowth(row,previous,key)])) as Values,basis:row?.basis??null,collectedAt:row?.collectedAt??null,isDerived:row?.isDerived??false};
+    return {...period,periodEndDate:row?.periodEndDate??null,periodReview:row?.periodReview??false,values:Object.fromEntries(financialFields.map(key=>[key,row?.[key]??null])) as Values,growth:Object.fromEntries(financialFields.map(key=>[key,yearGrowth(row,previous,key)])) as Values,basis:row?.basis??null,collectedAt:row?.collectedAt??null,isDerived:row?.isDerived??false};
   });
 }
