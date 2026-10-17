@@ -18,9 +18,8 @@ export function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient[
  if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision){
   if(saved.shares?.preferred&&saved.accounts.sources.basicEps?.ordinaryEpsVerified===undefined)return true;
   const core=[['revenueYtd','revenue'],['netIncomeYtd','netIncome'],['totalEquity','totalEquity'],['totalAssets','totalAssets'],['totalLiabilities','totalLiabilities']] as const;
-  return (f.periodType==='ANNUAL'&&!saved.accounts.sources.openingTotalEquity&&!saved.accounts.sources.openingParentEquity)||core.some(([field,key])=>f[field]==null&&saved.accounts?.sources[key]?.amount==null&&saved.accounts?.sources[key]?.ytdAmount==null);
+  return core.some(([field,key])=>f[field]==null&&saved.accounts?.sources[key]?.amount==null&&saved.accounts?.sources[key]?.ytdAmount==null);
  }
- if(f.periodType==='ANNUAL'&&!saved.accounts?.sources.openingTotalEquity&&!saved.accounts?.sources.openingParentEquity)return true;
  const sources=f.accountSources as Record<string,{amount?:string|null;ytdAmount?:string|null}>|null;
  const required=['basicEps','investingCashFlow','financingCashFlow','cashEquivalents',...(f.fsDivision==='CFS'?['parentNetIncome','parentEquity']:[])];
  return required.some(key=>sources?.[key]?.amount==null&&sources?.[key]?.ytdAmount==null);
@@ -116,7 +115,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider|null,symbol:strin
   if(sharesOnly)return {...saved,...(shares?{shares}:{}),errors};
   // DART account supplementation is validated against the exact stored filing.
   // KRX's separate historical-price rollout must not block a DART EPS request.
-  if(provider&&options.dartRequests!==false&&needsDartAccounts(f,saved)){
+  if(provider&&options.dartRequests!==false&&(needsDartAccounts(f,saved)||f.periodType==='ANNUAL'&&!saved.accounts?.sources.openingTotalEquity&&!saved.accounts?.sources.openingParentEquity)){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     validateStoredDartRows(rows,f,corpCode,f.fsDivision);
