@@ -11,6 +11,8 @@ import { collectorLog as log } from '@roxstock/shared/collection/logger';
 const config = loadCollectorConfig();
 let running = false;
 let stopping = false;
+let sweeping=false;
+const cleanup=async()=>{if(sweeping||stopping)return;sweeping=true;try{await sweepManualRequests(prisma);}catch(error){log('error','Manual expiry sweep failed',dartDiagnostic(error,'EXPIRY_SWEEP'));}finally{sweeping=false;}};
 const tick = async (manualOnly=false) => {
   if (running || stopping) return;
   running = true;
@@ -26,7 +28,7 @@ const tick = async (manualOnly=false) => {
       corpRefreshHours: config.dartCorpRefreshHours,
       restDayAllDay: config.dartRestDayAllDay, holidayDates: await publicHolidayDates(),
     };
-    await sweepManualRequests(prisma);
+    await cleanup();
     const handledManual=await processManualRefresh(prisma, dartConfig);
     if(manualOnly&&!handledManual)return;
     const result = await runDartCollectorCycle(prisma, dartConfig, new Date(),()=>processManualRefresh(prisma,dartConfig));
@@ -37,7 +39,7 @@ const tick = async (manualOnly=false) => {
   } finally { running = false; }
 };
 
-const cleanupTimer=setInterval(()=>void sweepManualRequests(prisma).catch(error=>log('error','Manual expiry sweep failed',dartDiagnostic(error,'EXPIRY_SWEEP'))),15_000);
+const cleanupTimer=setInterval(()=>void cleanup(),15_000);
 const manualTimer=setInterval(()=>void tick(true),5_000);
 const timer = setInterval(() => void tick(), 60_000);
 const stop = async () => {
@@ -46,7 +48,7 @@ const stop = async () => {
   clearInterval(timer);
   clearInterval(manualTimer);
   clearInterval(cleanupTimer);
-  while (running) await new Promise((resolve) => setTimeout(resolve, 100));
+  while (running||sweeping) await new Promise((resolve) => setTimeout(resolve, 100));
   await prisma.$disconnect();
   process.exit(0);
 };

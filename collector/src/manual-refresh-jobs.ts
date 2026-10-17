@@ -93,10 +93,11 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
      const previous=candidate&&(candidate.receiptNo===source.receiptNo||oldPeriod===source.periodEndDate.toISOString().slice(0,10)&&declared===source.sourceValidation.reportPeriod&&(candidate.sourceValidation as {currency?:string}|null)?.currency==='KRW')?candidate:null;
      for(const key of Object.keys(values) as (keyof typeof values)[])if(key!=='accountSources'&&values[key]==null&&previous?.[key]!=null){values[key]=String(previous[key]);const evidence=previous.accountSources as Record<string,unknown>|null;values.accountSources[key]={...(evidence?.[key] as typeof values.accountSources[string]),retainedFromReceipt:previous.receiptNo} as typeof values.accountSources[string];}
      values.accountSources={...((previous?.accountSources??{}) as typeof values.accountSources),...values.accountSources};
-     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt:new Date(),values});
+     const collectedAt=new Date();
+     await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt,values});
      const {accountSources,...amounts}=values;
-     await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources)}});
-     m.financialCollectedAt=new Date().toISOString();
+     await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources),collectedAt}});
+     m.financialCollectedAt=collectedAt.toISOString();
      return {state:'SUCCESS' as const};
     },m),
     valuation:async()=>withCollection(scopedDb,security.id,'valuation',async()=>{

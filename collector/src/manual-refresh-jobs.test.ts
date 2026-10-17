@@ -58,10 +58,10 @@ test('unavailable valuation does not roll back a successful financial task',asyn
  const result=await runIndependentPeriod({dart:async()=>({state:'SUCCESS'}),valuation:async()=>({state:'UNAVAILABLE',code:'BASE_MISSING'})});
  assert.equal(result.dart.state,'SUCCESS');assert.equal(result.valuation.state,'UNAVAILABLE');
 });
-test('orphan expiration is terminal and releases only its persisted owner',async()=>{
- const f=fixture();f.run.startedAt=new Date(Date.now()-manualLimits.queueMs-1);
+test('orphan expiration is terminal without deleting the active owner lease',async()=>{
+ const f=fixture();(f.run.metadata as unknown as ManualRefreshMetadata).lockOwner='active-owner';f.run.startedAt=new Date(Date.now()-manualLimits.queueMs-1);
  assert.equal(await expireManualRun(f.db,f.run),true);assert.equal(f.run.status,'FAILED');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).manualState,'FINISHED');
- assert.equal(await expireManualRun(f.db,f.run),false);
+ assert.equal(await expireManualRun(f.db,f.run),false);assert.equal(f.releases(),0);
 });
 
 test('whole-run timeout also bounds a hanging pre-collection database read',async()=>{
