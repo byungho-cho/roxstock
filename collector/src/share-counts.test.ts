@@ -1,6 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {OpenDartProvider} from './dart-provider.js';import {completeShares,displayShares,shareClassOf} from '@roxstock/shared/domain/share-counts';import {Prisma} from '@roxstock/shared/prisma';
 const receipts=['20260310002820','20260814003699'];
+test('display derives treasury from one DART receipt/class only and preserves missing source data',()=>{
+ const row={receiptNo:'20260319000530',shareClass:'COMMON',stockKind:'보통주',fiscalYear:2025,reportCode:'11011',periodEndDate:new Date('2025-12-31'),collectedAt:new Date(),issuedShares:new Prisma.Decimal(20503505),outstandingShares:new Prisma.Decimal(20503505),treasuryShares:null} as any;
+ const filing={receiptNo:row.receiptNo,fiscalYear:2025,periodEndDate:row.periodEndDate,receiptDate:new Date('2026-03-19')};
+ const shown=displayShares([row],[filing],2025);assert.equal(shown.treasuryShares,'0');assert.equal(shown.shareBasis?.treasuryCalculated,true);assert.equal(row.treasuryShares,null);
+ assert.equal(displayShares([{...row,outstandingShares:null}],[filing],2025).treasuryShares,null);
+ assert.equal(displayShares([{...row,outstandingShares:new Prisma.Decimal(30000000)}],[filing],2025).treasuryShares,null);
+ assert.equal(displayShares([row,{...row,stockKind:'다른 보통주'}],[filing],2025).treasuryShares,null);
+});
 test('explicit ordinary variants are ordinary; unknown voting categories and mixed classes stay unknown',()=>{
  for(const name of ['보통주','보통주식','의결권 있는 보통주','기명식 보통주'])assert.equal(shareClassOf(name),'COMMON');
  for(const name of ['우선주','의결권 없는 우선주'])assert.equal(shareClassOf(name),'PREFERRED');

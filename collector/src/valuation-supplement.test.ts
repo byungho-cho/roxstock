@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';import test from 'node:test';import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';import {supplementStoredPeriod,supplementSafely} from './valuation-supplement.js';
 import {loadPeriodSupplement} from './valuation-supplement.js';import type {OpenDartProvider} from './dart-provider.js';
 const d=(v:number)=>new Prisma.Decimal(v);
+test('DART exact filing EPS is supplemented independently of KRX historical-price rollout',async()=>{
+ const receiptNo='20260319000530',corpCode='00123456';let calls=0;
+ const filing={securityId:329n,fiscalYear:2025,periodType:'ANNUAL',reportCode:'11011',fsDivision:'OFS',receiptNo,periodEndDate:new Date('2025-12-31'),receiptDate:new Date('2026-03-19'),accountSources:{}};
+ const provider={fetchFinancials:async()=>{calls++;return [{corpCode,fiscalYear:2025,reportCode:'11011',receiptNo,currency:'KRW',statementDivision:'CIS',accountId:'ifrs-full_BasicEarningsLossPerShare',accountName:'기본주당이익',currentAmount:'314',currentYtdAmount:null}];}} as unknown as OpenDartProvider;
+ const shares={receiptNo,outstanding:'20503505',preferred:false,rows:[{stockKind:'보통주',shareClass:'COMMON',issuedShares:'20503505',treasuryShares:'0',outstandingShares:'20503505',periodEndDate:'2025-12-31'}]};
+ const load=loadPeriodSupplement(provider,'008420',corpCode,undefined,'KOSPI');
+ const result=await load(filing as any,{shares,price:{value:'2000',date:'2025-12-30',source:'TEST'}});
+ assert.equal(calls,1);assert.equal(result.accounts?.sources.basicEps?.amount,'314');assert.equal(result.accounts?.receiptNo,receiptNo);assert.equal(result.errors?.accounts,undefined);
+});
 test('supplement is idempotent, dry run never writes, failed supplemental source preserves financial success and stored values',async()=>{
  let saved:any=null,writes=0,financialWrites=0;
  const f={securityId:1n,fiscalYear:2025,periodType:'ANNUAL',fsDivision:'OFS',receiptNo:'20260301000001',receiptDate:new Date('2026-03-01'),periodEndDate:new Date('2025-12-31'),netIncomeYtd:d(20),totalEquity:d(220),accountSources:{}};
