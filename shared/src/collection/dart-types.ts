@@ -39,6 +39,9 @@ export interface DartFinancialRow {
   accountName: string;
   currentAmount: string | null;
   currentYtdAmount: string | null;
+  previousAmount?: string | null;
+  previousPeriodSequential?: boolean;
+  previousPeriodEnd?: string | null;
   currency: string;
 }
 
@@ -56,7 +59,7 @@ export interface DartFinancialValues {
   operatingCashFlowYtd: string | null;
   capitalExpenditureQuarter: string | null;
   capitalExpenditureYtd: string | null;
-  accountSources: Record<string, { statementDivision: string; accountId: string; accountName: string; amount: string | null; ytdAmount: string | null; ordinaryEpsVerified?:boolean }>;
+  accountSources: Record<string, { statementDivision: string; accountId: string; accountName: string; amount: string | null; ytdAmount: string | null; ordinaryEpsVerified?:boolean;periodEnd?:string|null }>;
 }
 
 export class DartApiError extends Error {

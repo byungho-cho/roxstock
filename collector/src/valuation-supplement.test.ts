@@ -48,3 +48,27 @@ test('same-filing capital supplements and missing previous capital are used in R
  const result:any=await supplementStoredPeriod(db,1n,2018,'ANNUAL',{load:async(filing,saved,sharesOnly,accountsOnly)=>{if(filing!.fiscalYear===2017)assert.equal(accountsOnly,true);return {accounts:{receiptNo:filing!.receiptNo,fsDivision:'OFS',collectedAt:new Date().toISOString(),sources:{totalEquity:{amount:filing!.fiscalYear===2017?'100':'200'},netIncome:{amount:'15'}}}};}});
  assert.equal(result.values.roe,'10');assert.equal(previousSaved,true);assert.equal(f.totalEquity,null);assert.equal(previous.totalEquity,null);
 });
+import {KrxProvider} from './krx-provider.js';
+test('verified filing ordinary EPS rechecks stale KRX basis despite preferred shares',async()=>{
+ const original=KrxProvider.prototype.rows;let calls=0;
+ KrxProvider.prototype.rows=async()=>{calls++;return [{ISU_SRT_CD:'005930',ISU_CD:'COMMON',KIND_STKCERT_TP_NM:'보통주',PARVAL:'100',LIST_SHRS:'1000'}] as any;};
+ try{
+  const filing:any={securityId:262n,fiscalYear:2021,periodType:'ANNUAL',fsDivision:'CFS',receiptNo:'exact',receiptDate:new Date('2022-03-08'),periodEndDate:new Date('2021-12-31'),accountSources:{basicEps:{ordinaryEpsVerified:true,accountName:'기본주당이익'}}};
+  const saved:any={shares:{receiptNo:'exact',preferred:true},price:{value:'78300',date:'2021-12-30',source:'KRX_UNADJUSTED_CLOSE',market:'KOSPI',isin:'COMMON',parValue:'100',listedShares:'1000'},basis:{receiptNo:'exact',epsPriceCompatible:false,bpsPriceCompatible:false}};
+  const load=loadPeriodSupplement(null,'005930','00126380',undefined,'KOSPI',undefined,{dartRequests:false});
+  assert.equal((await load(filing,saved)).basis?.epsPriceCompatible,true);
+  filing.accountSources.basicEps.ordinaryEpsVerified=false;
+  assert.equal((await load(filing,saved)).basis?.epsPriceCompatible,false);
+  filing.accountSources.basicEps.ordinaryEpsVerified=true;saved.shares.receiptNo='different';
+  assert.equal((await load(filing,saved)).basis?.epsPriceCompatible,false);assert.equal(calls,3);
+ }finally{KrxProvider.prototype.rows=original;}
+});
+import {normalizeManualDartAccounts} from './manual-dart-accounts.js';
+test('comparative opening capital requires exact annual period evidence and unambiguous accounts',()=>{
+ const row:any={receiptNo:'r',corpCode:'c',fiscalYear:2015,reportCode:'11011',statementDivision:'BS',accountId:'ifrs_Equity',accountName:'자본총계',currency:'KRW',currentAmount:'220',currentYtdAmount:null,previousAmount:'180',previousPeriodSequential:true};
+ assert.equal(normalizeManualDartAccounts([row],new Date('2015-12-31')).accountSources.openingTotalEquity?.amount,'180');
+ assert.equal(normalizeManualDartAccounts([row],new Date('2015-12-31')).accountSources.openingTotalEquity?.periodEnd,'2014-12-31');
+ assert.equal(normalizeManualDartAccounts([{...row,previousPeriodSequential:false}],new Date('2015-12-31')).accountSources.openingTotalEquity,undefined);
+ assert.equal(normalizeManualDartAccounts([row],new Date('2015-03-31')).accountSources.openingTotalEquity,undefined);
+ assert.equal(normalizeManualDartAccounts([row,row],new Date('2015-12-31')).accountSources.openingTotalEquity,undefined);
+});

@@ -22,6 +22,7 @@ export function parseManualRefresh(body: unknown): { fiscalYear: number; startYe
   if ([startYear,endYear].some(y=>typeof y !== 'number' || !Number.isInteger(y) || y < 2015 || y > currentYear) || Number(startYear)>Number(endYear))
     throw new ApiError(400,'INVALID_INPUT','시작연도·종료연도는 2015년부터 현재 연도까지이며 시작연도가 종료연도보다 늦을 수 없습니다.');
   if (typeof b?.period !== 'string' || !['Q1','Q2','Q3','ANNUAL','ALL'].includes(b.period)) throw new ApiError(400,'INVALID_INPUT','갱신범위를 확인해 주세요.');
+  if(b.period!=='ANNUAL'&&Number(startYear)<2020)throw new ApiError(400,'INVALID_INPUT','분기·연도 전체 갱신은 2020년부터 가능합니다.');
   if(b?.refreshMode!==undefined&&!['FULL','SUPPLEMENT'].includes(String(b.refreshMode)))throw new ApiError(400,'INVALID_INPUT','갱신 방식을 확인해 주세요.');
   if(b?.clientRequestId!==undefined&&(typeof b.clientRequestId!=='string'||!/^[-a-zA-Z0-9]{16,80}$/.test(b.clientRequestId)))throw new ApiError(400,'INVALID_INPUT','요청 식별자를 확인해 주세요.');
   return {...(typeof b?.clientRequestId==='string'?{clientRequestId:b.clientRequestId}:{}),refreshMode:b?.refreshMode==='SUPPLEMENT'?'SUPPLEMENT':'FULL',fiscalYear:Number(startYear),startYear:Number(startYear),endYear:Number(endYear),period:b.period as DartPeriodType|'ALL'};

@@ -1,4 +1,4 @@
-import {CollectionBugReports} from './CollectionBugReports';
+import {CollectionBugReportSummary} from './CollectionBugReports';
 import {summarizeMonitorStatuses} from './monitorStatusSummary';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {CollectionSettingToggle,featureLabels,type ManagedSecurity} from './CollectionSettingToggle';
@@ -78,14 +78,14 @@ function QueryNotice({ error, retry }: { error: boolean; retry: () => void }) {
 // These descriptors supply fixed titles/layout only. Every data field is hidden by PendingData.
 const featureShell = (id: string): Feature => ({ id, name: featureNames[id], status: '', recent: {} });
 
-function StatusPill({ feature, compact = false }: { feature: Feature; compact?: boolean }) {
+function StatusPill({ feature }: { feature: Feature; compact?: boolean }) {
   const pending = useContext(PendingData);
   const base = statusStyle[feature.status] ?? unknownStatus;
   const outOfSession = feature.id === 'realtime-prices' && feature.realtime?.session === 'OUT_OF_SESSION' && ['OK', 'WAITING', 'RUNNING'].includes(feature.status);
   const phaseOne = feature.id === 'dart-financial-statements' && feature.phase === 'BACKFILL' && feature.status === 'RUNNING';
   const label = feature.id==='investor-trends'&&feature.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':outOfSession ? '장 외 대기' : phaseOne ? '1단계 진행' : base.label;
   const style = outOfSession ? statusStyle.WAITING : base;
-  return <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minWidth: compact ? 75 : 82, height: 19, px: 1, borderRadius: '999px', bgcolor: pending ? 'transparent' : style.background, color: style.foreground, fontSize: 10, lineHeight: 1, fontWeight: 600, whiteSpace: 'nowrap' }}><DataValue width={60}>{label}</DataValue></Box>;
+  return <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minWidth: 82, width: 82, boxSizing: 'border-box', height: 19, px: 1, borderRadius: '999px', bgcolor: pending ? 'transparent' : style.background, color: style.foreground, fontSize: 10, lineHeight: 1, fontWeight: 600, whiteSpace: 'nowrap' }}><DataValue width={60}>{label}</DataValue></Box>;
 }
 
 function ManualRefresh({ refreshing, onClick }: { refreshing: boolean; onClick: () => void }) {
@@ -366,7 +366,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
       <Box sx={{ display: 'grid', gap: '4px' }}>
         {features.map(item => <FeatureSummaryCard key={item.id} item={item} selected={selected === item.id} onOpen={() => onOpen ? onOpen(item.id) : navigate('/detail/collection-monitoring/' + item.id)} />)}
       </Box>
-      <CollectionBugReports/>
+      <CollectionBugReportSummary/>
     </Box></PendingData.Provider></FailedData.Provider>;
   }
 

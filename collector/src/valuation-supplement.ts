@@ -18,8 +18,9 @@ export function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient[
  if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision){
   if(saved.shares?.preferred&&saved.accounts.sources.basicEps?.ordinaryEpsVerified===undefined)return true;
   const core=[['revenueYtd','revenue'],['netIncomeYtd','netIncome'],['totalEquity','totalEquity'],['totalAssets','totalAssets'],['totalLiabilities','totalLiabilities']] as const;
-  return core.some(([field,key])=>f[field]==null&&saved.accounts?.sources[key]?.amount==null&&saved.accounts?.sources[key]?.ytdAmount==null);
+  return (f.periodType==='ANNUAL'&&!saved.accounts.sources.openingTotalEquity&&!saved.accounts.sources.openingParentEquity)||core.some(([field,key])=>f[field]==null&&saved.accounts?.sources[key]?.amount==null&&saved.accounts?.sources[key]?.ytdAmount==null);
  }
+ if(f.periodType==='ANNUAL'&&!saved.accounts?.sources.openingTotalEquity&&!saved.accounts?.sources.openingParentEquity)return true;
  const sources=f.accountSources as Record<string,{amount?:string|null;ytdAmount?:string|null}>|null;
  const required=['basicEps','investingCashFlow','financingCashFlow','cashEquivalents',...(f.fsDivision==='CFS'?['parentNetIncome','parentEquity']:[])];
  return required.some(key=>sources?.[key]?.amount==null&&sources?.[key]?.ytdAmount==null);
@@ -119,7 +120,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider|null,symbol:strin
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     validateStoredDartRows(rows,f,corpCode,f.fsDivision);
-    const normalized=normalizeManualDartAccounts(rows);
+    const normalized=normalizeManualDartAccounts(rows,f.periodEndDate);
     accounts={receiptNo:f.receiptNo,fsDivision:f.fsDivision,collectedAt:new Date().toISOString(),sources:normalized.accountSources};
    }catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;if(error instanceof DartApiError&&(error.quotaExceeded||['DAILY_CALL_LIMIT','SCHEDULE_WINDOW_ENDED'].includes(error.code)))throw error;errors.accounts=error instanceof DartApiError?error.code:'ACCOUNTS_COMMUNICATION';}
   }
@@ -135,18 +136,26 @@ export function loadPeriodSupplement(provider:OpenDartProvider|null,symbol:strin
     }catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;errors.basis=error instanceof HistoricalPriceError?error.code:'PERIOD_SHARE_BASIS_VERIFICATION_FAILED';}
    }
    const exactShares=shares?.receiptNo===f.receiptNo,compatible=price.shareBasis==='ORIGINAL_EQUALS_ADJUSTED'||samePeriodEvidence(price);
-   const ordinaryEps=accounts?.sources.basicEps?.ordinaryEpsVerified===true||/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
+   const ordinaryEps=accounts?.sources.basicEps?.ordinaryEpsVerified===true||(f.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps?.ordinaryEpsVerified===true||/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
    basis={epsPriceCompatible:compatible&&exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:compatible&&exactShares&&bookValueShares(shares,f.receiptNo)!==null,source:samePeriodEvidence(price)?'KIS_PERIOD_END_TO_DISCLOSURE_FACTOR_WITH_EXACT_DART_SHARES':'KIS_ORIGINAL_ADJUSTED_CLOSE_COMPARISON_WITH_EXACT_DART_SHARES',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:compatible?'ORIGINAL_EQUALS_ADJUSTED_EXACT_RECEIPT_REQUIRED':'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
   }
-  if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo)){
+  if(price?.source==='KRX_UNADJUSTED_CLOSE'&&price.market&&(!basis||basis.receiptNo!==f.receiptNo||!basis.epsPriceCompatible||!basis.bpsPriceCompatible&&bookValueShares(shares,f.receiptNo)!==null)){
    try{
     const receiptDate=f.receiptDate.toISOString().slice(0,10).replaceAll('-','');
     const master=(await configuredKrx().rows(price.market as KrxMarket,receiptDate,'master')).find(row=>row.ISU_SRT_CD===normalizeProviderSymbol(symbol));
     const stable=!!master&&master.ISU_CD===price.isin&&master.KIND_STKCERT_TP_NM==='보통주'&&!!price.parValue&&master.PARVAL?.replaceAll(',','')===price.parValue&&!!price.listedShares&&master.LIST_SHRS?.replaceAll(',','')===price.listedShares;
-    const ordinaryEps=/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
+    const ordinaryEps=accounts?.sources.basicEps?.ordinaryEpsVerified===true||(f.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps?.ordinaryEpsVerified===true||/보통|ordinary/i.test((f.accountSources as Record<string,{accountName?:string}>|null)?.basicEps?.accountName??accounts?.sources.basicEps?.accountName??'');
     const exactShares=shares?.receiptNo===f.receiptNo;
-    basis={epsPriceCompatible:stable&&!!exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:stable&&!!exactShares&&!shares?.preferred,source:'KRX_PERIOD_END_AND_DISCLOSURE_DATE_MASTER_WITH_DART_ORDINARY_SHARE_REPORT',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:!stable?'CORPORATE_ACTION_OR_MASTER_BASIS_UNCONFIRMED':shares?.preferred?'PREFERRED_EQUITY_ALLOCATION_OR_ORDINARY_EPS_LABEL_REQUIRED':!exactShares?'EXACT_RECEIPT_SHARE_REPORT_REQUIRED':'VERIFIED_NO_MASTER_SHARE_BASIS_CHANGE'};
+    basis={epsPriceCompatible:stable&&!!exactShares&&(!shares?.preferred||ordinaryEps),bpsPriceCompatible:stable&&!!exactShares&&bookValueShares(shares,f.receiptNo)!==null,source:'KRX_PERIOD_END_AND_DISCLOSURE_DATE_MASTER_WITH_DART_ORDINARY_SHARE_REPORT',verifiedAt:new Date().toISOString(),receiptNo:f.receiptNo,reason:!stable?'CORPORATE_ACTION_OR_MASTER_BASIS_UNCONFIRMED':shares?.preferred?'PREFERRED_EQUITY_ALLOCATION_OR_ORDINARY_EPS_LABEL_REQUIRED':!exactShares?'EXACT_RECEIPT_SHARE_REPORT_REQUIRED':'VERIFIED_NO_MASTER_SHARE_BASIS_CHANGE'};
    }catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;basis=undefined;errors.basis=error instanceof HistoricalPriceError?error.code:'SHARE_BASIS_VERIFICATION_FAILED';}
+  }
+  if(price?.source==='KRX_UNADJUSTED_CLOSE'&&basis?.epsPriceCompatible!==true){
+   try{const checked=await kisHistoricalClose(normalizeProviderSymbol(symbol),f.periodEndDate,options.fetcher??fetch,f.receiptDate);
+    if(checked?.value===price.value&&checked.date===price.date&&(checked.shareBasis==='ORIGINAL_EQUALS_ADJUSTED'||checked.periodBasis?.method==='KIS_CONSTANT_ADJUSTMENT_FACTOR_NO_SPLIT_TO_DISCLOSURE')){
+     const exact=shares?.receiptNo===f.receiptNo,ordinary=accounts?.sources.basicEps?.ordinaryEpsVerified===true||(f.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps?.ordinaryEpsVerified===true;
+     price=checked;basis={receiptNo:f.receiptNo,epsPriceCompatible:!!exact&&(!shares?.preferred||ordinary),bpsPriceCompatible:!!exact&&bookValueShares(shares,f.receiptNo)!==null,source:'KIS_PERIOD_END_TO_DISCLOSURE_FACTOR_WITH_EXACT_DART_SHARES',verifiedAt:new Date().toISOString(),reason:'VERIFIED_PERIOD_SHARE_BASIS'};
+    }
+   }catch(error){if(error instanceof CollectionExcluded&&!componentExcluded(error))throw error;errors.basis=error instanceof HistoricalPriceError?error.code:'PERIOD_SHARE_BASIS_VERIFICATION_FAILED';}
   }
   return {...saved,...(shares?{shares}:{}),...(price?{price}:{}),basis,...(accounts?{accounts}:{}),errors};
  };

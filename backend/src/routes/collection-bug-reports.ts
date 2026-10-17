@@ -5,6 +5,11 @@ const states=['OPEN','REVIEWING','RESOLVED'];
 const idOf=(id:string)=>{if(!/^[1-9]\d{0,19}$/.test(id))throw new ApiError(400,'INVALID_INPUT','리포트 번호를 확인해 주세요.');const value=BigInt(id);if(value>18446744073709551615n)throw new ApiError(400,'INVALID_INPUT','리포트 번호를 확인해 주세요.');return value;};
 const row=(v:any)=>({...v,id:String(v.id),events:undefined});
 export async function collectionBugReportRoutes(app:FastifyInstance){
+ app.get('/collection/bug-reports/summary',async(_request,reply)=>{
+  reply.header('Cache-Control','no-store');
+  const groups=await prisma.collectionBugReport.groupBy({by:['state'],_count:{_all:true},_max:{lastSeenAt:true}});
+  return {data:{open:groups.find(g=>g.state==='OPEN')?._count._all??0,reviewing:groups.find(g=>g.state==='REVIEWING')?._count._all??0,resolved:groups.find(g=>g.state==='RESOLVED')?._count._all??0,lastSeenAt:groups.map(g=>g._max.lastSeenAt).filter((d):d is Date=>d!==null).sort((a,b)=>b.getTime()-a.getTime())[0]??null}};
+ });
  app.get<{Querystring:{state?:string;offset?:string;date?:string}}>('/collection/bug-reports',async(request,reply)=>{
   reply.header('Cache-Control','no-store');const state=request.query.state??'UNRESOLVED';
   const offset=Number(request.query.offset??0),date=request.query.date;

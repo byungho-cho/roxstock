@@ -1,6 +1,6 @@
 import { normalizeDartFinancialRows, type DartFinancialRow } from './dart-provider.js';
 /** Shared supplemental aliases for automatic and manual collection: exact account names and statement divisions, never substring matching. */
-export function normalizeManualDartAccounts(rows:DartFinancialRow[]) {
+export function normalizeManualDartAccounts(rows:DartFinancialRow[],periodEnd?:Date) {
  const normalized=normalizeDartFinancialRows(rows);
  const aliases:Record<string,{statements:string[];names:string[]}>= {
   basicEps:{statements:['IS','CIS'],names:['기본주당이익','기본주당순이익','기본주당이익(손실)','기본주당손익','보통주기본주당이익','보통주 기본주당이익','기본주당이익(보통주)']},
@@ -12,6 +12,11 @@ export function normalizeManualDartAccounts(rows:DartFinancialRow[]) {
   const candidates=rows.filter(r=>rule.statements.includes(r.statementDivision)&&rule.names.includes(r.accountName)&&r.currency==='KRW');
   if(candidates.length!==1)continue;
   const r=candidates[0]!;normalized.accountSources[key]={statementDivision:r.statementDivision,accountId:r.accountId,accountName:r.accountName,amount:r.currentAmount,ytdAmount:r.currentYtdAmount};
+ }
+ for(const [current,opening] of [['totalEquity','openingTotalEquity'],['parentEquity','openingParentEquity']] as const){
+  const source=normalized.accountSources[current];
+  const matches=rows.filter(r=>r.statementDivision==='BS'&&r.currency==='KRW'&&r.accountId===source?.accountId&&r.accountName===source?.accountName&&r.previousAmount!=null&&(r.previousPeriodEnd!=null||r.reportCode==='11011'&&r.previousPeriodSequential===true&&periodEnd?.toISOString().slice(5,10)==='12-31'&&periodEnd.getUTCFullYear()===r.fiscalYear));
+  if(matches.length===1){const r=matches[0]!;normalized.accountSources[opening]={statementDivision:r.statementDivision,accountId:r.accountId,accountName:r.accountName,amount:r.previousAmount!,ytdAmount:null,periodEnd:r.previousPeriodEnd??`${r.fiscalYear-1}-12-31`};}
  }
  return normalized;
 }

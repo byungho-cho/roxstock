@@ -208,6 +208,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             for (const fiscalYear of businessYears) {
               stage='LIST'; const filings = await repo.cachedReports(security.corpCode!, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
+                if(fiscalYear<2020&&report.periodType!=='ANNUAL')continue;
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
                 requireDartReportPeriod(report,security.corpCode!,fiscalYear);
                 if (await repo.hasStoredReceipt(report.receiptNo)) continue;
