@@ -1,0 +1,51 @@
+{
+  "repository": "byungho-cho/roxstock",
+  "codeSha": "258ee8d06db93d171d6ed71504f5dc9198f4daae",
+  "queryWindow": {
+    "startedAt": "2026-10-13T05:01:42.156Z",
+    "completedAt": "2026-10-13T05:01:57.694Z"
+  },
+  "baselinePRCommit": "c2f4692ae8789d3d3ff7d2ae4a24960aaafcaadd",
+  "baselineFiles": [
+    "docs/qa/dart-readonly-operating-status-20261013.md",
+    "docs/qa/evidence/dart-readonly-20261013-period-review.csv",
+    "docs/qa/evidence/dart-readonly-20261013-baseline458.csv",
+    "docs/qa/evidence/dart-readonly-20261013-failures.csv"
+  ],
+  "tables": [
+    "dart_backfill_tasks",
+    "dart_financial_filings",
+    "dart_corp_mappings",
+    "dart_security_state",
+    "dart_report_cache",
+    "collector_runs",
+    "collector_run_items",
+    "period_valuations",
+    "financial_statements",
+    "dart_share_snapshots",
+    "valuation_metrics",
+    "annual_consensus_snapshots",
+    "collector_locks",
+    "dart_collector_state",
+    "dart_api_daily_usage"
+  ],
+  "excludedData": [
+    "credentials",
+    "personal_account_information",
+    "trade_data",
+    "financial_amounts"
+  ],
+  "readOnly": true,
+  "baselineBackup": {
+    "path": "/opt/roxstock/.deploy/backups/roxstock-before-0f660310ceec289228497a60cec338849d641963-20261012T002756Z.sql.gz",
+    "createdAtUtc": "2026-10-12T00:27:56Z",
+    "scope": "existing backup parsed locally; only failed task IDs and preservation hashes reused"
+  },
+  "queryConditions": {
+    "subjects": "union original failed458 task IDs, baseline period324 security/year/report tuples, and PR213 four additional failed IDs; deduplicate task ID",
+    "candidateComparison": "exact baseline324 receipts; compare saved periodEndDate with reportName YYYY.MM; compare all current security filings ordered receiptDate,collectedAt,receiptNo descending per fiscalYear/periodType excluding withdrawn",
+    "history": "persisted run items matched securityId and symbol fiscalYear/reportCode; cutoff2026-10-12T00:29:40Z; no inference of runtime SHA",
+    "dependency": "period valuation persisted receipt provenance direct references; same/previous/next fiscal year structural neighbors separately; no amount values",
+    "currency": "explicit task validation result or already obtained 2024 GRT representative report; all other target currencies unknown"
+  }
+}
