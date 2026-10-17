@@ -17,7 +17,7 @@ test('manual annual request uses shared quota/lock, CFS fallback, preserves no-d
   let released = false; let calls = 0; let saved = 0; let final: unknown[] = [];
   const metadata: ManualRefreshMetadata = { phase:'MANUAL', securityId:'1', fiscalYear:2024, period:'ALL', manualState:'QUEUED' };
   const run = {id:1n, status:'RUNNING',metadata};
-  let db:any;db = {$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db), dartFinancialFiling:{findUnique:async()=>null,findFirst:async()=>null},periodValuation:{findUnique:async()=>null},collectorRun:{findFirst:async()=>run, findUnique:async()=>run, update:async()=>({})}, security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],isActive:true,securityType:'STOCK',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
+  let db:any;db = {$queryRaw:async(q:any)=>String(q).includes('owner_token')?[{owner_token:metadata.lockOwner,valid:1}]:[],$transaction:async(fn:any)=>fn(db), dartFinancialFiling:{findUnique:async()=>null,findFirst:async()=>null},periodValuation:{findUnique:async()=>null},collectorRun:{findFirst:async()=>run, findUnique:async()=>run, update:async()=>({})}, security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'005930',collectionRevision:0,collectionExcluded:false,excludedFeatures:[],isActive:true,securityType:'STOCK',dartCorpMapping:{corpCode:'001'}})},collectorRunItem:{create:async()=>({})}} as unknown as PrismaClient;
   PrismaDartRepository.prototype.acquireLock = async () => true;
   PrismaDartRepository.prototype.releaseLock = async () => {released=true;};
   PrismaDartRepository.prototype.reserveApiCall = async () => {calls++;return true;};

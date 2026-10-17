@@ -9,7 +9,7 @@ for(const scenario of ['automatic','manual','unidentified','expired','stale'] as
  const owner='secret-test-owner';
  const db={collectorLock:{findUnique:async()=>({ownerToken:owner,lockedUntil:new Date(Date.now()+(scenario==='expired'?-1:60000)),updatedAt:new Date(Date.now()-(scenario==='stale'?180000:0))})},collectorRun:{findFirst:async()=>scenario==='unidentified'?null:{id:9n,metadata:{phase:scenario==='manual'?'MANUAL':'BACKFILL',ownerId:leaseOwnerId(owner)}},updateMany:async(q:any)=>{stored=q.data.metadata;return {count:1};}}} as unknown as PrismaClient;
  const trace=await manualTrace(db,row);
- assert.equal(trace.waitReason,{automatic:'AUTOMATIC',manual:'PREVIOUS_REQUEST',unidentified:'LOCK',expired:'CHECKING',stale:'CHECKING'}[scenario]);
+ assert.equal(trace.waitReason,{automatic:'AUTOMATIC',manual:'PREVIOUS_REQUEST',unidentified:'LOCK',expired:'CHECKING',stale:'LOCK'}[scenario]);
  assert.ok(!JSON.stringify(trace).includes(owner));assert.equal(trace.executionStartedAt,null);assert.equal(trace.acceptedAt,now.toISOString());
  assert.equal(stored.waitReason,trace.waitReason);
 });

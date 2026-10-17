@@ -44,6 +44,12 @@ jobs:
         run: |
           node --import tsx backend/tests/prepare-dart-recovery.ts
           node --import tsx --test --test-concurrency=1 collector/tests/dart-recovery.integration.ts collector/tests/dart-source-validation.integration.ts
+      - name: Bounded valuation queue, memory cap and hard-exit recovery
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_valuation_queue_phase16_test
+        run: |
+          node --import tsx backend/tests/prepare-phase16.ts
+          node --max-old-space-size=128 --expose-gc --import tsx --test --test-concurrency=1 collector/tests/valuation-queue.integration.ts
       - run: npm run typecheck:collector && npm run build:collector
       - run: npm --workspace shared test && npm --workspace collector test
       - run: node --test scripts/tests/service-boundaries.test.mjs scripts/tests/deployment-scope.test.mjs

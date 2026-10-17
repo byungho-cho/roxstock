@@ -409,6 +409,7 @@ model DartFinancialFiling {
   security               Security            @relation(fields: [securityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([securityId, fiscalYear, periodType, receiptDate], map: "dart_filing_company_period_idx")
+  @@index([securityId,fiscalYear,periodType,isWithdrawn,receiptDate,collectedAt,receiptNo], map: "dart_filing_latest_idx")
   @@index([fiscalYear, periodType])
   @@map("dart_financial_filings")
 }
@@ -761,6 +762,57 @@ model PeriodValuation {
   @@index([status,nextAttemptAt])
   @@index([updatedAt,securityId,fiscalYear,periodType], map: "period_valuations_updated_scan_idx")
   @@map("period_valuations")
+}
+
+// Separate from DART disclosure backfill: one durable supplement per logical period.
+model ValuationSupplementTask {
+  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  securityId BigInt @map("security_id") @db.UnsignedBigInt
+  fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
+  periodType String @map("period_type") @db.VarChar(10)
+  kind String @default("PERIOD") @db.VarChar(20)
+  filingId BigInt @map("filing_id") @db.UnsignedBigInt
+  sourceVersion String @map("source_version") @db.Char(64)
+  valuationAt DateTime? @map("valuation_at") @db.DateTime(3)
+  status String @default("PENDING") @db.VarChar(20)
+  ready Boolean @default(true)
+  priority Int @default(0)
+  attempts Int @default(0) @db.UnsignedInt
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.DateTime(3)
+  ownerToken String? @map("owner_token") @db.VarChar(64)
+  leaseUntil DateTime? @map("lease_until") @db.DateTime(3)
+  heartbeatAt DateTime? @map("heartbeat_at") @db.DateTime(3)
+  startedAt DateTime? @map("started_at") @db.DateTime(3)
+  finishedAt DateTime? @map("finished_at") @db.DateTime(3)
+  lastError String? @map("last_error") @db.VarChar(64)
+  diagnostics Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  @@unique([securityId,fiscalYear,periodType,kind], map: "valuation_supplement_logical_key")
+  @@index([ready,nextAttemptAt,priority,id], map: "valuation_supplement_due_idx")
+  @@index([status,leaseUntil,id], map: "valuation_supplement_recovery_idx")
+  @@map("valuation_supplement_tasks")
+}
+
+model ValuationSupplementScan {
+  id Int @id @default(1)
+  cursor BigInt @default(0) @db.UnsignedBigInt
+  upperId BigInt @default(0) @map("upper_id") @db.UnsignedBigInt
+  ownerToken String? @map("owner_token") @db.VarChar(64)
+  leaseUntil DateTime? @map("lease_until") @db.DateTime(3)
+  heartbeatAt DateTime? @map("heartbeat_at") @db.DateTime(3)
+  phase String @default("IDLE") @db.VarChar(24)
+  scanned Int @default(0)
+  lastAutomaticAt DateTime? @map("last_automatic_at") @db.DateTime(3)
+  automaticTurnUntil DateTime? @map("automatic_turn_until") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  @@map("valuation_supplement_scan")
+}
+
+model ValuationSupplementBudget {
+  day DateTime @id @db.Date
+  reserved Int @default(0) @db.UnsignedInt
+  @@map("valuation_supplement_budget")
 }
 
 model AnnualConsensusSnapshot {

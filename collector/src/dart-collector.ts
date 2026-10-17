@@ -1,4 +1,5 @@
 import {leaseOwnerId} from '@roxstock/shared/collection/manual-requests';
+import {withFinancialLease,withoutFinancialLease} from '@roxstock/shared/collection/financial-lease';
 import {CollectionExcluded,withCollection} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
@@ -40,6 +41,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   if (priorState?.lastRunAt && getSeoulClock(priorState.lastRunAt).dateKey === dayKey && ['020', 'DAILY_CALL_LIMIT'].includes(blockedCode ?? '')) return { status: 'QUOTA_BLOCKED' as const };
   const usage = await repo.getDailyUsage(now);
   if ((usage?.apiCallCount ?? 0) >= config.dailyCallLimit) return { status: 'QUOTA_BLOCKED' as const };
+  const turn=await prisma.valuationSupplementScan?.findUnique({where:{id:1},select:{automaticTurnUntil:true,heartbeatAt:true}});
+  if(turn?.automaticTurnUntil&&turn.automaticTurnUntil>now&&turn.heartbeatAt&&now.getTime()-turn.heartbeatAt.getTime()<90_000)return {status:'YIELDED' as const};
   if (!await repo.acquireLock(owner, 900)) return { status: 'LOCKED' as const };
   let runId: bigint | undefined;
   let stage='PLAN';
@@ -49,7 +52,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     const pending=await prisma.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},orderBy:[{startedAt:'asc'},{id:'asc'}]});
     if(!pending)return;
     await repo.releaseLock(owner);
-    try{await new Promise(resolve=>setTimeout(resolve,config.minDelayMs));await serviceManual();}finally{
+    try{await new Promise(resolve=>setTimeout(resolve,config.minDelayMs));await withoutFinancialLease(serviceManual);}finally{
       await new Promise(resolve=>setTimeout(resolve,config.minDelayMs));
       if(!await repo.acquireLock(owner,900))throw new DartApiError('LOCK_LOST','Automatic collection paused: execution lease changed.');
     }
@@ -71,7 +74,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     onApiStatus: async (status) => repo.recordApiResult(status === '013' ? 'NO_DATA' : 'ERROR'),
   });
 
-  try {
+  return withFinancialLease(owner,async()=>{try {
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();
     runId = (await repo.createRun('dart-financial-statements', 'OPEN_DART', { ownerId:leaseOwnerId(owner), phase: state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs })).id;
@@ -258,6 +261,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   } finally {
     try { await repo.releaseLock(owner); } catch(error) { log('error','DART lock release failed',{runId,...dartDiagnostic(error,'LOCK_RELEASE')}); }
   }
+  });
 }
 
 export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode) {
