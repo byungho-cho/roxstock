@@ -6,9 +6,11 @@ import {ProviderError,dateKey} from './provider.mjs';
 import {KisInvestorProvider} from './kis-provider.mjs';
 import {runInvestorBackfill} from './backfill.mjs';
 import {runKisSupplements} from './kis-supplements.mjs';
+import {KrxFundamentalProvider} from './krx-fundamentals.mjs';
 
 const db=new PrismaClient(),job='investor-trends',owner=randomUUID();
 const kis=new KisInvestorProvider();
+const krx=new KrxFundamentalProvider();
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
 const startDate=dateKey(process.env.INVESTOR_START_DATE??'2026-10-16');
 const requestDelay=Math.max(1000,Number(process.env.INVESTOR_REQUEST_DELAY_MS??2000));
@@ -91,7 +93,7 @@ async function run(){
 }
 
 try{
- if(process.argv.includes('--supplement-once'))await runKisSupplements({db,kis,signal:stop.signal,limit:10,log:safeLog});
+ if(process.argv.includes('--supplement-once'))await runKisSupplements({db,kis,krx,signal:stop.signal,limit:10,log:safeLog});
  else if(process.argv.includes('--backfill'))await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',exchangeScope:process.argv.includes('--nxt')?'NXT':'KRX',log:safeLog});
  else if(process.argv.includes('--once'))await run();
  else{
@@ -107,8 +109,8 @@ try{
     if(!recent)await run();
    }
    let backfillRequests=0;
-   if(hour>=18&&process.env.KIS_SUPPLEMENT_ENABLED!=='false'&&process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){
-    try{await runKisSupplements({db,kis,signal:stop.signal,limit:10,log:safeLog});}catch(error){safeLog('KIS_SUPPLEMENT_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
+   if(hour>=18&&process.env.KIS_SUPPLEMENT_ENABLED!=='false'&&((process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim())||process.env.KRX_API_KEY?.trim())){
+    try{await runKisSupplements({db,kis,krx,signal:stop.signal,limit:10,log:safeLog});}catch(error){safeLog('KIS_SUPPLEMENT_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
    }
    if(process.env.INVESTOR_BACKFILL_ENABLED!=='false'&&process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){
     try{const result=await runInvestorBackfill({db,kis,signal:stop.signal,from:process.env.INVESTOR_BACKFILL_FROM??'2020-01-01',requestLimit:10,log:safeLog});backfillRequests=result.requests;}catch(error){safeLog('BACKFILL_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}

@@ -33,7 +33,7 @@ import {runKisSupplements} from './kis-supplements.mjs';
 test('scheduled supplement persists only verified gaps atomically and invalidates financial cache',async()=>{
  const b=basis();let owner,patch,finalRun,bumps=[];
  const security={id:1n,symbol:'008420',isActive:true,collectionExcluded:false,excludedFeatures:[],collectionRevision:0,codeRevision:0};
- const tx={$queryRaw:async()=>[{owner_token:owner}],security:{findUnique:async()=>security},kisFundamentalSnapshot:{upsert:async()=>({})},periodValuation:{findMany:async()=>[b.row],update:async({data})=>{patch=data;}},dartFinancialFiling:{findMany:async()=>[b.f]},analysisRevision:{upsert:async({where})=>bumps.push(where.key)},collectorRunItem:{create:async()=>({})}};
+ const tx={$queryRaw:async()=>[{owner_token:owner}],security:{findUnique:async()=>security},fundamentalSnapshot:{findUnique:async()=>null,upsert:async()=>({})},periodValuation:{findMany:async()=>[b.row],update:async({data})=>{patch=data;}},dartFinancialFiling:{findMany:async()=>[b.f]},analysisRevision:{upsert:async({where})=>bumps.push(where.key)},collectorRunItem:{create:async()=>({})}};
  const db={collectorLock:{updateMany:async({data})=>{owner=data.ownerToken;return {count:1}},deleteMany:async()=>({count:1})},security:{findMany:async()=>[security]},periodValuation:{findMany:async()=>[b.row]},collectorRun:{updateMany:async()=>({count:0}),create:async()=>({id:1n}),update:async({data})=>{finalRun=data}},collectorRunItem:{create:async()=>({})},$transaction:async fn=>fn(tx)};
  const observation={per:'2',pbr:'0.2',eps:'999',bps:'9999',listedShares:'10',foreignHoldingShares:'0',foreignExhaustionRate:'0',collectedAt:new Date(),raw:{}};
  const kis={currentFundamentals:async()=>observation,annualFundamentals:async()=>[b.annual]};

@@ -5,7 +5,7 @@ import {securityCacheRevision} from '../domain/security-cache-revision.js';
 import {selectStoredAnalysis,storedAnalysisInclude} from '@roxstock/shared/domain/stored-analysis';
 import { hasInitialQuery, matchesStockSearch } from '@roxstock/shared/domain/stock-search';
 import {latestStoredDisplayShares} from '@roxstock/shared/domain/share-counts';
-import {currentKisSupplement} from '@roxstock/shared/domain/kis-supplement';
+import {currentFundamentalSupplement} from '@roxstock/shared/domain/financial-supplement';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@roxstock/shared/prisma';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -66,7 +66,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const metric=cachedRow?cachedRow.valuation:analysis.metric,rimRow=calculated.find(row=>row.fiscalYear===analysis.metricBasis.year&&row.periodType===(analysis.dataPriority===1?'ESTIMATE':'ANNUAL'));
       const rim=cachedRow?{excessEarnings:cachedRow.excessEarnings,shareholderValue:cachedRow.shareholderValue,rimReason:cachedRow.rimReason,rimBasis:cachedRow.rimBasis,rimComparison:cachedRow.rimComparison}:shareholderTotals(metric,rimRow,filings),shareYear=cachedRow?.metricBasis.year??analysis.metricBasis.year??year;
       const displayedShares=latestStoredDisplayShares(shareRows,filings,year,shareClass);
-      const currentSupplement=currentKisSupplement(await tx.kisFundamentalSnapshot.findFirst({where:{securityId,collectionSymbol:security.symbol},orderBy:{collectedAt:'desc'}}));
+      const currentSupplement=currentFundamentalSupplement(await tx.fundamentalSnapshot.findFirst({where:{securityId,collectionSymbol:security.symbol},orderBy:{collectedAt:'desc'}}));
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: cachedRow?cachedRow.previousClosePrice:security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: cachedRow?cachedRow.priceUpdatedAt:security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
         ...displayedShares,
