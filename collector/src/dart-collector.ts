@@ -1,3 +1,4 @@
+import {leaseOwnerId} from '@roxstock/shared/collection/manual-requests';
 import {CollectionExcluded,withCollection} from '@roxstock/shared/collection/collection-policy';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
 import {validateDartFiling,requireDartReportPeriod} from './dart-filing-validation.js';
@@ -26,7 +27,7 @@ const activeWindow = (now: Date, config: DartCollectorConfig) => dartWindowOpen(
 
 const priorityWindow = (now: Date, config: DartCollectorConfig) => dartPriorityWindowOpen(now, config.priorityWindowStartHour, config.priorityWindowEndHour);
 
-export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCollectorConfig, now = new Date()) {
+export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCollectorConfig, now = new Date(), serviceManual?:()=>Promise<boolean>) {
   prisma=collectionClient(prisma);
   const repo = new PrismaDartRepository(prisma);
   const owner = randomUUID();
@@ -42,6 +43,18 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   if (!await repo.acquireLock(owner, 900)) return { status: 'LOCKED' as const };
   let runId: bigint | undefined;
   let stage='PLAN';
+  // Invoked only outside collection transactions: the loop and durable task cursor remain intact.
+  const checkpoint=async()=>{
+    if(!serviceManual)return;
+    const pending=await prisma.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},orderBy:[{startedAt:'asc'},{id:'asc'}]});
+    if(!pending)return;
+    await repo.releaseLock(owner);
+    try{await new Promise(resolve=>setTimeout(resolve,config.minDelayMs));await serviceManual();}finally{
+      await new Promise(resolve=>setTimeout(resolve,config.minDelayMs));
+      if(!await repo.acquireLock(owner,900))throw new DartApiError('LOCK_LOST','Automatic collection paused: execution lease changed.');
+    }
+  };
+
   let succeeded=0,failures=0,skipped=0;
 
   let apiErrors = 0;
@@ -61,7 +74,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   try {
     const priorBusinessYear = Number(getSeoulClock(now).dateKey.slice(0, 4)) - 1;
     const state = await repo.getState();
-    runId = (await repo.createRun('dart-financial-statements', 'OPEN_DART', { phase: state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs })).id;
+    runId = (await repo.createRun('dart-financial-statements', 'OPEN_DART', { ownerId:leaseOwnerId(owner), phase: state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL', dailyCallLimit: config.dailyCallLimit, minDelayMs: config.minDelayMs })).id;
     const priorityIds = await repo.prioritySecurityIds();
     const prioritySet = new Set(priorityIds.map(String));
     const mappingUpdatedAt = await repo.corpCodeMappingsSyncedAt();
@@ -116,6 +129,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
           continue;
         }
         for (const task of (await repo.listTasksForSecurity(security.id)).filter(t=>t.fiscalYear===pass.year)) {
+          await checkpoint();
           if (!callAllowed()) break;
           const taskNow = new Date();
           const spec = reports[task.reportCode];
@@ -180,6 +194,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
         for (let fiscalYear=priorBusinessYear+1;fiscalYear>=2015;fiscalYear--) {
         for (const security of securities) {
           if (!callAllowed()) break;
+          await checkpoint();
           await repo.markCompanyChecked(security.id, phase, new Date());
           companyChecks += 1;
           try {

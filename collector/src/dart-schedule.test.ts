@@ -62,3 +62,24 @@ test('priority request rechecks the 06 cutoff after the inter-request delay', as
   assert.equal(fetches, 1);
   assert.equal(reserved, 1);
 });
+
+test('automatic safe boundaries serve FIFO manual requests one at a time and resume the same loop',async(t)=>{
+ const now=new Date('2026-10-10T10:00:00+09:00');t.mock.timers.enable({apis:['Date'],now});
+ const events:string[]=[],queue:number[]=[];let enqueued=false,held=false;
+ const general={id:2n,symbol:'GENERAL',corpCode:'2'};
+ const mocks:Record<string,(...args:any[])=>any>={
+  getState:async()=>({backfillCompletedAt:now}),getDailyUsage:async()=>null,
+  acquireLock:async()=>{assert.equal(held,false);held=true;events.push('acquire');return true;},releaseLock:async()=>{held=false;events.push('release');},
+  createRun:async()=>({id:1n}),prioritySecurityIds:async()=>[],corpCodeMappingsSyncedAt:async()=>now,
+  ensureBackfillPlan:async()=>{},resetInterruptedTasks:async()=>{},listPhase2Securities:async(phase)=>phase==='UNIVERSE'?[general]:[],
+  markCompanyChecked:async()=>{assert.equal(held,true);events.push('auto');if(!enqueued){queue.push(10,11);enqueued=true;}},
+  cachedReports:async()=>[],setPhase2Check:async()=>{},addPhase2RunItem:async()=>{},finishRun:async()=>{},updateStateError:async()=>{},cleanupRealtimeRetention:async()=>{},
+ };
+ for(const [name,fn]of Object.entries(mocks))t.mock.method(PrismaDartRepository.prototype,name as keyof PrismaDartRepository,fn);
+ const db={collectorRun:{findFirst:async()=>queue.length?{id:BigInt(queue[0])}:null},security:{findUnique:async()=>({...general,isActive:true,collectionExcluded:false,excludedFeatures:[],collectionRevision:0})}} as unknown as PrismaClient;
+ const result=await runDartCollectorCycle(db,config,now,async()=>{assert.equal(held,false);events.push(`manual:${queue.shift()}`);return true;});
+ assert.equal(result.status,'SUCCESS');assert.equal(queue.length,0);
+ const work=events.filter(e=>e==='auto'||e.startsWith('manual:'));
+ assert.deepEqual(work.slice(0,5),['auto','manual:10','auto','manual:11','auto']);
+ assert.equal(work.filter(e=>e==='auto').length,12);assert.equal(held,false);
+});

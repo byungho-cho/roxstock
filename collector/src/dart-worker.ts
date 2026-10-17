@@ -1,3 +1,4 @@
+import {sweepManualRequests} from '@roxstock/shared/collection/manual-requests';
 import {dartDiagnostic} from '@roxstock/shared/collection/dart-diagnostics';
 import 'dotenv/config';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -10,7 +11,7 @@ import { collectorLog as log } from '@roxstock/shared/collection/logger';
 const config = loadCollectorConfig();
 let running = false;
 let stopping = false;
-const tick = async () => {
+const tick = async (manualOnly=false) => {
   if (running || stopping) return;
   running = true;
   try {
@@ -25,8 +26,10 @@ const tick = async () => {
       corpRefreshHours: config.dartCorpRefreshHours,
       restDayAllDay: config.dartRestDayAllDay, holidayDates: await publicHolidayDates(),
     };
-    if (await processManualRefresh(prisma, dartConfig)) return;
-    const result = await runDartCollectorCycle(prisma, dartConfig);
+    await sweepManualRequests(prisma);
+    const handledManual=await processManualRefresh(prisma, dartConfig);
+    if(manualOnly&&!handledManual)return;
+    const result = await runDartCollectorCycle(prisma, dartConfig, new Date(),()=>processManualRefresh(prisma,dartConfig));
     if (result.status === 'NOT_CONFIGURED') log('warn', 'DART collector is not configured; schedule is inactive', {});
     else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED', 'OUTSIDE_WINDOW'].includes(result.status)) log('info', 'DART collector cycle finished', result);
   } catch (error) {
@@ -34,11 +37,15 @@ const tick = async () => {
   } finally { running = false; }
 };
 
+const cleanupTimer=setInterval(()=>void sweepManualRequests(prisma).catch(error=>log('error','Manual expiry sweep failed',dartDiagnostic(error,'EXPIRY_SWEEP'))),15_000);
+const manualTimer=setInterval(()=>void tick(true),5_000);
 const timer = setInterval(() => void tick(), 60_000);
 const stop = async () => {
   if (stopping) return;
   stopping = true;
   clearInterval(timer);
+  clearInterval(manualTimer);
+  clearInterval(cleanupTimer);
   while (running) await new Promise((resolve) => setTimeout(resolve, 100));
   await prisma.$disconnect();
   process.exit(0);

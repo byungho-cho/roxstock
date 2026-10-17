@@ -31,7 +31,7 @@ export function checkedManualDb<T extends object>(db:T):T{
   const value=Reflect.get(target,key);
   if(key==='$transaction'&&typeof value==='function')return (work:unknown,...args:unknown[])=>{
    checkManualJob();
-   return value.call(target,typeof work==='function'?(tx:object)=>work(checkedManualDb(tx)):work,...args);
+   return value.call(target,typeof work==='function'?(tx:object)=>(async()=>{const result=await work(checkedManualDb(tx));checkManualJob();return result;})():work,...args);
   };
   if(typeof value==='function')return value.bind(target);
   if(!value||typeof value!=='object')return value;
