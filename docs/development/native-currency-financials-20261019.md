@@ -12,6 +12,8 @@ DART 원문 금액 컬럼만 DECIMAL(24,0)에서 DECIMAL(65,30)으로 확장한�
 
 ## 기존 보류 복구
 
+배포 전 운영 API `/api/collection/bug-reports/review-pending`에서 외화 보류 317기간, 다른 원문 보류 47기간, 기존 원문 보류 62기간 중 해결된 15기간을 재확인했다. 실행기는 이 숫자를 사용하지 않고 현재 DB를 다시 조회한다.
+
 `recover-foreign-financials`는 DB의 현재 `REVIEW_REQUIRED + NON_KRW_STORAGE_UNSUPPORTED` 대상만 최대 10개씩 keyset 조회하고 순차 처리한다. 317/14라는 과거 건수는 코드에 사용하지 않는다. 최신 종목 코드·제외 여부·기업 매핑·현재 공시·정정을 다시 검증한다. 기존 공용 잠금·실행 소유권·API 예산·최소 호출 간격을 재사용하며 수동 대기 요청이 있으면 양보한다. 파일 쓰기와 해당 task의 SUCCESS 변경은 하나의 트랜잭션으로 처리한다. 원문 저장과 지표 보완은 별도 집계한다.
 
 새 보완 실행은 원래 보류 진단을 run item/task의 previousReview에 보존한다. 원문이 저장된 정확한 외화 보류 occurrence만 `NATIVE_CURRENCY_SOURCE_STORED`로 해결하며 다른 공시 보류·신규 경고는 처리하지 않는다. 종료·중단 후에는 미성공 task만 다시 대상이 된다. 자동 수집기도 동일 사유의 보류만 소량 재시도하므로 배포 후 잔여분을 정상 스케줄에서 이어간다.
@@ -21,7 +23,7 @@ node collector/dist/scripts/recover-foreign-financials.js --max-periods=10
 node collector/dist/scripts/recover-foreign-financials.js --apply --max-periods=500 --max-calls=1800
 ```
 
-후자는 최대 20분, API 최대 1800회, 실제 일일 잔여 한도를 모두 적용한다. 마지막 JSON에 before/stored/held/failed/metricsReady/conversionRequired/remaining/cursor/stopReason을 기록한다. 잠금·수동 우선권·예산 때문에 중단된 잔여분을 성공으로 집계하지 않는다.
+후자는 1회 최대 20분, API 최대 1800회, 실제 일일 잔여 한도를 모두 적용한다. 운영 스크립트는 최대 4회까지 커서를 전진시켜 이어가며 수동 대기·호출 한도·공용 잠금 양보 시 즉시 종료한다. 같은 실행에서 실패·제외 대상을 반복 조회하지 않는다. 마지막 JSON에 before/stored/held/failed/metricsReady/conversionRequired/remaining/cursor/stopReason을 기록한다. 잠금·수동 우선권·예산 때문에 중단된 잔여분을 성공으로 집계하지 않는다.
 
 ## 배포와 롤백
 

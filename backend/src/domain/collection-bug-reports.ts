@@ -57,7 +57,7 @@ export function collectionFailureDetails(item:{diagnostics:unknown;message:strin
  }
  return {code,severity:'ERROR' as const,summary:'수집 항목 처리 실패 · 원천 응답 또는 저장 처리 확인 필요'};
 }
-const featureOf=(job:string)=>job.startsWith('investor')?'investor-trends':job==='VALUATION_SUPPLEMENT'?'dart-financial-statements':job==='daily-account-snapshots'?'account-snapshots':job==='realtime-selected-prices'?'realtime-prices':job;
+const featureOf=(job:string)=>job.startsWith('investor')?'investor-trends':['VALUATION_SUPPLEMENT','foreign-currency-recovery'].includes(job)?'dart-financial-statements':job==='daily-account-snapshots'?'account-snapshots':job==='realtime-selected-prices'?'realtime-prices':job;
 /** A first-pass DART calculation is not an attempted shares/price supplementation. */
 export function periodIssueAttempted(row:{status:string;supplemental:unknown;values:unknown},metric:string){
  const s=object(row.supplemental),errors=object(s.errors),v=object(row.values);
