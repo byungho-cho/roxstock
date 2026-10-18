@@ -33,10 +33,10 @@ export function periodIssueAttempted(row:{status:string;supplemental:unknown;val
 const durationIssueAttempted=(supplemental:unknown)=>{const s=object(supplemental);return Boolean(s.collectionAttempt||s.manualAttempt||s.automaticAttempt||s.fiscalDuration||object(s.errors).durationCode);};
 /** Recheck current evidence, bounded by occurrence key. History and replay identity are retained. */
 export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
- const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{code:{in:['PERIOD_EPS_MISSING','PERIOD_BPS_MISSING','PERIOD_PER_MISSING','PERIOD_PBR_MISSING','PERIOD_ROE_MISSING','PERIOD_PRICE_BASIS_UNCONFIRMED','DART_REVIEW_FISCAL_DURATION_UNVERIFIED','DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS']}},...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});
+ const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{code:{in:['PERIOD_EPS_MISSING','PERIOD_BPS_MISSING','PERIOD_PER_MISSING','PERIOD_PBR_MISSING','PERIOD_ROE_MISSING','PERIOD_PRICE_BASIS_UNCONFIRMED','DART_REVIEW_FISCAL_DURATION_UNVERIFIED','DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS','DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION']}},...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});
  let resolved=0;
  for(const e of rows){
-  const closingReview=['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS'].includes(e.report!.code);
+  const closingReview=['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS','DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'].includes(e.report!.code);
   let receiptPeriod:{fiscalYear:number;periodType:DartFinancialFiling['periodType'];receiptNo:string}|undefined;
   if(e.securityId!=null&&e.runId!=null&&(closingReview||e.fiscalYear==null||e.periodType==null)){
    const items=await db.collectorRunItem.findMany({where:{runId:e.runId,securityId:e.securityId,status:'FAILED',OR:[{createdAt:e.observedAt},{observedAt:e.observedAt}]},take:30});
@@ -58,7 +58,14 @@ export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
   if(!current||current.updatedAt<e.observedAt)continue;
   const values=object(current.values),provenance=object(current.provenance),code=e.report!.code;
   let resolution:string|undefined;
-  if(receiptPeriod&&provenance.receiptNo===receiptPeriod.receiptNo)resolution='RECEIPT_FISCAL_PERIOD_VERIFIED';
+  let publicSourceVerified=false;
+  if(closingReview&&provenance.receiptNo&&provenance.periodEnd){
+   const filing=await db.dartFinancialFiling.findUnique({where:{receiptNo:String(provenance.receiptNo)}});
+   const proof=object(object(filing?.sourceValidation).publicDocument);
+   if(filing&&!filing.isWithdrawn&&filing.securityId===e.securityId&&filing.fiscalYear===e.fiscalYear&&filing.periodType===e.periodType&&filing.periodEndDate.toISOString().slice(0,10)===provenance.periodEnd&&proof.method==='DART_PUBLIC_STATEMENT_BALANCE_RECONCILED'&&fiscalDurationMatches(filing,proof.fiscalDuration as Supplemental['fiscalDuration'])&&fiscalDurationMatches(filing,(current.supplemental as Supplemental|null)?.fiscalDuration))publicSourceVerified=true;
+  }
+  if(publicSourceVerified)resolution='PUBLIC_DISCLOSURE_VERIFIED';
+  else if(receiptPeriod&&provenance.receiptNo===receiptPeriod.receiptNo)resolution='RECEIPT_FISCAL_PERIOD_VERIFIED';
   else if(e.metric&&values[e.metric]!=null)resolution='METRIC_FILLED';
   else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&!durationIssueAttempted(current.supplemental))resolution='SUPPLEMENT_NOT_ATTEMPTED';
   else if(e.metric&&!periodIssueAttempted(current,e.metric))resolution=['per','pbr'].includes(e.metric)&&values[e.metric==='per'?'eps':'bps']==null?'UPSTREAM_METRIC_REVIEW':'SUPPLEMENT_NOT_ATTEMPTED';

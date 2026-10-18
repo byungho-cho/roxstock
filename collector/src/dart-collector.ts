@@ -8,7 +8,7 @@ import {collectionPasses} from './dart-order.js';
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '@roxstock/shared/prisma';
 import { collectorLog as log } from '@roxstock/shared/collection/logger';
-import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartFinancialRow, type DartPeriodType, type DartReportCode } from './dart-provider.js';
+import { DartApiError, OpenDartProvider, normalizeDartFinancialRows, type DartFinancialRow, type DartPeriodType, type DartReportCode, type DartReport } from './dart-provider.js';
 import { PrismaDartRepository, type DartBackfillTaskRecord, type DartSecurityRecord } from './dart-repository.js';
 import { getSeoulClock } from '@roxstock/shared/collection/time';
 import { dartWindowOpen, dartPriorityWindowOpen, dartFailure, retryDecision } from '@roxstock/shared/collection/dart-policy';
@@ -150,13 +150,13 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             }
             requireDartReportPeriod(report,security.corpCode!,task.fiscalYear);
             stage = 'FETCH';
-            const filing = await getCfsThenOfs(dart,security.corpCode!,task.fiscalYear,spec.code);
+            const filing = await getCfsThenOfs(dart,security.corpCode!,task.fiscalYear,spec.code,report);
             if (!filing.rows.length) {
               await repo.updateTask(task.id,{status:'NO_FILING',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:'ROWS_NOT_PUBLISHED',errorMessage:null,nextAttemptAt:null});
               await repo.addRunItem(runId!,security,task,'NO_DATA','보고서는 있으나 재무자료가 없습니다.'); noFiling += 1; return;
             }
             stage = 'VERIFY_SOURCE';
-            const source = validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:task.fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
+            const source = filing.source??validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:task.fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
             stage = 'NORMALIZE';
             const values = normalizeDartFinancialRows(filing.rows);
             stage = 'SAVE';
@@ -212,9 +212,9 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
                 requireDartReportPeriod(report,security.corpCode!,fiscalYear);
                 if (!report.selection?.periodError&&await repo.hasStoredReceipt(report.receiptNo)) continue;
-                stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode);
+                stage='FETCH'; const fetched = await getCfsThenOfs(dart, security.corpCode, fiscalYear, report.reportCode,report);
                 if (!fetched.rows.length) continue;
-                stage='VERIFY_SOURCE'; const source=validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:fiscalYear,report,rows:fetched.rows,fsDivision:fetched.division});
+                stage='VERIFY_SOURCE'; const source=fetched.source??validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:fiscalYear,report,rows:fetched.rows,fsDivision:fetched.division});
                 const spec = reports[report.reportCode]!;
                 stage='NORMALIZE'; const values=normalizeDartFinancialRows(fetched.rows);
                 stage='SAVE'; await repo.saveFiling({ securityId: security.id, fiscalYear, periodType: spec.period, reportCode: spec.code,
@@ -265,11 +265,13 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   });
 }
 
-export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode) {
+export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode, report?:DartReport) {
+  const publicSource=report&&await provider.fetchPublicAnnual(report,corpCode,year);
+  if(publicSource)return publicSource;
   const cfs = await provider.fetchFinancials(corpCode, year, reportCode, 'CFS');
-  if (cfs.length) return { division: 'CFS' as const, rows: cfs };
+  if (cfs.length) return { division: 'CFS' as const, rows: cfs,source:undefined };
   const ofs = await provider.fetchFinancials(corpCode, year, reportCode, 'OFS');
-  return { division: 'OFS' as const, rows: ofs };
+  return { division: 'OFS' as const, rows: ofs,source:undefined };
 }
 
 export function parseDartDate(value: string): Date {

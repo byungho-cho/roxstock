@@ -57,6 +57,14 @@ test('empty mappings cannot hide behind a recent sync timestamp',async()=>{
 test('legacy ambiguous reviews without target-year evidence stay held',async()=>{
  const base={id:1n,securityId:1n,fiscalYear:2025,reportCode:'11011',periodType:'ANNUAL',attempts:1,errorCode:'REVIEW_REQUIRED'};
  const rows=[{...base,diagnostics:{validationResult:'MULTIPLE_ANNUAL_PERIODS'}},{...base,id:2n,diagnostics:{validationResult:'MULTIPLE_ANNUAL_PERIODS',periodResolutionPolicy:'receipt-period-v1'}},{...base,id:3n,diagnostics:{validationResult:'CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'}},{...base,id:4n,errorCode:null,diagnostics:null}];
- const repo=new PrismaDartRepository({dartBackfillTask:{findMany:async(q:any)=>{assert.equal(q.take,100);return rows;}}} as any);
+ const repo=new PrismaDartRepository({dartCorpMapping:{findUnique:async()=>null},dartBackfillTask:{findMany:async(q:any)=>{assert.equal(q.take,100);return rows;},updateMany:async()=>({count:0})}} as any);
  assert.deepEqual((await repo.listTasksForSecurity(1n)).map(r=>r.id),[4n]);
+});
+
+test('verified public targets requeue ambiguous/content tasks with attempt count and previous evidence preserved',async()=>{
+ const {mapPeriodicReports}=await import('./dart-provider.js');const corp='00380429',reports=mapPeriodicReports([{corp_code:corp,rcept_no:'20180330001415',rcept_dt:'20180330',report_nm:'사업보고서 (2017.12)',rm:'정연'},{corp_code:corp,rcept_no:'20180814002823',rcept_dt:'20180814',report_nm:'[기재정정]사업보고서 (2017.12)'}],2017);
+ for(const reason of ['MULTIPLE_ANNUAL_PERIODS','CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION']){let changed:any;const task:any={id:1n,securityId:1n,fiscalYear:2017,reportCode:'11011',periodType:'ANNUAL',status:'FAILED',attempts:3,errorCode:'REVIEW_REQUIRED',diagnostics:{validationResult:reason}};
+ const db:any={dartCorpMapping:{findUnique:async()=>({corpCode:corp})},dartReportCache:{findUnique:async()=>({reports})},dartFinancialFiling:{findFirst:async()=>null},dartBackfillTask:{updateMany:async(q:any)=>{changed=q;return {count:1}}},dartSecurityState:{updateMany:async()=>({count:1})},dartCollectorState:{updateMany:async()=>({count:1})}};
+ assert.ok(await new PrismaDartRepository(db).reviewCalendarTask(task));assert.equal(changed.data.status,'PENDING');assert.equal(changed.where.attempts,3);assert.equal(changed.data.attempts,undefined);assert.equal(changed.data.diagnostics.previousValidationResult,reason);assert.equal(changed.data.diagnostics.existingVerifiedSourceReused,false);
+ }
 });

@@ -1,3 +1,4 @@
+import {publicAnnualTarget} from './dart-public-source.js';
 import {CollectionJobRepository} from '@roxstock/shared/collection/job-repository';
 import {eligibleWhere,withoutCollection} from '@roxstock/shared/collection/collection-policy';
 import { normalizeProviderSymbol, isSecuritySymbol } from '@roxstock/shared/domain/security-symbol';
@@ -178,16 +179,16 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async calendarReviewPage(securityId?:bigint){
-    return this.prisma.dartBackfillTask.findMany({where:{...(securityId?{securityId}:{}),status:'FAILED',errorCode:'REVIEW_REQUIRED',security:{...eligibleWhere('dart-financial-statements'),isActive:true},AND:[{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}},{OR:[{diagnostics:{path:'$.periodSelectionPolicy',equals:Prisma.AnyNull}},{NOT:{diagnostics:{path:'$.periodSelectionPolicy',equals:'year-history-v1'}}}]}]},select:{id:true,securityId:true,fiscalYear:true,reportCode:true,periodType:true,attempts:true,errorCode:true,diagnostics:true},orderBy:{id:'asc'},take:10}) as Promise<DartBackfillTaskRecord[]>;
+    return this.prisma.dartBackfillTask.findMany({where:{...(securityId?{securityId}:{}),status:'FAILED',errorCode:'REVIEW_REQUIRED',security:{...eligibleWhere('dart-financial-statements'),isActive:true},AND:[{OR:['CLOSING_MONTH_CHANGED','MULTIPLE_ANNUAL_PERIODS','CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'].map(reason=>({diagnostics:{path:'$.validationResult',equals:reason}}))},{OR:[{diagnostics:{path:'$.periodSelectionPolicy',equals:Prisma.AnyNull}},{NOT:{diagnostics:{path:'$.periodSelectionPolicy',equals:'year-history-v1'}}}]}]},select:{id:true,securityId:true,fiscalYear:true,reportCode:true,periodType:true,attempts:true,errorCode:true,diagnostics:true},orderBy:{id:'asc'},take:10}) as Promise<DartBackfillTaskRecord[]>;
   }
 
   async reviewCalendarTask(task:DartBackfillTaskRecord,now=new Date()):Promise<DartBackfillTaskRecord|undefined>{
       const d=task.diagnostics as {validationResult?:string}|null;
-      if(d?.validationResult!=='CLOSING_MONTH_CHANGED')return undefined;
+      if(!d?.validationResult||!['CLOSING_MONTH_CHANGED','MULTIPLE_ANNUAL_PERIODS','CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'].includes(d.validationResult))return undefined;
       const mapping=await this.prisma.dartCorpMapping.findUnique({where:{securityId:task.securityId}});
       const cache=mapping?await this.prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode:mapping.corpCode,fiscalYear:task.fiscalYear}}}):null;
       const reports=Array.isArray(cache?.reports)?cache.reports as unknown as DartReport[]:[];
-      const prior=reports.find(r=>r.reportCode===task.reportCode),revised=prior?upgradeCachedPeriod(prior):undefined;
+      const prior=reports.find(r=>r.reportCode===task.reportCode),revised=prior?(publicAnnualTarget(prior,mapping!.corpCode,task.fiscalYear)??upgradeCachedPeriod(prior)):undefined;
       if(!revised||revised===prior||revised.selection?.periodError){await this.prisma.dartBackfillTask.updateMany({where:{id:task.id,status:'FAILED',errorCode:'REVIEW_REQUIRED',attempts:task.attempts},data:{diagnostics:{...d,periodSelectionPolicy:'year-history-v1'}}});return undefined;}
       const stored=await this.prisma.dartFinancialFiling.findFirst({where:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
       const proof=stored?.sourceValidation as Record<string,unknown>|null;

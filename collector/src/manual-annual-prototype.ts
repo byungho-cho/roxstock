@@ -47,10 +47,10 @@ export async function refreshManualAnnual(db:PrismaClient,security:Security,year
     if(!report)reasons.financials='NO_PERIODIC_FILING';
     else{
      requireDartReportPeriod(report,security.dartCorpMapping.corpCode,year);
-     const response=await getCfsThenOfs(provider,security.dartCorpMapping.corpCode,year,'11011');
+     const response=await getCfsThenOfs(provider,security.dartCorpMapping.corpCode,year,'11011',report);
      if(!response.rows.length)reasons.financials='FINANCIAL_ROWS_NOT_PUBLISHED';
      else{
-      const verified=validateDartFiling({corpCode:security.dartCorpMapping.corpCode,taskFiscalYear:year,report,rows:response.rows,fsDivision:response.division});
+      const verified=response.source??validateDartFiling({corpCode:security.dartCorpMapping.corpCode,taskFiscalYear:year,report,rows:response.rows,fsDivision:response.division});
       await repo.saveFiling({securityId:security.id,fiscalYear:year,periodType:'ANNUAL',reportCode:'11011',fsDivision:response.division,...verified,collectedAt:new Date(),values:normalizeManualDartAccounts(response.rows)});
       filing=await db.dartFinancialFiling.findFirst({where:{receiptNo:verified.receiptNo}});
      }

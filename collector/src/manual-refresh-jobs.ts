@@ -88,10 +88,10 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
      if(!report)return {state:'NO_DATA',code:'NO_PERIODIC_FILING'};
      requireDartReportPeriod(report,mapping.corpCode,year);
      stages.dart='DART_FINANCIAL_FETCH';
-     const filing=await getCfsThenOfs(provider,mapping.corpCode,year,codes[period]);
+     const filing=await getCfsThenOfs(provider,mapping.corpCode,year,codes[period],report);
      if(!filing.rows.length)return {state:'NO_DATA',code:'FINANCIAL_ROWS_NOT_PUBLISHED'};
      stages.dart='DART_VALIDATE';
-     const source=validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:year,report,rows:filing.rows,fsDivision:filing.division});
+     const source=filing.source??validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:year,report,rows:filing.rows,fsDivision:filing.division});
      const values=normalizeManualDartAccounts(filing.rows);
      if(Object.entries(values).filter(([key])=>key!=='accountSources').every(([,value])=>value==null))return {state:'NO_DATA',code:'FINANCIAL_VALUES_EMPTY'};
      // Missing fields retain the last verified value in the same statement division. Actual zero remains zero.
@@ -99,7 +99,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
      // Never fill a new source with a legacy filing whose actual period or currency is unverified.
      const oldPeriod=candidate?.periodEndDate.toISOString().slice(0,10);
      const declared=candidate?.reportName.match(/\((\d{4})\.(\d{2})\)/)?.slice(1).join('-');
-     const previous=candidate&&(candidate.receiptNo===source.receiptNo||oldPeriod===source.periodEndDate.toISOString().slice(0,10)&&declared===source.sourceValidation.reportPeriod&&(candidate.sourceValidation as {currency?:string}|null)?.currency==='KRW')?candidate:null;
+     const previous=candidate&&(!filing.source||candidate.receiptNo===source.receiptNo)&&(candidate.receiptNo===source.receiptNo||oldPeriod===source.periodEndDate.toISOString().slice(0,10)&&declared===source.sourceValidation.reportPeriod&&(candidate.sourceValidation as {currency?:string}|null)?.currency==='KRW')?candidate:null;
      for(const key of Object.keys(values) as (keyof typeof values)[])if(key!=='accountSources'&&values[key]==null&&previous?.[key]!=null){values[key]=String(previous[key]);const evidence=previous.accountSources as Record<string,unknown>|null;values.accountSources[key]={...(evidence?.[key] as typeof values.accountSources[string]),retainedFromReceipt:previous.receiptNo} as typeof values.accountSources[string];}
      values.accountSources={...((previous?.accountSources??{}) as typeof values.accountSources),...values.accountSources};
      const collectedAt=new Date();

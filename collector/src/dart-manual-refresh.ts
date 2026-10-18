@@ -82,9 +82,9 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
         requireDartReportPeriod(report,mapping.corpCode,fiscalYear);
         const stored=await db.dartFinancialFiling.findUnique({where:{receiptNo:report.receiptNo},select:{securityId:true,fiscalYear:true,periodType:true,isWithdrawn:true,normalizationVersion:true}});
         if(stored&&!stored.isWithdrawn&&stored.normalizationVersion>=3&&stored.securityId===securityId&&stored.fiscalYear===fiscalYear&&stored.periodType===period){await publish(fiscalYear,'VALUATION',period);const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));results.push({fiscalYear,period,status:'SUCCESS',created:false,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined});continue;}
-        const filing = await getCfsThenOfs(provider, mapping.corpCode, fiscalYear, manualReports[period]);
+        const filing = await getCfsThenOfs(provider, mapping.corpCode, fiscalYear, manualReports[period],report);
         if (!filing.rows.length) { results.push({ fiscalYear, period, status: 'NO_DATA', code: 'FINANCIAL_ROWS_NOT_PUBLISHED' }); continue; }
-        const source=validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
+        const source=filing.source??validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
         const saved = await repo.saveFiling({ securityId, fiscalYear: fiscalYear, periodType: period, reportCode: manualReports[period], fsDivision: filing.division,
           ...source, collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
         await publish(fiscalYear,'VALUATION',period);
