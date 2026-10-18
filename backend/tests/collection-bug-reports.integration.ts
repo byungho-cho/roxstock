@@ -137,3 +137,22 @@ test('content-correction reports resolve only after matching public-source proof
   await reconcileBugReportsPage(db);const occurrence=await db.collectionBugOccurrence.findFirstOrThrow({where:{report:{feature}}});assert.equal(occurrence.resolution,'PUBLIC_DISCLOSURE_VERIFIED');assert.equal((await db.collectionBugReport.findFirstOrThrow({where:{feature}})).state,'RESOLVED');assert.equal(await db.collectionBugOccurrence.count({where:{report:{feature}}}),1,'history retained');
  }finally{await db.collectionBugOccurrence.deleteMany({where:{report:{feature}}});await db.collectionBugReport.deleteMany({where:{feature}});if(id){await db.periodValuation.deleteMany({where:{securityId:id}});await db.dartFinancialFiling.deleteMany({where:{securityId:id}});await db.security.delete({where:{id}});}await db.$disconnect();}
 });
+
+test('held products exclude financial absence warnings, preserve history and real failures',async()=>{
+ const feature='dart-financial-statements',prefix='held-test-'+Date.now();let id:bigint|undefined;
+ try{
+  id=(await db.security.create({data:{symbol:'H'+String(Date.now()).slice(-5),name:'상품 보류 검증',marketType:'KOSPI',securityType:'STOCK'}})).id;
+  const event={sourceKey:prefix,feature,code:'PERIOD_ROE_MISSING',severity:'WARNING' as const,summary:'검증',observedAt:new Date(),securityId:id,fiscalYear:2020,periodType:'Q3'};
+  assert.equal(await saveBugEvent(db,event),true);
+  await db.security.update({where:{id},data:{securityType:'REIT'}});
+  const {reconcileHeldProductReportsPage}=await import('../src/domain/collection-bug-reports.js');
+  let cursor:string|undefined;do{const page=await reconcileHeldProductReportsPage(db,cursor);cursor=page.hasNext?page.cursor:undefined;}while(cursor);
+  const old=await db.collectionBugOccurrence.findUniqueOrThrow({where:{eventKey:createHash('sha256').update(prefix).digest('hex')}});
+  assert.equal(old.resolution,'PRODUCT_FINANCIAL_HOLD');assert.ok(old.resolvedAt);
+  assert.equal(await saveBugEvent(db,{...event,sourceKey:prefix+'new'}),false);
+  assert.equal(await saveBugEvent(db,{...event,sourceKey:prefix+'db',code:'DATABASE_ERROR',severity:'ERROR'}),true);
+  assert.equal(await saveBugEvent(db,{...event,sourceKey:prefix+'price',feature:'market-prices',code:'KIS_PRICE_NO_DATA'}),true);
+  await db.security.update({where:{id},data:{securityType:'STOCK'}});
+  assert.equal(await saveBugEvent(db,{...event,sourceKey:prefix+'stock'}),true,'ordinary companies are still reported');
+ }finally{if(id){const reports=await db.collectionBugOccurrence.findMany({where:{securityId:id},select:{reportId:true}});await db.collectionBugOccurrence.deleteMany({where:{securityId:id}});for(const r of reports)if(r.reportId&&!await db.collectionBugOccurrence.count({where:{reportId:r.reportId}}))await db.collectionBugReport.deleteMany({where:{id:r.reportId}});await db.security.delete({where:{id}});}await db.$disconnect();}
+});

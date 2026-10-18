@@ -14,7 +14,7 @@ export const format = (value:string|number|null|undefined, digits=0, suffix='') 
  return formatter.format(n)+suffix;
 };
 export const movement = (value:number|null) => value===null||value===0?'#94A3B8':value>0?'#FA616E':'#60A5FA';
-export const listValues = (year:number,query:string,signal:AbortSignal,sorts:AnalysisSort[]=defaultAnalysisSort,limit=20,offset=0,market?:string) => apiRequest<ValueList>('/value-analysis?'+new URLSearchParams({year:String(year),query,sorts:encodeSort(sorts),compact:'1',limit:String(limit),offset:String(offset),...(market?{market}:{})}),{signal});
+export const listValues = (year:number,query:string,signal:AbortSignal,sorts:AnalysisSort[]=defaultAnalysisSort,limit=20,offset=0,market?:string,scope='all',accountId?:string) => apiRequest<ValueList>('/value-analysis?'+new URLSearchParams({year:String(year),query,sorts:encodeSort(sorts),compact:'1',limit:String(limit),offset:String(offset),...(market?{market}:{}),...(scope==='interest'?{scope,accountId:accountId??''}:{})}),{signal});
 export const detailValues = (id:string,year:number,mode:string,startYear:number,startQuarter:number,count:number,signal:AbortSignal) => apiRequest<ValueDetail>('/value-analysis/'+encodeURIComponent(id)+'?'+new URLSearchParams({year:String(year),mode,startYear:String(startYear),startQuarter:String(startQuarter),count:String(count)}),{signal});
 
 /** Read existing endpoints in <=10-period slices; never initiate collection. */

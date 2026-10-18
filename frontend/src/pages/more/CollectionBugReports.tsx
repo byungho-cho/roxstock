@@ -25,7 +25,7 @@ function eventFinancialHref(event:Event){
 function RecentReportEvent({event,summary}:{event:Event;summary:string}){
  const href=eventFinancialHref(event),name=event.securityName??event.symbol??'전체 작업';
  const content=<>
-  <Box data-testid="bug-event-date">{date(event.observedAt)} · {event.resolvedAt?(event.resolution==='SUPERSEDED_BY_FISCAL_DURATION_REVIEW'?'회계기간 확인 리포트로 통합':'해결 완료'):'미해결'}{event.runId?' · 실행 #'+event.runId:''}{(event.historyCount??1)>1?' · 반복 '+event.historyCount+'회':''}</Box>
+  <Box data-testid="bug-event-date">{date(event.observedAt)} · {event.resolvedAt?(event.resolution==='PRODUCT_FINANCIAL_HOLD'?'상품 정책상 수집 보류':event.resolution==='SUPERSEDED_BY_FISCAL_DURATION_REVIEW'?'회계기간 확인 리포트로 통합':'해결 완료'):'미해결'}{event.runId?' · 실행 #'+event.runId:''}{(event.historyCount??1)>1?' · 반복 '+event.historyCount+'회':''}</Box>
   <Box data-testid="bug-event-security">{name}{event.symbol&&event.symbol!==name?' ('+event.symbol+')':''}{event.fiscalYear?' · '+event.fiscalYear+' '+(event.periodType??''):''}{event.metric?' · '+event.metric.toUpperCase():''}</Box>
   <Box data-testid="bug-event-reason" sx={{color:colors.textMuted}}>{event.summary??summary}</Box>
  </>;
