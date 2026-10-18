@@ -55,6 +55,14 @@ test('annual estimate never fills missing EPS or financial amounts from prior an
  const mismatch=structuredClone(estimate);mismatch.values.eps='20';mismatch.supplemental.manualSource.values.eps='10';assert.equal(selectValueListAnalysis(input([mismatch])).eps,null);
 });
 
+test('same-provider final annual totals use final parent equity and ROE without inventing adjusted shares',()=>{
+ const row=p(2025,'ANNUAL',{provenance:{periodEnd:'2025-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{source:'NAVER_FNGUIDE_ANNUAL',kind:'FINAL_ANNUAL',fiscalYear:2025,division:'CFS'}}},supplemental:{manualSource:{source:'NAVER_FNGUIDE_ANNUAL',kind:'FINAL_ANNUAL',fiscalYear:2025,division:'CFS',values:{roe:'10'},financials:{parentEquity:'1000'}},estimateFinancials:{parentEquity:'9999'}}});
+ const metric={metricDate:'2025-12-31',bps:'100',roe:'10',eps:null,per:null,pbr:null,rimCompatible:true};
+ const r=shareholderTotals(metric,row,[]);assert.equal(r.excessEarnings,'20');assert.equal(r.shareholderValue,'1200');assert.equal(r.rimBasis?.isEstimated,false);assert.equal(r.rimBasis?.period,'ANNUAL');assert.equal(r.rimComparison?.perShare,null);assert.equal(r.rimBasis?.shares,null);
+ for(const edit of [(x:any)=>x.supplemental.manualSource.kind='ANNUAL_ESTIMATE',(x:any)=>x.supplemental.manualSource.fiscalYear=2024,(x:any)=>x.supplemental.manualSource.financials.parentEquity=null,(x:any)=>x.supplemental.manualSource.values.roe='11',(x:any)=>x.provenance.perMetric.roe.source='OPEN_DART',(x:any)=>x.provenance.perMetric.roe.division='OFS',(x:any)=>x.periodType='Q2']){const copy=structuredClone(row);edit(copy);assert.equal(shareholderTotals(metric,copy,[]).shareholderValue,null);}
+ const wrongBasis={...metric,rimCompatible:false};assert.equal(shareholderTotals(wrongBasis,row,[]).shareholderValue,null);
+});
+
 test('retained total-income ROE cannot inherit newer parent-attribution provenance for RIM',()=>{
  const row=p(2025,'ANNUAL',{provenance:{periodEnd:'2025-12-31',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT',perMetric:{roe:{fsDivision:'CFS',roeBasis:'TOTAL_SAME_DIVISION',periodEnd:'2025-12-31'}}}});
  const r=selectValueListAnalysis(input([row]));assert.equal(r.targetPrice,null);assert.equal(r.w,null);assert.equal(r.missingReasons.targetPrice,'RIM_BASIS_UNCONFIRMED');
