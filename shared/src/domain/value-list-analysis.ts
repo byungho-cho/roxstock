@@ -68,7 +68,10 @@ export function selectValueListAnalysis(input:Input){
  }
  const sourceCurrency=chosen?obj(chosen.provenance).currency??annual?.currency??'KRW':annual?.currency??'KRW';
  const foreign=currencyConversionRequired(sourceCurrency);
- if(metric){metric={...metric,currency:sourceCurrency,...(foreign?{per:null,pbr:null,rimCompatible:false}:{})};}
+ if(metric){
+  if(foreign&&obj(chosen?.provenance).currency!==sourceCurrency)metric=null;
+  else metric={...metric,currency:sourceCurrency,...(foreign?{per:null,pbr:null,rimCompatible:false}:{})};
+ }
  const totals=shareholderTotals(metric,chosen,filings as DartFinancialFiling[]);
  const supplement=obj(chosen?.supplemental),estimateSource=obj(supplement.manualSource),estimateFinancials=obj(supplement.estimateFinancials);
  const estimateAmount=(key:string)=>{const v=dec(estimateFinancials[key]),raw=dec(obj(estimateSource.financials)[key]);return estimateSource.kind==='ANNUAL_ESTIMATE'&&estimateSource.fiscalYear===year&&['CFS','OFS'].includes(estimateSource.division)&&v!==null&&raw!==null&&v.eq(raw)?v.toString():null;};

@@ -31,7 +31,7 @@ node collector/dist/scripts/recover-foreign-financials.js --apply --max-periods=
 
 ## 검증
 
-로컬: shared 85건, backend 140건, collector 216건 및 배포 관련 42건 통과. frontend/backend/collector 타입 검사와 빌드 확인. 신규 테스트는 USD/CNY/JPY 문자열 소수점, 통화 누락·혼재·범위 초과, 같은 공시 보완 통화 충돌, 다른 통화의 평균/성장률/Q4 차감 차단, PER/PBR/RIM/EPS수익률 차단, 외화 오류 오분류 방지를 포함한다.
+로컬: shared 86건, backend 140건, collector 216건 및 배포 관련 42건 통과. frontend/backend/collector 타입 검사와 빌드 확인. 신규 테스트는 USD/CNY/JPY 문자열 소수점, 통화 누락·혼재·범위 초과, 같은 공시 보완 통화 충돌, 다른 통화의 평균/성장률/Q4 차감 차단, PER/PBR/RIM/EPS수익률 차단, 외화 오류 오분류 방지를 포함한다.
 
 실제 MariaDB 정밀도 round-trip·원화 기존값 보존·보류 리포트 선택 해결 테스트를 Collector Split Check에 추가했다. 370×465/725×396 화면 테스트를 Frontend Check에 추가했다. 이 CI 결과와 운영 복구 집계는 PR/배포 로그가 최종 근거다. 로컬 환경의 Unix socket 제약 및 브라우저 바이너리 다운로드 실패로 로컬 DB·화면 시각 검증은 수행하지 못했다.
 

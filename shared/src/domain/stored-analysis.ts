@@ -15,7 +15,7 @@ export function selectStoredAnalysis({year,price,metrics,periods,manual,filings}
  let metric=combinedValuation(valuation(metrics[0]),periods.filter(r=>r.fiscalYear===year));
  const provenance=object(metric?.provenance),isEstimated=metric?.kind==='ANNUAL_ESTIMATE';
  const annual=mergeStatements(manual,filings.filter(f=>f.periodType==='ANNUAL')).filter(r=>r.fiscalYear<=year).sort((a,b)=>b.fiscalYear-a.fiscalYear)[0];
- if(annual?.currency&&currencyConversionRequired(annual.currency)&&metric?.kind!=='ANNUAL_ESTIMATE')metric=metric?{...metric,currency:annual.currency,per:null,pbr:null,rimCompatible:false}:null;
+ if(annual?.currency&&currencyConversionRequired(annual.currency)&&metric?.kind!=='ANNUAL_ESTIMATE')metric=metric?.currency===annual.currency?{...metric,per:null,pbr:null,rimCompatible:false}:null;
  const selectedAnnual=mergeStatements(manual,filings.filter(f=>f.periodType==='ANNUAL')).find(r=>r.fiscalYear===year);
  const estimate=isEstimated?periods.find(r=>r.fiscalYear===year&&r.periodType==='ESTIMATE'):undefined;
  const supplemental=object(estimate?.supplemental),source=object(supplemental.manualSource),estimatedFinancials=object(supplemental.estimateFinancials);

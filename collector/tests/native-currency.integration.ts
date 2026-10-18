@@ -26,7 +26,7 @@ test('MariaDB: KRW unchanged, USD/CNY/JPY exact 30-decimal round trip, identity 
   assert.equal((f.accountSources as any).totalEquity.amount,amount);
   await assert.rejects(repo.saveFiling({...input,sourceValidation:{...source.sourceValidation,currency:currency==='USD'?'CNY':'USD'}}));
   assert.deepEqual(await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo:receipt}}),f);
-  await db.dartBackfillTask.create({data:{securityId:stock.id,fiscalYear:2024,periodType:'ANNUAL',reportCode:'11011',status:'SUCCESS',selectedReceiptNo:receipt}});
+  await db.dartBackfillTask.create({data:{securityId:stock.id,fiscalYear:2024,periodType:'ANNUAL',reportCode:'11011',status:currency==='CNY'?'FAILED':'SUCCESS',selectedReceiptNo:receipt,...(currency==='CNY'?{errorCode:'REVIEW_REQUIRED',diagnostics:{validationResult:'NON_KRW_STORAGE_UNSUPPORTED'}}:{})}});
   for(const [j,code]of [foreignHoldCode,'DART_REVIEW_PUBLIC_DOCUMENT_UNVERIFIED'].entries()){
    const r=await db.collectionBugReport.create({data:{fingerprint:(symbol+j).padEnd(64,'x'),feature:'dart-financial-statements',code,severity:'WARNING',summary:'fixture',state:'REVIEWING',firstSeenAt:new Date(0),lastSeenAt:new Date(0)}});
    await db.collectionBugOccurrence.create({data:{eventKey:(symbol+j).padEnd(64,'y'),reportId:r.id,securityId:stock.id,fiscalYear:2024,periodType:'ANNUAL',observedAt:new Date(0)}});
@@ -35,6 +35,7 @@ test('MariaDB: KRW unchanged, USD/CNY/JPY exact 30-decimal round trip, identity 
   const events=await db.collectionBugOccurrence.findMany({where:{securityId:stock.id},include:{report:true}});
   assert.equal(events.find(e=>e.report?.code===foreignHoldCode)?.resolution,'NATIVE_CURRENCY_SOURCE_STORED');
   assert.equal(events.find(e=>e.report?.code==='DART_REVIEW_PUBLIC_DOCUMENT_UNVERIFIED')?.resolvedAt,null);
+  assert.equal((await db.dartBackfillTask.findFirstOrThrow({where:{securityId:stock.id}})).status,'SUCCESS');
   // Resolving again never changes counts or the unrelated warning.
   await reconcileForeignSourceReports(db);assert.deepEqual(await db.collectionBugOccurrence.findMany({where:{securityId:stock.id},include:{report:true}}),events);
  }

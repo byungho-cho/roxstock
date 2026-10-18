@@ -31,6 +31,7 @@ function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof g
 function Chart(props:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean;popup?:boolean}) {
  const currencies=[...new Set(props.rows.map(r=>r.currency??'KRW'))];
  if(!currencies.length)currencies.push('KRW');
+ if(currencies.length===1&&currencies[0]==='KRW')return <SingleCurrencyChart {...props} group={currencyGroup(props.group,props.rows)}/>;
  return <>{currencies.map(currency=>{const rows=props.rows.filter(r=>(r.currency??'KRW')===currency);return <Box key={currency} sx={{display:'flex',flexDirection:'column',minHeight:0,...(props.expanded?{flex:1}:{})}}>
  {(currency!=='KRW'||currencies.length>1)&&<Typography sx={{fontSize:10,color:'#94A3B8'}}>{currencyLabel(currency)}</Typography>}
  <SingleCurrencyChart {...props} rows={rows} group={currencyGroup(props.group,rows)}/></Box>;})}</>;

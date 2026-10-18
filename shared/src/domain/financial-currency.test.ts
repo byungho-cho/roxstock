@@ -39,3 +39,10 @@ test('conversion required is not collection failure; ratios may be not applicabl
  assert.equal(valueCompletion(values).complete,false);
  assert.equal(valueCollectionStatus({per:'CURRENCY_CONVERSION_REQUIRED'},{status:'PARTIAL',values,reasons:{per:'CURRENCY_CONVERSION_REQUIRED'}} as any,[]).collectionStatus,'PARTIAL');
 });
+
+test('legacy KRW metrics are never relabelled as a foreign filing currency',()=>{
+ const f=filing('USD');
+ const old={metricDate:new Date('2024-12-31'),eps:new Prisma.Decimal(10),bps:new Prisma.Decimal(20),roe:new Prisma.Decimal(10),per:new Prisma.Decimal(5),pbr:new Prisma.Decimal(2)} as any;
+ const list=selectValueListAnalysis({year:2025,price:'100',filings:[f],manual:[],metrics:[old],periods:[]});
+ assert.equal(list.eps,null);assert.equal(list.targetPrice,null);assert.equal(list.currency,'USD');
+});
