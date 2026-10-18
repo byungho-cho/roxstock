@@ -19,7 +19,13 @@ import {ordinaryEpsBasisMatches} from '@roxstock/shared/domain/ordinary-eps-basi
 import {fiscalEpsReviewMatches,fiscalOrdinaryEpsBasis} from '@roxstock/shared/domain/fiscal-eps-review';
 import {openingCapitalReviewMatches} from '@roxstock/shared/domain/opening-capital-review';
 import {commonEpsReviewMatches,commonEpsPeriodEndMatches} from '@roxstock/shared/domain/common-eps-review';
+type StoredFiling=NonNullable<Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>>;
+function verifiedPublicDuration(f:StoredFiling){
+ const proof=(f.sourceValidation as {publicDocument?:{method?:string;fiscalDuration?:Supplemental['fiscalDuration']}}|null)?.publicDocument;
+ return proof?.method==='DART_PUBLIC_STATEMENT_BALANCE_RECONCILED'&&fiscalDurationMatches(f,proof.fiscalDuration)?proof.fiscalDuration:undefined;
+}
 export function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>>,saved:Supplemental){
+ if(verifiedPublicDuration(f))return false;
  if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision){
   if(saved.shares?.preferred&&saved.accounts.sources.basicEps?.ordinaryEpsVerified===undefined)return true;
   const core=[['revenueYtd','revenue'],['netIncomeYtd','netIncome'],['totalEquity','totalEquity'],['totalAssets','totalAssets'],['totalLiabilities','totalLiabilities']] as const;
@@ -40,9 +46,12 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  db.periodValuation.findUnique({where})]);
  if(!filing)return null;
  let supplemental=(existing?.supplemental??{}) as Supplemental;
+ const publicSourceChanged=Boolean(verifiedPublicDuration(filing))&&(existing?.provenance as {receiptNo?:string}|null)?.receiptNo!==filing.receiptNo;
+ const publicDuration=verifiedPublicDuration(filing);
+ if(fiscalDurationMatches(filing,publicDuration))supplemental={...supplemental,fiscalDuration:publicDuration};
  const existingEvidence=existing?.provenance as Record<string,any>|undefined,existingEps=existingEvidence?.perMetric?.eps??existingEvidence;
  const pendingPrimaryEps=existing?.values&&((existing.values as Record<string,unknown>).per==null)&&existingEps?.source==='KIS_API'&&(commonEpsReviewMatches(filing,supplemental)||(filing.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps?.ordinaryEpsVerified===true);
- if(existing?.status==='SUCCESS'&&!pendingPrimaryEps&&(!((filing.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution)||fiscalDurationMatches(filing,supplemental.fiscalDuration))){
+ if(existing?.status==='SUCCESS'&&!publicSourceChanged&&!pendingPrimaryEps&&(!((filing.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution)||fiscalDurationMatches(filing,supplemental.fiscalDuration))){
   if(options.load&&(!sufficientPeriodShares(supplemental.shares,filing)||needsDartAccounts(filing,supplemental))){
    supplemental=await options.load(filing,supplemental,!needsDartAccounts(filing,supplemental));
    if(!options.dryRun){await storeShareCounts(db,filing,supplemental.shares);await db.periodValuation.update({where,data:{supplemental:supplemental as Prisma.InputJsonValue}});}
@@ -66,7 +75,7 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  }
  const result=calculatePeriod(filing,previous??undefined,supplemental);
  const oldProvenance=existing?.provenance as Record<string,unknown>|undefined;
- const oldValues=existing?.values as Record<string,string|null>|undefined;
+ const oldValues=(publicSourceChanged?undefined:existing?.values) as Record<string,string|null>|undefined;
  const priorEps=(oldProvenance?.perMetric as Record<string,Record<string,unknown>>|undefined)?.eps??oldProvenance;
  const rawEps=(filing.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps;
  const primaryEps=oldValues?.eps!=null&&oldValues.per==null&&result.values.eps!=null&&filing.periodType==='ANNUAL'&&filing.periodEndDate.toISOString().slice(0,10)===`${fiscalYear}-12-31`&&priorEps?.source==='KIS_API'&&priorEps.validation==='DART_BALANCE_AND_FLOW_RECONCILED'&&priorEps.fiscalYear===fiscalYear&&priorEps.receiptNo===filing.receiptNo&&priorEps.fsDivision===filing.fsDivision&&priorEps.periodEnd===filing.periodEndDate.toISOString().slice(0,10)&&(commonEpsReviewMatches(filing,supplemental)||rawEps?.ordinaryEpsVerified===true);
@@ -91,12 +100,14 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
    ratioEvidence[ratio]={...result.provenance,denominatorEvidence:evidence,denominatorValue:oldValues[base]};
   }
  }
- const values={...preserveValues(existing?.values,result.values),...(primaryEps?{eps:result.values.eps}:{})},reasons=Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null));
+ const values={...preserveValues(publicSourceChanged?null:existing?.values,result.values),...(primaryEps?{eps:result.values.eps}:{})},reasons=Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null));
  const status=valueCompletion(values).complete?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
- const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,k==='eps'&&primaryEps?result.provenance:(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:ratioEvidence[k]??result.provenance]));
+ const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,k==='eps'&&primaryEps?result.provenance:!publicSourceChanged&&(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:ratioEvidence[k]??result.provenance]));
  const corrections=Array.isArray(oldProvenance?.primarySourceCorrections)?oldProvenance.primarySourceCorrections.slice(-4):[];
  if(primaryEps&&oldValues!.eps!==values.eps)corrections.push({metric:'eps',previousValue:oldValues!.eps,value:values.eps,previousSource:priorEps,reason:'AUTHORITATIVE_DART_ORDINARY_EPS',at:new Date().toISOString()});
- const data={status,values:values as Prisma.InputJsonValue,provenance:{...result.provenance,perMetric,...(corrections.length?{primarySourceCorrections:corrections}:{})} as Prisma.InputJsonValue,reasons:reasons as Prisma.InputJsonValue,supplemental:supplemental as Prisma.InputJsonValue,attempts:(existing?.attempts??0)+1,nextAttemptAt:status==='SUCCESS'||!options.load?null:new Date(Date.now()+86400000)};
+ const publicSourceCorrections=Array.isArray(oldProvenance?.publicSourceCorrections)?oldProvenance.publicSourceCorrections.slice(-3):[];
+ if(publicSourceChanged&&existing)publicSourceCorrections.push({previousReceiptNo:oldProvenance?.receiptNo??null,receiptNo:filing.receiptNo,previousValues:existing.values,at:new Date().toISOString(),reason:'VERIFIED_PUBLIC_DISCLOSURE_REPLACEMENT'});
+ const data={status,values:values as Prisma.InputJsonValue,provenance:{...result.provenance,perMetric,...(publicSourceCorrections.length?{publicSourceCorrections}:{}),...(corrections.length?{primarySourceCorrections:corrections}:{})} as Prisma.InputJsonValue,reasons:reasons as Prisma.InputJsonValue,supplemental:supplemental as Prisma.InputJsonValue,attempts:(existing?.attempts??0)+1,nextAttemptAt:status==='SUCCESS'||!options.load?null:new Date(Date.now()+86400000)};
  if(!options.dryRun){
   await storeShareCounts(db,filing,supplemental.shares);
   await db.periodValuation.upsert({where,create:{securityId,fiscalYear,periodType,...data},update:data});
@@ -132,7 +143,7 @@ export function loadPeriodSupplement(provider:OpenDartProvider|null,symbol:strin
   if(sharesOnly)return {...saved,...(fiscalDuration?{fiscalDuration}:{}),...(shares?{shares}:{}),errors};
   // DART account supplementation is validated against the exact stored filing.
   // KRX's separate historical-price rollout must not block a DART EPS request.
-  if(provider&&options.dartRequests!==false&&(needsDartAccounts(f,saved)||f.periodType==='ANNUAL'&&!fiscalDuration?.openingEquity&&!saved.accounts?.sources.openingTotalEquity&&!saved.accounts?.sources.openingParentEquity)){
+  if(provider&&options.dartRequests!==false&&!verifiedPublicDuration(f)&&(needsDartAccounts(f,saved)||f.periodType==='ANNUAL'&&!fiscalDuration?.openingEquity&&!saved.accounts?.sources.openingTotalEquity&&!saved.accounts?.sources.openingParentEquity)){
    try{
     const rows=await provider.fetchFinancials(corpCode,f.fiscalYear,f.reportCode as DartReportCode,f.fsDivision);
     validateStoredDartRows(rows,f,corpCode,f.fsDivision);

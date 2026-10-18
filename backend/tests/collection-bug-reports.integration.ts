@@ -121,3 +121,17 @@ test('reconciliation resolves only repaired targets, counts repeated attempts on
   const grouped=(await app.inject({method:'GET',url:'/api/collection/bug-reports/'+consolidated[0]!.id})).json().data;assert.equal(grouped.activeTargets,1);assert.equal(grouped.events.length,2,'raw history is preserved');
  }finally{await db.collectionBugOccurrence.deleteMany({where:{report:{feature}}});await db.collectionBugReport.deleteMany({where:{feature}});await db.periodValuation.deleteMany({where:{securityId:{in:securities}}});await db.security.deleteMany({where:{id:{in:securities}}});await app.close();await db.$disconnect();}
 });
+
+test('content-correction reports resolve only after matching public-source proof, keeping history',async()=>{
+ const feature='public-correction-'+Date.now(),receipt='20990203000001',at=new Date(Date.now()-60000);let id:bigint|undefined;
+ try{
+  id=(await db.security.create({data:{symbol:'P'+String(Date.now()).slice(-5),name:'정정 공시 검증',marketType:'KOSPI'}})).id;
+  const duration={method:'DART_PUBLIC_FILING_ACCOUNTS_MATCH',receiptNo:receipt,fsDivision:'OFS',start:'2024-01-01',end:'2024-12-31',months:12,sourceUrl:'https://dart.fss.or.kr/report/viewer.do?rcpNo='+receipt,contentSha256:'a'.repeat(64),verifiedAt:new Date().toISOString()};
+  await db.dartFinancialFiling.create({data:{securityId:id,fiscalYear:2024,periodType:'ANNUAL',reportCode:'11011',fsDivision:'OFS',receiptNo:receipt,reportName:'[기재정정]사업보고서 (2024.12)',periodEndDate:new Date('2024-12-31'),receiptDate:new Date('2025-03-31'),collectedAt:new Date()}});
+  await db.periodValuation.create({data:{securityId:id,fiscalYear:2024,periodType:'ANNUAL',status:'PARTIAL',values:{roe:'10'},reasons:{},provenance:{receiptNo:receipt,periodEnd:'2024-12-31'},supplemental:{fiscalDuration:duration}}});
+  await saveBugEvent(db,{sourceKey:feature,feature,code:'DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION',severity:'WARNING',summary:'정정 검증',observedAt:at,securityId:id,fiscalYear:2024,periodType:'ANNUAL'});
+  await reconcileBugReportsPage(db);assert.equal(await db.collectionBugOccurrence.count({where:{report:{feature},resolvedAt:null}}),1,'a fresh valuation without public source proof is not enough');
+  await db.dartFinancialFiling.update({where:{receiptNo:receipt},data:{sourceValidation:{publicDocument:{method:'DART_PUBLIC_STATEMENT_BALANCE_RECONCILED',fiscalDuration:duration}}}});
+  await reconcileBugReportsPage(db);const occurrence=await db.collectionBugOccurrence.findFirstOrThrow({where:{report:{feature}}});assert.equal(occurrence.resolution,'PUBLIC_DISCLOSURE_VERIFIED');assert.equal((await db.collectionBugReport.findFirstOrThrow({where:{feature}})).state,'RESOLVED');assert.equal(await db.collectionBugOccurrence.count({where:{report:{feature}}}),1,'history retained');
+ }finally{await db.collectionBugOccurrence.deleteMany({where:{report:{feature}}});await db.collectionBugReport.deleteMany({where:{feature}});if(id){await db.periodValuation.deleteMany({where:{securityId:id}});await db.dartFinancialFiling.deleteMany({where:{securityId:id}});await db.security.delete({where:{id}});}await db.$disconnect();}
+});

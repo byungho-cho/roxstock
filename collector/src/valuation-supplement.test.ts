@@ -82,3 +82,19 @@ test('comparative opening capital requires exact annual period evidence and unam
  assert.equal(normalizeManualDartAccounts([row],new Date('2015-03-31')).accountSources.openingTotalEquity,undefined);
  assert.equal(normalizeManualDartAccounts([row,row],new Date('2015-12-31')).accountSources.openingTotalEquity,undefined);
 });
+
+test('public restatement supplementation never calls the stale original JSON accounts again',async()=>{
+ const receiptNo='20180814002823',duration={method:'DART_PUBLIC_FILING_ACCOUNTS_MATCH',receiptNo,fsDivision:'OFS',start:'2017-01-01',end:'2017-12-31',months:12,sourceUrl:'https://dart.fss.or.kr/report/viewer.do?rcpNo='+receiptNo,contentSha256:'a'.repeat(64),verifiedAt:new Date().toISOString()};
+ const f:any={securityId:1n,fiscalYear:2017,periodType:'ANNUAL',reportCode:'11011',fsDivision:'OFS',receiptNo,periodEndDate:new Date('2017-12-31'),receiptDate:new Date('2018-08-14'),sourceValidation:{publicDocument:{method:'DART_PUBLIC_STATEMENT_BALANCE_RECONCILED',fiscalDuration:duration}},accountSources:{}};
+ let calls=0;const provider={fetchFinancials:async()=>{calls++;throw Error('Stale API edition');}} as unknown as OpenDartProvider;
+ const shares:any={receiptNo,outstanding:'100',preferred:false};const load=loadPeriodSupplement(provider,'008420','00380429',undefined,'KOSPI');
+ const result=await load(f,{fiscalDuration:duration as any,shares,price:{value:'100',date:'2017-12-29',source:'TEST'}});assert.equal(calls,0);assert.equal(result.errors?.accounts,undefined);
+});
+
+test('a verified new public edition replaces stale successful metrics while retaining previous-value audit',async()=>{
+ const receiptNo='20180814002823',duration={method:'DART_PUBLIC_FILING_ACCOUNTS_MATCH',receiptNo,fsDivision:'OFS',start:'2017-01-01',end:'2017-12-31',months:12,sourceUrl:'https://dart.fss.or.kr/report/viewer.do?rcpNo='+receiptNo,contentSha256:'b'.repeat(64),verifiedAt:new Date().toISOString()};
+ const f:any={securityId:1n,normalizationVersion:3,fiscalYear:2017,periodType:'ANNUAL',fsDivision:'OFS',receiptNo,receiptDate:new Date('2018-08-14'),periodEndDate:new Date('2017-12-31'),netIncomeYtd:d(2834900621),totalEquity:d(97944019403),accountSources:{basicEps:{amount:'26',ordinaryEpsVerified:true}},sourceValidation:{periodResolution:{method:'PUBLIC_DOCUMENT_LAST_CALENDAR_CLOSING'},publicDocument:{method:'DART_PUBLIC_STATEMENT_BALANCE_RECONCILED',fiscalDuration:duration}}};
+ let saved:any={status:'SUCCESS',values:{eps:'-2',bps:'999',per:'-50',pbr:'1',roe:'-1'},provenance:{receiptNo:'20180330001415'},supplemental:{}};
+ let db:any;db={$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db),security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'008420',collectionExcluded:false,excludedFeatures:[],collectionRevision:0})},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===2017?f:null},periodValuation:{findUnique:async()=>saved,upsert:async(q:any)=>(saved={...saved,...q.update})}};
+ await supplementStoredPeriod(db,1n,2017,'ANNUAL');assert.equal(saved.values.eps,'26');assert.equal(saved.values.per,null);assert.equal(saved.values.bps,null);assert.equal(saved.provenance.publicSourceCorrections[0].previousValues.eps,'-2');assert.equal(saved.provenance.perMetric.eps.receiptNo,receiptNo);
+});

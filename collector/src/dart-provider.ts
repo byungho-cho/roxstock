@@ -1,3 +1,4 @@
+import {publicAnnualTarget,publicSectionUrls,parsePublicAnnual} from './dart-public-source.js';
 import {checkCollection,collectionFetch,CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
 import { normalizeProviderSymbol, isSecuritySymbol } from '@roxstock/shared/domain/security-symbol';
 import { inflateRawSync } from 'node:zlib';
@@ -356,6 +357,15 @@ export class OpenDartProvider {
     }
     if (all.some(row => row.corp_code !== corpCode)) throw new DartApiError('DISCLOSURE_COMPANY_MISMATCH', 'Disclosure company identity failed validation.', false, false, {corpCode, taskFiscalYear:fiscalYear, apiFiscalYear:fiscalYear});
     return mapPeriodicReports(all, fiscalYear);
+  }
+
+  async fetchPublicAnnual(report:DartReport,corpCode:string,year:number){
+    const target=publicAnnualTarget(report,corpCode,year);if(!target)return;
+    const read=async(url:string)=>{const response=await this.request(new URL(url));try{const reader=response.body?.getReader();if(!reader)throw new DartApiError('INVALID_JSON','Public document body unavailable.');const chunks:Uint8Array[]=[];let size=0;try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2_000_000){await reader.cancel();throw new DartApiError('DART_SOURCE_REVIEW','Public document size requires review.');}chunks.push(value);}}finally{reader.releaseLock();}return new TextDecoder('utf-8').decode(Buffer.concat(chunks));}finally{this.lastResponseAt=Date.now();}};
+    const main=await read('https://dart.fss.or.kr/dsaf001/main.do?rcpNo='+target.receiptNo),urls=publicSectionUrls(main,target.receiptNo);
+    if(urls.length>3)throw new DartApiError('DART_SOURCE_REVIEW','Ambiguous public document navigation.');
+    const sections=[];for(const section of urls)sections.push({...section,html:await read(section.url)});
+    try{return parsePublicAnnual(target,corpCode,year,sections);}catch(error){if(error instanceof DartApiError)throw new DartApiError(error.code,error.message,error.noData,error.quotaExceeded,{...error.diagnostics,corpCode,taskFiscalYear:year,apiFiscalYear:year,reportCode:target.reportCode,selectedReceiptNo:target.receiptNo,reportPeriod:target.selection?.periodEndDate.slice(0,7)});throw error;}
   }
 
   async fetchFinancials(corpCode: string, fiscalYear: number, reportCode: DartReportCode, fsDiv: 'CFS' | 'OFS'): Promise<DartFinancialRow[]> {
