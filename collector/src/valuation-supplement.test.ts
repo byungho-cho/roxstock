@@ -98,3 +98,10 @@ test('a verified new public edition replaces stale successful metrics while reta
  let db:any;db={$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db),security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'008420',collectionExcluded:false,excludedFeatures:[],collectionRevision:0})},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===2017?f:null},periodValuation:{findUnique:async()=>saved,upsert:async(q:any)=>(saved={...saved,...q.update})}};
  await supplementStoredPeriod(db,1n,2017,'ANNUAL');assert.equal(saved.values.eps,'26');assert.equal(saved.values.per,null);assert.equal(saved.values.bps,null);assert.equal(saved.provenance.publicSourceCorrections[0].previousValues.eps,'-2');assert.equal(saved.provenance.perMetric.eps.receiptNo,receiptNo);
 });
+
+test('reviewed pre-listing periods do not request a historical price or invent ratios',async()=>{
+ const receiptNo='20260814000947',filing:any={securityId:1n,fiscalYear:2026,periodType:'Q2',reportCode:'11012',fsDivision:'OFS',receiptNo,periodEndDate:new Date('2026-06-30'),receiptDate:new Date('2026-08-14'),accountSources:{}};let calls=0;
+ const load=loadPeriodSupplement(null,'387690','',undefined,'KOSDAQ','AUTOMATIC',{dartRequests:false,fetcher:async()=>{calls++;throw Error('unexpected external request');}});
+ const result=await load(filing,{priceAvailability:{method:'REVIEWED_PRE_LISTING_NO_MARKET_CLOSE',symbol:'387690',receiptNo,periodEnd:'2026-06-30',listingDate:'2026-07-13',sourceUrls:['https://www.yna.co.kr/view/example','https://www.mt.co.kr/stock/example'],verifiedAt:new Date().toISOString()}});
+ assert.equal(calls,0);assert.equal(result.price,undefined);assert.equal(result.errors?.priceCode,'PERIOD_PRICE_BEFORE_LISTING');assert.equal(result.errors?.priceCategory,'NOT_APPLICABLE');
+});

@@ -23,3 +23,9 @@ test('unattempted shares/price work is pending, not a bug; dependent ratios do n
  assert.deepEqual(periodBugEvents({...missing,supplemental:{kisAnnual:{}}}).map(e=>e.metric),['eps']);
  assert.deepEqual(periodBugEvents(missing).map(e=>e.metric),['eps','bps','roe']);
 });
+
+test('financial task periods reject ambiguous or malformed item labels',async()=>{
+ const {financialItemPeriod}=await import('./collection-bug-reports.js');
+ assert.deepEqual(financialItemPeriod('005930:2020:ANNUAL'),{symbol:'005930',fiscalYear:2020,periodType:'ANNUAL'});
+ for(const label of ['005930','005930:2020:11011','005930:2014:Q1','005930:2020:Q4','005930:2020:ANNUAL:private'])assert.equal(financialItemPeriod(label),undefined);
+});
