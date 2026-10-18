@@ -25,7 +25,7 @@ async function setup(page:Page){
 async function select(page:Page,label:string,value:string){await page.getByRole('combobox',{name:label,exact:true}).click();await page.getByRole('option',{name:value,exact:true}).click();}
 test('central year and quarter survive neighbors and legacy URLs',async({page})=>{
  await setup(page);await page.goto('/detail/financials?selected=1&view=detail&startYear=2024');await expect(page.getByLabel('재무제표 중앙연도')).toHaveValue('2025');await expect(page).toHaveURL(/centerYear=2025/);
- await page.getByLabel('재무제표 중앙연도').selectOption('2016');await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무제표 중앙연도')).toHaveValue('2016');
+ await page.getByLabel('재무제표 중앙연도').selectOption('2021');await page.getByRole('button',{name:'종목2',exact:true}).click();await expect(page.getByLabel('재무제표 중앙연도')).toHaveValue('2021');
  await page.getByRole('button',{name:'분기',exact:true}).click();await page.getByLabel('재무제표 시작연도').selectOption('2025');await page.getByLabel('재무제표 시작분기').selectOption('4');await page.getByRole('button',{name:'종목1',exact:true}).click();await expect(page.getByLabel('재무제표 시작분기')).toHaveValue('4');
  await page.goto('/detail/value?view=chart&selected=1&annualStart=2024');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2025');await page.getByLabel('재무지표 중앙연도').click();await page.getByRole('option',{name:'2016',exact:true}).click();await expect(page.getByRole('button',{name:'이전 연도 2015'})).toBeDisabled();await swipeStock(page,true);await expect(page.getByRole('heading',{level:1})).toContainText('종목2');await expect(page.getByLabel('재무지표 중앙연도')).toHaveText('2016');
 });
