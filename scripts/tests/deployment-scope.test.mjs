@@ -19,3 +19,6 @@ test('resolved peer changes include every affected workspace',()=>{
  const after=structuredClone(before);after.packages['node_modules/engine'].version='2';
  assert.deepEqual(selectServices(['package-lock.json'],{before,after}),{backend:true,collector:false,frontend:false});
 });
+test('frontend consumes shared pure calendar/review sources as application inputs',()=>{
+ for(const file of ['korean-holidays','market-calendar','dart-review'])assert.deepEqual(selectServices(['shared/src/domain/'+file+'.ts']),{backend:true,collector:true,frontend:true});
+});

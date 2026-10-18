@@ -1,1 +1,1 @@
-export {getKoreanHolidays} from '@roxstock/shared/domain/korean-holidays';
+export {getKoreanHolidays} from '../../../../shared/src/domain/korean-holidays';

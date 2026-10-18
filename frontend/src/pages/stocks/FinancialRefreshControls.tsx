@@ -1,4 +1,4 @@
-import {publicDartReview} from '@roxstock/shared/domain/dart-review';
+import {publicDartReview} from '../../../../shared/src/domain/dart-review';
 import {refreshOutcome} from './refreshOutcome';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { HistoryDialog } from '../../components/common/HistoryDialog';

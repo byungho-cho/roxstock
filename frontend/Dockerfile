@@ -11,6 +11,8 @@ COPY shared/package.json shared/package.json
 RUN npm ci --workspace frontend --include-workspace-root=false
 
 COPY frontend frontend
+# Pure policies are shared as source; frontend builds do not require Prisma/shared dist.
+COPY shared/src/domain/korean-holidays.ts shared/src/domain/market-calendar.ts shared/src/domain/dart-review.ts shared/src/domain/
 COPY backend/src/release.json backend/src/release.json
 
 ARG VITE_DATA_SOURCE=mock

@@ -1,1 +1,1 @@
-export {isMarketClosed} from '@roxstock/shared/domain/market-calendar';
+export {isMarketClosed} from '../../../shared/src/domain/market-calendar';
