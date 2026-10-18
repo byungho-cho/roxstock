@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PrismaClient,Prisma} from '@roxstock/shared/prisma';
+import {buildApp} from '../../backend/src/app.js';
 import {PrismaDartRepository} from '../src/dart-repository.js';
 import {mapPeriodicReports,normalizeDartFinancialRows,type DartFinancialRow} from '../src/dart-provider.js';
 import {validateDartFiling} from '../src/dart-filing-validation.js';
@@ -22,6 +23,10 @@ test('MariaDB: KRW unchanged, USD/CNY/JPY exact 30-decimal round trip, identity 
   assert.equal((await repo.saveFiling(input)).created,false);
   let f=await db.dartFinancialFiling.findUniqueOrThrow({where:{receiptNo:receipt}});
   assert.equal(f.totalEquity?.toFixed(),amount);
+  const app=buildApp();
+  try{const response=await app.inject({method:'GET',url:'/api/securities/'+stock.id+'/analysis?fiscalYear=2024'});assert.equal(response.statusCode,200);const statement=response.json().data.statements[0];assert.equal(statement.currency,currency);assert.ok(new Prisma.Decimal(statement.totalEquity).eq(amount));}
+  finally{await app.close();}
+
   assert.equal((f.sourceValidation as any).currency,currency);
   assert.equal((f.accountSources as any).totalEquity.amount,amount);
   await assert.rejects(repo.saveFiling({...input,sourceValidation:{...source.sourceValidation,currency:currency==='USD'?'CNY':'USD'}}));
