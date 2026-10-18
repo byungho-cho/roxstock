@@ -1,3 +1,5 @@
+import {priceScheduleDecision} from './price-schedule.js';
+import {getSeoulClock} from '@roxstock/shared/collection/time';
 import {priceRunResult, skipKind} from '@roxstock/shared/domain/collection-health';
 import {CollectionExcluded} from '@roxstock/shared/collection/collection-policy';
 import { normalizeProviderSymbol } from '@roxstock/shared/domain/security-symbol';
@@ -19,7 +21,7 @@ export interface PriceCollectorResult extends RunCounters {
 export const collectPrices = async (
   repository: CollectorRepository,
   provider: PriceProvider,
-  options: { delayMs: number; lockTtlSeconds: number; symbols?: string[]; signal?: AbortSignal; metadata?: Record<string, unknown> },
+  options: { delayMs: number; lockTtlSeconds: number; symbols?: string[]; signal?: AbortSignal; metadata?: Record<string, unknown>; now?:Date },
 ): Promise<PriceCollectorResult> => {
   const deadline = Date.now() + 120 * 60000;
   const jobName = 'market-prices';
@@ -42,6 +44,7 @@ export const collectPrices = async (
   log('info', 'price collection started', { runId, provider: provider.name });
   let status: CollectorRunStatus = 'FAILED';
   try {
+    if(options.metadata?.scheduleDate===getSeoulClock(options.now??new Date()).dateKey){const calendar=await priceScheduleDecision(options.now);if(calendar.closed){counters.skipped=1;await repository.addRunItem(runId,{symbol:'*',status:'SKIPPED',message:'MARKET_CLOSED: 확인된 휴장일 · 당일 전체 수집 생략'});await repository.finishRun(runId,'SKIPPED',counters);return {runId,status:'SKIPPED',failedSymbols,...counters};}}
     const activeSecurities = repository.listPriceTargets ? await repository.listPriceTargets() : await repository.listActiveSecurities();
     const requestedSymbols = new Set(options.symbols?.map((symbol) => normalizeProviderSymbol(symbol)));
     const securities = requestedSymbols.size === 0
@@ -64,7 +67,7 @@ export const collectPrices = async (
         if(security.symbol.toUpperCase().startsWith('Z99'))throw new CollectionExcluded('Z99 코드: 수집 제외');
         const observation = await provider.fetchPrice(security);
         if(repository.renewLock && !await repository.renewLock(jobName,owner,options.lockTtlSeconds)) throw new Error("COLLECTOR_LOCK_LOST: source response discarded");
-        if (observation.freshness === 'STALE') {
+        if (observation.freshness === 'STALE'||typeof options.metadata?.scheduleDate==='string'&&getSeoulClock(observation.observedAt).dateKey!==options.metadata.scheduleDate) {
           counters.stale += 1;
           await repository.addRunItem(runId, {
             securityId: security.id, symbol: security.symbol, status: 'STALE',

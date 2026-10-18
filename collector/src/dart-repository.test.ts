@@ -54,9 +54,9 @@ test('empty mappings cannot hide behind a recent sync timestamp',async()=>{
  const db={dartCorpMapping:{count:async()=>0},dartCollectorState:{findUnique:async()=>{throw Error('empty mappings must force validated fetch')}}} as unknown as PrismaClient;
  assert.equal(await new PrismaDartRepository(db).corpCodeMappingsSyncedAt(),null);
 });
-test('only newly resolvable calendar reviews get a single bounded automatic retry',async()=>{
+test('legacy ambiguous reviews without target-year evidence stay held',async()=>{
  const base={id:1n,securityId:1n,fiscalYear:2025,reportCode:'11011',periodType:'ANNUAL',attempts:1,errorCode:'REVIEW_REQUIRED'};
  const rows=[{...base,diagnostics:{validationResult:'MULTIPLE_ANNUAL_PERIODS'}},{...base,id:2n,diagnostics:{validationResult:'MULTIPLE_ANNUAL_PERIODS',periodResolutionPolicy:'receipt-period-v1'}},{...base,id:3n,diagnostics:{validationResult:'CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'}},{...base,id:4n,errorCode:null,diagnostics:null}];
  const repo=new PrismaDartRepository({dartBackfillTask:{findMany:async(q:any)=>{assert.equal(q.take,100);return rows;}}} as any);
- assert.deepEqual((await repo.listTasksForSecurity(1n)).map(r=>r.id),[1n,4n]);
+ assert.deepEqual((await repo.listTasksForSecurity(1n)).map(r=>r.id),[4n]);
 });

@@ -1,3 +1,4 @@
+import {productPolicy} from '../domain/product-policy.js';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import type {PrismaClient, Prisma, Security} from '../generated/prisma/index.js';
 import {normalizeSecuritySymbol} from '../domain/security-symbol.js';
@@ -5,17 +6,18 @@ import {normalizeSecuritySymbol} from '../domain/security-symbol.js';
 export const collectionFeatures=['realtime-prices','market-prices','dart-financial-statements','share-counts','consensus','valuation','security-master'] as const;
 export type CollectionFeature=typeof collectionFeatures[number];
 export type CollectionIdentity={id:bigint;symbol:string;collectionRevision:number};
-type Policy=Pick<Security,'symbol'|'collectionExcluded'|'excludedFeatures'|'collectionRevision'>;
+type Policy=Pick<Security,'symbol'|'collectionExcluded'|'excludedFeatures'|'collectionRevision'> & {securityType?:string};
 export class CollectionExcluded extends Error {readonly code='COLLECTION_EXCLUDED';constructor(message:string,readonly exclusionScope:'ALL'|'FEATURE'|'IDENTITY'='ALL',readonly feature?:CollectionFeature){super(message);}}
 export function componentExcluded(error:unknown){const scope=context.getStore();return error instanceof CollectionExcluded&&error.exclusionScope==='FEATURE'&&error.feature!==scope?.feature;}
 export function exclusionReason(security:Policy,feature?:CollectionFeature):string|null {
  if(normalizeSecuritySymbol(security.symbol).startsWith('Z99'))return 'Z99 코드: 모든 외부 수집에서 자동 제외';
  if(security.collectionExcluded)return '사용자 설정: 모든 외부 수집에서 제외';
+ if(feature&&['dart-financial-statements','valuation','share-counts','consensus'].includes(feature)&&productPolicy(security.securityType).held)return productPolicy(security.securityType).reason;
  if(feature&&Array.isArray(security.excludedFeatures)&&security.excludedFeatures.includes(feature))return '사용자 설정: 해당 기능 수집에서 제외';
  return null;
 }
 export function eligibleWhere(feature:CollectionFeature):Prisma.SecurityWhereInput {
- return {AND:[{NOT:{symbol:{startsWith:'Z99'}},collectionExcluded:false},{OR:[{excludedFeatures:{equals:PrismaNull()}},{NOT:{excludedFeatures:{array_contains:feature}}}]}]};
+ return {AND:[...(['dart-financial-statements','valuation','share-counts','consensus'].includes(feature)?[{securityType:{notIn:['REIT','ETF','ETN'] as import('../generated/prisma/index.js').SecurityType[]}}]:[]),{NOT:{symbol:{startsWith:'Z99'}},collectionExcluded:false},{OR:[{excludedFeatures:{equals:PrismaNull()}},{NOT:{excludedFeatures:{array_contains:feature}}}]}]};
 }
 // JSON SQL NULL and an absent feature both mean enabled. Filter existing feature arrays at SQL level.
 import {Prisma as RuntimePrisma} from '../generated/prisma/index.js';

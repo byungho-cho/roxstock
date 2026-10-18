@@ -11,6 +11,7 @@ export interface SecurityTarget {
 export type SupportedMarketType = 'KOSPI' | 'KOSDAQ';
 
 export interface SecurityMasterItem {
+  productClassification?:{type:'STOCK'|'REIT'|'ETF'|'ETN';source:'KIS_PUBLIC_MASTER';group:string;observedAt:string};
   symbol: string;
   name: string;
   marketType: SupportedMarketType;
@@ -55,6 +56,7 @@ export interface RunCounters {
 }
 
 export interface RunItemInput {
+  diagnostics?:import('@roxstock/shared/prisma').Prisma.InputJsonValue;
   securityId?: bigint;
   symbol: string;
   status: CollectorItemStatus;

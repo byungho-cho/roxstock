@@ -1,3 +1,6 @@
+import {collectProductClassifications} from './product-classification.js';
+import {loadKisProductTypes} from './providers/kis-product-master.js';
+import {priceScheduleDecision} from './price-schedule.js';
 import {processManualRefresh} from './dart-manual-refresh.js';
 import {warmValueCaches} from '@roxstock/shared/read-model/value-cache';
 import {runIndependentSupplement} from './independent-valuation-supplement.js';
@@ -26,6 +29,7 @@ const runPrices = async (symbols?: string[]) => {const result=await collectPrice
   delayMs: config.providerDelayMs,
   lockTtlSeconds: Math.max(config.lockTtlSeconds, 7200),
   symbols,
+  ...(!symbols?.length?{metadata:{scheduleDate:getSeoulClock(new Date()).dateKey,attempt:'manual-current'}}:{}),
 });if(!symbols?.length&&result.success>0){try{await warmValueCaches(prisma,result.failedSymbols);}catch(error){log('error','value cache generation failed; last good snapshot retained',{error:String(error)});}}return result;};
 const runScheduledPrices = async (scheduleDate: string, attempt: 'primary' | 'partial-retry' | 'outage-retry', symbols?: string[]) => {const result=await collectPrices(repository, provider, {
     signal: shutdown.signal,
@@ -48,7 +52,7 @@ const runSecurities = () => {
     pageSize: config.securityMasterPageSize,
     lookbackDays: config.securityMasterLookbackDays,
   });
-  return collectSecurityMaster(repository, securityProvider, {
+  return collectSecurityMaster(repository, {name:securityProvider.name,fetchLatest:async()=>{const batch=await securityProvider.fetchLatest();try{const types=await loadKisProductTypes();for(const item of batch.items){const type=types.get(item.marketType+':'+item.symbol);if(type)item.productClassification=type;}}catch{log('warn','product classification unavailable; existing master types preserved',{code:'PRODUCT_MASTER_UNAVAILABLE'});}return batch;}}, {
     lockTtlSeconds: config.lockTtlSeconds,
     deactivateMissing: config.securityMasterDeactivateMissing,
     minimumExpectedCount: config.securityMasterMinimumCount,
@@ -65,6 +69,7 @@ const once = async (target: string, symbolArgument?: string): Promise<void> => {
 
 const daemon = async (): Promise<void> => {
   let completedPriceDate = '';
+  let classificationChecked=false;
   let lockedRetryAt = 0;
   let outageRetryDate = '';
   let outageRetryAt = 0;
@@ -77,10 +82,12 @@ const daemon = async (): Promise<void> => {
     const now = new Date();
     const clock = getSeoulClock(now);
     try {
+      if(!classificationChecked){if(config.provider!=='mock')await collectProductClassifications(prisma,now);classificationChecked=true;}
       let cachePrices:PriceCollectorResult|undefined,hasNewPrices=false;
       if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate && now.getTime() >= lockedRetryAt) {
         const alreadyCompleted = await repository.hasCompletedScheduledPriceRun(clock.dateKey);
-        if (alreadyCompleted) {
+        if(!alreadyCompleted){const decision=await priceScheduleDecision(now);if(decision.closed){const run=await repository.createRun('market-prices',provider.name,{scheduleDate:clock.dateKey,attempt:'primary',calendar:decision});await repository.addRunItem(run,{symbol:'*',status:'SKIPPED',message:'MARKET_CLOSED: 확인된 휴장일 · 당일 전체 수집 생략'});await repository.finishRun(run,'SKIPPED',{success:0,failed:0,stale:0,skipped:1});completedPriceDate=clock.dateKey;}}
+        if (alreadyCompleted || completedPriceDate===clock.dateKey) {
           completedPriceDate = clock.dateKey;
         } else if (outageRetryDate === clock.dateKey && outageRetryAt > 0 && now.getTime() >= outageRetryAt) {
           const retried=await runScheduledPrices(clock.dateKey, 'outage-retry');cachePrices=retried;hasNewPrices=retried.success>0;

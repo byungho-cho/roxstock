@@ -1,0 +1,1842 @@
+[
+  {
+    "symbol": "355690",
+    "year": 2025,
+    "cachedReports": [
+      {
+        "receiptNo": "20260515002198",
+        "receiptDate": "20260515",
+        "reportName": "분기보고서 (2026.03)",
+        "reportCode": "11013",
+        "periodType": "Q1",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2026-03-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20260515002198",
+              "receiptDate": "20260515",
+              "reportName": "분기보고서 (2026.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2026-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20251114002365",
+              "receiptDate": "20251114",
+              "reportName": "분기보고서 (2025.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250515001036",
+              "receiptDate": "20250515",
+              "reportName": "분기보고서 (2025.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20241129000800",
+              "receiptDate": "20241129",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240530001542",
+              "receiptDate": "20240531",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20260814002732",
+        "receiptDate": "20260814",
+        "reportName": "반기보고서 (2026.06)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2026-06-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20260814002732",
+              "receiptDate": "20260814",
+              "reportName": "반기보고서 (2026.06)",
+              "corpCode": "01444380",
+              "reportPeriod": "2026-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250814003167",
+              "receiptDate": "20250814",
+              "reportName": "반기보고서 (2025.06)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20260515002198",
+        "receiptDate": "20260515",
+        "reportName": "분기보고서 (2026.03)",
+        "reportCode": "11014",
+        "periodType": "Q3",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2026-03-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20260515002198",
+              "receiptDate": "20260515",
+              "reportName": "분기보고서 (2026.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2026-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20251114002365",
+              "receiptDate": "20251114",
+              "reportName": "분기보고서 (2025.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250515001036",
+              "receiptDate": "20250515",
+              "reportName": "분기보고서 (2025.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20241129000800",
+              "receiptDate": "20241129",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240530001542",
+              "receiptDate": "20240531",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20260318001384",
+        "receiptDate": "20260318",
+        "reportName": "사업보고서 (2025.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2025-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "candidates": [
+            {
+              "receiptNo": "20260318001384",
+              "receiptDate": "20260318",
+              "reportName": "사업보고서 (2025.12)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-12",
+              "correctionType": "ORIGINAL",
+              "remarks": "연"
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "01444380",
+    "reports": [
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20260515002198",
+        "rcept_dt": "20260515",
+        "report_nm": "분기보고서 (2026.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20251114002365",
+        "rcept_dt": "20251114",
+        "report_nm": "분기보고서 (2025.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20250515001036",
+        "rcept_dt": "20250515",
+        "report_nm": "분기보고서 (2025.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20241129000800",
+        "rcept_dt": "20241129",
+        "report_nm": "분기보고서 (2024.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20240530001542",
+        "rcept_dt": "20240531",
+        "report_nm": "분기보고서 (2024.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20260814002732",
+        "rcept_dt": "20260814",
+        "report_nm": "반기보고서 (2026.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20250814003167",
+        "rcept_dt": "20250814",
+        "report_nm": "반기보고서 (2025.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20260318001384",
+        "rcept_dt": "20260318",
+        "report_nm": "사업보고서 (2025.12)",
+        "rm": "연"
+      }
+    ],
+    "annualPeriods": [
+      "2024-06",
+      "2024-12",
+      "2025-12"
+    ]
+  },
+  {
+    "symbol": "334970",
+    "year": 2022,
+    "cachedReports": [
+      {
+        "receiptNo": "20231114002271",
+        "receiptDate": "20231114",
+        "reportName": "분기보고서 (2023.09)",
+        "reportCode": "11013",
+        "periodType": "Q1",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2022,
+          "apiFiscalYear": 2022,
+          "periodEndDate": "2023-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2021-12",
+            "2022-12",
+            "2023-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20231114002271",
+              "receiptDate": "20231114",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230515002147",
+              "receiptDate": "20230515",
+              "reportName": "분기보고서 (2023.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20221114002257",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513001644",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20211115001803",
+              "receiptDate": "20211115",
+              "reportName": "분기보고서 (2021.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210813001045",
+              "receiptDate": "20210813",
+              "reportName": "[기재정정]분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "CONTENT",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210527000089",
+              "receiptDate": "20210527",
+              "reportName": "[기재정정]분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "CONTENT",
+              "remarks": "정"
+            },
+            {
+              "receiptNo": "20210517002134",
+              "receiptDate": "20210517",
+              "reportName": "분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "ORIGINAL",
+              "remarks": "정"
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20240214002513",
+        "receiptDate": "20240214",
+        "reportName": "반기보고서 (2023.12)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2022,
+          "apiFiscalYear": 2022,
+          "periodEndDate": "2023-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2021-12",
+            "2022-12",
+            "2023-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20240214002513",
+              "receiptDate": "20240214",
+              "reportName": "반기보고서 (2023.12)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220816002178",
+              "receiptDate": "20220816",
+              "reportName": "반기보고서 (2022.06)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210817001719",
+              "receiptDate": "20210817",
+              "reportName": "반기보고서 (2021.06)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20231114002271",
+        "receiptDate": "20231114",
+        "reportName": "분기보고서 (2023.09)",
+        "reportCode": "11014",
+        "periodType": "Q3",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2022,
+          "apiFiscalYear": 2022,
+          "periodEndDate": "2023-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2021-12",
+            "2022-12",
+            "2023-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20231114002271",
+              "receiptDate": "20231114",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230515002147",
+              "receiptDate": "20230515",
+              "reportName": "분기보고서 (2023.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20221114002257",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513001644",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20211115001803",
+              "receiptDate": "20211115",
+              "reportName": "분기보고서 (2021.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210813001045",
+              "receiptDate": "20210813",
+              "reportName": "[기재정정]분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "CONTENT",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210527000089",
+              "receiptDate": "20210527",
+              "reportName": "[기재정정]분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "CONTENT",
+              "remarks": "정"
+            },
+            {
+              "receiptNo": "20210517002134",
+              "receiptDate": "20210517",
+              "reportName": "분기보고서 (2021.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2021-03",
+              "correctionType": "ORIGINAL",
+              "remarks": "정"
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20231114002136",
+        "receiptDate": "20231114",
+        "reportName": "[기재정정]사업보고서 (2022.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2022,
+          "apiFiscalYear": 2022,
+          "periodEndDate": "2022-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2021-12",
+            "2022-12",
+            "2023-06"
+          ],
+          "candidates": [
+            {
+              "receiptNo": "20231114002136",
+              "receiptDate": "20231114",
+              "reportName": "[기재정정]사업보고서 (2022.12)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-12",
+              "correctionType": "CONTENT",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230321001497",
+              "receiptDate": "20230321",
+              "reportName": "[첨부추가]사업보고서 (2022.12)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-12",
+              "correctionType": "ADDITION",
+              "remarks": "정"
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "01258428",
+    "reports": [
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20231114002271",
+        "rcept_dt": "20231114",
+        "report_nm": "분기보고서 (2023.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20230515002147",
+        "rcept_dt": "20230515",
+        "report_nm": "분기보고서 (2023.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20221114002257",
+        "rcept_dt": "20221114",
+        "report_nm": "분기보고서 (2022.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20220513001644",
+        "rcept_dt": "20220513",
+        "report_nm": "분기보고서 (2022.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20211115001803",
+        "rcept_dt": "20211115",
+        "report_nm": "분기보고서 (2021.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20210813001045",
+        "rcept_dt": "20210813",
+        "report_nm": "[기재정정]분기보고서 (2021.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20210527000089",
+        "rcept_dt": "20210527",
+        "report_nm": "[기재정정]분기보고서 (2021.03)",
+        "rm": "정"
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20210517002134",
+        "rcept_dt": "20210517",
+        "report_nm": "분기보고서 (2021.03)",
+        "rm": "정"
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20240214002513",
+        "rcept_dt": "20240214",
+        "report_nm": "반기보고서 (2023.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20220816002178",
+        "rcept_dt": "20220816",
+        "report_nm": "반기보고서 (2022.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20210817001719",
+        "rcept_dt": "20210817",
+        "report_nm": "반기보고서 (2021.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20231114002136",
+        "rcept_dt": "20231114",
+        "report_nm": "[기재정정]사업보고서 (2022.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20230321001497",
+        "rcept_dt": "20230321",
+        "report_nm": "[첨부추가]사업보고서 (2022.12)",
+        "rm": "정"
+      }
+    ],
+    "annualPeriods": [
+      "2021-12",
+      "2022-12",
+      "2023-06"
+    ]
+  },
+  {
+    "symbol": "330350",
+    "year": 2021,
+    "cachedReports": [
+      {
+        "receiptNo": "20221114000189",
+        "receiptDate": "20221114",
+        "reportName": "분기보고서 (2022.09)",
+        "reportCode": "11013",
+        "periodType": "Q1",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2021,
+          "apiFiscalYear": 2021,
+          "periodEndDate": "2022-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2020-06",
+            "2020-12",
+            "2021-12",
+            "2022-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20221114000189",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513000709",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "00765851",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20211115000491",
+              "receiptDate": "20211115",
+              "reportName": "분기보고서 (2021.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210514000158",
+              "receiptDate": "20210514",
+              "reportName": "분기보고서 (2021.03)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20201116000520",
+              "receiptDate": "20201116",
+              "reportName": "분기보고서 (2020.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2020-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20220816000399",
+        "receiptDate": "20220816",
+        "reportName": "반기보고서 (2022.06)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2021,
+          "apiFiscalYear": 2021,
+          "periodEndDate": "2022-06-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2020-06",
+            "2020-12",
+            "2021-12",
+            "2022-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20220816000399",
+              "receiptDate": "20220816",
+              "reportName": "반기보고서 (2022.06)",
+              "corpCode": "00765851",
+              "reportPeriod": "2022-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210817000412",
+              "receiptDate": "20210817",
+              "reportName": "반기보고서 (2021.06)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20221114000189",
+        "receiptDate": "20221114",
+        "reportName": "분기보고서 (2022.09)",
+        "reportCode": "11014",
+        "periodType": "Q3",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2021,
+          "apiFiscalYear": 2021,
+          "periodEndDate": "2022-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2020-06",
+            "2020-12",
+            "2021-12",
+            "2022-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20221114000189",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513000709",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "00765851",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20211115000491",
+              "receiptDate": "20211115",
+              "reportName": "분기보고서 (2021.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20210514000158",
+              "receiptDate": "20210514",
+              "reportName": "분기보고서 (2021.03)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20201116000520",
+              "receiptDate": "20201116",
+              "reportName": "분기보고서 (2020.09)",
+              "corpCode": "00765851",
+              "reportPeriod": "2020-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20220317000281",
+        "receiptDate": "20220317",
+        "reportName": "사업보고서 (2021.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2021,
+          "apiFiscalYear": 2021,
+          "periodEndDate": "2021-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2020-06",
+            "2020-12",
+            "2021-12",
+            "2022-12"
+          ],
+          "candidates": [
+            {
+              "receiptNo": "20220317000281",
+              "receiptDate": "20220317",
+              "reportName": "사업보고서 (2021.12)",
+              "corpCode": "00765851",
+              "reportPeriod": "2021-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "00765851",
+    "reports": [
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20221114000189",
+        "rcept_dt": "20221114",
+        "report_nm": "분기보고서 (2022.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20220513000709",
+        "rcept_dt": "20220513",
+        "report_nm": "분기보고서 (2022.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20211115000491",
+        "rcept_dt": "20211115",
+        "report_nm": "분기보고서 (2021.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20210514000158",
+        "rcept_dt": "20210514",
+        "report_nm": "분기보고서 (2021.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20201116000520",
+        "rcept_dt": "20201116",
+        "report_nm": "분기보고서 (2020.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20220816000399",
+        "rcept_dt": "20220816",
+        "report_nm": "반기보고서 (2022.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20210817000412",
+        "rcept_dt": "20210817",
+        "report_nm": "반기보고서 (2021.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "00765851",
+        "rcept_no": "20220317000281",
+        "rcept_dt": "20220317",
+        "report_nm": "사업보고서 (2021.12)",
+        "rm": ""
+      }
+    ],
+    "annualPeriods": [
+      "2020-06",
+      "2020-12",
+      "2021-12",
+      "2022-12"
+    ]
+  },
+  {
+    "symbol": "355690",
+    "year": 2024,
+    "cachedReports": [
+      {
+        "receiptNo": "20251114002365",
+        "receiptDate": "20251114",
+        "reportName": "분기보고서 (2025.09)",
+        "reportCode": "11013",
+        "periodType": "Q1",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "periodEndDate": "2025-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20251114002365",
+              "receiptDate": "20251114",
+              "reportName": "분기보고서 (2025.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250515001036",
+              "receiptDate": "20250515",
+              "reportName": "분기보고서 (2025.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20241129000800",
+              "receiptDate": "20241129",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240530001542",
+              "receiptDate": "20240531",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20231127000268",
+              "receiptDate": "20231127",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20250814003167",
+        "receiptDate": "20250814",
+        "reportName": "반기보고서 (2025.06)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "periodEndDate": "2025-06-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20250814003167",
+              "receiptDate": "20250814",
+              "reportName": "반기보고서 (2025.06)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240229002341",
+              "receiptDate": "20240229",
+              "reportName": "반기보고서 (2023.12)",
+              "corpCode": "01444380",
+              "reportPeriod": "2023-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20251114002365",
+        "receiptDate": "20251114",
+        "reportName": "분기보고서 (2025.09)",
+        "reportCode": "11014",
+        "periodType": "Q3",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "periodEndDate": "2025-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20251114002365",
+              "receiptDate": "20251114",
+              "reportName": "분기보고서 (2025.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250515001036",
+              "receiptDate": "20250515",
+              "reportName": "분기보고서 (2025.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20241129000800",
+              "receiptDate": "20241129",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240530001542",
+              "receiptDate": "20240531",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20231127000268",
+              "receiptDate": "20231127",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01444380",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20260318001384",
+        "receiptDate": "20260318",
+        "reportName": "사업보고서 (2025.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2024,
+          "apiFiscalYear": 2024,
+          "periodEndDate": "2025-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-12"
+          ],
+          "periodError": "MULTIPLE_ANNUAL_PERIODS",
+          "candidates": [
+            {
+              "receiptNo": "20260318001384",
+              "receiptDate": "20260318",
+              "reportName": "사업보고서 (2025.12)",
+              "corpCode": "01444380",
+              "reportPeriod": "2025-12",
+              "correctionType": "ORIGINAL",
+              "remarks": "연"
+            },
+            {
+              "receiptNo": "20250320000893",
+              "receiptDate": "20250320",
+              "reportName": "사업보고서 (2024.12)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-12",
+              "correctionType": "ORIGINAL",
+              "remarks": "연"
+            },
+            {
+              "receiptNo": "20240920000419",
+              "receiptDate": "20240920",
+              "reportName": "사업보고서 (2024.06)",
+              "corpCode": "01444380",
+              "reportPeriod": "2024-06",
+              "correctionType": "ORIGINAL",
+              "remarks": "연"
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "01444380",
+    "reports": [
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20251114002365",
+        "rcept_dt": "20251114",
+        "report_nm": "분기보고서 (2025.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20250515001036",
+        "rcept_dt": "20250515",
+        "report_nm": "분기보고서 (2025.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20241129000800",
+        "rcept_dt": "20241129",
+        "report_nm": "분기보고서 (2024.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20240530001542",
+        "rcept_dt": "20240531",
+        "report_nm": "분기보고서 (2024.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20231127000268",
+        "rcept_dt": "20231127",
+        "report_nm": "분기보고서 (2023.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20250814003167",
+        "rcept_dt": "20250814",
+        "report_nm": "반기보고서 (2025.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20240229002341",
+        "rcept_dt": "20240229",
+        "report_nm": "반기보고서 (2023.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20260318001384",
+        "rcept_dt": "20260318",
+        "report_nm": "사업보고서 (2025.12)",
+        "rm": "연"
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20250320000893",
+        "rcept_dt": "20250320",
+        "report_nm": "사업보고서 (2024.12)",
+        "rm": "연"
+      },
+      {
+        "corp_code": "01444380",
+        "rcept_no": "20240920000419",
+        "rcept_dt": "20240920",
+        "report_nm": "사업보고서 (2024.06)",
+        "rm": "연"
+      }
+    ],
+    "annualPeriods": [
+      "2024-06",
+      "2024-12",
+      "2025-12"
+    ]
+  },
+  {
+    "symbol": "334970",
+    "year": 2023,
+    "cachedReports": [
+      {
+        "receiptNo": "20241114002692",
+        "receiptDate": "20241114",
+        "reportName": "분기보고서 (2024.09)",
+        "reportCode": "11013",
+        "periodType": "Q1",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2023,
+          "apiFiscalYear": 2023,
+          "periodEndDate": "2024-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2022-12",
+            "2023-06",
+            "2024-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20241114002692",
+              "receiptDate": "20241114",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240514001479",
+              "receiptDate": "20240514",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20231114002271",
+              "receiptDate": "20231114",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230515002147",
+              "receiptDate": "20230515",
+              "reportName": "분기보고서 (2023.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20221114002257",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513001644",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20250214002221",
+        "receiptDate": "20250214",
+        "reportName": "반기보고서 (2024.12)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2023,
+          "apiFiscalYear": 2023,
+          "periodEndDate": "2024-12-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2022-12",
+            "2023-06",
+            "2024-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20250214002221",
+              "receiptDate": "20250214",
+              "reportName": "반기보고서 (2024.12)",
+              "corpCode": "01258428",
+              "reportPeriod": "2024-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240214002513",
+              "receiptDate": "20240214",
+              "reportName": "반기보고서 (2023.12)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220816002178",
+              "receiptDate": "20220816",
+              "reportName": "반기보고서 (2022.06)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20241114002692",
+        "receiptDate": "20241114",
+        "reportName": "분기보고서 (2024.09)",
+        "reportCode": "11014",
+        "periodType": "Q3",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2023,
+          "apiFiscalYear": 2023,
+          "periodEndDate": "2024-09-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2022-12",
+            "2023-06",
+            "2024-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20241114002692",
+              "receiptDate": "20241114",
+              "reportName": "분기보고서 (2024.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240514001479",
+              "receiptDate": "20240514",
+              "reportName": "분기보고서 (2024.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20231114002271",
+              "receiptDate": "20231114",
+              "reportName": "분기보고서 (2023.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230515002147",
+              "receiptDate": "20230515",
+              "reportName": "분기보고서 (2023.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20221114002257",
+              "receiptDate": "20221114",
+              "reportName": "분기보고서 (2022.09)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20220513001644",
+              "receiptDate": "20220513",
+              "reportName": "분기보고서 (2022.03)",
+              "corpCode": "01258428",
+              "reportPeriod": "2022-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20231114002183",
+        "receiptDate": "20231114",
+        "reportName": "[기재정정]사업보고서 (2023.06)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2023,
+          "apiFiscalYear": 2023,
+          "periodEndDate": "2023-06-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2022-12",
+            "2023-06",
+            "2024-06"
+          ],
+          "candidates": [
+            {
+              "receiptNo": "20231114002183",
+              "receiptDate": "20231114",
+              "reportName": "[기재정정]사업보고서 (2023.06)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-06",
+              "correctionType": "CONTENT",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20230915000375",
+              "receiptDate": "20230915",
+              "reportName": "사업보고서 (2023.06)",
+              "corpCode": "01258428",
+              "reportPeriod": "2023-06",
+              "correctionType": "ORIGINAL",
+              "remarks": "정"
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "01258428",
+    "reports": [
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20241114002692",
+        "rcept_dt": "20241114",
+        "report_nm": "분기보고서 (2024.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20240514001479",
+        "rcept_dt": "20240514",
+        "report_nm": "분기보고서 (2024.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20231114002271",
+        "rcept_dt": "20231114",
+        "report_nm": "분기보고서 (2023.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20230515002147",
+        "rcept_dt": "20230515",
+        "report_nm": "분기보고서 (2023.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20221114002257",
+        "rcept_dt": "20221114",
+        "report_nm": "분기보고서 (2022.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20220513001644",
+        "rcept_dt": "20220513",
+        "report_nm": "분기보고서 (2022.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20250214002221",
+        "rcept_dt": "20250214",
+        "report_nm": "반기보고서 (2024.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20240214002513",
+        "rcept_dt": "20240214",
+        "report_nm": "반기보고서 (2023.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20220816002178",
+        "rcept_dt": "20220816",
+        "report_nm": "반기보고서 (2022.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20231114002183",
+        "rcept_dt": "20231114",
+        "report_nm": "[기재정정]사업보고서 (2023.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01258428",
+        "rcept_no": "20230915000375",
+        "rcept_dt": "20230915",
+        "report_nm": "사업보고서 (2023.06)",
+        "rm": "정"
+      }
+    ],
+    "annualPeriods": [
+      "2022-12",
+      "2023-06",
+      "2024-06"
+    ]
+  },
+  {
+    "symbol": "330590",
+    "year": 2025,
+    "cachedReports": [
+      {
+        "receiptNo": "20260514000609",
+        "receiptDate": "20260514",
+        "reportName": "반기보고서 (2026.03)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2026-03-31",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-06",
+            "2025-12",
+            "2026-06"
+          ],
+          "periodError": "CLOSING_MONTH_CHANGED",
+          "candidates": [
+            {
+              "receiptNo": "20260514000609",
+              "receiptDate": "20260514",
+              "reportName": "반기보고서 (2026.03)",
+              "corpCode": "01363818",
+              "reportPeriod": "2026-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20251113000638",
+              "receiptDate": "20251113",
+              "reportName": "반기보고서 (2025.09)",
+              "corpCode": "01363818",
+              "reportPeriod": "2025-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250514000917",
+              "receiptDate": "20250514",
+              "reportName": "반기보고서 (2025.03)",
+              "corpCode": "01363818",
+              "reportPeriod": "2025-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20241114001627",
+              "receiptDate": "20241114",
+              "reportName": "반기보고서 (2024.09)",
+              "corpCode": "01363818",
+              "reportPeriod": "2024-09",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240513000869",
+              "receiptDate": "20240513",
+              "reportName": "반기보고서 (2024.03)",
+              "corpCode": "01363818",
+              "reportPeriod": "2024-03",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      },
+      {
+        "receiptNo": "20260921000222",
+        "receiptDate": "20260921",
+        "reportName": "사업보고서 (2026.06)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false,
+        "selection": {
+          "version": 2,
+          "yearMapping": "CALENDAR_REPORT_YEAR",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "periodEndDate": "2026-06-30",
+          "fiscalYearEndMonth": null,
+          "annualPeriods": [
+            "2024-06",
+            "2024-12",
+            "2025-06",
+            "2025-12",
+            "2026-06"
+          ],
+          "periodError": "MULTIPLE_ANNUAL_PERIODS",
+          "candidates": [
+            {
+              "receiptNo": "20260921000222",
+              "receiptDate": "20260921",
+              "reportName": "사업보고서 (2026.06)",
+              "corpCode": "01363818",
+              "reportPeriod": "2026-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20260310002810",
+              "receiptDate": "20260310",
+              "reportName": "사업보고서 (2025.12)",
+              "corpCode": "01363818",
+              "reportPeriod": "2025-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250911000374",
+              "receiptDate": "20250911",
+              "reportName": "사업보고서 (2025.06)",
+              "corpCode": "01363818",
+              "reportPeriod": "2025-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20250312000767",
+              "receiptDate": "20250312",
+              "reportName": "사업보고서 (2024.12)",
+              "corpCode": "01363818",
+              "reportPeriod": "2024-12",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            },
+            {
+              "receiptNo": "20240902000317",
+              "receiptDate": "20240902",
+              "reportName": "사업보고서 (2024.06)",
+              "corpCode": "01363818",
+              "reportPeriod": "2024-06",
+              "correctionType": "ORIGINAL",
+              "remarks": ""
+            }
+          ]
+        }
+      }
+    ],
+    "corpCode": "01363818",
+    "reports": [
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20260514000609",
+        "rcept_dt": "20260514",
+        "report_nm": "반기보고서 (2026.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20251113000638",
+        "rcept_dt": "20251113",
+        "report_nm": "반기보고서 (2025.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20250514000917",
+        "rcept_dt": "20250514",
+        "report_nm": "반기보고서 (2025.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20241114001627",
+        "rcept_dt": "20241114",
+        "report_nm": "반기보고서 (2024.09)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20240513000869",
+        "rcept_dt": "20240513",
+        "report_nm": "반기보고서 (2024.03)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20260921000222",
+        "rcept_dt": "20260921",
+        "report_nm": "사업보고서 (2026.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20260310002810",
+        "rcept_dt": "20260310",
+        "report_nm": "사업보고서 (2025.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20250911000374",
+        "rcept_dt": "20250911",
+        "report_nm": "사업보고서 (2025.06)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20250312000767",
+        "rcept_dt": "20250312",
+        "report_nm": "사업보고서 (2024.12)",
+        "rm": ""
+      },
+      {
+        "corp_code": "01363818",
+        "rcept_no": "20240902000317",
+        "rcept_dt": "20240902",
+        "report_nm": "사업보고서 (2024.06)",
+        "rm": ""
+      }
+    ],
+    "annualPeriods": [
+      "2024-06",
+      "2024-12",
+      "2025-06",
+      "2025-12",
+      "2026-06"
+    ]
+  }
+]

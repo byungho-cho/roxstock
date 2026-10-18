@@ -1,3 +1,4 @@
+import {publicDartReview} from '@roxstock/shared/domain/dart-review';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {publicValueRows} from '@roxstock/shared/read-model/value-rows';
 import {parseAnalysisSort,sortAnalysisRows} from '@roxstock/shared/domain/analysis-sort';
@@ -61,7 +62,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const calculated=await tx.periodValuation.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}}});
       const filings=supplementedFilings(rawFilings,calculated);
       const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:{lte:year},shareClass,OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc'},{receiptNo:'desc'}],take:2});
-      const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}});
+      const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true,diagnostics:true}});
       const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
       const price=cachedRow?cachedRow.currentPrice:security.marketPrice?.currentPrice.toString()??null;
       const analysis=selectValueListAnalysis({year,price,metrics,periods:calculated,manual,filings});
@@ -72,12 +73,12 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       return { data: {
         security: { id: security.id.toString(), symbol: security.symbol, name: security.name, marketType: security.marketType, currentPrice: price, previousClosePrice: cachedRow?cachedRow.previousClosePrice:security.marketPrice?.previousClosePrice?.toString() ?? null, priceUpdatedAt: cachedRow?cachedRow.priceUpdatedAt:security.marketPrice?.priceUpdatedAt.toISOString() ?? null },
         ...displayedShares,
-        currentSupplement,
+        currentSupplement,sourceReviews:tasks.filter(t=>t.errorCode==='REVIEW_REQUIRED'||t.errorCode==='DART_SOURCE_REVIEW').map(t=>publicDartReview(t.diagnostics)),
         ...rim,shareMissingReason:displayedShares.issuedShares===null?'해당 연도·보고기간·주식 종류의 동일 공시 주식수 저장값이 없습니다.':null,
         year, metricBasis:cachedRow?.metricBasis??analysis.metricBasis, valuation: metric, w: cachedRow?cachedRow.w:weight(metric, price), fairPrices: cachedRow?cachedRow.fairPrices:['0.7', '0.8', '0.9', '1.0'].map(persistence => ({ persistence, price: fairPrice(metric, persistence) })),
         requiredReturn: '8.0', equity: annual?.totalEquity ?? null,equityBasis:annual?{year:annual.fiscalYear,source:annual.basis,attribution:'TOTAL_EQUITY',collectedAt:annual.collectedAt}:null, closingDate: annual?.periodEndDate ?? null,
         rows: financialRows(selected, statements, metrics,calculated).map(row=>{const task=tasks.find(t=>t.fiscalYear===row.year&&t.periodType===(row.quarter===null?'ANNUAL':'Q'+row.quarter));return {...row,availability:security.listingYear&&row.year<security.listingYear?'PRE_LISTING':row.source?'STORED':task?.status==='NO_FILING'?'NO_FILING':task?.status==='FAILED'?'FAILED':'NOT_COLLECTED'};}), mode, startYear, startQuarter: quarter, count,
-        notices: [...(rim.rimComparison?.reason?[rim.rimComparison.reason]:[]),rim.rimReason??'RIM 총액은 동일 공시의 검증된 자본·ROE·주식수 기준입니다.', '가치지표는 기존 저장값을 우선합니다. 보완 지표는 재무기간별 저장값이며 분기 누적 실적을 연환산합니다(TTM 아님). 과거 종가는 기간 말 기준이며 이후 공시로 계산한 사후 지표입니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
+        notices: [...tasks.filter(t=>t.errorCode==='REVIEW_REQUIRED'||t.errorCode==='DART_SOURCE_REVIEW').map(t=>{const r=publicDartReview(t.diagnostics);return `${t.fiscalYear} ${t.periodType} · ${r.message}${r.candidatePeriod?' · 검토 후보 '+r.candidatePeriod+' (대상 확정 아님)':''}`;}),...(rim.rimComparison?.reason?[rim.rimComparison.reason]:[]),rim.rimReason??'RIM 총액은 동일 공시의 검증된 자본·ROE·주식수 기준입니다.', '가치지표는 기존 저장값을 우선합니다. 보완 지표는 재무기간별 저장값이며 분기 누적 실적을 연환산합니다(TTM 아님). 과거 종가는 기간 말 기준이며 이후 공시로 계산한 사후 지표입니다.', '성장률은 동일 결산 구분의 전년 동기 대비이며 비교 기준이 없거나 0 이하면 계산하지 않습니다.'],
       } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   });

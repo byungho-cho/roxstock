@@ -1,6 +1,7 @@
 import {runViews,effectiveResult} from './collection-run-view.js';
 import {dailyScheduleHealth, skipKind} from '@roxstock/shared/domain/collection-health';
 import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collection-public-message.js';
+import {publicDartReview} from '@roxstock/shared/domain/dart-review';
 import type { FastifyInstance } from 'fastify';
 import {collectionPageRoutes} from './collection-pages.js';
 import { prisma } from '@roxstock/shared/lib/prisma';
@@ -13,7 +14,7 @@ interface CollectionJob { id: string; name: string; jobType: string; schedule: s
 const jobs: CollectionJob[] = [
   { id: 'security-master', name: '종목 마스터', jobType: 'security-master', schedule: '매일 06:00', hour: 6 },
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
-  { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '매일 20:00', hour: 20 },
+  { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '거래일 20:00 · 확인된 휴장일 생략', hour: 20 },
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
   { id: 'investor-trends', name: '투자동향', jobType: 'investor-trends', schedule: '시험 수집 KST 18·21시 · 10/16부터, 3년 보충 보류' },
   { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
@@ -188,7 +189,7 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const now = new Date();
     const views=await runViews(runIds);
     const detail: Record<string, unknown> = { id: feature.id, name: feature.name, generatedAt: now.toISOString(), runs: filteredRuns.map((run) => ({ id: run.id.toString(), status: effectiveResult(run,views.get(String(run.id))!), originalStatus:run.status, excluded:views.get(String(run.id))?.excluded??null, startedAt: iso(run.startedAt), finishedAt: iso(run.finishedAt), success: run.successCount, failed: run.failureCount, skipped: run.skippedCount, target: run.successCount + run.failureCount + run.staleCount + run.skippedCount, failureReason: safeReason(run.failureReason), metadata: collectionPublicMetadata(run.metadata) })),
-      items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: item.status, reason: safeReason(item.message), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };
+      items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: item.status, reason: safeReason(item.message),sourceReview:publicDartReview(item.diagnostics), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };
     if (feature.id === 'realtime-prices') {
       const realtime = await prisma.realtimeWorkerState.findUnique({ where: { id: 'selected-prices' } });
       const [aggregates, issues] = await Promise.all([

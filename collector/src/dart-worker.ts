@@ -1,3 +1,4 @@
+import {reviewPeriodSelections} from './period-selection-review.js';
 import {sweepManualRequests} from '@roxstock/shared/collection/manual-requests';
 import {dartDiagnostic} from '@roxstock/shared/collection/dart-diagnostics';
 import 'dotenv/config';
@@ -31,6 +32,7 @@ const tick = async (manualOnly=false) => {
     await cleanup();
     const handledManual=await processManualRefresh(prisma, dartConfig);
     if(manualOnly&&!handledManual)return;
+    if(!manualOnly&&config.dartEnabled)await reviewPeriodSelections(prisma);
     const result = await runDartCollectorCycle(prisma, dartConfig, new Date(),()=>processManualRefresh(prisma,dartConfig));
     if (result.status === 'NOT_CONFIGURED') log('warn', 'DART collector is not configured; schedule is inactive', {});
     else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED', 'OUTSIDE_WINDOW'].includes(result.status)) log('info', 'DART collector cycle finished', result);

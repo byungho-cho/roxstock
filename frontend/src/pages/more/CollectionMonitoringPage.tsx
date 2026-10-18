@@ -244,7 +244,7 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
           {item.security?.exclusionReason&&<Typography sx={{fontSize:10,color:colors.warning,overflowWrap:'anywhere'}}>{item.security.exclusionReason}</Typography>}
           {item.security&&item.recordedSymbol&&item.recordedSymbol!==item.security.symbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이전 코드 {item.recordedSymbol}의 기록 · 현재 코드 {item.security.symbol}</Typography>}
           {/^\d+:\d{4}:(ANNUAL|Q[1-4])$/.test(item.symbol)&&!item.recordedSymbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이력의 종목코드 미기록 · 현재 코드의 수집 결과로 대체하지 않습니다.</Typography>}
-          <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.reason??style.label}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
+          <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.sourceReview?.validationResult?item.sourceReview.message:item.reason??style.label}{feature==='dart-financial-statements'&&<div>{item.sourceReview?.validationResult?`${item.sourceReview.requestedYear?'요청 '+item.sourceReview.requestedYear+'년 · ':''}${item.sourceReview.candidatePeriod?'검토 후보 '+item.sourceReview.candidatePeriod+' (대상 확정 아님)':''}`:'상세 사유 미기록'}</div>}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
         </Box>;
       }) : <Typography sx={{...mutedText,fontSize:10}}>대상 내역이 없습니다.</Typography>}
     </Box>
