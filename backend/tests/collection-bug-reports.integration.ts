@@ -67,6 +67,8 @@ test('reviewed unresolved reports collapse without losing causes, notes or fresh
   assert.equal(detail.severity,'ERROR','unresolved storage failures must not become warnings');
   assert.equal(detail.activeTargets,1,'same security/period is counted once across causes');assert.equal(detail.memberCount,2);
   assert.equal(detail.occurrences,2,'review summary counts remaining occurrences, not repaired historical events');
+  const security=await db.security.findUniqueOrThrow({where:{id:securityId}});assert.equal(detail.events[0].symbol,security.symbol,'missing historical symbol is filled for statement navigation');
+  const member=(await get('/api/collection/bug-reports/'+reports[0]!.id)).json().data;assert.equal(member.events[0].symbol,security.symbol);
   assert.ok(detail.members.some((r:any)=>r.id===String(reports[0]!.id)&&r.reviewNote==='기존 메모 보존'));
   assert.ok(detail.events.some((e:any)=>e.code==='DATABASE_ERROR'));assert.ok(detail.events.some((e:any)=>e.code==='PERIOD_BPS_MISSING'));
   assert.equal((await app.inject({method:'PATCH',url:'/api/collection/bug-reports/review-pending',payload:{state:'RESOLVED'}})).statusCode,400,'summary cannot bulk resolve real failures');

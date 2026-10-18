@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {Link as RouterLink,useNavigate} from 'react-router-dom';
 import {useInfiniteQuery,useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {Alert,Box,Button,DialogContent,DialogTitle,IconButton,MenuItem,Select,Stack,TextField,Typography} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -15,6 +15,23 @@ type Detail=Report&{events:Event[];members?:Report[];hasNextMembers?:boolean;mem
 const states:Record<string,string>={UNRESOLVED:'미해결',OPEN:'신규',REVIEWING:'검토 중',RESOLVED:'해결 완료',ALL:'전체'};
 const names:Record<string,string>={'reviewed-backlog':'검토한 미해결 항목','kis-fundamentals':'추가 재무지표','dart-financial-statements':'재무제표·가치지표','investor-trends':'투자동향','security-master':'종목 마스터','market-prices':'전체 종목 주가','realtime-prices':'실시간 주가','account-snapshots':'계좌 스냅샷'};
 const date=(s:string)=>new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+function eventFinancialHref(event:Event){
+ if(!event.securityId||!/^\d+$/.test(event.securityId))return null;
+ const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
+ const year=event.fiscalYear&&event.fiscalYear>=2015&&event.fiscalYear<=currentYear?event.fiscalYear:currentYear-1;
+ const quarter=({Q1:1,Q2:2,Q3:3,Q4:4} as Record<string,number>)[event.periodType??''];
+ return '/detail/financials?'+new URLSearchParams({view:'detail',selected:event.securityId,centerYear:String(Math.max(2016,Math.min(currentYear-1,year))),mode:quarter?'quarter':'annual',...(quarter?{quarterYear:String(year),quarter:String(quarter)}:{}),chart:'false'});
+}
+function RecentReportEvent({event,summary}:{event:Event;summary:string}){
+ const href=eventFinancialHref(event),name=event.securityName??event.symbol??'전체 작업';
+ const content=<>
+  <Box data-testid="bug-event-date">{date(event.observedAt)} · {event.resolvedAt?(event.resolution==='SUPERSEDED_BY_FISCAL_DURATION_REVIEW'?'회계기간 확인 리포트로 통합':'해결 완료'):'미해결'}{event.runId?' · 실행 #'+event.runId:''}{(event.historyCount??1)>1?' · 반복 '+event.historyCount+'회':''}</Box>
+  <Box data-testid="bug-event-security">{name}{event.symbol&&event.symbol!==name?' ('+event.symbol+')':''}{event.fiscalYear?' · '+event.fiscalYear+' '+(event.periodType??''):''}{event.metric?' · '+event.metric.toUpperCase():''}</Box>
+  <Box data-testid="bug-event-reason" sx={{color:colors.textMuted}}>{event.summary??summary}</Box>
+ </>;
+ const sx={display:'block',py:'4px',px:'2px',color:'inherit',textDecoration:'none',fontSize:11,lineHeight:1.35,overflowWrap:'anywhere' as const};
+ return <Box role="listitem" sx={{borderBottom:'1px solid #526073'}}>{href?<Box component={RouterLink} to={href} aria-label={name+' 재무제표 상세보기'} sx={{...sx,'&:hover':{bgcolor:'#1B2637'},'&:focus-visible':{outline:'2px solid #3D8CF5',outlineOffset:-2}}}>{content}</Box>:<Box sx={sx}>{content}</Box>}</Box>;
+}
 export function CollectionBugReportSummary(){
  const navigate=useNavigate();
  const query=useQuery({queryKey:['collection-bug-reports','summary'],queryFn:({signal})=>apiRequest<{open:number;reviewing:number;resolved:number;lastSeenAt:string|null}>('/collection/bug-reports/summary',{signal}),refetchInterval:60000});
@@ -50,9 +67,9 @@ export function CollectionBugReports(){
     {mutation.isSuccess&&<Typography sx={{fontSize:11,color:'#34D399'}}>저장했습니다.</Typography>}
     <Typography sx={{fontSize:11,color:colors.textMuted}}>재발 시 다시 열립니다. 해결 완료 후 삭제할 수 있습니다.</Typography>
     </>}
-    {detail.data.members&&<Box sx={{maxHeight:'28%',overflowY:'auto',borderTop:'1px solid #526073'}}><Typography sx={{fontSize:11,color:colors.textMuted,py:'4px'}}>원인별 항목을 클릭하면 기존 이력과 검토 메모를 확인할 수 있습니다.</Typography>{detail.data.members.map(member=><Box component='button' key={member.id} onClick={()=>{setSelected(member.id);setMemberOffset(0);mutation.reset();}} sx={{display:'block',width:'100%',textAlign:'left',color:member.severity==='ERROR'?'#F26A6F':'#FAB83B',bgcolor:'transparent',border:0,borderBottom:'1px solid #526073',py:'4px',px:'2px',cursor:'pointer',fontSize:11}}>{names[member.feature]??member.feature} · {member.summary} · {member.activeTargets}건</Box>)}{(memberOffset>0||detail.data.hasNextMembers)&&<Box sx={{display:'flex',justifyContent:'space-between'}}><Button disabled={!memberOffset} onClick={()=>setMemberOffset(Math.max(0,memberOffset-50))}>이전</Button><Button disabled={!detail.data.hasNextMembers} onClick={()=>setMemberOffset(memberOffset+50)}>다음</Button></Box>}</Box>}
+    {detail.data.members&&<Box sx={{maxHeight:'28%',overflowY:'auto',borderTop:'1px solid #526073'}}><Typography sx={{fontSize:11,color:colors.textMuted,py:'4px'}}>원인별 항목을 클릭하면 기존 이력과 검토 메모를 확인할 수 있습니다.</Typography>{detail.data.members.map(member=><Box component='button' key={member.id} onClick={()=>{setSelected(member.id);setMemberOffset(0);mutation.reset();}} sx={{display:'block',width:'100%',textAlign:'left',color:member.severity==='ERROR'?'#F26A6F':'#FAB83B',bgcolor:'transparent',border:0,borderBottom:'1px solid #526073',py:'4px',px:'2px',cursor:'pointer',fontSize:11}}><Box sx={{fontSize:11,fontWeight:600,lineHeight:1.4}}>{names[member.feature]??member.feature} · {member.severity==='ERROR'?'오류':'경고'} {member.activeTargets??member.occurrences}건</Box><Box sx={{fontSize:11,color:colors.textMuted,lineHeight:1.4,mt:'2px',overflowWrap:'anywhere'}}>{member.summary}</Box></Box>)}{(memberOffset>0||detail.data.hasNextMembers)&&<Box sx={{display:'flex',justifyContent:'space-between'}}><Button disabled={!memberOffset} onClick={()=>setMemberOffset(Math.max(0,memberOffset-50))}>이전</Button><Button disabled={!detail.data.hasNextMembers} onClick={()=>setMemberOffset(memberOffset+50)}>다음</Button></Box>}</Box>}
     <Typography sx={{fontSize:12,fontWeight:600}}>최근 내역 · 최대 50회, 중복 통합</Typography>
-    <Box data-testid="bug-report-event-list" role="list" aria-label="최근 발생 내역" sx={{flex:'1 1 0 !important',minHeight:0,overflowY:'auto',overscrollBehavior:'contain',borderTop:'1px solid #526073'}}>{recentTargets.map(event=><Box role="listitem" key={event.eventKey} sx={{py:'4px',px:'2px',borderBottom:'1px solid #526073',fontSize:11,lineHeight:1.35,overflowWrap:'anywhere'}}>{event.summary&&<><span>{event.summary}</span><br/></>}{date(event.observedAt)} · {event.resolvedAt?(event.resolution==='SUPERSEDED_BY_FISCAL_DURATION_REVIEW'?'회계기간 확인 리포트로 통합':'해결 완료'):'미해결'}<br/>{event.securityName??event.symbol??'전체 작업'}{event.symbol?' ('+event.symbol+')':''}{event.fiscalYear?' · '+event.fiscalYear+' '+(event.periodType??''):''}{event.metric?' · '+event.metric.toUpperCase():''}{event.runId?' · 실행 #'+event.runId:''}{(event.historyCount??1)>1?' · 반복 '+event.historyCount+'회':''}</Box>)}</Box>
+    <Box data-testid="bug-report-event-list" role="list" aria-label="최근 발생 내역" sx={{flex:'1 1 0 !important',minHeight:0,overflowY:'auto',overscrollBehavior:'contain',borderTop:'1px solid #526073'}}>{recentTargets.map(event=><RecentReportEvent key={event.eventKey} event={event} summary={detail.data.summary}/>)}</Box>
    </Stack>}
   </DialogContent></HistoryDialog>
  </Box>;
