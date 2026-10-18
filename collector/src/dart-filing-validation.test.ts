@@ -41,7 +41,7 @@ test('wrong company/year/report/period and mixed receipts cannot be saved',()=>{
  for(const patch of [{corpCode:'99999999'},{fiscalYear:2023},{reportCode:'11012'}])rejects(()=>validate(report,[{...row(report),...patch} as DartFinancialRow]),'FINANCIAL_IDENTITY_MISMATCH');
  rejects(()=>validate(report,[row(report,'20240311001085')]),'RECEIPT_NOT_IN_EXPECTED_PERIOD');
  rejects(()=>validate(report,[row(report),row(report,'20250311001086')]),'MIXED_RECEIPTS');
- rejects(()=>validate(report,[{...row(report),currency:'CNY'}]),'NON_KRW_STORAGE_UNSUPPORTED');
+ assert.equal(validate(report,[{...row(report),currency:'CNY'}]).sourceValidation.currency,'CNY');
  rejects(()=>validate({...report,selection:undefined}),'DISCLOSURE_CONTEXT_UNAVAILABLE');
  rejects(()=>validate({...report,selection:{...report.selection!,periodEndDate:'2023-12-31'}}),'REPORT_PERIOD_MISMATCH');
 });
@@ -67,7 +67,7 @@ test('stored-value supplement never treats a different source as existing source
  const report=mapPeriodicReports([disclosure('2024.12')],2024)[0]!;
  const filing={receiptNo:report.receiptNo,fiscalYear:2024,reportCode:'11011',periodEndDate:new Date('2024-12-31')};
  validateStoredDartRows([row(report)],filing,corpCode,'CFS');
- rejects(()=>validateStoredDartRows([{...row(report),currency:'CNY'}],filing,corpCode,'CFS'),'NON_KRW_STORAGE_UNSUPPORTED');
+ rejects(()=>validateStoredDartRows([{...row(report),currency:'CNY'}],filing,corpCode,'CFS'),'STORED_CURRENCY_CONFLICT');
  rejects(()=>validateStoredDartRows([row(report)],{...filing,reportName:'사업보고서 (2024.06)'},corpCode,'CFS'),'STORED_FILING_CONFLICT');
  rejects(()=>validateStoredDartRows([row(report,'20250311001086')],filing,corpCode,'CFS'),'STORED_SOURCE_IDENTITY_MISMATCH');
 });

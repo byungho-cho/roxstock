@@ -48,5 +48,5 @@ for(const version of [4,6])test(`cached schema ${version} upgrade rebuilds rows 
  const f=fixture(),model=new ValueReadModel(f.db,f.loader);await model.warm(2026);
  const old=f.records.get('value:2026');old.payload.schemaVersion=version;
  f.price('999');const restarted=new ValueReadModel(f.db,f.loader),result=await restarted.get(2026);
- assert.equal(result.meta.status,'REFRESHED');assert.equal(result.rows[0]!.currentPrice,'100');assert.equal(f.lastIds,undefined);assert.equal(f.records.get('value:2026').payload.schemaVersion,7);
+ assert.equal(result.meta.status,'REFRESHED');assert.equal(result.rows[0]!.currentPrice,'100');assert.equal(f.lastIds,undefined);assert.equal(f.records.get('value:2026').payload.schemaVersion,8);
 });

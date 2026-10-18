@@ -1,3 +1,4 @@
+import {reconcileForeignSourceReports} from '@roxstock/shared/collection/foreign-source-reports';
 import {preListingPriceReviewMatches} from '@roxstock/shared/domain/listing-period';
 import {createHash} from 'node:crypto';
 import type {PrismaClient,DartFinancialFiling} from '@roxstock/shared/prisma';
@@ -125,6 +126,7 @@ export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
  return {scanned:rows.length,resolved,cursor:rows.at(-1)?.eventKey,hasNext:rows.length===50};
 }
 let reconcileCursor:string|undefined;
+let foreignSourceCursor:string|undefined;
 /** Only allowlisted diagnostic codes and typed context are stored; never provider bodies or error text. */
 export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodType:string;status:string;values:unknown;reasons:unknown;supplemental:unknown;attempts:number;updatedAt:Date;collectionSymbol?:string|null;provenance?:unknown}):BugEvent[]{
  if(object(row.provenance).calculationState==='FISCAL_DURATION_REVIEW_REQUIRED'&&!durationIssueAttempted(row.supplemental))return [];
@@ -132,7 +134,7 @@ export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodT
  if(row.status==='SUCCESS'||valueCompletion(object(row.values) as Partial<MetricValues>).complete)return [];
  const values=object(row.values),reasons=object(row.reasons),errors=object(object(row.supplemental).errors);
  const beforeListing=preListingPriceReviewMatches(object(row.supplemental).priceAvailability,{symbol:row.collectionSymbol,receiptNo:object(row.provenance).receiptNo,periodEnd:object(row.provenance).periodEnd});
- const keys=['eps','bps','per','pbr','roe'].filter(k=>!(beforeListing&&['per','pbr'].includes(k))&&values[k]==null&&periodIssueAttempted(row,k)&&!((k==='per'&&values.eps!=null&&Number(values.eps)<=0)||(k==='pbr'&&values.bps!=null&&Number(values.bps)<=0)));
+ const keys=['eps','bps','per','pbr','roe'].filter(k=>!(object(row.provenance).conversionRequired===true&&['per','pbr'].includes(k))&&!(beforeListing&&['per','pbr'].includes(k))&&values[k]==null&&periodIssueAttempted(row,k)&&!((k==='per'&&values.eps!=null&&Number(values.eps)<=0)||(k==='pbr'&&values.bps!=null&&Number(values.bps)<=0)));
  if(!keys.length)return [];
  return keys.map(metric=>{
   const reason=String(reasons[metric]??'');
@@ -212,6 +214,7 @@ export async function reclassifyBugReportsPage(db:PrismaClient,after?:string){
 let legacyRepairCursor:string|undefined;
 /** Replay a small overlap; durable occurrence keys prevent duplicate counts and deleted reports resurfacing. */
 export async function scanCollectionBugs(db:PrismaClient,now=new Date()){
+ const foreign=await reconcileForeignSourceReports(db,foreignSourceCursor);foreignSourceCursor=foreign.hasNext?foreign.cursor:undefined;
  const periods=await repairFinancialOccurrencePeriodsPage(db,financialPeriodCursor);financialPeriodCursor=periods.hasNext?periods.cursor:undefined;
  const held=await reconcileHeldProductReportsPage(db,heldProductCursor);heldProductCursor=held.hasNext?held.cursor:undefined;
  const state=await db.collectionBugScanState.upsert({where:{key:'collection-errors'},create:{key:'collection-errors',scannedAt:now},update:{}});

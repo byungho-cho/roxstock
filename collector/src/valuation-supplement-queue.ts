@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {Prisma,type PrismaClient,type ValuationSupplementTask} from '@roxstock/shared/prisma';
 import {getSeoulClock} from '@roxstock/shared/collection/time';
 
-export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v3-historical-evidence'} as const;
+export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v4-native-currency'} as const;
 type Candidate={duration_review?:number;id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;prior_basis?:string;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
 export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.prior_basis,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')+(row.duration_review?':fiscal-duration-v1':'')).digest('hex');
 /** Only computed flags and keys leave SQL. Financial JSON never crosses the candidate boundary. */
@@ -19,14 +19,14 @@ export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
    (COALESCE(JSON_EXTRACT(v.values,'$.eps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.bps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.roe'),'null')='null') OR
-   (COALESCE(JSON_EXTRACT(v.values,'$.per'),'null')='null' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(v.values,'$.eps')) AS DECIMAL(30,10))>0) OR
-   (COALESCE(JSON_EXTRACT(v.values,'$.pbr'),'null')='null' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(v.values,'$.bps')) AS DECIMAL(30,10))>0) OR
+   (COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.source_validation,'$.currency')),'KRW')='KRW' AND COALESCE(JSON_EXTRACT(v.values,'$.per'),'null')='null' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(v.values,'$.eps')) AS DECIMAL(30,10))>0) OR
+   (COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.source_validation,'$.currency')),'KRW')='KRW' AND COALESCE(JSON_EXTRACT(v.values,'$.pbr'),'null')='null' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(v.values,'$.bps')) AS DECIMAL(30,10))>0) OR
    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.supplemental,'$.shares.receiptNo')),'')<>f.receipt_no OR
    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.supplemental,'$.accounts.receiptNo')),'')<>f.receipt_no OR
    COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.supplemental,'$.accounts.fsDivision')),'')<>f.fs_division OR
    (${missingAccounts}) OR
    NOT EXISTS(SELECT 1 FROM JSON_TABLE(COALESCE(JSON_EXTRACT(v.supplemental,'$.shares.rows'),'[]'),'$[*]' COLUMNS (share_class VARCHAR(16) PATH '$.shareClass',issued VARCHAR(40) PATH '$.issuedShares',treasury VARCHAR(40) PATH '$.treasuryShares',outstanding VARCHAR(40) PATH '$.outstandingShares')) j WHERE j.share_class='COMMON' AND j.issued IS NOT NULL AND j.treasury IS NOT NULL AND j.outstanding IS NOT NULL)) AS needed,
- (COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.source_validation,'$.currency')),'KRW') NOT IN ('KRW','원') OR f.fs_division NOT IN ('CFS','OFS')) AS unsupported,
+ (f.fs_division NOT IN ('CFS','OFS')) AS unsupported,
  IF(EXISTS(SELECT 1 FROM account_watchlist_items w JOIN accounts a ON a.id=w.account_id AND a.is_active=1 WHERE w.security_id=s.id AND w.list_type IN ('HOLDING','WATCHLIST')),0,1) AS priority
  FROM dart_financial_filings f JOIN securities s ON s.id=f.security_id
  LEFT JOIN period_valuations v ON v.security_id=f.security_id AND v.fiscal_year=f.fiscal_year AND v.period_type=f.period_type AND (s.code_revision=0 AND v.collection_symbol IS NULL OR v.collection_symbol=s.symbol)

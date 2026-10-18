@@ -1,4 +1,4 @@
-const unavailable=new Set(['NOT_PROVIDED','CONSENSUS_ITEM_NOT_PROVIDED','NO_FILING','NO_DATA','NOT_COLLECTED','NOT_APPLICABLE','EPS_NON_POSITIVE','BPS_NON_POSITIVE']);
+const unavailable=new Set(['CURRENCY_CONVERSION_REQUIRED','NOT_PROVIDED','CONSENSUS_ITEM_NOT_PROVIDED','NO_FILING','NO_DATA','NOT_COLLECTED','NOT_APPLICABLE','EPS_NON_POSITIVE','BPS_NON_POSITIVE']);
 /** A non-applicable ratio or an explicitly unavailable source item is not a collector failure. */
 export function valueCollectionStatus(missing:Record<string,string|null>,row:{status:string;reasons:unknown;supplemental?:unknown}|undefined,tasks:{status:string;errorCode?:string|null}[]){
  const saved=row?.supplemental as {manualAttempt?:{errors?:Record<string,string>}}|null;

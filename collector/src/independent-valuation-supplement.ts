@@ -1,3 +1,4 @@
+import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {leaseOwnerId} from '@roxstock/shared/collection/manual-requests';
 import {withFinancialLease,FinancialLeaseLost,financialHeartbeatMs} from '@roxstock/shared/collection/financial-lease';
 import {fiscalDurationMatches} from '@roxstock/shared/domain/period-valuation';
@@ -80,10 +81,10 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
       const filing=await db.dartFinancialFiling.findFirst({where:{id:task!.filingId}});
       if(!filing)throw new CollectionExcluded('보완 기준 공시 변경','IDENTITY');
       const before=await db.periodValuation.findUnique({where}),saved=(before?.supplemental??{}) as Supplemental;
-      if((!candidate.duration_review||fiscalDurationMatches(filing,saved.fiscalDuration))&&valueCompletion((before?.values??{}) as Partial<MetricValues>).complete&&sufficientPeriodShares(saved.shares,filing)&&!needsDartAccounts(filing,saved))return;
+      if((!candidate.duration_review||fiscalDurationMatches(filing,saved.fiscalDuration))&&valueCompletion((before?.values??{}) as Partial<MetricValues>,financialCurrency(filing)).complete&&sufficientPeriodShares(saved.shares,filing)&&!needsDartAccounts(filing,saved))return;
       const result=await supplementStoredPeriod(scoped,task!.securityId,task!.fiscalYear,task!.periodType,{load:options.load??loadPeriodSupplement(provider,security.symbol,security.dartCorpMapping?.corpCode??'',undefined,security.marketType,'AUTOMATIC',{dartRequests:Boolean(apiKey&&security.dartCorpMapping),fetcher:manualFetch})});
       if(!result)return;
-      const supplement=(result.supplemental??{}) as Supplemental,complete=valueCompletion(result.values as Partial<MetricValues>).complete;
+      const supplement=(result.supplemental??{}) as Supplemental,complete=valueCompletion(result.values as Partial<MetricValues>,financialCurrency(filing)).complete;
       const projected=supplementedFilings([filing],[{securityId:filing.securityId,fiscalYear:filing.fiscalYear,periodType:filing.periodType,supplemental:supplement as Prisma.JsonObject}])[0]!;
       const financialComplete=[projected.revenueYtd,projected.operatingProfitYtd,projected.netIncomeYtd,projected.totalAssets,projected.totalLiabilities,projected.totalEquity].every(value=>value!=null);
       const nextAttemptAt=complete&&sufficientPeriodShares(supplement.shares,filing)&&!needsDartAccounts(filing,supplement)?null:new Date(clock().getTime()+supplementLimits.retryMs);
@@ -92,9 +93,9 @@ export async function runIndependentSupplement(db:PrismaClient,config:Config,now
     },activeTask.id),Math.max(1,Math.min(120_000,deadline-clock().getTime())));
     const after=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType}}});
     const filing=await db.dartFinancialFiling.findFirst({where:{id:task.filingId}}),saved=(after?.supplemental??{}) as Supplemental;
-    const complete=Boolean(filing&&(!(filing.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution||fiscalDurationMatches(filing,saved.fiscalDuration))&&valueCompletion((after?.values??{}) as Partial<MetricValues>).complete&&sufficientPeriodShares(saved.shares,filing)&&!needsDartAccounts(filing,saved));
+    const complete=Boolean(filing&&(!(filing.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution||fiscalDurationMatches(filing,saved.fiscalDuration))&&valueCompletion((after?.values??{}) as Partial<MetricValues>,financialCurrency(filing??undefined)).complete&&sufficientPeriodShares(saved.shares,filing)&&!needsDartAccounts(filing,saved));
     const permanent=!['AUTH','PERMISSION','PARSE','COMMUNICATION','RATE_LIMIT','PROVIDER'].includes(saved.errors?.priceCategory??'')&&!Object.values(saved.errors??{}).some(code=>/COMMUNICATION|HTTP|TIMEOUT|AUTH|RATE|LIMIT|NETWORK|PROVIDER_ERROR|SERVER_ERROR/.test(code)),unavailable=!complete&&permanent&&task.attempts>=3;
-    await withFinancialLease(owner,()=>finishSupplement(db,task!,owner,{status:complete?'COMPLETE':unavailable?'UNAVAILABLE':'RETRY',lastError:complete?null:unavailable?'SOURCE_NOT_PROVIDED':'SOURCE_INCOMPLETE',valuationAt:after?.updatedAt??null,nextAttemptAt:new Date(clock().getTime()+supplementLimits.retryMs),diagnostics:{missing:Object.entries(after?.values??{}).filter(([,v])=>v===null).map(([k])=>k),nonApplicable:valueCompletion((after?.values??{}) as Partial<MetricValues>).notApplicable}},clock()));
+    await withFinancialLease(owner,()=>finishSupplement(db,task!,owner,{status:complete?'COMPLETE':unavailable?'UNAVAILABLE':'RETRY',lastError:complete?null:unavailable?'SOURCE_NOT_PROVIDED':'SOURCE_INCOMPLETE',valuationAt:after?.updatedAt??null,nextAttemptAt:new Date(clock().getTime()+supplementLimits.retryMs),diagnostics:{missing:Object.entries(after?.values??{}).filter(([,v])=>v===null).map(([k])=>k),nonApplicable:valueCompletion((after?.values??{}) as Partial<MetricValues>,financialCurrency(filing??undefined)).notApplicable}},clock()));
     complete?success++:skipped++;
    }catch(error){
     if(error instanceof FinancialLeaseLost)throw error;

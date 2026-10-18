@@ -124,3 +124,24 @@ jobs:
         run: |
           echo "### Frontend Build" >> "$GITHUB_STEP_SUMMARY"
           echo "Commit: $(git rev-parse HEAD); reused: ${{ steps.passed.outputs.cache-hit }}" >> "$GITHUB_STEP_SUMMARY"
+  native_currency_ui:
+    name: Native currency UI
+    needs: scope
+    if: needs.scope.outputs.run_checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx --workspace frontend playwright install --with-deps chromium
+      - run: cd frontend && npx playwright test -c playwright.native-currency.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-currency-ui-${{ github.run_id }}
+          path: frontend/test-results/native-currency

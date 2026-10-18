@@ -47,7 +47,7 @@ export function parsePublicAnnual(report:DartReport,corpCode:string,year:number,
  const days=(Date.parse(end)-Date.parse(start))/86400000+1;if(days<1||days>366)reject();
  // A missing CFS section may fall back to explicitly labelled OFS, never a malformed CFS.
  const cfs=sections.find(s=>/^\d+\.\s*연결재무제표$/.test(s.title));
- const absentCfs=cfs&&/^\d+\.연결재무제표해당사항없(?:습니다\.?|슴|음\.?)$/.test(compact(cfs.html));
+ const absentCfs=cfs&&/^\d+\.연결재무제표해당사항(?:이)?없(?:습니다\.?|슴|음\.?)$/.test(compact(cfs.html));
  const hasCfs=cfs&&!absentCfs;
  if(!cfs)reject('CFS_DISCLOSURE');
  const section=hasCfs?cfs:sections.find(s=>/^\d+\.\s*재무제표$/.test(s.title));if(!section)reject();

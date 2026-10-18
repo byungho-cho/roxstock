@@ -1,3 +1,4 @@
+import {originalAmount} from '../../utils/financialCurrency';
 import {ProductNotice} from './ProductNotice';
 import {formatShareCount} from '../../utils/shareCount';
 import {AnalysisBasisInfo} from './AnalysisBasisInfo';
@@ -11,7 +12,7 @@ const reasonLabels:Record<string,string>={NOT_PROVIDED:'해당 값이 제공되�
 export function ValueStockCard({row,held=false,selected,disabled,onClick}:{row:ValueRow;held?:boolean;selected:boolean;disabled:boolean;onClick:()=>void}){
  const price=number(row.currentPrice),previous=number(row.previousClosePrice),delta=price===null||previous===null?null:price-previous;
  const color=(n:number|null)=>n===null||n===0?'#94A3B8':n>0?'#FA616E':'#5EA1F0';
- const values=[['EPS',format(row.eps,0,'원')],['EPS 수익률',format(row.epsYield,1,'%')],['순이익',largeMoney(row.netIncome)],['초과이익',largeMoney(row.excessEarnings)],['주주가치',largeMoney(row.shareholderValue)],['자본',largeMoney(row.capital)],['기준평가율',format(row.requiredReturn,1,'%')]];
+ const values=[['EPS',row.currency&&row.currency!=='KRW'?originalAmount(row.eps,row.currency):format(row.eps,0,'원')],['EPS 수익률',format(row.epsYield,1,'%')],['순이익',row.netIncomeBasis?.unit&&row.netIncomeBasis.unit!=='KRW'?originalAmount(row.netIncome,row.netIncomeBasis.unit):largeMoney(row.netIncome)],['초과이익',largeMoney(row.excessEarnings)],['주주가치',largeMoney(row.shareholderValue)],['자본',row.capitalBasis?.unit&&row.capitalBasis.unit!=='KRW'?originalAmount(row.capital,row.capitalBasis.unit):largeMoney(row.capital)],['기준평가율',format(row.requiredReturn,1,'%')]];
  return <><Box component="div" role="button" tabIndex={disabled?-1:0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();if(!disabled)onClick();}}} data-scroll-item={row.id} data-testid={'value-row-'+row.symbol} aria-disabled={disabled} onClick={()=>{if(!disabled)onClick();}} aria-pressed={selected} title={row.notices?.join('\n')}
   sx={{font:'inherit',color:'#F7FAFC',textAlign:'left',cursor:'pointer',border:held?'1px solid #FBBF24':'1px solid #334052',bgcolor:row.productPolicy?.label?'rgba(153,109,37,.16)':'#101827',px:'8px',py:'4px',borderRadius:'8px',width:'100%',minWidth:0,display:'grid',gap:'2px',opacity:1,'&:focus-visible':{outline:'2px solid #FFC21A'},'&:disabled':{cursor:'progress'}}}>
   <Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',gap:'4px',minHeight:20}}>
