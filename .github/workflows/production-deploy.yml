@@ -82,3 +82,31 @@ jobs:
     with:
       target_sha: ${{ needs.revision.outputs.sha }}
     secrets: inherit
+
+  foreign_recovery:
+    needs: [revision, backend, collector, frontend]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+      - name: Recover exact foreign storage holds after verified deployment
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+        run: |
+          # This one-time migration belongs to 1.1.16. Later releases use the normal bounded collector.
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.16 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- $TARGET_SHA" < scripts/recover-foreign-production.sh | tee "$RUNNER_TEMP/foreign-recovery-summary.txt"
+          cat "$RUNNER_TEMP/foreign-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"

@@ -1,3 +1,4 @@
+import {storedFinancials} from '../domain/financial-statements.js';
 import type { loadPortfolio } from './portfolio.js';
 import { normalizeSecuritySymbol, isSecuritySymbol, normalizeProviderSymbol } from '@roxstock/shared/domain/security-symbol';
 import type { FastifyInstance } from 'fastify';
@@ -198,49 +199,18 @@ export async function securityRoutes(app: FastifyInstance) {
       prisma.securityFundamentals.findUnique({ where: { securityId } }),
       prisma.periodValuation.findMany({where:{securityId,...(fiscalYear===undefined?{}:{fiscalYear})},orderBy:[{fiscalYear:'desc'},{periodType:'desc'}],take:48}),
     ]);
-    const manualByPeriod = new Map(manualStatements.map((item) => [`${item.fiscalYear}:${item.periodType}`, item]));
-    const filingByPeriod = new Map<string, typeof dartFilings[number]>();
-    for (const filing of dartFilings) {
-      const key = `${filing.fiscalYear}:${filing.periodType}`;
-      if (!filingByPeriod.has(key)) filingByPeriod.set(key, filing);
-    }
-    const periodKeys = new Set([...manualByPeriod.keys(), ...filingByPeriod.keys()]);
-    for (const annual of dartFilings.filter((item) => item.periodType === 'ANNUAL')) {
-      const q3 = filingByPeriod.get(`${annual.fiscalYear}:Q3`);
-      if (q3 && q3.fsDivision === annual.fsDivision) periodKeys.add(`${annual.fiscalYear}:Q4`);
-    }
-    const statements = [...periodKeys].map((key) => {
-      const [yearString, periodType] = key.split(':');
-      const fiscalYear = Number(yearString);
-      const manual = manualByPeriod.get(key);
-      const filing = filingByPeriod.get(key);
-      const annual = periodType === 'Q4' ? filingByPeriod.get(`${fiscalYear}:ANNUAL`) : undefined;
-      const q3 = periodType === 'Q4' ? filingByPeriod.get(`${fiscalYear}:Q3`) : undefined;
-      const dec = (value: { toString(): string } | null | undefined) => value?.toString() ?? null;
-      const d = (value: unknown) => value === null || value === undefined ? null : String(value);
-      const derived = (annualValue: unknown, q3Value: unknown) => {
-        if (annualValue === null || annualValue === undefined || q3Value === null || q3Value === undefined) return null;
-        try { return (BigInt(String(annualValue)) - BigInt(String(q3Value))).toString(); } catch { return null; }
-      };
-      const dartValue = (field: string) => {
-        if (periodType === 'Q4' && annual && q3 && annual.fsDivision === q3.fsDivision) {
-          const ytdKey = field === 'revenue' ? 'revenueYtd' : field === 'operatingProfit' ? 'operatingProfitYtd' : field === 'netIncome' ? 'netIncomeYtd' : field === 'operatingCashFlow' ? 'operatingCashFlowYtd' : 'capitalExpenditureYtd';
-          return derived((annual as any)[ytdKey]?.toString(), (q3 as any)[ytdKey]?.toString());
-        }
-        if (!filing) return null;
-        const ytd = periodType === 'ANNUAL';
-        const suffix = ytd ? 'Ytd' : 'Quarter';
-        const prop = field === 'totalAssets' || field === 'totalLiabilities' || field === 'totalEquity' ? field : `${field}${suffix}`;
-        return d((filing as any)[prop]?.toString());
-      };
-      const periodEndDate = manual?.periodEndDate ?? filing?.periodEndDate ?? (annual && periodType === 'Q4' ? annual.periodEndDate : null);
-      return { fiscalYear, periodType, periodEndDate: periodEndDate?.toISOString().slice(0, 10) ?? `${fiscalYear}-12-31`,
-        revenue: dec(manual?.revenue) ?? dartValue('revenue'), operatingProfit: dec(manual?.operatingProfit) ?? dartValue('operatingProfit'), netIncome: dec(manual?.netIncome) ?? dartValue('netIncome'),
-        totalAssets: dec(manual?.totalAssets) ?? dartValue('totalAssets'), totalLiabilities: dec(manual?.totalLiabilities) ?? dartValue('totalLiabilities'), totalEquity: dec(manual?.totalEquity) ?? dartValue('totalEquity'),
-        operatingCashFlow: dec(manual?.operatingCashFlow) ?? dartValue('operatingCashFlow'), capitalExpenditure: dec(manual?.capitalExpenditure) ?? dartValue('capitalExpenditure'),
-        source: manual ? 'MANUAL_WITH_DART_FALLBACK' : filing || annual ? 'OPEN_DART' : 'MANUAL', isDerived: periodType === 'Q4' && !manual && Boolean(annual && q3 && annual.fsDivision === q3.fsDivision),
-        dartSource: filing ? { receiptNo: filing.receiptNo, reportName: filing.reportName, fsDivision: filing.fsDivision, collectedAt: filing.collectedAt.toISOString(), source: filing.source } : annual && q3 ? { receiptNo: annual.receiptNo, reportName: annual.reportName, fsDivision: annual.fsDivision, collectedAt: annual.collectedAt.toISOString(), source: 'OPEN_DART_Q4_DERIVED_FROM_YTD' } : null };
-    }).sort((a, b) => b.fiscalYear - a.fiscalYear || String(b.periodType).localeCompare(String(a.periodType))).slice(0, 24);
+    const manualByPeriod = new Map(manualStatements.map(item=>[`${item.fiscalYear}:${item.periodType}`,item]));
+    const filingByPeriod = new Map<string,typeof dartFilings[number]>();
+    for(const f of dartFilings){const key=`${f.fiscalYear}:${f.periodType}`;if(!filingByPeriod.has(key))filingByPeriod.set(key,f);}
+    const exact=Prisma.Decimal.clone({precision:100,toExpPos:100,toExpNeg:-100});
+    const statements=storedFinancials(manualStatements,dartFilings).map(row=>{
+      const key=`${row.fiscalYear}:${row.periodType}`,filing=filingByPeriod.get(key),annual=filingByPeriod.get(`${row.fiscalYear}:ANNUAL`),q3=filingByPeriod.get(`${row.fiscalYear}:Q3`);
+      const manual=row.basis.startsWith('MANUAL')?manualByPeriod.get(key):undefined;
+      let capex=manual?.capitalExpenditure?.toFixed()??(row.periodType==='ANNUAL'?filing?.capitalExpenditureYtd:filing?.capitalExpenditureQuarter)?.toFixed()??null;
+      if(capex===null&&row.isDerived&&annual?.capitalExpenditureYtd!=null&&q3?.capitalExpenditureYtd!=null)capex=new exact(annual.capitalExpenditureYtd.toString()).minus(q3.capitalExpenditureYtd.toString()).toString();
+      const sourceFiling=filing??(row.isDerived?annual:undefined);
+      return {...row,capitalExpenditure:capex,source:manual?'MANUAL_WITH_DART_FALLBACK':sourceFiling?'OPEN_DART':'MANUAL',dartSource:sourceFiling?{receiptNo:sourceFiling.receiptNo,reportName:sourceFiling.reportName,fsDivision:sourceFiling.fsDivision,collectedAt:sourceFiling.collectedAt.toISOString(),source:row.isDerived?'OPEN_DART_Q4_DERIVED_FROM_YTD':sourceFiling.source}:null};
+    }).sort((a,b)=>b.fiscalYear-a.fiscalYear||b.periodType.localeCompare(a.periodType)).slice(0,24);
     return { data: {
       security: serializeSecurity({ ...security, watchlistItem: manual }),
       valuation: combinedValuation(valuation(metrics[0]),periodMetrics),

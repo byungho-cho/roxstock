@@ -135,7 +135,7 @@ test('large fixture executes at most ten periods sequentially and retains origin
  assert.equal(result.processed,10);assert.equal(peak,1);assert.ok(calls>0&&calls<=20,'source loads: '+calls);
  assert.equal(JSON.stringify((await db.dartFinancialFiling.findUniqueOrThrow({where:{id:first.id}})).accountSources),original);
 });
-test('SQL selection distinguishes string-positive, NULL, zero, loss and unsupported currency',async()=>{
+test('SQL selection distinguishes string-positive, NULL, zero, loss and native-currency conversion',async()=>{
  const f=await db.dartFinancialFiling.findFirstOrThrow({orderBy:{id:'asc'}}),where={securityId_fiscalYear_periodType:{securityId:f.securityId,fiscalYear:f.fiscalYear,periodType:f.periodType}};
  await db.dartFinancialFiling.update({where:{id:f.id},data:{revenueYtd:'0',netIncomeYtd:'0',totalEquity:'0',totalAssets:'0',totalLiabilities:'0'}});
  const data={status:'SUCCESS',values:{eps:'10',bps:'10',roe:'0',per:null,pbr:'1'},provenance:{},reasons:{},supplemental:{accounts:{receiptNo:f.receiptNo,fsDivision:'OFS',sources:{}},shares:{receiptNo:f.receiptNo,rows:[{shareClass:'COMMON',issuedShares:'0',treasuryShares:'0',outstandingShares:'0'}]}}};
@@ -143,7 +143,16 @@ test('SQL selection distinguishes string-positive, NULL, zero, loss and unsuppor
  assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),1);
  for(const eps of ['0','-10']){await db.periodValuation.update({where,data:{values:{eps,bps:'10',roe:'0',per:null,pbr:'1'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),0);}
  await db.periodValuation.update({where,data:{values:{eps:null,bps:'10',roe:'0',per:null,pbr:'1'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),1);
- await db.dartFinancialFiling.update({where:{id:f.id},data:{sourceValidation:{currency:'USD'}}});assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.unsupported),1);
+ await db.dartFinancialFiling.update({where:{id:f.id},data:{sourceValidation:{currency:'USD'}}});
+ assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.unsupported),0);
+ assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),1,'missing EPS or mismatched legacy metric currency needs a supplement');
+ await db.periodValuation.update({where,data:{values:{eps:'10',bps:'10',roe:'0',per:null,pbr:null},provenance:{currency:'USD'}}});
+ assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),0,'conversion-only PER/PBR absence does not requeue');
+ await db.periodValuation.update({where,data:{provenance:{currency:'KRW'}}});
+ assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.needed),1,'cross-currency old metrics must be recalculated');
+ await db.dartFinancialFiling.update({where:{id:f.id},data:{fsDivision:'BAD'}});
+ assert.equal(Number((await candidateRows(db,[f.id],2026))[0]!.unsupported),1,'unsupported accounting division remains held');
+ await db.dartFinancialFiling.update({where:{id:f.id},data:{fsDivision:f.fsDivision}});
 });
 test('a changed prior capital supplement reopens dependent input; timestamp-only retries do not',async()=>{
  const f=await db.dartFinancialFiling.findFirstOrThrow({where:{fiscalYear:2016,periodType:'ANNUAL'},orderBy:{id:'asc'}}),prior=await db.dartFinancialFiling.findFirstOrThrow({where:{securityId:f.securityId,fiscalYear:2015,periodType:'ANNUAL'}});

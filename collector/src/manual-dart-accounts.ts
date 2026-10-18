@@ -9,13 +9,13 @@ export function normalizeManualDartAccounts(rows:DartFinancialRow[],periodEnd?:D
  };
  for(const [key,rule] of Object.entries(aliases)) {
   if(normalized.accountSources[key]?.amount!=null)continue;
-  const candidates=rows.filter(r=>rule.statements.includes(r.statementDivision)&&rule.names.includes(r.accountName)&&r.currency==='KRW');
+  const candidates=rows.filter(r=>rule.statements.includes(r.statementDivision)&&rule.names.includes(r.accountName)&&r.currency===rows[0]?.currency);
   if(candidates.length!==1)continue;
   const r=candidates[0]!;normalized.accountSources[key]={statementDivision:r.statementDivision,accountId:r.accountId,accountName:r.accountName,amount:r.currentAmount,ytdAmount:r.currentYtdAmount};
  }
  for(const [current,opening] of [['totalEquity','openingTotalEquity'],['parentEquity','openingParentEquity']] as const){
   const source=normalized.accountSources[current];
-  const matches=rows.filter(r=>r.statementDivision==='BS'&&r.currency==='KRW'&&r.accountId===source?.accountId&&r.accountName===source?.accountName&&r.previousAmount!=null&&(r.previousPeriodEnd!=null||r.previousPeriodSequential===true&&(fiscalOpeningDate!=null||r.reportCode==='11011'&&periodEnd?.toISOString().slice(5,10)==='12-31'&&periodEnd.getUTCFullYear()===r.fiscalYear)));
+  const matches=rows.filter(r=>r.statementDivision==='BS'&&r.currency===rows[0]?.currency&&r.accountId===source?.accountId&&r.accountName===source?.accountName&&r.previousAmount!=null&&(r.previousPeriodEnd!=null||r.previousPeriodSequential===true&&(fiscalOpeningDate!=null||r.reportCode==='11011'&&periodEnd?.toISOString().slice(5,10)==='12-31'&&periodEnd.getUTCFullYear()===r.fiscalYear)));
   if(matches.length===1){const r=matches[0]!;normalized.accountSources[opening]={statementDivision:r.statementDivision,accountId:r.accountId,accountName:r.accountName,amount:r.previousAmount!,ytdAmount:null,periodEnd:r.previousPeriodEnd??(r.previousPeriodSequential===true?fiscalOpeningDate:undefined)??`${r.fiscalYear-1}-12-31`};}
  }
  return normalized;

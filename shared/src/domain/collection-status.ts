@@ -1,7 +1,8 @@
 import { metricKeys, type MetricValues } from './period-valuation.js';
 export type CollectionState='NOT_COLLECTED'|'FINANCIAL_ONLY'|'COMPLETE'|'ESTIMATE_READY'|'PARTIAL_ESTIMATE'|'FINAL_FAILED';
-export function valueCompletion(values:Partial<MetricValues>) {
+export function valueCompletion(values:Partial<MetricValues>,currency='KRW') {
  const notApplicable:Record<string,string>={};
+ if(currency!=='KRW'){notApplicable.per='CURRENCY_CONVERSION_REQUIRED';notApplicable.pbr='CURRENCY_CONVERSION_REQUIRED';}
  if(values.eps!=null&&Number(values.eps)<=0&&values.per==null)notApplicable.per='EPS_NON_POSITIVE';
  if(values.bps!=null&&Number(values.bps)<=0&&values.pbr==null)notApplicable.pbr='BPS_NON_POSITIVE';
  return {complete:metricKeys.every(k=>values[k]!=null||k in notApplicable),notApplicable};

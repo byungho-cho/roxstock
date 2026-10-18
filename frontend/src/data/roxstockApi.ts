@@ -36,11 +36,13 @@ export interface SecurityDto { isActive?: boolean;
 }
 
 export interface ValuationDto {
+  currency?:string;rimCompatible?:boolean;
   metricDate: string; eps: string | null; bps: string | null; per: string | null;
   pbr: string | null; roe: string | null; dividendPerShare: string | null;
   dividendYield: string | null; marketCap: string | null;
 }
 export interface FinancialStatementDto {
+  currency?:string;amountMultiplier?:string;
   fiscalYear: number; periodType: 'ANNUAL' | 'Q1' | 'Q2' | 'Q3' | 'Q4'; periodEndDate: string;
   revenue: string | null; operatingProfit: string | null; netIncome: string | null;
   totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null;

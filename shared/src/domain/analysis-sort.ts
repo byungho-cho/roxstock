@@ -18,6 +18,10 @@ export function sortAnalysisRows<T extends {symbol:string;id:string}>(rows:T[],s
    const missing=(v:unknown)=>v==null||v==='';
    if(missing(left)!==missing(right))return missing(left)?1:-1;
    if(missing(left))continue;
+   if(['eps','capital','netIncome'].includes(key)){
+    const currency=(row:T)=>{const r=row as Record<string,any>;return (key==='capital'?r.capitalBasis?.unit:key==='netIncome'?r.netIncomeBasis?.unit:r.metricBasis?.currency)??'KRW';};
+    const group=currency(a).localeCompare(currency(b));if(group)return group;
+   }
    const c=key==='name'||key==='priceUpdatedAt'?String(left).localeCompare(String(right),'ko'):new Prisma.Decimal(String(left)).cmp(String(right));
    if(c)return direction==='asc'?c:-c;
   }

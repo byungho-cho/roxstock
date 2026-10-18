@@ -1,3 +1,4 @@
+import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {DartApiError, type DartFinancialRow, type DartReport} from './dart-provider.js';
 
 const receiptResolvablePeriods=new Set(['CLOSING_MONTH_CHANGED','CLOSING_MONTH_UNAVAILABLE','MULTIPLE_ANNUAL_PERIODS']);
@@ -21,7 +22,7 @@ export interface DartSourceValidation {
   sourceCorrectionType: string; relationship: 'EXACT'|'SAME_PERIOD_ATTACHMENT_CHAIN';
   annualPeriods: string[]; fiscalYearEndMonth: number|null; currency: string;
   periodResolution?:{method:string;originalReason:string;returnedReceiptNo:string};
-  amountUnit: 'CURRENCY_UNITS'; financialValuesAssumedEqual: false;
+  amountMultiplier?:'1'; amountUnit: 'CURRENCY_UNITS'; financialValuesAssumedEqual: false;
 }
 
 /** No network/DB mutations. A financial response remains the source of its own receipt.
@@ -64,9 +65,8 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
     relationship='SAME_PERIOD_ATTACHMENT_CHAIN';
   }
   const currencies=[...new Set(rows.map(r=>r.currency))];
-  if(currencies.length!==1||!currencies[0]||!/^[A-Z]{3}$/.test(currencies[0]))fail('CURRENCY_UNIT_UNVERIFIED');
-  // Existing amount columns and valuation consumers are KRW-only. Never silently relabel CNY/USD as won.
-  if(currencies[0]!=='KRW')fail('NON_KRW_STORAGE_UNSUPPORTED');
+  if(currencies.length!==1||!currencies[0]||!/^[A-Z]{3}$/.test(currencies[0]))validateDartCurrency(rows);
+  try{validateDartCurrency(rows);}catch(error){if(error instanceof DartApiError)fail(String(error.diagnostics.validationResult));throw error;}
   const periodEndDate=new Date(`${selection.periodEndDate}T12:00:00Z`);
   if(!Number.isFinite(periodEndDate.getTime())||periodEndDate.toISOString().slice(0,10)!==selection.periodEndDate)fail('REPORT_DATE_INVALID');
   const sourceValidation:DartSourceValidation={version:2,corpCode,taskFiscalYear,apiFiscalYear:selection.apiFiscalYear,
@@ -74,17 +74,18 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
     selectedReceiptNo:chosen.receiptNo,returnedReceiptNo:disclosure.receiptNo,
     selectedCorrectionType:chosen.correctionType,sourceCorrectionType:disclosure.correctionType,
     relationship,annualPeriods:selection.annualPeriods,fiscalYearEndMonth:selection.fiscalYearEndMonth,
-    ...(selection.periodResolution?{periodResolution:selection.periodResolution}:{}),currency:currencies[0]!,amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
+    ...(selection.periodResolution?{periodResolution:selection.periodResolution}:{}),currency:currencies[0]!,amountMultiplier:'1',amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
   return {receiptNo:disclosure.receiptNo,reportName:disclosure.reportName,
     receiptDate:new Date(`${disclosure.receiptDate.slice(0,4)}-${disclosure.receiptDate.slice(4,6)}-${disclosure.receiptDate.slice(6,8)}T00:00:00Z`),
     periodEndDate,sourceValidation};
 }
 
 /** Supplements cannot relabel a new API version as the existing filing. */
-export function validateStoredDartRows(rows:DartFinancialRow[], filing:{receiptNo:string;fiscalYear:number;reportCode:string;periodEndDate:Date;reportName?:string},corpCode:string,fsDivision:'CFS'|'OFS') {
+export function validateStoredDartRows(rows:DartFinancialRow[], filing:{receiptNo:string;fiscalYear:number;reportCode:string;periodEndDate:Date;reportName?:string;sourceValidation?:unknown},corpCode:string,fsDivision:'CFS'|'OFS') {
   const receipts=[...new Set(rows.map(r=>r.receiptNo))];
   const context={corpCode,taskFiscalYear:filing.fiscalYear,apiFiscalYear:filing.fiscalYear,reportCode:filing.reportCode,fsDivision,reportPeriod:filing.periodEndDate.toISOString().slice(0,7),selectedReceiptNo:filing.receiptNo,returnedReceiptNos:receipts};
-  if(rows.some(r=>r.currency!=='KRW'))throw new DartApiError('DART_SOURCE_REVIEW','Stored-source currency requires review.',false,false,{...context,validationResult:'NON_KRW_STORAGE_UNSUPPORTED'});
+  const currency=validateDartCurrency(rows);
+  if(currency!==financialCurrency(filing))throw new DartApiError('DART_SOURCE_REVIEW','Stored currency differs from response.',false,false,{...context,validationResult:'STORED_CURRENCY_CONFLICT'});
   if(filing.reportName){
     const period=/\((\d{4})\.(\d{2})\)/.exec(filing.reportName);
     const declared=period?new Date(Date.UTC(Number(period[1]),Number(period[2]),0)).toISOString().slice(0,10):null;
@@ -101,4 +102,20 @@ export function requireDartReportPeriod(report:DartReport,corpCode:string,taskFi
   throw new DartApiError('DART_SOURCE_REVIEW','Disclosure period requires review.',false,false,
    {corpCode,taskFiscalYear,apiFiscalYear:selection?.apiFiscalYear??taskFiscalYear,reportCode:report.reportCode,
     selectedReceiptNo:report.receiptNo,reportPeriod:selection?.periodEndDate.slice(0,7),validationResult:selection?.periodError??'DISCLOSURE_CONTEXT_UNAVAILABLE'});
+}
+
+/** All source amounts stay decimal strings; fail before MariaDB can round/overflow. */
+export function validateDartCurrency(rows:DartFinancialRow[]):string {
+ const currencies=new Set(rows.map(r=>r.currency));
+ const fail=(reason:string):never=>{throw new DartApiError('DART_SOURCE_REVIEW','Currency/amount requires source review.',false,false,{validationResult:reason});};
+ if(!rows.length||rows.some(r=>!r.currency||!/^[A-Z]{3}$/.test(r.currency)))fail('CURRENCY_MISSING');
+ if(currencies.size!==1)fail('CURRENCY_MIXED');
+ for(const r of rows)for(const raw of [r.currentAmount,r.currentYtdAmount,r.previousAmount]){
+  if(raw==null||raw.trim()==='-'||!raw.trim())continue;
+  const value=raw.replaceAll(',','').trim();
+  if(!/^-?\d+(\.\d+)?$/.test(value))fail('AMOUNT_FORMAT_UNVERIFIED');
+  const [integer,fraction='']=value.replace(/^-/, '').split('.');
+  if(integer!.replace(/^0+/,'').length>35||fraction.length>30)fail('AMOUNT_PRECISION_UNSUPPORTED');
+ }
+ return [...currencies][0]!;
 }

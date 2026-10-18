@@ -69,3 +69,8 @@ test('the shared automatic/manual entry reads the selected corrected viewer and 
  const p=new OpenDartProvider({apiKey:'fixture',dailyCallLimit:10,minDelayMs:0,reserveCall:async()=>{reservations++;return true;},fetchFn:async input=>{const u=new URL(String(input));calls.push(u.pathname);assert.equal(u.searchParams.has('crtfc_key'),false,'public viewers receive no API credential');return new Response(u.pathname==='/dsaf001/main.do'?navigation('사 업 보 고 서','1')+navigation('2. 연결재무제표','13'):contents[u.searchParams.get('eleId')==='1'?0:1]!.html);}});
  const result=await getCfsThenOfs(p,corp,2017,'11011',report());assert.equal(result.source?.receiptNo,corrected);assert.equal(result.rows[5]!.currentAmount,'2834900621');assert.equal(reservations,3);assert.deepEqual(calls,['/dsaf001/main.do','/report/viewer.do','/report/viewer.do']);
 });
+
+for(const marker of ['해당사항 없음','해당사항 없습니다.','해당사항이 없습니다.'])test('explicit CFS absence marker: '+marker,()=>{
+ const ss=sections();ss.push({...ss[1]!,title:'4. 재무제표'});ss[1]={...ss[1]!,html:'2. 연결재무제표 '+marker};
+ assert.equal(parsePublicAnnual(report(),corp,2017,ss).division,'OFS');
+});

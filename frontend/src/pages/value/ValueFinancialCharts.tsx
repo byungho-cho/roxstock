@@ -1,3 +1,4 @@
+import {currencyLabel} from '../../utils/financialCurrency';
 import {ClickInfo} from '../../components/common/ClickInfo';
 import {negativeRatioWarning} from './negativeRatioWarning';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
@@ -21,11 +22,21 @@ const groups:{title:string;unit:string;rightUnit?:string;metrics:Metric[]}[]=[
 ];
 function currencyGroup(group:typeof groups[number],rows:FinancialRow[]):typeof groups[number] {
  if(group.title!=='수익성')return group;
+ const currency=rows.find(r=>r.currency)?.currency??'KRW';
+ if(currency!=='KRW')return {...group,unit:currency+' ×10⁶',metrics:group.metrics.map(m=>({...m,scale:1e6}))};
  const maximum=Math.max(0,...group.metrics.flatMap(metric=>rows.map(row=>Math.abs(number(typeof row[metric.key]==='string'?row[metric.key] as string:null)??0))));
  const [scale,unit]=maximum>=1e12?[1e12,'조원']:maximum>=1e8?[1e8,'억원']:maximum>=1e4?[1e4,'만원']:[1,'원'];
  return {...group,unit:String(unit),metrics:group.metrics.map(metric=>({...metric,scale:Number(scale)}))};
 }
-function Chart({rows,group,expanded=false,popup=false}:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean;popup?:boolean}) {
+function Chart(props:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean;popup?:boolean}) {
+ const currencies=[...new Set(props.rows.map(r=>r.currency??'KRW'))];
+ if(!currencies.length)currencies.push('KRW');
+ if(currencies.length===1&&currencies[0]==='KRW')return <SingleCurrencyChart {...props} group={currencyGroup(props.group,props.rows)}/>;
+ return <>{currencies.map(currency=>{const rows=props.rows.filter(r=>(r.currency??'KRW')===currency);return <Box key={currency} sx={{display:'flex',flexDirection:'column',minHeight:0,...(props.expanded?{flex:1}:{})}}>
+ {(currency!=='KRW'||currencies.length>1)&&<Typography sx={{fontSize:10,color:'#94A3B8'}}>{currencyLabel(currency)}{props.group.title==='수익성'?' · 금액 ×10⁶':''}</Typography>}
+ <SingleCurrencyChart {...props} rows={rows} group={currencyGroup(props.group,rows)}/></Box>;})}</>;
+}
+function SingleCurrencyChart({rows,group,expanded=false,popup=false}:{rows:FinancialRow[];group:typeof groups[number];expanded?:boolean;popup?:boolean}) {
  const ref=useRef<HTMLDivElement>(null),[size,setSize]=useState({width:320,height:116}),[active,setActive]=useState<number|null>(null);
  useChartDismiss({boundary:ref,clear:()=>setActive(null),resetKey:JSON.stringify([rows,group.title]),isInside:event=>inPlot(event.clientX,event.clientY)});
  useEffect(()=>{const el=ref.current;if(!el)return;const update=()=>setSize({width:el.clientWidth,height:expanded?Math.max(120,el.clientHeight):popup?88:116});const observer=new ResizeObserver(update);observer.observe(el);update();return()=>observer.disconnect();},[expanded,popup]);
@@ -53,7 +64,7 @@ function Chart({rows,group,expanded=false,popup=false}:{rows:FinancialRow[];grou
   </Box>
   {expanded&&<ChartLegend group={group} rows={rows}/>}
   {popup&&group.rightUnit&&<Typography data-testid="popup-chart-scale" sx={{fontSize:9,lineHeight:'14px',color:colors.textMuted}}>{first[0]>=0||first[1]>=0?'PER·PBR '+format(left.min,0)+'~'+format(left.max,1)+'배':'PER·PBR 미수집'} · {first[2]>=0?'ROE '+format(right.min,0)+'~'+format(right.max,1)+'%':'ROE 미수집'}{group.metrics.filter((_,i)=>first[i]<0).map(m=>' · '+m.label+' 미수집').join('')}</Typography>}
-  {expanded?group.metrics.map((metric,index)=>first[index]>0?<Typography key={metric.key} sx={{fontSize:11,color:'#FBBF24'}}>{metric.label}: {rows[first[index]].year}년도부터 데이터가 제공됩니다.</Typography>:null):<Box sx={{display:'grid',gridTemplateColumns:`${popup?85:94}px repeat(${rows.length}, minmax(0, 1fr))`,columnGap:.5,rowGap:popup?'2px':0,fontSize:popup?10:11,fontWeight:popup?600:undefined,lineHeight:popup?'16px':'20px',color:popup?'#94A3B8':colors.textMuted,mt:0}}>{group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:'2px'}}>{metric.label}{group.title==='수익성'?`(${group.unit})`:''}{(metric.key==='per'||metric.key==='pbr')&&values[index].some(n=>n!=null&&n<0)&&<ClickInfo tone="danger" label={metric.label+' 음수 지표 주의'}>{negativeRatioWarning(metric.key)}</ClickInfo>}</Box>{values[index].map((n,i)=><span key={i} data-period-value={rows[i].key} data-selected={active===i?'true':undefined} style={{textAlign:'right',overflowWrap:'anywhere',color:(metric.key==='per'||metric.key==='pbr')&&n!=null&&n<0?blue:active===i?colors.warning:undefined}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}</Box>}
+  {expanded?group.metrics.map((metric,index)=>first[index]>0?<Typography key={metric.key} sx={{fontSize:11,color:'#FBBF24'}}>{metric.label}: {rows[first[index]].year}년도부터 데이터가 제공됩니다.</Typography>:null):<Box sx={{display:'grid',gridTemplateColumns:`${popup?85:94}px repeat(${rows.length}, minmax(0, 1fr))`,columnGap:.5,rowGap:popup?'2px':0,fontSize:popup?10:11,fontWeight:popup?600:undefined,lineHeight:popup?'16px':'20px',color:popup?'#94A3B8':colors.textMuted,mt:0}}>{group.metrics.map((metric,index)=><Box key={metric.key} sx={{display:'contents'}}><Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:'2px'}}>{metric.label}{group.title==='수익성'&&!group.unit.includes('×')?`(${group.unit})`:''}{(metric.key==='per'||metric.key==='pbr')&&values[index].some(n=>n!=null&&n<0)&&<ClickInfo tone="danger" label={metric.label+' 음수 지표 주의'}>{negativeRatioWarning(metric.key)}</ClickInfo>}</Box>{values[index].map((n,i)=><span key={i} data-period-value={rows[i].key} data-selected={active===i?'true':undefined} style={{textAlign:'right',overflowWrap:'anywhere',color:(metric.key==='per'||metric.key==='pbr')&&n!=null&&n<0?blue:active===i?colors.warning:undefined}}>{format(n,1,metric.right||group.unit==='%'?'%':'')}</span>)}</Box>)}</Box>}
   </>:<Typography role="status" sx={{fontSize:12,color:'#94A3B8',textAlign:'center',py:3,...(expanded?{flex:1,display:'grid',placeItems:'center'}:{})}}>내용이 없습니다.</Typography>}
  </Box>;
 }
@@ -63,7 +74,7 @@ function ChartLegend({group,compact=false,rows=[]}:{group:typeof groups[number];
 function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
  const [anchor,setAnchor]=useState<HTMLElement|null>(null);
  const notices=rows.flatMap(row=>{
-  const reasons=[...new Set(Object.values(row.metricReasons??{}))];
+  const reasons=[...new Set(Object.values(row.metricReasons??{}))].map(reason=>reason==='CURRENCY_CONVERSION_REQUIRED'?'통화 환산 필요: 원화 주가와 외화 재무값을 환산 없이 계산하지 않습니다.':reason);
   const availability=row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':null;
   if(availability)reasons.unshift(availability);
   if(row.metricProvenance?.bpsReferenceOnly)reasons.push('BPS·PBR: 공시된 전체 유통주식수 기준 참고 계산입니다. 보통주 전용 자본 배분값이 아니며 적정주가·RIM에는 사용하지 않습니다.');

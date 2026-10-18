@@ -1,3 +1,4 @@
+import {financialCurrency} from './financial-currency.js';
 import {Prisma,type DartFinancialFiling,type PeriodValuation} from '../generated/prisma/index.js';
 import {commonEpsReviewMatches} from './common-eps-review.js';
 import type {Supplemental} from './period-valuation.js';
@@ -9,7 +10,7 @@ export function supplementedFilings(filings:DartFinancialFiling[],periods:Pick<P
  return filings.map(f=>{
   const p=periods.find(p=>p.securityId===f.securityId&&p.fiscalYear===f.fiscalYear&&p.periodType===f.periodType);
   const accounts=object(object(p?.supplemental).accounts);
-  if(f.isWithdrawn||accounts.receiptNo!==f.receiptNo||accounts.fsDivision!==f.fsDivision)return f;
+  if((accounts.currency??'KRW')!==financialCurrency(f)||f.isWithdrawn||accounts.receiptNo!==f.receiptNo||accounts.fsDivision!==f.fsDivision)return f;
   const sources={...object(f.accountSources)};
   for(const [key,value]of Object.entries(object(accounts.sources))){
    const incoming=object(value),old=object(sources[key]);

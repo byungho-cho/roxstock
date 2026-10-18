@@ -1,3 +1,4 @@
+import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {publicAnnualTarget} from './dart-public-source.js';
 import {CollectionJobRepository} from '@roxstock/shared/collection/job-repository';
 import {eligibleWhere,withoutCollection} from '@roxstock/shared/collection/collection-policy';
@@ -168,13 +169,13 @@ export class PrismaDartRepository extends CollectionJobRepository {
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
-      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}},{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
+      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}},{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}},{diagnostics:{path:'$.validationResult',equals:'NON_KRW_STORAGE_UNSUPPORTED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
       select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true, errorCode:true,diagnostics:true },
       take:100,
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
     const eligible:DartBackfillTaskRecord[]=[];
-    for(const task of tasks){if(task.errorCode!=='REVIEW_REQUIRED')eligible.push(task as DartBackfillTaskRecord);else{const reviewed=await this.reviewCalendarTask(task as DartBackfillTaskRecord,now);if(reviewed)eligible.push(reviewed);}}
+    for(const task of tasks){if(task.errorCode!=='REVIEW_REQUIRED'||(task.diagnostics as {validationResult?:string}|null)?.validationResult==='NON_KRW_STORAGE_UNSUPPORTED')eligible.push(task as DartBackfillTaskRecord);else{const reviewed=await this.reviewCalendarTask(task as DartBackfillTaskRecord,now);if(reviewed)eligible.push(reviewed);}}
     return eligible;
   }
 
@@ -243,8 +244,11 @@ export class PrismaDartRepository extends CollectionJobRepository {
     securityId: bigint; fiscalYear: number; periodType: DartPeriodType; reportCode: DartReportCode; fsDivision: 'CFS' | 'OFS';
     receiptNo: string; reportName: string; receiptDate: Date; periodEndDate: Date; collectedAt: Date; values: DartFinancialValues; sourceValidation: DartSourceValidation;
   }): Promise<{ created: boolean; supersedesReceiptNo: string | null }> {
-    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true, securityId:true,fsDivision:true,fiscalYear:true,reportCode:true,periodType:true,periodEndDate:true,accountSources:true,sourceValidation:true } });
+    if(!/^[A-Z]{3}$/.test(input.sourceValidation.currency)||input.sourceValidation.returnedReceiptNo!==input.receiptNo||input.sourceValidation.fsDivision!==input.fsDivision)throw new DartApiError('DART_SOURCE_REVIEW','Invalid source identity.',false,false,{validationResult:'STORAGE_SOURCE_CONFLICT'});
+    for(const [key,value]of Object.entries(input.values)){if(key==='accountSources'||value==null)continue;const [integer,fraction='']=String(value).replace(/^-/, '').split('.');if(!/^\d+(\.\d+)?$/.test(String(value).replace(/^-/,''))||integer!.replace(/^0+/,'').length>35||fraction.length>30)throw new DartApiError('DART_SOURCE_REVIEW','Amount cannot be stored exactly.',false,false,{validationResult:'AMOUNT_PRECISION_UNSUPPORTED'});}
+    const current = await this.prisma.dartFinancialFiling.findUnique({ where: { receiptNo: input.receiptNo }, select: { id: true, securityId:true,fsDivision:true,fiscalYear:true,reportCode:true,periodType:true,periodEndDate:true,accountSources:true,sourceValidation:true,revenueQuarter:true,revenueYtd:true,operatingProfitQuarter:true,operatingProfitYtd:true,netIncomeQuarter:true,netIncomeYtd:true,totalAssets:true,totalLiabilities:true,totalEquity:true,operatingCashFlowQuarter:true,operatingCashFlowYtd:true,capitalExpenditureQuarter:true,capitalExpenditureYtd:true } });
     if (current) {
+      if(financialCurrency(current)!==input.sourceValidation.currency)throw new DartApiError('DART_SOURCE_REVIEW','Existing currency is preserved.',false,false,{validationResult:'STORED_CURRENCY_CONFLICT'});
       if(current.securityId!==input.securityId||current.fsDivision!==input.fsDivision||current.fiscalYear!==input.fiscalYear||current.reportCode!==input.reportCode||current.periodType!==input.periodType||current.periodEndDate.toISOString().slice(0,10)!==input.periodEndDate.toISOString().slice(0,10))
         throw new DartApiError('STORED_FILING_CONFLICT','Existing filing identity/period is preserved for review.',false,false,{...input.sourceValidation,validationResult:'STORED_FILING_CONFLICT'});
       const existing=current.accountSources&&typeof current.accountSources==='object'&&!Array.isArray(current.accountSources)?current.accountSources:{};
@@ -253,7 +257,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
         if(!old)return [key,incoming];
         return [key,{...incoming,...old,amount:old.amount??incoming.amount,ytdAmount:old.ytdAmount??incoming.ytdAmount}];
       }));
-      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{sourceValidation:{...input.sourceValidation,priorSelectedReceiptNos:[...new Set([...((current.sourceValidation as {priorSelectedReceiptNos?:string[]}|null)?.priorSelectedReceiptNos??[]),...(current.sourceValidation && (current.sourceValidation as {selectedReceiptNo?:string}).selectedReceiptNo!==input.sourceValidation.selectedReceiptNo?[(current.sourceValidation as {selectedReceiptNo:string}).selectedReceiptNo]:[])])].filter(n=>/^\d{14}$/.test(n))} as unknown as Prisma.InputJsonValue,normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
+      await this.prisma.dartFinancialFiling.update({where:{id:current.id},data:{...Object.fromEntries(Object.entries(input.values).filter(([key,value])=>key!=='accountSources'&&value!=null&&(current as Record<string,unknown>)[key]==null).map(([key,value])=>[key,new Prisma.Decimal(String(value))])),sourceValidation:{...input.sourceValidation,priorSelectedReceiptNos:[...new Set([...((current.sourceValidation as {priorSelectedReceiptNos?:string[]}|null)?.priorSelectedReceiptNos??[]),...(current.sourceValidation && (current.sourceValidation as {selectedReceiptNo?:string}).selectedReceiptNo!==input.sourceValidation.selectedReceiptNo?[(current.sourceValidation as {selectedReceiptNo:string}).selectedReceiptNo]:[])])].filter(n=>/^\d{14}$/.test(n))} as unknown as Prisma.InputJsonValue,normalizationVersion:3,accountSources:{...existing,...additions} as Prisma.InputJsonValue,collectedAt:input.collectedAt}});
       return { created: false, supersedesReceiptNo: null };
     }
     const previous = await this.prisma.dartFinancialFiling.findFirst({
