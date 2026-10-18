@@ -188,14 +188,11 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async reserveApiCall(limit: number, now = new Date(), owner?: string): Promise<boolean> {
     if (owner) await this.renewFinancialLease(owner);
     const usageDate = toDatabaseDate(getSeoulClock(now).dateKey);
-    const changed = await this.prisma.$executeRaw`
-      INSERT INTO dart_api_daily_usage (usage_date, api_call_count, company_check_count, error_count, no_data_count, updated_at)
-      VALUES (${usageDate}, 1, 0, 0, 0, UTC_TIMESTAMP(3))
-      ON DUPLICATE KEY UPDATE
-        api_call_count = IF(api_call_count < ${limit}, api_call_count + 1, api_call_count),
-        updated_at = IF(api_call_count < ${limit}, UTC_TIMESTAMP(3), updated_at)
-    `;
-    if (changed > 0) await this.setState({ lastRunAt: now, lastError: null });
+    await this.prisma.$executeRaw`INSERT IGNORE INTO dart_api_daily_usage (usage_date,api_call_count,company_check_count,error_count,no_data_count,updated_at) VALUES (${usageDate},0,0,0,0,UTC_TIMESTAMP(3))`;
+    // A no-op upsert can return a positive matched-row count with CLIENT_FOUND_ROWS.
+    // Put the budget condition in WHERE so an exhausted day cannot reserve a call.
+    const changed=await this.prisma.$executeRaw`UPDATE dart_api_daily_usage SET api_call_count=api_call_count+1,updated_at=UTC_TIMESTAMP(3) WHERE usage_date=${usageDate} AND api_call_count<${limit}`;
+    if(changed>0)await this.prisma.$executeRaw`INSERT INTO dart_collector_state (id,phase,backfill_start_year,last_run_at,last_error,updated_at) VALUES (1,'BACKFILL',2015,${now},NULL,UTC_TIMESTAMP(3)) ON DUPLICATE KEY UPDATE last_run_at=VALUES(last_run_at),last_error=NULL,updated_at=UTC_TIMESTAMP(3)`;
     return changed > 0;
   }
 

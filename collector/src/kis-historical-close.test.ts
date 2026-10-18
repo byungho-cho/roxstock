@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {kisHistoricalClose,verifyPeriodPriceBasis} from './kis-historical-close.js';
 import {calculatePeriod} from '@roxstock/shared/domain/period-valuation';
 import {Prisma} from '@roxstock/shared/prisma';
+import {loadPeriodSupplement} from './valuation-supplement.js';
 const tokenDirectory=await mkdtemp(join(tmpdir(),'roxstock-price-token-test-'));
 const previousDirectory=process.env.KIS_TOKEN_CACHE_DIR;process.env.KIS_TOKEN_CACHE_DIR=tokenDirectory;
 test.after(async()=>{if(previousDirectory===undefined)delete process.env.KIS_TOKEN_CACHE_DIR;else process.env.KIS_TOKEN_CACHE_DIR=previousDirectory;await rm(tokenDirectory,{recursive:true,force:true});});
@@ -32,4 +33,13 @@ test('period evidence permits a common later adjustment but rejects changes, mis
  assert.equal(verifyPeriodPriceBasis(raw,adjusted.slice(1),'20211230','20220110'),undefined);
  assert.equal(verifyPeriodPriceBasis(raw,adjusted,'20211230','20220120'),undefined);
  assert.equal(verifyPeriodPriceBasis([raw[0]!,{...raw[1]!,mod_yn:'Y'},raw[2]!],adjusted,'20211230','20220110'),undefined);
+});
+test('exact period-end shares and a symbol-verified original close support PBR without approving restated EPS',async()=>{
+ const f:any={receiptNo:'20250327000001',fiscalYear:2023,periodType:'ANNUAL',periodEndDate:new Date('2023-12-31'),receiptDate:new Date('2025-03-27'),fsDivision:'OFS',totalEquity:new Prisma.Decimal(1000),netIncomeYtd:new Prisma.Decimal(100),accountSources:{basicEps:{amount:'10'}}};
+ const shares:any={receiptNo:f.receiptNo,preferred:false,outstanding:'100',rows:[{stockKind:'보통주',shareClass:'COMMON',issuedShares:'100',treasuryShares:'0',outstandingShares:'100',periodEndDate:'2023-12-31'}]};
+ const price:any={symbol:'008420',value:'5',date:'2023-12-28',source:'KIS_KRX_UNADJUSTED_CLOSE',shareBasis:'CORPORATE_ACTION_BASIS_UNCONFIRMED'};
+ const load=loadPeriodSupplement(null,'008420','',undefined,'KOSPI','AUTOMATIC',{dartRequests:false,fetcher:async()=>{throw Error('Unexpected network');}});
+ const valid=await load(f,{shares,price});assert.equal(valid.basis?.bpsPriceCompatible,true);assert.equal(valid.basis?.epsPriceCompatible,false);const value=calculatePeriod(f,undefined,valid).values;assert.equal(value.pbr,'0.5');assert.equal(value.per,null);
+ const invalid=await load(f,{shares:{...shares,rows:[{...shares.rows[0],periodEndDate:'2024-12-31'}]},price});assert.equal(invalid.basis?.bpsPriceCompatible,false);
+ const wrongSymbol=await load(f,{shares,price:{...price,symbol:'005930'}});assert.equal(wrongSymbol.basis?.bpsPriceCompatible,false);
 });

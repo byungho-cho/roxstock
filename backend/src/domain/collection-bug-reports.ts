@@ -1,7 +1,8 @@
 import {createHash} from 'node:crypto';
-import type {PrismaClient} from '@roxstock/shared/prisma';
+import type {PrismaClient,DartFinancialFiling} from '@roxstock/shared/prisma';
 import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import type {MetricValues} from '@roxstock/shared/domain/period-valuation';
+import {fiscalDurationMatches,type Supplemental} from '@roxstock/shared/domain/period-valuation';
 export type BugEvent={sourceKey:string;feature:string;code:string;severity:'ERROR'|'WARNING';summary:string;observedAt:Date;securityId?:bigint;symbol?:string;fiscalYear?:number;periodType?:string;runId?:bigint;metric?:string};
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 const sharedPriceCause=(code:string)=>code==='PERIOD_PRICE_BASIS_UNCONFIRMED'||/^(KIS|HISTORICAL|KRX)_PRICE_/.test(code);
@@ -11,6 +12,7 @@ export const safeBugCode=(v:unknown,fallback='COLLECTION_FAILED')=>typeof v==='s
 const reviewReasons:Record<string,string>={CLOSING_MONTH_CHANGED:'결산월·결산주기 확인 필요',CLOSING_MONTH_UNAVAILABLE:'결산월 근거 부족',MULTIPLE_ANNUAL_PERIODS:'연중 복수 결산기간 확인 필요',CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION:'정정공시 원본 검증 필요',CORRECTION_RELATION_UNVERIFIED:'정정공시 관계 확인 필요'};
 export function collectionFailureDetails(item:{diagnostics:unknown;message:string|null}){
  const d=object(item.diagnostics),fromMessage=(item.message??'').split(/[:·\s]+/).map(v=>safeBugCode(v,'')).find(Boolean);
+ if(item.message==='NO_FUNDAMENTAL_DATA')return {code:'KIS_FUNDAMENTAL_NO_DATA',severity:'WARNING' as const,summary:'추가 재무지표 원천 미제공 · 자료 확인 대기'};
  const code=safeBugCode(d.originalCode??d.code??d.errorCode??fromMessage);
  if(code==='DART_SOURCE_REVIEW'){
   const reason=typeof d.validationResult==='string'&&/^[A-Z][A-Z0-9_]{1,60}$/.test(d.validationResult)?d.validationResult:null;
@@ -19,33 +21,57 @@ export function collectionFailureDetails(item:{diagnostics:unknown;message:strin
  return {code,severity:'ERROR' as const,summary:'수집 항목 처리 실패 · 원천 응답 또는 저장 처리 확인 필요'};
 }
 const featureOf=(job:string)=>job.startsWith('investor')?'investor-trends':job==='VALUATION_SUPPLEMENT'?'dart-financial-statements':job==='daily-account-snapshots'?'account-snapshots':job==='realtime-selected-prices'?'realtime-prices':job;
+/** A first-pass DART calculation is not an attempted shares/price supplementation. */
+export function periodIssueAttempted(row:{status:string;supplemental:unknown;values:unknown},metric:string){
+ const s=object(row.supplemental),errors=object(s.errors),v=object(row.values);
+ const attempted=Boolean(s.collectionAttempt||s.manualAttempt||s.automaticAttempt||row.status==='FAILED');
+ if(metric==='per'&&v.eps==null||metric==='pbr'&&v.bps==null)return false;
+ if(metric==='per'||metric==='pbr')return attempted||Boolean(s.price||errors.priceCode||errors.price);
+ if(metric==='bps')return attempted||Boolean(s.shares||errors.sharesCode||errors.shares);
+ return attempted||Boolean(s.accounts||errors.accounts||(metric==='eps'&&s.kisAnnual));
+}
+const durationIssueAttempted=(supplemental:unknown)=>{const s=object(supplemental);return Boolean(s.collectionAttempt||s.manualAttempt||s.automaticAttempt||s.fiscalDuration||object(s.errors).durationCode);};
 /** Recheck current evidence, bounded by occurrence key. History and replay identity are retained. */
 export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
  const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{code:{in:['PERIOD_EPS_MISSING','PERIOD_BPS_MISSING','PERIOD_PER_MISSING','PERIOD_PBR_MISSING','PERIOD_ROE_MISSING','PERIOD_PRICE_BASIS_UNCONFIRMED','DART_REVIEW_FISCAL_DURATION_UNVERIFIED','DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS']}},...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});
  let resolved=0;
  for(const e of rows){
-  if(e.securityId!=null&&e.runId!=null&&(e.fiscalYear==null||e.periodType==null)){
+  const closingReview=['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS'].includes(e.report!.code);
+  let receiptPeriod:{fiscalYear:number;periodType:DartFinancialFiling['periodType'];receiptNo:string}|undefined;
+  if(e.securityId!=null&&e.runId!=null&&(closingReview||e.fiscalYear==null||e.periodType==null)){
    const items=await db.collectorRunItem.findMany({where:{runId:e.runId,securityId:e.securityId,status:'FAILED',OR:[{createdAt:e.observedAt},{observedAt:e.observedAt}]},take:30});
    const item=items.find(i=>hash('item:'+i.id+':'+(i.observedAt&&i.observedAt>i.createdAt?i.observedAt:i.createdAt).toISOString())===e.eventKey),d=object(item?.diagnostics);
    const period=({'11011':'ANNUAL','11013':'Q1','11012':'Q2','11014':'Q3'} as Record<string,string>)[d.reportCode];
-   if(Number.isInteger(d.taskFiscalYear)&&period){e.fiscalYear=d.taskFiscalYear;e.periodType=period;await db.collectionBugOccurrence.update({where:{eventKey:e.eventKey},data:{fiscalYear:e.fiscalYear,periodType:e.periodType}});}
+   if(closingReview&&typeof d.selectedReceiptNo==='string'&&/^\d{14}$/.test(d.selectedReceiptNo)){
+    const filing=await db.dartFinancialFiling.findUnique({where:{receiptNo:d.selectedReceiptNo}});
+    if(filing&&!filing.isWithdrawn&&filing.securityId===e.securityId){
+     const actual=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:e.securityId,fiscalYear:filing.fiscalYear,periodType:filing.periodType}}});
+     const p=object(actual?.provenance);
+     if(actual&&actual.updatedAt>=e.observedAt&&p.receiptNo===filing.receiptNo&&p.periodEnd===filing.periodEndDate.toISOString().slice(0,10)&&fiscalDurationMatches(filing,(actual.supplemental as Supplemental|null)?.fiscalDuration))receiptPeriod={fiscalYear:filing.fiscalYear,periodType:filing.periodType,receiptNo:filing.receiptNo};
+    }
+   }
+   if((e.fiscalYear==null||e.periodType==null)&&Number.isInteger(d.taskFiscalYear)&&period){e.fiscalYear=d.taskFiscalYear;e.periodType=period;await db.collectionBugOccurrence.update({where:{eventKey:e.eventKey},data:{fiscalYear:e.fiscalYear,periodType:e.periodType}});}
   }
-  if(e.securityId==null||e.fiscalYear==null||e.periodType==null)continue;
-  const current=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:e.securityId,fiscalYear:e.fiscalYear,periodType:e.periodType}}});
+  if(e.securityId==null||!receiptPeriod&&(e.fiscalYear==null||e.periodType==null))continue;
+  const periodWhere={securityId:e.securityId,fiscalYear:receiptPeriod?.fiscalYear??e.fiscalYear!,periodType:receiptPeriod?.periodType??e.periodType!};
+  const current=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:periodWhere}});
   if(!current||current.updatedAt<e.observedAt)continue;
   const values=object(current.values),provenance=object(current.provenance),code=e.report!.code;
   let resolution:string|undefined;
-  if(e.metric&&values[e.metric]!=null)resolution='METRIC_FILLED';
+  if(receiptPeriod&&provenance.receiptNo===receiptPeriod.receiptNo)resolution='RECEIPT_FISCAL_PERIOD_VERIFIED';
+  else if(e.metric&&values[e.metric]!=null)resolution='METRIC_FILLED';
+  else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&!durationIssueAttempted(current.supplemental))resolution='SUPPLEMENT_NOT_ATTEMPTED';
+  else if(e.metric&&!periodIssueAttempted(current,e.metric))resolution=['per','pbr'].includes(e.metric)&&values[e.metric==='per'?'eps':'bps']==null?'UPSTREAM_METRIC_REVIEW':'SUPPLEMENT_NOT_ATTEMPTED';
   else if(e.metric==='per'&&values.eps!=null&&Number(values.eps)===0)resolution='ZERO_DENOMINATOR_NOT_APPLICABLE';
   else if(e.metric==='pbr'&&values.bps!=null&&Number(values.bps)===0)resolution='ZERO_DENOMINATOR_NOT_APPLICABLE';
-  else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&provenance.fiscalDuration?.method==='DART_MAJOR_ACCOUNTS_MATCH'&&provenance.calculationState!=='FISCAL_DURATION_REVIEW_REQUIRED')resolution='FISCAL_DURATION_VERIFIED';
+  else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&['DART_MAJOR_ACCOUNTS_MATCH','DART_PUBLIC_FILING_ACCOUNTS_MATCH'].includes(provenance.fiscalDuration?.method)&&provenance.calculationState!=='FISCAL_DURATION_REVIEW_REQUIRED')resolution='FISCAL_DURATION_VERIFIED';
   else if(e.metric&&['eps','per','roe'].includes(e.metric)&&provenance.calculationState==='FISCAL_DURATION_REVIEW_REQUIRED'){for(const event of periodBugEvents(current))await saveBugEvent(db,event);resolution='SUPERSEDED_BY_FISCAL_DURATION_REVIEW';}
   else if(['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS'].includes(code)&&provenance.receiptNo&&provenance.periodEnd)resolution='RECEIPT_PERIOD_VERIFIED';
   if(!resolution)continue;
   // Both evidence version and occurrence state are checked inside the transaction.
   resolved+=await db.$transaction(async tx=>{
    await tx.$queryRaw`SELECT id FROM collection_bug_reports WHERE id=${e.reportId!} FOR UPDATE`;
-   const latest=await tx.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:e.securityId!,fiscalYear:e.fiscalYear!,periodType:e.periodType!}},select:{updatedAt:true}});
+   const latest=await tx.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:periodWhere},select:{updatedAt:true}});
    if(latest?.updatedAt.getTime()!==current.updatedAt.getTime())return 0;
    const changed=await tx.collectionBugOccurrence.updateMany({where:{eventKey:e.eventKey,resolvedAt:null},data:{resolvedAt:new Date(),resolution}});
    if(!await tx.collectionBugOccurrence.count({where:{reportId:e.reportId,resolvedAt:null}}))await tx.collectionBugReport.updateMany({where:{id:e.reportId!,state:{not:'RESOLVED'}},data:{state:'RESOLVED',resolvedAt:new Date()}});
@@ -57,10 +83,11 @@ export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
 let reconcileCursor:string|undefined;
 /** Only allowlisted diagnostic codes and typed context are stored; never provider bodies or error text. */
 export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodType:string;status:string;values:unknown;reasons:unknown;supplemental:unknown;attempts:number;updatedAt:Date;collectionSymbol?:string|null;provenance?:unknown}):BugEvent[]{
+ if(object(row.provenance).calculationState==='FISCAL_DURATION_REVIEW_REQUIRED'&&!durationIssueAttempted(row.supplemental))return [];
  if(object(row.provenance).calculationState==='FISCAL_DURATION_REVIEW_REQUIRED')return [{sourceKey:'period:'+row.securityId+':'+row.fiscalYear+':'+row.periodType+':'+row.attempts+':fiscal-duration',feature:'dart-financial-statements',code:'DART_REVIEW_FISCAL_DURATION_UNVERIFIED',severity:'WARNING',summary:'실제 회계기간 길이 확인 필요 · 연환산 지표 계산 보류',observedAt:row.updatedAt,securityId:row.securityId,fiscalYear:row.fiscalYear,periodType:row.periodType}];
  if(row.status==='SUCCESS'||valueCompletion(object(row.values) as Partial<MetricValues>).complete)return [];
  const values=object(row.values),reasons=object(row.reasons),errors=object(object(row.supplemental).errors);
- const keys=['eps','bps','per','pbr','roe'].filter(k=>values[k]==null&&!((k==='per'&&values.eps!=null&&Number(values.eps)<=0)||(k==='pbr'&&values.bps!=null&&Number(values.bps)<=0)));
+ const keys=['eps','bps','per','pbr','roe'].filter(k=>values[k]==null&&periodIssueAttempted(row,k)&&!((k==='per'&&values.eps!=null&&Number(values.eps)<=0)||(k==='pbr'&&values.bps!=null&&Number(values.bps)<=0)));
  if(!keys.length)return [];
  return keys.map(metric=>{
   const reason=String(reasons[metric]??'');
@@ -93,6 +120,8 @@ export async function saveBugEvent(db:PrismaClient,event:BugEvent){
   await tx.collectionBugReport.updateMany({where:{id:report.id,lastSeenAt:{lt:event.observedAt}},data:{lastSeenAt:event.observedAt}});
   if(event.severity==='ERROR'&&report.severity!=='ERROR')await tx.collectionBugReport.update({where:{id:report.id},data:{severity:'ERROR'}});
   if(report.state==='RESOLVED'&&(!report.resolvedAt||event.observedAt>report.resolvedAt))await tx.collectionBugReport.update({where:{id:report.id},data:{state:'OPEN',resolvedAt:null}});
+  // A new occurrence leaves the reviewed backlog so a fresh incident stays visible.
+  if(report.state==='REVIEWING'&&event.observedAt>report.lastSeenAt)await tx.collectionBugReport.update({where:{id:report.id},data:{state:'OPEN',resolvedAt:null}});
   await tx.collectionBugOccurrence.update({where:{eventKey},data:{reportId:report.id}});return true;
  });
 }

@@ -40,7 +40,7 @@ export async function kisHistoricalClose(symbol:string,end:Date,fetcher:typeof f
  if(!raw||!adjusted)throw new HistoricalPriceError('KIS_PRICE_PERIOD_COVERAGE','NO_DATA');
  const compatible=raw.stck_clpr===adjusted.stck_clpr;
  const periodBasis=disclosedAt?verifyPeriodPriceBasis(rawSeries,adjustedSeries,raw.stck_bsop_date,to):undefined;
- return {value:raw.stck_clpr,date:raw.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),source:'KIS_KRX_UNADJUSTED_CLOSE',collectedAt:new Date().toISOString(),shareBasis:compatible?'ORIGINAL_EQUALS_ADJUSTED':'CORPORATE_ACTION_BASIS_UNCONFIRMED',...(periodBasis?{periodBasis:{...periodBasis,symbol,periodEnd:end.toISOString().slice(0,10),disclosedAt:disclosedAt!.toISOString().slice(0,10)}}:{})};
+ return {symbol,value:raw.stck_clpr,date:raw.stck_bsop_date.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),source:'KIS_KRX_UNADJUSTED_CLOSE',collectedAt:new Date().toISOString(),shareBasis:compatible?'ORIGINAL_EQUALS_ADJUSTED':'CORPORATE_ACTION_BASIS_UNCONFIRMED',...(periodBasis?{periodBasis:{...periodBasis,symbol,periodEnd:end.toISOString().slice(0,10),disclosedAt:disclosedAt!.toISOString().slice(0,10)}}:{})};
 }
 
 /** Later corporate actions may adjust the entire past series. Check only the reporting interval.
