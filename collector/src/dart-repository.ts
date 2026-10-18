@@ -16,6 +16,8 @@ const REPORTS: Array<{ reportCode: DartReportCode; periodType: DartPeriodType }>
 ];
 
 export interface DartBackfillTaskRecord {
+  diagnostics?:Prisma.JsonValue;
+  errorCode?:string|null;
   id: bigint;
   securityId: bigint;
   fiscalYear: number;
@@ -171,22 +173,27 @@ export class PrismaDartRepository extends CollectionJobRepository {
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
     const eligible:DartBackfillTaskRecord[]=[];
-    for(const task of tasks){
-      if(task.errorCode!=='REVIEW_REQUIRED'){eligible.push(task as DartBackfillTaskRecord);continue;}
+    for(const task of tasks){if(task.errorCode!=='REVIEW_REQUIRED')eligible.push(task as DartBackfillTaskRecord);else{const reviewed=await this.reviewCalendarTask(task as DartBackfillTaskRecord,now);if(reviewed)eligible.push(reviewed);}}
+    return eligible;
+  }
+
+  async calendarReviewPage(securityId?:bigint){
+    return this.prisma.dartBackfillTask.findMany({where:{...(securityId?{securityId}:{}),status:'FAILED',errorCode:'REVIEW_REQUIRED',security:{...eligibleWhere('dart-financial-statements'),isActive:true},AND:[{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}},{OR:[{diagnostics:{path:'$.periodSelectionPolicy',equals:Prisma.AnyNull}},{NOT:{diagnostics:{path:'$.periodSelectionPolicy',equals:'year-history-v1'}}}]}]},select:{id:true,securityId:true,fiscalYear:true,reportCode:true,periodType:true,attempts:true,errorCode:true,diagnostics:true},orderBy:{id:'asc'},take:10}) as Promise<DartBackfillTaskRecord[]>;
+  }
+
+  async reviewCalendarTask(task:DartBackfillTaskRecord,now=new Date()):Promise<DartBackfillTaskRecord|undefined>{
       const d=task.diagnostics as {validationResult?:string}|null;
-      if(d?.validationResult!=='CLOSING_MONTH_CHANGED')continue;
-      const mapping=await this.prisma.dartCorpMapping.findUnique({where:{securityId}});
+      if(d?.validationResult!=='CLOSING_MONTH_CHANGED')return undefined;
+      const mapping=await this.prisma.dartCorpMapping.findUnique({where:{securityId:task.securityId}});
       const cache=mapping?await this.prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode:mapping.corpCode,fiscalYear:task.fiscalYear}}}):null;
       const reports=Array.isArray(cache?.reports)?cache.reports as unknown as DartReport[]:[];
       const prior=reports.find(r=>r.reportCode===task.reportCode),revised=prior?upgradeCachedPeriod(prior):undefined;
-      if(!revised||revised===prior||revised.selection?.periodError)continue;
-      const stored=await this.prisma.dartFinancialFiling.findFirst({where:{securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
+      if(!revised||revised===prior||revised.selection?.periodError){await this.prisma.dartBackfillTask.updateMany({where:{id:task.id,status:'FAILED',errorCode:'REVIEW_REQUIRED',attempts:task.attempts},data:{diagnostics:{...d,periodSelectionPolicy:'year-history-v1'}}});return undefined;}
+      const stored=await this.prisma.dartFinancialFiling.findFirst({where:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
       const proof=stored?.sourceValidation as Record<string,unknown>|null;
       const reused=!!stored&&stored.source==='OPEN_DART'&&stored.normalizationVersion>=3&&proof?.version===2&&proof?.taskFiscalYear===task.fiscalYear&&proof?.apiFiscalYear===task.fiscalYear&&proof?.reportCode===task.reportCode&&proof?.fsDivision===stored.fsDivision&&proof?.returnedReceiptNo===stored.receiptNo&&stored.receiptNo===revised.receiptNo&&stored.periodEndDate.toISOString().slice(0,10)===revised.selection?.periodEndDate&&proof?.corpCode===mapping?.corpCode&&proof?.currency==='KRW'&&proof?.relationship==='EXACT'&&proof?.selectedReceiptNo===stored.receiptNo;
       const changed=await this.prisma.dartBackfillTask.updateMany({where:{id:task.id,status:'FAILED',errorCode:'REVIEW_REQUIRED',attempts:task.attempts},data:{status:reused?'SUCCESS':'PENDING',...(reused?{processedAt:now,selectedReceiptNo:stored!.receiptNo}:{}),errorCode:null,errorMessage:null,nextAttemptAt:null,diagnostics:{...d,previousValidationResult:d.validationResult!,periodSelectionPolicy:'year-history-v1',requeuedAt:now.toISOString(),existingVerifiedSourceReused:reused}}});
-      if(changed.count&&!reused)eligible.push({...task,errorCode:null} as DartBackfillTaskRecord);
-    }
-    return eligible;
+      if(changed.count&&!reused){await this.prisma.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});await this.prisma.dartCollectorState.updateMany({where:{id:1},data:{phase:'BACKFILL',backfillCompletedAt:null}});return {...task,errorCode:null} as DartBackfillTaskRecord;}return undefined;
   }
 
   async markCompanyChecked(securityId: bigint, phase: string, now = new Date()): Promise<void> {
