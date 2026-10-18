@@ -1,11 +1,26 @@
 import {DartApiError, type DartFinancialRow, type DartReport} from './dart-provider.js';
 
+const receiptResolvablePeriods=new Set(['CLOSING_MONTH_CHANGED','CLOSING_MONTH_UNAVAILABLE','MULTIPLE_ANNUAL_PERIODS']);
+/** An ambiguous calendar is resolved only by the exact receipt returned for this API year/code. */
+export function resolveDartReceiptPeriod(report:DartReport,rows:DartFinancialRow[],corpCode:string,year:number):DartReport {
+ const c=report.selection;if(!c?.periodError||!receiptResolvablePeriods.has(c.periodError))return report;
+ const receipts=[...new Set(rows.map(r=>r.receiptNo))];
+ if(!rows.length||receipts.length!==1||rows.some(r=>r.corpCode!==corpCode||r.fiscalYear!==year||r.reportCode!==report.reportCode))return report;
+ const sources=c.candidates.filter(d=>d.receiptNo===receipts[0]&&d.corpCode===corpCode);
+ const periods=[...new Set(sources.map(d=>d.reportPeriod))];if(periods.length!==1||Number(periods[0]!.slice(0,4))!==year)return report;
+ const candidates=c.candidates.filter(d=>d.reportPeriod===periods[0]&&d.corpCode===corpCode).sort((a,b)=>b.receiptDate.localeCompare(a.receiptDate)||b.receiptNo.localeCompare(a.receiptNo));
+ if(!candidates.length||candidates.some(d=>['WITHDRAWAL','UNKNOWN'].includes(d.correctionType)))return report;
+ const chosen=candidates[0]!,[y,m]=periods[0]!.split('-').map(Number),end=new Date(Date.UTC(y!,m!,0)).toISOString().slice(0,10);
+ const {periodError,...selection}=c;
+ return {...report,receiptNo:chosen.receiptNo,receiptDate:chosen.receiptDate,reportName:chosen.reportName,selection:{...selection,periodEndDate:end,candidates,periodResolution:{method:'API_RECEIPT_DISCLOSURE_MATCH',originalReason:periodError,returnedReceiptNo:receipts[0]!}}};
+}
 export interface DartSourceValidation {
   version: 2; corpCode: string; taskFiscalYear: number; apiFiscalYear: number;
   reportCode: string; fsDivision: 'CFS'|'OFS'; reportPeriod: string;
   selectedReceiptNo: string; returnedReceiptNo: string; selectedCorrectionType: string;
   sourceCorrectionType: string; relationship: 'EXACT'|'SAME_PERIOD_ATTACHMENT_CHAIN';
   annualPeriods: string[]; fiscalYearEndMonth: number|null; currency: string;
+  periodResolution?:{method:string;originalReason:string;returnedReceiptNo:string};
   amountUnit: 'CURRENCY_UNITS'; financialValuesAssumedEqual: false;
 }
 
@@ -15,7 +30,7 @@ export interface DartSourceValidation {
  */
 export function validateDartFiling(input: {corpCode:string; taskFiscalYear:number; report:DartReport;
   rows:DartFinancialRow[]; fsDivision:'CFS'|'OFS'}) {
-  const {corpCode,taskFiscalYear,report,rows,fsDivision}=input, context=report.selection;
+  const {corpCode,taskFiscalYear,rows,fsDivision}=input,report=resolveDartReceiptPeriod(input.report,rows,corpCode,taskFiscalYear),context=report.selection;
   const receipts=[...new Set(rows.map(r=>r.receiptNo))];
   const diagnostic:Record<string,unknown>={corpCode,taskFiscalYear,apiFiscalYear:context?.apiFiscalYear??taskFiscalYear,
     reportCode:report.reportCode,fsDivision,reportPeriod:context?.periodEndDate?.slice(0,7),
@@ -59,7 +74,7 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
     selectedReceiptNo:chosen.receiptNo,returnedReceiptNo:disclosure.receiptNo,
     selectedCorrectionType:chosen.correctionType,sourceCorrectionType:disclosure.correctionType,
     relationship,annualPeriods:selection.annualPeriods,fiscalYearEndMonth:selection.fiscalYearEndMonth,
-    currency:currencies[0]!,amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
+    ...(selection.periodResolution?{periodResolution:selection.periodResolution}:{}),currency:currencies[0]!,amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
   return {receiptNo:disclosure.receiptNo,reportName:disclosure.reportName,
     receiptDate:new Date(`${disclosure.receiptDate.slice(0,4)}-${disclosure.receiptDate.slice(4,6)}-${disclosure.receiptDate.slice(6,8)}T00:00:00Z`),
     periodEndDate,sourceValidation};
@@ -82,7 +97,7 @@ export function validateStoredDartRows(rows:DartFinancialRow[], filing:{receiptN
 /** Reject uncertain timelines before spending a financial API call or marking NO_FILING. */
 export function requireDartReportPeriod(report:DartReport,corpCode:string,taskFiscalYear:number):void {
  const selection=report.selection;
- if(!selection||selection.version!==2||selection.yearMapping!=='CALENDAR_REPORT_YEAR'||selection.periodError)
+ if(!selection||selection.version!==2||selection.yearMapping!=='CALENDAR_REPORT_YEAR'||selection.periodError&&!receiptResolvablePeriods.has(selection.periodError))
   throw new DartApiError('DART_SOURCE_REVIEW','Disclosure period requires review.',false,false,
    {corpCode,taskFiscalYear,apiFiscalYear:selection?.apiFiscalYear??taskFiscalYear,reportCode:report.reportCode,
     selectedReceiptNo:report.receiptNo,reportPeriod:selection?.periodEndDate.slice(0,7),validationResult:selection?.periodError??'DISCLOSURE_CONTEXT_UNAVAILABLE'});

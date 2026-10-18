@@ -1,4 +1,6 @@
 import {Prisma,type DartFinancialFiling,type PeriodValuation} from '../generated/prisma/index.js';
+import {commonEpsReviewMatches} from './common-eps-review.js';
+import type {Supplemental} from './period-valuation.js';
 
 const object=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 const numeric=(value:unknown)=>typeof value==='string'&&/^-?\d+(\.\d+)?$/.test(value)?value:null;
@@ -11,7 +13,7 @@ export function supplementedFilings(filings:DartFinancialFiling[],periods:Pick<P
   const sources={...object(f.accountSources)};
   for(const [key,value]of Object.entries(object(accounts.sources))){
    const incoming=object(value),old=object(sources[key]);
-   sources[key]={...incoming,...old,amount:old.amount??numeric(incoming.amount),ytdAmount:old.ytdAmount??numeric(incoming.ytdAmount)};
+   sources[key]=key==='basicEps'&&commonEpsReviewMatches(f,p?.supplemental as Supplemental)?{...old,...incoming}:{...incoming,...old,amount:old.amount??numeric(incoming.amount),ytdAmount:old.ytdAmount??numeric(incoming.ytdAmount)};
   }
   const result={...f,accountSources:sources as Prisma.JsonObject};
   const amount=(key:string,ytd=false)=>{const item=object(sources[key]);return numeric(ytd?item.ytdAmount??(f.periodType==='ANNUAL'||item.statementDivision==='CF'?item.amount:null):item.amount);};

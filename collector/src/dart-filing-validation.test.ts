@@ -34,7 +34,7 @@ test('GRT and CJ/Samsung recorded API receipts reverse-validate without relabeli
  }
 });
 test('closing-month transition and unavailable history require review; no December default',()=>{
- for(const [raw,reason] of [[ [disclosure('2023.06'),disclosure('2024.12'),disclosure('2024.06','반기보고서')],'CLOSING_MONTH_CHANGED'],[[disclosure('2024.06','반기보고서')],'CLOSING_MONTH_UNAVAILABLE']] as const){const r=mapPeriodicReports([...raw],2024).find(r=>r.reportCode==='11012')!;rejects(()=>validate(r),reason);}
+ for(const [raw,reason] of [[ [disclosure('2023.06'),disclosure('2024.12'),disclosure('2024.06','반기보고서')],'CLOSING_MONTH_CHANGED'],[[disclosure('2024.06','반기보고서')],'CLOSING_MONTH_UNAVAILABLE']] as const){const r=mapPeriodicReports([...raw],2024).find(r=>r.reportCode==='11012')!;rejects(()=>validate(r,[row(r,'20990101000001')]),reason);}
 });
 test('wrong company/year/report/period and mixed receipts cannot be saved',()=>{
  const report=mapPeriodicReports([disclosure('2024.12')],2024)[0]!;
@@ -82,4 +82,15 @@ test('uncertain timeline/explicit-source cases stay in review immediately withou
  assert.throws(()=>mapPeriodicReports([{corp_code:corpCode,report_nm:'사업보고서',rcept_no:'20250311001085',rcept_dt:'20250311'}],2024),(e:unknown)=>e instanceof DartApiError&&e.code==='DART_SOURCE_REVIEW'&&e.diagnostics.validationResult==='DISCLOSURE_PERIOD_UNPARSEABLE');
  for(const code of ['DART_SOURCE_REVIEW','STORED_FILING_CONFLICT'])assert.deepEqual(retryDecision(code,1,new Date()),{status:'FAILED',code:'REVIEW_REQUIRED',nextAttemptAt:null,stop:false});
  assert.equal(retryDecision('RECEIPT_MISMATCH',1,new Date()).code,'RECEIPT_MISMATCH');
+});
+test('ambiguous closing timeline resolves only by exact API receipt and disclosure period',()=>{
+ const reports=mapPeriodicReports([disclosure('2024.06','사업보고서','20240811000001'),disclosure('2024.12','사업보고서','20250311000001')],2024),report=reports.find(r=>r.periodType==='ANNUAL')!;
+ const source=validate(report,[row(report,'20240811000001')]);assert.equal(source.periodEndDate.toISOString().slice(0,10),'2024-06-30');assert.equal(source.sourceValidation.periodResolution?.method,'API_RECEIPT_DISCLOSURE_MATCH');assert.equal(source.sourceValidation.returnedReceiptNo,'20240811000001');
+ assert.equal(report.selection?.periodError,'MULTIPLE_ANNUAL_PERIODS','cached evidence remains immutable');
+ rejects(()=>validate(report,[row(report,'20250311000999')]),'MULTIPLE_ANNUAL_PERIODS');
+ rejects(()=>validate(report,[row(report,'20240811000001'),row(report,'20250311000001')]),'MULTIPLE_ANNUAL_PERIODS');
+});
+test('missing annual calendar can collect an exactly identified interim report without assuming December',()=>{
+ const report=mapPeriodicReports([disclosure('2024.06','반기보고서','20240811000001')],2024)[0]!;
+ const source=validate(report,[row(report,'20240811000001')]);assert.equal(source.periodEndDate.toISOString().slice(0,10),'2024-06-30');assert.equal(source.sourceValidation.fiscalYearEndMonth,null);
 });

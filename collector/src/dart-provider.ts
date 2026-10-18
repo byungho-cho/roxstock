@@ -277,6 +277,13 @@ export class OpenDartProvider {
     return body;
   }
 
+  async fetchPeriodDates(corpCode:string,year:number,reportCode:DartReportCode) {
+    const body=await this.json<Record<string,string>>('fnlttSinglAcnt.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
+    if(body.status==='013')return [];
+    if(!Array.isArray(body.list))throw new DartApiError('INVALID_JSON','Financial dates are not an array.');
+    return body.list;
+  }
+
   async fetchPeriodShares(corpCode:string,year:number,reportCode:DartReportCode,receiptNo:string) {
     await checkCollection('share-counts');
     const body=await this.json<{rcept_no:string;se:string;istc_totqy:string;tesstk_co:string;distb_stock_co:string;stlm_dt:string}>('stockTotqySttus.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});

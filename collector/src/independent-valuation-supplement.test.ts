@@ -26,7 +26,7 @@ test('scan reads at most two 100-key pages, no financial JSON, and persists rest
 });
 test('source versions change only for effective data, identity or policy changes',()=>{
  const row=candidate(),version=supplementSourceVersion(row);
- for(const patch of [{receipt_no:'20260401000001'},{collected_at:new Date(now.getTime()+1)},{prior_id:2n},{prior_basis:'changed-capital'},{collection_revision:1},{symbol:'005930'},{corp_code:'00123456'}])assert.notEqual(supplementSourceVersion({...row,...patch}),version);
+ for(const patch of [{receipt_no:'20260401000001'},{collected_at:new Date(now.getTime()+1)},{prior_id:2n},{prior_basis:'changed-capital'},{collection_revision:1},{symbol:'005930'},{corp_code:'00123456'},{duration_review:1}])assert.notEqual(supplementSourceVersion({...row,...patch}),version);
  assert.equal(supplementSourceVersion({...row,valuation_at:new Date()}),version);
 });
 test('unchanged terminal and processing tasks are not reset or repeatedly called',async()=>{

@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';import test from 'node:test';import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';import {supplementStoredPeriod,supplementSafely} from './valuation-supplement.js';
 import {loadPeriodSupplement} from './valuation-supplement.js';import type {OpenDartProvider} from './dart-provider.js';
 const d=(v:number)=>new Prisma.Decimal(v);
+
+test('primary ordinary DART EPS corrects legacy KIS EPS with audit history; conflicting receipts stay unchanged',async()=>{
+ const f:any={securityId:1n,normalizationVersion:3,fiscalYear:2024,periodType:'ANNUAL',fsDivision:'OFS',receiptNo:'20250321000001',receiptDate:new Date('2025-03-21'),periodEndDate:new Date('2024-12-31'),netIncomeYtd:d(20),totalEquity:d(220),accountSources:{basicEps:{amount:'20',ordinaryEpsVerified:true}}};
+ const evidence={source:'KIS_API',fiscalYear:2024,periodType:'ANNUAL',receiptNo:f.receiptNo,fsDivision:'OFS',periodEnd:'2024-12-31',validation:'DART_BALANCE_AND_FLOW_RECONCILED'};
+ let saved:any={status:'PARTIAL',values:{eps:'10',bps:'22',per:null,pbr:'4.5455',roe:'10'},provenance:{perMetric:{eps:evidence}},supplemental:{price:{value:'100',date:'2024-12-30',source:'KIS_KRX_UNADJUSTED_CLOSE'},basis:{receiptNo:f.receiptNo,epsPriceCompatible:true,bpsPriceCompatible:true}}};
+ let db:any;db={$queryRaw:async()=>[],$transaction:async(fn:any)=>fn(db),security:{findMany:async()=>[],findUnique:async()=>({id:1n,symbol:'008420',collectionExcluded:false,excludedFeatures:[],collectionRevision:0})},dartFinancialFiling:{findFirst:async(q:any)=>q.where.fiscalYear===2024?f:null},periodValuation:{findUnique:async()=>saved,upsert:async(q:any)=>(saved={...saved,...q.update})}};
+ const before=structuredClone(saved);await supplementStoredPeriod(db,1n,2024,'ANNUAL');assert.equal(saved.values.eps,'20');assert.equal(saved.values.per,'5');assert.equal(saved.provenance.primarySourceCorrections[0].previousValue,'10');assert.equal(saved.provenance.primarySourceCorrections[0].value,'20');assert.notEqual(saved.provenance.perMetric.eps.source,'KIS_API');
+ await supplementStoredPeriod(db,1n,2024,'ANNUAL');assert.equal(saved.provenance.primarySourceCorrections.length,1);
+ saved=before;saved.provenance.perMetric.eps.receiptNo='wrong';const mismatch:any=await supplementStoredPeriod(db,1n,2024,'ANNUAL',{dryRun:true});assert.equal(mismatch.values.eps,'10');assert.equal(mismatch.values.per,null);
+});
 test('DART exact filing EPS is supplemented independently of KRX historical-price rollout',async()=>{
  const receiptNo='20260319000530',corpCode='00123456';let calls=0;
  const filing={securityId:329n,fiscalYear:2025,periodType:'ANNUAL',reportCode:'11011',fsDivision:'OFS',receiptNo,periodEndDate:new Date('2025-12-31'),receiptDate:new Date('2026-03-19'),accountSources:{}};

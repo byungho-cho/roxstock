@@ -910,8 +910,11 @@ model CollectionBugOccurrence {
  periodType String? @map("period_type") @db.VarChar(10)
  runId BigInt? @map("run_id") @db.UnsignedBigInt
  metric String? @db.VarChar(20)
+ resolvedAt DateTime? @map("resolved_at") @db.DateTime(3)
+ resolution String? @db.VarChar(100)
  report CollectionBugReport? @relation(fields:[reportId],references:[id],onDelete:SetNull)
  @@index([reportId,observedAt])
+ @@index([resolvedAt,eventKey])
  @@map("collection_bug_occurrences")
 }
 model CollectionBugScanState {

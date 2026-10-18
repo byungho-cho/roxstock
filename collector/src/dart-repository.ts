@@ -156,7 +156,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async listStartedBackfillSecurities(now = new Date()): Promise<DartSecurityRecord[]> {
     const states = await this.prisma.dartSecurityState.findMany({
       where: { backfillStartedAt: { not: null }, backfillCompletedAt: null,
-        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
+        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{}], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
       select: { securityId: true, security: { select: { collectionRevision:true,symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
       orderBy: { backfillStartedAt: 'asc' },
     });
@@ -166,10 +166,15 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
       where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
-      select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true },
+      select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true, errorCode:true,diagnostics:true },
+      take:100,
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
     });
-    return tasks as DartBackfillTaskRecord[];
+    return tasks.filter(task=>{
+      if(task.errorCode!=='REVIEW_REQUIRED')return true;
+      const d=task.diagnostics as {validationResult?:string;periodResolutionPolicy?:string}|null;
+      return d?.periodResolutionPolicy!=='receipt-period-v1'&&['CLOSING_MONTH_CHANGED','CLOSING_MONTH_UNAVAILABLE','MULTIPLE_ANNUAL_PERIODS'].includes(d?.validationResult??'');
+    }) as DartBackfillTaskRecord[];
   }
 
   async markCompanyChecked(securityId: bigint, phase: string, now = new Date()): Promise<void> {
@@ -183,14 +188,11 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async reserveApiCall(limit: number, now = new Date(), owner?: string): Promise<boolean> {
     if (owner) await this.renewFinancialLease(owner);
     const usageDate = toDatabaseDate(getSeoulClock(now).dateKey);
-    const changed = await this.prisma.$executeRaw`
-      INSERT INTO dart_api_daily_usage (usage_date, api_call_count, company_check_count, error_count, no_data_count, updated_at)
-      VALUES (${usageDate}, 1, 0, 0, 0, UTC_TIMESTAMP(3))
-      ON DUPLICATE KEY UPDATE
-        api_call_count = IF(api_call_count < ${limit}, api_call_count + 1, api_call_count),
-        updated_at = IF(api_call_count < ${limit}, UTC_TIMESTAMP(3), updated_at)
-    `;
-    if (changed > 0) await this.setState({ lastRunAt: now, lastError: null });
+    await this.prisma.$executeRaw`INSERT IGNORE INTO dart_api_daily_usage (usage_date,api_call_count,company_check_count,error_count,no_data_count,updated_at) VALUES (${usageDate},0,0,0,0,UTC_TIMESTAMP(3))`;
+    // A no-op upsert can return a positive matched-row count with CLIENT_FOUND_ROWS.
+    // Put the budget condition in WHERE so an exhausted day cannot reserve a call.
+    const changed=await this.prisma.$executeRaw`UPDATE dart_api_daily_usage SET api_call_count=api_call_count+1,updated_at=UTC_TIMESTAMP(3) WHERE usage_date=${usageDate} AND api_call_count<${limit}`;
+    if(changed>0)await this.prisma.$executeRaw`INSERT INTO dart_collector_state (id,phase,backfill_start_year,last_run_at,last_error,updated_at) VALUES (1,'BACKFILL',2015,${now},NULL,UTC_TIMESTAMP(3)) ON DUPLICATE KEY UPDATE last_run_at=VALUES(last_run_at),last_error=NULL,updated_at=UTC_TIMESTAMP(3)`;
     return changed > 0;
   }
 

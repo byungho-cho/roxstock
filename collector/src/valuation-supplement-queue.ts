@@ -3,18 +3,19 @@ import {Prisma,type PrismaClient,type ValuationSupplementTask} from '@roxstock/s
 import {getSeoulClock} from '@roxstock/shared/collection/time';
 
 export const supplementLimits={page:100,pages:2,scanMs:20_000,batch:10,cycleMs:240_000,daily:200,retryMs:86_400_000,leaseMs:90_000,policy:'period-v3-historical-evidence'} as const;
-type Candidate={id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;prior_basis?:string;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
-export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.prior_basis,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')).digest('hex');
+type Candidate={duration_review?:number;id:bigint;security_id:bigint;fiscal_year:number;period_type:string;receipt_no:string;collected_at:Date;normalization_version:number;symbol:string;collection_revision:number;code_revision:number;prior_id:bigint|null;prior_at:Date|null;prior_equity?:string|null;prior_basis?:string;basis_version?:string;valuation_at:Date|null;retry_at:Date|null;corp_code:string|null;needed:number;unsupported:number;priority:number};
+export const supplementSourceVersion=(row:Candidate)=>createHash('sha256').update([supplementLimits.policy,row.id,row.receipt_no,row.collected_at.toISOString(),row.normalization_version,row.symbol,row.collection_revision,row.code_revision,row.prior_id,row.prior_at?.toISOString(),row.prior_equity,row.prior_basis,row.basis_version,Boolean(row.unsupported),row.corp_code].join(':')+(row.duration_review?':fiscal-duration-v1':'')).digest('hex');
 /** Only computed flags and keys leave SQL. Financial JSON never crosses the candidate boundary. */
 export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  if(!ids.length)return [];
  const missingAccounts=Prisma.join([['revenue_ytd','revenue'],['net_income_ytd','netIncome'],['total_equity','totalEquity'],['total_assets','totalAssets'],['total_liabilities','totalLiabilities']].map(([column,key])=>Prisma.sql`(${Prisma.raw('f.'+column)} IS NULL AND COALESCE(JSON_EXTRACT(v.supplemental,${'$.accounts.sources.'+key+'.amount'}),'null')='null' AND COALESCE(JSON_EXTRACT(v.supplemental,${'$.accounts.sources.'+key+'.ytdAmount'}),'null')='null')`),' OR ');
- return db.$queryRaw<Candidate[]>`SELECT f.id,f.security_id,f.fiscal_year,f.period_type,f.receipt_no,f.collected_at,f.normalization_version,
+ return db.$queryRaw<Candidate[]>`SELECT f.id,f.security_id,(JSON_EXTRACT(f.source_validation,'$.periodResolution') IS NOT NULL) AS duration_review,f.fiscal_year,f.period_type,f.receipt_no,f.collected_at,f.normalization_version,
  s.symbol,s.collection_revision,s.code_revision,v.updated_at AS valuation_at,v.next_attempt_at AS retry_at,m.corp_code,
  p.id AS prior_id,p.collected_at AS prior_at,CAST(p.total_equity AS CHAR) AS prior_equity,
  MD5(CONCAT_WS('|',p.fs_division,p.normalization_version,p.receipt_no,JSON_EXTRACT(p.account_sources,'$.parentEquity.amount'),JSON_EXTRACT(pv.supplemental,'$.accounts.receiptNo'),JSON_EXTRACT(pv.supplemental,'$.accounts.fsDivision'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.totalEquity.amount'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.totalEquity.ytdAmount'),JSON_EXTRACT(pv.supplemental,'$.accounts.sources.parentEquity.amount'))) AS prior_basis,
  MD5(CONCAT_WS('|',f.fs_division,f.period_end_date,f.receipt_date,COALESCE(CAST(f.revenue_ytd AS CHAR),'NULL'),COALESCE(CAST(f.net_income_ytd AS CHAR),'NULL'),COALESCE(CAST(f.total_equity AS CHAR),'NULL'),COALESCE(CAST(f.total_assets AS CHAR),'NULL'),COALESCE(CAST(f.total_liabilities AS CHAR),'NULL'))) AS basis_version,
  (v.security_id IS NULL OR
+   (JSON_EXTRACT(f.source_validation,'$.periodResolution') IS NOT NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.supplemental,'$.fiscalDuration.receiptNo')),'')<>f.receipt_no) OR
    (COALESCE(JSON_EXTRACT(v.values,'$.eps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.bps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.roe'),'null')='null') OR
