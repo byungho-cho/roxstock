@@ -22,8 +22,9 @@ function fixture(mode:'FULL'|'SUPPLEMENT'='FULL',oldValues:Record<string,string|
  return {db,run:run as CollectorRun,record:()=>valuation,filingWrites:()=>writes,snapshots,releases:()=>releases};
 }
 for(const scenario of ['dart-error','dart-timeout','supplement','both-fail'] as const)test(`durable independent worker: ${scenario}`,async()=>{
- const old={acquire:PrismaDartRepository.prototype.acquireLock,list:OpenDartProvider.prototype.listPeriodicReports,naver:NaverAnnualProvider.prototype.annual,limit:manualLimits.taskMs};
+ const old={financials:OpenDartProvider.prototype.fetchFinancials,acquire:PrismaDartRepository.prototype.acquireLock,list:OpenDartProvider.prototype.listPeriodicReports,naver:NaverAnnualProvider.prototype.annual,limit:manualLimits.taskMs};
  let dartCalls=0;const f=fixture(scenario==='supplement'?'SUPPLEMENT':'FULL',scenario==='supplement'?{roe:'0'}:{});
+ OpenDartProvider.prototype.fetchFinancials=async()=>[]; // Optional accounts use a no-data fixture, never the live API.
  PrismaDartRepository.prototype.acquireLock=async()=>true;
  OpenDartProvider.prototype.listPeriodicReports=async()=>{dartCalls++;if(scenario==='dart-timeout')return new Promise(()=>{});throw new DartApiError('HTTP_ERROR','unavailable');};
  NaverAnnualProvider.prototype.annual=async()=>{throw Error('Past annual must not crawl Naver');};
@@ -42,7 +43,7 @@ for(const scenario of ['dart-error','dart-timeout','supplement','both-fail'] as 
   if(scenario!=='both-fail'){assert.ok(Number.isFinite(Date.parse(f.record().supplemental.verifiedAt)));assert.equal(f.record().values.roe,'0');assert.equal(refreshSummary(m.results!).valuationCompleted,1);}
   if(scenario==='dart-timeout')assert.equal(result.tasks?.dart.code,'DART_TIMEOUT');
   assert.ok(f.snapshots.some(s=>s.progress?.tasks?.valuation.state==='SUCCESS'||scenario==='both-fail'));
- }finally{PrismaDartRepository.prototype.acquireLock=old.acquire;OpenDartProvider.prototype.listPeriodicReports=old.list;NaverAnnualProvider.prototype.annual=old.naver;manualLimits.taskMs=old.limit;}
+ }finally{OpenDartProvider.prototype.fetchFinancials=old.financials;PrismaDartRepository.prototype.acquireLock=old.acquire;OpenDartProvider.prototype.listPeriodicReports=old.list;NaverAnnualProvider.prototype.annual=old.naver;manualLimits.taskMs=old.limit;}
 });
 test('a cancelled late source cannot write; fetch cancellation and transaction delegates are fenced',async()=>{
  let release:()=>void=()=>{},writes=0;const pending=new Promise<void>(resolve=>{release=resolve;});
@@ -76,6 +77,7 @@ test('supplement retains normal denominator and actual zero; partial new items s
 test('manual supplementation requests missing DART shares even when financial statements are skipped',async()=>{
  const old={acquire:PrismaDartRepository.prototype.acquireLock,shares:OpenDartProvider.prototype.fetchPeriodShares};
  const f=fixture('SUPPLEMENT'),shares=f.record().supplemental.shares;delete f.record().supplemental.shares;let calls=0;
+ OpenDartProvider.prototype.fetchFinancials=async()=>[]; // Optional accounts use a no-data fixture, never the live API.
  PrismaDartRepository.prototype.acquireLock=async()=>true;
  OpenDartProvider.prototype.fetchPeriodShares=async(corp,requestedYear,report,receipt)=>{calls++;assert.equal(requestedYear,year);assert.equal(receipt,'20260301000001');return shares;};
  try{await processIndependentRefresh(f.db,config,f.run);assert.equal(calls,1);assert.equal(f.record().values.per,'10');assert.equal(f.record().values.pbr,'1');assert.equal((f.run.metadata as unknown as ManualRefreshMetadata).results?.[0]?.tasks?.dart.state,'SKIPPED');assert.equal(f.filingWrites(),0);}finally{PrismaDartRepository.prototype.acquireLock=old.acquire;OpenDartProvider.prototype.fetchPeriodShares=old.shares;}

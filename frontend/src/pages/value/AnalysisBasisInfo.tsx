@@ -20,6 +20,7 @@ export function AnalysisBasisInfo({row,testId='value-basis'}:{row:Pick<ValueRow,
   <div>순이익 기준: {row.netIncomeBasis?`${row.netIncomeBasis.year} · ${row.netIncomeBasis.source} · ${row.netIncomeBasis.attribution??'전체 순이익'} · 원`:'미수집'}</div>
   <div>주식수: {row.shareBasis?`${row.shareBasis.periodEndDate} · ${row.shareBasis.stockKind} · 단위 주 · 접수번호 ${row.shareBasis.receiptNo}`:'검증된 동일 공시 값 없음'}</div>
   <div>가격 기준일: {row.priceUpdatedAt??'미수집'}</div>{row.cacheGeneratedAt&&<div>캐시 생성: {row.cacheGeneratedAt}</div>}
+  {(row.sourceReviews??[]).map((r,i)=><div key={'review'+i}>{r.message}{r.requestedYear?' · 요청 '+r.requestedYear+'년':''}{r.candidatePeriod?' · 검토 후보 '+r.candidatePeriod+' (대상 확정 아님)':''}</div>)}
   {(row.collectionErrors??[]).map((v,i)=><div key={'error'+i}>수집 오류: {v}</div>)}
   {Object.entries(row.missingReasons??{}).filter(([,v])=>v).map(([k,v])=><div key={k}>{labels[k]??k}: {reasons[v!]??v}</div>)}
   {Object.entries(row.sourceReasons??{}).map(([k,v])=><div key={'source'+k}>{labels[k]??k} 원천/계산 사유: {reasons[String(v)]??String(v)}</div>)}

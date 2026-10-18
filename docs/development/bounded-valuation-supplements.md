@@ -79,4 +79,4 @@ DB 쓰기는 revision row → 실행 임대 row → 작업 row(자동 보완) �
 
 ## 별도 후속 사항
 
-주말/휴장일 market-prices 전체 수집은 별도 잠금·별도 이슈다. 거래일 기준 스케줄과 과거 누락 보충 정책을 나누는 후속 작업으로 남긴다. 이번 재무 임대/OOM 수정에 섞지 않는다.
+주말/휴장일 market-prices는 재무 임대/OOM과 별도 원인이다. 이후 1.1.11의 [거래일 수집 정책](collection-policy-period-calendar.md)으로 당일 정기 수집 스킵과 과거 누락 보충을 분리했다.

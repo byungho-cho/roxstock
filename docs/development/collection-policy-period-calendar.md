@@ -1,0 +1,51 @@
+# 수집 기간·상품 정책·휴장일 운영 (1.1.11)
+
+기준: [공유 개발 지시문](../shared-reports/collection-improvement-instructions-20261018.md), 최신 main 1.1.10에서 누락 구현. 재무 원본·통화·접수번호 검증, DB 보완 큐, 임대·fencing, 수동 우선권은 유지한다. 추가 스키마 변경은 없다.
+
+## 기간 선택과 재시도
+
+대상 연도에 고유 12월 결산과 직전 12월 결산 근거가 있으면 인접 연도의 다른 결산월만으로 분기를 차단하지 않는다. 비12월 전환, 대상 연도의 복수 결산, 직전 기간 근거 부재는 기존 검토 정책을 유지한다. 실제 회계기간 길이 검증은 별도 단계이며 기간 선택 통과만으로 수집 성공을 기록하지 않는다.
+
+mapPeriodicReports와 보존 후보의 upgradeCachedPeriod가 같은 closingMonthEvidence를 사용한다. 요청 연도·분기와 맞는 후보가 없으면 기존 보류를 유지한다. 캐시 후보는 진단 자료이며 다른 연도의 후보를 대상 기간으로 표시하지 않는다.
+
+100개 이내 작업 조회에서 CLOSING_MONTH_CHANGED 리뷰만 재검토한다. 새 정책으로 특정 접수번호를 선택할 수 있는 경우에만 CAS로 PENDING 전환하며 시도 횟수와 원래 실행 항목을 보존한다. 이미 최신 동일 접수번호·기간의 정상 DART 원본이 있으면 version=2, 동일 기업·연도·보고서·연결/별도·반환 접수번호·KRW·EXACT 관계와 normalizationVersion>=3을 재확인하여 기존 성공 결과를 재사용한다. 이 외에는 기존 큐·호출 한도·수동 우선권에 따라 후속 원본 검증을 실행한다. 208건 일괄 초기화, 재수집 또는 성공 처리는 없다.
+
+실행 #10480의 보존 공개 제목·접수번호 fixture로 에이텀 2025, 프레스티지바이오로직 2022, 위더스제약 2021의 9건과 정상 보류 사례를 검증했다. 기업별 코드 하드코딩은 없다.
+
+## 상품 유형과 보류
+
+Security.securityType을 재사용한다. REIT·ETF·ETN은 다른 유형이며 상품명이나 일시적 오류로 분류하지 않는다. OTHER·모르는 증권 그룹을 구조상 미지원으로 단정하지 않는다. 리츠 반복 결산 저장 모델은 추가하지 않는다.
+
+기존 종목 마스터 갱신은 근거가 없는 경우 기존 유형을 STOCK으로 덮어쓰지 않는다. 한투 공개 종목 마스터의 명시적 ST/RT/EF/EN 그룹을 각각 STOCK/REIT/ETF/ETN으로 매핑한다. 이름은 분류 조건이 아니다. 시장·종목코드가 일치하는 기존 종목만 적용하고 다른 그룹·비6자리 상품은 변경하지 않는다. 다운로드 인증·토큰 발급은 필요 없다.
+
+출처와 레이아웃: [한투 KOSPI 공식 파서](https://github.com/koreainvestment/open-trading-api/blob/main/stocks_info/kis_kospi_code_mst.py), [KOSDAQ 공식 파서](https://github.com/koreainvestment/open-trading-api/blob/main/stocks_info/kis_kosdaq_code_mst.py). HTTPS 검증을 유지하며 ZIP 5MB, 해제 20MB, 항목 수를 제한한다. 전체 파일 검증 실패 시 기존 분류를 유지한다. 미확인 그룹은 추정하지 않는다. 이 두 마스터에 없는 ETN·기타 상품은 기존 확정 유형만 적용한다.
+
+worker 시작 시 product-classification 실행이 기존 종목을 100개×최대100페이지로 조회한다(식별자·이름·시장만, 재무 JSON 없음). 공용 분류 잠금과 DB 일자 기록으로 중복 실행을 막고, 실패는 6시간 뒤 재시작 시 재검토한다. 일일 성공 기록이 있으면 재시작 시 다운로드하지 않는다. 06시 기존 종목 마스터 경로에서도 같은 유형 근거를 사용한다.
+
+유형 변경은 collectionRevision을 증가시켜 이전 수집 결과의 저장을 막는다. CollectorRunItem.diagnostics에 source/group/observedAt/policy/appliedAt, previousType/previousRevision을 남긴다. REIT·ETF·ETN은 DART·가치 보완·주식수·컨센서스에만 보류를 적용한다. 대기 중 가치 보완 큐는 UNAVAILABLE/PRODUCT_FINANCIAL_HOLD로 기록하며 처리 중 작업의 소유권을 임의 변경하지 않는다. DB 후보 선정과 실행 직전 검증 모두 보류를 적용한다. 주가·실시간·투자동향과 기존 자료 조회는 유지한다.
+
+분류 해제는 신뢰할 수 있는 새 마스터의 ST 등 실제 유형 정정으로 처리한다. 확인되지 않은 통신·인증·한도·DB 오류를 상품 미지원으로 저장하지 않는다. 분류와 설정 변경에 따른 기존 revision/후보 재등록 정책을 재사용한다.
+
+## API와 화면
+
+두 목록은 동일 productPolicy와 유형을 제공한다. 옅은 황갈색 배경, 실제 유형, 노란 아이콘과 '지표 참고 주의' 및 클릭 안내를 사용하고 수치 색상은 유지한다. 공식 투자주의종목 지정으로 표현하지 않는다.
+
+목록·상세·수동 결과·모니터링은 validationResult의 허용된 코드, 요청 연도, 검토 후보 기간만 노출한다. 과거 진단값 부재는 '상세 사유 미기록'이며 다른 기간을 확정 대상으로 표시하지 않는다. 원문 오류·키·토큰은 추가 노출하지 않는다. 목록 캐시 형식은 6으로 올리고 기존 가격 스냅샷을 유지한 채 재생성한다.
+
+## 휴장일과 과거 보충
+
+기존 화면의 한국 공휴일·KRX 현물 휴장일 규칙을 shared/domain으로 이동하여 재사용한다. 주말·확인된 공휴일·근로자의 날·연말 휴장 및 MARKET_CLOSED_DATES의 확인된 임시 휴장일에 당일 전체 주가 조회를 시작하지 않는다. 기존 공식 공휴일 API의 확인 결과를 보완하고 공급자 장애/달력 미확인은 휴장으로 간주하지 않는다. 임시 휴장일은 확인 후 MARKET_CLOSED_DATES에 명시한다.
+
+당일 정기 작업은 MARKET_CLOSED SKIPPED 결과와 scheduleDate를 DB에 남겨 재시작 후 반복 실행하지 않는다. 당일 전체 수동 실행도 휴장 시 생략한다. 명시적인 과거 거래일 자료 보충은 별도 실행 범위이며, 당일 스킵 기록으로 과거 누락을 채웠다고 간주하지 않는다. 정기 수집 시 observation 날짜가 scheduleDate와 다르면 저장하지 않는다. 기존 Naver 신선도 검사도 유지한다. 스냅샷·투자동향 일정은 변경하지 않는다.
+
+## 검증·배포·롤백
+
+로컬 Node24/Windows, 검증용 MariaDB roxstock_bugreports_test. 외부 DART/계좌 호출 없이 보존 fixture와 가짜 응답을 사용한다. 공개 한투 마스터 두 파일 읽기 검증에서 STOCK 2719 / ETF 1176 / REIT 23개를 확인했다(이 수는 운영 DB 변경 건수가 아니다).
+
+최종 로컬 결과: 수집기·공통 259개 및 백엔드 138개 단위/회귀 검사 통과, 격리 DB 17개 검증 항목 통과, 4개 화면 조합의 툴팁·가로 넘침 검사 통과. shared/collector/backend/frontend 타입 검사와 운영 프런트엔드 빌드 통과. 검증 DB에서 유형 보류·해제·기존 지표 보존·재시도 횟수 보존·재시작 휴장 기록을 확인한다. 화면은 응답 주입 fixture로 370×465와 725×396에서 각각 가치분석·재무제표를 검증한다. 실제 운영 9건의 신규 수집 성공이나 운영 DB 분류 변경 수는 배포 전 확정하지 않는다.
+
+기존 배포의 서버 로컬 DB dump → gzip 검사 → SHA-256 검증을 유지한다. 신규 마이그레이션은 없다. PR 필수 검사 통과 후 main에 병합하고 필요한 서비스 배포를 시작한다. 네이티브 변경·APK 배포는 없다.
+
+이미지 롤백은 기존 scripts/rollback-production-component.sh와 직전 immutable 이미지를 사용한다. 분류를 되돌려야 하면 분류 실행의 이전 유형/수집 revision과 배포 전 백업을 비교해 해당 종목만 정정하고 revision을 증가시킨다(과거 revision으로 되돌리지 않는다). 새 정책에 의해 정상 보류된 큐를 일괄 PENDING으로 바꾸지 않는다. 이미 보완된 재무자료, 과거 실행·검토 이력, 계좌·거래 데이터는 복원 대상이 아니다.
+
+통합 검증 실행: `DATABASE_URL`을 loopback 검증 DB `roxstock_bugreports_test`로 설정한 환경에서 `node --import tsx collector/src/tests/collection-policy-integration.ts`. 원격·운영 DB는 실행을 거부한다.

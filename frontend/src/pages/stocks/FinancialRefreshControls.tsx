@@ -1,3 +1,4 @@
+import {publicDartReview} from '@roxstock/shared/domain/dart-review';
 import {refreshOutcome} from './refreshOutcome';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { HistoryDialog } from '../../components/common/HistoryDialog';
@@ -15,7 +16,7 @@ import { colors, radius } from '../../styles/tokens';
 export const hasSavedFinancialData=(rows:readonly unknown[])=>rows.some(row=>{const data=row as Record<string,unknown>;return Boolean(data.values&&typeof data.values==='object'&&Object.values(data.values).some(value=>value!=null))||['revenue','operatingProfit','netIncome','eps','bps','per','pbr','roe'].some(key=>data[key]!=null);});
 export type RefreshPeriod = 'Q1' | 'Q2' | 'Q3' | 'ANNUAL' | 'ALL';
 type RefreshCounts = { processed:number; disclosureCompleted:number; valuationCompleted:number; noDisclosure:number; disclosureFailed:number; supplementFailed:number };
-type Task={state:string;code?:string};
+type Task={diagnostics?:{context?:Record<string,unknown>};state:string;code?:string};
 type Result = { tasks?:{dart:Task;valuation:Task}; fiscalYear?: number; period: RefreshPeriod; status: 'SUCCESS' | 'NO_DATA' | 'FAILED'; code?: string; valuationStatus?: string; valuationReasons?: Record<string,string>; valuationErrors?:Record<string,string> };
 type RefreshStatus = {leaseState?:'ALIVE'|'CHECK_REQUIRED'|null;activityState?:string;acceptedAt?:string;executionStartedAt?:string|null;lastProgressAt?:string|null;waitReason?:string|null;financialCollectedAt?:string|null;supplementUpdatedAt?:string|null;startedAt?:string; requestId:string; state: 'QUEUED' | 'PROCESSING' | 'FINISHED'; status: string; finishedAt: string | null; fiscalYear: number; startYear?: number; endYear?: number; period: RefreshPeriod; results: Result[]; counts?:RefreshCounts; terminalCode?:string;refreshMode?:'FULL'|'SUPPLEMENT';progress?: {tasks?:{dart:Task;valuation:Task};currentYear:number;currentPeriod?:RefreshPeriod;stage:string;completed:number;total:number}|null };
 const labels: Record<RefreshPeriod, string> = { Q1: '1분기', Q2: '반기', Q3: '3분기', ANNUAL: '사업보고서', ALL: '연도 전체' };
@@ -115,7 +116,7 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
       <Typography sx={{fontSize:11}}>완료 {outcome.completed}건 · 일부 자료 부족 {outcome.missing}건 · 오류 {outcome.failed}건</Typography>
       {outcome.missing>0&&<Typography sx={{fontSize:11}}>계산 근거나 원천 자료가 부족한 항목이 있습니다. 기존 값은 유지했습니다.</Typography>}
       <Box component="details" sx={{mt:1,fontSize:11}}><Box component="summary" sx={{cursor:'pointer'}}>상세 내용</Box>
-        {finished.results.map((r,i)=><Box key={i} sx={{mt:1}}>{r.fiscalYear??finished.fiscalYear}년 {labels[r.period]}: {r.tasks?`재무제표 ${r.tasks.dart.state==='SKIPPED'?'기존 자료 유지':taskLabels[r.tasks.dart.state]??r.tasks.dart.state} / 가치지표 보완 ${taskLabels[r.tasks.valuation.state]??r.tasks.valuation.state}`:r.status==='SUCCESS'?'공시 확인 완료 · '+(r.valuationStatus==='SUCCESS'?'가치지표 보충 완료':'가치지표 보충 미완료'):r.status==='NO_DATA'?'미공시 · 기존 데이터 유지':errorText(r.code)}{r.tasks?.dart.state==='FAILED'&&<Typography sx={{fontSize:11}}>기존 재무제표는 유지했습니다.</Typography>}
+        {finished.results.map((r,i)=><Box key={i} sx={{mt:1}}>{r.fiscalYear??finished.fiscalYear}년 {labels[r.period]}: {r.tasks?`재무제표 ${r.tasks.dart.state==='SKIPPED'?'기존 자료 유지':taskLabels[r.tasks.dart.state]??r.tasks.dart.state} / 가치지표 보완 ${taskLabels[r.tasks.valuation.state]??r.tasks.valuation.state}`:r.status==='SUCCESS'?'공시 확인 완료 · '+(r.valuationStatus==='SUCCESS'?'가치지표 보충 완료':'가치지표 보충 미완료'):r.status==='NO_DATA'?'미공시 · 기존 데이터 유지':errorText(r.code)}{r.tasks?.dart.code==='DART_SOURCE_REVIEW'&&<Typography sx={{fontSize:11,color:'#FBBF24'}}>{publicDartReview(r.tasks.dart.diagnostics?.context).message} · 요청 {r.fiscalYear??finished.fiscalYear}년{publicDartReview(r.tasks.dart.diagnostics?.context).candidatePeriod?' · 검토 후보 '+publicDartReview(r.tasks.dart.diagnostics?.context).candidatePeriod+' (대상 확정 아님)':''}</Typography>}{r.tasks?.dart.state==='FAILED'&&<Typography sx={{fontSize:11}}>기존 재무제표는 유지했습니다.</Typography>}
           {[...new Set([...Object.values(r.valuationReasons??{}),...Object.values(r.valuationErrors??{}).map(code=>errorText(code))])].map(reason=><Typography key={reason} sx={{fontSize:11}}>{reason}</Typography>)}
         </Box>)}
       </Box>

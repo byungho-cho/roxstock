@@ -2,7 +2,7 @@ import {PageCache} from '../domain/page-cache.js';
 import {randomUUID} from 'node:crypto';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {loadValueRows,type ValueReadRow,type ValueFilter} from './value-rows.js';
-const schemaVersion=5;
+const schemaVersion=6;
 type Payload={schemaVersion:number;financialRevision:string;revisions:Record<string,string>;rows:ValueReadRow[];priceCacheGeneratedAt:string};
 type Entry={revision:string;payload:Payload;generatedAt:Date};
 export class ValueReadModel {
@@ -15,7 +15,7 @@ export class ValueReadModel {
  private async stored(year:number){
   const row=await this.db.analysisReadCache.findUnique({where:{key:`value:${year}`}});
   const payload=row?.payload as unknown as Payload;
-  return row&&payload&&[1,2,3,4,schemaVersion].includes(payload.schemaVersion)&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
+  return row&&payload&&[1,2,3,4,5,schemaVersion].includes(payload.schemaVersion)&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
  }
  async get(year:number,filter?:ValueFilter){
   const memory=this.memory.get(year);

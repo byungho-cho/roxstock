@@ -1,3 +1,5 @@
+import {publicDartReview} from '../domain/dart-review.js';
+import {productPolicy} from '../domain/product-policy.js';
 import {hasInitialQuery} from '../domain/stock-search.js';
 import type {MarketType} from '../generated/prisma/index.js';
 export type ValueFilter={query?:string;market?:MarketType};
@@ -12,7 +14,7 @@ export const valueFinancialInclude=(year:number)=>({
  periodValuations:{where:{fiscalYear:{gte:year-1,lte:year},periodType:{in:['ESTIMATE','ANNUAL']}},orderBy:{updatedAt:'desc' as const}},
  valuationMetrics:{where:{metricDate:{gte:new Date(Date.UTC(year-1,0,1)),lt:new Date(Date.UTC(year+1,0,1))}},orderBy:{metricDate:'desc' as const}},
  dartShareSnapshots:{where:{fiscalYear:{lte:year},shareClass:'COMMON',OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc' as const},{receiptNo:'desc' as const}],take:2},
- dartBackfillTasks:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL' as const},select:{fiscalYear:true,periodType:true,status:true,errorCode:true}},
+ dartBackfillTasks:{where:{fiscalYear:{gte:year-1,lte:year},periodType:'ANNUAL' as const},select:{fiscalYear:true,periodType:true,status:true,errorCode:true,diagnostics:true}},
  dartFinancialFilings:{where:{fiscalYear:{gte:year-1,lte:year},isWithdrawn:false},orderBy:[{receiptDate:'desc' as const},{collectedAt:'desc' as const},{receiptNo:'desc' as const}]},
 });
 type PreviousPrice={symbol:string;codeRevision?:number;currentPrice:string|null;previousClosePrice:string|null;priceUpdatedAt:string|null;collectionErrors?:string[]};
@@ -31,12 +33,12 @@ export function projectValueRows(securities:Awaited<ReturnType<typeof loadSecuri
   const shareMissingReason=shares.issuedShares===null?'선택 연도까지 저장된 해당 주식 종류의 확정 공시 주식수가 없습니다. 임의 역산하지 않습니다.':null;
   const missingReasons={...selected.missingReasons,issuedShares:shares.issuedShares===null?'SHARES_BASIS_UNAVAILABLE':null};
   const {collectionErrors,collectionStatus:financialStatus}=valueCollectionStatus(missingReasons,selectedRow,tasks);collectionErrors.push(...(prior?.collectionErrors??[]).filter(e=>e.startsWith('PRICE_')));const collectionStatus=collectionErrors.length?'ERROR':financialStatus;
-  return {id:String(s.id),codeRevision:s.codeRevision,symbol:s.symbol,name:s.name,marketType:s.marketType,market:s.marketType,currentPrice,
+  return {id:String(s.id),codeRevision:s.codeRevision,symbol:s.symbol,name:s.name,securityType:s.securityType,productPolicy:productPolicy(s.securityType),marketType:s.marketType,market:s.marketType,currentPrice,
    previousClosePrice:prior?prior.previousClosePrice:s.marketPrice?.previousClosePrice?.toString()??null,
    valuation:metric,
    priceUpdatedAt:prior?prior.priceUpdatedAt:s.marketPrice?.priceUpdatedAt.toISOString()??null,
    per:metric?.per??null,pbr:metric?.pbr??null,metricDate:metric?.metricDate??null,...selected,...shares,
-   missingReasons,shareMissingReason,collectionStatus,collectionErrors,sourceReasons:selectedRow?.reasons??{},requiredReturn:'8.0',
+   missingReasons,shareMissingReason,collectionStatus,collectionErrors,sourceReasons:selectedRow?.reasons??{},sourceReviews:tasks.filter(t=>t.errorCode==='REVIEW_REQUIRED'||t.errorCode==='DART_SOURCE_REVIEW').map(t=>publicDartReview(t.diagnostics)),requiredReturn:'8.0',
    statementBasis:selected.netIncomeBasis?.source??null,statementYear:selected.netIncomeBasis?.year??null,
    fundamentalsUpdatedAt:s.fundamentals?.updatedAt.toISOString()??null,
    fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:fairPrice(metric,persistence)})),

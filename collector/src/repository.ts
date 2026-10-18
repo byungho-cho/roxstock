@@ -146,8 +146,10 @@ export class PrismaCollectorRepository implements CollectorRepository {
         await tx.$queryRaw`SELECT id FROM securities WHERE symbol=${item.symbol} FOR UPDATE`;
         const existing=await tx.security.findUnique({where:{symbol:item.symbol}});
         if(existing&&exclusionReason(existing,'security-master'))return {securityId:existing.id,symbol:item.symbol,status:'SKIPPED' as const,message:exclusionReason(existing,'security-master')!};
-        const saved=await tx.security.upsert({where:{symbol:item.symbol},create:{...item,registrationSource:'SECURITY_MASTER',securityType:'STOCK',isActive:true},update:{name:item.name,securityType:'STOCK',isActive:true}});
-        return {securityId:saved.id,symbol:item.symbol,status:'SUCCESS' as const};
+        const c=!existing||existing.marketType===item.marketType?item.productClassification:undefined,changed=c&&existing?.securityType!==c.type;
+        const saved=existing&&existing.name===item.name&&existing.isActive&&!changed?existing:await tx.security.upsert({where:{symbol:item.symbol},create:{symbol:item.symbol,name:item.name,marketType:item.marketType,registrationSource:'SECURITY_MASTER',securityType:c?.type??'STOCK',isActive:true},update:{name:item.name,isActive:true,...(c?{securityType:c.type}:{}),...(changed?{collectionRevision:{increment:1}}:{})}});
+        if(c&&c.type!=='STOCK')await tx.valuationSupplementTask.updateMany({where:{securityId:saved.id,ready:true,status:{in:['PENDING','RETRY']}},data:{ready:false,status:'UNAVAILABLE',lastError:'PRODUCT_FINANCIAL_HOLD',finishedAt:new Date(),diagnostics:{classification:c,policy:'listed-products-v1'}}});
+        return {securityId:saved.id,symbol:item.symbol,status:'SUCCESS' as const,...(c?{diagnostics:{classificationChanged:Boolean(changed),productClassification:c,previousType:existing?.securityType??null,previousRevision:existing?.collectionRevision??null,policy:'listed-products-v1',held:c.type!=='STOCK',appliedAt:new Date().toISOString()}}:{})};
       });outcomes.push(outcome);
     }
     return outcomes;

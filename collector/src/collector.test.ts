@@ -237,3 +237,10 @@ test('security master collection upserts and rejects suspiciously incomplete sou
     /safety check failed/,
   );
 });
+
+test('confirmed closed scheduled day creates one skip result without target lookup or source calls',async()=>{
+ const repo=new MemoryRepository();let calls=0;repo.listActiveSecurities=async()=>{throw Error('must not enumerate targets');};const result=await collectPrices(repo,{name:'fixture',fetchPrice:async()=>{calls++;throw Error('must not call');}},{delayMs:0,lockTtlSeconds:30,now:new Date('2026-10-18T20:00:00+09:00'),metadata:{scheduleDate:'2026-10-18',attempt:'primary'}});assert.equal(result.status,'SKIPPED');assert.equal(calls,0);assert.equal(repo.locked,false);assert.match(repo.items[0]!.message!,/MARKET_CLOSED/);
+});
+test('scheduled price from another trading date cannot overwrite stored prices',async()=>{
+ const repo=new MemoryRepository();repo.securities=[security(1n,'005930')];repo.prices.set(1n,observation('005930','777'));const result=await collectPrices(repo,{name:'fixture',fetchPrice:async()=>observation('005930','999')},{delayMs:0,lockTtlSeconds:30,now:new Date('2026-10-19T20:00:00+09:00'),metadata:{scheduleDate:'2026-10-19'}});assert.equal(result.stale,1);assert.equal(repo.prices.get(1n)?.currentPrice,'777');
+});

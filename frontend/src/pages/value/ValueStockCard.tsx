@@ -1,3 +1,4 @@
+import {ProductNotice} from './ProductNotice';
 import {formatShareCount} from '../../utils/shareCount';
 import {AnalysisBasisInfo} from './AnalysisBasisInfo';
 import {largeMoney} from '../../utils/largeMoney';
@@ -12,12 +13,13 @@ export function ValueStockCard({row,selected,disabled,onClick}:{row:ValueRow;sel
  const color=(n:number|null)=>n===null||n===0?'#94A3B8':n>0?'#FA616E':'#5EA1F0';
  const values=[['EPS',format(row.eps,0,'원')],['EPS 수익률',format(row.epsYield,1,'%')],['순이익',largeMoney(row.netIncome)],['초과이익',largeMoney(row.excessEarnings)],['주주가치',largeMoney(row.shareholderValue)],['자본',largeMoney(row.capital)],['기준평가율',format(row.requiredReturn,1,'%')]];
  return <><Box component="div" role="button" tabIndex={disabled?-1:0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();if(!disabled)onClick();}}} data-scroll-item={row.id} data-testid={'value-row-'+row.symbol} aria-disabled={disabled} onClick={()=>{if(!disabled)onClick();}} aria-pressed={selected} title={row.notices?.join('\n')}
-  sx={{font:'inherit',color:'#F7FAFC',textAlign:'left',cursor:'pointer',border:'1px solid #334052',bgcolor:'#101827',px:'8px',py:'4px',borderRadius:'8px',width:'100%',minWidth:0,display:'grid',gap:'2px',opacity:1,'&:focus-visible':{outline:'2px solid #FFC21A'},'&:disabled':{cursor:'progress'}}}>
+  sx={{font:'inherit',color:'#F7FAFC',textAlign:'left',cursor:'pointer',border:'1px solid #334052',bgcolor:row.productPolicy?.label?'rgba(153,109,37,.16)':'#101827',px:'8px',py:'4px',borderRadius:'8px',width:'100%',minWidth:0,display:'grid',gap:'2px',opacity:1,'&:focus-visible':{outline:'2px solid #FFC21A'},'&:disabled':{cursor:'progress'}}}>
   <Box sx={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',gap:'4px',minHeight:20}}>
-   <Typography component="div" sx={{fontSize:12,minWidth:0,display:'flex',alignItems:'center',whiteSpace:'nowrap'}}><Box component="span" title={row.name} sx={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</Box><Box component="span" sx={{ml:'4px',fontSize:10,color:'#94A3BA',flexShrink:0}}>{row.symbol}</Box><AnalysisBasisInfo row={row}/></Typography>
+   <Typography component="div" sx={{fontSize:12,minWidth:0,display:'flex',alignItems:'center',whiteSpace:'nowrap'}}><Box component="span" title={row.name} sx={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</Box>{row.productPolicy?.label&&<Box component="span" sx={{color:'#FBBF24',fontSize:10,ml:.5}}>{row.productPolicy.label}</Box>}<Box component="span" sx={{ml:'4px',fontSize:10,color:'#94A3BA',flexShrink:0}}>{row.symbol}</Box><AnalysisBasisInfo row={row}/></Typography>
    <Box component="span" data-testid="value-market" sx={{fontSize:10,color:row.marketType==='KOSPI'?'#FBBF24':row.marketType==='KOSDAQ'?'#34D399':'#94A3B8',textAlign:'center',whiteSpace:'nowrap'}}>{row.marketType??'—'}</Box>
    <Box component="span" data-testid="value-current-price" sx={{fontSize:11,color:color(delta),textAlign:'right',overflowWrap:'anywhere'}}>{format(row.currentPrice,0,'원')}</Box>
   </Box>
+  <ProductNotice policy={row.productPolicy} showType={false}/>
   <Box data-testid="value-classification" sx={{display:'grid',gridTemplateColumns:'minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)',gap:'4px',alignItems:'center',minHeight:20,fontWeight:700,bgcolor:row.dataColor??'#FFD96E',px:'8px',borderRadius:0}}>
    <Box component="span" sx={{fontSize:10,color:'#144038',overflowWrap:'anywhere'}}>발행주식수 {formatShareCount(row.issuedShares)}</Box>
    <Box component="span" sx={{fontSize:11,color:'#AD1F33',textAlign:'right'}}>W {format(row.w,2)}</Box>

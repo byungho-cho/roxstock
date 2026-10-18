@@ -113,6 +113,24 @@ export const dartCorrectionType = (name: string, remarks = ''): DartCorrectionTy
 const orderDisclosure = (a: DartDisclosure, b: DartDisclosure) =>
   b.receiptDate.localeCompare(a.receiptDate) || b.receiptNo.localeCompare(a.receiptNo);
 
+export function closingMonthEvidence(periods:string[],year:number){
+ const own=periods.filter(p=>Number(p.slice(0,4))===year);
+ const stableDecember=own.length===1&&own[0]===`${year}-12`&&periods.includes(`${year-1}-12`);
+ const months=[...new Set((stableDecember?own:periods).map(p=>Number(p.slice(5))))];
+ return {month:months.length===1?months[0]!:null,periodError:!months.length?'CLOSING_MONTH_UNAVAILABLE':months.length>1?'CLOSING_MONTH_CHANGED':undefined};
+}
+/** Reinterpret retained disclosure candidates only; missing candidates still require a fresh list. */
+export function upgradeCachedPeriod(report:DartReport):DartReport {
+ const s=report.selection;if(!s||s.periodError!=='CLOSING_MONTH_CHANGED'||report.periodType==='ANNUAL')return report;
+ const {month,periodError}=closingMonthEvidence(s.annualPeriods,s.taskFiscalYear);if(periodError||month===null)return report;
+ const q=({Q1:1,Q2:2,Q3:3,ANNUAL:4} as const)[report.periodType],m=(month+q*3-1)%12+1;
+ const period=`${s.taskFiscalYear}-${String(m).padStart(2,'0')}`;
+ const candidates=s.candidates.filter(d=>d.reportPeriod===period).sort(orderDisclosure);
+ if(!candidates.length||candidates.some(d=>['WITHDRAWAL','UNKNOWN'].includes(d.correctionType)))return report;
+ const latest=candidates[0]!,{periodError:old,...rest}=s;
+ return {...report,receiptNo:latest.receiptNo,receiptDate:latest.receiptDate,reportName:latest.reportName,selection:{...rest,periodEndDate:new Date(Date.UTC(s.taskFiscalYear,m,0)).toISOString().slice(0,10),fiscalYearEndMonth:month,candidates}};
+}
+
 /** Request year is not the annual closing year for non-December interim reports.
  * Derive a company-specific timeline from public annual titles, never default to December.
  * Changed/absent closing-month evidence is deliberately review-only. API receipts are later
@@ -131,9 +149,10 @@ export const mapPeriodicReports = (reports: RawReport[], fiscalYear: number): Da
   const annuals = disclosures.filter(d => d.reportName.includes('사업보고서') && d.correctionType !== 'WITHDRAWAL');
   const relevant = annuals.filter(d => Math.abs(Number(d.reportPeriod.slice(0,4)) - fiscalYear) <= 1);
   const annualPeriods = [...new Set(relevant.map(d=>d.reportPeriod))].sort();
-  const months = [...new Set(annualPeriods.map(d=>Number(d.slice(5))))];
-  const month = months.length === 1 ? months[0]! : null;
-  const periodError = !months.length ? 'CLOSING_MONTH_UNAVAILABLE' : months.length > 1 ? 'CLOSING_MONTH_CHANGED' : undefined;
+  // A neighbouring transition must not invalidate a complete calendar year.
+  // For non-December years the adjacent closing cycle still needs to agree:
+  // a lone short transition closing is not proof of a full fiscal year.
+  const {month,periodError}=closingMonthEvidence(annualPeriods,fiscalYear);
   const targets: Array<{code: DartReportCode; period: DartPeriodType; quarter: number; title: string}> = [
     {code:'11013',period:'Q1',quarter:1,title:'분기보고서'},
     {code:'11012',period:'Q2',quarter:2,title:'반기보고서'},
