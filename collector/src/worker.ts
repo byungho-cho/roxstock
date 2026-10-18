@@ -82,7 +82,7 @@ const daemon = async (): Promise<void> => {
     const now = new Date();
     const clock = getSeoulClock(now);
     try {
-      if(!classificationChecked){await collectProductClassifications(prisma,now);classificationChecked=true;}
+      if(!classificationChecked){if(config.provider!=='mock')await collectProductClassifications(prisma,now);classificationChecked=true;}
       let cachePrices:PriceCollectorResult|undefined,hasNewPrices=false;
       if (clock.hour >= config.priceCollectionHour && clock.dateKey !== completedPriceDate && now.getTime() >= lockedRetryAt) {
         const alreadyCompleted = await repository.hasCompletedScheduledPriceRun(clock.dateKey);

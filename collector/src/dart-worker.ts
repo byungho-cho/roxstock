@@ -32,7 +32,7 @@ const tick = async (manualOnly=false) => {
     await cleanup();
     const handledManual=await processManualRefresh(prisma, dartConfig);
     if(manualOnly&&!handledManual)return;
-    if(!manualOnly)await reviewPeriodSelections(prisma);
+    if(!manualOnly&&config.dartEnabled)await reviewPeriodSelections(prisma);
     const result = await runDartCollectorCycle(prisma, dartConfig, new Date(),()=>processManualRefresh(prisma,dartConfig));
     if (result.status === 'NOT_CONFIGURED') log('warn', 'DART collector is not configured; schedule is inactive', {});
     else if (!['LOCKED', 'DISABLED', 'QUOTA_BLOCKED', 'OUTSIDE_WINDOW'].includes(result.status)) log('info', 'DART collector cycle finished', result);
