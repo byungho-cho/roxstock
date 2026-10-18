@@ -40,15 +40,15 @@ export async function collectionBugReportRoutes(app:FastifyInstance){
    const offset=Number(request.query.memberOffset??0);if(!Number.isSafeInteger(offset)||offset<0||offset>100000)throw new ApiError(400,'INVALID_INPUT','조회 위치를 확인해 주세요.');
    const summary=await reviewedSummary();if(!summary)throw new ApiError(404,'NOT_FOUND','검토 중인 항목이 없습니다.');
    const [members,events]=await Promise.all([prisma.collectionBugReport.findMany({where:reviewedWhere(),orderBy:[{severity:'asc'},{lastSeenAt:'desc'},{id:'desc'}],skip:offset,take:51}),prisma.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:reviewedWhere()},include:{report:{select:{code:true,summary:true}}},orderBy:[{observedAt:'desc'},{eventKey:'desc'}],take:50})]);
-   const securities=await prisma.security.findMany({where:{id:{in:[...new Set(events.flatMap(e=>e.securityId?[e.securityId]:[]))]}},select:{id:true,name:true}}),names=new Map(securities.map(s=>[String(s.id),s.name]));
-   return {data:{...summary,members:await Promise.all(members.slice(0,50).map(async r=>({...row(r),...await targetCounts(r.id)}))),hasNextMembers:members.length>50,memberOffset:offset,events:events.map(e=>({...e,report:undefined,code:e.report?.code,summary:e.report?.summary,reportId:e.reportId?.toString(),securityId:e.securityId?.toString(),runId:e.runId?.toString(),securityName:names.get(String(e.securityId))??null}))}};
+   const securities=await prisma.security.findMany({where:{id:{in:[...new Set(events.flatMap(e=>e.securityId?[e.securityId]:[]))]}},select:{id:true,name:true,symbol:true}}),names=new Map(securities.map(s=>[String(s.id),s]));
+   return {data:{...summary,members:await Promise.all(members.slice(0,50).map(async r=>({...row(r),...await targetCounts(r.id)}))),hasNextMembers:members.length>50,memberOffset:offset,events:events.map(e=>({...e,report:undefined,code:e.report?.code,summary:e.report?.summary,reportId:e.reportId?.toString(),securityId:e.securityId?.toString(),runId:e.runId?.toString(),symbol:e.symbol??names.get(String(e.securityId))?.symbol??null,securityName:names.get(String(e.securityId))?.name??null}))}};
   }
   const report=await prisma.collectionBugReport.findUnique({where:{id:idOf(request.params.id)},include:{events:{orderBy:[{observedAt:'desc'},{eventKey:'desc'}],take:50}}});
   if(!report)throw new ApiError(404,'NOT_FOUND','리포트가 없습니다.');
   const ids=[...new Set(report.events.flatMap(e=>e.securityId?[e.securityId]:[]))];
   const securities=await prisma.security.findMany({where:{id:{in:ids}},select:{id:true,name:true,symbol:true}});
   const names=new Map(securities.map(s=>[String(s.id),s]));
-  return {data:{...row(report),...await targetCounts(report.id),events:report.events.map(e=>({...e,reportId:e.reportId?.toString(),securityId:e.securityId?.toString(),runId:e.runId?.toString(),securityName:names.get(String(e.securityId))?.name??null}))}};
+  return {data:{...row(report),...await targetCounts(report.id),events:report.events.map(e=>({...e,reportId:e.reportId?.toString(),securityId:e.securityId?.toString(),runId:e.runId?.toString(),symbol:e.symbol??names.get(String(e.securityId))?.symbol??null,securityName:names.get(String(e.securityId))?.name??null}))}};
  });
  app.patch<{Params:{id:string};Body:{state?:string;note?:string}}>('/collection/bug-reports/:id',async request=>{
   const {state,note}=request.body??{};if(!state||!states.includes(state)||note!==undefined&&(typeof note!=='string'||note.length>1000))throw new ApiError(400,'INVALID_INPUT','검토 상태와 메모를 확인해 주세요.');

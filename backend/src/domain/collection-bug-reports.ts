@@ -3,7 +3,25 @@ import type {PrismaClient,DartFinancialFiling} from '@roxstock/shared/prisma';
 import {valueCompletion} from '@roxstock/shared/domain/collection-status';
 import type {MetricValues} from '@roxstock/shared/domain/period-valuation';
 import {fiscalDurationMatches,type Supplemental} from '@roxstock/shared/domain/period-valuation';
+import {productPolicy} from '@roxstock/shared/domain/product-policy';
 export type BugEvent={sourceKey:string;feature:string;code:string;severity:'ERROR'|'WARNING';summary:string;observedAt:Date;securityId?:bigint;symbol?:string;fiscalYear?:number;periodType?:string;runId?:bigint;metric?:string};
+const heldFinancialWarning=(event:{feature:string;code:string;severity:string})=>event.feature==='dart-financial-statements'&&event.severity==='WARNING'&&(/^(PERIOD_|DART_REVIEW_)/.test(event.code)||event.code==='DART_SOURCE_REVIEW'||event.code==='KIS_FUNDAMENTAL_NO_DATA'||sharedPriceCause(event.code));
+/** Policy exclusions retain their history; actual storage/network and market-price errors remain visible. */
+export async function reconcileHeldProductReportsPage(db:PrismaClient,after?:string){
+ const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,securityId:{not:null},report:{feature:'dart-financial-statements',severity:'WARNING'},...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});let resolved=0;
+ for(const e of rows){if(!e.report||!heldFinancialWarning(e.report))continue;
+  resolved+=await db.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM collection_bug_reports WHERE id=${e.reportId!} FOR UPDATE`;
+   const security=await tx.security.findUnique({where:{id:e.securityId!},select:{securityType:true}});
+   if(!productPolicy(security?.securityType).held)return 0;
+   const changed=await tx.collectionBugOccurrence.updateMany({where:{eventKey:e.eventKey,resolvedAt:null},data:{resolvedAt:new Date(),resolution:'PRODUCT_FINANCIAL_HOLD'}});
+   if(!await tx.collectionBugOccurrence.count({where:{reportId:e.reportId,resolvedAt:null}}))await tx.collectionBugReport.updateMany({where:{id:e.reportId!,state:{not:'RESOLVED'}},data:{state:'RESOLVED',resolvedAt:new Date()}});
+   return changed.count;
+  });
+ }
+ return {scanned:rows.length,resolved,cursor:rows.at(-1)?.eventKey,hasNext:rows.length===50};
+}
+let heldProductCursor:string|undefined;
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 const sharedPriceCause=(code:string)=>code==='PERIOD_PRICE_BASIS_UNCONFIRMED'||/^(KIS|HISTORICAL|KRX)_PRICE_/.test(code);
 const reportFingerprint=(feature:string,code:string,metric?:string)=>hash(feature+':'+code+':'+(sharedPriceCause(code)?'':metric??''));
@@ -105,6 +123,10 @@ export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodT
 export async function saveBugEvent(db:PrismaClient,event:BugEvent){
  const eventKey=hash(event.sourceKey),fingerprint=reportFingerprint(event.feature,event.code,event.metric);
  return db.$transaction(async tx=>{
+  if(event.securityId!=null&&heldFinancialWarning(event)){
+   const security=await tx.security.findUnique({where:{id:event.securityId},select:{securityType:true}});
+   if(productPolicy(security?.securityType).held)return false;
+  }
   const inserted=await tx.collectionBugOccurrence.createMany({data:{eventKey,observedAt:event.observedAt,securityId:event.securityId,symbol:event.symbol&&/^[A-Z0-9]{6}$/.test(event.symbol)?event.symbol:null,fiscalYear:event.fiscalYear,periodType:event.periodType,runId:event.runId,metric:event.metric},skipDuplicates:true});
   if(!inserted.count){
    // Reclassify legacy generic occurrences without creating another occurrence or replay count.
@@ -170,6 +192,7 @@ export async function reclassifyBugReportsPage(db:PrismaClient,after?:string){
 let legacyRepairCursor:string|undefined;
 /** Replay a small overlap; durable occurrence keys prevent duplicate counts and deleted reports resurfacing. */
 export async function scanCollectionBugs(db:PrismaClient,now=new Date()){
+ const held=await reconcileHeldProductReportsPage(db,heldProductCursor);heldProductCursor=held.hasNext?held.cursor:undefined;
  const state=await db.collectionBugScanState.upsert({where:{key:'collection-errors'},create:{key:'collection-errors',scannedAt:now},update:{}});
  const repaired=await reclassifyBugReportsPage(db,legacyRepairCursor);legacyRepairCursor=repaired.hasNext?repaired.cursor:undefined;
  const consolidated=await consolidateBugReportsPage(db,consolidationCursor);consolidationCursor=consolidated.hasNext?consolidated.cursor:undefined;

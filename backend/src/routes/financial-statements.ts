@@ -1,3 +1,4 @@
+import {analysisInterestIds} from '../domain/analysis-interest.js';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {currentFundamentalSupplement} from '@roxstock/shared/domain/financial-supplement';
 import {publicDartReview} from '@roxstock/shared/domain/dart-review';
@@ -15,7 +16,7 @@ import { id } from '../lib/input.js';
 import { combinedValuation,fairPrice,weight,valuation,periods,financialRows,mergeStatements } from '@roxstock/shared/domain/value-analysis';
 import { storedFinancials,statementPeriods } from '../domain/financial-statements.js';
 
-type Query={year?:string;query?:string;market?:string;sort?:string;direction?:string;sorts?:string;mode?:string;startYear?:string;endYear?:string;period?:string;startQuarter?:string;offset?:string;limit?:string;compact?:string};
+type Query={scope?:string;accountId?:string;year?:string;query?:string;market?:string;sort?:string;direction?:string;sorts?:string;mode?:string;startYear?:string;endYear?:string;period?:string;startQuarter?:string;offset?:string;limit?:string;compact?:string};
 const currentYear=()=>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date()));
 function integer(value:string|undefined,fallback:number,min:number,max:number){if(value===undefined)return fallback;if(!/^\d+$/.test(value)||Number(value)<min||Number(value)>max)throw new ApiError(400,'INVALID_INPUT','기간을 확인해 주세요.');return Number(value);}
 const orderKeys=['name','w','currentPrice','targetPrice','value','eps','epsYield','priceUpdatedAt','issuedShares','roe','capital','netIncome'] as const;
@@ -27,8 +28,9 @@ export async function financialStatementRoutes(app:FastifyInstance){
   const limit=request.query.limit===undefined?undefined:integer(request.query.limit,100,1,10000);
   if(request.query.compact!==undefined&&request.query.compact!=='1')throw new ApiError(400,'INVALID_INPUT','compact is invalid.');
   const offset=integer(request.query.offset,0,0,100000);
-  const result=await app.valueReadModel.get(year,{query,market:market as 'KOSPI'|'KOSDAQ'});
-  const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>row.market===market&&(!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query))),sorts);
+  const interestIds=await analysisInterestIds(request.query);
+    const result=await app.valueReadModel.get(year,{query,market:market as 'KOSPI'|'KOSDAQ'});
+  const rows=sortAnalysisRows(publicValueRows(result.rows,request.query.compact==='1').filter(row=>(!interestIds||interestIds.has(row.id))&&row.market===market&&(!query||matchesStockSearch(row.name,query)||matchesStockSearch(row.symbol,query))),sorts);
   return {data:{year,market,query,sort,direction,sorts,rows:limit===undefined?rows:rows.slice(offset,offset+limit),total:rows.length,...(limit===undefined||offset!==0?{}:{navigation:rows.map(({id,name,symbol})=>({id,name,symbol}))}),cache:result.meta,basis:{targetPrice:'RIM_W_0.8',w:'RIM_W_0.8_DIV_CURRENT_PRICE',value:'RIM_W_0.8_DIV_CURRENT_PRICE',epsYield:'STORED_EPS_DIV_CURRENT_PRICE_PERCENT',statementPeriod:'SELECTED_ESTIMATE_OR_PREVIOUS_FINAL_ANNUAL',flow:'ANNUAL',source:'STORED_ONLY'}}};
  });
  const details=new PageCache(24*60*60_000,128);
@@ -55,7 +57,7 @@ export async function financialStatementRoutes(app:FastifyInstance){
    const filings=supplementedFilings(rawFilings,calculated);
    const stored=storedFinancials(manual,filings),chartRows=financialRows(selected,mergeStatements(manual,filings),metrics,calculated),rows=statementPeriods(selected,stored).map(row=>{const chart=chartRows.find(c=>c.key===row.key)!;if(!chart.isEstimated)return {...row,collectionState:chart.collectionState,isEstimated:false};const estimate=calculated.find(c=>c.fiscalYear===row.year&&c.periodType==='ESTIMATE');const values=(estimate?.supplemental as {estimateFinancials?:Record<string,string|null>}|null)?.estimateFinancials??{};return {...row,label:chart.label,isEstimated:true,collectionState:chart.collectionState,basis:chart.source,collectedAt:chart.collectedAt,isDerived:false,values:Object.fromEntries(Object.keys(row.values).map(key=>[key,values[key]??null])),growth:Object.fromEntries(Object.keys(row.growth).map(key=>[key,null]))};});
    const currentSupplement=currentFundamentalSupplement(await tx.fundamentalSnapshot.findFirst({where:{securityId,collectionSymbol:security.symbol},orderBy:{collectedAt:'desc'}}));
-   return {data:{currentSupplement,security:{id:security.id.toString(),name:security.name,symbol:security.symbol},mode,startYear:year,endYear:custom?customEnd:mode==='annual'?endYear:last,startQuarter:quarter,rows,chartRows,collectedAt:rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null,basis:{income:rows.some(r=>r.periodReview)?'REPORTED_FISCAL_PERIOD':mode==='annual'?'FULL_YEAR':'INDIVIDUAL_QUARTER',cashFlow:rows.some(r=>r.periodReview)?'REPORTED_FISCAL_PERIOD':mode==='annual'?'FULL_YEAR':'INDIVIDUAL_QUARTER',balance:'PERIOD_END',currency:'KRW'},sourceReviews,notices:[...sourceReviews.map(r=>`${r.fiscalYear} ${r.periodType} · ${r.message}${r.candidatePeriod?' · 검토 후보 '+r.candidatePeriod+' (대상 확정 아님)':''}`),...(rows.some(r=>r.periodReview)?['비정형 결산 공시 종료일: '+rows.filter(r=>r.periodReview).map(r=>r.periodEndDate).join(', ')+'. 해당 보고기간 원본이며 일반 연간·분기 기간으로 환산하지 않습니다.']:[]),'금액은 저장된 원 단위 원본이며 화면에서 백만원으로 표시합니다.','지배순이익·지배주주자본·투자/재무활동·기말현금의 저장값이 없으면 —로 표시합니다. 전체 업데이트로 제공되는 보고서 항목을 저장합니다.','전년 동일 기간·동일 연결/별도 기준만 비교합니다. 전년 0·미수집은 —입니다.']}};
+   return {data:{currentSupplement,security:{id:security.id.toString(),name:security.name,symbol:security.symbol,securityType:security.securityType},mode,startYear:year,endYear:custom?customEnd:mode==='annual'?endYear:last,startQuarter:quarter,rows,chartRows,collectedAt:rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null,basis:{income:rows.some(r=>r.periodReview)?'REPORTED_FISCAL_PERIOD':mode==='annual'?'FULL_YEAR':'INDIVIDUAL_QUARTER',cashFlow:rows.some(r=>r.periodReview)?'REPORTED_FISCAL_PERIOD':mode==='annual'?'FULL_YEAR':'INDIVIDUAL_QUARTER',balance:'PERIOD_END',currency:'KRW'},sourceReviews,notices:[...sourceReviews.map(r=>`${r.fiscalYear} ${r.periodType} · ${r.message}${r.candidatePeriod?' · 검토 후보 '+r.candidatePeriod+' (대상 확정 아님)':''}`),...(rows.some(r=>r.periodReview)?['비정형 결산 공시 종료일: '+rows.filter(r=>r.periodReview).map(r=>r.periodEndDate).join(', ')+'. 해당 보고기간 원본이며 일반 연간·분기 기간으로 환산하지 않습니다.']:[]),'금액은 저장된 원 단위 원본이며 화면에서 백만원으로 표시합니다.','지배순이익·지배주주자본·투자/재무활동·기말현금의 저장값이 없으면 —로 표시합니다. 전체 업데이트로 제공되는 보고서 항목을 저장합니다.','전년 동일 기간·동일 연결/별도 기준만 비교합니다. 전년 0·미수집은 —입니다.']}};
   },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead}));
   return {...cached.value,cache:{status:cached.status,financialRevision:revision}};
  });

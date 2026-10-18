@@ -1,3 +1,5 @@
+import {useHeldSecurityIds} from '../../hooks/useHeldSecurityIds';
+import {AnalysisScopeToggle,type AnalysisScope} from '../../components/common/AnalysisScopeToggle';
 import {negativeRatioWarning} from './negativeRatioWarning';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import {menuIconSource} from '../../components/navigation/menuItems';
@@ -78,11 +80,12 @@ function Detail({data,openCharts,openFinancials,refresh}:{data:ValueDetail;openC
 }
 export function ValueAnalysisPage(){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),params=new URLSearchParams(location.search),currentYear=seoulYear();
- const goFinancials=useListNavigation();
+ const goFinancials=useListNavigation(),heldIds=useHeldSecurityIds();
  const returnToSource=useReturnNavigation('/more'),client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation});
  const source=location.state?.stockNavigation as StockNavigation|undefined,fromStockList=!!source;
  const sourceItems=source&&source.accountId===accountId?source.ids.flatMap(id=>{const item=accountStocks?.find(s=>s.id===id);return item?[item]:[];}):null;
  const [year,setYear]=useFinancialCondition('year',currentYear,currentYear),[draft,setDraft]=usePageMemory('value-draft',''),[query,setQuery]=usePageMemory('value-query','');
+ const [scope,setScope]=usePageMemory<AnalysisScope>('value-scope','all',{adoptInitialAccount:true});
  const [market,setMarket]=usePageMemory('value-market','KOSPI');
  const [rememberedSelected,setSelected]=usePageMemory<string|null>('value-selected',()=>stockId??params.get('selected'));
  const selected=stockId??params.get('selected')??rememberedSelected;
@@ -94,10 +97,10 @@ export function ValueAnalysisPage(){
 
  const view=params.get('view')??(stockId?'detail':'list'),chart=view==='chart',coverDetail=(!tablet||fromStockList)&&view==='detail';
  const needsList=!fromStockList||(!chart&&!coverDetail);
- const listKey=JSON.stringify([year,market,query,encodeSort(sorts)]),list=useIncrementalAnalysisList<ValueRow,ValueList>(['valueStored','global',listKey,'pages'],(offset,limit,signal)=>listValues(year,query,signal,sorts,limit,offset,market),needsList);
- const [retainedList,setRetainedList]=useState<{accountId?:string;market:string;data:ValueList}>();
- useEffect(()=>{if(list.data)setRetainedList({accountId,market,data:list.data});},[list.data,accountId,market]);
- const listData=list.data??(retainedList?.accountId===accountId&&retainedList?.market===market?retainedList?.data:undefined),listCurrent=!!list.data;
+ const listKey=JSON.stringify([year,market,query,encodeSort(sorts),scope,scope==='interest'?accountId:null]),list=useIncrementalAnalysisList<ValueRow,ValueList>(['valueStored','global',listKey,'pages'],(offset,limit,signal)=>listValues(year,query,signal,sorts,limit,offset,market,scope,accountId),needsList&&(scope==='all'||!!accountId));
+ const [retainedList,setRetainedList]=useState<{accountId?:string;market:string;scope:AnalysisScope;data:ValueList}>();
+ useEffect(()=>{if(list.data)setRetainedList({accountId,market,scope,data:list.data});},[list.data,accountId,market,scope]);
+ const listData=list.data??(retainedList?.accountId===accountId&&retainedList?.market===market&&retainedList?.scope===scope?retainedList?.data:undefined),listCurrent=!!list.data;
  const [startYear,startQuarter]=mode==='annual'?[annualStart,1]:quarterStart.split(':').map(Number),[quarterCount]=useFinancialCondition('count',tablet?10:3,currentYear);
  const count=mode==='annual'?3:quarterCount;
  const detailKey=JSON.stringify([selected,year,mode,startYear,startQuarter,count]);
@@ -134,7 +137,7 @@ export function ValueAnalysisPage(){
   <Status pending={list.pending} error={list.error} retry={list.retry} hasData={!!listData}/>
   {listData?.cache?.status==='STALE'&&<QueryErrorNotice message="캐시 갱신에 실패했습니다. 마지막 정상 자료를 표시합니다." onRetry={list.retry}/>}
   {list.pending&&!listData&&<Box aria-busy="true" sx={{flex:1,minHeight:160}}/>}
-  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · {sorts.length===1&&sorts[0].key==='w'&&sorts[0].direction==='desc'?'W 내림차순':sorts.length?sorts.map(s=>sortLabels[s.key]+' '+(s.direction==='desc'?'↓':'↑')).join(' → '):'종목코드순'}{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.map(row=><StableValueCard key={row.id} row={row} cacheGeneratedAt={listData.cache?.generatedAt} selected={row.id===selected} disabled={!listCurrent} onChoose={stableChoose}/>)}{list.hasNextPage&&<Button disabled={list.isLoadingMore} sx={{fontSize:12,justifySelf:'center'}} onClick={list.loadMore}>더 보기 ({listData.rows.length.toLocaleString()} / {listData.total.toLocaleString()})</Button>}</Box>}</>}
+  {listData&&<><Box sx={{display:'flex',justifyContent:'space-between',fontSize:10,color:muted,mb:'8px'}}><span>{listData.year}년 · {sorts.length===1&&sorts[0].key==='w'&&sorts[0].direction==='desc'?'W 내림차순':sorts.length?sorts.map(s=>sortLabels[s.key]+' '+(s.direction==='desc'?'↓':'↑')).join(' → '):'종목코드순'}{!listCurrent?' · 이전 조회 결과':''}</span><span>{listData.total.toLocaleString()}개</span></Box>{listData.rows.length===0?<Empty/>:<Box sx={{display:'grid',gap:'8px'}}>{listData.rows.map(row=><StableValueCard key={row.id} held={heldIds.has(row.id)} row={row} cacheGeneratedAt={listData.cache?.generatedAt} selected={row.id===selected} disabled={!listCurrent} onChoose={stableChoose}/>)}{list.hasNextPage&&<Button disabled={list.isLoadingMore} sx={{fontSize:12,justifySelf:'center'}} onClick={list.loadMore}>더 보기 ({listData.rows.length.toLocaleString()} / {listData.total.toLocaleString()})</Button>}</Box>}</>}
  </>;
  const detailContent=<>{detailStatus}{shownDetail?<Detail data={shownDetail} openCharts={()=>goView('chart')} openFinancials={()=>goFinancials('/detail/financials?'+new URLSearchParams({view:'detail',selected:shownDetail.security.id,centerYear:String(centerYear),year:String(year),quarterYear:String(startYear),mode,quarter:String(startQuarter),chart:'false'}))} refresh={<FinancialRefreshButton stockId={selected!} compact onClick={()=>setRefreshOpen(true)}/>}/>:!selected&&!list.pending&&!list.error?<Empty/>:detail.pending?<Box aria-busy="true" sx={{minHeight:160}}/>:!detail.error?<Empty/>:null}</>;
  const swipe=useDetailSwipe(move,!refreshOpen&&(chart||coverDetail||tablet));
@@ -142,7 +145,7 @@ export function ValueAnalysisPage(){
  const headerBack=fromStockList?()=>chart?goView('detail',selected,true):returnToSource():chart?()=>goView('detail',selected,true):view==='detail'?()=>goView('list',selected,true):returnToSource;
  const stockNavigation=fromStockList?<StockHeaderNavigation symbol={currentSymbol} previousName={previous?.name} nextName={next?.name} onPrevious={()=>move(-1)} onNext={()=>move(1)}/>:undefined;
  return <Box className="rox-home" data-testid={tablet?'T1700':'C1700'} data-restoration-ready={needsList&&list.pending&&!listData?'false':'true'} data-list-condition={chart?JSON.stringify(['chart',selected,mode,...(mode==='quarter'?[startYear,startQuarter]:[])]):coverDetail?JSON.stringify(['detail',selected,year]):listKey} sx={{height:tablet&&!chart?'100%':undefined,minHeight:!chart&&!coverDetail?'100%':undefined,fontFamily:'RoxHomeInter, sans-serif',fontSize:12,color:'#F1F5F9'}}>
-  <PageHeader embedded showBack={fromStockList || chart || view === 'detail'} valueAnalysis title={fromStockList?currentName:detailHeader?<Box component="span" sx={{display:'flex',alignItems:'center',height:'100%',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,lineHeight:'20px',overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,lineHeight:'20px',color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false} stockNavigation={stockNavigation} variant={fromStockList?'detail':detailHeader?'standard':'detail'} showBackTablet={fromStockList||chart||view==='detail'} onBack={headerBack} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>}/>
+  <PageHeader embedded showBack={fromStockList || chart || view === 'detail'} valueAnalysis title={fromStockList?currentName:detailHeader?<Box component="span" sx={{display:'flex',alignItems:'center',height:'100%',gap:.5,minWidth:0}}><Box component="span" title={currentName} sx={{fontSize:14,lineHeight:'20px',overflow:'hidden',textOverflow:'ellipsis'}}>{currentName}</Box><Box component="span" sx={{fontSize:10,lineHeight:'20px',color:muted,fontWeight:400,flexShrink:0}}> ({currentSymbol})</Box></Box>:'가치분석'} showAdd={false} action={!fromStockList&&!chart&&view==='list'?<AnalysisScopeToggle value={scope} onChange={setScope}/>:undefined} stockNavigation={stockNavigation} variant={fromStockList?'detail':detailHeader?'standard':'detail'} showBackTablet={fromStockList||chart||view==='detail'} onBack={headerBack} backIcon={<img src="/stocks-v03/back.svg" width="11" height="17" alt=""/>}/>
   {selected&&<FinancialRefreshDialog hasExistingData={hasSavedFinancialData(shownDetail?.rows??[])} initialPeriod={mode==='annual'?'ANNUAL':'ALL'} open={refreshOpen} onClose={()=>setRefreshOpen(false)} stockId={selected} startYear={chart?startYear:Math.max(2015,year-2)} endYear={chart?mode==='annual'?endYear:Math.floor((startYear*4+startQuarter-1+count-1)/4):year} collectedAt={shownDetail?.rows.flatMap(r=>r.collectedAt?[r.collectedAt]:[]).sort().at(-1)??null} onComplete={detail.retry}/>}
   {chart?<Box {...swipe} data-detail-swipe data-financial-chart sx={{touchAction:'pan-y'}}>
    <Box data-testid="financial-sticky-header" sx={{position:'sticky',top:0,zIndex:10,bgcolor:colors.canvas,pt:1,pb:0,mb:0,borderBottom:`1px solid ${colors.borderStrong}`}}>
@@ -162,6 +165,6 @@ export function ValueAnalysisPage(){
  </Box>;
 }
 
-const StableValueCard=memo(function StableValueCard({row,cacheGeneratedAt,selected,disabled,onChoose}:{row:ValueRow;cacheGeneratedAt?:string|null;selected:boolean;disabled:boolean;onChoose:(id:string)=>void}){
- return <ValueStockCard row={{...row,cacheGeneratedAt}} selected={selected} disabled={disabled} onClick={()=>onChoose(row.id)}/>;
+const StableValueCard=memo(function StableValueCard({row,held,cacheGeneratedAt,selected,disabled,onChoose}:{row:ValueRow;held:boolean;cacheGeneratedAt?:string|null;selected:boolean;disabled:boolean;onChoose:(id:string)=>void}){
+ return <ValueStockCard held={held} row={{...row,cacheGeneratedAt}} selected={selected} disabled={disabled} onClick={()=>onChoose(row.id)}/>;
 });
