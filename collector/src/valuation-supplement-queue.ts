@@ -16,6 +16,7 @@ export async function candidateRows(db:PrismaClient,ids:bigint[],year:number){
  MD5(CONCAT_WS('|',f.fs_division,f.period_end_date,f.receipt_date,COALESCE(CAST(f.revenue_ytd AS CHAR),'NULL'),COALESCE(CAST(f.net_income_ytd AS CHAR),'NULL'),COALESCE(CAST(f.total_equity AS CHAR),'NULL'),COALESCE(CAST(f.total_assets AS CHAR),'NULL'),COALESCE(CAST(f.total_liabilities AS CHAR),'NULL'))) AS basis_version,
  (v.security_id IS NULL OR
    (JSON_EXTRACT(f.source_validation,'$.periodResolution') IS NOT NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.supplemental,'$.fiscalDuration.receiptNo')),'')<>f.receipt_no) OR
+   (COALESCE(JSON_UNQUOTE(JSON_EXTRACT(v.provenance,'$.currency')),'KRW')<>COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.source_validation,'$.currency')),'KRW')) OR
    (COALESCE(JSON_EXTRACT(v.values,'$.eps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.bps'),'null')='null') OR
    (COALESCE(JSON_EXTRACT(v.values,'$.roe'),'null')='null') OR
