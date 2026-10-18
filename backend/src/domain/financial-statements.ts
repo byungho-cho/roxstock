@@ -45,7 +45,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
       if(row.periodType==='ANNUAL')return text(f?.operatingCashFlowYtd);
       if(row.periodType==='Q4') {
         if(!annual||!q3||annual.fsDivision!==q3.fsDivision||!sameFinancialCurrency(annual,q3)||annual.operatingCashFlowYtd==null||q3.operatingCashFlowYtd==null)return null;
-        return annual.operatingCashFlowYtd.minus(q3.operatingCashFlowYtd).toString();
+        return new ExactDecimal(annual.operatingCashFlowYtd.toString()).minus(q3.operatingCashFlowYtd.toString()).toString();
       }
       if(row.periodReview&&row.periodType!=='Q1')return null;
       const cumulative=source(f,'operatingCashFlow',true)??text(f?.operatingCashFlowYtd);

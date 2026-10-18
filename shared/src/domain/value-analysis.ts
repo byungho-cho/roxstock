@@ -51,7 +51,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
       if (derived) {
         const a = annual![name === 'revenue' ? 'revenueYtd' : name === 'operatingProfit' ? 'operatingProfitYtd' : 'netIncomeYtd'];
         const b = q3![name === 'revenue' ? 'revenueYtd' : name === 'operatingProfit' ? 'operatingProfitYtd' : 'netIncomeYtd'];
-        return a == null || b == null ? null : a.minus(b).toString();
+        return a == null || b == null ? null : new ExactDecimal(a.toString()).minus(b.toString()).toString();
       }
       const key = name === 'revenue' ? periodType === 'ANNUAL' ? 'revenueYtd' : 'revenueQuarter' :
         name === 'operatingProfit' ? periodType === 'ANNUAL' ? 'operatingProfitYtd' : 'operatingProfitQuarter' :

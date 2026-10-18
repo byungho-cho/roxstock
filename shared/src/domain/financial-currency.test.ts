@@ -46,3 +46,9 @@ test('legacy KRW metrics are never relabelled as a foreign filing currency',()=>
  const list=selectValueListAnalysis({year:2025,price:'100',filings:[f],manual:[],metrics:[old],periods:[]});
  assert.equal(list.eps,null);assert.equal(list.targetPrice,null);assert.equal(list.currency,'USD');
 });
+
+test('same-currency Q4 subtraction preserves more than 20 significant digits',()=>{
+ const annual=filing('USD'),q3={...filing('USD',2024,'Q3'),revenueYtd:new Prisma.Decimal('1.125')};
+ const q4=mergeStatements([],[annual,q3]).find(r=>r.periodType==='Q4');
+ assert.equal(q4?.revenue,'999999999999999999999999999997.998456789');
+});

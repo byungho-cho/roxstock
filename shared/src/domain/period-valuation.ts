@@ -13,6 +13,7 @@ export type OpeningCapitalReview={method:'DART_PUBLIC_ADJACENT_CAPITAL_RECONCILE
 export type CommonEpsReview={disclosedRoundingTolerance?:'1';arithmeticDifference?:string;method:'DART_PUBLIC_COMMON_EPS_RECONCILED';receiptNo:string;fsDivision:string;fiscalYear:number;periodEnd:string;parentProfit:string;reportedParentProfit:string;parentTolerance:string;commonProfit:string;weightedShares:string;eps:string;calculated:boolean;sourceUrl:string;contentSha256:string};
 export type Supplemental={priceAvailability?:import('./listing-period.js').ListingPeriodReview;commonEpsReview?:CommonEpsReview;openingCapitalReview?:OpeningCapitalReview;fiscalEpsReview?:FiscalEpsReview;ordinaryEpsBasis?:OrdinaryEpsBasis;collectionAttempt?:{at:string;source:string};fiscalDuration?:FiscalDuration;accounts?:{currency?:string;receiptNo:string;fsDivision:string;collectedAt:string;sources:Record<string,{amount?:string|null;ytdAmount?:string|null;accountName?:string;ordinaryEpsVerified?:boolean;calculatedFromWeightedShares?:boolean;periodEnd?:string|null}>};errors?:Record<string,string>;shares?:PeriodShares;basis?:{epsPriceCompatible:boolean;bpsPriceCompatible:boolean;source:string;verifiedAt:string;receiptNo?:string;reason?:string};price?:{symbol?:string;value:string;date:string;source:string;collectedAt?:string;shareBasis?:string;listedShares?:string;isin?:string;market?:string;parValue?:string;periodBasis?:{method:string;symbol:string;periodEnd:string;disclosedAt:string;from:string;through:string;observations:number;verifiedAt:string}}};
 const dec=(v:unknown)=>typeof v==='string'&&/^-?\d+(\.\d+)?$/.test(v)?new ExactDecimal(v):null;
+const amount=(v:Prisma.Decimal|null)=>v==null?null:new ExactDecimal(v.toString());
 const text=(v:Prisma.Decimal|null)=>v?.toDecimalPlaces(4).toString()??null;
 function source(f:DartFinancialFiling,key:string,ytd=false){const sources=f.accountSources as Record<string,{amount?:string;ytdAmount?:string}>|null;return dec(ytd?sources?.[key]?.ytdAmount:sources?.[key]?.amount);}
 export function fiscalDurationMatches(f:Pick<DartFinancialFiling,'receiptNo'|'fsDivision'|'periodEndDate'>,d:FiscalDuration|undefined):d is FiscalDuration {
@@ -45,14 +46,14 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  const openingParent=verified?((duration.openingDate===fiscalOpeningDate?dec(duration.openingParentEquity):null)??exactOpening('openingParentEquity')):previousParent??(!resolution?comparative('openingParentEquity'):null);
  const useParent=!!parentProfit&&!!parentEquity&&!!openingParent;
  const fiscalOpening=verified?((duration.openingDate===fiscalOpeningDate?dec(duration.openingEquity):null)??exactOpening('openingTotalEquity')):null;
- const profit=useParent?parentProfit:f.netIncomeYtd,equity=useParent?parentEquity:f.totalEquity,opening=useParent?openingParent:comparable?previous!.totalEquity:verified?fiscalOpening:!resolution?comparative('openingTotalEquity'):null;
+ const profit=useParent?parentProfit:amount(f.netIncomeYtd),equity=useParent?parentEquity:amount(f.totalEquity),opening=useParent?openingParent:comparable?amount(previous!.totalEquity):verified?fiscalOpening:!resolution?comparative('openingTotalEquity'):null;
  const average=opening&&equity?opening.plus(equity).div(2):null;
  const roe=!durationReview&&profit&&average?.gt(0)?profit.mul(annualFactor).div(average).mul(100):null;
  // Disclosed basic EPS uses issuer weighted-average ordinary shares, never today's shares.
  const epsSource=commonEpsReviewMatches(f,supplemental)?dec(accounts?.sources.basicEps?.amount):periodSource('basicEps',!annual)??(annual?periodSource('basicEps'):null);
  const eps=durationReview?null:epsSource?.mul(annualFactor)??null;
  const bookShares=bookValueShares(supplemental.shares,f.receiptNo),shares=bookShares?dec(bookShares.count):null;
- const ownerEquity=f.fsDivision==='CFS'?parentEquity:(f.totalEquity??periodSource('totalEquity'));
+ const ownerEquity=f.fsDivision==='CFS'?parentEquity:(amount(f.totalEquity)??periodSource('totalEquity'));
  const bps=ownerEquity&&shares?.gt(0)?ownerEquity.div(shares):null;
  const end=f.periodEndDate.toISOString().slice(0,10),priceInfo=supplemental.price;
  const age=priceInfo?(Date.parse(end)-Date.parse(priceInfo.date))/86400000:NaN;
