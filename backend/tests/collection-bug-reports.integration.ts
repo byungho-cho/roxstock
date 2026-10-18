@@ -156,3 +156,24 @@ test('held products exclude financial absence warnings, preserve history and rea
   assert.equal(await saveBugEvent(db,{...event,sourceKey:prefix+'stock'}),true,'ordinary companies are still reported');
  }finally{if(id){const reports=await db.collectionBugOccurrence.findMany({where:{securityId:id},select:{reportId:true}});await db.collectionBugOccurrence.deleteMany({where:{securityId:id}});for(const r of reports)if(r.reportId&&!await db.collectionBugOccurrence.count({where:{reportId:r.reportId}}))await db.collectionBugReport.deleteMany({where:{id:r.reportId}});await db.security.delete({where:{id}});}await db.$disconnect();}
 });
+
+test('exact source context coalesces legacy duplicates; reviewed pre-listing closes are inapplicable',async()=>{
+ const feature='dart-financial-statements',prefix='context-test-'+Date.now();let id:bigint|undefined,runId:bigint|undefined;
+ try{
+  id=(await db.security.create({data:{symbol:'C'+String(Date.now()).slice(-5),name:'기간 검증',marketType:'KOSPI'}})).id;
+  runId=(await db.collectorRun.create({data:{jobType:feature,provider:'TEST',status:'FAILED'}})).id;
+  const item=await db.collectorRunItem.create({data:{runId,securityId:id,symbol:'005930:2020:ANNUAL',status:'FAILED',message:'MANUAL_COLLECTION_ERROR'}});
+  const sourceKey='item:'+item.id+':'+item.createdAt.toISOString();
+  await saveBugEvent(db,{sourceKey,feature,code:'MANUAL_COLLECTION_ERROR',severity:'ERROR',summary:'검증',securityId:id,runId,observedAt:item.createdAt});
+  const {repairFinancialOccurrencePeriodsPage,periodBugEvents}=await import('../src/domain/collection-bug-reports.js');
+  await repairFinancialOccurrencePeriodsPage(db);const old=await db.collectionBugOccurrence.findUniqueOrThrow({where:{eventKey:createHash('sha256').update(sourceKey).digest('hex')}});assert.equal(old.fiscalYear,2020);assert.equal(old.periodType,'ANNUAL');assert.equal(old.resolvedAt,null,'context repair must not claim an error fixed');assert.equal((await repairFinancialOccurrencePeriodsPage(db)).changed,0);
+  const receipt='20990203000002',symbol='387690',periodEnd='2026-06-30';
+  const row=await db.periodValuation.create({data:{securityId:id,fiscalYear:2026,periodType:'Q2',collectionSymbol:symbol,status:'PARTIAL',values:{eps:'100',bps:'200',roe:'10',per:null,pbr:null},reasons:{},provenance:{receiptNo:receipt,periodEnd},supplemental:{collectionAttempt:{at:new Date().toISOString()},errors:{priceCode:'KIS_PRICE_NO_DATA'}}}});
+  for(const event of periodBugEvents(row))await saveBugEvent(db,{...event,sourceKey:prefix+event.metric});
+  assert.equal(await db.collectionBugOccurrence.count({where:{securityId:id,metric:{in:['per','pbr']},resolvedAt:null}}),2);
+  const proof={method:'REVIEWED_PRE_LISTING_NO_MARKET_CLOSE',symbol,receiptNo:receipt,periodEnd,listingDate:'2026-07-13',sourceUrls:['https://www.yna.co.kr/view/example','https://www.mt.co.kr/stock/example'],verifiedAt:new Date().toISOString()};
+  const updated=await db.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:id,fiscalYear:2026,periodType:'Q2'}},data:{supplemental:{...row.supplemental as object,priceAvailability:proof}}});
+  assert.deepEqual(periodBugEvents(updated),[],'known absent IPO-period prices do not recur');
+  await reconcileBugReportsPage(db);assert.equal(await db.collectionBugOccurrence.count({where:{securityId:id,resolution:'PRICE_PERIOD_PRE_LISTING'}}),2);assert.equal((await db.periodValuation.findUniqueOrThrow({where:{securityId_fiscalYear_periodType:{securityId:id,fiscalYear:2026,periodType:'Q2'}}})).values.per,null,'no invented price or ratio');
+ }finally{if(id){const reports=await db.collectionBugOccurrence.findMany({where:{securityId:id},select:{reportId:true}});await db.collectionBugOccurrence.deleteMany({where:{securityId:id}});for(const r of reports)if(r.reportId&&!await db.collectionBugOccurrence.count({where:{reportId:r.reportId}}))await db.collectionBugReport.deleteMany({where:{id:r.reportId}});await db.periodValuation.deleteMany({where:{securityId:id}});if(runId)await db.collectorRun.delete({where:{id:runId}});await db.security.delete({where:{id}});}await db.$disconnect();}
+});
