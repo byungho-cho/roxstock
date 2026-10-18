@@ -1,0 +1,78 @@
+name: Native Currency Recovery
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/native-currency-recovery.yml']
+  workflow_dispatch:
+    inputs:
+      application_sha:
+        description: 'Already deployed immutable application SHA'
+        required: true
+        default: '90b612f057ae22c66a54935ae7072d3e32523bc4'
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: native-currency-production-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      APPLICATION_SHA: ${{ inputs.application_sha || '90b612f057ae22c66a54935ae7072d3e32523bc4' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APPLICATION_SHA }}
+      - name: Verify pinned application and run bounded recovery
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$APPLICATION_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          [[ "$(git rev-parse HEAD)" == "$APPLICATION_SHA" ]] || exit 2
+          [[ "$(node -p 'require("./backend/src/release.json").version')" == 1.1.16 ]] || exit 2
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- $APPLICATION_SHA" < scripts/recover-foreign-production.sh | tee "$RUNNER_TEMP/native-currency-recovery-summary.txt"
+          grep -q '"policy":"native-currency-v1"' "$RUNNER_TEMP/native-currency-recovery-summary.txt"
+          cat "$RUNNER_TEMP/native-currency-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Read source-storage and calculation outcomes without exporting DB data
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            'docker exec -i roxstock-dart-collector node --input-type=module' <<'NODE' | tee "$RUNNER_TEMP/native-currency-recovery-outcomes.txt"
+          import {PrismaClient,Prisma} from './shared/dist/generated/prisma/index.js';
+          const db=new PrismaClient();
+          try{
+            const runs=await db.collectorRun.findMany({where:{jobType:'foreign-currency-recovery'},orderBy:{id:'desc'},take:20,select:{id:true,status:true,startedAt:true,finishedAt:true,successCount:true,failureCount:true,skippedCount:true,metadata:true}});
+            const ids=runs.map(r=>r.id);
+            const reasons=ids.length?await db.$queryRaw(Prisma.sql`SELECT status,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.validationResult')),message,'UNKNOWN') AS reason,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) GROUP BY status,reason`):[];
+            const currencies=ids.length?await db.$queryRaw(Prisma.sql`SELECT JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.currency')) AS currency,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) AND status='SUCCESS' GROUP BY currency`):[];
+            console.log(JSON.stringify({runs,reasons,currencies},(_,v)=>typeof v==='bigint'?v.toString():v));
+          }finally{await db.$disconnect();}
+          NODE
+          cat "$RUNNER_TEMP/native-currency-recovery-outcomes.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-currency-recovery-outcome-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/native-currency-recovery-summary.txt
+            ${{ runner.temp }}/native-currency-recovery-outcomes.txt
