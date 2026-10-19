@@ -38,5 +38,5 @@ export function ErrorToastHost(){
  </Snackbar>;
 }
 
-/** Share the existing toast queue and fixed overlay with save confirmations. */
-export function showSuccessToast(message:string){enqueue(message,undefined,Symbol(),false,'success');}
+/** A completed user action appears promptly; queued background errors remain available afterward. */
+export function showSuccessToast(message:string){enqueue(message,undefined,Symbol(),true,'success');}
