@@ -140,8 +140,12 @@ jobs:
       - run: npm ci --workspace frontend --include-workspace-root=false
       - run: npx --workspace frontend playwright install --with-deps chromium
       - run: cd frontend && npx playwright test -c playwright.native-currency.config.ts
+      - name: Phase32 home cards (cover 370x465 and tablet 725x396)
+        run: cd frontend && npx playwright test -c playwright.phase32.config.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: native-currency-ui-${{ github.run_id }}
-          path: frontend/test-results/native-currency
+          path: |
+            frontend/test-results/native-currency
+            frontend/test-results/home-phase32

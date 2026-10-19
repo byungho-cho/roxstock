@@ -6,6 +6,7 @@ import {id} from '../lib/input.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {valueBuyLot} from '../domain/lot-valuation.js';
 import {calculateRemainingQuantity} from '../domain/trade.js';
+import {remainingBuyLots} from '../domain/recent-buy-lots.js';
 import {realtimePriceCache} from '../realtime/price-cache.js';
 
 export async function recentBuysRoutes(app:FastifyInstance){
@@ -20,8 +21,11 @@ export async function loadRecentBuys(accountId: bigint, months = 0) {
    const account=await tx.account.findUnique({where:{id:accountId},select:{isActive:true}});
    if(!account?.isActive)throw new ApiError(404,'ACCOUNT_NOT_FOUND','Account not found.');
    const orderBy=[{boughtAt:'desc' as const},{id:'desc' as const}];
-   const initial=await tx.buyTrade.findMany({where:{accountId},select:{id:true},orderBy,take:5});
-   const total=await tx.buyTrade.count({where:{accountId}});
+   // The indexed sell sum belongs to this buy Lot, not to the security aggregate.
+   const eligible=Prisma.sql`b.account_id=${accountId} AND b.quantity>COALESCE((SELECT SUM(s.quantity) FROM sell_trades s WHERE s.buy_trade_id=b.id),0)`;
+   const initial=await tx.$queryRaw<{id:bigint}[]>(Prisma.sql`SELECT b.id FROM buy_trades b WHERE ${eligible} ORDER BY b.bought_at DESC,b.id DESC LIMIT 5`);
+   const counts=await tx.$queryRaw<{total:bigint}[]>(Prisma.sql`SELECT COUNT(*) AS total FROM buy_trades b WHERE ${eligible}`);
+   const total=Number(counts[0]!.total);
    const lots=await tx.buyTrade.findMany({where:{accountId,OR:[{id:{in:initial.map(row=>row.id)}},...(months?[{boughtAt:{gte:from}}]:[])]},orderBy,
     select:{id:true,securityId:true,boughtAt:true,quantity:true,unitPrice:true,
      security:{select:{id:true,symbol:true,name:true,marketType:true,marketPrice:true}},sellTrades:{select:{quantity:true}}}});
@@ -32,14 +36,16 @@ export async function loadRecentBuys(accountId: bigint, months = 0) {
 
 export function recentBuysResult(lots: Array<Omit<Awaited<ReturnType<typeof loadPortfolio>>['account']['buyTrades'][number], 'sellTrades'> & { sellTrades: { quantity: Prisma.Decimal }[] }>, total: number, accountId: bigint, months: number, now = new Date()) {
   const prices=new Map(realtimePriceCache.get().map(row=>[row.securityId,row]));
-  const data=lots.map(lot=>{
+  const Decimal=Prisma.Decimal.clone({precision:80});
+  const data=remainingBuyLots(lots).map(lot=>{
    const stored=lot.security.marketPrice,live=prices.get(String(lot.securityId));
    const useLive=live&&(!stored||Date.parse(live.observedAt)>=stored.priceUpdatedAt.getTime());
    const remaining=calculateRemainingQuantity(lot.quantity,lot.sellTrades.map(row=>row.quantity));
-   const valuation=valueBuyLot(lot.boughtAt,String(lot.quantity),String(lot.unitPrice),useLive?live.currentPrice:stored?.currentPrice.toString()??null,useLive?new Date(live.observedAt):stored?.priceUpdatedAt??null,now);
+   const valuation=valueBuyLot(lot.boughtAt,String(remaining),String(lot.unitPrice),useLive?live.currentPrice:stored?.currentPrice.toString()??null,useLive?new Date(live.observedAt):stored?.priceUpdatedAt??null,now);
    return {...valuation,id:String(lot.id),boughtAt:lot.boughtAt.toISOString(),security:{id:String(lot.security.id),symbol:lot.security.symbol,name:lot.security.name,marketType:lot.security.marketType},
-    quantity:String(lot.quantity),unitPrice:String(lot.unitPrice),remainingQuantity:String(remaining),soldQuantity:lot.quantity.minus(remaining).toString(),remainingPurchaseAmount:remaining.mul(lot.unitPrice).toString(),
-    profitLoss:valuation.currentPrice===null?null:new Prisma.Decimal(valuation.currentPrice).minus(lot.unitPrice).mul(remaining).toString(),memo:null,sellTrades:[]};
+    quantity:String(lot.quantity),unitPrice:String(lot.unitPrice),remainingQuantity:String(remaining),soldQuantity:lot.quantity.minus(remaining).toString(),remainingPurchaseAmount:new Decimal(remaining).mul(lot.unitPrice).toFixed(),
+    remainingMarketValue:valuation.currentPrice===null?null:new Decimal(remaining).mul(valuation.currentPrice).toFixed(),
+    profitLoss:valuation.profitLoss,memo:null,sellTrades:[]};
   });
   return {data,meta:{accountId:String(accountId),count:data.length,total:total,more:total>data.length,months,calculatedAt:now.toISOString()}};
 }

@@ -79,6 +79,9 @@ jobs:
       - name: Phase18 aggregate invalidation and recent-buy equivalence (real MariaDB)
         run: node --import tsx --test backend/tests/phase18.integration.ts
 
+      - name: Phase32 remaining recent buy Lots (real MariaDB API)
+        run: node --import tsx --test backend/tests/home-phase32.integration.ts
+
       - name: Realtime lifecycle ownership and snapshot conflict (real MariaDB)
         run: node --import tsx --test collector/tests/realtime-lifecycle.integration.ts
 

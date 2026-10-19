@@ -1,3 +1,4 @@
+import type {PageBootstrap} from '../../data/pageApi';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import { Box, Button } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,10 +41,13 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
     try {
       const next = await client.fetchQuery({ queryKey: key, queryFn: ({signal}) => getRecentBuys(accountId, nextMonths, signal), staleTime: 0 });
       if (currentGeneration !== generation.current) return;
-      const ids = new Set(rows.map(row => row.id));
-      // Retain existing objects/order; only append previously unseen IDs.
-      const merged = [...rows, ...next.data.filter(row => !ids.has(row.id))];
-      client.setQueryData(key, { ...next, data: merged, meta: { ...next.meta, count: merged.length } });
+      // The expanded window is authoritative: a sale may remove/update an old Lot.
+      client.setQueryData(key, next);
+      if (home) client.setQueriesData<PageBootstrap>({queryKey:['homePage']}, previous => {
+        if (!previous || previous.accountId !== accountId) return previous;
+        const initial = next.data.slice(0,5);
+        return {...previous, recent:{...next, data:initial, meta:{...next.meta, months:0, count:initial.length, more:next.meta.total>initial.length}}};
+      });
       setExpanded({ accountId, months: nextMonths });
     } catch {
       if (currentGeneration === generation.current) setMoreError(true);
@@ -62,6 +66,6 @@ export function RecentBuysCard({enabled=true}:{enabled?:boolean}) {
 const RecentBuyRow = memo(function RecentBuyRow({ row }: { row: BuyLotDto }) {
   const navigate = useNavigate();
   return <HomeTwoLineRow testId="recent-buy-lot" onClick={() => navigate(`/stocks/${row.security.id}?detailTab=holding`)}
-      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.quantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
+      first={[row.security.name, <Box component="span" sx={{ color: colors.textSecondary }}>{Number(row.remainingQuantity).toLocaleString('ko-KR')} × {targetWon(row.unitPrice)}</Box>, <Box component="span" aria-label="현재가" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.currentPrice == null ? '—' : targetWon(row.currentPrice)}</Box>]}
       second={[<Box component="span" sx={{ color: colors.textSecondary }}>{row.buyDate?.slice(2).replaceAll('-', '.') ?? new Date(row.boughtAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(2).replaceAll('-', '.')} ({row.holdingDays ?? '—'}일)</Box>, <Box component="span" aria-label="평가수익률" sx={{ color: lotMarketColor(row.returnRate) }}>{lotRate(row.returnRate)}</Box>, <Box component="span" aria-label="평가손익" sx={{ color: lotMarketColor(row.profitLoss) }}>{row.profitLoss == null ? '—' : targetWon(row.profitLoss)}</Box>]} />;
 });
