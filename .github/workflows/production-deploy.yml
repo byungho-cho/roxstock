@@ -141,7 +141,7 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
-          case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19) ;; *) exit 0 ;; esac
+          case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19|1.1.20) ;; *) exit 0 ;; esac
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"

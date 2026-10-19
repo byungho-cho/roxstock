@@ -144,6 +144,8 @@ jobs:
         run: cd frontend && npx playwright test -c playwright.phase32.config.ts
       - name: Phase33 stock news (Figma cover and tablet)
         run: cd frontend && npx playwright test -c playwright.phase33.config.ts
+      - name: Phase34 toast and stock news layout
+        run: cd frontend && npx playwright test -c playwright.phase34-stock-news.config.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -152,3 +154,4 @@ jobs:
             frontend/test-results/native-currency
             frontend/test-results/home-phase32
             frontend/test-results/stock-news-phase33
+            frontend/test-results/stock-news-phase34

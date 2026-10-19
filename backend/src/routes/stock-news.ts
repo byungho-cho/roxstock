@@ -11,9 +11,17 @@ const include={securities:{include:{security:{select:{id:true,symbol:true,name:t
 type Row=Prisma.StockNewsItemGetPayload<{include:typeof include}>;
 const order=[{priority:'desc'},{publishedAt:'desc'},{id:'desc'}] as const;
 const bad=()=>new ApiError(400,'NEWS_INVALID_PAGE','소식 조회 조건을 확인해 주세요.');
-function serialize(row:Row,allowed:bigint[]){
+function serialize(row:Row,allowed:bigint[],held:Set<string>){
  let originalUrl:string|null=null;try{originalUrl=canonicalUrl(row.originalUrl);}catch{/* Invalid stored links remain visible with an explicit unavailable state. */}
- return {id:String(row.id),title:row.title,originalUrl,originalAvailable:!!originalUrl,sourceName:row.sourceName,publishedAt:row.publishedAt.toISOString(),publishedPrecision:row.publishedPrecision,type:row.materialType,importance:row.priority===2?'IMPORTANT':'MAJOR',access:row.accessCondition,summary:row.summary,summaryMethod:row.summaryMethod,collectedAt:row.collectedAt.toISOString(),securities:row.securities.filter(s=>allowed.includes(s.securityId)).map(s=>({id:String(s.security.id),symbol:s.security.symbol,name:s.security.name}))};
+ return {isHeld:row.securities.some(s=>allowed.includes(s.securityId)&&held.has(String(s.securityId))),id:String(row.id),title:row.title,originalUrl,originalAvailable:!!originalUrl,sourceName:row.sourceName,publishedAt:row.publishedAt.toISOString(),publishedPrecision:row.publishedPrecision,type:row.materialType,importance:row.priority===2?'IMPORTANT':'MAJOR',access:row.accessCondition,summary:row.summary,summaryMethod:row.summaryMethod,summaryStatus:row.summaryStatus,summaryCheckedAt:row.summaryCheckedAt?.toISOString()??null,collectedAt:row.collectedAt.toISOString(),securities:row.securities.filter(s=>allowed.includes(s.securityId)).map(s=>({id:String(s.security.id),symbol:s.security.symbol,name:s.security.name,isHeld:held.has(String(s.securityId))}))};
+}
+/** Aggregate only the bounded page's related securities; never infer holdings from watchlists. */
+async function heldForRows(tx:Prisma.TransactionClient,accountId:bigint,rows:Row[]){
+ const ids=[...new Set(rows.flatMap(r=>r.securities.map(s=>s.securityId)))];if(!ids.length)return new Set<string>();
+ const held=await tx.$queryRaw<{security_id:bigint}[]>(Prisma.sql`SELECT b.security_id FROM buy_trades b
+ WHERE b.account_id=${accountId} AND b.security_id IN (${Prisma.join(ids)}) GROUP BY b.security_id
+ HAVING SUM(b.quantity - COALESCE((SELECT SUM(s.quantity) FROM sell_trades s WHERE s.buy_trade_id=b.id),0)) >= 1`);
+ return new Set(held.map(r=>String(r.security_id)));
 }
 async function context(tx:Prisma.TransactionClient,accountId:bigint,q:Query){
  // Reuse the installation's active-account boundary. It has no multi-user ownership identity.
@@ -40,14 +48,14 @@ export async function loadStockNews(accountId:bigint,q:Query={}){
   const ctx=await context(tx,accountId,q);let after:Prisma.StockNewsItemWhereInput={};
   if(q.cursor){if(!q.snapshot)throw bad();const cursorId=id(q.cursor,'cursor'),last=await tx.stockNewsItem.findFirst({where:{AND:[ctx.where,{id:cursorId}]},select:{id:true,priority:true,publishedAt:true}});if(!last)throw bad();after=boundary(last,'after');}
   const [rows,total,collection]=await Promise.all([tx.stockNewsItem.findMany({where:{AND:[ctx.where,after]},orderBy:[...order],take:11,include}),tx.stockNewsItem.count({where:ctx.where}),collectionState(tx)]);
-  const page=rows.slice(0,10);return {data:page.map(r=>serialize(r,ctx.ids)),meta:{accountId:String(accountId),type:q.type??'ALL',total,count:page.length,snapshot:ctx.snapshot,nextCursor:rows.length>10?String(page.at(-1)!.id):null,collection}};
+  const page=rows.slice(0,10),held=await heldForRows(tx,accountId,page);return {data:page.map(r=>serialize(r,ctx.ids,held)),meta:{accountId:String(accountId),type:q.type??'ALL',total,count:page.length,snapshot:ctx.snapshot,nextCursor:rows.length>10?String(page.at(-1)!.id):null,collection}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
 export async function loadStockNewsDetail(accountId:bigint,newsId:bigint,q:Query={}){
  return prisma.$transaction(async tx=>{
   const ctx=await context(tx,accountId,q),row=await tx.stockNewsItem.findFirst({where:{AND:[ctx.where,{id:newsId}]},include});if(!row)throw new ApiError(404,'NEWS_NOT_IN_ACCOUNT','현재 계좌의 조회 대상 소식이 아닙니다.');
   const [before,total,previous,next]=await Promise.all([tx.stockNewsItem.count({where:{AND:[ctx.where,boundary(row,'before')]}}),tx.stockNewsItem.count({where:ctx.where}),tx.stockNewsItem.findFirst({where:{AND:[ctx.where,boundary(row,'before')]},orderBy:[{priority:'asc'},{publishedAt:'asc'},{id:'asc'}],select:{id:true}}),tx.stockNewsItem.findFirst({where:{AND:[ctx.where,boundary(row,'after')]},orderBy:[...order],select:{id:true}})]);
-  return {data:serialize(row,ctx.ids),meta:{accountId:String(accountId),snapshot:ctx.snapshot,type:q.type??'ALL',ordinal:before+1,total,previousId:previous?String(previous.id):null,nextId:next?String(next.id):null}};
+  return {data:serialize(row,ctx.ids,await heldForRows(tx,accountId,[row])),meta:{accountId:String(accountId),snapshot:ctx.snapshot,type:q.type??'ALL',ordinal:before+1,total,previousId:previous?String(previous.id):null,nextId:next?String(next.id):null}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
 export async function stockNewsRoutes(app:FastifyInstance){

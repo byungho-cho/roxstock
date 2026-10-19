@@ -941,11 +941,18 @@ model StockNewsItem {
  accessCondition String @default("UNKNOWN") @map("access_condition") @db.VarChar(16)
  summary String? @db.VarChar(300)
  summaryMethod String @default("NONE") @map("summary_method") @db.VarChar(40)
+ summaryStatus String @default("PENDING") @map("summary_status") @db.VarChar(20)
+ summaryAttempts Int @default(0) @map("summary_attempts") @db.UnsignedTinyInt
+ summaryCheckedAt DateTime? @map("summary_checked_at") @db.DateTime(3)
+ summaryNextRetryAt DateTime? @map("summary_next_retry_at") @db.DateTime(3)
+ summarySource String? @map("summary_source") @db.VarChar(2048)
+ summaryReason String? @map("summary_reason") @db.VarChar(120)
  collectedAt DateTime @map("collected_at") @db.DateTime(3)
  securities StockNewsSecurity[]
  @@unique([provider,providerId])
  @@index([priority,publishedAt,id],map:"stock_news_order_idx")
  @@index([materialType,priority,publishedAt,id],map:"stock_news_type_order_idx")
+ @@index([summaryStatus,summaryNextRetryAt,id],map:"stock_news_summary_queue_idx")
  @@map("stock_news_items")
 }
 model StockNewsSecurity {

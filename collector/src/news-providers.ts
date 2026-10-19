@@ -25,8 +25,9 @@ export class NewsHttp {
     if(/application\/pdf/i.test(response.headers.get('content-type')??''))throw Error('PDF_BODY_NOT_COLLECTED');
     const reader=response.body?.getReader();if(!reader)throw Error('EMPTY_SOURCE_BODY');let size=0;const decoder=new TextDecoder();let result='';
     try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>maxBytes){await reader.cancel();if(headOnly)return result;throw Error('SOURCE_SIZE_BOUND');}result+=decoder.decode(value,{stream:true});if(headOnly&&/<\/head\s*>/i.test(result)){await reader.cancel();return result.split(/<\/head\s*>/i)[0]!;}}}finally{reader.releaseLock();}
-    if(!result.trim()||/Site Unavailable|Access Denied|로그인이 필요/.test(result.slice(0,500)))throw Error('SOURCE_UNAVAILABLE');return result;
-   }catch(e){lastError=e;if(this.signal?.aborted)throw e;if(attempt===0)await sleep(2000,this.signal);}
+    if(/Block access|Access Denied/i.test(result.slice(0,500)))throw Error('SOURCE_ACCESS_DENIED');
+    if(!result.trim()||/Site Unavailable|로그인이 필요/.test(result.slice(0,500)))throw Error('SOURCE_UNAVAILABLE');return result;
+   }catch(e){lastError=e;if(e instanceof Error&&/SOURCE_ACCESS_DENIED|SOURCE_HTTP_40[134]|PDF_BODY/.test(e.message))throw e;if(this.signal?.aborted)throw e;if(attempt===0)await sleep(2000,this.signal);}
   }throw lastError;
  }
 }
