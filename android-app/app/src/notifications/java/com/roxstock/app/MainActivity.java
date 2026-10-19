@@ -56,7 +56,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
-        root.setOnApplyWindowInsetsListener((view, insets) -> { view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom()); return insets; });
+        AppWindowInsets.install(this, root);
         Button inbox = new Button(this); inbox.setText("거래 알림 · 등록 대기");
         root.addView(inbox, new LinearLayout.LayoutParams(-1, -2));
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
@@ -69,7 +69,7 @@ public final class MainActivity extends Activity {
             handler.postDelayed(updateBadge, 3000);
         };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.3");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.4");
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
