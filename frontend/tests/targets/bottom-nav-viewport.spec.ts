@@ -13,6 +13,11 @@ test('shared footer stays at the usable viewport bottom across pages and resize 
    await page.locator('main').evaluate(el=>el.scrollTop=el.scrollHeight);
    expect(await nav.evaluate(el=>Math.abs(el.getBoundingClientRect().bottom-innerHeight))).toBeLessThanOrEqual(1);
   }
+  if(path==='/more'){
+   const shortcuts=page.getByTestId('more-menu');await shortcuts.evaluate(el=>el.scrollTop=el.scrollHeight);
+   await expect(page.getByTestId('more-shortcut').last()).toBeInViewport({ratio:1});
+   expect((await page.getByTestId('more-shortcut').last().boundingBox())!.y+(await page.getByTestId('more-shortcut').last().boundingBox())!.height).toBeLessThanOrEqual((await nav.boundingBox())!.y+1);
+  }
   await page.screenshot({path:info.outputPath(path.replaceAll('/','_')+'-footer.png')});
  }
  const nav=page.getByRole('navigation',{name:'하단 메뉴'});await expect(nav.getByRole('button',{name:'종목소식',exact:true})).toHaveAttribute('aria-current','page');

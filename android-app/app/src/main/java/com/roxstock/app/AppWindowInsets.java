@@ -26,7 +26,8 @@ public final class AppWindowInsets {
             }
             view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
                 insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-            return insets.consumeSystemWindowInsets().consumeStableInsets();
+            WindowInsets remaining = insets.consumeSystemWindowInsets().consumeStableInsets();
+            return Build.VERSION.SDK_INT >= 28 ? remaining.consumeDisplayCutout() : remaining;
         });
         root.requestApplyInsets();
     }
