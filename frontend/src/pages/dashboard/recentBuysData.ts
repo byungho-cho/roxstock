@@ -6,7 +6,7 @@ export function monthStart(today: string, monthsBack = 0) {
 }
 export function recentBuys(rows: BuyLotDto[], today: string, monthsBack: number) {
   const unique = [...new Map(rows.map(row => [row.id, row])).values()];
-  const ordered = unique.sort((a,b) => buyDate(b).localeCompare(buyDate(a)) || b.boughtAt.localeCompare(a.boughtAt) || b.id.localeCompare(a.id, undefined, { numeric: true }));
+  const ordered = unique.filter(row => Number(row.remainingQuantity) > 0).sort((a,b) => buyDate(b).localeCompare(buyDate(a)) || b.boughtAt.localeCompare(a.boughtAt) || b.id.localeCompare(a.id, undefined, { numeric: true }));
   const from = monthStart(today, monthsBack);
   const initial = new Set(ordered.slice(0, 5).map(row => row.id));
   const visible = ordered.filter(row => initial.has(row.id) || monthsBack > 0 && buyDate(row) >= from);

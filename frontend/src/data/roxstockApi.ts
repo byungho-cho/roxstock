@@ -308,6 +308,7 @@ export interface BuyLotDto {
   remainingQuantity: string;
   unitPrice: string;
   remainingPurchaseAmount: string;
+  remainingMarketValue?: string | null;
   memo: string | null;
   sellTrades: { id: string; soldAt: string; quantity: string; unitPrice: string }[];
 }

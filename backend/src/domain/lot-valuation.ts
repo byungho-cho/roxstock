@@ -2,8 +2,8 @@ import { Prisma } from '@roxstock/shared/prisma';
 import { seoulDate } from './target-arrival.js';
 
 const Decimal = Prisma.Decimal.clone({ precision: 80 });
-// Recent buys value the original buy quantity, including fully sold historical lots.
-// Target arrivals separately value only the remaining quantity.
+// Callers supply the quantity to value: recent buys use the remaining holding.
+// Historical trade endpoints can continue to supply the original buy quantity.
 export function valueBuyLot(boughtAt: Date, quantity: string, unitPrice: string, currentPrice: string | null, priceUpdatedAt: Date | null, now = new Date()) {
   const buyDate = seoulDate(boughtAt);
   const holdingDays = (Date.parse(seoulDate(now)) - Date.parse(buyDate)) / 86_400_000;

@@ -7,6 +7,7 @@ import { loadAccounts } from './accounts.js';
 import { loadDashboard, loadPortfolio, serializeHolding } from './portfolio.js';
 import { loadSecurities } from './securities.js';
 import { targetArrivalsResult } from './target-arrivals.js';
+import { remainingBuyLots } from '../domain/recent-buy-lots.js';
 import { recentBuysResult } from './recent-buys.js';
 import { Prisma } from '@roxstock/shared/prisma';
 
@@ -58,7 +59,7 @@ export function installPageBootstrap(app: FastifyInstance) {
           dashboardPromise,
           portfolio.then(position => targetArrivalsResult(position.account)).catch(() => null),
           portfolio.then(position => {
-            const lots = [...position.account.buyTrades].sort((a, b) => b.boughtAt.getTime() - a.boughtAt.getTime() || (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
+            const lots = remainingBuyLots(position.account.buyTrades).sort((a, b) => b.boughtAt.getTime() - a.boughtAt.getTime() || (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
             return recentBuysResult(lots.slice(0, 5), lots.length, accountId, 0);
           }).catch(() => null),
         ]);
