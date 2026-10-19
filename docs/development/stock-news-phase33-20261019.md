@@ -64,3 +64,8 @@
 APK는 기존 영구 서명 키·동일 web-only 패키지로 빌드·설치 검증 후 기존 Caddy 다운로드 경로에 버전 파일을 추가한다. 공개 APK digest를 확인한 다음 latest.json을 교체하며 이전 APK/manifest를 남긴다. 키·덤프·APK 바이너리를 Git에 넣지 않는다.
 
 복구는 새 collector를 중지하고 기존 이미지 복구 절차로 이전 backend/collector/frontend 이미지를 복원한다. 추가 테이블은 그대로 두어 이력을 보존하며 역마이그레이션·DB 덤프 복원은 하지 않는다. APK 문제 시 서버의 `.deploy/apk-news-<sha>/latest.json.previous`를 복원하여 기존 APK 링크로 돌린다. 새 APK 파일을 삭제할 필요는 없다. 최신 수집 건수·제공처 실패·예약 시각과 검증/미검증 결과는 PR 검사 및 최종 보고를 기준으로 한다.
+
+
+### 배포 확인의 커밋 전달 보완
+
+GitHub Actions는 SHA에 짧은 비밀값과 같은 문자열이 있으면 job output을 비밀정보로 오인해 제거할 수 있다. 전체 SHA를 job output으로 전달하지 않고 모든 checkout·하위 workflow·검증·APK 게시에 불변 `inputs.target_sha || github.sha`를 직접 사용한다. main 일치 검증은 유지한다. 공개 APK 버전이 소스보다 뒤처지면 네이티브 파일 변경이 없는 재배포도 미완료 APK 게시를 재시도한다. 이는 배포 절차 보완이며 앱 코드·스키마·1.1.18 버전은 동일하다.
