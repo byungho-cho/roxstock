@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {buildApp} from '../src/app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
-import {hash,candidateKeys,type NewsCandidate} from '@roxstock/shared/news/policy';
+import {hash,kstStart,seoulDay,candidateKeys,type NewsCandidate} from '@roxstock/shared/news/policy';
 import {collectStockNews} from '../../collector/src/news-collector.js';
 
 test('phase33 isolated DB: target union, single shared collection, partial/failure lifecycle, stored pages, snapshots and account isolation',async()=>{
@@ -11,6 +11,7 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
  const securities=await Promise.all(['989331','989332','989333'].map(symbol=>prisma.security.create({data:{symbol,name:'NEWS33 '+symbol,marketType:'OTHER'}})));
  const [a,b]=accounts,[s1,s2,s3]=securities;
  const now=new Date(),publishedAt=new Date(now.getTime()-1000),rows:NewsCandidate[]=Array.from({length:8},(_,i)=>({provider:'TEST_NEWS33',providerId:'collected-'+i,title:'검증 회사 실적 전망 '+i,originalUrl:'https://www.hankyung.com/article/testnews33'+i,sourceName:'검증 공개 메타데이터',publishedAt,publishedPrecision:'TIME',materialType:i%2?'REPORT':'ARTICLE',priority:i<2?2:1,accessCondition:'UNKNOWN',summary:null,summaryMethod:'NONE',securityIds:[s1.id]}));
+ const nextDaily=(days:number)=>new Date(kstStart(seoulDay(new Date(now.getTime()+days*86400000))).getTime()+6*3600000);
  let calls=0;
  const source={id:'TEST_NEWS33',collect:async(targets:any[])=>{calls++;assert.equal(new Set(targets.map(t=>String(t.id))).size,targets.length);for(const s of securities)assert.ok(targets.some(t=>t.id===s.id));return {provider:'TEST_NEWS33',candidates:[...rows,{...rows[0]!,originalUrl:rows[0]!.originalUrl+'?utm_source=transfer'}],warnings:[],requests:1};}};
  const get=async(path:string,status=200)=>{const response=await app.inject('/api/'+path);assert.equal(response.statusCode,status,response.body);return response.json();};
@@ -25,7 +26,7 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   const saved=await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'}});assert.equal(saved.length,5);assert.equal(new Set(saved.map(r=>r.canonicalHash)).size,5);
   const state=await prisma.stockNewsState.findUniqueOrThrow({where:{id:'stock-news'}});assert.ok(state.initialCompletedAt);assert.equal(state.initialDate,new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(now));
   // A common item gains a verified newly relevant security without being stored twice.
-  const added=await collectStockNews(prisma,{now:new Date(now.getTime()+86400000),enrich:false,sources:[{id:'TEST_NEWS33',collect:async()=>({provider:'TEST_NEWS33',candidates:[{...rows[0]!,securityIds:[s1.id,s3.id]}],warnings:[],requests:1})}]});assert.equal(added.saved,0);assert.ok(await prisma.stockNewsSecurity.findUnique({where:{newsId_securityId:{newsId:saved.find(r=>r.providerId==='collected-0')!.id,securityId:s3.id}}}));
+  const added=await collectStockNews(prisma,{now:nextDaily(1),enrich:false,sources:[{id:'TEST_NEWS33',collect:async()=>({provider:'TEST_NEWS33',candidates:[{...rows[0]!,securityIds:[s1.id,s3.id]}],warnings:[],requests:1})}]});assert.equal(added.saved,0);assert.ok(await prisma.stockNewsSecurity.findUnique({where:{newsId_securityId:{newsId:saved.find(r=>r.providerId==='collected-0')!.id,securityId:s3.id}}}));
   // More than two pages with deterministic tied publication times; B-only news cannot leak to A.
   for(let i=0;i<26;i++){const c={...rows[0]!,providerId:'page-'+i,originalUrl:'https://www.hankyung.com/article/news33page'+i,title:'페이지 검증 실적 '+i,materialType:(i%3===0?'REPORT':i%3===1?'ARTICLE':'DISCLOSURE') as NewsCandidate['materialType'],priority:i<13?2:1,securityIds:[i===25?s2.id:s1.id]};await prisma.stockNewsItem.create({data:{provider:c.provider,providerId:c.providerId,...candidateKeys(c),title:c.title,originalUrl:c.originalUrl,sourceName:c.sourceName,publishedAt,publishedPrecision:'TIME',materialType:c.materialType,priority:c.priority,accessCondition:'UNKNOWN',collectedAt:now,securities:{create:c.securityIds.map(securityId=>({securityId}))}}});}
   const first=await get(`accounts/${a.id}/stock-news`);assert.equal(first.data.length,10);assert.equal(first.meta.total,30);assert.equal(first.meta.collection.status,'SUCCESS');
@@ -38,7 +39,7 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   // GETs do not invoke any external collection.
   assert.equal(calls,1);
   await prisma.accountWatchlistItem.delete({where:{accountId_securityId:{accountId:a.id,securityId:s3.id}}});await get(`accounts/${a.id}/stock-news?snapshot=${first.meta.snapshot}`,409);
-  const tomorrow=new Date(now.getTime()+2*86400000),failed=await collectStockNews(prisma,{now:tomorrow,enrich:false,sources:[{id:'TEST_NEWS33_FAIL',collect:async()=>{throw Error('unavailable');}}]});assert.equal(failed.status,'FAILED');assert.equal((await prisma.stockNewsState.findUniqueOrThrow({where:{id:'stock-news'}})).lastCollectedAt?.toISOString(),new Date(now.getTime()+86400000).toISOString());assert.ok(await prisma.stockNewsItem.count()>=32);
+  const tomorrow=nextDaily(2),failed=await collectStockNews(prisma,{now:tomorrow,enrich:false,sources:[{id:'TEST_NEWS33_FAIL',collect:async()=>{throw Error('unavailable');}}]});assert.equal(failed.status,'FAILED');assert.equal((await prisma.stockNewsState.findUniqueOrThrow({where:{id:'stock-news'}})).lastCollectedAt?.toISOString(),nextDaily(1).toISOString());assert.ok(await prisma.stockNewsItem.count()>=32);
   await prisma.account.update({where:{id:a.id},data:{isActive:false}});await get(`accounts/${a.id}/stock-news`,404);
   console.log('STOCK_NEWS_DB_PROOF',JSON.stringify({sharedSourceCalls:calls,firstSaved:5,firstPage:10,snapshotTotal:30,unique:30,reportTotal:11,accountsIsolated:true,failedCollectionRetained:true,initialOnce:true,restartRecovery:true}));
  }finally{
