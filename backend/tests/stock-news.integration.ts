@@ -55,6 +55,7 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   const queued=(await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'},orderBy:{id:'asc'},take:6}));
   await prisma.stockNewsItem.update({where:{id:queued[5]!.id},data:{summary:'기존 공개 요약은 불필요하게 덮어쓰지 않습니다.',summaryStatus:'READY'}});
   await prisma.stockNewsItem.updateMany({where:{id:{in:queued.slice(0,5).map(r=>r.id)}},data:{summaryStatus:'PENDING'}});
+  const stopped=new AbortController();stopped.abort();const interruptedSummary=await supplementNewsSummaries(prisma,{now,signal:stopped.signal,extract:async()=>{throw Error('must not fetch');}});assert.equal(interruptedSummary.status,'PARTIAL');assert.equal((await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[0]!.id}})).summaryAttempts,0);
   let summaryCalls=0;
   const extract=async(item:any)=>{summaryCalls++;const index=queued.findIndex(r=>r.id===item.id);return {summary:index===0?'매출액 12,345.67억원과 영업이익률 -3.25%를 원문 그대로 공개했습니다.':null,method:index===0?'PUBLIC_BODY_SENTENCES':'NONE',status:index===0?'READY':index===1?'NO_DATA':index===2?'BLOCKED':'RETRY',reason:index===0?null:'TEST_'+index,source:'https://www.hankyung.com/article/news34'} as any;};
   const summaries=await Promise.all([supplementNewsSummaries(prisma,{now,extract}),supplementNewsSummaries(prisma,{now,extract})]);

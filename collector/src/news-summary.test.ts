@@ -15,6 +15,7 @@ test('extractive summary removes title, ad, reporter and disclaimer; preserves n
 test('only known public article body is extracted; paywall content is not used',()=>{
  assert.ok(publicArticleBody('<div id="article-body"><p>'+evidence+'</p><aside>광고 문구입니다.</aside></div></body>')?.includes(evidence));
  assert.equal(publicArticleBody('<div id="article-body">본문</div><script>{"isAccessibleForFree":false}</script></body>'),null);
+ assert.ok(!publicArticleBody('<div id="article-body"><div class="ad-area">잘못된 수치 999억원입니다.</div><p>'+evidence+'</p></div></body>')?.includes('999억원'));
  assert.equal(publicArticleBody('<nav>메뉴만 있는 화면입니다.</nav>'),null);
 });
 test('provider introduction wins; public body fallback, paid intro and unknown access remain separate',async()=>{

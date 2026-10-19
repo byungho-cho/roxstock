@@ -18,7 +18,7 @@ export function publicArticleBody(html:string){
  if(/["']isAccessibleForFree["']\s*:\s*false|paywall|로그인이 필요|결제 후/i.test(html))return null;
  const body=/<(?:div|article)\b[^>]*(?:id=["']article-body["']|class=["'][^"']*\barticle-body\b[^"']*["'])[^>]*>([\s\S]*?)(?:<div[^>]*(?:article-bottom|article-footer)|<\/article>|<\/body>)/i.exec(html)?.[1];
  if(!body)return null;
- return body.replace(/<(script|style|nav|footer|aside|figure|button)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<br\s*\/?\s*>|<\/p>/gi,'\n');
+ return body.replace(/<div\b[^>]*(?:class|id)=["'][^"']*\b(?:ad-area|ad-view|advertisement|article-ad|author|writer|copyright|related-article)\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,' ').replace(/<(script|style|nav|footer|aside|figure|button)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<br\s*\/?\s*>|<\/p>/gi,'\n');
 }
 /** DART API archive: exact receipt identity, bounded entries/bytes/inflate; never written to disk. */
 export function dartDocumentText(data:Uint8Array,receipt:string){
@@ -106,7 +106,7 @@ export async function supplementNewsSummaries(db:PrismaClient,options:{now?:Date
     return changed.count;
    });if(written){if(result.summary)saved++;else if(result.status==='RETRY')failed++;else unavailable++;}
   }
-  const status=failed?'PARTIAL':'SUCCESS';await db.collectorRun.update({where:{id:run.id},data:{status,finishedAt:new Date(),successCount:saved,skippedCount:unavailable,failureCount:failed,metadata:{policy:'stock-news-summary-v1',batchLimit:5,target:items.length,saved,unavailable,failed,requestsBound:40,noAI:true}}});
+  const status=failed||signal.aborted?'PARTIAL':'SUCCESS';await db.collectorRun.update({where:{id:run.id},data:{status,finishedAt:new Date(),successCount:saved,skippedCount:unavailable,failureCount:failed,failureReason:signal.aborted?'NEWS_SUMMARY_TIME_BOUND: remaining pending items resume next tick':null,metadata:{policy:'stock-news-summary-v1',batchLimit:5,target:items.length,saved,unavailable,failed,remaining:items.length-saved-unavailable-failed,requestsBound:40,noAI:true}}});
   return {status,runId:String(run.id),targets:items.length,saved,unavailable,failed};
  }catch(e){if(runId)await db.collectorRun.updateMany({where:{id:runId,status:'RUNNING'},data:{status:'FAILED',finishedAt:new Date(),failureReason:'NEWS_SUMMARY_INTERRUPTED: restart resumes only pending or due retries'}});throw e;}
  finally{await repo.releaseLock(job,owner);}
