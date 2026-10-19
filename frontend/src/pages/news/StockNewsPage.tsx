@@ -13,7 +13,7 @@ import {ImportanceIcon,TypeChip,PaidIcon,OriginalLink,NewsIcon,newsTime,newsType
 const filters:[NewsFilter,string][]=[['ALL','전체'],['REPORT','리포트'],['ARTICLE','기사'],['DISCLOSURE','공시']];
 function useNewsList(accountId:string|undefined,type:NewsFilter,entry:string,enabled=true,initialSnapshot?:string){
  const client=useQueryClient();const key=['stockNews',accountId,type,entry];
- const query=useInfiniteQuery({queryKey:key,initialPageParam:(initialSnapshot?{snapshot:initialSnapshot}:undefined) as NewsPageParam,queryFn:({signal,pageParam})=>getNewsPage(accountId!,type,pageParam,signal),getNextPageParam:last=>last.meta.nextCursor?{snapshot:last.meta.snapshot,cursor:last.meta.nextCursor}:undefined,enabled:!!accountId&&enabled,staleTime:60_000,refetchOnWindowFocus:false,refetchOnMount:!initialSnapshot});
+ const query=useInfiniteQuery({queryKey:key,initialPageParam:(initialSnapshot?{snapshot:initialSnapshot}:undefined) as NewsPageParam,queryFn:({signal,pageParam})=>getNewsPage(accountId!,type,pageParam,signal),getNextPageParam:last=>last.meta.nextCursor?{snapshot:last.meta.snapshot,cursor:last.meta.nextCursor}:undefined,enabled:!!accountId&&enabled,staleTime:60_000,refetchOnWindowFocus:false,refetchOnMount:query=>!initialSnapshot&&query.state.isInvalidated});
  useEffect(()=>{if(!initialSnapshot&&query.error instanceof ApiError&&['NEWS_SCOPE_CHANGED','NEWS_SNAPSHOT_EXPIRED'].includes(query.error.code))void client.resetQueries({queryKey:key,exact:true});},[query.error,client,accountId,type,entry,initialSnapshot]);
  return query;
 }

@@ -32,7 +32,7 @@ function StockAddContent({accountId}:{accountId:string|undefined}){
  const normalizedSymbol=symbol.trim().replace(/[a-z]/g, letter => letter.toUpperCase());
  const valid=!!name.trim()&&name.trim().length<=100&&/^[A-Z0-9]{6}$/.test(normalizedSymbol)&&/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=new Date().getFullYear();
  const showConfirm=()=>{if(!busy&&accountId&&(!direct||valid)){setError('');setConfirm(true);}};
- const finish=async()=>{await Promise.all(['stocks','dashboard','targetArrivals','recentBuys'].map(key=>client.invalidateQueries({queryKey:[key]})));if(alive.current)navigate('/stocks?tab='+type,{replace:true});};
+ const finish=async()=>{await Promise.all(['stocks','dashboard','targetArrivals','recentBuys','stockNews','stockNewsDetail'].map(key=>client.invalidateQueries({queryKey:[key]})));if(alive.current)navigate('/stocks?tab='+type,{replace:true});};
  const save=async()=>{
   if(!accountId||lock.current||!confirm||(!selected&&!direct)||(direct&&!valid))return;
   lock.current=true;setBusy(true);setError('');

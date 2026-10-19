@@ -13,9 +13,11 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
  const timer=setInterval(()=>{if(pending)return;pending=db.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 120 SECOND),updated_at=UTC_TIMESTAMP(3) WHERE job_name=${job} AND owner_token=${owner} AND locked_until>UTC_TIMESTAMP(3)`.then(n=>{if(n!==1)lost=true;}).catch(()=>{lost=true;}).finally(()=>{pending=null;});},20000);timer.unref();
  const signal=AbortSignal.any([AbortSignal.timeout(8*60_000),...(options.signal?[options.signal]:[])]);
  try{
-  const state=await db.stockNewsState.upsert({where:{id:job},create:{id:job,initialDate:seoulDay(now)},update:{}}),plan=newsSchedule(state,now);
+  const state=await db.stockNewsState.upsert({where:{id:job},create:{id:job,initialDate:seoulDay(now)},update:{}});
+  const interrupted=await db.collectorRun.updateMany({where:{jobType:job,status:'RUNNING'},data:{status:'FAILED',finishedAt:now,failureReason:'NEWS_LEASE_EXPIRED: interrupted owner recovered under the news lock'}});
+  if(interrupted.count&&state.lastStatus==='RUNNING')await db.stockNewsState.update({where:{id:job},data:{lastStatus:'FAILED'}});
+  const plan=newsSchedule(state,now);
   if(!plan)return {status:'IDLE',initialCompleted:!!state.initialCompletedAt,completedDate:state.completedDate};
-  await db.collectorRun.updateMany({where:{jobType:job,status:'RUNNING'},data:{status:'FAILED',finishedAt:now,failureReason:'NEWS_LEASE_EXPIRED: interrupted owner recovered under the news lock'}});
   const attempts=state.attemptDate===plan.day?state.attempts+1:1;
   const run=await db.$transaction(async tx=>{const r=await tx.collectorRun.create({data:{jobType:job,provider:'PUBLIC_NEWS_METADATA',metadata:{kind:plan.kind,scheduleDate:plan.day,ownerId:hash(owner).slice(0,16),attempt:attempts,from:plan.from.toISOString(),to:now.toISOString(),policy:'stock-news-v1'}}});await tx.stockNewsState.update({where:{id:job},data:{attemptDate:plan.day,attempts,nextRetryAt:new Date(now.getTime()+15*60_000),lastStatus:'RUNNING'}});return r;});runId=run.id;
   const targets=await newsTargets(db),sources=options.sources??defaultNewsSources(db),results:{provider:string;status:string;count:number;requests:number;warnings:string[]}[]=[],candidates:NewsCandidate[]=[];

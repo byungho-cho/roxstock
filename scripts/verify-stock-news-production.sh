@@ -10,13 +10,14 @@ log="$(mktemp /tmp/roxstock-news-first.XXXXXX)"
 trap 'rm -f "$log"' EXIT
 # Normally the daemon has already claimed the initial run. This CLI is idempotent.
 docker exec roxstock-collector node collector/dist/worker.js news > "$log" 2>&1 || { echo 'NEWS_INITIAL_COMMAND_FAILED: protected server log retained only during this check'; exit 1; }
-for attempt in $(seq 1 30); do
+if grep -q 'STOCK_NEWS_RESULT {"status":"DISABLED"' "$log"; then echo NEWS_COLLECTION_DISABLED; exit 1; fi
+for attempt in $(seq 1 45); do
   if docker exec -i roxstock-backend node --input-type=module <<'NODE'
 import {PrismaClient} from './shared/dist/generated/prisma/index.js';
 const db=new PrismaClient();
 try {
  const state=await db.stockNewsState.findUnique({where:{id:'stock-news'}});
- if(!state?.initialCompletedAt){console.log(JSON.stringify({policy:'stock-news-v1',status:state?.lastStatus??'NOT_COLLECTED',initialComplete:false}));process.exitCode=2;}
+ if(!state?.initialCompletedAt){console.log(JSON.stringify({policy:'stock-news-v1',status:state?.lastStatus??'NOT_COLLECTED',initialComplete:false}));process.exitCode=state?.lastStatus==='FAILED'?3:2;}
  else {
   const run=await db.collectorRun.findFirst({where:{jobType:'stock-news',status:{in:['SUCCESS','PARTIAL']}},orderBy:{id:'desc'}});
   let cursor=0n,checked=0,totalVisible=0;
@@ -31,7 +32,7 @@ try {
  }
 } finally {await db.$disconnect();}
 NODE
-  then echo 'STOCK_NEWS_FIRST_COLLECTION_AND_STORED_API_VERIFIED'; exit 0; fi
+  then echo 'STOCK_NEWS_FIRST_COLLECTION_AND_STORED_API_VERIFIED'; exit 0; else result=$?; if [ "$result" -eq 3 ]; then echo 'NEWS_INITIAL_COLLECTION_FAILED: inspect provider reasons; bounded retry remains scheduled.'; exit 1; fi; fi
   sleep 10
 done
 echo 'NEWS_INITIAL_COLLECTION_NOT_COMPLETED: inspect stock-news monitoring, then rerun the same idempotent command.'

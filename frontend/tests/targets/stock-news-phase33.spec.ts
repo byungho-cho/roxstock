@@ -5,7 +5,7 @@ async function fixture(page:Page,options:{empty?:boolean;before?:boolean;long?:b
  const baseFixture=await base(page);let reads=0,fail=false,hold=false,release=()=>{};const paths:string[]=[];
  const items=Array.from({length:26},(_,i)=>({id:String(100-i),title:options.long?'긴 제목의 실적과 사업 전망 및 정책 변화에 관한 검증 내용 '.repeat(5):`검증 소식 ${i+1} · 실적과 사업 전망`,originalUrl:'https://www.hankyung.com/article/phase33test'+i,originalAvailable:true,sourceName:options.long?'검증용 매우 긴 제공 출처 이름 '.repeat(5):'검증 출처',publishedAt:stamp,publishedPrecision:'TIME',type:(i%3===0?'REPORT':i%3===1?'ARTICLE':'DISCLOSURE'),importance:i<3?'IMPORTANT':'MAJOR',access:i===1?'PAID':i===2?'LOGIN':i===3?'UNKNOWN':'FREE',summary:i===2?null:'공개 제공처에서 확인된 검증용 내용 요약입니다. 원문에 없는 수치나 사실은 포함하지 않습니다.',summaryMethod:'PUBLIC_DESCRIPTION_EXTRACT',collectedAt:stamp,securities:[{id:'1',symbol:'005930',name:options.long?'매우 긴 검증용 종목 이름을 가진 주식회사':'검증 종목'}]}));
  const read=async(path:string)=>{
-  paths.push(path);if(!path.includes('/stock-news'))return baseFixture.read(path);reads++;if(hold)await new Promise<void>(r=>release=r);
+  paths.push(path);if(!path.includes('/stock-news'))return baseFixture.read(path);reads++;if(hold&&path.startsWith('/accounts/1/stock-news'))await new Promise<void>(r=>release=r);
   if(fail)return {status:503,body:{error:{code:'TEST_UNAVAILABLE',message:'검증 조회 실패'}}};
   const u=new URL('http://fixture/api'+path),account=u.pathname.split('/')[3],id=u.pathname.split('/')[5],type=u.searchParams.get('type')??'ALL';
   const filtered=options.empty||account==='2'?[]:items.filter(i=>type==='ALL'||i.type===type),snapshot=u.searchParams.get('snapshot')??'test-'+account+'-'+type;
@@ -18,7 +18,7 @@ async function fixture(page:Page,options:{empty?:boolean;before?:boolean;long?:b
  return {items,paths,reads:()=>reads,fail:()=>{fail=true;},hold:()=>{hold=true;},release:()=>{hold=false;release();}};
 }
 async function geometry(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect((await page.locator('header').boundingBox())?.height??44).toBe(44);expect((await page.getByRole('navigation',{name:'하단 메뉴'}).boundingBox())!.height).toBe(44);}
-async function swipe(page:Page,left=true,vertical=false){const rect=(await page.getByTestId('news-summary-card').boundingBox())!,cdp=await page.context().newCDPSession(page),x=left?Math.min(page.viewportSize()!.width-32,rect.x+rect.width-40):rect.x+40,y=Math.max(125,rect.y+45);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(left?-110:110),y:y+(vertical?150:1)}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+async function swipe(page:Page,left=true,vertical=false){const rect=(await page.getByTestId('news-content-summary').boundingBox())!,cdp=await page.context().newCDPSession(page),x=left?Math.min(page.viewportSize()!.width-32,rect.x+rect.width-40):rect.x+40,y=rect.y+Math.min(12,rect.height/2);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(left?-110:110),y:y+(vertical?150:1)}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
 
 test('list matches filters/count/paging; original links and icons do not open details; menu preserves all items and news is tenth',async({page},info)=>{
  const f=await fixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await expect(page.getByTestId('news-display-count')).toHaveText('10/26');await expect(page.getByTestId('news-collected-at')).toHaveText('10/19 15:00');await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
@@ -56,3 +56,12 @@ test('normal zero and not-collected states are different',async({page})=>{
 });
 
 test('successful empty collection is normal zero news',async({page})=>{await fixture(page,{empty:true,partial:false});await page.goto('/detail/stock-news');await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('10/19 15:00');});
+
+test('filtered final item disables next; filter and count return unchanged',async({page})=>{
+ await fixture(page);await page.goto('/detail/stock-news?type=REPORT');await expect(page.getByTestId('news-display-count')).toHaveText('9/9');
+ await page.getByTestId('stock-news-card').last().getByTestId('stock-news-title').click();await expect(page.getByTestId('news-detail-count')).toHaveText('9/9');await expect(page.getByRole('button',{name:'다음 ›',exact:true})).toBeDisabled();await page.getByRole('button',{name:'‹ 이전',exact:true}).click();await expect(page.getByTestId('news-detail-count')).toHaveText('8/9');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/type=REPORT/);await expect(page.getByTestId('news-display-count')).toHaveText('9/9');await expect(page.getByRole('tab',{name:'리포트',exact:true})).toHaveAttribute('aria-selected','true');
+});
+test('an old account response arriving after an account switch cannot reappear',async({page})=>{
+ const f=await fixture(page,{partial:false});f.hold();await page.goto('/detail/stock-news');await expect.poll(()=>f.paths.some(p=>p.startsWith('/accounts/1/stock-news'))).toBe(true);
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();f.release();await expect(page.getByTestId('stock-news-card')).toHaveCount(0);await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
+});

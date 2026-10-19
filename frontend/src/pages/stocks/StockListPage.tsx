@@ -79,7 +79,7 @@ export function StockCard({stock:s,isFavorite,onToggleFavorite,onValue,onClick,o
  const client=useQueryClient(),{accountId}=useActiveAccount();
  const [action,setAction]=useState<'category'|'delete'|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const actionLock=useRef(false);
  const canChange=!!s.watchlistItemId&&s.hasTradeHistory===false;
- const confirm=async()=>{if(!canChange||!action||actionLock.current)return;actionLock.current=true;setBusy(true);setError('');try{if(action==='delete')await deleteWatchlistItem(s.watchlistItemId!,accountId);else await updateWatchlistItem(s.watchlistItemId!,{accountId,listType:'HOLDING'});await client.invalidateQueries({queryKey:['stocks']});setAction(null);}catch(e){setError(e instanceof Error?e.message:'처리 실패');}finally{actionLock.current=false;setBusy(false);}};
+ const confirm=async()=>{if(!canChange||!action||actionLock.current)return;actionLock.current=true;setBusy(true);setError('');try{if(action==='delete')await deleteWatchlistItem(s.watchlistItemId!,accountId);else await updateWatchlistItem(s.watchlistItemId!,{accountId,listType:'HOLDING'});await Promise.all(['stocks','stockNews','stockNewsDetail'].map(key=>client.invalidateQueries({queryKey:[key]})));setAction(null);}catch(e){setError(e instanceof Error?e.message:'처리 실패');}finally{actionLock.current=false;setBusy(false);}};
  const cardNavigation=useCardNavigation(onClick);
  const holding=s.listType==='holding',traded=s.listType==='traded';
  const {quantity:qty,purchase:bought,price,amount:market,profit,rate}=stockValuation(s);
