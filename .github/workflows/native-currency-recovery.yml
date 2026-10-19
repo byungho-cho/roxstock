@@ -66,6 +66,19 @@ jobs:
             const ids=runs.map(r=>r.id);
             const reasons=ids.length?await db.$queryRaw(Prisma.sql`SELECT status,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.validationResult')),message,'UNKNOWN') AS reason,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) GROUP BY status,reason`):[];
             const currencies=ids.length?await db.$queryRaw(Prisma.sql`SELECT JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.currency')) AS currency,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) AND status='SUCCESS' GROUP BY currency`):[];
+            const unresolved=[];let cursor=0n,hasMoreUnresolved=false;
+            const where={status:'FAILED',errorCode:'REVIEW_REQUIRED',diagnostics:{path:'$.validationResult',equals:'NON_KRW_STORAGE_UNSUPPORTED'}};
+            for(let page=0;page<20;page++){
+              const tasks=await db.dartBackfillTask.findMany({where:{...where,id:{gt:cursor}},orderBy:{id:'asc'},take:25,include:{security:{select:{symbol:true,name:true,isActive:true,collectionExcluded:true}}}});
+              for(const t of tasks){
+                const last=await db.collectorRunItem.findFirst({where:{securityId:t.securityId,symbol:{endsWith:`:${t.fiscalYear}:${t.periodType}`},run:{jobType:'foreign-currency-recovery'},status:{in:['FAILED','SKIPPED']}},orderBy:{id:'desc'},select:{message:true,diagnostics:true,createdAt:true}});
+                unresolved.push({taskId:String(t.id),securityId:String(t.securityId),symbol:t.security.symbol,name:t.security.name,fiscalYear:t.fiscalYear,periodType:t.periodType,active:t.security.isActive,excluded:t.security.collectionExcluded,reason:last?.diagnostics?.validationResult??last?.message??'NOT_ATTEMPTED',observedAt:last?.createdAt??null,originalReason:t.diagnostics?.validationResult});
+              }
+              if(tasks.length<25)break;cursor=tasks.at(-1).id;if(page===19)hasMoreUnresolved=true;
+            }
+            const unresolvedSummary=Object.entries(unresolved.reduce((a,t)=>(a[t.reason]=(a[t.reason]??0)+1,a),{})).map(([reason,count])=>({reason,count}));
+            const sourceSamples=await db.dartFinancialFiling.findMany({where:{collectedAt:{gte:new Date('2026-10-18T23:40:00Z')},NOT:{sourceValidation:{path:'$.currency',equals:'KRW'}}},orderBy:{collectedAt:'desc'},take:8,select:{securityId:true,fiscalYear:true,periodType:true,receiptNo:true,fsDivision:true,periodEndDate:true,collectedAt:true,revenueYtd:true,totalEquity:true,sourceValidation:true}});
+            console.log(JSON.stringify({unresolvedSummary,unresolved,hasMoreUnresolved,sourceSamples},(_,v)=>typeof v==='bigint'?String(v):v));
             console.log(JSON.stringify({runs,reasons,currencies},(_,v)=>typeof v==='bigint'?v.toString():v));
           }finally{await db.$disconnect();}
           NODE
