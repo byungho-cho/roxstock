@@ -1,4 +1,4 @@
-# 33차 종목소식 — 1.1.18
+# 33차 종목소식 — 1.1.19 (기능 도입 1.1.18)
 
 32차 홈 카드(PR #271, 1.1.17)와 별개인 기능이다. Figma 파일 `FXEeCL5ivBCuAtbVuPwvio`의 목록 5005:54/5005:2231, 전체 목록 5040:56/5040:324, 요약 5044:237/5044:2를 대조한다. 지시문에 따라 태블릿 시안에 남은 우측 요약 패널은 제외하며 양쪽 모두 별도 요약 화면으로 이동한다. 예시 기사·수치·출처는 운영 DB에 넣지 않는다.
 
@@ -57,10 +57,15 @@
 
 ## 운영 확인·배포·복구
 
-앱 1.1.18, 네이티브 0.1.3(versionCode 4). PR 필수 검사·격리 MariaDB·두 화면 Playwright·Android 설치/Intent 검증을 통과한 뒤 병합한다. 기존 Production Deploy가 기존 DB 백업·gzip·체크섬 검증 후 추가 마이그레이션을 적용한다. backend→collector→frontend 배포를 사용한다.
+앱 1.1.19, 네이티브 0.1.3(versionCode 4). PR 필수 검사·격리 MariaDB·두 화면 Playwright·Android 설치/Intent 검증을 통과한 뒤 병합한다. 기존 Production Deploy가 기존 DB 백업·gzip·체크섬 검증 후 추가 마이그레이션을 적용한다. backend→collector→frontend 배포를 사용한다.
 
 일반 collector 시작 시 최초 실제 수집이 자동 실행된다. 배포의 `news_activation`은 같은 idempotent CLI를 실행하고 완료·저장 건수·제공처 사유·계좌별 저장 목록 API 응답·다음 06:00을 검증한다. 이미 실행 중이면 제한된 횟수만 기다린다. 상태가 끝나지 않으면 미완료로 기록하며 모니터링에서 원인을 확인하고 같은 명령을 다시 실행한다. 강제로 상태/예산/잠금을 초기화하지 않는다.
 
 APK는 기존 영구 서명 키·동일 web-only 패키지로 빌드·설치 검증 후 기존 Caddy 다운로드 경로에 버전 파일을 추가한다. 공개 APK digest를 확인한 다음 latest.json을 교체하며 이전 APK/manifest를 남긴다. 키·덤프·APK 바이너리를 Git에 넣지 않는다.
 
 복구는 새 collector를 중지하고 기존 이미지 복구 절차로 이전 backend/collector/frontend 이미지를 복원한다. 추가 테이블은 그대로 두어 이력을 보존하며 역마이그레이션·DB 덤프 복원은 하지 않는다. APK 문제 시 서버의 `.deploy/apk-news-<sha>/latest.json.previous`를 복원하여 기존 APK 링크로 돌린다. 새 APK 파일을 삭제할 필요는 없다. 최신 수집 건수·제공처 실패·예약 시각과 검증/미검증 결과는 PR 검사 및 최종 보고를 기준으로 한다.
+
+
+### 배포 확인의 커밋 전달 보완
+
+GitHub Actions는 SHA에 짧은 비밀값과 같은 문자열이 있으면 job output을 비밀정보로 오인해 제거할 수 있다. 전체 SHA를 job output으로 전달하지 않고 모든 checkout·하위 workflow·검증·APK 게시에 불변 `inputs.target_sha || github.sha`를 직접 사용한다. main 일치 검증은 유지한다. 공개 APK 버전이 소스보다 뒤처지면 네이티브 파일 변경이 없는 재배포도 미완료 APK 게시를 재시도한다. 동시 실행 시험은 어느 실행이 먼저 잠금을 획득하더라도 같은 제공처 구성을 사용하도록 보완했다. 앱 기능·스키마는 동일하며 검증·배포 보완 릴리스는 1.1.19다. 최초 수집 자료와 완료 상태는 보존하고 다시 최초 수집하지 않는다.

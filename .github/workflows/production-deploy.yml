@@ -16,7 +16,6 @@ jobs:
   revision:
     runs-on: ubuntu-latest
     outputs:
-      sha: ${{ steps.revision.outputs.sha }}
       current: ${{ steps.revision.outputs.current }}
       backend: ${{ steps.scope.outputs.backend }}
       collector: ${{ steps.scope.outputs.collector }}
@@ -32,12 +31,11 @@ jobs:
             const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
             const sha = process.env.REQUESTED_SHA;
             if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Full immutable SHA required');
-            core.setOutput('sha', sha);
             core.setOutput('current', String(branch.commit.sha === sha));
             if (branch.commit.sha !== sha) core.notice('Superseded revision; deployment skipped');
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.revision.outputs.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           fetch-depth: 0
       - name: Read deployed component image identities
         if: steps.revision.outputs.current == 'true'
@@ -58,9 +56,13 @@ jobs:
           cat "$RUNNER_TEMP/roxstock-deployed-images.txt" >> "$GITHUB_STEP_SUMMARY"
       - id: native
         env:
-          TARGET_SHA: ${{ steps.revision.outputs.sha }}
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
         run: |
-          if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app; then
+          apk_version="$(node -e 'const s=require("fs").readFileSync("android-app/app/build.gradle","utf8"); const m=s.match(/\bversionName\s+[\x27]([^\x27]+)[\x27]/); if(!m)throw Error("Android version missing"); process.stdout.write(m[1]);')"
+          # Recover a previously built but unpublished APK after a partial deployment.
+          if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app &&
+             curl --fail --silent --show-error --max-time 15 --retry 1 https://newrox.cafe24.com/downloads/android/latest.json -o "$RUNNER_TEMP/published-android.json" &&
+             node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.version===process.argv[2]+"-webonly-test"?0:1)' "$RUNNER_TEMP/published-android.json" "$apk_version"; then
             echo "android=false" >> "$GITHUB_OUTPUT"
           else
             echo "android=true" >> "$GITHUB_OUTPUT"
@@ -68,7 +70,7 @@ jobs:
       - id: scope
         if: steps.revision.outputs.current == 'true'
         env:
-          TARGET_SHA: ${{ steps.revision.outputs.sha }}
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
         run: |
           node --input-type=module -e 'import {readFileSync} from "node:fs"; import {selectDeployedServices} from "./scripts/deployment-scope.mjs"; const lines=readFileSync(process.env.RUNNER_TEMP+"/roxstock-deployed-images.txt","utf8"); for(const [k,v] of Object.entries(selectDeployedServices(lines,process.env.TARGET_SHA))) console.log(k+"="+v)' >> "$GITHUB_OUTPUT"
   backend:
@@ -76,21 +78,21 @@ jobs:
     if: needs.revision.outputs.current == 'true' && needs.revision.outputs.backend == 'true'
     uses: ./.github/workflows/backend-deploy.yml
     with:
-      target_sha: ${{ needs.revision.outputs.sha }}
+      target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
   collector:
     needs: [revision, backend]
     if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.collector == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped')
     uses: ./.github/workflows/collector-deploy.yml
     with:
-      target_sha: ${{ needs.revision.outputs.sha }}
+      target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
   frontend:
     needs: [revision, backend, collector]
     if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
     uses: ./.github/workflows/frontend-image.yml
     with:
-      target_sha: ${{ needs.revision.outputs.sha }}
+      target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
 
   foreign_recovery:
@@ -101,7 +103,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.revision.outputs.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
       - name: Recover exact foreign storage holds after verified deployment
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -109,7 +111,7 @@ jobs:
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
         run: |
           # This one-time migration belongs to 1.1.16. Later releases use the normal bounded collector.
           test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.16 || exit 0
@@ -129,17 +131,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.revision.outputs.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
       - name: Verify feature deployment and first real news collection
         env:
-          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
-          test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.18 || exit 0
+          case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19) ;; *) exit 0 ;; esac
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
@@ -160,7 +162,7 @@ jobs:
     if: needs.revision.outputs.current == 'true' && needs.revision.outputs.android == 'true'
     uses: ./.github/workflows/android-app-check.yml
     with:
-      target_sha: ${{ needs.revision.outputs.sha }}
+      target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
 
   android_publish:
@@ -171,14 +173,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.revision.outputs.sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/download-artifact@v4
         with:
           name: roxstock-web-only-test-apk
           path: apk
       - name: Publish signed Chrome-capable APK and verify public digest
         env:
-          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
