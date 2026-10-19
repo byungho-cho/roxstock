@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {deflateRawSync} from 'node:zlib';
 import assert from 'node:assert/strict';
 import {contentSummary} from '@roxstock/shared/news/policy';
 import {publicArticleBody,summaryExtractor,dartDocumentText} from './news-summary.js';
@@ -34,4 +35,44 @@ test('DART archive rejects invalid or oversized input and mismatched receipt bef
  assert.throws(()=>dartDocumentText(new Uint8Array(2_000_001),'20261019000001'),/BOUND/);
  assert.throws(()=>dartDocumentText(Buffer.from('not a zip'),'20261019000001'),/ARCHIVE/);
  assert.throws(()=>dartDocumentText(Buffer.from(''),'wrong'),/BOUND/);
+});
+
+const zipDocument = (xml: string): Uint8Array => {
+  const name = Buffer.from('20261019000001.xml');
+  const source = Buffer.from(xml);
+  const compressed = deflateRawSync(source);
+  const local = Buffer.alloc(30 + name.length + compressed.length);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(20, 4);
+  local.writeUInt16LE(8, 8);
+  local.writeUInt32LE(compressed.length, 18);
+  local.writeUInt32LE(source.length, 22);
+  local.writeUInt16LE(name.length, 26);
+  name.copy(local, 30);
+  compressed.copy(local, 30 + name.length);
+
+  const central = Buffer.alloc(46 + name.length);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4);
+  central.writeUInt16LE(20, 6);
+  central.writeUInt16LE(8, 10);
+  central.writeUInt32LE(compressed.length, 20);
+  central.writeUInt32LE(source.length, 24);
+  central.writeUInt16LE(name.length, 28);
+  name.copy(central, 46);
+
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(1, 8);
+  end.writeUInt16LE(1, 10);
+  end.writeUInt32LE(central.length, 12);
+  end.writeUInt32LE(local.length, 16);
+  return Buffer.concat([local, central, end]);
+};
+
+test('official DART exact-receipt XML prose is extracted without inventing table values',()=>{
+ const archive=zipDocument('<DOCUMENT><TITLE>검증 공시</TITLE><P>'+evidence+'</P><TABLE><TR><TD>123</TD></TR></TABLE></DOCUMENT>');
+ assert.equal(contentSummary(dartDocumentText(archive,'20261019000001')),evidence);
+ assert.throws(()=>dartDocumentText(archive,'20261019000002'),/RECEIPT_MISMATCH/);
+ const corrupted=Buffer.from(archive);corrupted.writeUInt32LE(6_000_000,corrupted.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]))+24);assert.throws(()=>dartDocumentText(corrupted,'20261019000001'));
 });

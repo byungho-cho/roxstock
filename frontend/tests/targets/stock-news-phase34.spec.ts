@@ -24,7 +24,7 @@ test('long content scrolls inside body only; resizing and missing summary keep f
  await page.getByRole('button',{name:'다음 ›'}).click();await page.getByRole('button',{name:'다음 ›'}).click();await expect(page.getByTestId('news-content-summary')).toHaveText('요약 정보 없음');await frame(page);await page.screenshot({path:info.outputPath('news-no-summary-fill.png')});
 });
 test('detail loading and request failure keep same available card height',async({page})=>{
- await fixture(page);let release=()=>{};await page.route('**/api/accounts/*/stock-news/100**',async r=>{await new Promise<void>(resolve=>release=resolve);await r.fulfill({status:503,json:{error:{message:'요약 조회 실패'}}});});
+ await fixture(page);await page.route('**/api/pages/read',r=>r.fulfill({status:404,json:{error:{message:'legacy fallback'}}}));let released=false,release=()=>{};await page.route('**/api/accounts/*/stock-news/100**',async r=>{if(!released)await new Promise<void>(resolve=>release=()=>{released=true;resolve();});await r.fulfill({status:503,json:{error:{message:'요약 조회 실패'}}});});
  await page.goto('/detail/stock-news/100');await expect(page.getByTestId('news-summary-card')).toBeVisible();const before=await frame(page);release();await expect(page.getByRole('alert')).toContainText('소식 요약 조회 실패',{timeout:15000});const after=await frame(page);expect(after.card.height).toBe(before.card.height);
 });
 test('target condition confirmation uses fixed common toast only after saved and refreshed report',async({page},info)=>{
@@ -36,6 +36,6 @@ test('target condition confirmation uses fixed common toast only after saved and
  return r.fulfill({json:{data:[]}});});
  await page.goto('/detail/settings?view=target-arrival');const save=page.getByRole('button',{name:'저장',exact:true});await expect(save).toBeEnabled();const y=(await save.boundingBox())!.y;
  await save.click();const toast=page.getByRole('alert').filter({hasText:'저장했습니다. 홈 목록을 갱신했습니다.'});await expect(toast).toBeVisible();expect(reads).toBeGreaterThan(0);expect((await save.boundingBox())!.y).toBe(y);expect(await toast.evaluate(n=>!!n.closest('.MuiSnackbar-root'))).toBe(true);await page.screenshot({path:info.outputPath('save-toast.png')});await expect(toast).not.toBeVisible({timeout:10000});
- failSave=true;await save.click();await expect(page.getByText('저장 실패',{exact:true})).toBeVisible();await expect(toast).toHaveCount(0);
- failSave=false;failRefresh=true;await save.click();await expect(page.getByText('홈 목록 갱신 실패',{exact:true})).toBeVisible({timeout:15000});await expect(toast).toHaveCount(0);
+ failSave=true;await save.click();await expect(page.getByRole('alert').filter({hasText:'저장 실패'})).toBeVisible();await expect(toast).toHaveCount(0);
+ failSave=false;failRefresh=true;await save.click();await expect(page.getByRole('alert').filter({hasText:'홈 목록 갱신 실패'})).toBeVisible({timeout:15000});await expect(toast).toHaveCount(0);
 });

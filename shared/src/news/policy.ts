@@ -29,7 +29,8 @@ export function contentSummary(evidence:string|null|undefined,title=''){
  if(!evidence)return null;
  const clean=(s:string)=>plainText(s).normalize('NFKC').replace(/[\p{P}\p{Z}\s]/gu,'').toLowerCase();
  const titles=[title,title.replace(/^.*?\(\d{6}\)\s*/,''),title.replace(/^.*? - /,'')].map(clean).filter(Boolean);
- const text=plainText(evidence.replace(/<(script|style|nav|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi,' '));
+ let text=plainText(evidence.replace(/<(script|style|nav|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi,' '));
+ for(const prefix of [title,title.replace(/^.*?\(\d{6}\)\s*/,''),title.replace(/^.*? - /,'')])if(prefix&&text.startsWith(prefix)){const tail=text.slice(prefix.length);if(!tail||/^[\s.!?。]/.test(tail))text=tail.replace(/^[\s.!?。]+/,'');}
  const sentences=text.split(/(?<=[.!?。])(?:\s+|$)|[\r\n]+/u).map(s=>s.trim()).filter(s=>s.length>=12&&!titles.some(t=>clean(s)===t)&&!/(?:무단\s*(?:전재|복제)|재배포\s*금지|저작권|copyright|all rights reserved|기자\s*[=｜|]|@\w|구독\s*(?:신청|하기)|광고|협찬|투자판단.*책임|면책|디자인.*예시|요약\s*정보\s*없음)/i.test(s));
  let result='';
  for(const sentence of sentences){
