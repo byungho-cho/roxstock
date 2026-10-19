@@ -1,10 +1,10 @@
-import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
+import {QueryErrorNotice,showSuccessToast} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import { Alert, Box, Button, Dialog, Stack, Typography } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../data/apiClient';
-import { getTargetSettings, saveTargetSettings, type TargetCondition } from '../../data/targetArrivalApi';
+import { getTargetSettings, getTargetArrivals, saveTargetSettings, type TargetCondition } from '../../data/targetArrivalApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { AppCard } from '../../components/common/Common';
 import { NumberField } from '../../components/forms/Fields';
@@ -26,7 +26,8 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
   const [formError, setFormError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const rateInput = useRef<HTMLInputElement>(null);
   useEffect(() => { if (query.data && !draft) setDraft({ conditions: query.data.conditions, version: query.data.version }); }, [query.data, draft]);
   const editorValid = !!editor && /^[1-9]\d*$/.test(editor.days) && Number.isSafeInteger(Number(editor.days)) && Number(editor.days) <= 2_147_483_647
@@ -38,17 +39,22 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
     const row = { days: Number(editor.days), rate: editor.rate };
     if (editor.index === null) { if (next.length >= 5) return; next.push(row); }
     else next[editor.index] = row;
-    setDraft({ ...draft, conditions: next.sort((a, b) => a.days - b.days) }); setEditor(null); setSaved(false);
+    setDraft({ ...draft, conditions: next.sort((a, b) => a.days - b.days) }); setEditor(null);
   };
   const save = async () => {
     if (!draft || busy || conflict) return;
-    setBusy(true); setError(''); setSaved(false);
+    setBusy(true); setError('');
     try {
       const next = await saveTargetSettings(accountId, draft);
       setDraft({ conditions: next.conditions, version: next.version });
       client.setQueryData(['targetSettings', accountId], next);
-      await client.invalidateQueries({ queryKey: ['targetArrivals', accountId] });
-      setSaved(true);
+      await client.cancelQueries({queryKey:['targetArrivals',accountId]});
+      const targets=await client.fetchQuery({queryKey:['targetArrivals',accountId],queryFn:()=>getTargetArrivals(accountId),staleTime:0});
+      if(targets.meta.accountId!==accountId||targets.meta.conditionsVersion!==next.version)throw Error('조건은 저장했지만 홈 목록 갱신을 확인하지 못했습니다. 다시 조회해 주세요.');
+      await client.cancelQueries({queryKey:['homePage']});
+      client.setQueriesData<{accountId:string;targets:typeof targets}>({queryKey:['homePage']},old=>old?.accountId===accountId?{...old,targets}:old);
+      await client.invalidateQueries({queryKey:['homePage'],refetchType:'none'});
+      if(mounted.current)showSuccessToast('저장했습니다. 홈 목록을 갱신했습니다.');
     } catch (cause) {
       setConflict(cause instanceof ApiError && cause.status === 409);
       setError(cause instanceof Error ? cause.message : '저장에 실패했습니다.');
@@ -86,7 +92,6 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
     </Stack>
     {draft.conditions.length === 0 && <Alert severity="info" sx={{ my: 1 }}>조건이 없어 기능이 비활성화되었습니다.</Alert>}
     {error && (error.includes("조회에 실패") ? <QueryErrorNotice message={error} onRetry={()=>void loadVersion()}/> : <Alert severity="error" sx={{ my: 1 }}>{error}{conflict ? <Button onClick={() => void loadVersion()}>최신 버전 확인</Button> : <Button disabled={busy} onClick={() => void save()}>다시 시도</Button>}</Alert>)}
-    {saved && <Alert severity="success" sx={{ my: 1 }}>저장했습니다. 홈 목록을 갱신했습니다.</Alert>}
     <Button fullWidth variant="contained" disabled={busy || conflict} onClick={() => void save()} sx={{ mt: 2 }}>{busy ? '저장 중' : '저장'}</Button>
     </>}
     <Dialog open={deleteIndex !== null} onClose={() => setDeleteIndex(null)} aria-labelledby="condition-delete-title" slotProps={{ backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.65)' } }, paper: { sx: { borderRadius: '8px', width: 330.5, maxWidth: 'calc(100vw - 32px)', m: 2, bgcolor: '#111827', backgroundImage: 'none' } } }}>
@@ -95,7 +100,7 @@ function AccountTargetSettings({ accountId, accountName }: { accountId: string; 
         <Typography sx={{ fontSize: 12, lineHeight: '18px', color: colors.textSecondary }}>선택 계좌: {accountName} · 계좌별 저장</Typography>
         <Typography id="condition-delete-title" sx={{ fontSize: 16, fontWeight: 600, lineHeight: '22px' }}>조건 삭제</Typography>
         <Typography sx={{ fontSize: 13, lineHeight: '19px' }}>{deleteIndex !== null && draft.conditions[deleteIndex] ? `${draft.conditions[deleteIndex].days}일 이내 · ${draft.conditions[deleteIndex].rate}% 이상 조건을 삭제할까요?` : ''}<br />목록의 저장 버튼을 누르면 적용됩니다.</Typography>
-        <Stack direction="row" spacing="16px"><Button variant="outlined" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => setDeleteIndex(null)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => { setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== deleteIndex) }); setDeleteIndex(null); setSaved(false); }}>삭제</Button></Stack>
+        <Stack direction="row" spacing="16px"><Button variant="outlined" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => setDeleteIndex(null)}>취소</Button><Button variant="contained" sx={{ flex: 1, height: 42, borderRadius: '8px', fontSize: 12 }} onClick={() => { setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== deleteIndex) }); setDeleteIndex(null); }}>삭제</Button></Stack>
       </Stack>
     </Dialog>
   </Box>;

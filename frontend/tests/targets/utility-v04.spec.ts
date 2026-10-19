@@ -28,6 +28,7 @@ async function fixture(page:Page,{empty=false,goalsEmpty=false}={}){
   if(path==='/api/collection/monitoring')return route.fulfill({json:{data:{generatedAt:'2026-10-05T00:12:00Z',features}}});
   if(path.startsWith('/api/collection/monitoring/')){const runs=[{id:'1',status:'PARTIAL',startedAt:'2026-10-05T00:10:00Z',target:2485,success:2482,failed:1,skipped:2}],items=Array.from({length:3},(_,i)=>({id:String(i),symbol:String(i),status:i?'SUCCESS':'FAILED',reason:i?'성공 · 변경 없음':'실제 실패 · 응답 시간 초과'}));return route.fulfill({json:{data:/\/(runs|items)$/.test(path)?{rows:path.endsWith('/runs')?runs:items,hasNext:false,nextCursor:null}:{runs,items,dart:{backfill:{planned:4,byStatus:{SUCCESS:3,PENDING:1}}}}}});}
   if(path==='/api/collection/status')return route.fulfill({json:{data:{latestRun:{status:'SUCCESS'},manualRunAvailable:false,settingsAvailable:false}}});
+  if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:'1',conditionsVersion:version,total:0,enabled:conditions.length>0}}});
   if(path.endsWith('/target-arrival-conditions'))return route.fulfill({json:{data:{accountId:'1',conditions,version}}});
   if(path.includes('/compound-plans'))return route.fulfill({json:{data:{accountId:'1',currentAssets:'72000000',pricingComplete:true,currentYear:2026,asOf:'2026-10-05T00:00:00Z',plans}}});
   if(reset&&path.endsWith('/dashboard'))return route.fulfill({json:{data:{cashBalance:null,holdings:[]}}});

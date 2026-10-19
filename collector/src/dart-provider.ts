@@ -297,6 +297,19 @@ export class OpenDartProvider {
     return body;
   }
 
+  /** Official disclosure document API, bounded in memory; caller holds existing financial lease/budget. */
+  async newsDocument(receipt:string,signal:AbortSignal):Promise<Uint8Array>{
+    if(!/^\d{14}$/.test(receipt))throw new DartApiError('INVALID_RECEIPT','Invalid receipt.');
+    const response=await this.request(this.url('document.xml',{rcept_no:receipt})),reader=response.body?.getReader();
+    if(!reader)throw new DartApiError('DOCUMENT_EMPTY','Empty document.');
+    let size=0;const chunks:Uint8Array[]=[];
+    try{for(;;){if(signal.aborted)throw new DartApiError('DOCUMENT_TIMEOUT','Document time bound.');const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2_000_000)throw new DartApiError('DOCUMENT_SIZE_BOUND','Document size bound.');chunks.push(value);}}
+    finally{await reader.cancel();this.lastResponseAt=Date.now();}
+    const bytes=Buffer.concat(chunks),text=bytes.subarray(0,500).toString('utf8'),status=/<status>(\d{3})<\/status>/.exec(text)?.[1];
+    if(status){await this.options.onApiStatus?.(status);throw new DartApiError(status,'DART document unavailable.');}
+    return bytes;
+  }
+
   async fetchPeriodDates(corpCode:string,year:number,reportCode:DartReportCode) {
     const body=await this.json<Record<string,string>>('fnlttSinglAcnt.json',{corp_code:corpCode,bsns_year:String(year),reprt_code:reportCode});
     if(body.status==='013')return [];

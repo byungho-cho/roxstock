@@ -24,13 +24,23 @@ export function plainText(value:string){
   return ({amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' '} as Record<string,string>)[n.toLowerCase()]??'';
  }).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 }
+/** Extract verified sentences only; no generated facts and no cuts inside numeric tokens. */
 export function contentSummary(evidence:string|null|undefined,title=''){
- if(!evidence)return null;const text=plainText(evidence);
- if(text.length<25||text===plainText(title)||/디자인.*예시|요약정보 없음/.test(text))return null;
- const chars=[...text];if(chars.length<=240)return text;
- const part=chars.slice(0,297).join('');const stops=[...part.matchAll(/[.!?。](?:\s|$)/g)].map(m=>m.index!+1).filter(i=>i>=150);
- return stops.length?part.slice(0,stops[0]):chars.slice(0,297).join('')+'…';
+ if(!evidence)return null;
+ const clean=(s:string)=>plainText(s).normalize('NFKC').replace(/[\p{P}\p{Z}\s]/gu,'').toLowerCase();
+ const titles=[title,title.replace(/^.*?\(\d{6}\)\s*/,''),title.replace(/^.*? - /,'')].map(clean).filter(Boolean);
+ let text=plainText(evidence.replace(/<(script|style|nav|footer|aside)\b[^>]*>[\s\S]*?<\/\1>/gi,' '));
+ for(const prefix of [title,title.replace(/^.*?\(\d{6}\)\s*/,''),title.replace(/^.*? - /,'')])if(prefix&&text.startsWith(prefix)){const tail=text.slice(prefix.length);if(!tail||/^[\s.!?。]/.test(tail))text=tail.replace(/^[\s.!?。]+/,'');}
+ const sentences=text.split(/(?<=[.!?。])(?:\s+|$)|[\r\n]+/u).map(s=>s.trim()).filter(s=>s.length>=12&&!titles.some(t=>clean(s)===t)&&!/(?:무단\s*(?:전재|복제)|재배포\s*금지|저작권|copyright|all rights reserved|기자\s*[=｜|]|@\w|구독\s*(?:신청|하기)|광고|협찬|투자판단.*책임|면책|디자인.*예시|요약\s*정보\s*없음)/i.test(s));
+ let result='';
+ for(const sentence of sentences){
+  if([...result+(result?' ':'')+sentence].length<=300){result+=(result?' ':'')+sentence;if([...result].length>=180)break;}
+  else if(result)break;
+  else {const words=sentence.split(/\s+/);for(const word of words){if([...result+(result?' ':'')+word].length>297)break;result+=(result?' ':'')+word;}if(result)result+='…';break;}
+ }
+ return [...result].length>=12?result:null;
 }
+
 const aliases:Record<string,string[]>={'005380':['현대차','현대자동차'],'000270':['기아','기아자동차'],'035420':['NAVER','네이버'],'000660':['SK하이닉스','에스케이하이닉스']};
 const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 export function relatedTargets(title:string,targets:NewsTarget[]){

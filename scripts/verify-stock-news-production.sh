@@ -10,6 +10,9 @@ log="$(mktemp /tmp/roxstock-news-first.XXXXXX)"
 trap 'rm -f "$log"' EXIT
 # Normally the daemon has already claimed the initial run. This CLI is idempotent.
 docker exec roxstock-collector node collector/dist/worker.js news > "$log" 2>&1 || { echo 'NEWS_INITIAL_COMMAND_FAILED: protected server log retained only during this check'; exit 1; }
+if docker exec roxstock-collector test -f collector/dist/news-summary.js; then
+  docker exec roxstock-collector node collector/dist/worker.js news-summary >> "$log" 2>&1 || { echo NEWS_SUMMARY_COMMAND_FAILED; exit 1; }
+fi
 if grep -q 'STOCK_NEWS_RESULT {"status":"DISABLED"' "$log"; then echo NEWS_COLLECTION_DISABLED; exit 1; fi
 for attempt in $(seq 1 45); do
   if docker exec -i roxstock-backend node --input-type=module <<'NODE'
@@ -28,7 +31,9 @@ try {
   }
   const day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()),six=Date.parse(day+'T06:00:00+09:00'),next=new Date(six>Date.now()?six:six+86400000);
   const details=run?.metadata?.providerResults??[];
-  console.log(JSON.stringify({policy:'stock-news-v1',status:state.lastStatus,initialComplete:true,initialDate:state.initialDate,initialCompletedAt:state.initialCompletedAt,lastCollectedAt:state.lastCollectedAt,runId:String(run?.id??''),saved:run?.successCount??0,failedProviders:run?.failureCount??0,duplicates:run?.metadata?.duplicates??0,storedTotal:await db.stockNewsItem.count(),accountsChecked:checked,totalVisibleNews:totalVisible,schedule:{timezone:'Asia/Seoul',hour:6,enabled:true,nextAt:next.toISOString()},providers:details.map(r=>({id:r.provider,status:r.status,candidates:r.count,requests:r.requests,reasons:r.warnings.map(w=>w.split(':')[0])}))}));
+  const summaryStatuses=await db.stockNewsItem.groupBy({by:['summaryStatus'],_count:{_all:true}});
+  const summaryRun=await db.collectorRun.findFirst({where:{jobType:'stock-news-summary'},orderBy:{id:'desc'}});
+  console.log(JSON.stringify({policy:'stock-news-v1',status:state.lastStatus,initialComplete:true,initialDate:state.initialDate,initialCompletedAt:state.initialCompletedAt,lastCollectedAt:state.lastCollectedAt,runId:String(run?.id??''),saved:run?.successCount??0,failedProviders:run?.failureCount??0,duplicates:run?.metadata?.duplicates??0,storedTotal:await db.stockNewsItem.count(),summaryStatuses:summaryStatuses.map(s=>({status:s.summaryStatus,count:s._count._all})),summaryRun:summaryRun?{id:String(summaryRun.id),status:summaryRun.status,saved:summaryRun.successCount,unavailable:summaryRun.skippedCount,failed:summaryRun.failureCount}:null,accountsChecked:checked,totalVisibleNews:totalVisible,schedule:{timezone:'Asia/Seoul',hour:6,enabled:true,nextAt:next.toISOString()},providers:details.map(r=>({id:r.provider,status:r.status,candidates:r.count,requests:r.requests,reasons:r.warnings.map(w=>w.split(':')[0])}))}));
  }
 } finally {await db.$disconnect();}
 NODE

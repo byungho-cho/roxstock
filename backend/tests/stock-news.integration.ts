@@ -3,6 +3,7 @@ import test from 'node:test';
 import {buildApp} from '../src/app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {hash,kstStart,seoulDay,candidateKeys,type NewsCandidate} from '@roxstock/shared/news/policy';
+import {supplementNewsSummaries} from '../../collector/src/news-summary.js';
 import {collectStockNews} from '../../collector/src/news-collector.js';
 
 test('phase33 isolated DB: target union, single shared collection, partial/failure lifecycle, stored pages, snapshots and account isolation',async()=>{
@@ -40,10 +41,36 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   assert.equal(calls,1);
   await prisma.accountWatchlistItem.delete({where:{accountId_securityId:{accountId:a.id,securityId:s3.id}}});await get(`accounts/${a.id}/stock-news?snapshot=${first.meta.snapshot}`,409);
   const tomorrow=nextDaily(2),failed=await collectStockNews(prisma,{now:tomorrow,enrich:false,sources:[{id:'TEST_NEWS33_FAIL',collect:async()=>{throw Error('unavailable');}}]});assert.equal(failed.status,'FAILED');assert.equal((await prisma.stockNewsState.findUniqueOrThrow({where:{id:'stock-news'}})).lastCollectedAt?.toISOString(),nextDaily(1).toISOString());assert.ok(await prisma.stockNewsItem.count()>=32);
+  // Holdings are current account remaining quantities, including multiple partly sold Lots.
+  const holding1=await prisma.buyTrade.create({data:{accountId:a.id,securityId:s1.id,boughtAt:now,quantity:'2',unitPrice:'100'}});
+  await prisma.sellTrade.create({data:{buyTradeId:holding1.id,soldAt:now,quantity:'1.5',unitPrice:'110'}});
+  const holding2=await prisma.buyTrade.create({data:{accountId:a.id,securityId:s1.id,boughtAt:now,quantity:'0.5',unitPrice:'100'}});
+  const held=await get(`accounts/${a.id}/stock-news`);assert.ok(held.data.every((r:any)=>r.isHeld));
+  const notHeld=await get(`accounts/${b.id}/stock-news`);assert.ok(notHeld.data.every((r:any)=>!r.isHeld));
+  assert.equal((await get(`accounts/${a.id}/stock-news/${held.data[0].id}`)).data.isHeld,true);
+  await prisma.sellTrade.create({data:{buyTradeId:holding2.id,soldAt:now,quantity:'0.5',unitPrice:'110'}});
+  assert.ok((await get(`accounts/${a.id}/stock-news`)).data.every((r:any)=>!r.isHeld));
+  // Existing summaries are preserved; missing summaries use a durable five-item queue.
+  await prisma.stockNewsItem.updateMany({where:{provider:'TEST_NEWS33'},data:{summaryStatus:'UNSUPPORTED'}});
+  const queued=(await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'},orderBy:{id:'asc'},take:6}));
+  await prisma.stockNewsItem.update({where:{id:queued[5]!.id},data:{summary:'기존 공개 요약은 불필요하게 덮어쓰지 않습니다.',summaryStatus:'READY'}});
+  await prisma.stockNewsItem.updateMany({where:{id:{in:queued.slice(0,5).map(r=>r.id)}},data:{summaryStatus:'PENDING'}});
+  const stopped=new AbortController();stopped.abort();const interruptedSummary=await supplementNewsSummaries(prisma,{now,signal:stopped.signal,extract:async()=>{throw Error('must not fetch');}});assert.equal(interruptedSummary.status,'PARTIAL');assert.equal((await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[0]!.id}})).summaryAttempts,0);
+  let summaryCalls=0;
+  const extract=async(item:any)=>{summaryCalls++;const index=queued.findIndex(r=>r.id===item.id);return {summary:index===0?'매출액 12,345.67억원과 영업이익률 -3.25%를 원문 그대로 공개했습니다.':null,method:index===0?'PUBLIC_BODY_SENTENCES':'NONE',status:index===0?'READY':index===1?'NO_DATA':index===2?'BLOCKED':'RETRY',reason:index===0?null:'TEST_'+index,source:'https://www.hankyung.com/article/news34'} as any;};
+  const summaries=await Promise.all([supplementNewsSummaries(prisma,{now,extract}),supplementNewsSummaries(prisma,{now,extract})]);
+  assert.equal(summaryCalls,5);assert.equal(summaries.find(r=>r.status!=='LOCKED')?.saved,1);
+  assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+1000),extract})).status,'IDLE');assert.equal(summaryCalls,5);
+  await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+3601000),extract});assert.equal(summaryCalls,7);
+  await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+7202000),extract});assert.equal(summaryCalls,9);
+  assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+10803000),extract})).status,'IDLE');
+  assert.equal((await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[5]!.id}})).summary,'기존 공개 요약은 불필요하게 덮어쓰지 않습니다.');
+  const preserved=await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[0]!.id}});assert.ok(preserved.summary?.includes('12,345.67억원'));assert.equal(preserved.summaryAttempts,1);assert.ok(preserved.summaryCheckedAt);assert.equal(preserved.summarySource,'https://www.hankyung.com/article/news34');
+  console.log('STOCK_NEWS_PHASE34_DB_PROOF',JSON.stringify({accountHoldings:true,belowOneNotHeld:true,summarySaved:1,noData:1,blocked:1,retryExhausted:2,summaryCalls,batchBound:5,existingSummaryPreserved:true}));
   await prisma.account.update({where:{id:a.id},data:{isActive:false}});await get(`accounts/${a.id}/stock-news`,404);
   console.log('STOCK_NEWS_DB_PROOF',JSON.stringify({sharedSourceCalls:calls,firstSaved:5,firstPage:10,snapshotTotal:30,unique:30,reportTotal:11,accountsIsolated:true,failedCollectionRetained:true,initialOnce:true,restartRecovery:true}));
  }finally{
-  await prisma.stockNewsSecurity.deleteMany({where:{securityId:{in:securities.map(s=>s.id)}}});await prisma.stockNewsItem.deleteMany({where:{provider:'TEST_NEWS33'}});await prisma.stockNewsProviderState.deleteMany({where:{provider:{startsWith:'TEST_NEWS33'}}});await prisma.stockNewsState.deleteMany();await prisma.stockNewsSeen.deleteMany();await prisma.collectorRun.deleteMany({where:{jobType:'stock-news'}});await prisma.collectorLock.deleteMany({where:{jobName:'stock-news'}});
+  await prisma.stockNewsSecurity.deleteMany({where:{securityId:{in:securities.map(s=>s.id)}}});await prisma.stockNewsItem.deleteMany({where:{provider:'TEST_NEWS33'}});await prisma.stockNewsProviderState.deleteMany({where:{provider:{startsWith:'TEST_NEWS33'}}});await prisma.stockNewsState.deleteMany();await prisma.stockNewsSeen.deleteMany();await prisma.collectorRun.deleteMany({where:{jobType:{in:['stock-news','stock-news-summary']}}});await prisma.collectorLock.deleteMany({where:{jobName:'stock-news'}});
   const ids=accounts.map(a=>a.id);await prisma.sellTrade.deleteMany({where:{buyTrade:{accountId:{in:ids}}}});await prisma.buyTrade.deleteMany({where:{accountId:{in:ids}}});await prisma.accountWatchlistItem.deleteMany({where:{accountId:{in:ids}}});await prisma.account.deleteMany({where:{id:{in:ids}}});await prisma.security.deleteMany({where:{id:{in:securities.map(s=>s.id)}}});await app.close();await prisma.$disconnect();
  }
 });

@@ -18,6 +18,7 @@ async function fixture(page: Page) {
       return route.fulfill({json:{data:account}});
     }
     if(path==='/api/accounts')return route.fulfill({json:{data:[account]}});
+  if(path.endsWith('/target-arrivals'))return route.fulfill({json:{data:[],meta:{accountId:'1',conditionsVersion:version,total:0,enabled:conditions.length>0}}});
     if(path.endsWith('/target-arrival-conditions'))return route.fulfill({json:{data:{accountId:'1',scope:'ACCOUNT',conditions,version}}});
     if(path==='/api/collection/status')return route.fulfill({json:{data:{latestRun:{id:'1',status:'SUCCESS',startedAt:'2026-10-02T00:00:00Z',finishedAt:'2026-10-02T00:00:01Z',failureCount:0,successCount:3,failureReason:null},latestPriceAt:'2026-10-02T00:00:01Z',manualRunAvailable:false,settingsAvailable:false}}});
     return route.fulfill({status:503,json:{error:{message:'조회 실패'}}});
