@@ -146,6 +146,7 @@ model Security {
   isActive               Boolean                 @default(true) @map("is_active")
   createdAt              DateTime                @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt              DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  newsItems              StockNewsSecurity[]
   watchlistItem          WatchlistItem?
   accountWatchlistItems  AccountWatchlistItem[]
   buyTrades              BuyTrade[]
@@ -921,4 +922,66 @@ model CollectionBugScanState {
  key String @id @db.VarChar(40)
  scannedAt DateTime @map("scanned_at") @db.DateTime(3)
  @@map("collection_bug_scan_state")
+}
+
+// Shared public metadata. Account membership is checked at read time, never copied per account.
+model StockNewsItem {
+ id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+ provider String @db.VarChar(40)
+ providerId String @map("provider_id") @db.VarChar(160)
+ canonicalHash String @unique @map("canonical_hash") @db.Char(64)
+ fingerprint String @unique @db.Char(64)
+ title String @db.VarChar(500)
+ originalUrl String @map("original_url") @db.VarChar(2048)
+ sourceName String @map("source_name") @db.VarChar(120)
+ publishedAt DateTime @map("published_at") @db.DateTime(3)
+ publishedPrecision String @default("TIME") @map("published_precision") @db.VarChar(10)
+ materialType String @map("material_type") @db.VarChar(16)
+ priority Int @db.UnsignedTinyInt
+ accessCondition String @default("UNKNOWN") @map("access_condition") @db.VarChar(16)
+ summary String? @db.VarChar(300)
+ summaryMethod String @default("NONE") @map("summary_method") @db.VarChar(40)
+ collectedAt DateTime @map("collected_at") @db.DateTime(3)
+ securities StockNewsSecurity[]
+ @@unique([provider,providerId])
+ @@index([priority,publishedAt,id],map:"stock_news_order_idx")
+ @@index([materialType,priority,publishedAt,id],map:"stock_news_type_order_idx")
+ @@map("stock_news_items")
+}
+model StockNewsSecurity {
+ newsId BigInt @map("news_id") @db.UnsignedBigInt
+ securityId BigInt @map("security_id") @db.UnsignedBigInt
+ news StockNewsItem @relation(fields:[newsId],references:[id],onDelete:Cascade)
+ security Security @relation(fields:[securityId],references:[id],onDelete:Cascade)
+ @@id([newsId,securityId])
+ @@index([securityId,newsId])
+ @@map("stock_news_securities")
+}
+model StockNewsState {
+ id String @id @default("stock-news") @db.VarChar(40)
+ initialDate String @map("initial_date") @db.Char(10)
+ initialCompletedAt DateTime? @map("initial_completed_at") @db.DateTime(3)
+ completedDate String? @map("completed_date") @db.Char(10)
+ attemptDate String? @map("attempt_date") @db.Char(10)
+ attempts Int @default(0) @db.UnsignedTinyInt
+ nextRetryAt DateTime? @map("next_retry_at") @db.DateTime(3)
+ lastCollectedAt DateTime? @map("last_collected_at") @db.DateTime(3)
+ lastStatus String @default("NOT_COLLECTED") @map("last_status") @db.VarChar(20)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+ @@map("stock_news_state")
+}
+model StockNewsProviderState {
+ provider String @id @db.VarChar(40)
+ watermark DateTime? @db.DateTime(3)
+ lastSuccessAt DateTime? @map("last_success_at") @db.DateTime(3)
+ lastAttemptAt DateTime? @map("last_attempt_at") @db.DateTime(3)
+ lastError String? @map("last_error") @db.VarChar(500)
+ @@map("stock_news_provider_state")
+}
+
+model StockNewsSeen {
+ key String @id @db.Char(64)
+ firstSeenAt DateTime @map("first_seen_at") @db.DateTime(3)
+ @@index([firstSeenAt])
+ @@map("stock_news_seen")
 }

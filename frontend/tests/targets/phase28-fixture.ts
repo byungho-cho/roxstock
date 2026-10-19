@@ -38,5 +38,5 @@ export async function fixture(page:Page, options:{trend?:boolean;analysis?:boole
   if(u.pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'legacy'}}});
   const result=await read(u.pathname.slice(4)+u.search);await route.fulfill({status:result.status,json:result.body});
  });
- return {reads,history,releaseHistory:()=>releaseHistory(),hold:()=>{held=true;},release:()=>{held=false;release();}};
+ return {read,reads,history,releaseHistory:()=>releaseHistory(),hold:()=>{held=true;},release:()=>{held=false;release();}};
 }

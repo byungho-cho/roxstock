@@ -21,7 +21,7 @@ export function useMoreAccounts() {
   const selected = liveApiEnabled ? chooseAccount(accounts) : accounts.find((item) => item.id === demo.selectedId) ?? accounts[0];
   const refresh = async () => {
     if (!liveApiEnabled) return;
-    await client.invalidateQueries({ predicate: (item) => ['homePage', 'stocksPage', 'accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys'].includes(String(item.queryKey[0])) });
+    await client.invalidateQueries({ predicate: (item) => ['homePage', 'stocksPage', 'accounts', 'dashboard', 'stocks', 'buyLots', 'journalTrades', 'targetArrivals', 'recentBuys', 'stockNews', 'stockNewsDetail'].includes(String(item.queryKey[0])) });
   };
   const select = async (id: string) => {
     if (selected?.id === id) return;

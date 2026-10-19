@@ -61,8 +61,8 @@ test('backup login, latest automatic confirmation and failure preserve the list'
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('backups.png')});
 });
 test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
- await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(14);
- const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('예수금')+1);expect(names.indexOf('자산분석')).toBe(names.indexOf('투자동향')+1);
+ await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(15);
+ const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(9);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
  const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeCloseTo(monitor!.y,1);
 });
 

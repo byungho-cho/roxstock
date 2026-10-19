@@ -3,6 +3,11 @@ on:
   pull_request:
     paths: ['android-app/**', '.github/workflows/android-app-check.yml']
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      target_sha:
+        type: string
+        required: true
 permissions:
   contents: read
 jobs:
@@ -14,6 +19,8 @@ jobs:
       ROXSTOCK_SIGNING_PASSWORD: ${{ secrets.ROXSTOCK_ANDROID_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

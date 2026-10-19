@@ -48,7 +48,7 @@ test('v0.3 example: three holdings, zero targets, seven held buys; fixed panels 
   expect(layout.overflow).toBe(false);expect(layout.header).toBe(44);expect(layout.nav).toBe(44);expect(layout.scrolls).toHaveLength(0);
   const assets=await page.locator('.MuiBottomNavigation-root:visible img').evaluateAll(nodes=>nodes.map(node=>({investor:(node as HTMLImageElement).src.includes('investor-trends'),width:(node as HTMLImageElement).naturalWidth,height:(node as HTMLImageElement).naturalHeight,render:node.getBoundingClientRect().toJSON()})));
   expect(await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(251, 191, 36)');
-  expect(assets).toHaveLength(14);for(const asset of assets){expect(asset.investor?[16]:[18,20]).toContain(asset.width);expect(asset.height).toBe(asset.width);expect(asset.render.width).toBe(asset.investor?16:18);expect(asset.render.height).toBe(asset.investor?16:18);}
+  expect(assets).toHaveLength(16);for(const asset of assets){expect(asset.investor?[16]:[18,20]).toContain(asset.width);expect(asset.height).toBe(asset.width);expect(asset.render.width).toBe(asset.investor?16:18);expect(asset.render.height).toBe(asset.investor?16:18);}
   if(page.viewportSize()!.width>=600)for(const p of layout.panels.filter(p=>['home-holdings-card','target-arrival-card','recent-buys-card'].includes(p.id!))){if(p.id==='target-arrival-card')expect(p.rect.height).toBe(94);else expect(p.rect.height).toBeGreaterThanOrEqual(214);await expect(page.getByTestId(p.id!)).toHaveCSS('padding-top','8px');await expect(page.getByTestId(p.id!)).toHaveCSS('padding-bottom','8px');}
   if(info.project.name.startsWith('tablet')){
     const summary=layout.panels.find(p=>p.id==='home-summary-area')!,t=layout.panels.find(p=>p.id==='target-arrival-card')!,h=layout.panels.find(p=>p.id==='home-holdings-card')!,r=layout.panels.find(p=>p.id==='recent-buys-card')!;
@@ -69,7 +69,7 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   await page.locator('main').evaluate(n=>n.scrollTop=180);const top=await page.locator('main').evaluate(n=>n.scrollTop);
   f.hold();await page.clock.fastForward(60_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(card.getByTestId('target-lot')).toHaveCount(5);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);f.release();await expect(card.getByText(/갱신 중/)).toHaveCount(0);
   f.unavailable();await page.clock.fastForward(60_000);await expect(card.getByText(/판정 불가 1건/)).toBeVisible();await expect(card.getByText('내용이 없습니다.')).toHaveCount(0);
-  f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(page.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
+  f.fail();await page.clock.fastForward(60_000);await expect.poll(async()=>{await page.clock.fastForward(10_000);return page.getByText('조회 실패 · 이전 결과').isVisible();}).toBe(true);await expect(card.getByTestId('target-lot')).toHaveCount(5);
   await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
 });
 

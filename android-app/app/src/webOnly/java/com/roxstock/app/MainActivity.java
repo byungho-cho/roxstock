@@ -1,15 +1,12 @@
 package com.roxstock.app;
 
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 /** Web-only build: no notification service, database, native message bridge or badge. */
 public final class MainActivity extends Activity {
@@ -21,11 +18,7 @@ public final class MainActivity extends Activity {
             && origin.getPort() == uri.getPort() && uri.getUserInfo() == null;
     }
 
-    private void openBrowser(Uri uri) {
-        if (!"https".equals(uri.getScheme())) return;
-        try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
-        catch (ActivityNotFoundException error) { Toast.makeText(this, "링크를 열 브라우저가 없습니다.", Toast.LENGTH_SHORT).show(); }
-    }
+    private void openBrowser(Uri uri) { ExternalBrowser.open(this, uri); }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -42,7 +35,7 @@ public final class MainActivity extends Activity {
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockWebOnly/0.1.2");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockWebOnly/0.1.3");
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {

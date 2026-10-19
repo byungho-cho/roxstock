@@ -10,7 +10,7 @@ import {prisma} from '@roxstock/shared/lib/prisma';
 
 type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string;runId?:string};
 type Cursor = {v: 1; scope: string; at: string; id: string; ceiling: string};
-const jobs: Record<string,string> = {'security-master':'security-master','realtime-prices':'realtime-selected-prices','market-prices':'market-prices','account-snapshots':'daily-account-snapshots','dart-financial-statements':'dart-financial-statements','investor-trends':'investor-trends'};
+const jobs: Record<string,string> = {'stock-news':'stock-news','security-master':'security-master','realtime-prices':'realtime-selected-prices','market-prices':'market-prices','account-snapshots':'daily-account-snapshots','dart-financial-statements':'dart-financial-statements','investor-trends':'investor-trends'};
 const reason=collectionPublicMessage;
 const statuses = {runs:['SUCCESS','PARTIAL','FAILED','SKIPPED','RUNNING'],items:['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']};
 function date(value?: string) {

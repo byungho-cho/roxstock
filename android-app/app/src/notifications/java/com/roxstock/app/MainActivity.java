@@ -69,18 +69,19 @@ public final class MainActivity extends Activity {
             handler.postDelayed(updateBadge, 3000);
         };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.3");
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (trusted(request.getUrl())) return false;
-                if (request.isForMainFrame() && "https".equals(request.getUrl().getScheme())) startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
+                if (request.isForMainFrame() && "https".equals(request.getUrl().getScheme())) ExternalBrowser.open(MainActivity.this, request.getUrl());
                 return true;
             }
         });
         web.setDownloadListener((url, userAgent, disposition, mime, size) -> {
-            Uri uri = Uri.parse(url); if (trusted(uri)) startActivity(new Intent(Intent.ACTION_VIEW, uri));
+            Uri uri = Uri.parse(url); if (trusted(uri)) ExternalBrowser.open(MainActivity.this, uri);
         });
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "RoxStockNative", Collections.singleton(BuildConfig.SITE_ORIGIN), (view, message, origin, mainFrame, reply) -> {

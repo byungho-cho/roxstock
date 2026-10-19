@@ -1,0 +1,67 @@
+import {test,expect,type Page} from '@playwright/test';
+import {fixture as base} from './phase28-fixture';
+const stamp='2026-10-19T06:00:00Z';
+async function fixture(page:Page,options:{empty?:boolean;before?:boolean;long?:boolean;partial?:boolean}={}){
+ const baseFixture=await base(page);let reads=0,fail=false,hold=false,release=()=>{};const paths:string[]=[];
+ const items=Array.from({length:26},(_,i)=>({id:String(100-i),title:options.long?'긴 제목의 실적과 사업 전망 및 정책 변화에 관한 검증 내용 '.repeat(5):`검증 소식 ${i+1} · 실적과 사업 전망`,originalUrl:'https://www.hankyung.com/article/phase33test'+i,originalAvailable:true,sourceName:options.long?'검증용 매우 긴 제공 출처 이름 '.repeat(5):'검증 출처',publishedAt:stamp,publishedPrecision:'TIME',type:(i%3===0?'REPORT':i%3===1?'ARTICLE':'DISCLOSURE'),importance:i<3?'IMPORTANT':'MAJOR',access:i===1?'PAID':i===2?'LOGIN':i===3?'UNKNOWN':'FREE',summary:i===2?null:'공개 제공처에서 확인된 검증용 내용 요약입니다. 원문에 없는 수치나 사실은 포함하지 않습니다.',summaryMethod:'PUBLIC_DESCRIPTION_EXTRACT',collectedAt:stamp,securities:[{id:'1',symbol:'005930',name:options.long?'매우 긴 검증용 종목 이름을 가진 주식회사':'검증 종목'}]}));
+ const read=async(path:string)=>{
+  paths.push(path);if(!path.includes('/stock-news'))return baseFixture.read(path);reads++;if(hold&&path.startsWith('/accounts/1/stock-news'))await new Promise<void>(r=>release=r);
+  if(fail)return {status:503,body:{error:{code:'TEST_UNAVAILABLE',message:'검증 조회 실패'}}};
+  const u=new URL('http://fixture/api'+path),account=u.pathname.split('/')[3],id=u.pathname.split('/')[5],type=u.searchParams.get('type')??'ALL';
+  const filtered=options.empty||account==='2'?[]:items.filter(i=>type==='ALL'||i.type===type),snapshot=u.searchParams.get('snapshot')??'test-'+account+'-'+type;
+  if(id){const index=filtered.findIndex(i=>i.id===id);if(index<0)return {status:404,body:{error:{code:'NEWS_NOT_IN_ACCOUNT',message:'현재 계좌 대상 아님'}}};return {status:200,body:{data:filtered[index],meta:{accountId:account,type,snapshot,ordinal:index+1,total:filtered.length,previousId:filtered[index-1]?.id??null,nextId:filtered[index+1]?.id??null}}};}
+  const cursor=u.searchParams.get('cursor'),offset=cursor?filtered.findIndex(i=>i.id===cursor)+1:0,data=filtered.slice(offset,offset+10);
+  return {status:200,body:{data,meta:{accountId:account,type,snapshot,count:data.length,total:filtered.length,nextCursor:offset+10<filtered.length?data.at(-1)!.id:null,collection:{status:options.before?'NOT_COLLECTED':options.partial===false?'SUCCESS':'PARTIAL',updatedAt:options.before?null:stamp,initialCompleted:!options.before,enabled:true,nextAt:'2026-10-20T21:00:00Z',providers:[{id:'TEST',error:'TEST_PARTIAL'}]}}}};
+ };
+ await page.route('**/api/pages/read',async r=>{const list=r.request().postDataJSON().paths as string[];if(!list.some(p=>p.includes('/stock-news')))return r.fallback();await r.fulfill({json:{data:await Promise.all(list.map(async p=>(await read(p))??{status:200,body:{data:[]}}))}});});
+ await page.route('**/api/accounts/*/stock-news**',async r=>{const u=new URL(r.request().url()),result=await read(u.pathname.slice(4)+u.search);await r.fulfill({status:result!.status,json:result!.body});});
+ return {items,paths,reads:()=>reads,fail:()=>{fail=true;},hold:()=>{hold=true;},release:()=>{hold=false;release();}};
+}
+async function geometry(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect((await page.locator('header').boundingBox())?.height??44).toBe(44);expect((await page.getByRole('navigation',{name:'하단 메뉴'}).boundingBox())!.height).toBe(44);}
+async function swipe(page:Page,left=true,vertical=false){const rect=(await page.getByTestId('news-content-summary').boundingBox())!,cdp=await page.context().newCDPSession(page),x=left?Math.min(page.viewportSize()!.width-32,rect.x+rect.width-40):rect.x+40,y=rect.y+Math.min(12,rect.height/2);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(left?-110:110),y:y+(vertical?150:1)}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+
+test('list matches filters/count/paging; original links and icons do not open details; menu preserves all items and news is tenth',async({page},info)=>{
+ const f=await fixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await expect(page.getByTestId('news-display-count')).toHaveText('10/26');await expect(page.getByTestId('news-collected-at')).toHaveText('10/19 15:00');await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ const filters=page.getByRole('tablist');expect(await filters.evaluate(n=>getComputedStyle(n).gap)).toBe('6px');expect(await page.getByRole('tab',{name:'전체',exact:true}).evaluate(n=>[getComputedStyle(n).paddingLeft,getComputedStyle(n).paddingRight])).toEqual(['16px','16px']);
+ const first=page.getByTestId('stock-news-card').first(),handle=await first.elementHandle();expect(await first.evaluate(n=>[getComputedStyle(n).paddingLeft,getComputedStyle(n).paddingRight])).toEqual(['8px','8px']);
+ await first.getByRole('button',{name:'중요',exact:true}).click();await expect(page).toHaveURL(/\/detail\/stock-news$/);await expect(page.getByRole('tooltip')).toContainText('중요');await page.keyboard.press('Escape');
+ const link=first.getByRole('link',{name:'원문보기',exact:true});await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel','noopener noreferrer');await expect(page.getByTestId('stock-news-card').nth(1).getByLabel('유료 자료')).toHaveCount(1);await expect(first.getByLabel('유료 자료')).toHaveCount(0);
+ await page.getByTestId('news-more').click();await expect(page.getByTestId('stock-news-card')).toHaveCount(20);expect(await handle!.evaluate(n=>n.isConnected)).toBe(true);await page.getByTestId('news-more').click();await expect(page.getByTestId('news-display-count')).toHaveText('26/26');await expect(page.getByTestId('news-more')).toHaveCount(0);
+ await page.getByRole('tab',{name:'기사',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('9/9');await expect(page.getByTestId('stock-news-card')).toHaveCount(9);await geometry(page);await page.screenshot({path:info.outputPath('news-articles.png')});
+ await page.goto('/more');const names=await page.getByTestId('more-menu').getByRole('button').allTextContents();expect(names).toEqual(['홈','대시보드','종목목록','매매일지','예수금','자산분석','투자금','투자손익','가치분석','종목소식','재무제표','복리계획','투자동향','모니터링','설정']);
+ await page.getByTestId('more-menu').getByRole('button',{name:'종목소식',exact:true}).click();await expect(page.getByRole('heading',{name:'종목소식',exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('news-list.png')});expect(f.paths.every(p=>!p.includes('collect'))).toBe(true);
+});
+test('separate summary preserves entry ordering, loads next page and restores list count/filter/scroll',async({page},info)=>{
+ await fixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);
+ await page.getByTestId('news-more').click();await expect(page.getByTestId('stock-news-card')).toHaveCount(20);await page.getByTestId('stock-news-card').nth(9).scrollIntoViewIfNeeded();const scroll=await page.locator('main').evaluate(n=>n.scrollTop);
+ await page.getByTestId('stock-news-card').nth(9).getByTestId('stock-news-title').click();await expect(page.getByTestId('news-detail-count')).toHaveText('10/26');await expect(page.getByRole('heading',{name:'소식 요약',exact:true})).toBeVisible();await expect(page.getByTestId('news-summary-card')).toHaveCount(1);await expect(page.getByTestId('stock-news-list')).toHaveCount(0);
+ await page.getByRole('button',{name:'다음 ›',exact:true}).click();await expect(page.getByTestId('news-detail-count')).toHaveText('11/26');await page.getByRole('button',{name:'‹ 이전',exact:true}).click();await expect(page.getByTestId('news-detail-count')).toHaveText('10/26');
+ await geometry(page);await page.screenshot({path:info.outputPath('news-detail.png')});await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('20/26');await expect.poll(()=>page.locator('main').evaluate(n=>n.scrollTop)).toBe(scroll);
+ // An unloaded next page is appended before moving from the tenth article.
+ await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await page.getByTestId('stock-news-card').nth(9).getByTestId('stock-news-title').click();await page.getByRole('button',{name:'다음 ›',exact:true}).click();await expect(page.getByTestId('news-detail-count')).toHaveText('11/26');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('20/26');
+});
+test('swipe and buttons share boundaries; missing summary and vertical scroll remain distinct',async({page})=>{
+ await fixture(page);await page.goto('/detail/stock-news');await page.getByTestId('stock-news-card').first().getByTestId('stock-news-title').click();await expect(page.getByTestId('news-detail-count')).toHaveText('1/26');await expect(page.getByRole('button',{name:'‹ 이전',exact:true})).toBeDisabled();
+ await swipe(page,true);await expect(page.getByTestId('news-detail-count')).toHaveText('2/26');await page.waitForTimeout(420);await swipe(page,false);await expect(page.getByTestId('news-detail-count')).toHaveText('1/26');
+ await swipe(page,true,true);await expect(page.getByTestId('news-detail-count')).toHaveText('1/26');await page.getByRole('button',{name:'다음 ›',exact:true}).click();await page.getByRole('button',{name:'다음 ›',exact:true}).click();await expect(page.getByTestId('news-content-summary')).toHaveText('요약정보 없음');
+});
+test('failure and account change retain only correct data, empty differs from initial collection; long text/icons fit both sizes',async({page},info)=>{
+ const f=await fixture(page,{long:true});await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);f.fail();await page.locator('main').evaluate(n=>n.scrollTop=0);
+ // Existing pull refresh invokes only stored reads, never an external collection endpoint.
+ const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:120,y:145}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:121,y:300}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect(page.getByRole('alert')).toContainText('기존 데이터를 표시합니다.',{timeout:15000});await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await geometry(page);await page.screenshot({path:info.outputPath('news-long.png')});
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-news-card')).toHaveCount(0);expect(f.paths.every(p=>!p.includes('/collect'))).toBe(true);
+});
+test('normal zero and not-collected states are different',async({page})=>{
+ await fixture(page,{empty:true,before:true});await page.goto('/detail/stock-news');await expect(page.getByText('최초 수집 전입니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('—');await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
+});
+
+test('successful empty collection is normal zero news',async({page})=>{await fixture(page,{empty:true,partial:false});await page.goto('/detail/stock-news');await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('10/19 15:00');});
+
+test('filtered final item disables next; filter and count return unchanged',async({page})=>{
+ await fixture(page);await page.goto('/detail/stock-news?type=REPORT');await expect(page.getByTestId('news-display-count')).toHaveText('9/9');
+ await page.getByTestId('stock-news-card').last().getByTestId('stock-news-title').click();await expect(page.getByTestId('news-detail-count')).toHaveText('9/9');await expect(page.getByRole('button',{name:'다음 ›',exact:true})).toBeDisabled();await page.getByRole('button',{name:'‹ 이전',exact:true}).click();await expect(page.getByTestId('news-detail-count')).toHaveText('8/9');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/type=REPORT/);await expect(page.getByTestId('news-display-count')).toHaveText('9/9');await expect(page.getByRole('tab',{name:'리포트',exact:true})).toHaveAttribute('aria-selected','true');
+});
+test('an old account response arriving after an account switch cannot reappear',async({page})=>{
+ const f=await fixture(page,{partial:false});f.hold();await page.goto('/detail/stock-news');await expect.poll(()=>f.paths.some(p=>p.startsWith('/accounts/1/stock-news'))).toBe(true);
+ await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();f.release();await expect(page.getByTestId('stock-news-card')).toHaveCount(0);await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
+});

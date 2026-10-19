@@ -7,6 +7,7 @@ import { realtimePriceCache } from '../realtime/price-cache.js';
 
 const endpoint = '/api/pages/read';
 const allowed = [
+  /^\/accounts\/\d+\/stock-news(?:\/\d+)?$/,
   /^\/accounts$/,
   /^\/accounts\/\d+\/(dashboard|holdings|asset-history|investment-capital|investment-baseline|investment-profit|trades|buy-lots|recent-buys|target-arrivals|target-arrival-conditions|cash-overview|cash-transactions|daily-position-profit|compound-plans|data-state)$/,
   /^\/accounts\/\d+\/cash-transactions\/\d+$/,

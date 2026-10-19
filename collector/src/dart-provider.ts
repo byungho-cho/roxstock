@@ -338,6 +338,20 @@ export class OpenDartProvider {
     }
   }
 
+  /** News metadata only; uses the same request, quota reservation and spacing as financial collection. */
+  async listNewsDisclosures(corpCode:string,from:string,to:string){
+    const rows:RawReport[]=[];
+    for(let page=1;page<=5;page++){
+      const body=await this.json<RawReport>('list.json',{corp_code:corpCode,bgn_de:from,end_de:to,last_reprt_at:'N',sort:'date',sort_mth:'desc',page_no:String(page),page_count:'100'});
+      if(body.status==='013')return rows;
+      if(!Array.isArray(body.list)||body.list.some(r=>r.corp_code!==corpCode||!/^\d{14}$/.test(r.rcept_no??'')||!/^\d{8}$/.test(r.rcept_dt??'')||r.rcept_dt!<from||r.rcept_dt!>to||!r.report_nm?.trim()))throw new DartApiError('NEWS_DISCLOSURE_MISMATCH','News disclosure metadata identity failed validation.');
+      rows.push(...body.list);
+      const total=Number(body.total_page??1);if(!Number.isInteger(total)||total<1)throw new DartApiError('INVALID_JSON','Invalid news page count.');
+      if(page>=total)return rows;
+    }
+    throw new DartApiError('NEWS_PAGE_BOUND','News disclosure page bound reached.');
+  }
+
   async listPeriodicReports(corpCode: string, fiscalYear: number): Promise<DartReport[]> {
     const start = `${fiscalYear - 1}0101`;
     const end = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-', '');

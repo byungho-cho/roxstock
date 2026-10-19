@@ -1,3 +1,4 @@
+import {stockNewsRoutes} from './routes/stock-news.js';
 import {collectionBugReportRoutes} from './routes/collection-bug-reports.js';
 import {readFile} from 'node:fs/promises';
 import release from './release.json' with { type: 'json' };
@@ -86,6 +87,7 @@ export function buildApp() {
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
   void app.register(targetArrivalRoutes, { prefix: '/api' });
+  void app.register(stockNewsRoutes,{prefix:'/api'});
   void app.register(investorTrendRoutes, {prefix:'/api'});
   void app.register(investmentProfitRoutes, {prefix:'/api'});
   void app.register(recentBuysRoutes, {prefix:'/api'});
