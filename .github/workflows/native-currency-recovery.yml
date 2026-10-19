@@ -64,7 +64,7 @@ jobs:
           import {withFinancialLease} from './shared/dist/collection/financial-lease.js';
           import {randomUUID} from 'node:crypto';
           const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID();
-          const summary={policy:'stored-native-metric-refresh-v1',refreshed:0,complete:0,roeReady:0,epsReady:0,bpsReady:0,held:0,failed:0,conversionRequired:0,stopReason:null,failures:[]};
+          const summary={policy:'stored-native-metric-refresh-v1',refreshed:0,complete:0,roeReady:0,epsReady:0,bpsReady:0,held:0,failed:0,conversionRequired:0,stopReason:null,failures:[],heldDetails:[],reasonCounts:{}};
           let cursor=0n;
           try{
             for(let page=0;page<20;page++){
@@ -75,10 +75,11 @@ jobs:
                 if(!await repo.acquireLock(owner,180)){summary.stopReason='SHARED_LOCK_BUSY';break;}
                 try{await withFinancialLease(owner,async()=>{
                   const f=await db.dartFinancialFiling.findFirst({where:{securityId:t.securityId,fiscalYear:t.fiscalYear,periodType:t.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
-                  if(!f||f.receiptNo!==t.selectedReceiptNo||!f.sourceValidation?.currency||f.sourceValidation.currency==='KRW'){summary.held++;return;}
+                  if(!f||f.receiptNo!==t.selectedReceiptNo||!f.sourceValidation?.currency||f.sourceValidation.currency==='KRW'){summary.held++;summary.heldDetails.push({taskId:String(t.id),securityId:String(t.securityId),fiscalYear:t.fiscalYear,periodType:t.periodType,selectedReceiptNo:t.selectedReceiptNo,latestReceiptNo:f?.receiptNo??null,currency:f?.sourceValidation?.currency??null,reason:!f?'NO_CURRENT_SOURCE':f.receiptNo!==t.selectedReceiptNo?'SOURCE_SELECTION_CHANGED':'CURRENCY_NOT_FOREIGN'});return;}
                   const r=await supplementStoredPeriod(db,t.securityId,t.fiscalYear,t.periodType);
                   if(!r){summary.held++;return;}
                   summary.refreshed++;summary.conversionRequired++;
+                  for(const [key,reason]of Object.entries(r.reasons??{})){const k=key+':'+reason;summary.reasonCounts[k]=(summary.reasonCounts[k]??0)+1;}
                   if(r.status==='SUCCESS')summary.complete++;
                   for(const [key,target]of [['roe','roeReady'],['eps','epsReady'],['bps','bpsReady']])if(r.values?.[key]!=null)summary[target]++;
                 });}catch(error){summary.failed++;if(summary.failures.length<20)summary.failures.push({taskId:String(t.id),code:error.code??error.name});}
@@ -109,6 +110,23 @@ jobs:
             const ids=runs.map(r=>r.id);
             const reasons=ids.length?await db.$queryRaw(Prisma.sql`SELECT status,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.validationResult')),message,'UNKNOWN') AS reason,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) GROUP BY status,reason`):[];
             const currencies=ids.length?await db.$queryRaw(Prisma.sql`SELECT JSON_UNQUOTE(JSON_EXTRACT(diagnostics,'$.currency')) AS currency,COUNT(*) AS count FROM collector_run_items WHERE run_id IN (${Prisma.join(ids)}) AND status='SUCCESS' GROUP BY currency`):[];
+            const {loadCollectorConfig}=await import('./shared/dist/collection/config.js');
+            const {PrismaDartRepository}=await import('./collector/dist/dart-repository.js');
+            const config=loadCollectorConfig(),usage=await new PrismaDartRepository(db).getDailyUsage(new Date());
+            console.log(JSON.stringify({quota:{backfillDailyCallLimit:config.dartBackfillDailyCallLimit,dartDailyCallLimit:config.dartDailyCallLimit,minDelayMs:Math.max(config.dartMinDelayMs,config.dartBackfillMinDelayMs),usage}},(_,v)=>typeof v==='bigint'?String(v):v));
+            const legacyHolds=[];let eventCursor;
+            for(let page=0;page<20;page++){
+              const events=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{feature:'dart-financial-statements',code:'DART_REVIEW_NON_KRW_STORAGE_UNSUPPORTED'},...(eventCursor?{eventKey:{gt:eventCursor}}:{})},orderBy:{eventKey:'asc'},take:25});
+              for(const e of events){
+                if(e.securityId==null||e.fiscalYear==null||!['ANNUAL','Q1','Q2','Q3'].includes(e.periodType)){legacyHolds.push({securityId:String(e.securityId),symbol:e.symbol,fiscalYear:e.fiscalYear,periodType:e.periodType,reason:'TARGET_SCOPE_MISSING'});continue;}
+                const task=await db.dartBackfillTask.findFirst({where:{securityId:e.securityId,fiscalYear:e.fiscalYear,periodType:e.periodType}});
+                const last=await db.collectorRunItem.findFirst({where:{securityId:e.securityId,symbol:{endsWith:`:${e.fiscalYear}:${e.periodType}`},run:{jobType:'foreign-currency-recovery'},status:{in:['FAILED','SKIPPED']}},orderBy:{id:'desc'},select:{message:true,diagnostics:true}});
+                legacyHolds.push({securityId:String(e.securityId),symbol:e.symbol,fiscalYear:e.fiscalYear,periodType:e.periodType,taskId:task?String(task.id):null,taskStatus:task?.status??null,reason:last?.diagnostics?.validationResult??last?.message??(task?.diagnostics?.validationResult==='NON_KRW_STORAGE_UNSUPPORTED'?'NOT_ATTEMPTED':task?.diagnostics?.validationResult)??task?.errorCode??'TASK_MISSING'});
+              }
+              if(events.length<25)break;eventCursor=events.at(-1).eventKey;
+            }
+            const legacyHoldSummary=Object.entries(legacyHolds.reduce((a,t)=>(a[t.reason]=(a[t.reason]??0)+1,a),{})).map(([reason,count])=>({reason,count}));
+            console.log(JSON.stringify({legacyHoldSummary,legacyHolds}));
             const unresolved=[];let cursor=0n,hasMoreUnresolved=false;
             const where={status:'FAILED',errorCode:'REVIEW_REQUIRED',diagnostics:{path:'$.validationResult',equals:'NON_KRW_STORAGE_UNSUPPORTED'}};
             for(let page=0;page<20;page++){
