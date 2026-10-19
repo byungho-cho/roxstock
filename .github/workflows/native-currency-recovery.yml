@@ -44,11 +44,12 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$DEPLOY_USER@$DEPLOY_HOST" \
             "bash -s -- $APPLICATION_SHA" < scripts/recover-foreign-production.sh | tee "$RUNNER_TEMP/native-currency-recovery-summary.txt"
           grep -q '"policy":"native-currency-v1"' "$RUNNER_TEMP/native-currency-recovery-summary.txt"
           cat "$RUNNER_TEMP/native-currency-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"
       - name: Read source-storage and calculation outcomes without exporting DB data
+        if: always()
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -56,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$DEPLOY_USER@$DEPLOY_HOST" \
             'docker exec -i roxstock-dart-collector node --input-type=module' <<'NODE' | tee "$RUNNER_TEMP/native-currency-recovery-outcomes.txt"
           import {PrismaClient,Prisma} from './shared/dist/generated/prisma/index.js';
           const db=new PrismaClient();
