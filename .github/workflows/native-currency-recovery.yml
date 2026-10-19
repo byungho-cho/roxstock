@@ -75,7 +75,9 @@ jobs:
                 if(!await repo.acquireLock(owner,180)){summary.stopReason='SHARED_LOCK_BUSY';break;}
                 try{await withFinancialLease(owner,async()=>{
                   const f=await db.dartFinancialFiling.findFirst({where:{securityId:t.securityId,fiscalYear:t.fiscalYear,periodType:t.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
-                  if(!f||f.receiptNo!==t.selectedReceiptNo||!f.sourceValidation?.currency||f.sourceValidation.currency==='KRW'){summary.held++;summary.heldDetails.push({taskId:String(t.id),securityId:String(t.securityId),fiscalYear:t.fiscalYear,periodType:t.periodType,selectedReceiptNo:t.selectedReceiptNo,latestReceiptNo:f?.receiptNo??null,currency:f?.sourceValidation?.currency??null,reason:!f?'NO_CURRENT_SOURCE':f.receiptNo!==t.selectedReceiptNo?'SOURCE_SELECTION_CHANGED':'CURRENCY_NOT_FOREIGN'});return;}
+                  const proof=f?.sourceValidation,stored=t.diagnostics;
+                  const sameSource=f&&proof?.version===2&&proof.returnedReceiptNo===f.receiptNo&&stored?.returnedReceiptNo===f.receiptNo&&proof.fsDivision===f.fsDivision&&stored.fsDivision===f.fsDivision&&proof.currency===stored.currency&&(proof.selectedReceiptNo===t.selectedReceiptNo||proof.priorSelectedReceiptNos?.includes(t.selectedReceiptNo));
+                  if(!sameSource||!proof?.currency||proof.currency==='KRW'){summary.held++;summary.heldDetails.push({taskId:String(t.id),securityId:String(t.securityId),fiscalYear:t.fiscalYear,periodType:t.periodType,selectedReceiptNo:t.selectedReceiptNo,latestReceiptNo:f?.receiptNo??null,sourceSelectedReceiptNo:proof?.selectedReceiptNo??null,taskReturnedReceiptNo:stored?.returnedReceiptNo??null,currency:proof?.currency??null,reason:!f?'NO_CURRENT_SOURCE':!sameSource?'SOURCE_PROOF_CHANGED':'CURRENCY_NOT_FOREIGN'});return;}
                   const r=await supplementStoredPeriod(db,t.securityId,t.fiscalYear,t.periodType);
                   if(!r){summary.held++;return;}
                   summary.refreshed++;summary.conversionRequired++;
