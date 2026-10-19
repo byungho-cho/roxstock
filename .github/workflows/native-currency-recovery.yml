@@ -48,6 +48,49 @@ jobs:
             "bash -s -- $APPLICATION_SHA" < scripts/recover-foreign-production.sh | tee "$RUNNER_TEMP/native-currency-recovery-summary.txt"
           grep -q '"policy":"native-currency-v1"' "$RUNNER_TEMP/native-currency-recovery-summary.txt"
           cat "$RUNNER_TEMP/native-currency-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Refresh comparable metrics from stored native-currency sources only
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$DEPLOY_USER@$DEPLOY_HOST" \
+            'docker exec -i roxstock-dart-collector node --input-type=module' <<'NODE' | tee "$RUNNER_TEMP/native-currency-metric-refresh.txt"
+          import {PrismaClient} from './shared/dist/generated/prisma/index.js';
+          import {PrismaDartRepository} from './collector/dist/dart-repository.js';
+          import {supplementStoredPeriod} from './collector/dist/valuation-supplement.js';
+          import {withFinancialLease} from './shared/dist/collection/financial-lease.js';
+          import {randomUUID} from 'node:crypto';
+          const db=new PrismaClient(),repo=new PrismaDartRepository(db),owner=randomUUID();
+          const summary={policy:'stored-native-metric-refresh-v1',refreshed:0,complete:0,roeReady:0,epsReady:0,bpsReady:0,held:0,failed:0,conversionRequired:0,stopReason:null,failures:[]};
+          let cursor=0n;
+          try{
+            for(let page=0;page<20;page++){
+              const tasks=await db.dartBackfillTask.findMany({where:{id:{gt:cursor},status:'SUCCESS',diagnostics:{path:'$.recoveryPolicy',equals:'native-currency-v1'}},orderBy:{id:'asc'},take:25});
+              for(const t of tasks){
+                cursor=t.id;
+                if(await db.collectorRun.findFirst({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.manualState',equals:'QUEUED'}},select:{id:true}})){summary.stopReason='MANUAL_REQUEST_PRIORITY';break;}
+                if(!await repo.acquireLock(owner,180)){summary.stopReason='SHARED_LOCK_BUSY';break;}
+                try{await withFinancialLease(owner,async()=>{
+                  const f=await db.dartFinancialFiling.findFirst({where:{securityId:t.securityId,fiscalYear:t.fiscalYear,periodType:t.periodType,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}]});
+                  if(!f||f.receiptNo!==t.selectedReceiptNo||!f.sourceValidation?.currency||f.sourceValidation.currency==='KRW'){summary.held++;return;}
+                  const r=await supplementStoredPeriod(db,t.securityId,t.fiscalYear,t.periodType);
+                  if(!r){summary.held++;return;}
+                  summary.refreshed++;summary.conversionRequired++;
+                  if(r.status==='SUCCESS')summary.complete++;
+                  for(const [key,target]of [['roe','roeReady'],['eps','epsReady'],['bps','bpsReady']])if(r.values?.[key]!=null)summary[target]++;
+                });}catch(error){summary.failed++;if(summary.failures.length<20)summary.failures.push({taskId:String(t.id),code:error.code??error.name});}
+                finally{await repo.releaseLock(owner);}
+              }
+              if(summary.stopReason||tasks.length<25)break;
+              if(page===19)summary.stopReason='PAGE_BOUND_REACHED';
+            }
+            console.log(JSON.stringify(summary));
+          }finally{await repo.releaseLock(owner);await db.$disconnect();}
+          NODE
+          cat "$RUNNER_TEMP/native-currency-metric-refresh.txt" >> "$GITHUB_STEP_SUMMARY"
       - name: Read source-storage and calculation outcomes without exporting DB data
         if: always()
         env:
@@ -90,3 +133,4 @@ jobs:
           path: |
             ${{ runner.temp }}/native-currency-recovery-summary.txt
             ${{ runner.temp }}/native-currency-recovery-outcomes.txt
+            ${{ runner.temp }}/native-currency-metric-refresh.txt
