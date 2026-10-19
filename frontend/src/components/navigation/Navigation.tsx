@@ -14,6 +14,7 @@ type PageHeaderProps = {
   stockNavigation?: ReactNode;
   backIcon?: ReactNode;
   title: ReactNode;
+  titleAriaLabel?: string;
   variant?: 'home' | 'detail' | 'standard' | 'more';
   subtitle?: string;
   showAdd?: boolean;
@@ -38,7 +39,7 @@ type PageHeaderProps = {
 export const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
 // A page can supply its actions, while the header always renders in AppLayout's fixed slot.
-export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
+export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, titleAriaLabel, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const slot = useContext(HeaderSlotContext);
   const tablet = useMediaQuery('(min-width:600px)');
@@ -51,7 +52,7 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
     <Toolbar disableGutters className={variant === 'home' || assetOverview ? 'rox-home' : undefined} sx={{ position: 'relative', width: '100%', boxSizing:'border-box', maxWidth: { xs: 'none', sm: maxWidth }, mx: 'auto', minHeight: `${pageMetrics.headerHeight}px !important`, height: pageMetrics.headerHeight, px:'8px', py:0, alignItems:stockNavigation?'flex-start':'center' }}>
       {hasBack && <IconButton aria-label="뒤로가기" onClick={onBack ?? (() => navigate(backPath!))} sx={{ display:{xs:'flex',sm:showBackTablet?'flex':'none'}, zIndex:1, width:20, minWidth:20, height:stockNavigation?22:pageMetrics.headerHeight, mr:'8px', p:0, flexShrink:0, color:colors.textPrimary, '& svg, & img':{width:20,height:20,objectFit:'contain'}, '& > span':{fontSize:24,lineHeight:'24px'} }}>{backIcon ?? <ArrowBackRounded />}</IconButton>}
       <Box sx={{flex:1,minWidth:0,textAlign:stockNavigation?'center':'left'}}>
-        <Typography component="h1" noWrap sx={{m:0,fontSize:stockNavigation?14:hasBack?18:22,lineHeight:stockNavigation?'22px':'30px',height:stockNavigation?22:30,fontWeight:700,letterSpacing:'-0.11px',textAlign:stockNavigation?'center':'left'}}>{title}</Typography>
+        <Typography component="h1" aria-label={titleAriaLabel} noWrap sx={{m:0,fontSize:stockNavigation?14:hasBack?18:22,lineHeight:stockNavigation?'22px':'30px',height:stockNavigation?22:30,fontWeight:700,letterSpacing:'-0.11px',textAlign:stockNavigation?'center':'left'}}>{title}</Typography>
       </Box>
       {stockNavigation && <Box sx={{ position: 'absolute', ...(valueAnalysis ? {height:14,lineHeight:'14px','& .MuiButton-root':{minHeight:14,height:14,lineHeight:'14px'}} : {}), bottom: 2, left: valueAnalysis ? 8 : 48, right: valueAnalysis ? 8 : 48 }}>{stockNavigation}</Box>}
       {center && <Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: '50%', transform: 'translateX(-50%)', alignItems: 'center', justifyContent: 'center', maxWidth: 'calc(100% - 240px)' }}>{center}</Box>}
