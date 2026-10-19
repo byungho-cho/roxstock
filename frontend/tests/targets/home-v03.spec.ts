@@ -28,11 +28,11 @@ async function fixture(page: Page, targetCount = 0) {
   return {fail:()=>{fail=true;},unavailable:()=>{unavailable=true;},hold:()=>{hold=true;},release:()=>{hold=false;release?.();}};
 }
 
-test('v0.3 example: three holdings, zero targets, eight buys; fixed panels and one scrolling body', async ({page},info) => {
+test('v0.3 example: three holdings, zero targets, seven held buys; fixed panels and one scrolling body', async ({page},info) => {
   await fixture(page); await page.goto('/');
   const targets=page.getByTestId('target-arrival-card'),recent=page.getByTestId('recent-buys-card'),held=page.getByTestId('home-holdings-card');
   await expect(targets.getByText('내용이 없습니다.')).toBeVisible(); await expect(recent.getByTestId('recent-buy-lot')).toHaveCount(5); await expect(held.getByTestId('home-holding')).toHaveCount(3);
-  await expect(recent.getByText('총 5건')).toBeVisible(); await expect(recent.getByText('26.09.30 (1일)')).toBeVisible();
+  await expect(recent.getByText('총 5건')).toBeVisible(); await expect(recent.getByText('26.09.29 (2일)')).toBeVisible();
   const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,header:document.querySelector('header')!.getBoundingClientRect().height,nav:[...document.querySelectorAll('.MuiBottomNavigation-root')].find(n=>getComputedStyle(n).display!=='none')!.getBoundingClientRect().height,panels:[...document.querySelectorAll('[data-testid$="-card"], [data-testid="home-summary-area"]')].map(n=>({id:n.getAttribute('data-testid'),rect:n.getBoundingClientRect().toJSON(),scroll:getComputedStyle(n).overflowY})),scrolls:[...document.querySelectorAll('main *')].filter(n=>['auto','scroll'].includes(getComputedStyle(n).overflowY))}));
   const spacing = await page.evaluate(() => {
     const main = document.querySelector('main')!;
