@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {inflateRawSync} from 'node:zlib';
-import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';
+import {type PrismaClient} from '@roxstock/shared/prisma';
 import {canonicalUrl,contentSummary,plainText,seoulDay,type AccessCondition} from '@roxstock/shared/news/policy';
 import {loadCollectorConfig} from '@roxstock/shared/collection/config';
 import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
@@ -80,34 +80,12 @@ export function summaryExtractor(db:PrismaClient,signal:AbortSignal,http:Pick<Ne
  };
 }
 
-/** Durable missing-summary queue; same stock-news lease prevents collection/backfill races. */
-export async function supplementNewsSummaries(db:PrismaClient,options:{now?:Date;signal?:AbortSignal;extract?:(item:SummaryItem)=>Promise<SummaryResult>}={}){
- if(process.env.STOCK_NEWS_ENABLED==='false')return {status:'DISABLED'};
- const job='stock-news',owner=randomUUID(),repo=new PrismaCollectorRepository(db),now=options.now??new Date();if(!await repo.acquireLock(job,owner,120))return {status:'LOCKED'};
- const signal=AbortSignal.any([AbortSignal.timeout(90_000),...(options.signal?[options.signal]:[])]);let runId:bigint|undefined;
- try{
-  await db.collectorRun.updateMany({where:{jobType:'stock-news-summary',status:'RUNNING'},data:{status:'FAILED',finishedAt:now,failureReason:'NEWS_SUMMARY_LEASE_EXPIRED: recovered under shared news lock'}});
-  // One bounded batch, selected by persisted status/retry time, no loading all stored news.
-  const items=await db.stockNewsItem.findMany({where:{summary:null,securities:{some:{security:{collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}}}}},summaryAttempts:{lt:3},summaryStatus:{in:['PENDING','RETRY']},OR:[{summaryNextRetryAt:null},{summaryNextRetryAt:{lte:now}}]},include:{securities:{include:{security:{select:{id:true,symbol:true,name:true}}}}},orderBy:{id:'asc'},take:5});
-  if(!items.length)return {status:'IDLE'};
-  const run=await db.collectorRun.create({data:{jobType:'stock-news-summary',provider:'PUBLIC_EVIDENCE',metadata:{policy:'stock-news-summary-v1',batchLimit:5,target:items.length}}});runId=run.id;
-  let saved=0,unavailable=0,failed=0;const extract=options.extract??summaryExtractor(db,signal);
-  for(const item of items){
-   if(signal.aborted)break;
-   let result:SummaryResult;try{result=await extract(item);}catch(e){const reason=e instanceof Error?e.message:'';result=none(/SOURCE_HTTP_40[13]|SOURCE_ACCESS_DENIED/.test(reason)?'BLOCKED':'RETRY',/SOURCE_HTTP_40[13]|SOURCE_ACCESS_DENIED/.test(reason)?'SOURCE_ACCESS_DENIED':'SOURCE_TEMPORARILY_UNAVAILABLE');}
-   if(result.summary){const valid=contentSummary(result.summary,item.title);result=valid?{...result,summary:valid,status:'READY'}:none('NO_DATA','NO_VERIFIABLE_SUMMARY',result.source);}
-   const terminal=result.status!=='RETRY'||item.summaryAttempts+1>=3;
-   const retry=result.reason==='DART_SHARED_QUOTA'?new Date(seoulDay(now)+'T06:00:00+09:00').getTime()+86400000:now.getTime()+3600000;
-   const written=await db.$transaction(async tx=>{
-    const [lease]=await tx.$queryRaw<{owner_token:string;valid:number}[]>`SELECT owner_token,(locked_until>UTC_TIMESTAMP(3)) AS valid FROM collector_locks WHERE job_name=${job} FOR UPDATE`;
-    if(lease?.owner_token!==owner||!lease.valid)throw Error('NEWS_SUMMARY_LEASE_LOST');
-    const changed=await tx.stockNewsItem.updateMany({where:{id:item.id,summary:null,summaryAttempts:item.summaryAttempts},data:{summary:result.summary,summaryMethod:result.method,summaryStatus:result.status,summaryAttempts:{increment:1},summaryCheckedAt:now,summaryNextRetryAt:terminal?null:new Date(retry),summarySource:result.source,summaryReason:result.reason,...(result.access?{accessCondition:result.access}:{})}});
-    if(changed.count)await tx.collectorRunItem.create({data:{runId:run.id,symbol:item.provider,status:result.summary?'SUCCESS':result.status==='RETRY'?'FAILED':'NO_DATA',message:result.summary?'공개 근거 요약 저장':result.reason,diagnostics:{newsId:String(item.id),summaryMethod:result.method,summaryStatus:result.status,terminal,attempt:item.summaryAttempts+1}}});
-    return changed.count;
-   });if(written){if(result.summary)saved++;else if(result.status==='RETRY')failed++;else unavailable++;}
-  }
-  const status=failed||signal.aborted?'PARTIAL':'SUCCESS';await db.collectorRun.update({where:{id:run.id},data:{status,finishedAt:new Date(),successCount:saved,skippedCount:unavailable,failureCount:failed,failureReason:signal.aborted?'NEWS_SUMMARY_TIME_BOUND: remaining pending items resume next tick':null,metadata:{policy:'stock-news-summary-v1',batchLimit:5,target:items.length,saved,unavailable,failed,remaining:items.length-saved-unavailable-failed,requestsBound:40,noAI:true}}});
-  return {status,runId:String(run.id),targets:items.length,saved,unavailable,failed};
- }catch(e){if(runId)await db.collectorRun.updateMany({where:{id:runId,status:'RUNNING'},data:{status:'FAILED',finishedAt:new Date(),failureReason:'NEWS_SUMMARY_INTERRUPTED: restart resumes only pending or due retries'}});throw e;}
- finally{await repo.releaseLock(job,owner);}
+/** Summary extraction is initial-only. Legacy CLI never retries stored items. */
+export async function supplementNewsSummaries(_db:PrismaClient,_options:unknown={}) {return {status:'DISABLED',reason:'SUMMARY_INITIAL_ATTEMPT_ONLY'};}
+
+/** Initial collection owns this attempt; any absence or exception is terminal. */
+export async function initialNewsSummary(item:SummaryItem & {summary:string|null;summaryMethod:string},extract:(item:SummaryItem)=>Promise<SummaryResult>) {
+ if(item.summary)return {summary:item.summary,method:item.summaryMethod,status:'READY' as const,reason:null,source:item.originalUrl,access:undefined as AccessCondition|undefined};
+ try{const result=await extract(item);return {...result,status:result.summary?'READY' as const:'NO_DATA' as const};}
+ catch{return none('NO_DATA','SUMMARY_UNAVAILABLE_INITIAL_ATTEMPT');}
 }

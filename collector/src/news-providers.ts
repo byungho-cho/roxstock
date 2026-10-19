@@ -11,11 +11,11 @@ const sleep=(ms:number,signal?:AbortSignal)=>new Promise<void>((resolve,reject)=
 /** Only bounded public metadata responses; never download research PDFs or persist article HTML. */
 export class NewsHttp {
  requests=0;private last=new Map<string,number>();
- constructor(private signal?:AbortSignal,private fetchFn:typeof fetch=fetch,private delay=1000){}
+ constructor(private signal?:AbortSignal,private fetchFn:typeof fetch=fetch,private delay=1000,private maxAttempts=2){}
  async text(raw:string,maxBytes=1000000,headOnly=false){
   const url=new URL(raw);if(!['www.hankyung.com','consensus.hankyung.com','dart.fss.or.kr'].includes(url.hostname)||url.protocol!=='https:')throw Error('SOURCE_URL_REJECTED');
   let lastError:unknown;
-  for(let attempt=0;attempt<2;attempt++){
+  for(let attempt=0;attempt<this.maxAttempts;attempt++){
    if(this.requests>=180)throw Error('NEWS_REQUEST_BOUND');
    const wait=this.delay-(Date.now()-(this.last.get(url.hostname)??0));if(wait>0)await sleep(wait,this.signal);
    this.requests++;this.last.set(url.hostname,Date.now());
@@ -27,7 +27,7 @@ export class NewsHttp {
     try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>maxBytes){await reader.cancel();if(headOnly)return result;throw Error('SOURCE_SIZE_BOUND');}result+=decoder.decode(value,{stream:true});if(headOnly&&/<\/head\s*>/i.test(result)){await reader.cancel();return result.split(/<\/head\s*>/i)[0]!;}}}finally{reader.releaseLock();}
     if(/Block access|Access Denied/i.test(result.slice(0,500)))throw Error('SOURCE_ACCESS_DENIED');
     if(!result.trim()||/Site Unavailable|로그인이 필요/.test(result.slice(0,500)))throw Error('SOURCE_UNAVAILABLE');return result;
-   }catch(e){lastError=e;if(e instanceof Error&&/SOURCE_ACCESS_DENIED|SOURCE_HTTP_40[134]|PDF_BODY/.test(e.message))throw e;if(this.signal?.aborted)throw e;if(attempt===0)await sleep(2000,this.signal);}
+   }catch(e){lastError=e;if(e instanceof Error&&/SOURCE_ACCESS_DENIED|SOURCE_HTTP_40[134]|PDF_BODY/.test(e.message))throw e;if(this.signal?.aborted)throw e;if(attempt+1<this.maxAttempts)await sleep(2000,this.signal);}
   }throw lastError;
  }
 }

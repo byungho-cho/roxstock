@@ -2,7 +2,7 @@ import test from 'node:test';
 import {deflateRawSync} from 'node:zlib';
 import assert from 'node:assert/strict';
 import {contentSummary} from '@roxstock/shared/news/policy';
-import {publicArticleBody,summaryExtractor,dartDocumentText} from './news-summary.js';
+import {publicArticleBody,summaryExtractor,dartDocumentText,initialNewsSummary,supplementNewsSummaries} from './news-summary.js';
 const evidence='회사는 매출액 12,345.67억원과 영업이익률 -3.25%를 공개했습니다. 올해 투자 계획은 500억원입니다.';
 const base={id:1n,provider:'HANKYUNG_RSS',providerId:'1',title:'검증 회사 실적 전망',originalUrl:'https://www.hankyung.com/article/202610190001',materialType:'ARTICLE',accessCondition:'UNKNOWN',publishedAt:new Date('2026-10-19T03:00:00Z'),securities:[{security:{id:1n,symbol:'005930',name:'삼성전자'}}]};
 test('extractive summary removes title, ad, reporter and disclaimer; preserves numbers and short evidence',()=>{
@@ -76,4 +76,17 @@ test('official DART exact-receipt XML prose is extracted without inventing table
  assert.equal(contentSummary(dartDocumentText(archive,'20261019000001')),evidence);
  assert.throws(()=>dartDocumentText(archive,'20261019000002'),/RECEIPT_MISMATCH/);
  const corrupted=Buffer.from(archive);corrupted.writeUInt32LE(6_000_000,corrupted.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]))+24);assert.throws(()=>dartDocumentText(corrupted,'20261019000001'));
+});
+
+test('initial-only summary failure is terminal and preserves title; existing summary needs no request',async()=>{
+ let calls=0;const extract=async()=>{calls++;throw Error('temporary');};
+ const item={...base,summary:null,summaryMethod:'NONE'};
+ const missing=await initialNewsSummary(item,extract);assert.equal(calls,1);assert.equal(missing.status,'NO_DATA');assert.equal(item.title,base.title);
+ const ready=await initialNewsSummary({...item,summary:evidence},extract);assert.equal(ready.summary,evidence);assert.equal(calls,1);
+ let accessed=false;const disabled=await supplementNewsSummaries(new Proxy({},{get(){accessed=true;throw Error('unexpected DB');}}) as any);assert.equal(disabled.status,'DISABLED');assert.equal(accessed,false);
+});
+test('summary HTTP failure performs one request without transport retry',async()=>{
+ const {NewsHttp}=await import('./news-providers.js');let calls=0;
+ const http=new NewsHttp(undefined,async()=>{calls++;throw Error('network');},0,1);
+ await assert.rejects(http.text(base.originalUrl));assert.equal(calls,1);
 });
