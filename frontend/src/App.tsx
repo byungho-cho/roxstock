@@ -1,3 +1,5 @@
+const StockNewsPage=lazy(()=>import('./pages/news/StockNewsPage').then(m=>({default:m.StockNewsPage})));
+const StockNewsDetailPage=lazy(()=>import('./pages/news/StockNewsPage').then(m=>({default:m.StockNewsDetailPage})));
 const CollectionBugReports=lazy(()=>import('./pages/more/CollectionBugReports').then(m=>({default:m.CollectionBugReports})));
 const InvestorTrendsPage=lazy(()=>import('./pages/investor/InvestorTrendsPage').then(m=>({default:m.InvestorTrendsPage})));
 const SecurityManagementPage=lazy(()=>import('./pages/more/SecurityManagementPage').then(m=>({default:m.SecurityManagementPage})));
@@ -62,6 +64,8 @@ export function App() {
         <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
+        <Route path="detail/stock-news" element={<StockNewsPage/>}/>
+        <Route path="detail/stock-news/:newsId" element={<StockNewsDetailPage/>}/>
         <Route path="detail/investor-trends" element={<InvestorTrendsPage/>} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />

@@ -21,6 +21,7 @@ jobs:
       backend: ${{ steps.scope.outputs.backend }}
       collector: ${{ steps.scope.outputs.collector }}
       frontend: ${{ steps.scope.outputs.frontend }}
+      android: ${{ steps.native.outputs.android }}
     steps:
       - uses: actions/github-script@v7
         id: revision
@@ -55,6 +56,15 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "docker inspect --format '{{.Name}}|{{.Config.Image}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector roxstock-frontend" > "$RUNNER_TEMP/roxstock-deployed-images.txt"
           cat "$RUNNER_TEMP/roxstock-deployed-images.txt" >> "$GITHUB_STEP_SUMMARY"
+      - id: native
+        env:
+          TARGET_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app; then
+            echo "android=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "android=true" >> "$GITHUB_OUTPUT"
+          fi
       - id: scope
         if: steps.revision.outputs.current == 'true'
         env:
@@ -110,3 +120,86 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "bash -s -- $TARGET_SHA" < scripts/recover-foreign-production.sh | tee "$RUNNER_TEMP/foreign-recovery-summary.txt"
           cat "$RUNNER_TEMP/foreign-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+
+  news_activation:
+    needs: [revision, backend, collector]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+      - name: Verify feature deployment and first real news collection
+        env:
+          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.18 || exit 0
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/verify-stock-news-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-news-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-news-$TARGET_SHA.sh $TARGET_SHA" | tee "$RUNNER_TEMP/stock-news-first-result.txt"
+          grep -q STOCK_NEWS_FIRST_COLLECTION_AND_STORED_API_VERIFIED "$RUNNER_TEMP/stock-news-first-result.txt"
+          cat "$RUNNER_TEMP/stock-news-first-result.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stock-news-first-production-result
+          path: ${{ runner.temp }}/stock-news-first-result.txt
+
+  android:
+    needs: revision
+    if: needs.revision.outputs.current == 'true' && needs.revision.outputs.android == 'true'
+    uses: ./.github/workflows/android-app-check.yml
+    with:
+      target_sha: ${{ needs.revision.outputs.sha }}
+    secrets: inherit
+
+  android_publish:
+    needs: [revision, android, frontend]
+    if: always() && needs.revision.outputs.current == 'true' && needs.android.result == 'success' && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: roxstock-web-only-test-apk
+          path: apk
+      - name: Publish signed Chrome-capable APK and verify public digest
+        env:
+          TARGET_SHA: ${{ needs.revision.outputs.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          apk_file="$(find apk -name 'app-webOnly-debug.apk' -type f -print -quit)"
+          test -n "$apk_file"
+          digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
+          python3 - "$apk_file" "$digest" <<'PY'
+          import json,pathlib,sys
+          apk=pathlib.Path(sys.argv[1]); report=json.loads(apk.with_suffix('.verification.json').read_text())
+          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.3'
+          assert report['applicationId']=='com.roxstock.app.webonly.debug'
+          PY
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$apk_file" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-webonly-$TARGET_SHA.apk"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes android-app/publish-stock-news-apk.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-apk-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-apk-$TARGET_SHA.sh $TARGET_SHA $digest" | tee "$RUNNER_TEMP/stock-news-apk-publish.txt"
+          cat "$RUNNER_TEMP/stock-news-apk-publish.txt" >> "$GITHUB_STEP_SUMMARY"
