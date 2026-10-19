@@ -54,10 +54,10 @@ public class NativeViewportTest {
                 WebView view = (WebView) ((ViewGroup) content.getChildAt(0)).getChildAt(0);
                 web.set(view); view.stopLoading();
                 view.setWebViewClient(new android.webkit.WebViewClient() {
-                    @Override public void onPageFinished(WebView v, String url) { loaded.countDown(); }
+                    @Override public void onPageFinished(WebView v, String url) { if ("Native viewport fixture".equals(v.getTitle())) loaded.countDown(); }
                 });
                 view.loadDataWithBaseURL(BuildConfig.SITE_ORIGIN,
-                    "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head>"
+                    "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><title>Native viewport fixture</title></head>"
                     + "<body style='margin:0'><div style='height:100dvh;display:flex;flex-direction:column'>"
                     + "<header style='height:44px;flex-shrink:0'>Menu</header><main style='flex:1;min-height:0;overflow:auto'>Body</main>"
                     + "<nav style='box-sizing:border-box;height:calc(44px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);flex-shrink:0'>Bottom</nav></div></body></html>",
@@ -68,7 +68,7 @@ public class NativeViewportTest {
             java.util.concurrent.CountDownLatch measured = new java.util.concurrent.CountDownLatch(1);
             java.util.concurrent.atomic.AtomicReference<String> result = new java.util.concurrent.atomic.AtomicReference<>();
             scenario.onActivity(activity -> web.get().evaluateJavascript(
-                "(()=>{const n=document.querySelector('nav');return Math.abs(n.getBoundingClientRect().bottom-innerHeight)<1 && parseFloat(getComputedStyle(n).paddingBottom)===0})()",
+                "(()=>{const n=document.querySelector('nav');return n !== null && Math.abs(n.getBoundingClientRect().bottom-innerHeight)<1 && parseFloat(getComputedStyle(n).paddingBottom)===0})()",
                 value -> { result.set(value); measured.countDown(); }));
             assertTrue(measured.await(10, java.util.concurrent.TimeUnit.SECONDS));
             assertEquals("Footer must reach usable viewport and native padding must not repeat in CSS", "true", result.get());
