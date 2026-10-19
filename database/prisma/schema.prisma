@@ -864,7 +864,7 @@ model SecurityCodeHistory {
   codeRevision Int @map("code_revision")
   preservedData Json @map("preserved_data")
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  security Security @relation(fields:[securityId],references:[id],onDelete:Cascade)
+  security Security @relation(fields:[securityId],references:[id],onDelete:Restrict)
   @@index([securityId,codeRevision])
   @@map("security_code_history")
 }

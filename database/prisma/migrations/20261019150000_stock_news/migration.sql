@@ -1,6 +1,3 @@
--- DropForeignKey
-ALTER TABLE `security_code_history` DROP FOREIGN KEY `security_code_history_security_id_fkey`;
-
 -- CreateTable
 CREATE TABLE `stock_news_items` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -74,11 +71,7 @@ CREATE TABLE `stock_news_seen` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `security_code_history` ADD CONSTRAINT `security_code_history_security_id_fkey` FOREIGN KEY (`security_id`) REFERENCES `securities`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `stock_news_securities` ADD CONSTRAINT `stock_news_securities_news_id_fkey` FOREIGN KEY (`news_id`) REFERENCES `stock_news_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `stock_news_securities` ADD CONSTRAINT `stock_news_securities_security_id_fkey` FOREIGN KEY (`security_id`) REFERENCES `securities`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-

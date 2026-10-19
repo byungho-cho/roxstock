@@ -2,10 +2,10 @@ import {test,expect,type Page} from '@playwright/test';
 import {fixture as base} from './phase28-fixture';
 const stamp='2026-10-19T06:00:00Z';
 async function fixture(page:Page,options:{empty?:boolean;before?:boolean;long?:boolean;partial?:boolean}={}){
- await base(page);let reads=0,fail=false,hold=false,release=()=>{};const paths:string[]=[];
+ const baseFixture=await base(page);let reads=0,fail=false,hold=false,release=()=>{};const paths:string[]=[];
  const items=Array.from({length:26},(_,i)=>({id:String(100-i),title:options.long?'긴 제목의 실적과 사업 전망 및 정책 변화에 관한 검증 내용 '.repeat(5):`검증 소식 ${i+1} · 실적과 사업 전망`,originalUrl:'https://www.hankyung.com/article/phase33test'+i,originalAvailable:true,sourceName:options.long?'검증용 매우 긴 제공 출처 이름 '.repeat(5):'검증 출처',publishedAt:stamp,publishedPrecision:'TIME',type:(i%3===0?'REPORT':i%3===1?'ARTICLE':'DISCLOSURE'),importance:i<3?'IMPORTANT':'MAJOR',access:i===1?'PAID':i===2?'LOGIN':i===3?'UNKNOWN':'FREE',summary:i===2?null:'공개 제공처에서 확인된 검증용 내용 요약입니다. 원문에 없는 수치나 사실은 포함하지 않습니다.',summaryMethod:'PUBLIC_DESCRIPTION_EXTRACT',collectedAt:stamp,securities:[{id:'1',symbol:'005930',name:options.long?'매우 긴 검증용 종목 이름을 가진 주식회사':'검증 종목'}]}));
  const read=async(path:string)=>{
-  paths.push(path);if(!path.includes('/stock-news'))return null;reads++;if(hold)await new Promise<void>(r=>release=r);
+  paths.push(path);if(!path.includes('/stock-news'))return baseFixture.read(path);reads++;if(hold)await new Promise<void>(r=>release=r);
   if(fail)return {status:503,body:{error:{code:'TEST_UNAVAILABLE',message:'검증 조회 실패'}}};
   const u=new URL('http://fixture/api'+path),account=u.pathname.split('/')[3],id=u.pathname.split('/')[5],type=u.searchParams.get('type')??'ALL';
   const filtered=options.empty||account==='2'?[]:items.filter(i=>type==='ALL'||i.type===type),snapshot=u.searchParams.get('snapshot')??'test-'+account+'-'+type;

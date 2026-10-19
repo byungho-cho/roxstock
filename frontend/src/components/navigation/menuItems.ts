@@ -15,4 +15,4 @@ export const appMenuItems=[
  {label:'모니터링',path:'/detail/collection-monitoring',icon:'monitoring'},
  {label:'설정',path:'/detail/settings',icon:'settings'},
 ];
-export const menuIconSource=(icon:string)=>icon==='stock-news'?'/stock-news/newspaper.png':`/more-v03/${icon}.svg`;
+export const menuIconSource=(icon:string)=>icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;

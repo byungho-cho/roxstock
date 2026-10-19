@@ -82,6 +82,9 @@ export function defaultNewsSources(db:PrismaClient):NewsSource[]{
    if(await manual()||!await repo.acquireLock(owner,90)){warnings.push('DART_YIELDED_TO_EXISTING_WORK');return {provider:'DART',candidates,warnings,requests:http.requests,available:candidates.length>0};}
    let calls=0,apiCompleted=false;
    try{await sleep(delay,signal);await withFinancialLease(owner,async()=>{
+    // The financial worker may have exhausted the shared budget before this lease was acquired.
+    const current=await repo.getState(),usage=await repo.getDailyUsage(new Date());
+    if((current?.lastRunAt&&seoulDay(current.lastRunAt)===seoulDay(new Date())&&/^(020|DAILY_CALL_LIMIT)(?::|$)/.test(current.lastError??''))||(usage?.apiCallCount??0)>=limit)throw new DartApiError('DAILY_CALL_LIMIT','Existing DART daily budget is exhausted.');
     const provider=new OpenDartProvider({apiKey:process.env.DART_API_KEY!,dailyCallLimit:limit,minDelayMs:delay,reserveCall:async l=>{if(signal?.aborted||calls>=100)throw new DartApiError('NEWS_CALL_BOUND','News collection request bound.');if(await manual())throw new DartApiError('NEWS_MANUAL_PRIORITY','Yield to manual financial request.');calls++;return repo.reserveApiCall(l,new Date(),owner);},onApiStatus:async status=>{await repo.recordApiResult(status==='013'?'NO_DATA':'ERROR');if(status==='020')await db.dartCollectorState.update({where:{id:1},data:{lastError:'020: DART quota confirmed by news metadata request'}});}});
     for(const target of mapped){const rows=await provider.listNewsDisclosures(target.corpCode!,seoulDay(from).replaceAll('-',''),seoulDay(to).replaceAll('-',''));
      for(const row of rows){const receipt=row.rcept_no!,day=row.rcept_dt!,publishedAt=kstStart(day.slice(0,4)+'-'+day.slice(4,6)+'-'+day.slice(6)),title=target.name+' - '+row.report_nm,priority=importance(title,'DISCLOSURE');if(!priority)continue;

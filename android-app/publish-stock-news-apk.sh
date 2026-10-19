@@ -15,7 +15,7 @@ docker exec roxstock-proxy chmod 644 /data/roxstock-public/downloads/android/rox
 python3 - "$SHA" "$EXPECTED" "$BACKUP/latest.json" <<'PY'
 import datetime,json,sys
 sha,digest,path=sys.argv[1:]
-with open(path,'w') as f:json.dump({'version':'0.1.3-webonly-test','versionCode':4,'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/roxstock-web-only-0.1.3.apk','sha256':digest,'commit':sha},f)
+with open(path,'w') as f:json.dump({'version':'0.1.3-webonly-test','versionCode':4,'certificateSha256':'0c419a20f4672e1829ad5427e9d7ea81d6f94f668729c045e564711dcda7ef86','updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/roxstock-web-only-0.1.3.apk','sha256':digest,'commit':sha},f)
 PY
 curl --fail --silent --show-error --max-time 60 https://newrox.cafe24.com/downloads/android/roxstock-web-only-0.1.3.apk -o "$BACKUP/downloaded.apk"
 printf '%s  %s\n' "$EXPECTED" "$BACKUP/downloaded.apk" | sha256sum -c -

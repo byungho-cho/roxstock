@@ -55,7 +55,7 @@ test('menu order, equal theme widths and fixed geometry',async({page},info)=>{
   const b=await buttons.evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));for(const r of b)expect(r.width).toBeCloseTo(b[0].width,1);expect(b[1].left-b[0].right).toBeCloseTo(8,1);expect(b[0].left-p!.x).toBeCloseTo(14,1);expect(p!.x+p!.width-b[2].right).toBeCloseTo(14,1);
   await buttons.nth(1).click();await expect(buttons.nth(1)).toHaveAttribute('aria-pressed','true');
  }
- await expect.poll(()=>menu.locator('img').evaluateAll(ns=>ns.every(n=>(n as HTMLImageElement).naturalWidth===((n as HTMLImageElement).src.includes('investor-trends')?16:20)))).toBe(true);
+ await expect.poll(()=>menu.locator('img').evaluateAll(ns=>ns.every(n=>(n as HTMLImageElement).naturalWidth===((n as HTMLImageElement).src.includes('investor-trends')?16:(n as HTMLImageElement).src.includes('stock-news')?18:20)))).toBe(true);
  await capture(page,'menu',info.project.name);
 });
 test('monitoring selection resets detail only, states and failed refresh preserve results',async({page},info)=>{

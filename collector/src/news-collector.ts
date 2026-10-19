@@ -30,8 +30,8 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
     candidates.push(...response.candidates.slice(0,2000));results.push({provider:source.id,status:('available' in response&&response.available===false)?'FAILED':response.warnings.length?'PARTIAL':'SUCCESS',count:response.candidates.length,requests:response.requests,warnings:response.warnings.slice(0,20)});
    }catch{results.push({provider:source.id,status:'FAILED',count:0,requests:0,warnings:['NEWS_SOURCE_UNAVAILABLE']});}
   }
-  const keys=candidates.map(candidateKeys),existing=new Set<string>();
-  for(let i=0;i<keys.length;i+=100){const rows=await db.stockNewsItem.findMany({where:{OR:keys.slice(i,i+100).flatMap(k=>[{canonicalHash:k.canonicalHash},{fingerprint:k.fingerprint}])},select:{canonicalHash:true,fingerprint:true}});for(const r of rows){existing.add(r.canonicalHash);existing.add(r.fingerprint);}const seen=await db.stockNewsSeen.findMany({where:{key:{in:keys.slice(i,i+100).flatMap(k=>[k.canonicalHash,k.fingerprint])}},select:{key:true}});for(const r of seen)existing.add(r.key);}
+  const keys=candidates.map(candidateKeys),existing=new Set<string>(),knownItems=new Map<string,bigint>();
+  for(let i=0;i<keys.length;i+=100){const rows=await db.stockNewsItem.findMany({where:{OR:keys.slice(i,i+100).flatMap(k=>[{canonicalHash:k.canonicalHash},{fingerprint:k.fingerprint}])},select:{id:true,canonicalHash:true,fingerprint:true}});for(const r of rows){existing.add(r.canonicalHash);existing.add(r.fingerprint);knownItems.set(r.canonicalHash,r.id);knownItems.set(r.fingerprint,r.id);}const seen=await db.stockNewsSeen.findMany({where:{key:{in:keys.slice(i,i+100).flatMap(k=>[k.canonicalHash,k.fingerprint])}},select:{key:true}});for(const r of seen)existing.add(r.key);}
   const selected=selectNews(candidates,existing),duplicates=(()=>{const seen=new Set(existing);let count=0;for(const c of candidates){const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))count++;else{seen.add(k.canonicalHash);seen.add(k.fingerprint);}}return count;})();
   let summaryUnavailable=0;
   if(options.enrich!==false){const http=new NewsHttp(signal);for(const item of selected.filter(c=>c.materialType==='ARTICLE'&&!c.summary))try{
@@ -43,7 +43,14 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
   const result=await db.$transaction(async tx=>{
    const [lease]=await tx.$queryRaw<{owner_token:string;valid:number}[]>`SELECT owner_token,(locked_until>UTC_TIMESTAMP(3)) AS valid FROM collector_locks WHERE job_name=${job} FOR UPDATE`;
    if(lost||lease?.owner_token!==owner||!lease.valid)throw Error('NEWS_LEASE_LOST');
-   let saved=0;
+   let saved=0,linked=0;
+   // An existing shared item can become relevant to a newly targeted security.
+   // Add only the relation; its public metadata and original collection time stay intact.
+   const additions=new Map<string,{newsId:bigint;securityId:bigint}>();
+   for(const c of candidates){const k=candidateKeys(c),newsId=knownItems.get(k.canonicalHash)??knownItems.get(k.fingerprint);if(newsId)for(const securityId of c.securityIds)additions.set(newsId+':'+securityId,{newsId,securityId});}
+   const eligibleIds=new Set<bigint>(),relationIds=[...new Set([...additions.values()].map(r=>r.securityId))];
+   for(let i=0;i<relationIds.length;i+=200){const rows=await tx.security.findMany({where:{id:{in:relationIds.slice(i,i+200)},collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}}},select:{id:true,symbol:true}});for(const e of rows)if(targets.some(t=>t.id===e.id&&t.symbol===e.symbol))eligibleIds.add(e.id);}
+   const relations=[...additions.values()].filter(r=>eligibleIds.has(r.securityId));for(let i=0;i<relations.length;i+=500)linked+=(await tx.stockNewsSecurity.createMany({data:relations.slice(i,i+500),skipDuplicates:true})).count;
    for(const c of selected){
     const eligible=await tx.security.findMany({where:{id:{in:c.securityIds},collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}}},select:{id:true,symbol:true}});
     const permitted=eligible.filter(e=>targets.some(t=>t.id===e.id&&t.symbol===e.symbol)).map(e=>e.id);if(!permitted.length)continue;
@@ -55,7 +62,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
     if(r.status!=='SUCCESS')await tx.collectorRunItem.create({data:{runId:run.id,symbol:r.provider,status:'FAILED',message:r.warnings.join(', ').slice(0,1000),diagnostics:{provider:r.provider,status:r.status,metadataRetained:true}}});
    }
    await tx.stockNewsState.update({where:{id:job},data:{lastStatus:status,...(successes?{completedDate:plan.day,initialCompletedAt:state.initialCompletedAt??finished,lastCollectedAt:finished,nextRetryAt:null}:{})}});
-   await tx.collectorRun.update({where:{id:run.id},data:{status,finishedAt:finished,successCount:saved,failureCount:results.filter(r=>r.status!=='SUCCESS').length,skippedCount:Math.max(0,candidates.length-saved),failureReason:status==='SUCCESS'?null:'NEWS_PROVIDER_PARTIAL: 정상 자료와 기존 목록 보존',metadata:{kind:plan.kind,scheduleDate:plan.day,ownerId:hash(owner).slice(0,16),attempt:attempts,from:plan.from.toISOString(),to:now.toISOString(),policy:'stock-news-v1',targetSecurities:targets.length,candidates:candidates.length,duplicates,selected:saved,summaryUnavailable,providerResults:results,selectionLimit:10,selectionTarget:5}}});
+   await tx.collectorRun.update({where:{id:run.id},data:{status,finishedAt:finished,successCount:saved,failureCount:results.filter(r=>r.status!=='SUCCESS').length,skippedCount:Math.max(0,candidates.length-saved),failureReason:status==='SUCCESS'?null:'NEWS_PROVIDER_PARTIAL: 정상 자료와 기존 목록 보존',metadata:{kind:plan.kind,scheduleDate:plan.day,ownerId:hash(owner).slice(0,16),attempt:attempts,from:plan.from.toISOString(),to:now.toISOString(),policy:'stock-news-v1',targetSecurities:targets.length,candidates:candidates.length,duplicates,selected:saved,linkedRelationships:linked,summaryUnavailable,providerResults:results,selectionLimit:10,selectionTarget:5}}});
    return {status,runId:String(run.id),kind:plan.kind,date:plan.day,targets:targets.length,saved,duplicates,summaryUnavailable,providers:results,nextScheduledAt:new Date(kstStart(plan.day).getTime()+86400000+6*3600000).toISOString()};
   });return result;
  }catch(error){if(runId){const stillOwner=await db.collectorLock.findUnique({where:{jobName:job}});if(stillOwner?.ownerToken===owner&&stillOwner.lockedUntil>new Date())await db.stockNewsState.update({where:{id:job},data:{lastStatus:'FAILED'}});await db.collectorRun.updateMany({where:{id:runId,status:'RUNNING'},data:{status:'FAILED',finishedAt:new Date(),failureReason:'NEWS_COLLECTION_INTERRUPTED: 기존 목록 보존'}});}throw error;
