@@ -16,7 +16,6 @@ const jobs: CollectionJob[] = [
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
   { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '거래일 20:00 · 확인된 휴장일 생략', hour: 20 },
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
-  {id:'stock-news-summary',name:'소식 요약 보완',jobType:'stock-news-summary',schedule:'저장된 미요약 소식 · 60초 점검, 배치 5건 · 재시도 최대 3회'},
   {id:'stock-news',name:'종목소식',jobType:'stock-news',schedule:'최초 배포 당일 1회 · 다음 날부터 매일 06:00 KST',hour:6},
   { id: 'investor-trends', name: '투자동향', jobType: 'investor-trends', schedule: '시험 수집 KST 18·21시 · 10/16부터, 3년 보충 보류' },
   { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },

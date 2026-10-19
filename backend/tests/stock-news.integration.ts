@@ -50,23 +50,18 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   assert.equal((await get(`accounts/${a.id}/stock-news/${held.data[0].id}`)).data.isHeld,true);
   await prisma.sellTrade.create({data:{buyTradeId:holding2.id,soldAt:now,quantity:'0.5',unitPrice:'110'}});
   assert.ok((await get(`accounts/${a.id}/stock-news`)).data.every((r:any)=>!r.isHeld));
-  // Existing summaries are preserved; missing summaries use a durable five-item queue.
-  await prisma.stockNewsItem.updateMany({where:{provider:'TEST_NEWS33'},data:{summaryStatus:'UNSUPPORTED'}});
-  const queued=(await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'},orderBy:{id:'asc'},take:6}));
+  // Legacy pending rows remain preserved but can never trigger summary retries.
+  const queued=await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'},orderBy:{id:'asc'},take:6});
+  assert.ok(queued.length>=6);
+  assert.equal(queued[0]!.summaryStatus,'NO_DATA');assert.equal(queued[0]!.summaryAttempts,1);assert.equal(queued[0]!.summaryNextRetryAt,null);
   await prisma.stockNewsItem.update({where:{id:queued[5]!.id},data:{summary:'기존 공개 요약은 불필요하게 덮어쓰지 않습니다.',summaryStatus:'READY'}});
   await prisma.stockNewsItem.updateMany({where:{id:{in:queued.slice(0,5).map(r=>r.id)}},data:{summaryStatus:'PENDING'}});
-  const stopped=new AbortController();stopped.abort();const interruptedSummary=await supplementNewsSummaries(prisma,{now,signal:stopped.signal,extract:async()=>{throw Error('must not fetch');}});assert.equal(interruptedSummary.status,'PARTIAL');assert.equal((await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[0]!.id}})).summaryAttempts,0);
-  let summaryCalls=0;
-  const extract=async(item:any)=>{summaryCalls++;const index=queued.findIndex(r=>r.id===item.id);return {summary:index===0?'매출액 12,345.67억원과 영업이익률 -3.25%를 원문 그대로 공개했습니다.':null,method:index===0?'PUBLIC_BODY_SENTENCES':'NONE',status:index===0?'READY':index===1?'NO_DATA':index===2?'BLOCKED':'RETRY',reason:index===0?null:'TEST_'+index,source:'https://www.hankyung.com/article/news34'} as any;};
-  const summaries=await Promise.all([supplementNewsSummaries(prisma,{now,extract}),supplementNewsSummaries(prisma,{now,extract})]);
-  assert.equal(summaryCalls,5);assert.equal(summaries.find(r=>r.status!=='LOCKED')?.saved,1);
-  assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+1000),extract})).status,'IDLE');assert.equal(summaryCalls,5);
-  await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+3601000),extract});assert.equal(summaryCalls,7);
-  await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+7202000),extract});assert.equal(summaryCalls,9);
-  assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+10803000),extract})).status,'IDLE');
-  assert.equal((await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[5]!.id}})).summary,'기존 공개 요약은 불필요하게 덮어쓰지 않습니다.');
-  const preserved=await prisma.stockNewsItem.findUniqueOrThrow({where:{id:queued[0]!.id}});assert.ok(preserved.summary?.includes('12,345.67억원'));assert.equal(preserved.summaryAttempts,1);assert.ok(preserved.summaryCheckedAt);assert.equal(preserved.summarySource,'https://www.hankyung.com/article/news34');
-  console.log('STOCK_NEWS_PHASE34_DB_PROOF',JSON.stringify({accountHoldings:true,belowOneNotHeld:true,summarySaved:1,noData:1,blocked:1,retryExhausted:2,summaryCalls,batchBound:5,existingSummaryPreserved:true}));
+  const beforeSummaries=await prisma.stockNewsItem.findMany({where:{id:{in:queued.map(r=>r.id)}},orderBy:{id:'asc'}});
+  let summaryCalls=0;const extract=async()=>{summaryCalls++;throw Error('must not retry');};
+  for(const elapsed of [0,1000,3601000,7202000,10803000])assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+elapsed),extract})).status,'DISABLED');
+  assert.equal(summaryCalls,0);
+  assert.deepEqual(await prisma.stockNewsItem.findMany({where:{id:{in:queued.map(r=>r.id)}},orderBy:{id:'asc'}}),beforeSummaries);
+  console.log('STOCK_NEWS_SUMMARY_INITIAL_ONLY_DB_PROOF',JSON.stringify({accountHoldings:true,belowOneNotHeld:true,summaryCalls,legacyPendingPreserved:true,existingSummaryPreserved:true,titleOnlySuccess:true}));
   await prisma.account.update({where:{id:a.id},data:{isActive:false}});await get(`accounts/${a.id}/stock-news`,404);
   console.log('STOCK_NEWS_DB_PROOF',JSON.stringify({sharedSourceCalls:calls,firstSaved:5,firstPage:10,snapshotTotal:30,unique:30,reportTotal:11,accountsIsolated:true,failedCollectionRetained:true,initialOnce:true,restartRecovery:true}));
  }finally{
