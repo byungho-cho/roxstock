@@ -118,6 +118,7 @@ jobs:
             for(let page=0;page<20;page++){
               const events=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{feature:'dart-financial-statements',code:'DART_REVIEW_NON_KRW_STORAGE_UNSUPPORTED'},...(eventCursor?{eventKey:{gt:eventCursor}}:{})},orderBy:{eventKey:'asc'},take:25});
               for(const e of events){
+                if(e.securityId==null||e.fiscalYear==null||!['ANNUAL','Q1','Q2','Q3'].includes(e.periodType)){legacyHolds.push({securityId:String(e.securityId),symbol:e.symbol,fiscalYear:e.fiscalYear,periodType:e.periodType,reason:'TARGET_SCOPE_MISSING'});continue;}
                 const task=await db.dartBackfillTask.findFirst({where:{securityId:e.securityId,fiscalYear:e.fiscalYear,periodType:e.periodType}});
                 const last=await db.collectorRunItem.findFirst({where:{securityId:e.securityId,symbol:{endsWith:`:${e.fiscalYear}:${e.periodType}`},run:{jobType:'foreign-currency-recovery'},status:{in:['FAILED','SKIPPED']}},orderBy:{id:'desc'},select:{message:true,diagnostics:true}});
                 legacyHolds.push({securityId:String(e.securityId),symbol:e.symbol,fiscalYear:e.fiscalYear,periodType:e.periodType,taskId:task?String(task.id):null,taskStatus:task?.status??null,reason:last?.diagnostics?.validationResult??last?.message??(task?.diagnostics?.validationResult==='NON_KRW_STORAGE_UNSUPPORTED'?'NOT_ATTEMPTED':task?.diagnostics?.validationResult)??task?.errorCode??'TASK_MISSING'});
