@@ -5,7 +5,7 @@ import {collectionPublicMessage,collectionPublicMetadata} from '../domain/collec
 import {publicDartReview} from '@roxstock/shared/domain/dart-review';
 import type { FastifyInstance } from 'fastify';
 import {collectionPageRoutes} from './collection-pages.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { getSeoulClock } from '@roxstock/shared/collection/time';
 import { CollectionJobRepository as PrismaDartRepository } from '@roxstock/shared/collection/job-repository';
 import { loadCollectorConfig } from '@roxstock/shared/collection/config';

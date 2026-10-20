@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 for(const mode of ['snapshot','interrupted'])test(`${mode}: result and schedule are separate; correct run identity and no horizontal overflow`,async({page},info)=>{
  await fixture(page);

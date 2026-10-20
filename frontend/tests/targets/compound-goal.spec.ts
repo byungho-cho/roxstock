@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 import {fixture as stockFixture} from './stock-input-fixture';
 const rows=[2023,2024,2025,2026,2027].map((year,i)=>({year,asset:String(100+i*10),contributed:String(80+i*5),realizedAsset:year===2023?'100':year===2024?'0':null}));
 const goal={id:'g1',goalName:'기본 목표',annualTargetRate:'10',displayColor:'#5EA1F0',isDefault:true,isVisible:true,rows,yearTarget:'130',finalTarget:'140',progress:'83.57'};
@@ -47,8 +47,8 @@ test('polling refresh retains summary, zero and unavailable, isolates late accou
  await page.clock.install({time:new Date('2026-10-09T00:00:00Z')});const f=await setup(page);await page.goto('/detail/compound?view=goal&plan=p1&goal=g1');await expect(page.getByTestId('compound-summary-current')).toHaveText('117원');
  f.assets('0');await page.clock.fastForward(60_100);await expect(page.getByTestId('compound-summary-current')).toHaveText('0원');await expect(page.getByTestId('compound-summary-current')).toHaveCSS('color','rgb(96, 165, 250)');await expect(page.getByTestId('compound-year-2026').getByRole('cell').nth(1)).toHaveText('0원');
  f.hold('a');f.assets(null);await page.clock.fastForward(60_100);await expect(page.getByTestId('compound-summary-current')).toHaveText('0원');f.release();await expect(page.getByTestId('compound-summary-current')).toHaveText('—');await expect(page.getByTestId('compound-summary-current')).toHaveCSS('color','rgb(248, 250, 252)');await expect(page.getByRole('meter',{name:'목표 진행률'})).not.toHaveAttribute('aria-valuenow');
- f.hold('b');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-summary')).toHaveCount(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-summary-current')).toHaveText('—');f.release();await expect(page.getByTestId('compound-summary-current')).toHaveText('—');
+ f.hold('b');await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-summary')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-summary-current')).toHaveText('—');f.release();await expect(page.getByTestId('compound-summary-current')).toHaveText('—');
 });
 test('Seoul year crossing refetches historical/current classification',async({page})=>{
  await page.clock.install({time:new Date('2026-12-31T14:59:40Z')});const f=await setup(page);await page.goto('/detail/compound?view=goal&plan=p1&goal=g1');await expect(page.getByTestId('compound-year-2026').getByRole('cell').nth(1)).toHaveText('117원');

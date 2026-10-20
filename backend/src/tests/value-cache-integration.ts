@@ -3,7 +3,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
 import {PrismaClient,Prisma} from '@roxstock/shared/prisma';
 import {collectionClient} from '@roxstock/shared/lib/collection-client';
-import {buildApp} from '../app.js';
+import {buildApp} from '../auth/route-test-app.js';
 import {ValueReadModel} from '@roxstock/shared/read-model/value-cache';
 import {loadValueRows,valueFinancialInclude,projectValueRows,publicValueRows} from '@roxstock/shared/read-model/value-rows';
 import {selectValueListAnalysis} from '@roxstock/shared/domain/value-list-analysis';

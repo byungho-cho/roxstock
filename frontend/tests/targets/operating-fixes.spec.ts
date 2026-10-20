@@ -1,4 +1,4 @@
-import {test,expect,type Locator} from '@playwright/test';
+import {test,expect,type Locator} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 async function gesture(target:Locator, dx=0,dy=160) {
   await target.evaluate((el,{dx,dy})=>{

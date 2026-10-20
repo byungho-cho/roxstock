@@ -4,7 +4,7 @@ import { CashTransactionType, Prisma } from '@roxstock/shared/prisma';
 
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 
 type AccountParams = { accountId: string };
 type HistoryQuery = { from?: string; to?: string; types?: string; limit?: string; offset?: string };

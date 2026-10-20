@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {writeFileSync} from 'node:fs';
 import {fixture} from './phase27-fixture';
 const nav=(page:Page)=>page.getByTestId('stock-navigation');
@@ -27,10 +27,12 @@ for(const count of [1,2])test(`${count} stock list never refetches itself; two r
  else{await code(page,'1');await nav(page).getByRole('button',{name:'이전 종목 순환2'}).click();await code(page,'2');await nav(page).getByRole('button',{name:'이전 종목 순환1'}).click();await code(page,'1');}
 });
 test('filtered sorted entry and favorites keep the same cycle after navigation',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('roxstock:favorite-stocks-v1','["4"]'));
+ await page.addInitScript(()=>localStorage.setItem('roxstock:user:fixture-user:favorite-stocks','["4"]'));
  await fixture(page);await page.goto('/stocks?tab=holding');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('순환');
  await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();
  const wide=page.viewportSize()!.width>=600;
+ // Search is debounced. Enter the detail only after the filtered list is displayed.
+ await expect(wide?page.getByRole('row',{name:'제외3 상세보기'}):page.getByRole('button',{name:'제외3 상세보기',exact:true})).toHaveCount(0);
  await (wide?page.getByRole('row',{name:'순환4 상세보기'}):page.getByRole('button',{name:'순환4 상세보기',exact:true})).click();
  await code(page,'4');const previous=await nav(page).getByRole('button').first().getAttribute('aria-label');
  expect(previous).not.toContain('제외');await nav(page).getByRole('button').first().click();

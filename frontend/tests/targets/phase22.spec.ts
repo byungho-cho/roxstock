@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 const rows=[1,2,3].map(n=>({id:String(n),symbol:String(n).padStart(6,'0'),name:n===1?'삼성전자 장기종목명 검증':n===2?'결산자료':'미수집',marketType:'KOSPI',dataPriority:n,dataColor:['#FFD96E','#93C5FD','#BDC3CC'][n-1],currentPrice:'10000',previousClosePrice:'9000',w:n===3?null:'1.2',roe:n===3?null:'10',issuedShares:'5919637922',eps:'100',capital:'10000000000',excessEarnings:null,shareholderValue:null,fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:n===3?null:'123456789'})),basisText:n===1?'2026E · 연간 추정 · 자본 2025년 결산 · NAVER_FNGUIDE_ANNUAL':'2025년 결산 · 연간 결산 · 출처',metricBasis:{label:'2026E',source:'NAVER_FNGUIDE_ANNUAL',isEstimated:n===1},capitalBasis:{year:2025,source:'DART:CFS'},rimReason:'제공처 BPS 분모 확인 불가',notices:['누락 값은 —로 표시합니다.'],missingReasons:{per:'NOT_PROVIDED'}}));
 test('classification, equal boxes, search, popup events and history',async({page},info)=>{
  await page.route('**/api/**',async r=>{

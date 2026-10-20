@@ -69,7 +69,7 @@ public final class MainActivity extends Activity {
             handler.postDelayed(updateBadge, 3000);
         };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.4");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.5");
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
@@ -106,10 +106,10 @@ public final class MainActivity extends Activity {
                 else if (index == 1) startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
                 else new AlertDialog.Builder(this).setMessage("작성 중인 화면을 나가시겠습니까? 저장하지 않은 입력은 다시 입력해야 할 수 있습니다.").setNegativeButton("취소", null).setPositiveButton("목록 열기", (confirm, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications")).show();
             }).setNegativeButton("닫기", null).show());
-        web.loadUrl(BuildConfig.SITE_ORIGIN);
+        AuthCookies.start(() -> { if (!isFinishing()) web.loadUrl(BuildConfig.SITE_ORIGIN); });
     }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     @Override protected void onResume() { super.onResume(); if (updateBadge != null) handler.post(updateBadge); }
-    @Override protected void onPause() { handler.removeCallbacksAndMessages(null); super.onPause(); }
+    @Override protected void onPause() { AuthCookies.persist(); handler.removeCallbacksAndMessages(null); super.onPause(); }
     @Override protected void onDestroy() { handler.removeCallbacksAndMessages(null); web.destroy(); super.onDestroy(); }
 }

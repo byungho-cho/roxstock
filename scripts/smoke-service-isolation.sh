@@ -34,6 +34,9 @@ COLLECTOR_REALTIME_ENABLED=false
 DART_COLLECTOR_ENABLED=false
 VALUATION_SUPPLEMENT_ENABLED=false
 ENV
+cat > backend/.env.auth <<'ENV'
+AUTH_PUBLIC_ORIGIN=https://newrox.cafe24.com
+ENV
 "${compose[@]}" up -d --no-deps --pull never backend collector realtime-collector dart-collector
 for service in backend collector realtime-collector dart-collector; do
   for i in {1..90}; do
@@ -53,7 +56,9 @@ SH
 chmod 755 "$state/bin/docker"
 export PATH="$state/bin:$PATH"
 # Schema is already migrated by this isolated job. Exercise service replacement only.
+# Ownership migration/security have their own real-DB check; this fixture has no legacy owner.
 touch "$state/migrated-$next"
+touch "$state/auth-owner-migrated-$next"
 bash scripts/deploy-service.sh backend "$next"
 bash scripts/deploy-service.sh collector "$next"
 echo 'Real Compose: API deployment preserved all collector IDs/start times; collector deployment preserved API ID/start time.'

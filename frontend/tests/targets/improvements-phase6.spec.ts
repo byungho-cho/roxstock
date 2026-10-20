@@ -1,6 +1,6 @@
 import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
-import { test, expect, type Page, type Locator } from '@playwright/test';
+import { test, expect, type Page, type Locator } from './authenticated-test';
 import { fixture } from './phase3-fixture';
 async function setup(page:Page) {
  const control=await fixture(page);
@@ -48,7 +48,7 @@ test('loading completion preserves quarter alignment and account data stays isol
  await expect(page.getByTestId('investment-page')).toHaveAttribute('data-restoration-ready','true');
  const heading=page.getByTestId('investment-chart-heading');await expect.poll(()=>heading.evaluate(e=>Math.abs(e.getBoundingClientRect().top-document.querySelector('main')!.getBoundingClientRect().top))).toBeLessThan(3);
  await open(page);await expect(page.getByTestId('stock-profit-summary')).toContainText('2,000원');
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('stock-profit-summary')).not.toContainText('2,000원');
 });
 

@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 const features = ['security-master','realtime-prices','market-prices','account-snapshots','dart-financial-statements'].map((id,i)=>({
  id,name:['종목 마스터','실시간 주가','전체 종목 주가','일별 계좌 스냅샷','DART 재무제표'][i],status:['DELAYED','OK','NOT_IMPLEMENTED','WAITING','NO_FILING'][i],
  schedule:'실제 API 일정',lastAttemptAt:'2026-10-05T00:10:00Z',lastSuccessAt:'2026-10-05T00:08:00Z',nextAt:'2026-10-05T01:00:00Z',
@@ -79,7 +79,7 @@ test('settings menu, small form, left title and Enter failure retention',async({
   const a=await page.getByTestId('settings-menu').boundingBox(),b=await page.getByTestId('settings-detail').boundingBox();expect(b!.x-a!.x-a!.width).toBeCloseTo(8,1);
  }
  await page.goto('/detail/settings?view=edit');const field=page.getByRole('textbox',{name:'계좌명',exact:true});await expect(field).toBeFocused();await expect.poll(()=>field.evaluate(n=>[(n as HTMLInputElement).selectionStart,(n as HTMLInputElement).selectionEnd])).toEqual([0,5]);
- const heights=await page.getByRole('textbox').evaluateAll(ns=>ns.map(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height));expect(heights).toEqual([36,36,36]);
+ const heights=await field.locator('xpath=ancestor::form[1]').getByRole('textbox').evaluateAll(ns=>ns.map(n=>n.closest('.MuiInputBase-root')!.parentElement!.getBoundingClientRect().height));expect(heights).toEqual([36,36,36]);
  const title=await page.getByRole('heading').boundingBox();expect(title!.x).toBe(36);
  await field.fill('변경 계좌');await field.press('Enter');await expect(page.getByRole('textbox',{name:'증권사',exact:true})).toBeFocused();f.fail();
  await page.getByRole('textbox',{name:'계좌번호',exact:true}).press('Enter');await expect(page.getByRole('alert').filter({hasText:'테스트 저장 실패'})).toContainText('테스트 저장 실패');await expect(field).toHaveValue('변경 계좌');

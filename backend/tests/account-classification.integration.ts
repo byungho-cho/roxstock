@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { buildApp } from '../src/app.js';
+import { buildApp } from '../src/auth/route-test-app.js';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { PrismaCollectorRepository } from '../../collector/src/repository.js';
 

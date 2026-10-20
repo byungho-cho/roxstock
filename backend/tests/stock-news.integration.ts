@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {hash,kstStart,seoulDay,candidateKeys,type NewsCandidate} from '@roxstock/shared/news/policy';
 import {supplementNewsSummaries} from '../../collector/src/news-summary.js';

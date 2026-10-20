@@ -1,4 +1,4 @@
-import {test,expect,type Page,type Locator} from '@playwright/test';
+import {test,expect,type Page,type Locator} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 async function ready(page:Page){await setup(page,{allMetrics:true});await page.goto('/detail/value?view=chart&selected=1&centerYear=2024');await expect(page.getByTestId('value-chart-수익성')).toBeVisible();}
 async function select(chart:Locator,fraction=.5,touch=false){const svg=chart.locator('svg'),box=(await svg.boundingBox())!;const position={x:38+(box.width-76)*fraction,y:40};if(touch)await svg.tap({position});else await svg.click({position});}

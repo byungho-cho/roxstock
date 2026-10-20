@@ -1,6 +1,6 @@
 import {recentBuys} from '../../src/pages/dashboard/recentBuysData';
 import type {BuyLotDto} from '../../src/data/roxstockApi';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 const stamp = '2026-10-01T03:10:00Z';
 const holdings = [
   {securityId:'1',name:'현대자동차',quantity:'700',averagePurchasePrice:'448344',purchaseAmount:'313840800',currentPrice:'519000',marketValue:'363300000',unrealizedProfitLoss:'49459200',unrealizedReturnRate:'15.8'},
@@ -71,7 +71,7 @@ test('refresh retains list and scroll; unavailable/errors differ from empty; acc
   f.hold();await page.clock.fastForward(60_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(card.getByTestId('target-lot')).toHaveCount(5);expect(await page.locator('main').evaluate(n=>n.scrollTop)).toBe(top);f.release();await expect(card.getByText(/갱신 중/)).toHaveCount(0);
   f.unavailable();await page.clock.fastForward(60_000);await expect(card.getByText(/판정 불가 1건/)).toBeVisible();await expect(card.getByText('내용이 없습니다.')).toHaveCount(0);
   f.fail();await page.clock.fastForward(60_000);await page.clock.fastForward(10_000);await expect(page.getByText('조회 실패 · 이전 결과')).toBeVisible();await expect(card.getByTestId('target-lot')).toHaveCount(5);
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(card.getByTestId('target-lot')).toHaveCount(0);await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(page.getByTestId('home-holding')).toHaveCount(0);
 });
 
 test('home plus opens the confirmed holding-add screen and back restores body scroll',async({page})=>{

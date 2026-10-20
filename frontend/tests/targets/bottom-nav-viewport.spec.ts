@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './stock-news-fixture';
 test('shared footer stays at the usable viewport bottom across pages and resize cycles',async({page},info)=>{
  await fixture(page,{longSummary:true,long:true});

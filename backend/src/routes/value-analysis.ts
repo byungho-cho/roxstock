@@ -11,7 +11,7 @@ import {latestStoredDisplayShares} from '@roxstock/shared/domain/share-counts';
 import {currentFundamentalSupplement} from '@roxstock/shared/domain/financial-supplement';
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@roxstock/shared/prisma';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
 import { combinedValuation, fairPrice, weight, valuation, orderByWeight, mergeStatements, periods, financialRows } from '@roxstock/shared/domain/value-analysis';

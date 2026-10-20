@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {writeFileSync} from 'node:fs';
 import {fixture} from './phase3-fixture';
 const features=['realtime-prices','market-prices','dart-financial-statements','share-counts','consensus','valuation','security-master'];

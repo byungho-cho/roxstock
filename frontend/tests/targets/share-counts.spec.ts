@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 test('three share rows use exact period, preserve zero and show missing',async({page},info)=>{
  await page.route('**/api/**',route=>{
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.

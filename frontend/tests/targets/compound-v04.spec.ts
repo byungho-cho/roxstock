@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 const makeGoal=(id:string,name:string,isDefault:boolean)=>({id,goalName:name,annualTargetRate:'10',displayColor:'#5EA1F0',isDefault,isVisible:true,rows:[{year:2025,asset:'132',contributed:'120'},{year:2026,asset:'167.2',contributed:'140'}],yearTarget:'167.2',finalTarget:'167.2',progress:'50'});
 const makePlan=(id:string)=>({id,planName:'계획'+id,startYear:2025,endYear:2026,duration:2,initialAssetValue:'100',annualContributionAmount:'20',goals:[makeGoal('1','기준형',true),makeGoal('2','안정형',false)],status:'ACTIVE'});
 async function fixture(page:Page,empty=false,goalsEmpty=false){
@@ -60,8 +60,8 @@ test('refresh failure preserves contents and timestamp; account switch hides old
  f.saveFail(false);f.fail(true);await page.getByRole('radio',{name:'안정형 기본 목표로 설정'}).click();await page.getByRole('button',{name:'변경',exact:true}).click();await expect(page.getByRole('alert')).toHaveCount(1);
  const compare=page.viewportSize()!.width>=600?page.locator('[data-scroll-region="compound-right"]'):page;
  await expect(page.locator('.MuiSnackbar-root')).toContainText('조회에 실패');await expect(page.getByTestId('compound-goal-1')).toContainText('기준형 · 기본');f.fail(false);await compare.getByRole('button',{name:'다시 시도',exact:true}).first().click();await expect(page.getByTestId('compound-goal-2')).toContainText('안정형 · 기본');
- f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
+ f.hold('2');await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-plan-1')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','1');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('compound-goal-1')).toBeVisible();f.release();await expect(page.getByTestId('compound-goal-1')).toBeVisible();
 });
 
 test('tablet input popup closing restores both column positions and selected plan',async({page})=>{

@@ -1,4 +1,4 @@
-import {test,expect,type Page,type Locator} from '@playwright/test';
+import {test,expect,type Page,type Locator} from './authenticated-test';
 const cases=[
  [0,'239, 68, 68','191, 219, 254'],[19.99,'245, 122, 122','138, 183, 251'],[20,'245, 122, 122','138, 183, 251'],
  [20.001,'34, 197, 94','254, 240, 138'],[22,'61, 206, 117','250, 228, 112'],[28,'140, 234, 185','238, 191, 34'],

@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {readFileSync,writeFileSync} from 'node:fs';
 const sk=JSON.parse(readFileSync(new URL('./fixtures/phase26-sk-value.json',import.meta.url),'utf8'));
 const skList=JSON.parse(readFileSync(new URL('./fixtures/phase26-sk-list.json',import.meta.url),'utf8'));
@@ -36,7 +36,7 @@ test('before and after holding summary: center axes, 8px padding and signed valu
 test('stock annual rows and linked detail keep the same stock/account and cached requests isolated',async({page},info)=>{
  const f=await setup(page);await page.goto('/stocks/1?detailTab=summary');await expect(page.getByTestId('stock-annual-row')).toContainText('+120원');await page.getByTestId('stock-annual-row').click();await expect(page).toHaveURL(/securityId=1/);await expect(page.getByTestId('profit-detail-summary')).toContainText('120원');await expect(page.getByTestId('profit-detail-summary')).not.toContainText('미수집');
  await page.goto('/stocks/4?detailTab=summary');await expect(page.getByTestId('stock-annual-row')).toContainText('-30원');
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-annual-row')).toContainText('+505원');expect(f.reads).toEqual(expect.arrayContaining([{account:'1',scope:'1'},{account:'1',scope:'4'},{account:'2',scope:'4'}]));writeFileSync(info.outputPath('scope-requests.json'),JSON.stringify(f.reads,null,2));
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-annual-row')).toContainText('+505원');expect(f.reads).toEqual(expect.arrayContaining([{account:'1',scope:'1'},{account:'1',scope:'4'},{account:'2',scope:'4'}]));writeFileSync(info.outputPath('scope-requests.json'),JSON.stringify(f.reads,null,2));
 });
 test('home order, zero-only cover compaction and fresh holding entry resets to summary',async({page},info)=>{
  await setup(page);await page.goto('http://127.0.0.1:3126/');const target=page.getByTestId('target-arrival-card');await expect(target).toContainText('0건');const before=(await target.boundingBox())!.height;await target.scrollIntoViewIfNeeded();await capture(page,info,'home-before');

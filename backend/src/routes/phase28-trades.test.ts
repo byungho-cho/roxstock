@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildApp} from '../app.js';
+import {buildApp} from '../auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {Prisma} from '@roxstock/shared/prisma';
 test('phase28 scoped trade API returns all years and >50 buys/split sells in one response',async()=>{

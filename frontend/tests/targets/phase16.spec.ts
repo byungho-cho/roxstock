@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture,selected} from './stock-input-fixture';
 
 test('home account popup consumes Back and X history, menu geometry and account selection',async({page},info)=>{
@@ -12,7 +12,7 @@ test('home account popup consumes Back and X history, menu geometry and account 
  await open.click();await expect(page.getByRole('dialog').getByText('사용 중')).toHaveCSS('font-weight','700');
  await page.screenshot({path:`test-results/phase16/account-${info.project.name}.png`,animations:'disabled'});
  await page.getByRole('button',{name:'장기 투자(2345-6789)',exact:true}).click();
- await expect(open).toContainText('장기 투자');expect(await page.evaluate(()=>localStorage.getItem('roxstock-selected-account-id'))).toBe('b');
+ await expect(open).toContainText('장기 투자');expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:fixture-user:selected-account-id'))).toBe('b');
  const nav=page.getByRole('navigation',{name:'하단 메뉴'});await expect(nav).toHaveCSS('height','44px');
  const home=await nav.getByRole('button',{name:'홈',exact:true}).boundingBox();const more=await nav.getByRole('button',{name:'더보기',exact:true}).boundingBox();
  expect(home!.x).toBe(0);expect(more!.x+more!.width).toBe(page.viewportSize()!.width);

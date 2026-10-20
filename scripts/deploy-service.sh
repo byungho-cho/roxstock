@@ -65,6 +65,16 @@ if [[ "$ROLE" == backend && ! -f "$STATE_DIR/migrated-$TAG" ]]; then
   "${COMPOSE[@]}" run --rm --no-deps backend npx --no-install prisma migrate status --schema database/prisma/schema.prisma
   touch "$STATE_DIR/migrated-$TAG"
 fi
+if [[ "$ROLE" == backend ]] && grep -q '"version":"1.2.0"' "$PROJECT_DIR/backend/src/release.json" && [[ ! -f "$STATE_DIR/auth-owner-migrated-$TAG" ]]; then
+  test -d "${AUTH_CUTOVER_BACKUP_DIRECTORY:?Fresh verified backup required}"
+  audit="$AUTH_CUTOVER_BACKUP_DIRECTORY/owner-audit-$(date -u +%Y%m%dT%H%M%S%N)"
+  install -d -m 700 "$audit"
+  "${COMPOSE[@]}" run --rm --no-deps --user root -v "$audit:/audit" \
+    -e AUTH_MIGRATION_MAINTENANCE=confirmed -e AUTH_MIGRATION_AUDIT_DIRECTORY=/audit \
+    -e AUTH_MIGRATION_BACKUP_ID="$(basename "$AUTH_CUTOVER_BACKUP_DIRECTORY")" \
+    backend node backend/dist/auth/migrate-owner.js --apply
+  touch "$STATE_DIR/auth-owner-migrated-$TAG"
+fi
 healthy() {
   local s status deadline=$((SECONDS+180))
   while ((SECONDS<deadline)); do
@@ -84,6 +94,7 @@ failed=false
 if [[ "$failed" == false ]]; then healthy || failed=true; fi
 if [[ "$failed" == false && "$ROLE" == backend ]]; then
   docker exec roxstock-backend node -e "fetch('http://127.0.0.1:3300/health/db').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" || failed=true
+  docker exec roxstock-backend node -e "fetch('http://127.0.0.1:3300/api/accounts').then(r=>process.exit(r.status===401?0:1)).catch(()=>process.exit(1))" || failed=true
 fi
 if [[ "$failed" == true ]]; then
   echo "Deployment failed; restoring previous $ROLE images. Record: $record"

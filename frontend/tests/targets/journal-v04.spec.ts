@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './authenticated-test';
 import { fixture } from './stock-input-fixture';
 import { journalTotals, type JournalEntry } from '../../src/pages/journal/journalMath';
 const isTablet = (page: Page) => page.viewportSize()!.width >= 600;
@@ -185,10 +185,10 @@ test('query failure and missing matched Lot stay distinct from valid empty and z
  await page.route('**/api/accounts/*/buy-lots**',route=>route.fulfill({json:{data:[]}}));
  await page.reload();
  await expect(page.getByTestId('journal-entry-s0').getByTestId('transaction-cost')).toHaveText('—');
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('journal-transactions')).toContainText('내용이 없습니다.');
  await expect(page.getByTestId('journal-entry-s0')).toHaveCount(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('journal-entry-s0')).toBeAttached();
  await page.route('**/api/accounts/*/trades**',route=>route.fulfill({status:500,json:{error:{message:'검사 조회 실패'}}}));
  await page.reload();

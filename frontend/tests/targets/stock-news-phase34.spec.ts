@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './stock-news-fixture';
 async function frame(page:Page){
  const result=await page.getByTestId('news-summary-card').evaluate(card=>{const main=document.querySelector('main')!,body=document.querySelector('[data-testid="news-summary-body"]')!,nav=document.querySelector('[aria-label="하단 메뉴"]')!;return {card:card.getBoundingClientRect().toJSON(),main:main.getBoundingClientRect().toJSON(),nav:nav.getBoundingClientRect().toJSON(),overflow:main.scrollHeight-main.clientHeight,bodyStyle:getComputedStyle(body).overflowY,documentOverflow:document.documentElement.scrollWidth-innerWidth};});

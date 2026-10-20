@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import type {Page} from './authenticated-test';
 export async function setup(page:Page,options:{allMetrics?:boolean;longName?:boolean;empty?:boolean}={}){
  const stocks=[1,2].map(i=>({id:String(i),name:options.longName&&i===1?'아주긴종목명이표시되는주식회사삼성전자':'종목'+i,symbol:'00000'+i,market:'KOSPI',currentPrice:'100',w:'1',fairPrices:[],valuation:null}));
  const state={posts:0,finished:false,fail:false,body:null as unknown,reads:[] as URL[]};

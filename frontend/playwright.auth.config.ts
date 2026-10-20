@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/targets',testMatch:'auth-v12.spec.ts',workers:1,reporter:'list',outputDir:'test-results/auth-v12',use:{baseURL:'http://127.0.0.1:3057',locale:'ko-KR',screenshot:'only-on-failure',trace:'retain-on-failure'},projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}}],webServer:{command:'npm run dev -- --host 127.0.0.1 --port 3057 --strictPort',env:{VITE_DATA_SOURCE:'api'},url:'http://127.0.0.1:3057',reuseExistingServer:false}});

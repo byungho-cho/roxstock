@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 test('asset frame replaces route loading during the actual page code download',async({page},info)=>{
  await fixture(page);let release!:()=>void;

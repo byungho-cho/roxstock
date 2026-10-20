@@ -6,7 +6,7 @@ import {exclusionReason,type CollectionFeature} from '@roxstock/shared/collectio
 import {createHash} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 
 type Query = {limit?: string; cursor?: string; result?: string; phase?: string; symbol?: string; market?: string; accountId?: string; from?: string; to?: string;runId?:string};
 type Cursor = {v: 1; scope: string; at: string; id: string; ceiling: string};

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 
 test('home priority cards finish before recent buys; recent delay is local; valid re-entry cache is immediate',async({page},info)=>{

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 for(const [period,mode,quarter] of [['ANNUAL','annual',null],['Q2','quarter','2']] as const)test(`recent report ${period} orders date/security/reason and links to its statement period`,async({page})=>{
  await fixture(page);const report={id:'17',feature:'dart-financial-statements',code:'PERIOD_PER_MISSING',severity:'WARNING',summary:'PER 계산 기준 확인 필요',state:'REVIEWING',occurrences:2,activeTargets:2,firstSeenAt:'2026-10-18T04:00:00Z',lastSeenAt:'2026-10-18T04:00:00Z',reviewNote:null};

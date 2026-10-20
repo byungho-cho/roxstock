@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 import {swipeStock} from './financial-chart-gestures';
 test('center boundaries clamp 2015 and 2026, preserve stock and quarter selection',async({page},info)=>{

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 test('foreign originals retain exact decimals; money charts use separate currency axes',async({page},info)=>{
  await setup(page);

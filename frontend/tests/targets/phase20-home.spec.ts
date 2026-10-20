@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 // Phase26 intentionally lets the target card resize once its result is known; its loading/error/empty heights are checked in phase26.spec.ts.
 const cards=['home-total-card','home-quick-cards','asset-performance-card'];
@@ -39,7 +39,7 @@ test('account change clears old values and a late response cannot replace the ne
  let releaseOld!:()=>void,releaseNew!:()=>void;
  await page.route('**/api/accounts/*/dashboard',async r=>{const id=new URL(r.request().url()).pathname.split('/')[3];await new Promise<void>(resolve=>{if(id==='1')releaseOld=resolve;else releaseNew=resolve;});return id==='1'?r.fulfill({json:{data:{account:{id:'1'},totalAssetValue:'999999',stockValue:'999999',cashBalance:'0',purchaseAmount:'0',holdings:[]}}}):r.fallback();});
  await page.clock.runFor(301000);await expect.poll(()=>!!releaseOld).toBe(true);await expect(page.getByTestId('home-total-card')).toContainText('165,000원');
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect.poll(()=>!!releaseNew).toBe(true);await expect(page.getByTestId('home-total-card')).not.toContainText('165,000원');await expect(page.getByTestId('home-holding')).toHaveCount(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect.poll(()=>!!releaseNew).toBe(true);await expect(page.getByTestId('home-total-card')).not.toContainText('165,000원');await expect(page.getByTestId('home-holding')).toHaveCount(0);
  const before=await geometry(page);releaseNew();await expect(page.getByTestId('home-total-card')).toContainText('165,000원');releaseOld();await expect(page.getByTestId('home-total-card')).not.toContainText('999,999원');await expect(page.getByTestId('home-holdings-card')).toContainText('총 0건');expect(await geometry(page)).toEqual(before);
 });
 test('fast completion removes indicators immediately without a minimum loading delay',async({page})=>{

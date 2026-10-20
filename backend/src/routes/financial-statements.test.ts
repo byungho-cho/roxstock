@@ -1,7 +1,7 @@
 import {buildAnalysisTestApp} from './analysis-test-fixture.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../app.js';
+import {buildApp} from '../auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {Prisma} from '@roxstock/shared/prisma';
 test('financial list only reads stored records and missing numbers sort last in both directions',async()=>{

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PrismaClient,Prisma} from '@roxstock/shared/prisma';
-import {buildApp} from '../../backend/src/app.js';
+import {buildApp} from '../../backend/src/auth/route-test-app.js';
 import {PrismaDartRepository} from '../src/dart-repository.js';
 import {mapPeriodicReports,normalizeDartFinancialRows,type DartFinancialRow} from '../src/dart-provider.js';
 import {validateDartFiling} from '../src/dart-filing-validation.js';

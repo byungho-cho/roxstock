@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {buildApp} from '../app.js';
+import {buildApp} from '../auth/route-test-app.js';
 import release from '../release.json' with {type:'json'};
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';

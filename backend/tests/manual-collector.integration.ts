@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prisma} from '@roxstock/shared/lib/prisma';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {refreshManualAnnual} from '../../collector/src/manual-annual-prototype.js';
 import {NaverAnnualError,type NaverAnnualProvider,type NaverAnnual} from '../../collector/src/naver-annual.js';
 import type {OpenDartProvider} from '../../collector/src/dart-provider.js';

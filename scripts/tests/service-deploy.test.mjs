@@ -6,6 +6,19 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {runProductionComponent} from '../run-production-component.mjs';
 
+test('ordinary backend rollback refuses a legacy image before starting any container',{skip:process.platform==='win32'},()=>{
+ const dir=mkdtempSync(join(tmpdir(),'roxstock-rollback-auth-'));
+ try{
+  const state=join(dir,'state'),record=join(state,'history/record'),ops=join(dir,'operations');mkdirSync(record,{recursive:true});mkdirSync(join(dir,'bin'));
+  writeFileSync(join(record,'previous-images.txt'),'backend newrox/roxstock-backend:sha-'+'a'.repeat(40)+'\n');writeFileSync(join(record,'compose.yml'),'services: {}\n');
+  writeFileSync(join(dir,'rollback.sh'),readFileSync('scripts/rollback-production-component.sh','utf8').replace('STATE=/opt/roxstock/.deploy',`STATE="${state}"`));
+  writeFileSync(join(dir,'bin/docker'),'#!/usr/bin/env bash\necho "$*" >> "$FIXTURE_OPS"\nif [[ "$1" == run ]]; then exit "$AUTH_IMAGE_STATUS"; fi\nexit 0\n');chmodSync(join(dir,'bin/docker'),0o755);
+  const run=status=>spawnSync('bash',[join(dir,'rollback.sh'),record,'backend'],{encoding:'utf8',env:{...process.env,PATH:join(dir,'bin')+':'+process.env.PATH,FIXTURE_OPS:ops,AUTH_IMAGE_STATUS:String(status)}});
+  let result=run(1);assert.equal(result.status,1,result.stdout+result.stderr);assert.doesNotMatch(readFileSync(ops,'utf8'),/ up /);
+  writeFileSync(ops,'');result=run(0);assert.equal(result.status,0,result.stdout+result.stderr);assert.match(readFileSync(ops,'utf8'),/ up /);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
 test('deployment uploads an immutable script and closes stdin for every SSH/SCP child',()=>{
  const calls=[],sha='d'.repeat(40),env={DEPLOY_HOST:'example.test',DEPLOY_USER:'deploy',DEPLOY_PORT:'22'};
  runProductionComponent(sha,'backend','/private/key',env,(command,args,options)=>calls.push({command,args,options}));

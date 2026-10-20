@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { PageCache } from '@roxstock/shared/domain/page-cache';
 import { id } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 import { loadAccounts } from './accounts.js';
 import { loadDashboard, loadPortfolio, serializeHolding } from './portfolio.js';
@@ -39,7 +39,7 @@ export function installPageBootstrap(app: FastifyInstance) {
     app.get<{ Querystring: { accountId?: string } }>(`/api/pages/${screen}`, async (request, reply) => {
       const selected = request.query.accountId ? String(id(request.query.accountId, 'accountId')) : undefined;
       const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
-      const cacheKey = JSON.stringify([screen, selected, today]);
+      const cacheKey = JSON.stringify([request.auth?.userId.toString(), screen, selected, today]);
       const result = await cache.get(cacheKey, async () => {
         const { data: accounts } = await loadAccounts();
         const active = accounts.filter(account => account.isActive);

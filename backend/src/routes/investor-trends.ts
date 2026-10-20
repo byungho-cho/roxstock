@@ -1,7 +1,7 @@
 import {combinedStockFlows} from '../domain/investor-exchange.js';
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {id} from '../lib/input.js';
 

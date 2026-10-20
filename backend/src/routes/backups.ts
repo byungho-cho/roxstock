@@ -1,6 +1,6 @@
 import type {FastifyInstance} from 'fastify';
 import {resolve} from 'node:path';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {installBackupAuth} from '../domain/backup-auth.js';
 import {BackupService} from '../domain/backup-service.js';

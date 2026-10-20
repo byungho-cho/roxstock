@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {setup as financialFixture} from './financial-ui-fixture';
 import {fixture as stockFixture} from './stock-input-fixture';
 const overflow=async(page:Page)=>expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);

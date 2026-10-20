@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { id } from '../lib/input.js';
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { consensusRatios, type AnnualConsensus } from '@roxstock/shared/collection/consensus-math';

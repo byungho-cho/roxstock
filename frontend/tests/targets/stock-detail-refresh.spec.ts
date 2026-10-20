@@ -1,5 +1,5 @@
 import {tradeFixtureData} from './trade-summary-fixture';
-import {test,expect,type Locator,type Page} from '@playwright/test';
+import {test,expect,type Locator,type Page} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 
 async function gesture(target:Locator, points:number[][], finish=true) {

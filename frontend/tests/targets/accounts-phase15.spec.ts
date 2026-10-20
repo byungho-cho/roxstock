@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 
 async function fixture(page:Page){
  let accounts=[{id:'1',name:'사용 계좌',isDefault:true,cashBalance:'20'},{id:'2',name:'다른 계좌 긴 이름을 표시하는 계좌',isDefault:false,cashBalance:'30'}].map(a=>({...a,brokerName:'증권사',accountNumber:'123-'+a.id,isActive:true,updatedAt:'2026-10-09T00:00:00Z'}));
@@ -26,7 +26,7 @@ test('card keyboard selection, reselection, pencil isolation and edited account 
  await expect(second.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','true');
  await page.keyboard.press('Space');expect(f.writes).toEqual([]);
  await first.getByRole('button',{name:/계좌 정보 수정/}).focus();await page.keyboard.press('Enter');
- await expect(page).toHaveURL(/accountId=1/);expect(await page.evaluate(()=>localStorage.getItem('roxstock-selected-account-id'))).toBe('2');
+ await expect(page).toHaveURL(/accountId=1/);expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:fixture-user:selected-account-id'))).toBe('2');
  await page.getByRole('textbox',{name:'계좌번호',exact:true}).fill('010-2222-0000-1');await page.getByRole('button',{name:'변경',exact:true}).click();
  await expect(first.getByTestId('account-number')).toHaveText('(010-2222-0000-1)');await expect(second.getByRole('button',{name:/계좌 선택/})).toHaveAttribute('aria-pressed','true');
  expect(f.writes).toEqual(['/api/accounts/1']);

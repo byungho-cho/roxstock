@@ -1,5 +1,5 @@
 import {swipeStock} from './financial-chart-gestures';
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 async function setup(page:Page){
  const stocks=[1,2].map(i=>({id:String(i),name:'종목'+i,symbol:'00000'+i,market:'KOSPI',currentPrice:'100',w:'1',fairPrices:[],valuation:null}));

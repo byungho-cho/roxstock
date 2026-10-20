@@ -7,7 +7,7 @@ import { valueBuyLot } from '../domain/lot-valuation.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, nonNegativeDecimal, optionalMemo, positiveDecimal } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { serializable } from '../lib/transaction.js';
 import { registerTrade, requestId } from '../domain/trade-request.js';
 

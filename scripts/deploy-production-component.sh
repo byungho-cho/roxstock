@@ -60,6 +60,13 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   # Only copy the existing server environment. Never read a CI/development env.
   test -f "$SOURCE_TREE/backend/.env.production"
   install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
+  # Backend-only auth mail settings are deliberately absent from the collector env file.
+  test -f "$SOURCE_TREE/backend/.env.auth"
+  install -m 600 "$SOURCE_TREE/backend/.env.auth" "$DEPLOY_TREE/backend/.env.auth"
+  if [[ "$COMPONENT" == backend ]] && grep -q '"version":"1.2.0"' "$DEPLOY_TREE/backend/src/release.json"; then
+    test -f "$SOURCE_TREE/.deploy/auth-cutover-ready"
+    test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' https://newrox.cafe24.com/api/accounts)" = 401
+  fi
   if ! grep -Eq '^COLLECTOR_INTERNAL_TOKEN=.+$' "$DEPLOY_TREE/backend/.env.production"; then
     # Earlier deploys generated this token only in their worktree. Carry the
     # existing runtime token forward, without rotating it or logging its value.
@@ -74,22 +81,25 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   fi
   if [[ ! -f "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG" ]]; then
   # Retain a restricted server-local backup before applying schema migrations.
-  BACKUP_DIR="$SOURCE_TREE/.deploy/backups"
+  backup_id="roxstock-v0.2-$(date -u +%Y%m%dT%H%M%SZ)"
+  BACKUP_DIR="$SOURCE_TREE/backups/$backup_id"
   install -d -m 700 "$BACKUP_DIR"
-  backup_file="$BACKUP_DIR/roxstock-before-$SHA-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+  backup_file="$BACKUP_DIR/$backup_id.sql.gz"
   umask 077
   docker exec roxstock-mariadb sh -c '
     export MYSQL_PWD="${MARIADB_ROOT_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
     test -n "$MYSQL_PWD" || { echo "Database backup credential unavailable." >&2; exit 1; }
-    exec mariadb-dump -uroot --single-transaction --quick --routines --events --triggers --hex-blob --databases roxstock
+    exec mariadb-dump -uroot --single-transaction --quick --routines --events --triggers --hex-blob roxstock
   ' | gzip > "$backup_file.partial"
   test -s "$backup_file.partial"
   gzip -t "$backup_file.partial"
   mv "$backup_file.partial" "$backup_file"
   sha256sum "$backup_file" > "$backup_file.sha256"
+  printf '%s\n' "$BACKUP_DIR" > "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG"
   touch "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG"
   echo "Verified server-local pre-migration backup: $backup_file"
   fi
+  export AUTH_CUTOVER_BACKUP_DIRECTORY="$(cat "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG")"
   export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"
   install -d -m 755 "$SOURCE_TREE/.deploy/runtime"
   bash "$DEPLOY_TREE/scripts/deploy-$COMPONENT.sh" "$IMAGE_TAG"

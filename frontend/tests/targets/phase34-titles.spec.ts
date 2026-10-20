@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 const entries=[['/detail/assets','대시보드'],['/stocks','종목목록'],['/journal','매매일지'],['/detail/cash','예수금'],['/assets','자산분석'],['/detail/investment','투자금'],['/detail/investment-profit','투자손익'],['/detail/value','가치분석'],['/detail/financials','재무제표'],['/detail/compound','복리계획'],['/detail/settings?view=settings','설정'],['/more','메뉴']];
 for(const [path,title] of entries)test(`${title}: shared title size, gutter and vertical centering`,async({page},info)=>{

@@ -1,0 +1,1 @@
+ALTER TABLE `auth_users` ADD COLUMN `initial_mail_claimed_at` DATETIME(3) NULL;

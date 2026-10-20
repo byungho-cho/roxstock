@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './authenticated-test';
 test('stored chart/table, pointer selection, detail return and quarter boundaries',async({page},info)=>{
  await page.clock.install({time:new Date('2026-10-07T03:00:00Z')});
  await page.route('**/api/**',async route=>{

@@ -1,4 +1,4 @@
-import {expect,test} from '@playwright/test';
+import {expect,test} from './authenticated-test';
 test('compound colors, card actions, year calendar and formatted numeric input',async({page},info)=>{
  const goal={id:'1',goalName:'기준형',displayColor:'#5EA1F0',annualTargetRate:'10',isDefault:true,isVisible:true,rows:[],yearTarget:'1000000',finalTarget:'2000000',progress:'50'};
  const plan={id:'1',planName:'테스트 계획',displayColor:'#FA616E',startYear:2025,endYear:2027,duration:3,initialAssetValue:'1000000',annualContributionAmount:'100000',goals:[goal],status:'ACTIVE'};

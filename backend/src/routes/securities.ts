@@ -9,7 +9,7 @@ import { combinedValuation, valuation } from '@roxstock/shared/domain/value-anal
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { parseManualRefresh } from '@roxstock/shared/collection/manual-requests';
 import { id, optionalMemo } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { serializable } from '../lib/transaction.js';
 import { manualClassification, requireActiveAccount } from '../domain/classification.js';
 import { calculateRemainingQuantity } from '../domain/trade.js';
@@ -186,7 +186,7 @@ export async function securityRoutes(app: FastifyInstance) {
 
   app.get<{ Params: SecurityParams; Querystring: { fiscalYear?: string; accountId?: string } }>('/securities/:id/analysis', async (request) => {
     const securityId = id(request.params.id, 'id');
-    const security = await prisma.security.findUnique({ where: { id: securityId }, include: { marketPrice: true, watchlistItem: true } });
+    const security = await prisma.security.findUnique({ where: { id: securityId }, include: { marketPrice: true } });
     if (!security || !security.isActive) throw new ApiError(404, 'SECURITY_NOT_FOUND', 'Security not found.');
     const accountId = request.query.accountId === undefined ? undefined : id(request.query.accountId, 'accountId');
     if (accountId !== undefined) await requireActiveAccount(prisma, accountId);

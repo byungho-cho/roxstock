@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import type {Page} from './authenticated-test';
 export async function fixture(page:Page, options:{trend?:boolean;analysis?:boolean}={}){
  await page.clock.setFixedTime(new Date('2026-10-13T03:00:00Z'));
  const history={mode:'ready' as 'ready'|'empty'|'error'|'hold'};let releaseHistory=()=>{};

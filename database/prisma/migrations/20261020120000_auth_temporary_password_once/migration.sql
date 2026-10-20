@@ -1,0 +1,1 @@
+ALTER TABLE `auth_users` ADD COLUMN `temporary_used_at` DATETIME(3) NULL;

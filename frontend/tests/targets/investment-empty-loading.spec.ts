@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 for(const item of [{accountFirst:true,path:'/detail/investment',module:'InvestmentPage',shell:'investment-download-shell',page:'investment-page'},{accountFirst:false,path:'/detail/investment',module:'InvestmentPage',shell:'investment-download-shell',page:'investment-page'},{accountFirst:false,path:'/detail/investment-profit',module:'InvestmentProfitPage',shell:'profit-download-shell',page:'profit-page'}]){
  test(`${item.module} ${item.accountFirst?'account-first':'code-first'}: code and accounts wait show blank frames without skeletons`,async({page},info)=>{

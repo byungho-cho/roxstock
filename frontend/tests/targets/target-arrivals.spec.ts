@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 
 const conditions=[{days:7,rate:'5'},{days:30,rate:'10'},{days:90,rate:'15'},{days:180,rate:'20'},{days:365,rate:'30'}];
 const sample=(i:number)=>({lotId:String(i+1),securityId:'1',symbol:'005380',name:i===4?'한국투자글로벌반도체장기종목':'현대차',buyDate:'2026-09-11',holdingDays:20,remainingQuantity:'10',unitPrice:'180000',currentPrice:'200000',returnRate:'11.111111111111111',profitLoss:'200000',representativeCondition:conditions[1],priceUpdatedAt:'2026-10-01T03:10:00Z'});
@@ -53,7 +53,7 @@ test('conditions edit, max five, enter flow, retry and explicit empty settings',
 });
 test('unavailable is distinct from empty and account switches discard prior results',async({page})=>{
   const f=await fixture(page);f.unavailable();await page.goto('/detail/target-arrivals');await expect(page.getByText(/판정 불가 2건/)).toBeVisible();await expect(page.getByText('내용이 없습니다.')).toHaveCount(0);
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('target-lot')).toHaveCount(0);
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('target-lot')).toHaveCount(0);
 });
 test('long names and large amounts preserve all numeric cells',async({page},info)=>{
   await fixture(page);await page.route('**/api/accounts/*/target-arrivals',route=>route.fulfill({json:{data:[{...sample(4),remainingQuantity:'100000000000',currentPrice:'999999999999999',unitPrice:'888888888888888',profitLoss:'11111111111111100000000000'}],meta:{...meta,total:1}}}));await page.goto('/detail/target-arrivals');await expect(page.getByTestId('target-lot')).toHaveCount(1);await checkLayout(page);await expect(page.getByLabel('평가이익액')).toContainText('11,111,111,111,111,100,000,000,000원');await page.screenshot({path:info.outputPath('large-values.png')});

@@ -4,6 +4,8 @@ import {useEffect,useState} from 'react';
 import {liveApiEnabled} from '../data/liveData';
 import {readDemoSettings,saveDemoSettings} from '../data/mockMoreSettings';
 import {chooseAccount,selectedAccountStorageKey} from '../data/roxstockApi';
+import {authRequest} from '../auth/client';
+import {showErrorToast} from '../components/common/QueryErrorNotice';
 
 export function useMoreAccounts() {
   const client = useQueryClient();
@@ -25,7 +27,7 @@ export function useMoreAccounts() {
   };
   const select = async (id: string) => {
     if (selected?.id === id) return;
-    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); }
+    if (liveApiEnabled) { try{await authRequest('settings',{selectedAccountId:id});localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account'));}catch{showErrorToast('계좌 선택 저장에 실패했습니다. 다시 선택해 주세요.');} }
     else saveDemoSettings({ selectedId: id });
   };
   return { accounts, selected, query, demo, refresh, select };

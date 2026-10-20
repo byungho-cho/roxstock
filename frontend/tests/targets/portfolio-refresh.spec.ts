@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {QueryClient} from '@tanstack/react-query';
 import {invalidatePortfolio} from '../../src/data/invalidatePortfolio';
 import {fixture} from './stock-input-fixture';

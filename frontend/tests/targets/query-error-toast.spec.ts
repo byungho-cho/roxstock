@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 for(const screen of ['value','financials'] as const){
  test(`${screen}: dismiss error toast and retry`,async({page})=>{
   await page.route('**/api/pages/read',r=>r.fulfill({status:404,body:''}));

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 test('home stock valuation and performance open the requested screens',async({page})=>{
  await fixture(page);await page.goto('/');

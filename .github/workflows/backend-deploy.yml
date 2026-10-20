@@ -139,5 +139,5 @@ jobs:
       - name: Verify external API
         shell: bash
         run: |
-          curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors https://newrox.cafe24.com/api/accounts >/dev/null
-          curl --fail --silent --show-error --retry 3 --retry-delay 2 https://newrox.cafe24.com/api/securities >/dev/null
+          test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' https://newrox.cafe24.com/api/accounts)" = 401
+          test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' https://newrox.cafe24.com/api/securities)" = 401

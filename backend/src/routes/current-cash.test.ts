@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Prisma } from '@roxstock/shared/prisma';
 import { prisma } from '@roxstock/shared/lib/prisma';
-import { buildApp } from '../app.js';
+import { buildApp } from '../auth/route-test-app.js';
 import { serializable } from '../lib/transaction.js';
 import { readCurrentCash } from '../domain/current-cash.js';
 const d=(v:number)=>new Prisma.Decimal(v);

@@ -1,4 +1,5 @@
 /** Coalesce same-turn reads. Each caller keeps independent cancellation and error handling. */
+import {csrfToken} from '../auth/client';
 type Entry = {
   path: string;
   signal?: AbortSignal | null;
@@ -63,7 +64,7 @@ async function send(entries: Entry[]) {
   for (const entry of entries) entry.cancelBatch = () => { if (entries.every(item => item.settled)) controller.abort(); };
   const paths = [...new Set(entries.map(entry => entry.path))];
   try {
-    const response = await fetch('/api/pages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths }), signal: controller.signal });
+    const response = await fetch('/api/pages/read', { method: 'POST', headers: { 'Content-Type': 'application/json','X-CSRF-Token':csrfToken() }, body: JSON.stringify({ paths }), signal: controller.signal });
     if (response.status === 404) {
       legacy = true;
       // Rolling deployment/rollback: retry only reads, never conceal a 5xx or network error.

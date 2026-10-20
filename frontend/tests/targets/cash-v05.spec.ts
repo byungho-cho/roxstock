@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 import {cashDifference} from '../../src/pages/cash/cashData';
 const types=['BUY','SELL','DEPOSIT','WITHDRAWAL','DIVIDEND'];
 async function setup(page:Page){
@@ -48,7 +48,7 @@ test('before tax clears dependents; last input governs mutual calculation and pe
  await expect.poll(()=>state.writes.length).toBe(1);
  expect(state.writes[0].body).toMatchObject({amount:'1000',feeTaxAmount:'2000',balanceAfter:'13000'});
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 240원');
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('cash-year-tax')).toHaveText('올해 제세금 990원');
 });
 test('saved chart uses axes, gap and touch tooltip; empty and failure remain distinct',async({page})=>{

@@ -1,11 +1,11 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase28-fixture';
 const content=(page:any)=>page.getByTestId('stock-detail-content');
 test('annual realized plus net dividends, zero denominator and scoped accounts/stocks',async({page},info)=>{
  await fixture(page);await page.goto('/stocks/1?detailTab=summary');
  const annual=content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'});
  await expect(annual).toContainText('+230원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('+23.0%');await expect(annual.getByTestId('holding-summary-center')).toHaveCSS('color','rgb(248, 113, 113)');await page.screenshot({path:info.outputPath('summary-after.png')});
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(annual).toContainText('-170원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('-17.0%');
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(annual).toContainText('-170원');await expect(annual.getByTestId('holding-summary-center')).toHaveText('-17.0%');
  await page.goto('/stocks/3?detailTab=summary');await expect(content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'})).toContainText('0원');await expect(content(page).getByTestId('holding-summary-row').filter({hasText:'올해 손익'}).getByTestId('holding-summary-center')).toHaveText('—');
 });
 test('one scoped request retains all trade data while only 80 sells appear across years',async({page},info)=>{

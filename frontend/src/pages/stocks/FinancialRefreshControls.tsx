@@ -1,3 +1,4 @@
+import {useAuth} from '../../auth/AuthGate';
 import {publicDartReview} from '../../../../shared/src/domain/dart-review';
 import {refreshOutcome} from './refreshOutcome';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
@@ -28,30 +29,32 @@ const errorText = (code?: string) => {
 };
 type Props = { stockId: string; collectedAt: string|null; startYear?:number; endYear?:number; initialPeriod?:RefreshPeriod; onComplete?:()=>void; onSelection?:(year:number,period:RefreshPeriod)=>void; fixedYear?:number; allReports?:boolean; visible?:boolean;hasExistingData?:boolean };
 export function FinancialRefreshControls({stockId,collectedAt,startYear:initialStart,endYear:initialEnd,initialPeriod='ALL',onComplete,fixedYear,allReports,visible=true}:Props) {
+  const {user}=useAuth();
+  const refreshStorageKey=`financialRefresh:${user?.id??'anonymous'}:${stockId}`;
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
   const minimumYear=initialPeriod==='ANNUAL'&&!allReports?2015:2020;
   const boundYear=(year:number)=>Math.max(minimumYear,Math.min(currentYear,year));
   const defaultStart=boundYear(initialStart??fixedYear??currentYear-2),defaultEnd=boundYear(initialEnd??fixedYear??currentYear);
   const [startYear,setStartYear]=useState(defaultStart),[endYear,setEndYear]=useState(defaultEnd),[period,setPeriod]=useState<RefreshPeriod>(allReports?'ALL':initialPeriod);
-  const [requestId,setRequestId]=useState<string|null>(()=>sessionStorage.getItem(`financialRefresh:${stockId}`));
+  const [requestId,setRequestId]=useState<string|null>(()=>sessionStorage.getItem(refreshStorageKey));
   const [clock,setClock]=useState(Date.now());
   useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(timer);},[]);
   const [uncertain,setUncertain]=useState(false),[toast,setToast]=useState('');
   const token=useRef<string|null>(null),toastHandled=useRef('');
   const client=useQueryClient(),submitLock=useRef(false),handled=useRef<string|null>(null),callback=useRef(onComplete);callback.current=onComplete;
-  const mutation=useMutation({mutationFn:(refreshMode:'FULL'|'SUPPLEMENT')=>{token.current??=crypto.randomUUID();return apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period,refreshMode,clientRequestId:token.current}),signal:AbortSignal.timeout(15000)});},onSuccess:data=>{setUncertain(false);token.current=null;sessionStorage.setItem(`financialRefresh:${stockId}`,data.requestId);setRequestId(data.requestId);void active.refetch();},onError:error=>{if(error instanceof ApiError&&error.code==='REFRESH_REQUEST_MISMATCH')token.current=null;setUncertain(true);void active.refetch().then(result=>{if(!result.isError)setUncertain(false);});},onSettled:()=>{submitLock.current=false;}});
+  const mutation=useMutation({mutationFn:(refreshMode:'FULL'|'SUPPLEMENT')=>{token.current??=crypto.randomUUID();return apiRequest<{requestId:string}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh`,{method:'POST',body:JSON.stringify({startYear,endYear,period,refreshMode,clientRequestId:token.current}),signal:AbortSignal.timeout(15000)});},onSuccess:data=>{setUncertain(false);token.current=null;sessionStorage.setItem(refreshStorageKey,data.requestId);setRequestId(data.requestId);void active.refetch();},onError:error=>{if(error instanceof ApiError&&error.code==='REFRESH_REQUEST_MISMATCH')token.current=null;setUncertain(true);void active.refetch().then(result=>{if(!result.isError)setUncertain(false);});},onSettled:()=>{submitLock.current=false;}});
   const materialTimes=useQuery({queryKey:['financialMaterialTimes',stockId],queryFn:({signal})=>apiRequest<{financialCollectedAt:string|null;supplementUpdatedAt:string|null}>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/material-times`,{signal}),enabled:visible});
   const active=useQuery({queryKey:['financialRefreshActive',stockId],queryFn:({signal})=>apiRequest<RefreshStatus|null>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/active`,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])}),staleTime:0,retry:1,refetchInterval:q=>visible&&(q.state.data?.requestId||q.state.error)?3000:false});
   useEffect(()=>{if(visible){void active.refetch();if(requestId)void status.refetch();}},[visible,stockId]);
   useEffect(()=>{const sync=()=>{if(document.visibilityState==='visible'){void active.refetch();if(requestId)void status.refetch();}};window.addEventListener('focus',sync);document.addEventListener('visibilitychange',sync);return()=>{window.removeEventListener('focus',sync);document.removeEventListener('visibilitychange',sync);};},[stockId,requestId]);
   useEffect(()=>{if(active.data?.requestId&&active.data.state!=='FINISHED'){
-    sessionStorage.setItem(`financialRefresh:${stockId}`,active.data.requestId);setRequestId(active.data.requestId);
+    sessionStorage.setItem(refreshStorageKey,active.data.requestId);setRequestId(active.data.requestId);
   }},[active.data,stockId]);
   const status=useQuery({queryKey:['financialRefresh',stockId,requestId],queryFn:({signal})=>apiRequest<RefreshStatus>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/${requestId}`,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])}),enabled:Boolean(requestId),refetchInterval:q=>q.state.data?.state==='FINISHED'?false:3000,retry:1});
   useEffect(()=>{if(status.data&&status.data.state!=='FINISHED'){setStartYear(status.data.startYear??status.data.fiscalYear);setEndYear(status.data.endYear??status.data.fiscalYear);setPeriod(status.data.period);}},[status.data]);
   useEffect(()=>{
     if(status.data?.state!=='FINISHED'||handled.current===requestId)return;
-    handled.current=requestId;sessionStorage.removeItem(`financialRefresh:${stockId}`);
+    handled.current=requestId;sessionStorage.removeItem(refreshStorageKey);
     for(const key of ['financialMaterialTimes','securityAnalysis','financialDetail','financialPreview','financialChartAll'])void client.invalidateQueries({queryKey:[key,stockId]});
     for(const key of ['financialList','valueStored'])void client.invalidateQueries({queryKey:[key]});
     client.setQueryData<RefreshStatus|null>(['financialRefreshActive',stockId],current=>current?.requestId===requestId?null:current);

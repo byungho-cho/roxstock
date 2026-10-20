@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './authenticated-test';
 
 import { fixture } from './phase3-fixture';
 
@@ -37,7 +37,7 @@ test('home month count, local month expansion, holdings navigation and asset cha
   await expect(page.getByTestId('asset-performance-card')).toContainText('평가손익');await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
   await page.screenshot({path:info.outputPath('home-performance.png')});
   await expect(page.getByRole('button',{name:'보유종목 (상세보기)'})).toHaveCount(0);await page.getByTestId('home-holding').first().click();await expect(page).toHaveURL(/stocks\/[^?]+\?detailTab=summary/);await page.goBack();await expect(page).toHaveURL(/\/$/);
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(recent).toContainText('총 0건');
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('recent-buy-lot')).toHaveCount(0);await expect(recent).toContainText('총 0건');
   await noOverflow(page);
 });
 

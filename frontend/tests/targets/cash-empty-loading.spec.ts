@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 async function setup(page:Page){
  await page.clock.setFixedTime(new Date('2026-10-15T03:00:00Z'));
  await page.route('**/api/**',r=>{const url=new URL(r.request().url()),p=url.pathname;

@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import type {Page} from './authenticated-test';
 import {fixture as base} from './phase28-fixture';
 const stamp='2026-10-19T06:00:00Z';
 export async function fixture(page:Page,options:{empty?:boolean;before?:boolean;long?:boolean;partial?:boolean;longSummary?:boolean}={}){

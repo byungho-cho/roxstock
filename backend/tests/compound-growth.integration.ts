@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 test('real MariaDB scoped CRUD, overlap, default concurrency, child deletion',async()=>{
  const accounts=await Promise.all([1,2].map(i=>prisma.account.create({data:{name:'복리 자체검사 '+i,brokerName:'TEST',cashBalance:'500'}})));

@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 async function cardGeometry(page:Page){let rect:{width:number;height:number;x:number;y:number}|undefined;await expect.poll(async()=>{rect=await page.getByTestId('asset-composition-card').evaluate(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height,x:r.x,y:r.y+(document.querySelector('main')?.scrollTop??0)};});return rect.height;}).toBeGreaterThan(0);return rect!;}
 async function geometry(page:Page){return Promise.all(['home-total-card','home-quick-cards','asset-performance-card'].map(async id=>({id,...await page.getByTestId(id).boundingBox()})));}

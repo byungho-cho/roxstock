@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - ../../backend/.env.production
+      # Authentication mail secrets belong only to the backend, never collector services.
+      - ../../backend/.env.auth
     environment:
       NODE_ENV: production
       ROXSTOCK_RELEASE_FILE: /run/roxstock/release.json

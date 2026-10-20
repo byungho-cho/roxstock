@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 async function setup(page:Page){await page.route('**/api/**',async route=>{
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
     if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});

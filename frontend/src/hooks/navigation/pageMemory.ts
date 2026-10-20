@@ -1,6 +1,7 @@
 // Session-only UI state. Account + history entry + route keep independent lists apart.
 const memory = new Map<string, unknown>();
 const prefix = 'roxstock:page-memory-v1:';
+export function clearPageMemory(){memory.clear();for(const key of Object.keys(sessionStorage))if(key.startsWith(prefix))sessionStorage.removeItem(key);}
 export function readPageMemory<T>(key: string): T | undefined {
   if (memory.has(key)) return memory.get(key) as T;
   try { const raw = sessionStorage.getItem(prefix + key); if (raw) { const value = JSON.parse(raw) as T; memory.set(key, value); return value; } } catch { /* In-memory restoration remains available. */ }

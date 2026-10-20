@@ -4,7 +4,7 @@ import {prisma as db} from '@roxstock/shared/lib/prisma';
 import {collectStockNews} from '../../collector/src/news-collector.js';
 import {reconcileReportIdentities} from '../../collector/src/news-report-identity.js';
 import {PrismaCollectorRepository} from '../../collector/src/repository.js';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import type {NewsCandidate} from '@roxstock/shared/news/policy';
 import {kstStart,seoulDay} from '@roxstock/shared/news/policy';
 test('phase35 DB: per-slot retry isolation, daily cap, deferred and legacy reconsideration, coalescing, settings and supplement once',async()=>{

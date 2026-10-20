@@ -1,4 +1,4 @@
-import {test,expect,type Page,type Locator} from '@playwright/test';
+import {test,expect,type Page,type Locator} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 const tablet=(page:Page)=>page.viewportSize()!.width>=600;
 const row=(page:Page,id:string)=>tablet(page)?page.locator(`[role="row"][data-scroll-item="${id}"]`):page.getByTestId('stock-card-'+id);
@@ -49,8 +49,8 @@ test('browser/header back restores search, sorting and the actual body/row scrol
  await expect.poll(()=>page.evaluate(()=>(window as any).__returnFrames.length)).toBeGreaterThan(0);expect(await page.evaluate(()=>(window as any).__returnFrames.every((top:number)=>top>0))).toBe(true);
  // Returning through the same browser entry also survives a full reload.
  await page.reload();await waitReady(page);await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toHaveValue('보유');await expect.poll(()=>region(page).evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});await waitReady(page);await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toHaveValue('');await expect.poll(()=>region(page).evaluate(el=>el.scrollTop)).toBe(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});await waitReady(page);await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toHaveValue('보유');await expect.poll(()=>region(page).evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','b');window.dispatchEvent(new Event('roxstock-selected-account'));});await waitReady(page);await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toHaveValue('');await expect.poll(()=>region(page).evaluate(el=>el.scrollTop)).toBe(0);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','a');window.dispatchEvent(new Event('roxstock-selected-account'));});await waitReady(page);await expect(page.getByRole('textbox',{name:'목록 종목 검색'})).toHaveValue('보유');await expect.poll(()=>region(page).evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
 });
 
 test('debounced automatic search trims input, skips short/IME queries, deduplicates Enter and discards old responses',async({page})=>{
