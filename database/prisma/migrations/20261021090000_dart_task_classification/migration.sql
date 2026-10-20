@@ -1,3 +1,4 @@
+ALTER TABLE dart_backfill_tasks ADD COLUMN needs_supplement BOOLEAN NOT NULL DEFAULT false;
 -- Additive only: legacy states and every existing task/filing remain intact.
 ALTER TABLE dart_backfill_tasks MODIFY status ENUM('PENDING','PROCESSING','SUCCESS','NO_FILING','NOT_APPLICABLE','FAILED','NOT_DUE','DATA_UNAVAILABLE','EXCLUDED') NOT NULL DEFAULT 'PENDING';
 CREATE INDEX dart_backfill_tasks_status_next_attempt_at_id_idx ON dart_backfill_tasks(status,next_attempt_at,id);

@@ -33,15 +33,23 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:future.id}})).status,'NOT_DUE');
   for(const task of [policy,user,success,unmapped])assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:task.id}})).status,task.status);
   const where={...dartTaskScope(now),securityId:{in:ids}};
-  const rows=await db.dartBackfillTask.groupBy({where,by:['status','errorCode'],_count:{_all:true}}),progress=dartProgress(rows);
+  const rows=await db.dartBackfillTask.groupBy({where,by:['status','errorCode','needsSupplement'],_count:{_all:true}}),progress=dartProgress(rows);
   assert.equal(progress.planned,5);assert.equal(progress.currentTarget,4);assert.equal(progress.completed,1);assert.equal(progress.reviewRequired,1);assert.equal(progress.byStatus.EXCLUDED,undefined);
   for(const [status,n] of Object.entries(progress.byStatus))assert.equal(await db.dartBackfillTask.count({where:{AND:[where,dartStatusWhere(status as any)]}}),n);
   assert.equal(await db.dartBackfillTask.count({where:{AND:[{securityId:{in:ids}},dartStatusWhere('EXCLUDED')]}}),2);
+  const {buildPlan,applyPlan,restorePlan}=await import('../src/scripts/reconcile-dart-task-status.js');
+  const real=await db.security.create({data:{symbol:'475560',name:'Theborn policy fixture',marketType:'OTHER',securityType:'STOCK'}});ids.push(real.id);
+  await db.dartCorpMapping.create({data:{securityId:real.id,stockCode:'475560',collectionSymbol:'475560',corpCode:'00968607',corpName:'fixture',syncedAt:now}});
+  const before=await db.dartBackfillTask.create({data:{securityId:real.id,fiscalYear:2023,reportCode:'11011',periodType:'ANNUAL',status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',attempts:2}});
+  const plan=await buildPlan(now);assert.ok(plan.changes.some(c=>c.id===String(before.id)));
+  const apply=await Promise.all([applyPlan(plan),applyPlan(plan)]);assert.equal(apply.reduce((n,r)=>n+r.changed,0),1);
+  assert.equal((await buildPlan(now)).changes.some(c=>c.id===String(before.id)),false);
+  assert.equal((await restorePlan(plan)).restored,1);assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:before.id}})).attempts,2);
   await repo.updateTask(due.id,{status:'PROCESSING',attempts:1,lastAttemptAt:now});
   await repo.updateTask(due.id,{status:'SUCCESS',selectedReceiptNo:'20260401000001',processedAt:now});
   assert.equal(await db.dartTaskDecision.count({where:{taskId:due.id}}),3);
  }finally{
   await db.dartTaskDecision.deleteMany({where:{task:{securityId:{in:ids}}}});
-  await db.security.deleteMany({where:{id:{in:ids}}});await db.$disconnect();
+  await db.security.deleteMany({where:{id:{in:ids}}});await db.$disconnect();await (await import('@roxstock/shared/lib/prisma')).prisma.$disconnect();
  }
 });

@@ -22,6 +22,6 @@ test('DART task detail uses each authenticated priority scope and keeps exclusio
   assert.equal((await app.inject('/api/collection/dart/tasks?status=ALL')).statusCode,400);
   assert.equal((await app.inject('/api/collection/dart/tasks?status=SUCCESS&offset=-1')).statusCode,400);
  }finally{
-  await app.close();await prisma.account.deleteMany({where:{id:{in:accounts.map(a=>a.id)}}});await prisma.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await prisma.security.deleteMany({where:{id:{in:stocks.map(s=>s.id)}}});await prisma.$disconnect();
+  await app.close();await prisma.accountWatchlistItem.deleteMany({where:{accountId:{in:accounts.map(a=>a.id)}}});await prisma.account.deleteMany({where:{id:{in:accounts.map(a=>a.id)}}});await prisma.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await prisma.security.deleteMany({where:{id:{in:stocks.map(s=>s.id)}}});await prisma.$disconnect();
  }
 });

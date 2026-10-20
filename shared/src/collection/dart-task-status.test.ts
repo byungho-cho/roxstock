@@ -36,3 +36,8 @@ test('Theborn policy is confined to the audited 24 periods and never the 2024 an
  let n=0;for(let y=2015;y<=2026;y++)for(const p of ['ANNUAL','Q1','Q2','Q3'] as const)if(thebornPreListingTask('475560',y,p))n++;
  assert.equal(n,24);assert.equal(thebornPreListingTask('475560',2024,'ANNUAL'),false);assert.equal(thebornPreListingTask('005930',2023,'ANNUAL'),false);
 });
+
+test('confirmed API absence with required supplementation remains outside completed numerator',()=>{
+ const result=dartProgress([{status:'DATA_UNAVAILABLE',errorCode:'API_ROWS_UNAVAILABLE',needsSupplement:true,_count:{_all:57}},{status:'DATA_UNAVAILABLE',errorCode:'API_ROWS_UNAVAILABLE',needsSupplement:false,_count:{_all:2}}]);
+ assert.equal(result.byStatus.DATA_UNAVAILABLE,59);assert.equal(result.supplementPending,57);assert.equal(result.completed,2);assert.equal(result.complete,false);
+});

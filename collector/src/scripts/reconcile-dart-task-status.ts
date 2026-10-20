@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {Prisma} from '@roxstock/shared/prisma';
 import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
-import {dartProgress,dartStatusWhere,thebornPreListingTask} from '@roxstock/shared/collection/dart-task-status';
+import {dartProgress,dartStatusWhere,dartPeriodEnd,thebornPreListingTask} from '@roxstock/shared/collection/dart-task-status';
 import {dartTaskScope} from '@roxstock/shared/collection/dart-backfill';
 import {PrismaDartRepository,taskSnapshot} from '../dart-repository.js';
 import fixtures from '../fixtures/dart-priority-audit-20261021.json' with {type:'json'};
@@ -27,7 +27,15 @@ export async function buildPlan(now=new Date()):Promise<Plan>{
   if(await prisma.dartFinancialFiling.count({where:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false}}))continue;
   let next:Record<string,unknown>|undefined,reason='';
   if(task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'&&thebornPreListingTask(fixture.symbol,task.fiscalYear,task.periodType)){
-    next={status:'EXCLUDED',errorCode:'PRE_LISTING_POLICY_EXCLUDED',errorMessage:'상장 전 수집 제외',processedAt:now.toISOString(),nextAttemptAt:null};reason='USER_POLICY_475560_PRE_LISTING_20241106';
+    let policyEvidence:Record<string,unknown>={listingDate:'2024-11-06',periodEndUpperBound:`${task.fiscalYear}-12-31`,policyScope:'AUDITED_24_TASKS_ONLY'};
+    if(task.fiscalYear===2024){
+      const annual=await prisma.dartFinancialFiling.findFirst({where:{securityId:task.securityId,fiscalYear:2024,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3}},orderBy:{collectedAt:'desc'},select:{periodEndDate:true,sourceValidation:true}});
+      const proof=annual?.sourceValidation as {version?:number;corpCode?:string}|null;
+      if(!annual||proof?.version!==2||proof.corpCode!==mapping.corpCode||annual.periodEndDate.toISOString().slice(0,10)!=='2024-12-31')continue;
+      const end=dartPeriodEnd(task.fiscalYear,task.periodType,12);if(end>='2024-11-06')continue;
+      policyEvidence={...policyEvidence,periodEnd:end,closingMonth:12,monthEvidence:'validated 2024 annual statement'};
+    }
+    next={status:'EXCLUDED',errorCode:'PRE_LISTING_POLICY_EXCLUDED',errorMessage:'상장 전 수집 제외',diagnostics:{...((task.diagnostics&&typeof task.diagnostics==='object'&&!Array.isArray(task.diagnostics))?task.diagnostics:{}),policyEvidence},processedAt:now.toISOString(),nextAttemptAt:null};reason='USER_POLICY_475560_PRE_LISTING_20241106';
   }else if(task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'&&fixture.periodEnd){
     const cache=await prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode:mapping.corpCode,fiscalYear:task.fiscalYear}}});
     const reports=Array.isArray(cache?.reports)?cache.reports as unknown as import('../dart-provider.js').DartReport[]:[];
@@ -104,7 +112,7 @@ async function main(){
    const plan=JSON.parse(readFileSync(file,'utf8')) as Plan;
    const result=mode==='restore'?await restorePlan(plan):await applyPlan(plan);
    const mappingRecovered=0;
-   const rows=await prisma.dartBackfillTask.groupBy({by:['status','errorCode'],where:dartTaskScope(),_count:{_all:true}});
+   const rows=await prisma.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:dartTaskScope(),_count:{_all:true}});
    console.log(JSON.stringify({mode,...result,mappingRecovered,progress:dartProgress(rows),reviewRequired:await prisma.dartBackfillTask.count({where:{AND:[dartTaskScope(),dartStatusWhere('REVIEW_REQUIRED')]}}),financialRecollectionExecuted:false}));
   }
  });}finally{await repo.releaseLock(owner);await prisma.$disconnect();}

@@ -87,6 +87,7 @@ export async function processManualRefresh(db: PrismaClient, config: Pick<DartCo
         const source=filing.source??validateDartFiling({corpCode:mapping.corpCode,taskFiscalYear:fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
         const saved = await repo.saveFiling({ securityId, fiscalYear: fiscalYear, periodType: period, reportCode: manualReports[period], fsDivision: filing.division,
           ...source, collectedAt: new Date(), values: normalizeDartFinancialRows(filing.rows) });
+        await repo.completeTaskFromStorage(securityId,fiscalYear,manualReports[period],source.receiptNo,source.sourceValidation.selectedReceiptNo);
         await publish(fiscalYear,'VALUATION',period);
         const metric=await supplementSafely(db,securityId,fiscalYear,period,loadPeriodSupplement(provider,security.symbol,mapping.corpCode,undefined,security.marketType));
         results.push({ fiscalYear, period, status: 'SUCCESS', created: saved.created,valuationStatus:metric?.status,valuationErrors:metric&&'supplemental'in metric?(metric.supplemental as {errors?:Record<string,string>}|null)?.errors:undefined,valuationReasons:metric&&'reasons'in metric?metric.reasons as Record<string,string>:undefined });

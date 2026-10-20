@@ -1,4 +1,4 @@
-import {dartProgress,missingDartReport} from '@roxstock/shared/collection/dart-task-status';
+import {dartProgress,dartPolicyExclusions,missingDartReport} from '@roxstock/shared/collection/dart-task-status';
 import {dartTaskScope,dartAutomaticWork} from '@roxstock/shared/collection/dart-backfill';
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {publicAnnualTarget} from './dart-public-source.js';
@@ -274,10 +274,10 @@ export class PrismaDartRepository extends CollectionJobRepository {
     return this.prisma.dartApiDailyUsage.findUnique({ where: { usageDate: toDatabaseDate(getSeoulClock(now).dateKey) } });
   }
 
-  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED' | 'NOT_DUE' | 'DATA_UNAVAILABLE' | 'EXCLUDED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
+  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED' | 'NOT_DUE' | 'DATA_UNAVAILABLE' | 'EXCLUDED'; needsSupplement?:boolean; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
     return this.prisma.$transaction(async tx=>{
       const previous=await tx.dartBackfillTask.findUniqueOrThrow({where:{id:taskId}});
-      const next=await tx.dartBackfillTask.update({where:{id:taskId},data:{...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})}});
+      const next=await tx.dartBackfillTask.update({where:{id:taskId},data:{...update,...(update.status==='SUCCESS'?{needsSupplement:false}:{}),...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})}});
       await tx.dartTaskDecision.create({data:{taskId,reason:update.errorCode??update.status,previous:taskSnapshot(previous),next:taskSnapshot(next)}});
       return next;
     });
@@ -355,9 +355,21 @@ export class PrismaDartRepository extends CollectionJobRepository {
     return true;
   }
 
+  async completeTaskFromStorage(securityId:bigint,fiscalYear:number,reportCode:string,receiptNo:string,selectedReceiptNo:string) {
+    const filing=await this.prisma.dartFinancialFiling.findUnique({where:{receiptNo}});
+    const proof=filing?.sourceValidation as Record<string,unknown>|null;
+    if(!filing||filing.isWithdrawn||filing.securityId!==securityId||filing.fiscalYear!==fiscalYear||filing.reportCode!==reportCode||filing.normalizationVersion<3||proof?.version!==2||proof.taskFiscalYear!==fiscalYear||proof.reportCode!==reportCode||proof.fsDivision!==filing.fsDivision||proof.reportPeriod!==filing.periodEndDate.toISOString().slice(0,7)||proof?.selectedReceiptNo!==selectedReceiptNo||proof?.returnedReceiptNo!==receiptNo)return false;
+    const mapping=await this.prisma.dartCorpMapping.findUnique({where:{securityId}});
+    if(!mapping||mapping.corpCode!==proof.corpCode)return false;
+    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}}});
+    if(!task||task.periodType!==filing.periodType||['SUCCESS','EXCLUDED'].includes(task.status)||task.status==='NOT_APPLICABLE'&&dartPolicyExclusions.includes(task.errorCode??''))return false;
+    await this.updateTask(task.id,{status:'SUCCESS',needsSupplement:false,processedAt:new Date(),nextAttemptAt:null,errorCode:null,errorMessage:null,selectedReceiptNo,diagnostics:filing.sourceValidation as Prisma.InputJsonValue});
+    return true;
+  }
+
   async isReviewHeld(securityId:bigint,fiscalYear:number,reportCode:string):Promise<boolean> {
-    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}},select:{status:true,errorCode:true}});
-    return task?.status==='FAILED'&&task.errorCode==='REVIEW_REQUIRED';
+    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}},select:{status:true,errorCode:true,needsSupplement:true}});
+    return task?.status==='FAILED'&&task.errorCode==='REVIEW_REQUIRED'||task?.status==='DATA_UNAVAILABLE'&&task.needsSupplement;
   }
 
   async markSecurityError(securityId: bigint, message: string): Promise<void> {
@@ -367,7 +379,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async backfillProgress(now=new Date()) {
     const [total, rows, completeSecurities, activeSecurities] = await Promise.all([
       this.prisma.dartBackfillTask.count({where:dartTaskScope(now)}),
-      this.prisma.dartBackfillTask.groupBy({ by: ['status','errorCode'],where:dartTaskScope(now), _count: { _all: true } }),
+      this.prisma.dartBackfillTask.groupBy({ by: ['status','errorCode','needsSupplement'],where:dartTaskScope(now), _count: { _all: true } }),
       this.prisma.dartSecurityState.count({ where: { backfillCompletedAt: { not: null } } }),
       this.prisma.security.count({ where: { isActive: true } }),
     ]);
@@ -487,6 +499,6 @@ export class PrismaDartRepository extends CollectionJobRepository {
 }
 
 
-export function taskSnapshot(task:{status:string;errorCode:string|null;errorMessage:string|null;attempts:number;selectedReceiptNo:string|null;diagnostics:Prisma.JsonValue;nextAttemptAt:Date|null;lastAttemptAt:Date|null;processedAt:Date|null}) {
- return {status:task.status,errorCode:task.errorCode,errorMessage:task.errorMessage,attempts:task.attempts,selectedReceiptNo:task.selectedReceiptNo,diagnostics:task.diagnostics,nextAttemptAt:task.nextAttemptAt?.toISOString()??null,lastAttemptAt:task.lastAttemptAt?.toISOString()??null,processedAt:task.processedAt?.toISOString()??null};
+export function taskSnapshot(task:{status:string;needsSupplement:boolean;errorCode:string|null;errorMessage:string|null;attempts:number;selectedReceiptNo:string|null;diagnostics:Prisma.JsonValue;nextAttemptAt:Date|null;lastAttemptAt:Date|null;processedAt:Date|null}) {
+ return {status:task.status,needsSupplement:task.needsSupplement,errorCode:task.errorCode,errorMessage:task.errorMessage,attempts:task.attempts,selectedReceiptNo:task.selectedReceiptNo,diagnostics:task.diagnostics,nextAttemptAt:task.nextAttemptAt?.toISOString()??null,lastAttemptAt:task.lastAttemptAt?.toISOString()??null,processedAt:task.processedAt?.toISOString()??null};
 }

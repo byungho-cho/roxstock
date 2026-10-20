@@ -15,12 +15,13 @@ export function dartDisplayStatus(status:string,code:string|null):DartDisplaySta
   if(status==='NO_FILING'&&code!=='NO_FILING_CONFIRMED')return 'REVIEW_REQUIRED';
   return status as DartDisplayStatus;
 }
-export function dartProgress(rows:ReadonlyArray<{status:string;errorCode:string|null;_count:{_all:number}}>) {
+export function dartProgress(rows:ReadonlyArray<{status:string;errorCode:string|null;needsSupplement?:boolean;_count:{_all:number}}>) {
   const byStatus:Record<string,number>={};
-  for(const row of rows){const status=dartDisplayStatus(row.status,row.errorCode);if(status!=='EXCLUDED')byStatus[status]=(byStatus[status]??0)+row._count._all;}
+  let supplementPending=0;
+  for(const row of rows){if(row.status==='DATA_UNAVAILABLE'&&row.needsSupplement)supplementPending+=row._count._all;const status=dartDisplayStatus(row.status,row.errorCode);if(status!=='EXCLUDED')byStatus[status]=(byStatus[status]??0)+row._count._all;}
   const planned=Object.values(byStatus).reduce((n,v)=>n+v,0),notDue=byStatus.NOT_DUE??0,currentTarget=planned-notDue;
-  const success=byStatus.SUCCESS??0,confirmed=(byStatus.NO_FILING??0)+(byStatus.DATA_UNAVAILABLE??0),completed=success+confirmed;
-  return {planned,currentTarget,notDue,completed,success,confirmed,reviewRequired:byStatus.REVIEW_REQUIRED??0,byStatus,
+  const success=byStatus.SUCCESS??0,confirmed=(byStatus.NO_FILING??0)+(byStatus.DATA_UNAVAILABLE??0)-supplementPending,completed=success+confirmed;
+  return {planned,currentTarget,notDue,completed,success,confirmed,supplementPending,reviewRequired:byStatus.REVIEW_REQUIRED??0,byStatus,
     completionRate:currentTarget?completed/currentTarget*100:null,collectionSuccessRate:currentTarget?success/currentTarget*100:null,
     complete:currentTarget>0&&completed===currentTarget,empty:planned===0,allNotDue:planned>0&&currentTarget===0};
 }

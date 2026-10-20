@@ -120,7 +120,7 @@ async function summary() {
       const [state, usage, progress, priorityBehind, universeBehind,reviewRequired] = await Promise.all([
         prisma.dartCollectorState.findUnique({ where: { id: 1 } }),
         prisma.dartApiDailyUsage.findUnique({ where: { usageDate: new Date(`${getSeoulClock(now).dateKey}T00:00:00.000Z`) } }),
-        prisma.dartBackfillTask.groupBy({ by: ['status','errorCode'],where:dartTaskScope(now), _count: { _all: true } }),
+        prisma.dartBackfillTask.groupBy({ by: ['status','errorCode','needsSupplement'],where:dartTaskScope(now), _count: { _all: true } }),
         priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
         prisma.dartSecurityState.count({ where: { security: { ...eligibleWhere('dart-financial-statements'),isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
         prisma.dartBackfillTask.count({where:{...dartTaskScope(now),status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
@@ -181,13 +181,13 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const offset=Number(request.query.offset??0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000000)return reply.code(400).send({error:{code:'INVALID_OFFSET',message:'잘못된 페이지입니다.'}});
     const now=new Date();
-    const where={AND:[status==='EXCLUDED'?{...dartTaskPeriodScope(now),security:{securityType:'STOCK' as const}}:dartTaskScope(now),dartStatusWhere(status),...(ids?[{securityId:{in:ids}}]:[])]};
+    const where={AND:[status==='EXCLUDED'?dartTaskPeriodScope(now):dartTaskScope(now),status==='EXCLUDED'?{OR:[dartStatusWhere('EXCLUDED'),{security:{collectionExcluded:true}},{security:{excludedFeatures:{array_contains:'dart-financial-statements'}}}]}:dartStatusWhere(status),...(ids?[{securityId:{in:ids}}]:[])]};
     const [total,rows]=await prisma.$transaction(async tx=>Promise.all([
-      tx.dartBackfillTask.count({where}),tx.dartBackfillTask.findMany({where,orderBy:{id:'asc'},skip:offset,take:50,include:{security:{select:{symbol:true,name:true}}}}),
+      tx.dartBackfillTask.count({where}),tx.dartBackfillTask.findMany({where,orderBy:{id:'asc'},skip:offset,take:50,include:{security:{select:{symbol:true,name:true,collectionExcluded:true,excludedFeatures:true}}}}),
     ]),{isolationLevel:'RepeatableRead'});
     return {data:{total,nextOffset:offset+rows.length<total?offset+rows.length:null,items:rows.map(task=>({
       id:String(task.id),symbol:task.security.symbol,name:task.security.name,year:task.fiscalYear,reportCode:task.reportCode,period:task.periodType,
-      status:dartDisplayStatus(task.status,task.errorCode),reason:safeReason(task.errorMessage)??task.errorCode,nextCheckAt:iso(task.nextAttemptAt),checkedAt:iso(task.lastAttemptAt),
+      status:status==='EXCLUDED'?'EXCLUDED':dartDisplayStatus(task.status,task.errorCode),needsSupplement:task.needsSupplement,reason:status==='EXCLUDED'&&task.security.collectionExcluded?'사용자 설정: 모든 수집 제외':status==='EXCLUDED'&&Array.isArray(task.security.excludedFeatures)&&task.security.excludedFeatures.includes('dart-financial-statements')?'사용자 설정: DART 수집 제외':safeReason(task.errorMessage)??task.errorCode,nextCheckAt:iso(task.nextAttemptAt),checkedAt:iso(task.lastAttemptAt),
     }))}};
   });
   app.get('/collection/status', async () => {
@@ -236,8 +236,8 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
       const priorityIds=await repo.prioritySecurityIds();
       const ids=(await prisma.security.findMany({where:{...eligibleWhere('dart-financial-statements'),id:{in:priorityIds},securityType:'STOCK',dartCorpMapping:{isNot:null}},select:{id:true}})).map(stock=>stock.id);
       const [taskCounts,priorityCounts,errorGroups] = await prisma.$transaction(async tx=>Promise.all([
-        tx.dartBackfillTask.groupBy({by:['status','errorCode'],where:dartTaskScope(now),_count:{_all:true}}),
-        tx.dartBackfillTask.groupBy({by:['status','errorCode'],where:{...dartTaskScope(now),securityId:{in:ids}},_count:{_all:true}}),
+        tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:dartTaskScope(now),_count:{_all:true}}),
+        tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:{...dartTaskScope(now),securityId:{in:ids}},_count:{_all:true}}),
         tx.dartBackfillTask.groupBy({by:['errorCode'],where:{...dartTaskScope(now),status:'FAILED'},_count:{_all:true}}),
       ]),{isolationLevel:'RepeatableRead'});
       const allProgress=dartProgress(taskCounts),priorityProgress=dartProgress(priorityCounts);

@@ -402,7 +402,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const isRealtime = feature === 'realtime-prices';
   const stageOneComplete = Boolean(current.backfillCompletedAt) && current.phase === 'CURRENT';
   const stageOneBadge = stageOneComplete ? statusStyle.OK : statusStyle[current.status] ?? unknownStatus;
-  const stageOneLabel = stageOneComplete ? (Number(dart.reviewRequired??0)>0?'검토 보류 있음':Number(byStatus.NOT_DUE??0)>0?'미도래 재확인 예정':'현재 대상 처리 완료')
+  const stageOneLabel = stageOneComplete ? (Number(dart.reviewRequired??0)>0?'검토 보류 있음':Number(backfill.supplementPending??0)>0?'원문 보완 필요':Number(byStatus.NOT_DUE??0)>0?'미도래 재확인 예정':Number(backfill.currentTarget??0)===0?'수집 대상 없음':'현재 대상 처리 완료')
     : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
 
   return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box data-testid="collection-feature-overview" sx={{ px: 0, pt: 0, pb: '80px' }}>
@@ -417,8 +417,8 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
             <Box sx={{ display: { xs: 'none', sm: 'block' } }}><ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} /></Box>
           </Stack>
           <Typography sx={{ color: '#34D399', fontSize: 10, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}><FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><DataValue>{numberText(completed)} / {numberText(backfill.currentTarget)}</DataValue></PendingData.Provider></FailedData.Provider>개 현재 대상 처리 완료</Typography>
-          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={planned} counts={byStatus} label="전체 과거 자료 진행률" review={Number(dart.reviewRequired??0)}/></PendingData.Provider></FailedData.Provider>
-          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={dart.priority?.planned??null} counts={asRecord(dart.priority?.byStatus)} label="우선종목 진행률" review={Number(dart.priority?.reviewRequired??0)} securities={dart.priority?.securities}/></PendingData.Provider></FailedData.Provider>
+          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={planned} counts={byStatus} supplementPending={Number(backfill.supplementPending??0)} label="전체 과거 자료 진행률" review={Number(dart.reviewRequired??0)}/></PendingData.Provider></FailedData.Provider>
+          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={dart.priority?.planned??null} counts={asRecord(dart.priority?.byStatus)} supplementPending={Number(dart.priority?.supplementPending??0)} label="우선종목 진행률" review={Number(dart.priority?.reviewRequired??0)} securities={dart.priority?.securities}/></PendingData.Provider></FailedData.Provider>
           <Typography sx={{...mutedText,fontSize:10,mt:'8px'}}>오늘 호출 <DataValue>{numberText(current.dailyApiCalls)} / {numberText(current.dailyApiLimit)}회</DataValue> · <DataValue>{asRecord(current).collectionState==='DAILY_LIMIT'?'일일 한도 도달':'호출 예산 사용 중'}</DataValue></Typography>
         </Box>
         <Typography sx={{...mutedText,fontSize:10,height:28}}>{dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' ? '공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용' : ''}</Typography>
@@ -446,12 +446,12 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     </Box></PendingData.Provider></FailedData.Provider>;
 }
 
-function CollectionProgress({planned,counts,label,review=0,securities}:{planned:number|null;counts:DataRecord;label:string;review?:number;securities?:number}) {
+function CollectionProgress({planned,counts,label,review=0,securities,supplementPending=0}:{planned:number|null;counts:DataRecord;label:string;review?:number;securities?:number;supplementPending?:number}) {
   const pendingData=useContext(PendingData), queryFailed=useContext(FailedData);
   const plan=Math.max(0,planned??0),notDue=Number(counts.NOT_DUE??0),total=plan-notDue;
   const success=Number(counts.SUCCESS??0),noFiling=Number(counts.NO_FILING??0),unavailable=Number(counts.DATA_UNAVAILABLE??0),held=Number(counts.REVIEW_REQUIRED??review),failed=Number(counts.FAILED??0),processing=Number(counts.PROCESSING??0),pending=Number(counts.PENDING??0);
-  const done=success+noFiling+unavailable,percent=total?Math.min(100,done*100/total):0;
-  const segments=[{name:'수집 성공',count:success,color:'#34D399'},{name:'미공시 확인',count:noFiling,color:'#7A8CA8'},{name:'자료 미제공',count:unavailable,color:'#3D8CF5'},{name:'실패',count:failed,color:'#F26A6F'},{name:'처리 중',count:processing,color:'#FAB83B'},{name:'검토 보류',count:held,color:colors.warning}];
+  const done=success+noFiling+unavailable-supplementPending,percent=total?Math.min(100,done*100/total):0;
+  const segments=[{name:'수집 성공',count:success,color:'#34D399'},{name:'미공시 확인',count:noFiling,color:'#7A8CA8'},{name:'자료 미제공 (확인 완료)',count:unavailable-supplementPending,color:'#3D8CF5'},{name:'자료 미제공 (보완 필요)',count:supplementPending,color:colors.warning},{name:'실패',count:failed,color:'#F26A6F'},{name:'처리 중',count:processing,color:'#FAB83B'},{name:'검토 보류',count:held,color:colors.warning}];
   const rate=planned==null?'—':!plan?'수집 대상 없음':!total?'전부 미도래':percent.toFixed(1)+'%';
   return <Box sx={{mt:'8px'}}><Box sx={{display:'flex',justifyContent:'space-between',gap:'8px',fontSize:11,fontWeight:700,mb:'4px'}}><span>{label}{securities != null && !pendingData ? ` (${numberText(securities)}개)` : ''}</span><span><DataValue width={35}>{rate}</DataValue></span></Box>
     <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pendingData||!total?undefined:Number(percent.toFixed(1))} aria-valuetext={pendingData?(queryFailed?'조회 실패':'조회 중'):`현재 대상 ${done} / ${total}개 처리 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color}}/>)}</Box>

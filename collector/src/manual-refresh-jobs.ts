@@ -104,6 +104,7 @@ export async function processIndependentRefresh(db:PrismaClient,config:Pick<Dart
      const collectedAt=new Date();
      stages.dart='DART_FILING_SAVE';
      await scopedRepo.saveFiling({securityId:security.id,fiscalYear:year,periodType:period,reportCode:codes[period],fsDivision:filing.division,...source,collectedAt,values});
+     await scopedRepo.completeTaskFromStorage(security.id,year,codes[period],source.receiptNo,source.sourceValidation.selectedReceiptNo);
      const {accountSources,...amounts}=values;
      stages.dart='DART_FILING_UPDATE';
      await scopedDb.dartFinancialFiling.update({where:{receiptNo:source.receiptNo},data:{...amounts,accountSources:json(accountSources),collectedAt}});

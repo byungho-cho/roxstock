@@ -318,6 +318,7 @@ model DartSecurityState {
 }
 
 model DartBackfillTask {
+  needsSupplement Boolean @default(false) @map("needs_supplement")
   decisions DartTaskDecision[]
   diagnostics Json?
   id             BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
