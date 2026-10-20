@@ -40,3 +40,4 @@ export function ErrorToastHost(){
 
 /** A completed user action appears promptly; queued background errors remain available afterward. */
 export function showSuccessToast(message:string){enqueue(message,undefined,Symbol(),true,'success');}
+export function showErrorToast(message:string){enqueue(message,undefined,Symbol(),true,'error');}

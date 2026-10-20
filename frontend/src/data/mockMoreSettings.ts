@@ -1,15 +1,25 @@
 import type { AccountDto, AccountWriteInput } from './roxstockApi';
+import {authRequest} from '../auth/client';
+import {showErrorToast} from '../components/common/QueryErrorNotice';
 
 /** Demo-only state. This module must never write to an API-backed account or dashboard cache. */
 type DemoState = { accounts: AccountDto[]; selectedId: string | null; automatic: boolean; interval: number; theme: 'dark' | 'light' | 'system' };
-const KEY = 'roxstock-170-demo-settings-v2';
+let KEY = 'roxstock-170-demo-settings-v2';
+let personal=false;
+export function scopePersonalSettings(userId:string,theme:'dark'|'light'|'system'='dark'){
+  KEY=`roxstock:user:${userId}:ui-settings`;personal=true;
+  localStorage.setItem(KEY,JSON.stringify({...readDemoSettings(),theme}));
+}
 const initial = (): DemoState => ({ accounts: [{ id: 'demo-1', name: '기본 계좌', brokerName: '증권사명', accountNumber: '1234-56••••', isDefault: true, isActive: true, cashBalance: '203200000', updatedAt: '2026-09-20T08:30:00+09:00' }], selectedId: 'demo-1', automatic: true, interval: 1, theme: 'dark' });
 export function readDemoSettings(): DemoState {
   try { const value = localStorage.getItem(KEY); return value ? { ...initial(), ...JSON.parse(value) as DemoState } : initial(); }
   catch { return initial(); }
 }
 function write(next: DemoState) { localStorage.setItem(KEY, JSON.stringify(next)); window.dispatchEvent(new Event('roxstock-demo-settings')); return next; }
-export const saveDemoSettings = (change: Partial<DemoState>) => write({ ...readDemoSettings(), ...change });
+export const saveDemoSettings = (change: Partial<DemoState>) => {
+  if(personal&&change.theme)void authRequest('settings',{theme:change.theme}).catch(()=>showErrorToast('테마 설정 저장에 실패했습니다. 다시 선택해 주세요.'));
+  return write({ ...readDemoSettings(), ...change });
+};
 export function addDemoAccount(input: AccountWriteInput) {
   const state = readDemoSettings(); const id = `demo-${Date.now()}`;
   const next: AccountDto = { ...input, id, accountNumber: input.accountNumber ?? null, cashBalance: '0', isActive: true, isDefault: state.accounts.length === 0 || !!input.isDefault, updatedAt: new Date().toISOString() };

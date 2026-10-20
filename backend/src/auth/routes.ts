@@ -2,6 +2,7 @@ import type {FastifyInstance} from 'fastify';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {verifyAuthMail} from './mail.js';
+import {tokenHash} from './crypto.js';
 import {authCookies,consumeLink,email,emailLink,loginSession,newPassword,passwordHash,passwordMatches,rateLimit,refreshSession} from './service.js';
 const failed=()=>new ApiError(401,'LOGIN_FAILED','이메일 또는 비밀번호를 확인해 주세요.');
 type Body={email?:unknown;password?:unknown;confirmation?:unknown;remember?:unknown;token?:unknown;currentPassword?:unknown};
@@ -14,8 +15,7 @@ export async function authRoutes(app:FastifyInstance){
     // A fixed valid scrypt encoding keeps unknown-email failures on the same expensive path.
     const hash=user?.passwordHash??'scrypt$32768$0000000000000000000000000000000000000000000000000000000000000000$'+'0'.repeat(128);
     const matches=await passwordMatches(req.body.password,hash);
-    if(!user||!matches||!user.verifiedAt||user.mustChangePassword&&(!user.temporaryExpiresAt||user.temporaryExpiresAt<=new Date()||user.temporaryUsedAt))throw failed();
-    if(user.mustChangePassword){const used=await prisma.authUser.updateMany({where:{id:user.id,mustChangePassword:true,temporaryUsedAt:null,temporaryExpiresAt:{gt:new Date()}},data:{temporaryUsedAt:new Date()}});if(!used.count)throw failed();}
+    if(!user||!matches||!user.verifiedAt||user.temporaryExpiresAt&&user.temporaryExpiresAt<=new Date())throw failed();
     await loginSession(user.id,req.body.remember===true,reply);return {data:serialize(user)};
   });
   app.post<{Body:Body}>('/register',async req=>{
@@ -45,6 +45,14 @@ export async function authRoutes(app:FastifyInstance){
     return {data:{sent:true}};
   });
   app.post<{Body:Body}>('/verify',async req=>{await rateLimit(`verify-use:${req.ip}`,20,900);const password=typeof req.body?.password==='string'&&Buffer.byteLength(req.body.password)<=4096?req.body.password:undefined;await consumeLink(req.body?.token,'VERIFY',password);return {data:{verified:true}};});
+  app.post<{Body:{token?:unknown;purpose?:unknown}}>('/link-status',async req=>{
+    await rateLimit(`link-status:${req.ip}`,30,900);const token=req.body?.token,purpose=req.body?.purpose;
+    const expired=()=>new ApiError(410,'LINK_EXPIRED','링크를 사용할 수 없습니다. 메일을 다시 요청해 주세요.');
+    if(typeof token!=='string'||!/^[-\w]{43}$/.test(token)||!['VERIFY','RESET'].includes(String(purpose)))throw expired();
+    const row=await prisma.authEmailToken.findUnique({where:{tokenHash:tokenHash(token)}});
+    if(!row||row.purpose!==purpose||row.usedAt||row.expiresAt<=new Date())throw expired();
+    return {data:{valid:true}};
+  });
   app.post<{Body:Body}>('/reset',async req=>{const password=newPassword(req.body?.password,req.body?.confirmation);await rateLimit(`reset-use:${req.ip}`,20,900);await consumeLink(req.body.token,'RESET',password);return {data:{changed:true}};});
   app.get('/me',async req=>({data:serialize(await prisma.authUser.findUniqueOrThrow({where:{id:req.auth!.userId}}))}));
   app.post<{Body:{theme?:unknown;favorites?:unknown;selectedAccountId?:unknown;legacyImported?:unknown}}>('/settings',async req=>{

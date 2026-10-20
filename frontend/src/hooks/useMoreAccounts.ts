@@ -4,6 +4,7 @@ import {useEffect,useState} from 'react';
 import {liveApiEnabled} from '../data/liveData';
 import {readDemoSettings,saveDemoSettings} from '../data/mockMoreSettings';
 import {chooseAccount,selectedAccountStorageKey} from '../data/roxstockApi';
+import {authRequest} from '../auth/client';
 
 export function useMoreAccounts() {
   const client = useQueryClient();
@@ -25,7 +26,7 @@ export function useMoreAccounts() {
   };
   const select = async (id: string) => {
     if (selected?.id === id) return;
-    if (liveApiEnabled) { localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); }
+    if (liveApiEnabled) { await authRequest('settings',{selectedAccountId:id});localStorage.setItem(selectedAccountStorageKey, id); window.dispatchEvent(new Event('roxstock-selected-account')); }
     else saveDemoSettings({ selectedId: id });
   };
   return { accounts, selected, query, demo, refresh, select };

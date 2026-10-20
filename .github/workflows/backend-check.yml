@@ -76,6 +76,12 @@ jobs:
       - name: Account classification and trade consistency (real MariaDB API)
         run: node --import tsx --test backend/tests/account-classification.integration.ts
 
+      - name: Authentication, ownership and session isolation (real MariaDB)
+        env:
+          AUTH_INTEGRATION: '1'
+          AUTH_INTEGRATION_DATABASE_CONFIRM: isolated
+        run: node --import tsx --test backend/src/auth/integration.test.ts
+
       - name: Phase18 aggregate invalidation and recent-buy equivalence (real MariaDB)
         run: node --import tsx --test backend/tests/phase18.integration.ts
 

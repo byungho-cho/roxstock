@@ -3,7 +3,8 @@ const scrypt=(password:string,salt:string)=>new Promise<Buffer>((resolve,reject)
 export const randomToken=()=>randomBytes(32).toString('base64url');
 export const tokenHash=(token:string)=>createHash('sha256').update(token).digest('hex');
 export function validPassword(value:unknown):value is string {
-  return typeof value==='string'&&[...value].length>=12&&Buffer.byteLength(value)<=4096;
+  return typeof value==='string'&&/^[!-~]{8,20}$/.test(value)&&
+    [/[A-Za-z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(pattern=>pattern.test(value)).length>=2;
 }
 export async function passwordHash(password:string){
   const salt=randomBytes(32).toString('hex');

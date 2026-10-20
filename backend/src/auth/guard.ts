@@ -4,7 +4,7 @@ import {ApiError} from '@roxstock/shared/lib/api-error';
 import {authContext,type AuthIdentity} from './context.js';
 import {cookies,cookieNames,sessionIdentity} from './service.js';
 import {tokenHash} from './crypto.js';
-const publicPaths=new Set(['/api/version','/api/auth/login','/api/auth/register','/api/auth/verify','/api/auth/resend','/api/auth/forgot','/api/auth/reset']);
+const publicPaths=new Set(['/api/version','/api/auth/login','/api/auth/register','/api/auth/verify','/api/auth/resend','/api/auth/forgot','/api/auth/reset','/api/auth/link-status']);
 const limitedPaths=new Set(['/api/auth/me','/api/auth/change-password','/api/auth/logout','/api/auth/refresh']);
 export function installAuth(app:FastifyInstance){
   app.decorateRequest('auth',null);
@@ -21,6 +21,10 @@ export function installAuth(app:FastifyInstance){
     const identity=await sessionIdentity(request);
     if(!identity)throw new ApiError(401,'LOGIN_REQUIRED','로그인이 필요합니다.');
     request.auth=identity;
+    // A stale tab must never apply its pending writes to a newly signed-in account.
+    // This is only a consistency check; identity always comes from the DB session.
+    const expected=request.headers['x-auth-user'];
+    if(expected!==undefined&&expected!==String(identity.userId))throw new ApiError(409,'IDENTITY_CHANGED','계정이 변경되었습니다. 화면을 다시 열어 주세요.');
     if(identity.mustChangePassword&&!limitedPaths.has(path))throw new ApiError(403,'PASSWORD_CHANGE_REQUIRED','비밀번호를 먼저 변경해 주세요.');
     if(!['GET','HEAD','OPTIONS'].includes(request.method)){
       const token=cookies(request)[cookieNames.csrf],header=request.headers['x-csrf-token'];

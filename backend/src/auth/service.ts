@@ -22,7 +22,7 @@ export function email(value:unknown){
   return value.trim().toLowerCase();
 }
 export function newPassword(value:unknown,confirmation:unknown){
-  if(!validPassword(value))throw new ApiError(400,'PASSWORD_TOO_SHORT','비밀번호는 12자 이상 입력해 주세요.');
+  if(!validPassword(value))throw new ApiError(400,'PASSWORD_INVALID','비밀번호는 8~20자이며 영문·숫자·특수문자 중 2종류 이상을 조합해 주세요.');
   if(value!==confirmation)throw new ApiError(400,'PASSWORD_MISMATCH','비밀번호가 일치하지 않습니다.');
   return value;
 }
@@ -45,7 +45,7 @@ export async function sessionIdentity(request:FastifyRequest):Promise<AuthIdenti
     if(!retired||retired.sessionId!==row.id)return null;
     if(retired.graceUntil<now){await prisma.authSession.update({where:{id},data:{revokedAt:now}});return null;}
   }
-  if(row.user.mustChangePassword&&row.user.temporaryExpiresAt&&row.user.temporaryExpiresAt<=now)return null;
+  if(row.user.temporaryExpiresAt&&row.user.temporaryExpiresAt<=now)return null;
   return {userId:row.userId,role:row.user.role,sessionId:row.id,mustChangePassword:row.user.mustChangePassword};
 }
 export async function loginSession(userId:bigint,persistent:boolean,reply:FastifyReply){

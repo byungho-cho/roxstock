@@ -6,7 +6,7 @@ import {passwordHash,randomToken,tokenHash} from './crypto.js';
 test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-time tokens',{skip:process.env.AUTH_INTEGRATION!=='1'},async()=>{
  const target=new URL(process.env.DATABASE_URL!);assert.ok(['127.0.0.1','localhost'].includes(target.hostname)&&(target.pathname==='/roxstock_dev'||process.env.AUTH_INTEGRATION_DATABASE_CONFIRM==='isolated'));
  process.env.AUTH_PUBLIC_ORIGIN='http://127.0.0.1:3000';delete process.env.SMTP_PASSWORD;
- const app=buildApp(),suffix=randomToken().slice(0,10),password=randomToken(),encoded=await passwordHash(password);
+ const app=buildApp(),suffix=randomToken().slice(0,10),password='Ab12'+randomToken().replace(/[^A-Za-z0-9]/g,'').slice(0,12),encoded=await passwordHash(password);
  const inject=app.inject.bind(app);
  app.inject=((options:any)=>inject({...options,remoteAddress:'192.0.2.42'})) as typeof app.inject;
  const users=await Promise.all(['a','b'].map(letter=>prisma.authUser.create({data:{email:`auth-${suffix}-${letter}@example.invalid`,passwordHash:encoded,verifiedAt:new Date()}})));
@@ -25,6 +25,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
  try{
   check((await app.inject({url:'/api/accounts'})).statusCode,401);
   let a=await login(0,true);const b=await login(1);
+  check((await app.inject({url:'/api/accounts',headers:{...a,'x-auth-user':String(users[1]!.id)}})).statusCode,409);
   for(const [owner,other] of [[a,1],[b,0]] as const){
    const list=await app.inject({url:'/api/accounts',headers:owner});check(list.statusCode,200);check(list.json().data.length,1);check(list.json().data[0].id,String(accounts[1-other]!.id));
    const holding=await app.inject({url:`/api/accounts/${accounts[1-other]!.id}/holdings`,headers:owner});check(holding.statusCode,200);check(holding.json().data.length,1);check(Number(holding.json().data[0].quantity),8);
@@ -59,7 +60,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   const newId=BigInt(created.json().data.id);check((await prisma.account.findUniqueOrThrow({where:{id:newId}})).userId,users[1]!.id);await prisma.account.delete({where:{id:newId}});
   const stored=await prisma.authSession.findMany({where:{userId:users[0]!.id}});assert.ok(!stored[0]!.tokenHash.includes(a.cookie));
   const token=randomToken();await prisma.authEmailToken.create({data:{userId:users[0]!.id,purpose:'RESET',tokenHash:tokenHash(token),expiresAt:new Date(Date.now()+60000)}});
-  const changed=randomToken();check((await app.inject({method:'POST',url:'/api/auth/reset',headers,payload:{token,password:changed,confirmation:changed}})).statusCode,200);
+  const changed='Cd34'+randomToken().replace(/[^A-Za-z0-9]/g,'').slice(0,12);check((await app.inject({method:'POST',url:'/api/auth/reset',headers,payload:{token,password:changed,confirmation:changed}})).statusCode,200);
   check((await app.inject({url:'/api/auth/me',headers:a})).statusCode,401);
   check((await app.inject({method:'POST',url:'/api/auth/reset',headers,payload:{token,password:changed,confirmation:changed}})).statusCode,410);
   const expired=randomToken();await prisma.authEmailToken.create({data:{userId:users[1]!.id,purpose:'RESET',tokenHash:tokenHash(expired),expiresAt:new Date(Date.now()-1000)}});
@@ -73,6 +74,18 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   check((await app.inject({method:'POST',url:'/api/auth/register',headers,payload:{email:users[1]!.email,password,confirmation:password}})).statusCode,403);
   check((await app.inject({method:'POST',url:'/api/auth/logout',headers:b,payload:{}})).statusCode,200);
   check((await app.inject({url:'/api/auth/me',headers:b})).statusCode,401);
+  await prisma.authUser.update({where:{id:users[1]!.id},data:{mustChangePassword:false,temporaryExpiresAt:new Date(Date.now()-1000),temporaryUsedAt:null}});
+  check((await app.inject({method:'POST',url:'/api/auth/login',headers,payload:{email:users[1]!.email,password}})).statusCode,401);
+  await prisma.authUser.update({where:{id:users[1]!.id},data:{temporaryExpiresAt:new Date(Date.now()+24*3600000)}});
+  const partial=await login(1);
+  check((await app.inject({url:'/api/accounts',headers:partial})).statusCode,200);
+  check((await app.inject({method:'POST',url:'/api/auth/login',headers,payload:{email:users[1]!.email,password}})).statusCode,200);
+  await prisma.authUser.update({where:{id:users[1]!.id},data:{temporaryExpiresAt:new Date(Date.now()-1000)}});
+  check((await app.inject({url:'/api/auth/me',headers:partial})).statusCode,401);
+  await prisma.authUser.update({where:{id:users[1]!.id},data:{temporaryExpiresAt:new Date(Date.now()+24*3600000)}});
+  const replacement='Ef56'+randomToken().replace(/[^A-Za-z0-9]/g,'').slice(0,12);check((await app.inject({method:'POST',url:'/api/auth/change-password',headers:partial,payload:{currentPassword:password,password:replacement,confirmation:replacement}})).statusCode,200);
+  check((await app.inject({url:'/api/auth/me',headers:partial})).statusCode,401);
+  check((await app.inject({method:'POST',url:'/api/auth/login',headers,payload:{email:users[1]!.email,password:replacement}})).statusCode,200);
   assert.ok(assertions>=40);
   console.log(`AUTH_SECURITY_ASSERTIONS=${assertions}`);
  }finally{
