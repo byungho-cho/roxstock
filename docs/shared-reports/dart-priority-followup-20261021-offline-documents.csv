@@ -1,0 +1,11 @@
+﻿receipt_no,zip_entry,uncompressed_bytes,result,issuer_header,front_period_dates,financial_statement_terms,declared_encoding,decode_used,sha256
+20160330003747,/20160330003747.xml,2811937,OFFLINE_SOURCE_IDENTIFIED,삼성증권주식회사,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,785e3480423eac5118277be1a301840e1c2b4de72b570ce5edda2a9b6f205915
+20160330003747,/20160330003747_00761.xml,711013,OFFLINE_SOURCE_IDENTIFIED,삼성증권주식회사,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,617f679e9829db90bfd06e03afb1f2a684b71400cff353cae15d09123f4842c1
+20160330003747,/20160330003747_00760.xml,668842,OFFLINE_SOURCE_IDENTIFIED,삼성증권주식회사,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,366e3caf340d7b0859c1d0bc7504cbc138014b69436fdc2a0fd7bcd84343cbd1
+20160330003986,/20160330003986.xml,5124829,UNCONFIRMED_5MB_BOUND,미확인,,,미확인,미확인,미확인
+20160330003986,/20160330003986_00760.xml,1045356,OFFLINE_SOURCE_IDENTIFIED,중소기업은행,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,e1fab89ea523de38ca62f7dae3b2484361a741bbd19896749ac2c511701f9735
+20160330003986,/20160330003986_00761.xml,1198320,OFFLINE_SOURCE_IDENTIFIED,중소기업은행,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,77908ce873ee51e373730824c06a010234da18371d7fb616310bf6fea3743171
+20160330004428,/20160330004428.xml,7044861,UNCONFIRMED_5MB_BOUND,미확인,,,미확인,미확인,미확인
+20160330004428,/20160330004428_00760.xml,391626,UNCONFIRMED_DIFFERENT_OR_MISSING_PERIOD,주식회사 KB금융지주,2014년 01월 01일;2014년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,f4e00e7e79204272752ed3fa166cd2cf0de33a7a3945698dbb0a4bc378955f14
+20160330004428,/20160330004428_00761.xml,1437630,UNCONFIRMED_DIFFERENT_OR_MISSING_PERIOD,주식회사 KB금융지주,2014년 01월 01일;2014년 12월 31일,재무상태표;손익계산서;포괄손익계산서;현금흐름표;재무제표,utf-8,cp949 strict offline review,dbc6c95b3542adcf49bae53b09255059988d9ce362121df8e76b89ac635988fc
+20160408000926,20160408000926_00760.xml,300822,OFFLINE_SOURCE_IDENTIFIED,더본코리아,2015년 01월 01일;2015년 12월 31일,재무상태표;손익계산서;현금흐름표;재무제표,utf-8,utf-8,5ebc6ea894d521734005a08f9a3a1a22758355de97515e7c0ef15e036c878caa
