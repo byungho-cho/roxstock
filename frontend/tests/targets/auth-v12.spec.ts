@@ -27,3 +27,21 @@ test('session restoration never renders personal content or a login flash before
  let release=()=>{};await page.route('**/api/auth/me',async route=>{await new Promise<void>(resolve=>release=resolve);await route.fulfill({status:401,json:{error:{code:'LOGIN_REQUIRED'}}});});
  await page.goto('/');await expect(page.getByRole('status')).toContainText('로그인을 확인');await expect(page.locator('form')).toHaveCount(0);await expect(page.getByTestId('asset-composition-card')).toHaveCount(0);release();await expect(page.locator('form')).toBeVisible();
 });
+
+test('foreground identity check covers the previous screen without discarding same-user form state',async({page})=>{
+ let held=false,release=()=>{};
+ await page.route('**/api/auth/me',async route=>{if(held)await new Promise<void>(resolve=>release=resolve);await route.fulfill({json:{data:{id:'foreground-user',role:'USER',email:'foreground@example.invalid',mustChangePassword:false,settings:{}}}});});
+ await page.goto('/auth/login');const email=page.getByLabel('이메일',{exact:true});await email.fill('retained@example.invalid');held=true;
+ await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));});
+ const cover=page.getByRole('status');await expect(cover).toBeVisible();await expect(cover).toHaveCSS('z-index','2147483647');
+ await expect(email).toHaveValue('retained@example.invalid');release();await expect(cover).toHaveCount(0);await expect(email).toHaveValue('retained@example.invalid');
+});
+
+test('settings logout clears the screen and does not reload its own broadcast indefinitely',async({page})=>{
+ let signedIn=true;
+ await page.route('**/api/**',route=>route.fulfill({json:{data:[]}}));
+ await page.route('**/api/auth/me',route=>route.fulfill(signedIn?{json:{data:{id:'logout-user',role:'USER',email:'logout@example.invalid',mustChangePassword:false,settings:{}}}}:{status:401,json:{error:{code:'LOGIN_REQUIRED'}}}));
+ await page.route('**/api/auth/logout',route=>{signedIn=false;return route.fulfill({json:{data:{loggedOut:true}}});});
+ await page.goto('/detail/settings?view=settings');await page.getByRole('button',{name:'로그아웃',exact:true}).click();
+ await expect(page.getByLabel('이메일',{exact:true})).toBeVisible();await expect(page.getByRole('status')).toHaveCount(0);await expect(page.getByRole('navigation',{name:'하단 메뉴'})).toHaveCount(0);
+});
