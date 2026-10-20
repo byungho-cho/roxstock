@@ -177,7 +177,8 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const allowed:DartDisplayStatus[]=['SUCCESS','NOT_DUE','NO_FILING','DATA_UNAVAILABLE','EXCLUDED','REVIEW_REQUIRED','PENDING','PROCESSING','FAILED'];
     const status=request.query.status as DartDisplayStatus;
     if(!allowed.includes(status)||!['all','priority'].includes(request.query.scope??'all'))return reply.code(400).send({error:{code:'INVALID_FILTER',message:'유효한 상태·범위를 선택해 주세요.'}});
-    const priority=request.query.scope==='priority',ids=priority?await new PrismaDartRepository(prisma).prioritySecurityIds():undefined;
+    const priority=request.query.scope==='priority',priorityIds=priority?await new PrismaDartRepository(prisma).prioritySecurityIds():[];
+    const ids=priority?(await prisma.security.findMany({where:{...(status==='EXCLUDED'?{}:{...eligibleWhere('dart-financial-statements'),dartCorpMapping:{isNot:null}}),id:{in:priorityIds},securityType:'STOCK'},select:{id:true}})).map(stock=>stock.id):undefined;
     const offset=Number(request.query.offset??0);
     if(!Number.isSafeInteger(offset)||offset<0||offset>1000000)return reply.code(400).send({error:{code:'INVALID_OFFSET',message:'잘못된 페이지입니다.'}});
     const now=new Date();

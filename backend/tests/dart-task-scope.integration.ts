@@ -13,6 +13,7 @@ test('DART task detail uses each authenticated priority scope and keeps exclusio
  await app.register(collectionStatusRoutes,{prefix:'/api'});
  try{
   for(let i=0;i<2;i++){
+   await prisma.dartCorpMapping.create({data:{securityId:stocks[i]!.id,corpCode:`0099123${i+1}`,stockCode:stocks[i]!.symbol,collectionSymbol:stocks[i]!.symbol,corpName:"scope fixture",syncedAt:new Date()}});
    await prisma.accountWatchlistItem.create({data:{accountId:accounts[i]!.id,securityId:stocks[i]!.id,listType:'WATCHLIST'}});
    await prisma.dartBackfillTask.createMany({data:[{securityId:stocks[i]!.id,fiscalYear:2025,reportCode:'11011',periodType:'ANNUAL',status:'NOT_DUE',nextAttemptAt:new Date('2027-01-01')},{securityId:stocks[i]!.id,fiscalYear:2024,reportCode:'11011',periodType:'ANNUAL',status:'EXCLUDED',errorCode:'PRE_LISTING_POLICY_EXCLUDED',errorMessage:'상장 전 수집 제외'}]});
   }
