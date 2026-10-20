@@ -9,3 +9,5 @@ for(const n of [0,1,5,6,7,8,20])test(`composition ${n}: shared ordered set, cons
  if(n>7){assert.equal(items.at(-1)!.id,'other');assert.equal(items.at(-1)!.percent,(n-7)*(n-6)/2);}
  assert.deepEqual(items.filter(i=>i.id!=='other').map(i=>i.id),Array.from({length:Math.min(7,n)},(_,i)=>String(i)));
 });
+
+test('zero valuation holding retains its real name; missing names never create Other',()=>{const items=groupedComposition([{id:'1',name:'종목명 미확인 (1)',percent:100},{id:'2',name:'영 평가 종목',percent:0}]);assert.equal(items.length,2);assert.ok(items.every(i=>i.id!=='other'));assert.equal(items[1]!.percent,0);});

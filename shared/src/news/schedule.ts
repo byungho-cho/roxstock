@@ -11,7 +11,7 @@ export function regularSlot(config:NewsScheduleConfig,now:Date){
  const step=config.intervalHours*3600000,index=Math.floor((now.getTime()-config.anchorAt.getTime())/step);
  return new Date(config.anchorAt.getTime()+index*step);
 }
-export function nextNewsAt(config:NewsScheduleConfig,now:Date){return new Date(regularSlot(config,now).getTime()+config.intervalHours*3600000);}
+export function nextNewsAt(config:NewsScheduleConfig,now:Date){return now<config.anchorAt?new Date(config.anchorAt):new Date(regularSlot(config,now).getTime()+config.intervalHours*3600000);}
 export function newsWindow(initialDate:string,lastCheckedAt:Date|null,now:Date){
  return new Date(Math.max(kstStart(initialDate).getTime(),(lastCheckedAt??now).getTime()-72*3600000));
 }

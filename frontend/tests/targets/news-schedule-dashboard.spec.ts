@@ -32,3 +32,13 @@ for(const count of [0,1,5,6,7,8,14])test(`dashboard ${count} securities: matchin
  await page.getByRole('button',{name:'종목별 비중 차트 방식 변경'}).click();await expect(rows).toHaveCount(expected);expect(await legends.allTextContents()).toEqual(await rows.allTextContents());
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);if(count===8||count===6)await page.screenshot({path:info.outputPath(`dashboard-${count}.png`),fullPage:true});
 });
+
+test('account and market-value rank changes rebuild one consistent composition set',async({page})=>{
+ const f=await base(page,{trend:true});let reversed=false;
+ const read=async(path:string)=>{const result=await f.read(path);if(path.includes('/dashboard')){const second=path.includes('/accounts/2/'),count=second?6:8;const holdings=Array.from({length:count},(_,i)=>({securityId:String(i+1),symbol:String(i+1).padStart(6,'0'),name:(second?'다른계좌':'기본계좌')+' 종목'+i,quantity:'1',averagePurchasePrice:'1',purchaseAmount:'1',currentPrice:'1',marketValue:String(reversed?i+1:count-i),unrealizedProfitLoss:'0',unrealizedReturnRate:'0'}));result.body.data={...result.body.data,accountId:second?'2':'1',stockValue:String(count*(count+1)/2),holdings,pricingComplete:true};}return result;};
+ await page.route('**/api/pages/read',async r=>r.fulfill({json:{data:await Promise.all((r.request().postDataJSON().paths as string[]).map(read))}}));
+ await page.route('**/api/accounts/*/dashboard**',async r=>{const u=new URL(r.request().url());await r.fulfill({json:(await read(u.pathname.slice(4)+u.search)).body});});
+ await page.goto('/detail/assets');await expect(page.getByTestId('asset-legend-row')).toHaveCount(8);await expect(page.getByTestId('asset-legend-row').first()).toContainText('기본계좌 종목0');
+ reversed=true;await page.reload();await expect(page.getByTestId('asset-legend-row').first()).toContainText('기본계좌 종목7');
+ await page.evaluate(()=>localStorage.setItem('roxstock-selected-account-id','2'));await page.reload();await expect(page.getByTestId('asset-legend-row')).toHaveCount(6);await expect(page.getByTestId('asset-weight-row')).toHaveCount(6);await expect(page.getByTestId('asset-composition-card')).not.toContainText('기본계좌');await expect(page.getByTestId('asset-composition-card')).not.toContainText('기타');
+});

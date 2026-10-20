@@ -7,7 +7,7 @@ test('news canonical links, provider/transfer duplicates, stable priority and no
  assert.equal(canonicalUrl('https://dart.fss.or.kr/api/link.jsp?rcpNo=20261019000001'),'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261019000001');
  for(const u of ['javascript:alert(1)','https://www.hankyung.com.evil.org/article/1','https://user:pass@www.hankyung.com/article/1','https://www.hankyung.com:4000/article/1'])assert.throws(()=>canonicalUrl(u));
  const rows=Array.from({length:20},(_,i)=>make(i,i<12?2:1));assert.equal(selectNews(rows).length,10);assert.ok(selectNews(rows).every(x=>x.priority===2));
- const one=make(1);assert.equal(selectNews([one,{...one,providerId:'other',originalUrl:one.originalUrl+'?utm_medium=x'}]).length,1);
+ const one=make(1);assert.equal(selectNews([one,{...make(2),providerId:one.providerId}]).length,1);assert.equal(selectNews([one,{...one,providerId:'other',originalUrl:one.originalUrl+'?utm_medium=x'}]).length,1);
  assert.equal(selectNews([make(1),make(2)]).length,2);assert.deepEqual(selectNews([make(2),make(1,2)]).map(r=>r.providerId),['1','2']);
 });
 test('summary is evidence-only, Unicode-safe, <=300 with unknown access untouched',()=>{

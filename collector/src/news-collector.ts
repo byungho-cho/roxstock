@@ -24,7 +24,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
   if(options.manualDate&&options.manualDate!==seoulDay(now))return {status:'WRONG_SUPPLEMENT_DATE'};
   const initial=!state.initialCompletedAt&&!await db.stockNewsSlot.findUnique({where:{key:'INITIAL:'+state.initialDate},select:{key:true}});
   const retry=await db.stockNewsSlot.findFirst({where:{nextRetryAt:{lte:now},attempts:{lt:3}},orderBy:{scheduledAt:'desc'}});
-  const due=latest>=config.updatedAt&&(!state.lastFinishedAt||latest>state.lastFinishedAt);
+  const due=latest>=config.anchorAt&&latest>=config.updatedAt&&(!state.lastFinishedAt||latest>state.lastFinishedAt);
   const key=options.manualDate?'SUPPLEMENT:'+options.manualDate:initial?'INITIAL:'+state.initialDate:due?config.revision+':'+latest.toISOString():retry?.key;
   if(!key)return {status:'IDLE',initialCompleted:!!state.initialCompletedAt};
   const previous=await db.stockNewsSlot.findUnique({where:{key}});
@@ -53,7 +53,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
     const required=new Date(Math.max(kstStart(state.initialDate).getTime(),(prior?.lastCheckedAt??prior?.watermark??lower).getTime()));
     const response=targets.length?await source.collect(targets,lower,now,signal,required):{candidates:[] as NewsCandidate[],warnings:[] as string[],requests:0};
     if(response.candidates.length>2000)response.warnings.push('NEWS_CANDIDATE_BOUND');
-    candidates.push(...response.candidates.slice(0,2000));
+    candidates.push(...response.candidates.slice(0,2000).filter(c=>c.publishedAt>=kstStart(state.initialDate)&&c.publishedAt<=now));
     if(Array.isArray(prior?.gaps)&&prior.gaps.length&&!response.warnings.includes('UNCONFIRMED_HISTORY'))response.warnings.push('UNCONFIRMED_HISTORY');
     const warnings=response.warnings.filter(w=>!w.startsWith('NORMAL_EXCLUDED:'));
     const available= !('available' in response&&response.available===false);
@@ -64,10 +64,10 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
   const pendingCandidates=await db.stockNewsCandidate.findMany({where:{status:'DEFERRED',expiresAt:{gte:now}},orderBy:[{priority:'desc'},{publishedAt:'desc'},{canonicalHash:'asc'}],take:200});
   const currentTargetIds=new Set(targets.map(t=>String(t.id)));
   for(const row of pendingCandidates){try{const raw=row.payload as any,c={...raw,publishedAt:new Date(raw.publishedAt),securityIds:raw.securityIds.filter((id:string)=>currentTargetIds.has(id)).map(BigInt)} as NewsCandidate;if(c.securityIds.length&&c.priority)candidates.push(c);}catch{/* Invalid legacy metadata remains diagnosable and is not published. */}}
-  const keys=candidates.map(candidateKeys),existing=new Set<string>(),knownItems=new Map<string,bigint>();
-  for(let i=0;i<keys.length;i+=100){const rows=await db.stockNewsItem.findMany({where:{OR:keys.slice(i,i+100).flatMap((k,j)=>[{canonicalHash:k.canonicalHash},{fingerprint:k.fingerprint},{provider:candidates[i+j]!.provider,providerId:candidates[i+j]!.providerId}])},select:{id:true,canonicalHash:true,fingerprint:true,provider:true,providerId:true}});for(const r of rows){existing.add(r.canonicalHash);existing.add(r.fingerprint);knownItems.set(r.canonicalHash,r.id);knownItems.set(r.fingerprint,r.id);for(let j=i;j<Math.min(keys.length,i+100);j++)if(candidates[j]!.provider===r.provider&&candidates[j]!.providerId===r.providerId){existing.add(keys[j]!.canonicalHash);knownItems.set(keys[j]!.canonicalHash,r.id);}}const seen=await db.stockNewsSeen.findMany({where:{key:{in:keys.slice(i,i+100).flatMap(k=>[k.canonicalHash,k.fingerprint])}},select:{key:true}});/* Seen is an observation, never proof of an actual stored item. */}
+  const keys=candidates.map(candidateKeys),existing=new Set<string>(),pastExcluded=new Set<string>(),knownItems=new Map<string,bigint>();
+  for(let i=0;i<keys.length;i+=100){const rows=await db.stockNewsItem.findMany({where:{OR:keys.slice(i,i+100).flatMap((k,j)=>[{canonicalHash:k.canonicalHash},{fingerprint:k.fingerprint},{provider:candidates[i+j]!.provider,providerId:candidates[i+j]!.providerId}])},select:{id:true,canonicalHash:true,fingerprint:true,provider:true,providerId:true}});for(const r of rows){existing.add(r.canonicalHash);existing.add(r.fingerprint);knownItems.set(r.canonicalHash,r.id);knownItems.set(r.fingerprint,r.id);for(let j=i;j<Math.min(keys.length,i+100);j++)if(candidates[j]!.provider===r.provider&&candidates[j]!.providerId===r.providerId){existing.add(keys[j]!.canonicalHash);knownItems.set(keys[j]!.canonicalHash,r.id);}}const seen=await db.stockNewsSeen.findMany({where:{key:{in:keys.slice(i,i+100).flatMap(k=>[k.canonicalHash,k.fingerprint])}},select:{key:true,status:true}});for(const r of seen)if(r.status!=='STORED')pastExcluded.add(r.key);/* Seen is an observation, never proof of an actual stored item. */}
   const alreadyToday=await db.stockNewsItem.count({where:{collectedAt:{gte:kstStart(plan.day),lt:new Date(kstStart(plan.day).getTime()+86400000)}}});
-  const selected=selectNews(candidates,existing).slice(0,Math.max(0,10-alreadyToday)),duplicates=(()=>{const seen=new Set(existing);let count=0;for(const c of candidates){const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))count++;else{seen.add(k.canonicalHash);seen.add(k.fingerprint);}}return count;})();
+  const selected=selectNews(candidates.filter(c=>c.publishedAt.getTime()+72*3600000>=now.getTime()),existing).slice(0,Math.max(0,10-alreadyToday)),duplicates=(()=>{const seen=new Set(existing);let count=0;for(const c of candidates){const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))count++;else{seen.add(k.canonicalHash);seen.add(k.fingerprint);}}return count;})();
   // Existing provider summaries need no extra request; missing ones get one attempt.
   const extract=summaryExtractor(db,signal,new NewsHttp(signal,fetch,1000,1));
   if(options.enrich!==false)for(const item of selected.filter(c=>!c.summary)){
@@ -86,7 +86,10 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    for(const c of candidates){const k=candidateKeys(c),newsId=knownItems.get(k.canonicalHash)??knownItems.get(k.fingerprint);if(newsId)for(const securityId of c.securityIds)additions.set(newsId+':'+securityId,{newsId,securityId});}
    const eligibleIds=new Set<bigint>(),relationIds=[...new Set([...additions.values()].map(r=>r.securityId))];
    for(let i=0;i<relationIds.length;i+=200){const rows=await tx.security.findMany({where:{id:{in:relationIds.slice(i,i+200)},collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}}},select:{id:true,symbol:true}});for(const e of rows)if(targets.some(t=>t.id===e.id&&t.symbol===e.symbol))eligibleIds.add(e.id);}
-   const relations=[...additions.values()].filter(r=>eligibleIds.has(r.securityId));for(let i=0;i<relations.length;i+=500)linked+=(await tx.stockNewsSecurity.createMany({data:relations.slice(i,i+500),skipDuplicates:true})).count;
+   const requestedRelations=[...additions.values()].filter(r=>eligibleIds.has(r.securityId)),existingRelations=new Set<string>();
+   for(let i=0;i<requestedRelations.length;i+=200){const rows=await tx.stockNewsSecurity.findMany({where:{OR:requestedRelations.slice(i,i+200)},select:{newsId:true,securityId:true}});for(const row of rows)existingRelations.add(row.newsId+':'+row.securityId);}
+   const relations=requestedRelations.filter(r=>!existingRelations.has(r.newsId+':'+r.securityId));
+   for(let i=0;i<relations.length;i+=500)linked+=(await tx.stockNewsSecurity.createMany({data:relations.slice(i,i+500),skipDuplicates:true})).count;
    for(const c of selected){
     const eligible=await tx.security.findMany({where:{id:{in:c.securityIds},collectionExcluded:false,NOT:{symbol:{startsWith:'Z99'}}},select:{id:true,symbol:true}});
     const permitted=eligible.filter(e=>targets.some(t=>t.id===e.id&&t.symbol===e.symbol)).map(e=>e.id);if(!permitted.length)continue;
@@ -99,22 +102,22 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    for(const c of unique.values()){
     const k=candidateKeys(c),stored=existing.has(k.canonicalHash)||existing.has(k.fingerprint),chosen=selectedKeys.has(k.canonicalHash),status=stored||chosen?'STORED':c.priority&&c.securityIds.length?'DEFERRED':'EXCLUDED',reason=status==='DEFERRED'?(alreadyToday+saved>=10?'DAILY_LIMIT':'SELECTION_RANK'):status==='EXCLUDED'?'NOT_RELEVANT':null;
     const count=counts.get(c.provider)??{storedDuplicates:0,pastExcluded:0,selectionExcluded:0,saved:0,linked:0};
-    if(stored)count.storedDuplicates++;if(pendingCandidates.some(p=>p.canonicalHash===k.canonicalHash))count.pastExcluded++;if(status==='DEFERRED')count.selectionExcluded++;if(chosen)count.saved++;count.linked=relations.filter(r=>knownItems.get(k.canonicalHash)===r.newsId).length;counts.set(c.provider,count);
+    if(stored)count.storedDuplicates++;if(pastExcluded.has(k.canonicalHash)||pastExcluded.has(k.fingerprint)||pendingCandidates.some(p=>p.canonicalHash===k.canonicalHash))count.pastExcluded++;if(status==='DEFERRED')count.selectionExcluded++;if(chosen)count.saved++;count.linked+=relations.filter(r=>knownItems.get(k.canonicalHash)===r.newsId).length;counts.set(c.provider,count);
     const payload=JSON.parse(JSON.stringify({...c,securityIds:c.securityIds.map(String),summary:null,summaryMethod:'NONE'}));
     await tx.stockNewsCandidate.upsert({where:{canonicalHash:k.canonicalHash},create:{...k,provider:c.provider,providerId:c.providerId,payload,priority:c.priority,publishedAt:c.publishedAt,expiresAt:new Date(c.publishedAt.getTime()+72*3600000),status,reason,firstSeenAt:finished,lastCheckedAt:finished},update:{payload,status,reason,lastCheckedAt:finished}});
     for(const seenKey of [k.canonicalHash,k.fingerprint])await tx.stockNewsSeen.upsert({where:{key:seenKey},create:{key:seenKey,firstSeenAt:finished,status,reason,lastCheckedAt:finished},update:{status,reason,lastCheckedAt:finished}});
    }
    const nextRetries:Date[]=[];
    for(const r of results){
-    if(r.reused){if(r.nextRetryAt)nextRetries.push(new Date(r.nextRetryAt));continue;}
+    if(r.reused){r.diagnostics={rawParsed:0,periodPassed:0,securityMatched:0,...counts.get(r.provider)};await tx.stockNewsProviderState.update({where:{provider:r.provider},data:{diagnostics:r.diagnostics}});if(r.nextRetryAt)nextRetries.push(new Date(r.nextRetryAt));continue;}
     const recoverable=r.warnings.some((w:string)=>/UNAVAILABLE|FAILED|QUOTA|YIELDED|TIME_BOUND|PAGE_BOUND|CALL_BOUND|SOURCE_BOUND/.test(w));
     const nextRetryAt=recoverable&&r.attempt<3?new Date(finished.getTime()+15*60000*r.attempt):null;
     if(nextRetryAt)nextRetries.push(nextRetryAt);
     r.nextRetryAt=nextRetryAt?.toISOString()??null;r.retryEndReason=nextRetryAt?null:r.status==='SUCCESS'||r.status==='EXCLUDED'?'COMPLETE':recoverable?'RETRY_EXHAUSTED':'COVERAGE_UNRECOVERABLE';
-    r.diagnostics={...r.diagnostics,...counts.get(r.provider)};
+    r.diagnostics={...r.diagnostics,...counts.get(r.provider),selectionExcluded:(r.diagnostics?.selectionExcluded??0)+(counts.get(r.provider)?.selectionExcluded??0)};
     const prior=await tx.stockNewsProviderState.findUnique({where:{provider:r.provider}});
     const gaps=[...(Array.isArray(prior?.gaps)?prior!.gaps:[]),...(Array.isArray(r.gaps)?r.gaps:[])].slice(-24);
-    const data={slotKey:key,status:r.status,attempts:r.attempt,nextRetryAt,lastAttemptAt:now,lastCheckedAt:finished,gaps,diagnostics:r.diagnostics,lastError:r.warnings.join(', ').slice(0,500)||null,...(r.status==='SUCCESS'||r.status==='EXCLUDED'?{lastSuccessAt:finished,...(!gaps.length?{watermark:now}:{})}:{})};
+    const data={slotKey:key,status:r.status,attempts:r.attempt,nextRetryAt,lastAttemptAt:now,...(r.status!=='FAILED'&&!recoverable?{lastCheckedAt:finished}:{}),gaps,diagnostics:r.diagnostics,lastError:r.warnings.join(', ').slice(0,500)||null,...(r.status==='SUCCESS'||r.status==='EXCLUDED'?{lastSuccessAt:finished,...(!gaps.length?{watermark:now}:{})}:{})};
     await tx.stockNewsProviderState.upsert({where:{provider:r.provider},create:{provider:r.provider,...data},update:data});
     if(!['SUCCESS','EXCLUDED'].includes(r.status))await tx.collectorRunItem.create({data:{runId:run.id,symbol:r.provider,status:'FAILED',message:r.warnings.join(', ').slice(0,1000),diagnostics:{provider:r.provider,status:r.status,retryEndReason:r.retryEndReason,metadataRetained:true}}});
    }
@@ -123,7 +126,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    await tx.stockNewsState.update({where:{id:job},data:{lastStatus:status,lastFinishedAt:finished,nextRetryAt,...(successes?{completedDate:plan.day,initialCompletedAt:state.initialCompletedAt??finished,lastCollectedAt:finished}:{}),...(status==='SUCCESS'?{lastFullSuccessAt:finished}:{}),...(saved?{lastNewStoredAt:finished}:{})}});
    await tx.collectorRun.update({where:{id:run.id},data:{status,finishedAt:finished,successCount:saved,failureCount:results.filter(r=>!['SUCCESS','EXCLUDED'].includes(r.status)).length,skippedCount:Math.max(0,candidates.length-saved),failureReason:status==='SUCCESS'?null:'NEWS_PROVIDER_PARTIAL: 정상 자료와 기존 목록 보존',metadata:{kind:plan.kind,scheduleDate:plan.day,ownerId:hash(owner).slice(0,16),attempt:attempts,from:plan.from.toISOString(),to:now.toISOString(),slotKey:key,scheduledAt:scheduledAt.toISOString(),intervalHours:config.intervalHours,startTime:config.startTime,anchorAt:config.anchorAt.toISOString(),actualStartedAt:now.toISOString(),policy:'stock-news-v2',dailyAlreadyStored:alreadyToday,selectionExcluded:Math.max(0,unique.size-saved-[...counts.values()].reduce((s,c)=>s+c.storedDuplicates,0)),targetUnit:'unique securities across active accounts',targetSecurities:targets.length,candidates:candidates.length,duplicates,selected:saved,linkedRelationships:linked,summaryUnavailable,providerResults:results,selectionLimit:10,selectionTarget:5}}});
    return {status,runId:String(run.id),kind:plan.kind,date:plan.day,targets:targets.length,saved,duplicates,summaryUnavailable,providers:results,selectionExcluded:Math.max(0,unique.size-saved-[...counts.values()].reduce((s,c)=>s+c.storedDuplicates,0)),linked,nextRetryAt:nextRetryAt?.toISOString()??null,nextScheduledAt:nextNewsAt(config,finished).toISOString()};
-  });
+  },{timeout:30000});
   // Retain all actual news. Bounded diagnostics/metadata cleanup only, 30 days.
   const old=await db.stockNewsCandidate.findMany({where:{firstSeenAt:{lt:new Date(now.getTime()-30*86400000)}},select:{canonicalHash:true},take:200});
   if(old.length)await db.stockNewsCandidate.deleteMany({where:{canonicalHash:{in:old.map(r=>r.canonicalHash)}}});

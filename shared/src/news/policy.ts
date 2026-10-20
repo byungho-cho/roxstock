@@ -57,7 +57,7 @@ export function importance(title:string,type:NewsType):number{
 }
 export function candidateKeys(c:NewsCandidate){return {canonicalHash:hash(canonicalUrl(c.originalUrl)),fingerprint:hash(c.title.normalize('NFKC').toLowerCase().replace(/[\p{P}\p{Z}\s]/gu,'')+'|'+[...c.securityIds].sort((a,b)=>a<b?-1:1).join(',')+'|'+seoulDay(c.publishedAt))};}
 export function selectNews(candidates:NewsCandidate[],existing=new Set<string>()){
- const seen=new Set(existing);const rows=candidates.filter(c=>{if(!c.priority||!c.securityIds.length)return false;const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))return false;seen.add(k.canonicalHash);seen.add(k.fingerprint);return true;})
+ const seen=new Set(existing);const rows=candidates.filter(c=>{if(!c.priority||!c.securityIds.length)return false;const k=candidateKeys(c),providerKey='provider:'+c.provider+':'+c.providerId;if(seen.has(k.canonicalHash)||seen.has(k.fingerprint)||seen.has(providerKey))return false;seen.add(k.canonicalHash);seen.add(k.fingerprint);seen.add(providerKey);return true;})
  .sort((a,b)=>b.priority-a.priority||b.publishedAt.getTime()-a.publishedAt.getTime()||a.originalUrl.localeCompare(b.originalUrl));
  const important=rows.filter(r=>r.priority===2).length;
  return rows.slice(0,Math.min(10,Math.max(5,important)));

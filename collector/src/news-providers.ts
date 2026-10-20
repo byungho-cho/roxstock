@@ -33,7 +33,7 @@ export class NewsHttp {
 }
 const tag=(xml:string,name:string)=>plainText(new RegExp('<'+name+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+name+'>','i').exec(xml)?.[1]??'');
 export function rssItemDates(xml:string){return [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map(m=>new Date(tag(m[1]!,'pubDate')||tag(m[1]!,'dc:date')).getTime()).filter(Number.isFinite);}
-export function parseRss(xml:string,targets:NewsTarget[],provider:string,from:Date,to:Date,diagnostics:Record<string,number>={}):NewsCandidate[]{
+export function parseRss(xml:string,targets:NewsTarget[],provider:string,from:Date,to:Date,diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0}):NewsCandidate[]{
  if(!/<rss\b/i.test(xml)||!/<channel\b/i.test(xml)||/<!DOCTYPE|<!ENTITY/i.test(xml))throw Error('INVALID_RSS');
  const items=[...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)];
  return items.flatMap(match=>{
@@ -45,7 +45,7 @@ export function parseRss(xml:string,targets:NewsTarget[],provider:string,from:Da
   return [{provider,providerId:provider==='DART'?new URL(originalUrl).searchParams.get('rcpNo')!:originalUrl,title:title.slice(0,500),originalUrl,sourceName:provider==='DART'?'전자공시 DART':'한국경제',publishedAt,publishedPrecision:'TIME',materialType,priority,accessCondition:provider==='DART'?'FREE':'UNKNOWN',summary:contentSummary(tag(item,'description'),title),summaryMethod:tag(item,'description')?'PUBLIC_FEED_DESCRIPTION':'NONE',securityIds} as NewsCandidate];
  });
 }
-export function parseReports(html:string,targets:NewsTarget[],from:Date,to:Date,diagnostics:Record<string,number>={}):NewsCandidate[]{
+export function parseReports(html:string,targets:NewsTarget[],from:Date,to:Date,diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0}):NewsCandidate[]{
  if(!/<tbody\b/i.test(html)||!html.includes('report_idx')){
   if(/검색.*결과.*없|데이터.*없/.test(plainText(html)))return [];throw Error('INVALID_REPORT_LIST');
  }
@@ -69,7 +69,7 @@ export function publicDescription(head:string){
 export function defaultNewsSources(db:PrismaClient):NewsSource[]{
  return [
   {id:'HANKYUNG_RSS',collect:async(targets,from,to,signal,requiredFrom)=>{
-   const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],warnings:string[]=[],diagnostics:Record<string,number>={},gaps:NonNullable<ProviderResult['gaps']>=[];let readable=0;
+   const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],warnings:string[]=[],diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0},gaps:NonNullable<ProviderResult['gaps']>=[];let readable=0;
    for(const section of ['finance','economy','it'])try{
     const xml=await http.text('https://www.hankyung.com/feed/'+section);
     try{candidates.push(...parseRss(xml,targets,'HANKYUNG_RSS',from,to,diagnostics));}catch{warnings.push('FEED_'+section.toUpperCase()+'_PARSE_FAILED');continue;}
@@ -80,13 +80,13 @@ export function defaultNewsSources(db:PrismaClient):NewsSource[]{
    }catch{warnings.push('FEED_'+section.toUpperCase()+'_UNAVAILABLE');}
    return {provider:'HANKYUNG_RSS',candidates,warnings,requests:http.requests,available:readable>0,diagnostics,gaps};
   }},
-  {id:'HANKYUNG_CONSENSUS',collect:async(targets,from,to,signal)=>{const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],diagnostics:Record<string,number>={};for(let page=1;page<=8;page++){
+  {id:'HANKYUNG_CONSENSUS',collect:async(targets,from,to,signal)=>{const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0};for(let page=1;page<=8;page++){
    const url='https://consensus.hankyung.com/analysis/list?'+new URLSearchParams({sdate:seoulDay(from),edate:seoulDay(to),now_page:String(page),pagenum:'80',report_type:'',search_value:''});
    let html:string;try{html=await http.text(url);candidates.push(...parseReports(html,targets,from,to,diagnostics));}catch{return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:['REPORT_PAGE_UNAVAILABLE'],requests:http.requests,available:page>1};}
    const pages=[...html.matchAll(/now_page=(\d+)/g)].map(m=>Number(m[1]));if(Math.max(1,...pages)<=page)return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:[],requests:http.requests};
   }return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:['REPORT_PAGE_BOUND'],requests:http.requests};}},
   {id:'DART',collect:async(targets,from,to,signal)=>{
-   const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],warnings:string[]=[],diagnostics:Record<string,number>={};const corporate=targets.filter(t=>!['ETF','ETN'].includes(t.securityType??'STOCK')),excluded=targets.length-corporate.length,mapped=corporate.filter(t=>t.corpCode),missing=corporate.filter(t=>!t.corpCode);if(excluded)warnings.push('NORMAL_EXCLUDED:'+excluded);if(missing.length)warnings.push('CORP_MAPPING_MISSING:'+missing.length);if(!mapped.length)return {provider:'DART',candidates,warnings,requests:0,normalExcluded:excluded,diagnostics:{...diagnostics,normalExcluded:excluded,mappingMissing:missing.length,corporateTargets:corporate.length}};
+   const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],warnings:string[]=[],diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0};const corporate=targets.filter(t=>!['ETF','ETN'].includes(t.securityType??'STOCK')),excluded=targets.length-corporate.length,mapped=corporate.filter(t=>t.corpCode),missing=corporate.filter(t=>!t.corpCode);if(excluded)warnings.push('NORMAL_EXCLUDED:'+excluded);if(missing.length)warnings.push('CORP_MAPPING_MISSING:'+missing.length);if(!mapped.length)return {provider:'DART',candidates,warnings,requests:0,normalExcluded:excluded,diagnostics:{...diagnostics,normalExcluded:excluded,mappingMissing:missing.length,corporateTargets:corporate.length}};
    // Public RSS improves publication time precision; Open DART fills its short lookback window.
    for(const target of mapped){try{const xml=await http.text('https://dart.fss.or.kr/api/companyRSS.xml?crpCd='+target.corpCode);candidates.push(...parseRss(xml,targets,'DART',from,to,diagnostics));}catch{warnings.push('RSS_UNAVAILABLE:'+target.symbol);}}
    const config=loadCollectorConfig(),repo=new PrismaDartRepository(db),state=await repo.getState(),owner=randomUUID();
