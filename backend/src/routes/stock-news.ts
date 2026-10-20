@@ -1,3 +1,5 @@
+import {newsCollectionState,ensureNewsSchedule} from '@roxstock/shared/news/state';
+import {validateNewsSchedule,scheduleAnchor} from '@roxstock/shared/news/schedule';
 import type {FastifyInstance} from 'fastify';
 import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';
 import {prisma} from '@roxstock/shared/lib/prisma';
@@ -38,16 +40,11 @@ async function context(tx:Prisma.TransactionClient,accountId:bigint,q:Query){
 function boundary(row:Pick<Row,'priority'|'publishedAt'|'id'>,direction:'before'|'after'):Prisma.StockNewsItemWhereInput{
  const op=direction==='before'?'gt':'lt';return {OR:[{priority:{[op]:row.priority}},{priority:row.priority,publishedAt:{[op]:row.publishedAt}},{priority:row.priority,publishedAt:row.publishedAt,id:{[op]:row.id}}]};
 }
-async function collectionState(tx:Prisma.TransactionClient){
- const state=await tx.stockNewsState.findUnique({where:{id:'stock-news'}}),providers=await tx.stockNewsProviderState.findMany({select:{provider:true,lastError:true,lastSuccessAt:true},orderBy:{provider:'asc'}});
- const now=new Date(),today=seoulDay(now),six=new Date(kstStart(today).getTime()+6*3600000);
- return {status:state?.lastStatus??'NOT_COLLECTED',updatedAt:state?.lastCollectedAt?.toISOString()??null,initialCompleted:!!state?.initialCompletedAt,initialDate:state?.initialDate??null,enabled:process.env.STOCK_NEWS_ENABLED!=='false',nextAt:state?.initialCompletedAt?(six>now?six:new Date(six.getTime()+86400000)).toISOString():null,providers:providers.map(p=>({id:p.provider,error:p.lastError,lastSuccessAt:p.lastSuccessAt?.toISOString()??null}))};
-}
 export async function loadStockNews(accountId:bigint,q:Query={}){
  return prisma.$transaction(async tx=>{
   const ctx=await context(tx,accountId,q);let after:Prisma.StockNewsItemWhereInput={};
   if(q.cursor){if(!q.snapshot)throw bad();const cursorId=id(q.cursor,'cursor'),last=await tx.stockNewsItem.findFirst({where:{AND:[ctx.where,{id:cursorId}]},select:{id:true,priority:true,publishedAt:true}});if(!last)throw bad();after=boundary(last,'after');}
-  const [rows,total,collection]=await Promise.all([tx.stockNewsItem.findMany({where:{AND:[ctx.where,after]},orderBy:[...order],take:11,include}),tx.stockNewsItem.count({where:ctx.where}),collectionState(tx)]);
+  const [rows,total,collection]=await Promise.all([tx.stockNewsItem.findMany({where:{AND:[ctx.where,after]},orderBy:[...order],take:11,include}),tx.stockNewsItem.count({where:ctx.where}),newsCollectionState(tx)]);
   const page=rows.slice(0,10),held=await heldForRows(tx,accountId,page);return {data:page.map(r=>serialize(r,ctx.ids,held)),meta:{accountId:String(accountId),type:q.type??'ALL',total,count:page.length,snapshot:ctx.snapshot,nextCursor:rows.length>10?String(page.at(-1)!.id):null,collection}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
@@ -59,6 +56,14 @@ export async function loadStockNewsDetail(accountId:bigint,newsId:bigint,q:Query
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
 export async function stockNewsRoutes(app:FastifyInstance){
+ // Same installation-wide operating-settings boundary as security-management/collection settings.
+ app.get('/stock-news/settings',async(_req,reply)=>{reply.header('Cache-Control','no-store');return {data:await newsCollectionState(prisma)};});
+ app.put<{Body:unknown}>('/stock-news/settings',async(req,reply)=>{
+  let input;try{input=validateNewsSchedule(req.body);}catch{throw new ApiError(400,'NEWS_INVALID_SCHEDULE','수집 주기는 1~24시간 정수, 시작 시각은 HH:mm 형식이어야 합니다.');}
+  const now=new Date();await ensureNewsSchedule(prisma,now);
+  await prisma.stockNewsSchedule.update({where:{id:'stock-news'},data:{...input,anchorAt:scheduleAnchor(now,input.startTime),revision:{increment:1},updatedAt:now}});
+  reply.header('Cache-Control','no-store');return {data:await newsCollectionState(prisma,now)};
+ });
  app.get<{Params:{accountId:string};Querystring:Query}>('/accounts/:accountId/stock-news',async(req,reply)=>{reply.header('Cache-Control','private, no-store');return loadStockNews(id(req.params.accountId,'accountId'),req.query);});
  app.get<{Params:{accountId:string;newsId:string};Querystring:Query}>('/accounts/:accountId/stock-news/:newsId',async(req,reply)=>{reply.header('Cache-Control','private, no-store');return loadStockNewsDetail(id(req.params.accountId,'accountId'),id(req.params.newsId,'newsId'),req.query);});
 }

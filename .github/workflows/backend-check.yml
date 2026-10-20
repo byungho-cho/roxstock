@@ -80,7 +80,9 @@ jobs:
         run: node --import tsx --test backend/tests/phase18.integration.ts
 
       - name: Phase33 stock news storage, schedule and account pagination (real MariaDB)
-        run: node --import tsx --test backend/tests/stock-news.integration.ts
+        run: |
+          node --import tsx --test backend/tests/stock-news.integration.ts
+          node --import tsx --test backend/tests/news-schedule.integration.ts
 
       - name: Phase32 remaining recent buy Lots (real MariaDB API)
         run: node --import tsx --test backend/tests/home-phase32.integration.ts

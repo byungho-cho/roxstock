@@ -973,11 +973,22 @@ model StockNewsState {
  attempts Int @default(0) @db.UnsignedTinyInt
  nextRetryAt DateTime? @map("next_retry_at") @db.DateTime(3)
  lastCollectedAt DateTime? @map("last_collected_at") @db.DateTime(3)
+ lastAttemptAt DateTime? @map("last_attempt_at") @db.DateTime(3)
+ lastFinishedAt DateTime? @map("last_finished_at") @db.DateTime(3)
+ lastFullSuccessAt DateTime? @map("last_full_success_at") @db.DateTime(3)
+ lastNewStoredAt DateTime? @map("last_new_stored_at") @db.DateTime(3)
  lastStatus String @default("NOT_COLLECTED") @map("last_status") @db.VarChar(20)
  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
  @@map("stock_news_state")
 }
 model StockNewsProviderState {
+ slotKey String? @map("slot_key") @db.VarChar(100)
+ status String @default("NOT_COLLECTED") @db.VarChar(20)
+ attempts Int @default(0) @db.UnsignedTinyInt
+ nextRetryAt DateTime? @map("next_retry_at") @db.DateTime(3)
+ lastCheckedAt DateTime? @map("last_checked_at") @db.DateTime(3)
+ gaps Json?
+ diagnostics Json?
  provider String @id @db.VarChar(40)
  watermark DateTime? @db.DateTime(3)
  lastSuccessAt DateTime? @map("last_success_at") @db.DateTime(3)
@@ -989,6 +1000,49 @@ model StockNewsProviderState {
 model StockNewsSeen {
  key String @id @db.Char(64)
  firstSeenAt DateTime @map("first_seen_at") @db.DateTime(3)
+ status String @default("LEGACY_UNKNOWN") @db.VarChar(24)
+ reason String? @db.VarChar(120)
+ lastCheckedAt DateTime? @map("last_checked_at") @db.DateTime(3)
+ @@index([status,firstSeenAt],map:"stock_news_seen_review_idx")
  @@index([firstSeenAt])
  @@map("stock_news_seen")
+}
+
+model StockNewsSchedule {
+ id String @id @default("stock-news") @db.VarChar(40)
+ intervalHours Int @default(3) @map("interval_hours") @db.UnsignedTinyInt
+ startTime String @default("06:00") @map("start_time") @db.Char(5)
+ anchorAt DateTime @map("anchor_at") @db.DateTime(3)
+ revision Int @default(1) @db.UnsignedInt
+ updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+ @@map("stock_news_schedule")
+}
+model StockNewsSlot {
+ key String @id @db.VarChar(100)
+ kind String @db.VarChar(16)
+ scheduledAt DateTime @map("scheduled_at") @db.DateTime(3)
+ status String @default("RUNNING") @db.VarChar(20)
+ attempts Int @default(0) @db.UnsignedTinyInt
+ nextRetryAt DateTime? @map("next_retry_at") @db.DateTime(3)
+ startedAt DateTime @map("started_at") @db.DateTime(3)
+ finishedAt DateTime? @map("finished_at") @db.DateTime(3)
+ @@index([scheduledAt])
+ @@map("stock_news_slots")
+}
+model StockNewsCandidate {
+ canonicalHash String @id @map("canonical_hash") @db.Char(64)
+ fingerprint String @db.Char(64)
+ provider String @db.VarChar(40)
+ providerId String @map("provider_id") @db.VarChar(160)
+ payload Json
+ priority Int @db.UnsignedTinyInt
+ publishedAt DateTime @map("published_at") @db.DateTime(3)
+ expiresAt DateTime @map("expires_at") @db.DateTime(3)
+ status String @db.VarChar(24)
+ reason String? @db.VarChar(120)
+ firstSeenAt DateTime @map("first_seen_at") @db.DateTime(3)
+ lastCheckedAt DateTime @map("last_checked_at") @db.DateTime(3)
+ @@index([status,expiresAt,priority,publishedAt],map:"stock_news_candidate_queue_idx")
+ @@index([firstSeenAt])
+ @@map("stock_news_candidates")
 }

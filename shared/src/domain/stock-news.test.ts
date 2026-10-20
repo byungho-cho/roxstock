@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {canonicalUrl,contentSummary,importance,relatedTargets,selectNews,newsSchedule,type NewsCandidate} from '../news/policy.js';
+import {canonicalUrl,contentSummary,importance,relatedTargets,selectNews,type NewsCandidate} from '../news/policy.js';
 const make=(n:number,priority=1):NewsCandidate=>({provider:'TEST',providerId:String(n),title:'회사 실적 전망 '+n,originalUrl:'https://www.hankyung.com/article/'+n,sourceName:'test',publishedAt:new Date('2026-10-19T03:00:00Z'),publishedPrecision:'TIME',materialType:'ARTICLE',priority,accessCondition:'UNKNOWN',summary:null,summaryMethod:'NONE',securityIds:[1n]});
 test('news canonical links, provider/transfer duplicates, stable priority and no forced filling',()=>{
  assert.equal(canonicalUrl('https://www.hankyung.com/article/1?utm_source=x#fragment'),'https://www.hankyung.com/article/1');
@@ -18,13 +18,4 @@ test('summary is evidence-only, Unicode-safe, <=300 with unknown access untouche
  assert.deepEqual(relatedTargets('현대차는 실적 전망을 발표',[]),[]);
  assert.deepEqual(relatedTargets('현대차는 실적 전망을 발표',[{id:1n,symbol:'005380',name:'현대자동차'},{id:2n,symbol:'005930',name:'삼성전자'}]),[1n]);
  assert.deepEqual(relatedTargets('삼성전자서비스 홍보 이벤트',[{id:2n,symbol:'005930',name:'삼성전자'}]),[]);
-});
-test('initial deployment day is immediate, next-day 06 KST is durable and bounded retries are respected',()=>{
- const state={initialDate:'2026-10-19',initialCompletedAt:null,completedDate:null,attemptDate:null,attempts:0,nextRetryAt:null};
- assert.equal(newsSchedule(state,new Date('2026-10-19T00:01:00+09:00'))?.kind,'INITIAL');
- const done={...state,initialCompletedAt:new Date(),completedDate:'2026-10-19'};
- assert.equal(newsSchedule(done,new Date('2026-10-19T23:59:00+09:00')),null);assert.equal(newsSchedule(done,new Date('2026-10-20T05:59:59+09:00')),null);
- assert.equal(newsSchedule(done,new Date('2026-10-20T06:00:00+09:00'))?.kind,'DAILY');
- assert.equal(newsSchedule({...state,attemptDate:'2026-10-19',attempts:3},new Date('2026-10-19T15:00:00+09:00')),null);
- assert.equal(newsSchedule({...state,attemptDate:'2026-10-19',attempts:1,nextRetryAt:new Date('2026-10-19T16:00:00+09:00')},new Date('2026-10-19T15:00:00+09:00')),null);
 });

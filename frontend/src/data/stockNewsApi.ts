@@ -1,7 +1,7 @@
 import {apiEnvelope} from './apiClient';
 export type NewsFilter='ALL'|'REPORT'|'ARTICLE'|'DISCLOSURE';
 export type StockNews={isHeld:boolean;id:string;title:string;originalUrl:string|null;originalAvailable:boolean;sourceName:string;publishedAt:string;publishedPrecision:'TIME'|'DATE';type:Exclude<NewsFilter,'ALL'>;importance:'IMPORTANT'|'MAJOR';access:'FREE'|'PAID'|'LOGIN'|'UNKNOWN';summary:string|null;summaryMethod:string;collectedAt:string;securities:{id:string;symbol:string;name:string;isHeld:boolean}[]};
-export type NewsCollection={status:string;updatedAt:string|null;initialCompleted:boolean;enabled:boolean;nextAt:string|null;providers:{id:string;error:string|null}[]};
+export type NewsCollection={status:string;updatedAt:string|null;initialCompleted:boolean;enabled:boolean;nextAt:string|null;intervalHours:number;startTime:string;anchorAt:string;timezone:string;lastAttemptAt:string|null;lastFinishedAt:string|null;lastFullSuccessAt:string|null;lastNewStoredAt:string|null;nextRetryAt:string|null;providers:{id:string;status:string;error:string|null;nextRetryAt:string|null;attempts:number;gaps:{from:string;to:string;reason:string;section?:string}[]|null;diagnostics:Record<string,number>|null}[]};
 export type NewsPage={data:StockNews[];meta:{accountId:string;type:NewsFilter;count:number;total:number;snapshot:string;nextCursor:string|null;collection:NewsCollection}};
 export type NewsDetail={data:StockNews;meta:{accountId:string;snapshot:string;type:NewsFilter;ordinal:number;total:number;previousId:string|null;nextId:string|null}};
 export type NewsPageParam={snapshot?:string;cursor?:string}|undefined;

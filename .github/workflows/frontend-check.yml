@@ -146,6 +146,10 @@ jobs:
         run: cd frontend && npx playwright test -c playwright.phase33.config.ts
       - name: Phase34 toast and stock news layout
         run: cd frontend && npx playwright test -c playwright.phase34-stock-news.config.ts
+      - name: Phase35 news schedule and dashboard v1.2
+        run: |
+          node --import tsx --test frontend/src/utils/assetComposition.test.ts
+          cd frontend && npx playwright test -c playwright.phase35.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
       - uses: actions/upload-artifact@v4
@@ -157,4 +161,5 @@ jobs:
             frontend/test-results/home-phase32
             frontend/test-results/stock-news-phase33
             frontend/test-results/stock-news-phase34
+            frontend/test-results/news-schedule-dashboard
             frontend/test-results/bottom-nav-viewport
