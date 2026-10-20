@@ -49,7 +49,10 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    }
    try{
     if(lost||signal.aborted)throw Error(lost?'NEWS_LEASE_LOST':'NEWS_TIME_BOUND');
-    const lower=plan.kind==='INITIAL'?plan.from:newsWindow(state.initialDate,prior?.lastCheckedAt??prior?.watermark??null,now);
+    // Only a short-retention RSS feed may move its query window past an explicit retained gap.
+    // Reports and DART keep querying from confirmed coverage after mapping/API failures.
+    const cursor=source.id==='HANKYUNG_RSS'?prior?.lastCheckedAt??prior?.watermark:prior?.watermark;
+    const lower=plan.kind==='INITIAL'?plan.from:newsWindow(state.initialDate,cursor??null,now);
     const required=new Date(Math.max(kstStart(state.initialDate).getTime(),(prior?.lastCheckedAt??prior?.watermark??lower).getTime()));
     const response=targets.length?await source.collect(targets,lower,now,signal,required):{candidates:[] as NewsCandidate[],warnings:[] as string[],requests:0};
     if(response.candidates.length>2000)response.warnings.push('NEWS_CANDIDATE_BOUND');
