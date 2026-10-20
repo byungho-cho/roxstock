@@ -29,6 +29,16 @@ done < "$RECORD/previous-images.txt"
 [[ ${#services[@]} -gt 0 ]] || exit 2
 compose=(docker compose --project-name roxstock-backend --file "$RECORD/compose.yml" --file "$override")
 "${compose[@]}" pull "${services[@]}"
+if [[ "$ROLE" == backend ]]; then
+  # The pre-auth freeze image must never be started by the ordinary rollback tool.
+  # Restoring that image requires the separate fail-closed maintenance procedure.
+  while read -r service image; do
+    if ! docker run --rm --network none --read-only --entrypoint sh "$image" -c 'test -f /app/backend/dist/auth/guard.js'; then
+      echo 'Refusing an unauthenticated backend rollback. Use the private-API maintenance recovery procedure.'
+      exit 1
+    fi
+  done < "$RECORD/previous-images.txt"
+fi
 "${compose[@]}" up -d --force-recreate --no-deps --pull never "${services[@]}"
 echo 'Previous application images started. Check health/db, queue processing and schema compatibility; DB was not restored.'
 for s in "${services[@]}"; do docker inspect --format '{{.Name}} {{.Config.Image}} {{.Image}}' "roxstock-$s"; done
