@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './authenticated-test';
 
 test('financial refresh is explicit, scoped, preserves data and reports no filing', async ({ page }, info) => {
   let posts = 0; let reads = 0; let finished = false;

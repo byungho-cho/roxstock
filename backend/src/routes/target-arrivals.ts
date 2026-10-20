@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { defaultTargetConditions, evaluateTargetLots, validateTargetConditions } from '../domain/target-arrival.js';
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { id } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { realtimePriceCache } from '../realtime/price-cache.js';
 
 type Params = { accountId: string };

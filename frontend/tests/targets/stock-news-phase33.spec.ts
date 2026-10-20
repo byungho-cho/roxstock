@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './stock-news-fixture';
 async function geometry(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect((await page.locator('header').boundingBox())?.height??44).toBe(44);expect((await page.getByRole('navigation',{name:'하단 메뉴'}).boundingBox())!.height).toBe(44);}
 async function swipe(page:Page,left=true,vertical=false){const rect=(await page.getByTestId('news-content-summary').boundingBox())!,cdp=await page.context().newCDPSession(page),x=left?Math.min(page.viewportSize()!.width-32,rect.x+rect.width-40):rect.x+40,y=rect.y+Math.min(12,rect.height/2);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(left?-110:110),y:y+(vertical?150:1)}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
@@ -32,7 +32,7 @@ test('failure and account change retain only correct data, empty differs from in
  const f=await fixture(page,{long:true});await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);f.fail();await page.locator('main').evaluate(n=>n.scrollTop=0);
  // Existing pull refresh invokes only stored reads, never an external collection endpoint.
  const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:120,y:145}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:121,y:300}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect(page.getByRole('alert')).toContainText('기존 데이터를 표시합니다.',{timeout:15000});await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await geometry(page);await page.screenshot({path:info.outputPath('news-long.png')});
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-news-card')).toHaveCount(0);expect(f.paths.every(p=>!p.includes('/collect'))).toBe(true);
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-news-card')).toHaveCount(0);expect(f.paths.every(p=>!p.includes('/collect'))).toBe(true);
 });
 test('normal zero and not-collected states are different',async({page})=>{
  await fixture(page,{empty:true,before:true});await page.goto('/detail/stock-news');await expect(page.getByText('최초 수집 전입니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('최근 확인 —');await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
@@ -46,5 +46,5 @@ test('filtered final item disables next; filter and count return unchanged',asyn
 });
 test('an old account response arriving after an account switch cannot reappear',async({page})=>{
  const f=await fixture(page,{partial:false});f.hold();await page.goto('/detail/stock-news');await expect.poll(()=>f.paths.some(p=>p.startsWith('/accounts/1/stock-news'))).toBe(true);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();f.release();await expect(page.getByTestId('stock-news-card')).toHaveCount(0);await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();f.release();await expect(page.getByTestId('stock-news-card')).toHaveCount(0);await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
 });

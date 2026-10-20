@@ -1,0 +1,24 @@
+name: Authentication UI
+on:
+  pull_request:
+    paths: ['frontend/src/auth/**','frontend/tests/targets/auth-v12.spec.ts','frontend/playwright.auth.config.ts','.github/workflows/auth-ui-check.yml']
+permissions:
+  contents: read
+jobs:
+  auth-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test -c frontend/playwright.auth.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-ui-cover-tablet
+          path: frontend/test-results/auth-v12

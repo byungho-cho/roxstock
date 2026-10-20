@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 test('bug reports open search and list from compact monitoring summary',async({page})=>{
  await fixture(page);let listCalls=0;

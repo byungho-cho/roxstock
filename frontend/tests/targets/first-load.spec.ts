@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './authenticated-test';
 import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { fixture } from './stock-input-fixture';

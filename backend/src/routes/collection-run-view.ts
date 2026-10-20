@@ -1,5 +1,5 @@
 import {skipKind, priceRunResult} from '@roxstock/shared/domain/collection-health';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {investorMonitorCounts} from '../domain/investor-monitor.js';
 
 export async function runViews(ids: bigint[]) {

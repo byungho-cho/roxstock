@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {saveBugEvent,scanCollectionBugs,reclassifyBugReportsPage,reconcileBugReportsPage,consolidateBugReportsPage} from '../src/domain/collection-bug-reports.js';
 import {PrismaDartRepository} from '../../collector/src/dart-repository.js';
 const url=new URL(process.env.DATABASE_URL??'');if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/roxstock_bugreports_test'&&process.env.CI!=='true')throw Error('Isolated local/CI DB required');

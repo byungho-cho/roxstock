@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {writeFileSync} from 'node:fs';
 import {fixture} from './phase27-fixture';
 const nav=(page:Page)=>page.getByTestId('stock-navigation');

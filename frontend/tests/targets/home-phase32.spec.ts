@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {recentBuys} from '../../src/pages/dashboard/recentBuysData';
 import type {BuyLotDto} from '../../src/data/roxstockApi';
 import {fixture as baseFixture} from './phase28-fixture';
@@ -41,7 +41,7 @@ async function order(page:Page,has:boolean){
  if(has){const a=await page.getByTestId('target-arrival-card').boundingBox(),b=await page.getByTestId('home-holdings-card').boundingBox();expect(Math.abs(b!.y-a!.y-a!.height-8)).toBeLessThan(2);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 }
-const switchAccount=(page:Page,id:string)=>page.evaluate(id=>{localStorage.setItem('roxstock-selected-account-id',id);window.dispatchEvent(new Event('roxstock-selected-account'));},id);
+const switchAccount=(page:Page,id:string)=>page.evaluate(id=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id',id);window.dispatchEvent(new Event('roxstock-selected-account'));},id);
 
 test('0/1/many targets reorder once; same-account refresh and secondary failure retain results and location',async({page},info)=>{
  const f=await fixture(page);await page.goto('/');await expect(page.getByTestId('target-lot')).toHaveCount(1);await order(page,true);

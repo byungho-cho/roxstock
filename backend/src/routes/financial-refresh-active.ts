@@ -1,7 +1,7 @@
 import {manualTrace,expireManualRun} from '@roxstock/shared/collection/manual-requests';
 import { refreshSummary } from '@roxstock/shared/collection/refresh-summary';
 import type { FastifyInstance } from 'fastify';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { id } from '../lib/input.js';
 import type { ManualRefreshMetadata } from '@roxstock/shared/collection/manual-requests';
 

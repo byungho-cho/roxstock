@@ -1,4 +1,4 @@
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {id} from '../lib/input.js';
 import {requireActiveAccount} from './classification.js';

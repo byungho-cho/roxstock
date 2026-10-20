@@ -1,6 +1,6 @@
 import {recentBuys} from '../../src/pages/dashboard/recentBuysData';
 import type {BuyLotDto} from '../../src/data/roxstockApi';
-import type { Page, Route } from '@playwright/test';
+import type { Page, Route } from './authenticated-test';
 export async function fixture(page:Page, options: { names?: string[]; history?: [string, string | null][]; batch?: boolean; onBatch?: (paths:string[])=>void; read?: (url:URL)=>{status?:number;json:unknown}|undefined } = {}) {
   await page.clock.setFixedTime(new Date('2026-10-07T03:00:00Z'));
   const pnl=[100,10,0,-100,-10,null];

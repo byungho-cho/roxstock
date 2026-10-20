@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase28-fixture';
 async function geometry(page:Page){
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -45,7 +45,7 @@ test('chart touch tooltip stays visible closes and follows selected account',asy
  const tip=chart.getByTestId('asset-trend-tooltip');await expect(tip).toContainText('2,500원');const t=(await tip.boundingBox())!;expect(t.x).toBeGreaterThanOrEqual(0);expect(t.x+t.width).toBeLessThanOrEqual(page.viewportSize()!.width);expect(t.y+t.height).toBeLessThanOrEqual(page.viewportSize()!.height);await page.screenshot({path:info.outputPath('chart-tooltip-after.png')});
  await page.keyboard.press('Escape');await expect(tip).toHaveCount(0);
  await page.mouse.click(r.x+r.width*.98,y);await expect(tip).toContainText('2,500원');await page.getByRole('heading',{name:'대시보드',exact:true}).click();await expect(tip).toHaveCount(0);
- const oldPath=await svg.locator('path').last().getAttribute('d');await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(chart).toBeVisible();await expect(chart.locator('svg path').last()).not.toHaveAttribute('d',oldPath!);await expect(chart.getByTestId('asset-trend-date').last()).toContainText('10/13');await chart.scrollIntoViewIfNeeded();const r2=(await chart.locator('svg').boundingBox())!;await page.mouse.click(r2.x+r2.width*.98,r2.y+r2.height/2);await expect(tip).toContainText('7,000원');await expect(tip).not.toContainText('2,500원');
+ const oldPath=await svg.locator('path').last().getAttribute('d');await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(chart).toBeVisible();await expect(chart.locator('svg path').last()).not.toHaveAttribute('d',oldPath!);await expect(chart.getByTestId('asset-trend-date').last()).toContainText('10/13');await chart.scrollIntoViewIfNeeded();const r2=(await chart.locator('svg').boundingBox())!;await page.mouse.click(r2.x+r2.width*.98,r2.y+r2.height/2);await expect(tip).toContainText('7,000원');await expect(tip).not.toContainText('2,500원');
 });
 test('history loading empty and failure preserve weights and stable composition geometry',async({page},info)=>{
  const f=await fixture(page,{trend:true});f.history.mode='hold';await page.goto('/detail/assets');const card=page.getByTestId('asset-composition-card'),region=card.getByTestId('dashboard-trend-region');await expect(region).toHaveAttribute('aria-busy','true');await expect(card.getByTestId('asset-weight-row')).toHaveCount(3);const height=(await card.boundingBox())!.height;

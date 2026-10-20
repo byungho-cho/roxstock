@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Prisma } from '@roxstock/shared/prisma';
 import { prisma } from '@roxstock/shared/lib/prisma';
-import { buildApp } from '../app.js';
+import { buildApp } from '../auth/route-test-app.js';
 const d=(v:number)=>new Prisma.Decimal(v);
 function fixture(type='DEPOSIT') {
  const cash:any={id:2n,accountId:1n,transactionType:type,amount:d(100),feeTaxAmount:d(type==='BUY'?-10:10),balanceAfter:d(900),transactionDate:new Date(),createdAt:new Date('2026-10-01'),updatedAt:new Date(),memo:null,dividend:type==='DIVIDEND'?{id:3n,securityId:4n,grossAmount:d(110)}:null};

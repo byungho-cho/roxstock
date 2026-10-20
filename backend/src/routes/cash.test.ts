@@ -36,7 +36,7 @@ test('KST month and year ranges use exclusive upper boundaries', () => {
 });
 
 test('current year tax is account-scoped, independent of viewed year, excludes future and includes legacy dividend tax once', async()=>{
- const {prisma}=await import('@roxstock/shared/lib/prisma');const {buildApp}=await import('../app.js');
+ const {prisma}=await import('@roxstock/shared/lib/prisma');const {buildApp}=await import('../auth/route-test-app.js');
  const original={account:prisma.account.findUnique,group:prisma.cashTransaction.groupBy,recent:prisma.cashTransaction.findMany,cash:prisma.cashTransaction.aggregate,dividend:prisma.dividend.aggregate};let cashWhere:any,dividendWhere:any;
  prisma.account.findUnique=(async()=>({id:2n,name:'계좌',isActive:true,cashBalance:new Prisma.Decimal(10),updatedAt:new Date()})) as any;
  prisma.cashTransaction.groupBy=(async()=>[]) as any;prisma.cashTransaction.findMany=(async()=>[]) as any;

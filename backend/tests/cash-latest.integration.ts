@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 test('cash12 real MariaDB: account latest, backdated dates, historical edits, deletions and competing writes',async()=>{
  const app=buildApp();const accounts=await Promise.all([1,2].map(i=>prisma.account.create({data:{name:`Cash12 integration ${i}`,brokerName:'TEST',cashBalance:'99999'}})));const [a,b]=accounts;

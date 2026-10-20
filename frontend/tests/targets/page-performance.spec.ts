@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './authenticated-test';
 import { fixture } from './stock-input-fixture';
 
 test('home requests one month of compact trend points and renders the chart', async ({ page }) => {

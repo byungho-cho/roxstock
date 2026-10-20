@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {writeFileSync} from 'node:fs';import {fixture} from './phase3-fixture';
 const at='2026-10-12T00:00:00Z';
 const stock=(id:number)=>({id:String(id),symbol:'X23'+String(id).padStart(3,'0'),name:'검증종목'+String(id).padStart(3,'0'),marketType:'OTHER',listingYear:2020,registrationSource:'MANUAL',canCorrectCode:true,isActive:true,collectionExcluded:false,excludedFeatures:[] as string[],automaticExclusion:false,exclusionReason:null as string|null,collectionRevision:0,deleteBlockedReasons:[] as string[]});

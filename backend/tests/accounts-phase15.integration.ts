@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma as db} from '@roxstock/shared/lib/prisma';import {deleteEmptyAccount} from '../src/domain/account-delete.js';import {accountConnections} from '../src/domain/account-connections.js';import {Prisma} from '@roxstock/shared/prisma';
 const url=new URL(process.env.DATABASE_URL??'');if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_phase15_test'))throw Error('Isolated phase15 database required');
 const tx=<T>(work:(t:Prisma.TransactionClient)=>Promise<T>)=>db.$transaction(work,{isolationLevel:'Serializable',timeout:10000});

@@ -1,5 +1,5 @@
 import {swipeStock} from './financial-chart-gestures';
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 const rows=Array.from({length:120},(_,i)=>({id:String(i+1),symbol:String(i+1).padStart(6,'0'),name:'종목'+String(i+1).padStart(3,'0'),currentPrice:'10000',previousClosePrice:i===1?'11000':'9000',priceUpdatedAt:'2026-10-05T00:00:00Z',per:'12',pbr:'1.2',roe:'10',metricDate:'2026-10-05',w:i===119?null:'1.2',issuedShares:'1000000',eps:'100',excessEarnings:null,shareholderValue:null,capital:'100000000',requiredReturn:'8.0',fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:'12000'}))}));
 async function fixture(page:Page,small=false){
  let failure=false,holdId:string|null=null,holdSearch:string|null=null;const releases:(()=>void)[]=[],requests:string[]=[];

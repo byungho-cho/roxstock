@@ -1,4 +1,6 @@
 import {stockNewsRoutes} from './routes/stock-news.js';
+import {installAuth} from './auth/guard.js';
+import {authRoutes} from './auth/routes.js';
 import {collectionBugReportRoutes} from './routes/collection-bug-reports.js';
 import {readFile} from 'node:fs/promises';
 import release from './release.json' with { type: 'json' };
@@ -19,7 +21,7 @@ import { financialRefreshActiveRoutes } from './routes/financial-refresh-active.
 import { financialRefreshRoutes } from './routes/financial-refresh.js';
 
 import { ApiError } from '@roxstock/shared/lib/api-error';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from './auth/scoped-db.js';
 import { targetArrivalRoutes } from './routes/target-arrivals.js';
 import { accountRoutes } from './routes/accounts.js';
 import { securityRoutes } from './routes/securities.js';
@@ -30,8 +32,10 @@ import { cashRoutes } from './routes/cash.js';
 import { cashMutationRoutes } from './routes/cash-mutations.js';
 import { collectionStatusRoutes } from './routes/collection-status.js';
 
-export function buildApp() {
-  const app = Fastify({ logger: true });
+export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void) {
+  const app = Fastify({ logger: {redact:['req.headers.cookie','req.headers.authorization','req.headers.x-csrf-token','res.headers.set-cookie']} });
+  boundary(app);
+  void app.register(authRoutes,{prefix:'/api/auth'});
   app.decorate('valueReadModel',new ValueReadModel(prisma));
   app.addHook('onClose',async()=>app.valueReadModel.clear());
   installPageBootstrap(app);
@@ -74,7 +78,7 @@ export function buildApp() {
       return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message } });
     }
     if(typeof error==='object'&&error&&'code' in error&&error.code==='P2002'&&'meta' in error&&(error.meta as {modelName?:string}|undefined)?.modelName==='Security')return reply.code(409).send({error:{code:'DUPLICATE_SECURITY_CODE',message:'이미 등록된 종목코드입니다.'}});
-    app.log.error(error);
+    app.log.error({code:'UNEXPECTED_REQUEST_FAILURE'});
     return reply.code(500).send({
       error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' },
     });
@@ -105,5 +109,6 @@ export function buildApp() {
 
   return app;
 }
+export const buildApp=()=>buildApplication(installAuth);
 
 declare module 'fastify' {interface FastifyInstance {valueReadModel:ValueReadModel;}}

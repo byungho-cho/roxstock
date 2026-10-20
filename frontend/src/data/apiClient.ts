@@ -1,5 +1,6 @@
 /** Same-origin API client. IDs and decimal values stay strings until a view needs a number. */
 import { fetchRead } from './readBatch';
+import {csrfToken} from '../auth/client';
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
     super(message);
@@ -9,9 +10,10 @@ export class ApiError extends Error {
 
 export async function apiEnvelope<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetchRead(path, init.body || init.headers ? {
-    ...init, headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
+    ...init, headers: { ...(init.body ? { 'Content-Type': 'application/json','X-CSRF-Token':csrfToken() } : {}), ...init.headers },
   } : init);
   if (!response.ok) {
+    if(response.status===401)window.dispatchEvent(new Event('roxstock-auth-required'));
     const payload = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
     throw new ApiError(response.status, payload?.error?.code ?? 'HTTP_ERROR', payload?.error?.message ?? `API 요청 실패 (${response.status})`);
   }

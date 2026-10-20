@@ -1,6 +1,6 @@
 import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
-import { expect, test, type Page, type Locator } from '@playwright/test';
+import { expect, test, type Page, type Locator } from './authenticated-test';
 import { fixture as stockFixture } from './stock-input-fixture';
 import { calculateProfit, sortProfit, rate, amount } from '../../src/pages/investment-profit/profitData';
 import { QueryClient } from '@tanstack/react-query';
@@ -143,7 +143,7 @@ test('home shows ready cards while history loads, preserves account isolation an
  expect(reads.filter(p=>p.endsWith('/dashboard'))).toHaveLength(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath('home-partial.png')});await expect(page.getByTestId('asset-trend-chart')).toHaveCount(0);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('home-summary-area')).not.toContainText('4,000원');await expect.poll(()=>Boolean(releaseSecond)).toBe(true);releaseSecond();
  await expect(page.getByTestId('home-summary-area')).toContainText('9,000원');await page.screenshot({path:info.outputPath('home-ready.png')});
 });

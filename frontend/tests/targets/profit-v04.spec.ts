@@ -1,5 +1,5 @@
 import {profitFixture} from './profit-aggregate-fixture';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 import { amount, calculateProfit, rate, won } from '../../src/pages/investment-profit/profitData';
 import type { TradeDto } from '../../src/data/roxstockApi';
 
@@ -112,7 +112,7 @@ test('stored profit does not poll/focus-refresh; account switch rejects the old 
  const reads=f.offsets.length;await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
  expect(f.offsets.length).toBe(reads);await expect(page.getByTestId('profit-total')).toHaveText('-739원');
  f.hold();await page.reload();
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByTestId('profit-empty')).toHaveText('내용이 없습니다.');f.release();await expect(page.getByTestId('profit-total')).toHaveText('');
 });
 test('empty missing failed and changing-source results remain distinct', async ({ page }, info) => {

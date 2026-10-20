@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 async function prepare(page:Page){
  const state=await fixture(page);let fail=false;

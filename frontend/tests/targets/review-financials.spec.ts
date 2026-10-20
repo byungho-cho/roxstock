@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 test('trade detail has a single header and unobscured summary',async({page})=>{await fixture(page);await page.goto('/journal/trade/sell/s1');await expect(page.getByRole('heading',{name:'매도 거래 상세'})).toBeVisible();await expect(page.getByRole('heading',{name:'매매일지',exact:true})).toHaveCount(0);const date=page.getByText('2026.09.18',{exact:true}).first();await expect(date).toBeVisible();expect((await date.boundingBox())!.y).toBeGreaterThanOrEqual(44);});
 test('daily stock profit aggregates selected-day realized returns',async({page})=>{await fixture(page);await page.goto('/journal?date=2026-09-18&view=profit');const card=page.getByTestId('daily-position-profit');await expect(card).toContainText('종목별 손익');await expect(card).toContainText('101,150,000');await expect(card).toContainText('20,230,000');});

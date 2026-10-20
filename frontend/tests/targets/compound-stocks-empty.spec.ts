@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 for(const item of [{url:'/stocks',module:'StockListPage',shell:'종목목록'},{url:'/detail/compound',module:'CompoundPage',shell:'복리계획'}])test(`${item.module}: code and account waits keep fixed content without loading effects`,async({page},info)=>{
  await fixture(page);let releaseCode!:()=>void,releaseAccount!:()=>void;

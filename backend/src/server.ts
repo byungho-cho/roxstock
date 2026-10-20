@@ -2,7 +2,7 @@ import {startCollectionBugReporter} from './domain/collection-bug-reports.js';
 import 'dotenv/config';
 
 import { buildApp } from './app.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from './auth/scoped-db.js';
 
 const host = process.env.HOST ?? '0.0.0.0';
 const port = Number(process.env.PORT ?? 3300);

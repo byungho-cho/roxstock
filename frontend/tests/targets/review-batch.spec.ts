@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 test('negative cash buy requires explicit confirmation once',async({page})=>{
  const f=await fixture(page);await page.goto('/trade?type=buy&stock=1');await page.getByRole('textbox',{name:'매수수량',exact:true}).fill('1000');await page.getByRole('button',{name:'매수',exact:true}).click();await expect(page.getByRole('dialog').last()).toContainText('그래도 매수 하시겠습니까?');expect(f.writes).toHaveLength(0);await page.getByRole('button',{name:'확인',exact:true}).click();await expect.poll(()=>f.writes.length).toBe(1);expect(f.writes[0].body.allowNegativeCash).toBe(true);

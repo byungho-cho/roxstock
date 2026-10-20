@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 const center=(page:Page)=>page.getByRole('button',{name:'재무지표 중앙연도'});
 async function ready(page:Page){await setup(page);await page.goto('/detail/value?view=chart&selected=1&centerYear=2024');await expect(page.getByTestId('value-chart-수익성')).toBeVisible();}

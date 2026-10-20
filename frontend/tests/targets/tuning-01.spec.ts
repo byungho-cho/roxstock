@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './authenticated-test';
 const account = (id='1') => ({id,name:`계좌${id}`,brokerName:'증권',isDefault:true,isActive:true,cashBalance:'1000'});
 const holding={securityId:'1',symbol:'005380',name:'현대자동차',marketType:'KOSPI',quantity:'2',purchaseAmount:'200',averagePurchasePrice:'100',currentPrice:'150',previousClosePrice:'140',marketValue:'300',unrealizedProfitLoss:'100',unrealizedReturnRate:'50',priceChangeRate:'7.14',priceUpdatedAt:'2026-10-13T00:00:00Z'};
 const lot=(id:string)=>({id,boughtAt:'2026-10-01T00:00:00Z',buyDate:'2026-10-01',holdingDays:12,currentPrice:'150',returnRate:'50',profitLoss:'100',priceUpdatedAt:'2026-10-13T00:00:00Z',security:{id:'1',symbol:'005380',name:`매수${id}`,marketType:'KOSPI'},quantity:'2',unitPrice:'100',remainingQuantity:'2',soldQuantity:'0',remainingPurchaseAmount:'200',memo:null,sellTrades:[]});
@@ -47,7 +47,7 @@ test('more failure keeps rows and retries, account switch clears prior account c
  await expect(page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true})).toBeVisible();
  await expect(card.getByTestId('recent-buy-lot')).toHaveCount(5);await expect(card.locator('.MuiSkeleton-root')).toHaveCount(0);
  fail=false;await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click();await expect(card.getByTestId('recent-buy-lot')).toHaveCount(7);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(card.getByTestId('recent-buy-lot')).toHaveCount(5);
 });
 

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 test('server collection states color periods; estimate labels stay explicit and latest failures win over saved values',async({page},info)=>{
  await setup(page);let state='COMPLETE';

@@ -1,5 +1,5 @@
 import type {FastifyInstance} from 'fastify';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 const states=['OPEN','REVIEWING','RESOLVED'];
 const idOf=(id:string)=>{if(!/^[1-9]\d{0,19}$/.test(id))throw new ApiError(400,'INVALID_INPUT','리포트 번호를 확인해 주세요.');const value=BigInt(id);if(value>18446744073709551615n)throw new ApiError(400,'INVALID_INPUT','리포트 번호를 확인해 주세요.');return value;};

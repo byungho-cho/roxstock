@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture,selected,screenshot} from './stock-input-fixture';
 const tablet=(width:number)=>width>=600;
 

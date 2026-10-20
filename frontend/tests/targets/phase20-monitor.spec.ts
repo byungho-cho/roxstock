@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 import path from 'node:path';
 const ids=['security-master','realtime-prices','market-prices','account-snapshots','investor-trends','dart-financial-statements'];

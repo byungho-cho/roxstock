@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
 const url=new URL(process.env.DATABASE_URL??'');
 if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_phase16_test'))throw Error('Isolated phase16 database required');

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PrismaClient} from '@roxstock/shared/prisma';
 import {PrismaCollectorRepository} from '../../collector/src/repository.js';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 const url=new URL(process.env.DATABASE_URL??'');
 if(!['localhost','127.0.0.1'].includes(url.hostname)||!url.pathname.endsWith('_phase25_test'))throw Error('Isolated DEV database required');
 test('real MariaDB expired-owner recovery preserves items and original status; live lease cannot be stolen',async()=>{

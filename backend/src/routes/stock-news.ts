@@ -2,7 +2,7 @@ import {newsCollectionState,ensureNewsSchedule} from '@roxstock/shared/news/stat
 import {validateNewsSchedule,scheduleAnchor} from '@roxstock/shared/news/schedule';
 import type {FastifyInstance} from 'fastify';
 import {Prisma,type PrismaClient} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {newsTargets} from '@roxstock/shared/news/targets';
 import {canonicalUrl,hash,kstStart,newsTypes,seoulDay} from '@roxstock/shared/news/policy';
 import {ApiError} from '@roxstock/shared/lib/api-error';

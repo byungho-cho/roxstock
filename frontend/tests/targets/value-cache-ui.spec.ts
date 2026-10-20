@@ -1,5 +1,5 @@
 import {swipeStock} from './financial-chart-gestures';
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 const basis=(estimated:boolean)=>({year:estimated?2026:2025,label:estimated?'2026E':'2025년 결산',period:estimated?'ESTIMATE':'ANNUAL',isEstimated:estimated,source:'OPEN_DART',division:'CFS'});
 const rows=[
  {id:'1',symbol:'000001',name:'정상컨센서스',w:'2',eps:'5',roe:'10',collectionStatus:'COMPLETE',metricBasis:basis(true)},

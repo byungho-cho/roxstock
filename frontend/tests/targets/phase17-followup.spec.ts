@@ -1,4 +1,4 @@
-import {test,expect,type Page,type Locator} from '@playwright/test';
+import {test,expect,type Page,type Locator} from './authenticated-test';
 import {fixture as stockFixture} from './stock-input-fixture';
 const white='rgb(248, 250, 252)',yellow='rgb(251, 191, 36)',blue='rgb(96, 165, 250)',red='rgb(248, 113, 113)';
 const annual='100000000',final='200000000';
@@ -48,6 +48,6 @@ test('compact account rows preserve long values, Seoul time, selection and isola
  await expect(first.getByTestId('account-updated-at')).toHaveText('2026.10.09 08:01');await expect(second.getByTestId('account-updated-at')).toHaveText('2026.10.10 00:00');await expect(first).not.toContainText(/최근 수정|오전|오후/);const height=(await first.boundingBox())!.height;expect(height).toBeGreaterThanOrEqual(58);expect(height).toBeLessThanOrEqual(62);
  for(const card of [first,second]){const title=card.getByTestId('account-title-row'),detail=card.getByTestId('account-detail-row');await expect(title).toHaveCSS('align-items','center');await expect(detail).toHaveCSS('align-items','center');const time=(await card.getByTestId('account-updated-at').boundingBox())!,cash=(await card.getByTestId('account-cash').boundingBox())!;expect(time.x+time.width).toBeLessThanOrEqual(cash.x);expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);}
  await page.screenshot({path:`test-results/phase17/accounts-${info.project.name}.png`});await second.getByRole('button',{name:/계좌 선택/}).tap();await expect(second).toHaveCSS('border-top-color','rgb(250, 204, 21)');
- await first.getByRole('button',{name:/계좌 정보 수정/}).click();await expect(page).toHaveURL(/accountId=a/);await expect(page.getByRole('textbox',{name:'계좌명',exact:true})).toHaveValue(accounts[0].name);expect(await page.evaluate(()=>localStorage.getItem('roxstock-selected-account-id'))).toBe('b');await page.goBack();await expect(page).toHaveURL(/view=account/);
+ await first.getByRole('button',{name:/계좌 정보 수정/}).click();await expect(page).toHaveURL(/accountId=a/);await expect(page.getByRole('textbox',{name:'계좌명',exact:true})).toHaveValue(accounts[0].name);expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:fixture-user:selected-account-id'))).toBe('b');await page.goBack();await expect(page).toHaveURL(/view=account/);
  await page.getByRole('navigation',{name:'하단 메뉴'}).getByRole('button',{name:'자산분석',exact:true}).click();await expect(page.getByTestId('analysis-compound-summary')).toContainText('복리계획 b');await expect(page.getByTestId('compound-summary-current')).toHaveText('50,000,000원');await expect(page.getByTestId('compound-summary-current')).toHaveCSS('color',blue);expect(accounts[1].name.length).toBeGreaterThan(20);
 });

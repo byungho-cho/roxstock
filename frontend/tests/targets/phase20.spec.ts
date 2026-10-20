@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 const lot=(id:string,date:string,quantity:string)=>({id,boughtAt:date,buyDate:date.slice(0,10),quantity,unitPrice:'100',remainingQuantity:'0',soldQuantity:quantity,sellTrades:[],security:{id:'1',name:'종목1',symbol:'000001',marketType:'KOSPI'}});
 const previous=[lot('9007199254740992','2026-10-01T03:00:00Z','11'),lot('99','2025-10-01T03:00:00Z','99'),lot('9007199254740993','2026-10-01T03:00:00Z','20')];
@@ -34,7 +34,7 @@ test('account switch ignores delayed previous account and focuses the new blank 
  const f=await buyFixture(page,true);await page.goto('/trade?type=buy&stock=1');await expect.poll(f.ready).toBe(true);f.release();
  await expect(page.getByRole('textbox',{name:'매수수량'})).toHaveValue('20');
  await page.unroute('**/api/accounts/*/buy-lots**');await page.route('**/api/accounts/2/buy-lots**',r=>r.fulfill({json:{data:[]}}));
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.getByRole('textbox',{name:'매수수량'})).toHaveValue('');await expect(page.getByRole('textbox',{name:'매수수량'})).toBeFocused();
 });
 test('late previous-account buy response never changes new-account quantity or focus',async({page})=>{
@@ -45,7 +45,7 @@ test('late previous-account buy response never changes new-account quantity or f
   return r.fulfill({json:{data:url.pathname.includes('/1/')?previous:[]}});
  });
  await page.goto('/trade?type=buy&stock=1');await expect.poll(()=>!!release).toBe(true);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  const quantity=page.getByRole('textbox',{name:'매수수량'});await expect(quantity).toHaveValue('');await expect(quantity).toBeFocused();
  release();await expect(quantity).toHaveValue('');await expect(quantity).toBeFocused();
 });

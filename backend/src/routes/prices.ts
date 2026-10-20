@@ -2,7 +2,7 @@ import {exclusionReason} from '@roxstock/shared/collection/collection-policy';
 import { normalizeProviderSymbol, isSecuritySymbol } from '@roxstock/shared/domain/security-symbol';
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 import { realtimePriceCache, type RealtimePriceDto } from '../realtime/price-cache.js';
 
 interface PriceQuery {

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 import { cashRange, cashSegments } from '../../src/pages/cash/cashData';
 
 async function setup(page: Page) {
@@ -75,7 +75,7 @@ test('account and period scope synchronizes history total and stored trend; cale
   await expect(page.getByRole('button', { name: '기간 직접 선택' })).toHaveText('2026.09');
   await expect.poll(() => state.reads.filter(url => url.pathname.endsWith('/asset-history')).at(-1)?.searchParams.get('from')).toBe('2026-09-01');
   await expect.poll(() => state.reads.filter(url => url.pathname.endsWith('/cash-transactions')).at(-1)?.searchParams.get('to')).toBe('2026-09-30');
-  await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
+  await page.evaluate(() => { localStorage.setItem('roxstock:user:fixture-user:selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('cash-balance-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.filter(url => url.pathname.endsWith('/asset-history')).at(-1)?.pathname).toContain('/b/');
   expect(cashRange('month', '2024-02', 2024)).toEqual({ from: '2024-02-01', to: '2024-02-29' });

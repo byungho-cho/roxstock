@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 const now = '2026-06-15T03:00:00Z';
 const stamp = (date: string) => `${date}T14:00:00Z`;
 async function fixture(page: Page, initial: 'normal' | 'empty' | 'missing' | 'error' | 'large' | 'zero' | 'edited' | 'pagination-error' = 'normal') {
@@ -115,7 +115,7 @@ test('requested layout, independent scrolling, row spacing, safe clearance and n
 test('account switch cannot display a delayed prior-account response', async ({ page }) => {
   const f = await fixture(page); await ready(page); f.hold();
   await page.getByRole('button', { name: '이전 연도' }).click();
-  await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', '2'); window.dispatchEvent(new Event('roxstock-selected-account')); });
+  await page.evaluate(() => { localStorage.setItem('roxstock:user:fixture-user:selected-account-id', '2'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('investment-history')).toContainText('내용이 없습니다.'); f.release();
   await expect(page.getByTestId('investment-value')).toHaveText('—');
   await expect(page.getByTestId('investment-row')).toHaveCount(0);

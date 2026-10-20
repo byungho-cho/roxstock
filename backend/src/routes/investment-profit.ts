@@ -1,6 +1,7 @@
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
+import {authContext} from '../auth/context.js';
 import {id} from '../lib/input.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {calculateProfitYear,PROFIT_VERSION,type ProfitYear} from '../domain/investment-profit.js';
@@ -49,7 +50,7 @@ export async function investmentProfitRoutes(app:FastifyInstance){
   for(let attempt=0;attempt<3;attempt++){
    const revision=(await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision;
    if(revision===undefined)throw new ApiError(503,'PROFIT_REVISION_MISSING','집계 기준을 확인할 수 없습니다.');
-   const key=`${accountId}:${revision}:${today}:${PROFIT_VERSION}`,saved=cache.get(key);
+   const key=`${authContext.getStore()?.userId??'system'}:${accountId}:${revision}:${today}:${PROFIT_VERSION}`,saved=cache.get(key);
    let years=saved&&saved.until>Date.now()?saved.years:undefined;
    if(!years){let work=pending.get(key);if(!work){work=readProfitYears(accountId,today,revision).then(value=>value??[]);pending.set(key,work);}try{years=await work;}finally{if(pending.get(key)===work)pending.delete(key);}}
    if((await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision!==revision||!years.length)continue;

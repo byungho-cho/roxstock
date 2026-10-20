@@ -1,7 +1,7 @@
 import type { loadPortfolio } from './portfolio.js';
 import type {FastifyInstance} from 'fastify';
 import {Prisma} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';
+import {prisma} from '../auth/scoped-db.js';
 import {id} from '../lib/input.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {valueBuyLot} from '../domain/lot-valuation.js';

@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 async function fixture(page:Page){
  let fail=false,saved=false;const writes:Array<Record<string,unknown>>=[];const reads:string[]=[];
  const security={id:'1',name:'삼성SDI',symbol:'006400',marketType:'KOSPI',securityType:'STOCK',listType:null,watchlistItemId:null,currentPrice:null,previousClosePrice:null,valuation:null};
@@ -43,7 +43,7 @@ test('direct addition focuses fields, year uses runtime year, IME does not submi
 test('account switch clears confirmation and late previous-account save cannot navigate',async({page})=>{
  const f=await fixture(page);await (await search(page)).click();const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/watchlist-items'));
  await page.getByTestId('stock-add-confirm').getByRole('button',{name:'추가',exact:true}).click();
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await response;await expect(page.getByTestId('stock-add-confirm')).toHaveCount(0);await expect(page).toHaveURL(/stocks\/add/);
  const input=page.getByRole('textbox',{name:'전체 종목 검색'});await input.fill('삼성');await input.press('Enter');await expect(page.getByTestId('stock-add-content').getByText('내용이 없습니다.')).toBeVisible();expect(f.reads).toContain('2');expect(f.writes[0]).toMatchObject({accountId:'1'});
 });

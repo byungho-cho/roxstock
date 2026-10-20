@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 async function fixture(page: Page) {
   let account={id:'1',name:'기본 계좌',brokerName:'증권사',accountNumber:'1234',isActive:true,isDefault:true,cashBalance:'203200000',updatedAt:'2026-10-02T00:00:00Z'};
   let conditions=[{days:7,rate:'5'},{days:30,rate:'10'},{days:90,rate:'15'}];let version=1;

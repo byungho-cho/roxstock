@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 
 const screens=[
@@ -51,7 +51,7 @@ test('phase26 stock profit scope survives batching, linked detail and account sw
   await expect(page.getByTestId('profit-detail-summary')).toContainText('120원');
   await page.goto('/stocks/4?detailTab=summary');
   await expect(page.getByTestId('stock-annual-row')).toContainText('-30원');
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
   await expect(page.getByTestId('stock-annual-row')).toContainText('+505원');
   expect(batches.flat()).toEqual(expect.arrayContaining(['/accounts/1/investment-profit?securityId=1','/accounts/1/investment-profit?securityId=4','/accounts/2/investment-profit?securityId=4']));
 });
@@ -61,7 +61,7 @@ test('secondary failure stays local and a new account cannot inherit old account
   await fixture(page,{batch:true,onBatch:p=>batches.push(p),read:url=>url.pathname.endsWith('/asset-history')?{status:503,json:{error:{message:'차트 조회 실패'}}}:undefined});
   await page.goto('/detail/assets');
   await expect(page.getByTestId('asset-overview')).toContainText('165,000원');
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
   await expect.poll(()=>batches.flat().some(path=>path.startsWith('/accounts/2/dashboard'))).toBe(true);
   await expect(page.getByTestId('asset-overview')).not.toContainText('종목1');
 });

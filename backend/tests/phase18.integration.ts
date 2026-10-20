@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {readProfitYears,publishProfitYear} from '../src/routes/investment-profit.js';
 import {recentBuys} from '../../frontend/src/pages/dashboard/recentBuysData.js';

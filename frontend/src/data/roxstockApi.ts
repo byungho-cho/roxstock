@@ -132,7 +132,8 @@ export const getAccountDataState=(accountId:string)=>apiRequest<{hasData:boolean
 export const deleteAccount=(accountId:string)=>apiRequest<{accountId:string;nextAccountId:string|null}>('/accounts/'+encodeURIComponent(accountId),{method:'DELETE'});
 export const resetAccountData=(accountId:string,accountName:string)=>apiRequest<{accountId:string;cashBalance:string|null;deleted:Record<string,number>}>('/accounts/'+encodeURIComponent(accountId)+'/reset',{method:'POST',body:JSON.stringify({confirmation:accountName})});
 
-export const selectedAccountStorageKey = 'roxstock-selected-account-id';
+export let selectedAccountStorageKey = 'roxstock-selected-account-id';
+export function scopeAccountSelection(userId:string){selectedAccountStorageKey=`roxstock:user:${userId}:selected-account-id`;}
 export function chooseAccount(accounts: AccountDto[]) {
   const active = accounts.filter((item) => item.isActive);
   const configuredId = import.meta.env.VITE_API_ACCOUNT_ID;

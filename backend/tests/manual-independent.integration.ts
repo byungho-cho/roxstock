@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prisma} from '@roxstock/shared/lib/prisma';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 import {enqueueManualRefresh,parseManualRefresh,type ManualRefreshMetadata} from '../../collector/src/dart-manual-refresh.js';
 import {processIndependentRefresh,manualLimits} from '../../collector/src/manual-refresh-jobs.js';
 import {NaverAnnualProvider,NaverAnnualError,type NaverAnnual} from '../../collector/src/naver-annual.js';

@@ -1,7 +1,7 @@
 import {collectPrices} from '../../collector/src/price-collector.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {PrismaClient} from '@roxstock/shared/prisma';
-import {prisma} from '@roxstock/shared/lib/prisma';import {buildApp} from '../src/app.js';
+import {prisma} from '@roxstock/shared/lib/prisma';import {buildApp} from '../src/auth/route-test-app.js';
 import {withCollection,collectionFetch,collectionFeatures,CollectionExcluded,eligibleWhere} from '@roxstock/shared/collection/collection-policy';
 import {PrismaCollectorRepository} from '../../collector/src/repository.js';
 import {collectRealtimeCycle} from '../../collector/src/realtime-price-collector.js';

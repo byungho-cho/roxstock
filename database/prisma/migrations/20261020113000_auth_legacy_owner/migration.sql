@@ -1,0 +1,1 @@
+ALTER TABLE `auth_users` ADD COLUMN `legacy_key` VARCHAR(16) NULL, ADD UNIQUE INDEX `auth_users_legacy_key_key` (`legacy_key`);

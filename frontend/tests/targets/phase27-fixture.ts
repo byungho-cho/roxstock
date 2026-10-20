@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import type {Page} from './authenticated-test';
 export async function fixture(page:Page,{count=4,large=false,delayStock=''}={}) {
  await page.clock.setFixedTime(new Date('2026-10-13T03:00:00Z'));
  let price:number|null=large?999999999:350000,release!:()=>void;

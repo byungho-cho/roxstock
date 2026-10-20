@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {writeFileSync} from 'node:fs';
 import {fixture} from './phase3-fixture';
 const at='2026-10-12T00:00:00Z',error='긴 오류 내용 '.repeat(250)+'오류 마지막 부분';

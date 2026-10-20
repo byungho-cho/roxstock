@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture as newsFixture} from './stock-news-fixture';
 import {fixture as base} from './phase28-fixture';
 const stamp='2026-10-20T00:02:00Z';
@@ -40,5 +40,5 @@ test('account and market-value rank changes rebuild one consistent composition s
  await page.route('**/api/accounts/*/dashboard**',async r=>{const u=new URL(r.request().url());await r.fulfill({json:(await read(u.pathname.slice(4)+u.search)).body});});
  await page.goto('/detail/assets');await expect(page.getByTestId('asset-legend-row')).toHaveCount(8);await expect(page.getByTestId('asset-legend-row').first()).toContainText('기본계좌 종목0');
  reversed=true;await page.reload();await expect(page.getByTestId('asset-legend-row').first()).toContainText('기본계좌 종목7');
- await page.evaluate(()=>localStorage.setItem('roxstock-selected-account-id','2'));await page.reload();await expect(page.getByTestId('asset-legend-row')).toHaveCount(6);await expect(page.getByTestId('asset-weight-row')).toHaveCount(6);await expect(page.getByTestId('asset-composition-card')).not.toContainText('기본계좌');await expect(page.getByTestId('asset-composition-card')).not.toContainText('기타');
+ await page.evaluate(()=>localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2'));await page.reload();await expect(page.getByTestId('asset-legend-row')).toHaveCount(6);await expect(page.getByTestId('asset-weight-row')).toHaveCount(6);await expect(page.getByTestId('asset-composition-card')).not.toContainText('기본계좌');await expect(page.getByTestId('asset-composition-card')).not.toContainText('기타');
 });

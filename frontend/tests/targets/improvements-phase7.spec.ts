@@ -1,6 +1,6 @@
 import {profitFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
-import {test,expect,type Page,type Locator} from '@playwright/test';
+import {test,expect,type Page,type Locator} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 async function setup(page:Page){
  const f=await fixture(page);await page.route('**/api/**',async route=>{

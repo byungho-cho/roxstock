@@ -32,7 +32,7 @@ public final class MainActivity extends Activity {
         web.getSettings().setAllowFileAccess(false);
         web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockWebOnly/0.1.4");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockWebOnly/0.1.5");
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -45,10 +45,11 @@ public final class MainActivity extends Activity {
             Uri uri = Uri.parse(url);
             if (trusted(uri)) openBrowser(uri);
         });
-        if (state == null || web.restoreState(state) == null) web.loadUrl(BuildConfig.SITE_ORIGIN);
+        AuthCookies.start(() -> { if (!isFinishing() && (state == null || web.restoreState(state) == null)) web.loadUrl(BuildConfig.SITE_ORIGIN); });
     }
 
     @Override public void onSaveInstanceState(Bundle state) { web.saveState(state); super.onSaveInstanceState(state); }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override protected void onPause() { AuthCookies.persist(); super.onPause(); }
     @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
 }

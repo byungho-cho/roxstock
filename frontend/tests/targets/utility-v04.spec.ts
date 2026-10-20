@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page} from './authenticated-test';
 const features = ['security-master','realtime-prices','market-prices','account-snapshots','dart-financial-statements'].map((id,i)=>({
  id,name:['종목 마스터','실시간 주가','전체 종목 주가','일별 계좌 스냅샷','DART 재무제표'][i],status:['DELAYED','OK','NOT_IMPLEMENTED','WAITING','NO_FILING'][i],
  schedule:'실제 API 일정',lastAttemptAt:'2026-10-05T00:10:00Z',lastSuccessAt:'2026-10-05T00:08:00Z',nextAt:'2026-10-05T01:00:00Z',

@@ -7,7 +7,7 @@ import { Prisma } from '@roxstock/shared/prisma';
 
 import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 
 type AccountBody = { name?: unknown; brokerName?: unknown; accountNumber?: unknown; isDefault?: unknown };
 type AccountParams = { accountId: string };

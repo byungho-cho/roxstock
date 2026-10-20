@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 const empty={data:[],daily:[],summary:{buyAmount:'0',sellAmount:'0',realizedProfitLoss:'0'}};
 test('dates precede month data; annual waits, seeds other months and crosses year boundary',async({page},info)=>{
@@ -60,7 +60,7 @@ test('account switch isolates a late month response and an error can retry',asyn
   return r.fulfill({json:empty});
  });
  await page.goto('/journal?date=2026-01-07');await expect.poll(()=>!!release).toBe(true);
- await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+ await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
  await expect(page.locator('.MuiSnackbar-root [role=alert]')).toBeVisible({timeout:15000});
  await expect(page.getByTestId('journal-layout')).not.toContainText('내용이 없습니다.');
  failed=false;await page.getByTestId('journal-layout').getByRole('button',{name:'다시 시도',exact:true}).first().click();

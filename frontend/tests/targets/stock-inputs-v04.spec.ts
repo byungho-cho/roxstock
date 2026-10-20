@@ -1,4 +1,4 @@
-import {test,expect,type Locator,type Page} from '@playwright/test';
+import {test,expect,type Locator,type Page} from './authenticated-test';
 import {fixture,selected} from './stock-input-fixture';
 const tablet=(page:Page)=>page.viewportSize()!.width>=600;
 const flow=(page:Page)=>tablet(page)?page.getByRole('dialog'):page.locator('main');

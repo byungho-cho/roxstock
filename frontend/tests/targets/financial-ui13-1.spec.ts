@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 async function fixture(page:Page,listType="WATCHLIST"){
  await setup(page,{allMetrics:true});

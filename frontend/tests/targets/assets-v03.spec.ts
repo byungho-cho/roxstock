@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 const stamp = '2026-10-01T03:10:00Z';
 const holdings = Array.from({length:8}, (_, index) => ({securityId:String(index+1),symbol:'005380',name:['현대자동차','기아','삼성전자','SK하이닉스','NAVER','LG화학','POSCO','기타종목'][index],quantity:'1000',averagePurchasePrice:'96400',purchaseAmount:'96400000',currentPrice:'100000',marketValue:String([180000000,128500000,96400000,85000000,75000000,45000000,25000000,16100000][index]),unrealizedProfitLoss:index===1?'-4250000':index===2?'0':'49459200',unrealizedReturnRate:index===1?'-3.2':index===2?'0':'15.8',priceChangeRate:'0',priceUpdatedAt:stamp}));
 async function fixture(page: Page, initial: 'normal'|'missing'|'error'|'single' = 'normal') {
@@ -108,7 +108,7 @@ test('overlay scrollbar: initial display, one-second fade, timer reset, hidden s
 test('1001: refresh retains values and account switch shows only selected account',async({page},info)=>{
   const f=await fixture(page);await page.goto('/detail/assets');await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');
   f.hold();await page.clock.fastForward(300_000);await expect(page.getByTestId('main-loading-bar')).toHaveCount(0);await expect(page.getByTestId('asset-donut-value')).toHaveText('65,100만원');f.release();await expect(page.getByTestId('asset-composition-card')).not.toContainText('갱신 중');
-  await page.evaluate(()=>{localStorage.setItem('roxstock-selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
+  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
   await expect(page.getByTestId('asset-composition-card').getByText('내용이 없습니다.')).toBeVisible();await expect(page.getByTestId('asset-donut-value')).toHaveCount(0);await expect(page.getByTestId('asset-performance-card').locator('.MuiTypography-root').nth(1)).toHaveText('—');await expect(page.getByTestId('asset-holdings-card').getByTestId('home-holding')).toHaveCount(0);
   if(info.project.name.startsWith('tablet')) {expect((await page.getByTestId('asset-holdings-card').boundingBox())!.height).toBe(222);await expect(page.getByTestId('asset-holdings-card')).toContainText('0종목');}
 });

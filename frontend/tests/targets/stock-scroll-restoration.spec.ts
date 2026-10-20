@@ -1,6 +1,6 @@
 import {tradeFixtureData} from './trade-summary-fixture';
 import {mkdir,writeFile} from 'node:fs/promises';
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './stock-input-fixture';
 
 type Category='holding'|'watchlist'|'traded';

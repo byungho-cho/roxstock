@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 test('refresh tracks queued, error, resume, completion and retry in the shared dialog',async({page})=>{
  const fixture=await setup(page,{allMetrics:true});let phase='QUEUED',fail=false,verified=true,leaseState:string|null=null;

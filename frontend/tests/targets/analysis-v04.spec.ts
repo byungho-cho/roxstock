@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './authenticated-test';
 import { fixture } from './stock-input-fixture';
 import { analysisRange, decimalValue } from '../../src/pages/assets/analysisPeriod';
 
@@ -100,7 +100,7 @@ test('real server period result is preserved, unknown breakdown and plan are not
   await expect(page.getByTestId('analysis-metric-기간 투자손익')).toContainText('100,000원');
   await expect(page.getByTestId('analysis-metric-평가손익')).toContainText('—');
   await expect(page.getByTestId('analysis-compound')).toContainText('현재년도의 복리계획이 없습니다.');
-  await page.evaluate(() => { localStorage.setItem('roxstock-selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
+  await page.evaluate(() => { localStorage.setItem('roxstock:user:fixture-user:selected-account-id', 'b'); window.dispatchEvent(new Event('roxstock-selected-account')); });
   await expect(page.getByTestId('analysis-total-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.at(-1)?.pathname).toContain('/b/');
   state.empty(); await page.getByRole('button', { name: '전체', exact: true }).click(); await expect(page.getByTestId('analysis-trend').getByText('내용이 없습니다.', { exact: true })).toBeVisible();

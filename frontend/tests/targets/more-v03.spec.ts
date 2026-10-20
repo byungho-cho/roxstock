@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './authenticated-test';
 const menus = [
   ['홈', '/'], ['종목목록', '/stocks'], ['매매일지', '/journal'],
   ['자산분석', '/assets'], ['예수금', '/detail/cash'], ['투자금', '/detail/investment'],

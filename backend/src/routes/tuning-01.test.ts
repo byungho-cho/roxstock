@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildApp } from '../app.js';
+import { buildApp } from '../auth/route-test-app.js';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { Prisma } from '@roxstock/shared/prisma';
 import { PageCache } from '@roxstock/shared/domain/page-cache';

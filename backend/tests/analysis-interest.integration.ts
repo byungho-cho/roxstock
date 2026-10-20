@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
-import {buildApp} from '../src/app.js';
+import {buildApp} from '../src/auth/route-test-app.js';
 const url=new URL(process.env.DATABASE_URL??'');if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/roxstock_bugreports_test')throw Error('Isolated DB required');
 test('analysis interest scope includes holdings/watch/traded, excludes other accounts and recommended, before paging',async()=>{
  const app=buildApp(),suffix=String(Date.now());let accounts:bigint[]=[],ids:bigint[]=[];

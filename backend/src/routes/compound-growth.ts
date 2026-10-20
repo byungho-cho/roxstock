@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@roxstock/shared/prisma';
-import { prisma } from '@roxstock/shared/lib/prisma';
+import { prisma } from '../auth/scoped-db.js';
 // Every mutation acquires one account row lock before reading or writing children.
 // READ COMMITTED avoids MariaDB's stale joined-child reads at SERIALIZABLE.
 async function compoundTransaction<T>(work:(tx:Prisma.TransactionClient)=>Promise<T>):Promise<T>{
