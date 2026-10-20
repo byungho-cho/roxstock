@@ -126,11 +126,12 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
     </Stack>
     <ScheduleNotice feature={item} />
     <Typography sx={{ ...mutedText, fontSize: 10, lineHeight: '14px', mt: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {realtime ? '수신' : '시도'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastPriceReceivedAt : item.lastAttemptAt)}</DataValue> · {realtime ? '저장' : '성공'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastDbSavedAt : item.lastSuccessAt)}</DataValue>
+      {realtime ? '수신' : '시도'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastPriceReceivedAt : item.lastAttemptAt)}</DataValue> · {realtime ? '저장' : item.id==='stock-news'?'전체 정상':'성공'} <DataValue width={35}>{clockText(realtime ? item.realtime?.lastDbSavedAt : item.lastSuccessAt)}</DataValue>
     </Typography>
     <Typography sx={{ color: '#F2F7FC', fontSize: 10, lineHeight: '12px', mt: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {dart ? <>1단계 <DataValue width={65}>{numberText((item.backfill?.success ?? 0) + (item.backfill?.noFiling ?? 0) + (item.backfill?.notApplicable ?? 0))}/{numberText(item.backfill?.planned)}</DataValue> · 2단계 <DataValue width={35}>{item.phase === 'CURRENT' ? '확인 중' : '대기'}</DataValue></>
         : item.id==='investor-trends'?<>자료 저장 {numberText(item.investor?.quantityStored)} · 원문만 {numberText(item.investor?.rawOnly)} · 대기 {numberText(item.investor?.waiting)}</>
+        : item.id==='stock-news'?<>신규 소식 <DataValue>{numberText(item.recent.success)}</DataValue>건 · 다음 <DataValue>{clockText(item.nextAt)}</DataValue></>
         : realtime ? <>수신 <DataValue width={40}>{numberText(item.recent.processed)}</DataValue>건 · 다음 장중</>
         : <><DataValue width={65}>{numberText(item.recent.success)}/{numberText(item.recent.target)}</DataValue>건 성공 · 다음 <DataValue width={35}>{clockText(item.nextAt)}</DataValue></>}
     </Typography>

@@ -95,7 +95,7 @@ async function summary() {
     const resultScope={label:recorded?'최근 실행 대상 결과':'이전 실행의 대상별 결과 미기록',runId:run?String(run.id):'0',startedAt:iso(run?.startedAt)};
     if(job.id==='stock-news'){
       const news=await newsCollectionState(prisma,now);
-      return {id:job.id,name:job.name,schedule:`${news.intervalHours}시간마다 · 기준 ${news.startTime} KST`,status:news.status,lastAttemptAt:news.lastAttemptAt,lastSuccessAt:news.lastFullSuccessAt,lastCollectedAt:news.lastFinishedAt,lastDataAt:news.lastNewStoredAt,nextAt:news.nextAt,statsGeneratedAt:now.toISOString(),recent,resultScope,skipReasons,news,lastExecution:run?{id:String(run.id),status:run.status,originalStatus:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null,lastError:safeReason(run?.failureReason)};
+      return {id:job.id,name:job.name,schedule:`${news.intervalHours}시간마다 · 기준 ${news.startTime} KST`,status:news.status,lastAttemptAt:news.lastAttemptAt,lastSuccessAt:news.lastFullSuccessAt,lastCollectedAt:news.lastFinishedAt,lastDataAt:news.lastNewStoredAt,nextAt:news.nextAt,statsGeneratedAt:now.toISOString(),recent:{...recent,success:run?.successCount??0},resultScope:{...resultScope,label:'신규 소식 저장 건수 · 제공처 결과는 종목소식 수집 상태에서 확인'},skipReasons,news,lastExecution:run?{id:String(run.id),status:run.status,originalStatus:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null,lastError:safeReason(run?.failureReason)};
     }
     if(job.id==='investor-trends'){
       const history=await prisma.collectorRun.findFirst({where:{jobType:'investor-trends-backfill',provider:'KIS_API'},orderBy:{id:'desc'}});
