@@ -1,6 +1,7 @@
 import type {FastifyInstance} from 'fastify';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {ApiError} from '@roxstock/shared/lib/api-error';
+import {verifyAuthMail} from './mail.js';
 import {authCookies,consumeLink,email,emailLink,loginSession,newPassword,passwordHash,passwordMatches,rateLimit,refreshSession} from './service.js';
 const failed=()=>new ApiError(401,'LOGIN_FAILED','이메일 또는 비밀번호를 확인해 주세요.');
 type Body={email?:unknown;password?:unknown;confirmation?:unknown;remember?:unknown;token?:unknown;currentPassword?:unknown};
@@ -13,7 +14,8 @@ export async function authRoutes(app:FastifyInstance){
     // A fixed valid scrypt encoding keeps unknown-email failures on the same expensive path.
     const hash=user?.passwordHash??'scrypt$32768$0000000000000000000000000000000000000000000000000000000000000000$'+'0'.repeat(128);
     const matches=await passwordMatches(req.body.password,hash);
-    if(!user||!matches||!user.verifiedAt||user.mustChangePassword&&(!user.temporaryExpiresAt||user.temporaryExpiresAt<=new Date()))throw failed();
+    if(!user||!matches||!user.verifiedAt||user.mustChangePassword&&(!user.temporaryExpiresAt||user.temporaryExpiresAt<=new Date()||user.temporaryUsedAt))throw failed();
+    if(user.mustChangePassword){const used=await prisma.authUser.updateMany({where:{id:user.id,mustChangePassword:true,temporaryUsedAt:null,temporaryExpiresAt:{gt:new Date()}},data:{temporaryUsedAt:new Date()}});if(!used.count)throw failed();}
     await loginSession(user.id,req.body.remember===true,reply);return {data:serialize(user)};
   });
   app.post<{Body:Body}>('/register',async req=>{
@@ -29,6 +31,7 @@ export async function authRoutes(app:FastifyInstance){
   });
   app.post<{Body:Body}>('/resend',async req=>{
     const address=email(req.body?.email);await rateLimit(`resend-ip:${req.ip}`,10,3600);
+    await verifyAuthMail();
     const user=await prisma.authUser.findUnique({where:{email:address}});
     if(user&&!user.verifiedAt)await emailLink(user.id,'VERIFY',address);
     else await rateLimit(`mail:VERIFY:${address}`,1,60);
@@ -36,6 +39,7 @@ export async function authRoutes(app:FastifyInstance){
   });
   app.post<{Body:Body}>('/forgot',async req=>{
     const address=email(req.body?.email);await rateLimit(`reset-ip:${req.ip}`,10,3600);
+    await verifyAuthMail();
     const user=await prisma.authUser.findUnique({where:{email:address}});
     if(user)await emailLink(user.id,'RESET',address);else await rateLimit(`mail:RESET:${address}`,1,60);
     return {data:{sent:true}};
@@ -63,7 +67,7 @@ export async function authRoutes(app:FastifyInstance){
     if(typeof req.body.currentPassword!=='string'||Buffer.byteLength(req.body.currentPassword)>4096||!user.passwordHash||!await passwordMatches(req.body.currentPassword,user.passwordHash))throw failed();
     const encoded=await passwordHash(password),now=new Date();
     await prisma.$transaction(async tx=>{
-      await tx.authUser.update({where:{id:user.id},data:{passwordHash:encoded,mustChangePassword:false,temporaryExpiresAt:null}});
+      await tx.authUser.update({where:{id:user.id},data:{passwordHash:encoded,mustChangePassword:false,temporaryExpiresAt:null,temporaryUsedAt:null}});
       await tx.authSession.updateMany({where:{userId:user.id,revokedAt:null},data:{revokedAt:now}});
       await tx.authEmailToken.updateMany({where:{userId:user.id,usedAt:null},data:{usedAt:now}});
     });

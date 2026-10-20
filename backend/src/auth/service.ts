@@ -90,7 +90,7 @@ export async function consumeLink(token:unknown,purpose:'VERIFY'|'RESET',passwor
     }
     const changed=await tx.authEmailToken.updateMany({where:{id:row.id,usedAt:null,expiresAt:{gt:now}},data:{usedAt:now}});
     if(!changed.count)throw new ApiError(410,'LINK_EXPIRED','링크를 사용할 수 없습니다. 메일을 다시 요청해 주세요.');
-    await tx.authUser.update({where:{id:row.userId},data:purpose==='VERIFY'?{verifiedAt:now}:{passwordHash:encoded!,verifiedAt:now,mustChangePassword:false,temporaryExpiresAt:null}});
+    await tx.authUser.update({where:{id:row.userId},data:purpose==='VERIFY'?{verifiedAt:now}:{passwordHash:encoded!,verifiedAt:now,mustChangePassword:false,temporaryExpiresAt:null,temporaryUsedAt:null}});
     if(purpose==='RESET'){
       await tx.authSession.updateMany({where:{userId:row.userId,revokedAt:null},data:{revokedAt:now}});
       await tx.authEmailToken.updateMany({where:{userId:row.userId,usedAt:null},data:{usedAt:now}});

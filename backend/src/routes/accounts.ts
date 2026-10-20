@@ -91,6 +91,7 @@ export async function accountRoutes(app: FastifyInstance) {
     const requestedDefault = body.isDefault === undefined ? false : boolean(body.isDefault, 'isDefault');
     try {
       const account = await prisma.$transaction(async (tx) => {
+        if (await tx.account.findFirst({where:{brokerName,normalizedAccountNumber},select:{id:true}})) throw duplicateAccountError();
         const activeCount = await tx.account.count({ where: { isActive: true } });
         const isDefault = activeCount === 0 || requestedDefault;
         if (isDefault) await tx.account.updateMany({ where: { isDefault: true }, data: { isDefault: false } });

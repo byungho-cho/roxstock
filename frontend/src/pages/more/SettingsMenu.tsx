@@ -1,3 +1,4 @@
+import {AuthSettingsActions} from '../../auth/AuthSettingsActions';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {Box,ButtonBase,Stack,Typography} from '@mui/material';
 import {useNavigate} from 'react-router-dom';
@@ -29,6 +30,6 @@ export function SettingsMenu({ active }: { active?: MoreView }) {
   return <Stack component="nav" aria-label="설정 메뉴" spacing="12px"><QueryErrorNotice active={query.isError} message="계좌 조회에 실패했습니다." onRetry={()=>void query.refetch()} inlineRetry={false}/><QueryErrorNotice active={status.isError} message="수집 상태 조회에 실패했습니다." onRetry={()=>void status.refetch()} inlineRetry={false}/>{items.map(item => <ButtonBase key={item.view} aria-current={selected === item.view ? 'page' : undefined} onClick={() => navigate(item.view==='news-collection'?'/detail/news-collection-settings':item.view==='monitoring'?'/detail/collection-monitoring':item.view==='security-management'?'/detail/security-management':`/detail/settings?view=${item.view}`)} sx={{ ...row, bgcolor: '#090F1C', borderColor: selected === item.view ? '#3B82F6' : '#21304A', width: '100%', height: { xs: 72, sm: 72 }, px: '14px', gap: '10px', display: 'flex', textAlign: 'left' }}>
     <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 15, fontWeight: 400, color: '#F8FAFC' }}>{item.title}</Typography><Typography sx={{ fontSize: 11, fontWeight: 400, color: '#7385A1', mt: '5px' }}>{item.caption}</Typography></Box>
     {item.value && <Typography sx={{ flexShrink: 0, fontSize: 11, color: item.view === 'target-arrival' ? '#33D48C' : '#7385A1' }}>{item.value}</Typography>}<Typography sx={{ flexShrink: 0, fontSize: 22, color: '#7385A1' }}>›</Typography>
-  </ButtonBase>)}<AndroidDownload />{liveApiEnabled&&auth.user&&<><ButtonBase onClick={()=>navigate('/auth/change-password')} sx={{...row,p:2,color:'#F8FAFC'}}>비밀번호 변경</ButtonBase><ButtonBase onClick={()=>void auth.logout()} sx={{...row,p:2,color:'#F8FAFC'}}>로그아웃</ButtonBase></>}</Stack>;
+  </ButtonBase>)}<AndroidDownload />{liveApiEnabled&&<AuthSettingsActions/>}</Stack>;
 }
 

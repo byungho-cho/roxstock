@@ -10,7 +10,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
  const inject=app.inject.bind(app);
  app.inject=((options:any)=>inject({...options,remoteAddress:'192.0.2.42'})) as typeof app.inject;
  const users=await Promise.all(['a','b'].map(letter=>prisma.authUser.create({data:{email:`auth-${suffix}-${letter}@example.invalid`,passwordHash:encoded,verifiedAt:new Date()}})));
- const accounts=await Promise.all(users.map((user,i)=>prisma.account.create({data:{userId:user.id,name:'isolated-test',brokerName:'AUTH_TEST',accountNumber:suffix+i,normalizedAccountNumber:suffix+i}})));
+ const accounts=await Promise.all(users.map(user=>prisma.account.create({data:{userId:user.id,name:'isolated-test',brokerName:'AUTH_TEST',accountNumber:suffix+'shared',normalizedAccountNumber:suffix+'shared'}})));
  const security=await prisma.security.findFirst({select:{id:true}});assert.ok(security,'An existing shared security is required for isolated Lot fixtures.');
  const lots=await Promise.all(accounts.map(account=>prisma.buyTrade.create({data:{accountId:account.id,securityId:security.id,boughtAt:new Date('2024-01-01'),quantity:10,unitPrice:100}})));
  const sells=await Promise.all(lots.map(lot=>prisma.sellTrade.create({data:{buyTradeId:lot.id,soldAt:new Date('2024-02-01'),quantity:2,unitPrice:120}})));
@@ -55,6 +55,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   check((await app.inject({url:'/api/auth/me',headers:{...a,cookie:latestCookie}})).statusCode,401);
   a=await login(0,true);
   const created=await app.inject({method:'POST',url:'/api/accounts',headers:b,payload:{name:'new-test',brokerName:'AUTH_TEST',accountNumber:suffix+'new'}});check(created.statusCode,201);
+  check((await app.inject({method:'POST',url:'/api/accounts',headers:b,payload:{name:'duplicate-test',brokerName:'AUTH_TEST',accountNumber:suffix+'new'}})).statusCode,409);
   const newId=BigInt(created.json().data.id);check((await prisma.account.findUniqueOrThrow({where:{id:newId}})).userId,users[1]!.id);await prisma.account.delete({where:{id:newId}});
   const stored=await prisma.authSession.findMany({where:{userId:users[0]!.id}});assert.ok(!stored[0]!.tokenHash.includes(a.cookie));
   const token=randomToken();await prisma.authEmailToken.create({data:{userId:users[0]!.id,purpose:'RESET',tokenHash:tokenHash(token),expiresAt:new Date(Date.now()+60000)}});
@@ -64,6 +65,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   const expired=randomToken();await prisma.authEmailToken.create({data:{userId:users[1]!.id,purpose:'RESET',tokenHash:tokenHash(expired),expiresAt:new Date(Date.now()-1000)}});
   check((await app.inject({method:'POST',url:'/api/auth/reset',headers,payload:{token:expired,password:changed,confirmation:changed}})).statusCode,410);
   check((await app.inject({method:'POST',url:'/api/auth/forgot',headers,payload:{email:users[0]!.email}})).statusCode,503);
+  check((await app.inject({method:'POST',url:'/api/auth/forgot',headers,payload:{email:`unknown-${suffix}@example.invalid`}})).statusCode,503);
   const verify=randomToken();await prisma.authEmailToken.create({data:{userId:users[1]!.id,purpose:'VERIFY',tokenHash:tokenHash(verify),expiresAt:new Date(Date.now()+60000)}});
   check((await app.inject({method:'POST',url:'/api/auth/verify',headers,payload:{token:verify,password:'incorrect registration password'}})).statusCode,400);
   check((await app.inject({method:'POST',url:'/api/auth/verify',headers,payload:{token:verify,password}})).statusCode,200);

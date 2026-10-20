@@ -1062,6 +1062,7 @@ model AuthUser {
   role String @default("USER") @db.VarChar(16)
   mustChangePassword Boolean @default(false) @map("must_change_password")
   temporaryExpiresAt DateTime? @map("temporary_expires_at") @db.DateTime(3)
+  temporaryUsedAt DateTime? @map("temporary_used_at") @db.DateTime(3)
   initialMailSentAt DateTime? @map("initial_mail_sent_at") @db.DateTime(3)
   initialMailClaimedAt DateTime? @map("initial_mail_claimed_at") @db.DateTime(3)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)

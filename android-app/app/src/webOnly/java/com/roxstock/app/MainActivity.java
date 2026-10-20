@@ -45,7 +45,9 @@ public final class MainActivity extends Activity {
             Uri uri = Uri.parse(url);
             if (trusted(uri)) openBrowser(uri);
         });
-        AuthCookies.start(() -> { if (!isFinishing() && (state == null || web.restoreState(state) == null)) web.loadUrl(BuildConfig.SITE_ORIGIN); });
+        // Debug-only blank launch lets USB tests attach before any production request.
+        final boolean blankTest = BuildConfig.DEBUG && getIntent().getBooleanExtra("auth_test_blank", false);
+        AuthCookies.start(() -> { if (!isFinishing()) { if (blankTest) web.loadUrl("about:blank"); else if (state == null || web.restoreState(state) == null) web.loadUrl(BuildConfig.SITE_ORIGIN); } });
     }
 
     @Override public void onSaveInstanceState(Bundle state) { web.saveState(state); super.onSaveInstanceState(state); }

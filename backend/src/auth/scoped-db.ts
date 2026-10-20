@@ -46,7 +46,10 @@ export function scopedClient<T extends object>(db:T):T {
         if(model==='WatchlistItem')throw new ApiError(403,'LEGACY_PERSONAL_DATA','이전 관심종목은 개인 계좌에서 조회해 주세요.');
         const uid=identity.userId,op=String(operation);let query=projections(model,args,uid);
         if(personal.has(model)){
-          if(!['create','createMany','createManyAndReturn'].includes(op))query.where={...query.where,AND:[query.where?.AND??{},owner(model,uid)]};
+          if(!['create','createMany','createManyAndReturn'].includes(op)){
+            const existing=query.where?.AND;
+            query.where={...query.where,AND:[...(Array.isArray(existing)?existing:existing?[existing]:[]),owner(model,uid)]};
+          }
           for(const branch of ['data','create','update'])if(query[branch]){
             const rows=Array.isArray(query[branch])?query[branch]:[query[branch]];
             for(const row of rows){
