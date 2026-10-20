@@ -10,6 +10,7 @@ export const test=base.extend({page:async({page},use)=>{
   window.fetch=(input,init)=>{
    const value=typeof input==='string'?input:input instanceof URL?input.href:input.url;
    if(new URL(value,location.origin).pathname==='/api/auth/me')return Promise.resolve(new Response(JSON.stringify({data:{id:'fixture-user',email:'fixture@example.invalid',role:'ADMIN',mustChangePassword:false,settings:{}}}),{status:200,headers:{'content-type':'application/json'}}));
+   if(new URL(value,location.origin).pathname==='/api/auth/refresh')return Promise.resolve(new Response(JSON.stringify({data:{refreshed:true}}),{status:200,headers:{'content-type':'application/json'}}));
    return original(input,init);
   };
  });
