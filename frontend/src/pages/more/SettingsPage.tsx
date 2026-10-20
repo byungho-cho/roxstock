@@ -33,7 +33,7 @@ export function SettingsPage() {
     <Box className="rox-home" data-testid="settings-layout" sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
       <Box ref={menuRef} data-scroll-region="settings-menu" data-testid="settings-menu" sx={{ display: { xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: '80px' }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
       {detailView !== 'settings' && <Box ref={detailRef} data-scroll-region="settings-detail" data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0, '& .MuiButton-root': { borderRadius: '8px' }, '& .settings-condition-delete': { borderRadius: '2px' } }}>
-        <Box sx={{ px: 0, pt: detailView === 'target-arrival' ? 0 : '14px', pb: '80px' }}>
+        <Box sx={{ px: 0, pt: ['target-arrival','account'].includes(detailView) ? 0 : '14px', pb: '80px' }}>
           <Suspense fallback={<Skeleton aria-label="설정 상세 코드 불러오는 중" height={100}/>} >
           {detailView === 'backup' && <DatabaseBackup />}
           {detailView === 'target-arrival' && <TargetArrivalSettings />}

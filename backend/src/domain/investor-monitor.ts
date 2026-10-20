@@ -1,4 +1,8 @@
 type ItemGroup={status:string;message:string|null;_count:{_all:number}};
+export function investorCollectionResult(run:{status:string;failureReason:string|null;total:number},view:{target:number;success:number;stored:number}){
+ if(run.status==='RUNNING'||run.status==='FAILED'||run.failureReason||!view.target||view.target!==run.total)return run.status;
+ return view.success+view.stored===view.target?'SUCCESS':run.status;
+}
 /** These are target counts, never investor-row counts or complete collection successes. */
 export function investorMonitorCounts(groups:ItemGroup[]){
  const counts={rawOnly:0,quantityStored:0,waiting:0,failed:0,other:0};

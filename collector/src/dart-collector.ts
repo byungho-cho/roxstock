@@ -204,11 +204,12 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
            await withCollection(prisma,security.id,'dart-financial-statements',async()=>{
             if (!security.corpCode) { await repo.setPhase2Check(security.id, phase, new Date(), 'DART_CORP_CODE_NOT_MAPPED'); await repo.addPhase2RunItem(runId!, security, 'NOT_APPLICABLE', 'DART corporation code is not mapped for this stock.'); return; }
             const businessYears = [fiscalYear];
-            let updated = false;
+            let updated = false, heldReports=0;
             for (const fiscalYear of businessYears) {
               stage='LIST'; const filings = await repo.cachedReports(security.corpCode!, fiscalYear, () => dart.listPeriodicReports(security.corpCode!, fiscalYear));
               for (const report of filings) {
                 if(fiscalYear<2020&&report.periodType!=='ANNUAL')continue;
+                if(await repo.isReviewHeld(security.id,fiscalYear,report.reportCode)){heldReports++;continue;}
                 if (!callAllowed()) throw new DartApiError('SCHEDULE_WINDOW_ENDED', 'Collection window ended.');
                 requireDartReportPeriod(report,security.corpCode!,fiscalYear);
                 if (!report.selection?.periodError&&await repo.hasStoredReceipt(report.receiptNo)) continue;
@@ -223,7 +224,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
               }
             }
             await repo.setPhase2Check(security.id, phase, new Date()); processed += 1; succeeded += 1;
-            await repo.addPhase2RunItem(runId!, security, 'SUCCESS', updated ? '신규 정정 또는 변경 보고서를 저장했습니다.' : '공시 목록에 변경은 없고 기존 판본을 유지했습니다.');
+            await repo.addPhase2RunItem(runId!, security, 'SUCCESS', heldReports ? `검토 보류 ${heldReports}건은 유지하고 나머지 공시의 변경 여부를 확인했습니다.` : updated ? '신규 정정 또는 변경 보고서를 저장했습니다.' : '공시 목록에 변경은 없고 기존 판본을 유지했습니다.');
             if (updated) log('info', 'DART new filing stored', { symbol: security.symbol });
            },security);
           } catch (error) {

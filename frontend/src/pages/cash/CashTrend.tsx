@@ -21,7 +21,7 @@ function CashTrendContent({ accountId, range, onDetail, expanded=false }: { acco
       ...segment.map(point=>({date:point.date,values:{cash:point.value},text:{cash:formatWon(point.value)}})),
     ]);
   },[result.data]);
-  return <CashTrendFrame onDetail={onDetail} expanded={expanded} points={points} range={range} pending={result.isPending} error={result.isError} retry={()=>void result.refetch()} empty={!result.data?.data.length} />;
+  return <CashTrendFrame onDetail={onDetail} expanded={expanded} points={points} range={range} pending={result.isPending} error={result.isError} retry={()=>void result.refetch()} empty={!points.length} />;
 }
 
 export function CashTrend({accountId,range}:{accountId?:string;range:{from:string;to:string}}) {

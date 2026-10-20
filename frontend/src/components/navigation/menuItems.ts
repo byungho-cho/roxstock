@@ -16,3 +16,5 @@ export const appMenuItems=[
  {label:'설정',path:'/detail/settings',icon:'settings'},
 ];
 export const menuIconSource=(icon:string)=>icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;
+
+export const getAppMenuItems=(isAdmin:boolean)=>appMenuItems.filter(item=>isAdmin||item.icon!=='monitoring');

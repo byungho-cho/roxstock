@@ -1,6 +1,8 @@
 import { ArrowBackRounded } from '@mui/icons-material';
 import { AppBar, BottomNavigationAction, Box, IconButton, Toolbar, Typography } from '@mui/material';
-import {appMenuItems,menuIconSource} from './menuItems';
+import {appMenuItems,getAppMenuItems,menuIconSource} from './menuItems';
+import {useAuth} from '../../auth/AuthGate';
+import {liveApiEnabled} from '../../data/liveData';
 import { HeaderAddButton } from './HeaderAddButton';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
@@ -63,8 +65,9 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
   return embedded ? slot ? createPortal(header, slot) : null : header;
 }
 
-const menuItems=appMenuItems.filter(item=>item.path!=='/');
 export function BottomNav() {
+  const {user}=useAuth();
+  const menuItems=getAppMenuItems(!liveApiEnabled||user?.role==='ADMIN').filter(item=>item.path!=='/');
   const navigate = useNavigate(), location = useLocation();
   const path = location.pathname;
   const scroll = useRef<HTMLDivElement>(null);

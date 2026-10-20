@@ -1,6 +1,6 @@
 import {skipKind, priceRunResult} from '@roxstock/shared/domain/collection-health';
 import {prisma} from '../auth/scoped-db.js';
-import {investorMonitorCounts} from '../domain/investor-monitor.js';
+import {investorMonitorCounts,investorCollectionResult} from '../domain/investor-monitor.js';
 
 export async function runViews(ids: bigint[]) {
   const groups = ids.length ? await prisma.collectorRunItem.groupBy({where:{runId:{in:ids},NOT:{symbol:{startsWith:'MASTER:'}}},by:['runId','status','message'],_count:{_all:true}}) : [];
@@ -14,6 +14,7 @@ export async function runViews(ids: bigint[]) {
 }
 
 export function effectiveResult(run:{jobType:string;status:string;failureReason:string|null;successCount:number;failureCount:number;skippedCount:number;staleCount:number},view:Awaited<ReturnType<typeof runViews>> extends Map<string,infer V>?V:never) {
+  if(run.jobType==='investor-trends'&&view) return investorCollectionResult({...run,total:run.successCount+run.failureCount+run.skippedCount+run.staleCount},{...view,stored:view.investor.quantityStored});
   if(run.jobType!=='market-prices'||run.status==='RUNNING'||run.status==='FAILED'||run.failureReason||!view?.target) return run.status;
   if(view.target!==run.successCount+run.failureCount+run.skippedCount+run.staleCount) return run.status;
   return priceRunResult(view,view.excluded);
