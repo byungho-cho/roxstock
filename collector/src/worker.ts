@@ -63,6 +63,7 @@ const runSecurities = () => {
 
 const once = async (target: string, symbolArgument?: string): Promise<void> => {
   if (target === 'news-summary') console.log('STOCK_NEWS_SUMMARY_RESULT',JSON.stringify(await supplementNewsSummaries(prisma,{signal:shutdown.signal})));
+  else if (target === 'news-supplement') {if(!symbolArgument||!/^\d{4}-\d{2}-\d{2}$/.test(symbolArgument))throw Error('news-supplement requires YYYY-MM-DD KST');console.log('STOCK_NEWS_SUPPLEMENT_RESULT',JSON.stringify(await collectStockNews(prisma,{signal:shutdown.signal,manualDate:symbolArgument})));}
   else if (target === 'news') console.log('STOCK_NEWS_RESULT',JSON.stringify(await collectStockNews(prisma,{signal:shutdown.signal})));
   else if (target === 'prices') await runPrices(symbolArgument?.split(',').map((symbol) => symbol.trim()).filter(Boolean));
   else if (target === 'snapshots') await runSnapshots();

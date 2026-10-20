@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NewsHttp,parseReports,parseRss,publicDescription} from './news-providers.js';
+import {NewsHttp,parseReports,parseRss,publicDescription,rssItemDates} from './news-providers.js';
 const targets=[{id:1n,symbol:'005930',name:'삼성전자'},{id:2n,symbol:'005380',name:'현대자동차'}],from=new Date('2026-10-18T15:00:00Z'),to=new Date('2026-10-19T06:00:00Z');
 const rss=(title:string,url='https://www.hankyung.com/article/202610190001',date='Mon, 19 Oct 2026 10:00:00 +0900')=>`<?xml version="1.0"?><rss><channel><item><title><![CDATA[${title}]]></title><link>${url}</link><pubDate>${date}</pubDate></item></channel></rss>`;
 test('RSS source identity, exact related stock and publication window; malformed input is not zero news',()=>{
@@ -21,4 +21,10 @@ test('public HTTP reader cancels at head and rejects PDF/redirects without stori
  const http=new NewsHttp(undefined,(async()=>new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('<head><meta name="description" content="public"></head>'));},cancel(){bodyRead++;}}),{headers:{'Content-Type':'text/html'}})) as typeof fetch,0);
  assert.match(await http.text('https://www.hankyung.com/article/1',65536,true),/description/);assert.equal(bodyRead,1);
  await assert.rejects(()=>http.text('https://internal.invalid/secret'));
+});
+
+test('RSS retention uses only valid item dates, ignoring channel publication and unrelated invalid channel metadata',()=>{
+ const xml=rss('삼성전자 실적 전망 변경').replace('<channel>','<channel><pubDate>Mon, 01 Jan 2001 00:00:00 +0900</pubDate>');
+ assert.equal(rssItemDates(xml).length,1);assert.equal(rssItemDates(xml)[0],new Date('2026-10-19T10:00:00+09:00').getTime());
+ const stats:Record<string,number>={};parseRss(xml,targets,'HANKYUNG_RSS',from,to,stats);assert.deepEqual(stats,{rawParsed:1,periodPassed:1,securityMatched:1});
 });

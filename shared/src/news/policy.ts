@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 export const newsTypes=['REPORT','ARTICLE','DISCLOSURE'] as const;
 export type NewsType=typeof newsTypes[number];
 export type AccessCondition='FREE'|'PAID'|'LOGIN'|'UNKNOWN';
-export type NewsTarget={id:bigint;symbol:string;name:string;corpCode?:string|null};
+export type NewsTarget={id:bigint;symbol:string;name:string;corpCode?:string|null;securityType?:string};
 export type NewsCandidate={provider:string;providerId:string;title:string;originalUrl:string;sourceName:string;publishedAt:Date;publishedPrecision:'TIME'|'DATE';materialType:NewsType;accessCondition:AccessCondition;summary:string|null;summaryMethod:string;securityIds:bigint[];priority:number};
 export const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 export const seoulDay=(d:Date)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(d);
@@ -57,16 +57,8 @@ export function importance(title:string,type:NewsType):number{
 }
 export function candidateKeys(c:NewsCandidate){return {canonicalHash:hash(canonicalUrl(c.originalUrl)),fingerprint:hash(c.title.normalize('NFKC').toLowerCase().replace(/[\p{P}\p{Z}\s]/gu,'')+'|'+[...c.securityIds].sort((a,b)=>a<b?-1:1).join(',')+'|'+seoulDay(c.publishedAt))};}
 export function selectNews(candidates:NewsCandidate[],existing=new Set<string>()){
- const seen=new Set(existing);const rows=candidates.filter(c=>{if(!c.priority||!c.securityIds.length)return false;const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))return false;seen.add(k.canonicalHash);seen.add(k.fingerprint);return true;})
+ const seen=new Set(existing);const rows=candidates.filter(c=>{if(!c.priority||!c.securityIds.length)return false;const k=candidateKeys(c),providerKey='provider:'+c.provider+':'+c.providerId;if(seen.has(k.canonicalHash)||seen.has(k.fingerprint)||seen.has(providerKey))return false;seen.add(k.canonicalHash);seen.add(k.fingerprint);seen.add(providerKey);return true;})
  .sort((a,b)=>b.priority-a.priority||b.publishedAt.getTime()-a.publishedAt.getTime()||a.originalUrl.localeCompare(b.originalUrl));
  const important=rows.filter(r=>r.priority===2).length;
  return rows.slice(0,Math.min(10,Math.max(5,important)));
-}
-export function newsSchedule(state:{initialDate:string;initialCompletedAt:Date|null;completedDate:string|null;attemptDate:string|null;attempts:number;nextRetryAt:Date|null},now:Date){
- const day=seoulDay(now),hour=Number(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hourCycle:'h23',timeZone:'Asia/Seoul'}).format(now));
- if(state.completedDate===day)return null;
- if(state.attemptDate===day&&(state.attempts>=3||state.nextRetryAt&&state.nextRetryAt>now))return null;
- if(!state.initialCompletedAt)return {kind:'INITIAL',day,from:kstStart(state.initialDate)};
- if(day<=state.initialDate||hour<6)return null;
- return {kind:'DAILY',day,from:new Date(kstStart(day).getTime()-3*86400000)};
 }

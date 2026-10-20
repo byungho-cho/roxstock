@@ -124,8 +124,8 @@ jobs:
           cat "$RUNNER_TEMP/foreign-recovery-summary.txt" >> "$GITHUB_STEP_SUMMARY"
 
   news_activation:
-    needs: [revision, backend, collector]
-    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success'
+    needs: [revision, backend, collector, frontend]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -141,15 +141,21 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
-          case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19|1.1.20) ;; *) exit 0 ;; esac
+          case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19|1.1.20|1.1.25) ;; *) exit 0 ;; esac
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/verify-stock-news-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-news-$TARGET_SHA.sh"
+          script=scripts/verify-stock-news-production.sh
+          marker=STOCK_NEWS_FIRST_COLLECTION_AND_STORED_API_VERIFIED
+          if test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.25; then
+            script=scripts/verify-news-schedule-production.sh
+            marker=NEWS35_DEPLOYED_SUPPLEMENT_AND_STORED_LIST_VERIFIED
+          fi
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$script" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-news-$TARGET_SHA.sh"
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-news-$TARGET_SHA.sh $TARGET_SHA" | tee "$RUNNER_TEMP/stock-news-first-result.txt"
-          grep -q STOCK_NEWS_FIRST_COLLECTION_AND_STORED_API_VERIFIED "$RUNNER_TEMP/stock-news-first-result.txt"
+          grep -q "$marker" "$RUNNER_TEMP/stock-news-first-result.txt"
           cat "$RUNNER_TEMP/stock-news-first-result.txt" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
