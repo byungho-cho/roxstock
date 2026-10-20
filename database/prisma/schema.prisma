@@ -953,6 +953,7 @@ model StockNewsItem {
  @@index([priority,publishedAt,id],map:"stock_news_order_idx")
  @@index([materialType,priority,publishedAt,id],map:"stock_news_type_order_idx")
  @@index([summaryStatus,summaryNextRetryAt,id],map:"stock_news_summary_queue_idx")
+ @@index([collectedAt,id],map:"stock_news_collected_idx")
  @@map("stock_news_items")
 }
 model StockNewsSecurity {

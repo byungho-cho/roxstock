@@ -100,7 +100,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    const unique=new Map(candidates.map(c=>[candidateKeys(c).canonicalHash,c]));
    const counts=new Map<string,{storedDuplicates:number;pastExcluded:number;selectionExcluded:number;saved:number;linked:number}>();
    for(const c of unique.values()){
-    const k=candidateKeys(c),stored=existing.has(k.canonicalHash)||existing.has(k.fingerprint),chosen=selectedKeys.has(k.canonicalHash),status=stored||chosen?'STORED':c.priority&&c.securityIds.length?'DEFERRED':'EXCLUDED',reason=status==='DEFERRED'?(alreadyToday+saved>=10?'DAILY_LIMIT':'SELECTION_RANK'):status==='EXCLUDED'?'NOT_RELEVANT':null;
+    const k=candidateKeys(c),stored=existing.has(k.canonicalHash)||existing.has(k.fingerprint),chosen=selectedKeys.has(k.canonicalHash),expired=c.publishedAt.getTime()+72*3600000<now.getTime(),status=stored||chosen?'STORED':!expired&&c.priority&&c.securityIds.length?'DEFERRED':'EXCLUDED',reason=expired&&!stored&&!chosen?'CANDIDATE_EXPIRED':status==='DEFERRED'?(alreadyToday+saved>=10?'DAILY_LIMIT':'SELECTION_RANK'):status==='EXCLUDED'?'NOT_RELEVANT':null;
     const count=counts.get(c.provider)??{storedDuplicates:0,pastExcluded:0,selectionExcluded:0,saved:0,linked:0};
     if(stored)count.storedDuplicates++;if(pastExcluded.has(k.canonicalHash)||pastExcluded.has(k.fingerprint)||pendingCandidates.some(p=>p.canonicalHash===k.canonicalHash))count.pastExcluded++;if(status==='DEFERRED')count.selectionExcluded++;if(chosen)count.saved++;count.linked+=relations.filter(r=>knownItems.get(k.canonicalHash)===r.newsId).length;counts.set(c.provider,count);
     const payload=JSON.parse(JSON.stringify({...c,securityIds:c.securityIds.map(String),summary:null,summaryMethod:'NONE'}));

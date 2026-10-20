@@ -1,3 +1,4 @@
+CREATE INDEX stock_news_collected_idx ON stock_news_items(collected_at,id);
 -- Additive only. Legacy timestamps/seen keys/items and financial budgets are retained.
 ALTER TABLE stock_news_state ADD COLUMN last_attempt_at DATETIME(3) NULL, ADD COLUMN last_finished_at DATETIME(3) NULL, ADD COLUMN last_full_success_at DATETIME(3) NULL, ADD COLUMN last_new_stored_at DATETIME(3) NULL;
 ALTER TABLE stock_news_provider_state ADD COLUMN slot_key VARCHAR(100) NULL, ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'NOT_COLLECTED', ADD COLUMN attempts TINYINT UNSIGNED NOT NULL DEFAULT 0, ADD COLUMN next_retry_at DATETIME(3) NULL, ADD COLUMN last_checked_at DATETIME(3) NULL, ADD COLUMN gaps JSON NULL, ADD COLUMN diagnostics JSON NULL;
