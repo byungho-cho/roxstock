@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {prisma as db} from '@roxstock/shared/lib/prisma';
 import {collectStockNews} from '../../collector/src/news-collector.js';
+import {reconcileReportIdentities} from '../../collector/src/news-report-identity.js';
+import {PrismaCollectorRepository} from '../../collector/src/repository.js';
 import {buildApp} from '../src/app.js';
 import type {NewsCandidate} from '@roxstock/shared/news/policy';
 import {kstStart,seoulDay} from '@roxstock/shared/news/policy';
@@ -47,5 +49,30 @@ test('phase35 DB: per-slot retry isolation, daily cap, deferred and legacy recon
   console.log('NEWS35_DB_PROOF',JSON.stringify({dailyStored:10,deferredReconsidered:5,legacyReconsidered:true,goodProviderSkippedOnRetry:true,sameSlotOnce:true,missedSlotsCoalesced:true,supplementOnce:true,settingsValidated:true,settingsNoCollection:true,inflightSettingsPreserved:true,coverageWarningWithCandidate:true,continuousCursorNotAdvanced:true,noFutileCoverageRetry:true,confirmedCursorUsed:true}));
  }finally{
   await db.stockNewsSecurity.deleteMany({where:{securityId:security.id}});await db.stockNewsItem.deleteMany({where:{provider:{startsWith:'TEST_NEWS35'}}});await db.stockNewsCandidate.deleteMany();await db.stockNewsSlot.deleteMany();await db.stockNewsSchedule.deleteMany();await db.stockNewsState.deleteMany();await db.stockNewsSeen.deleteMany();await db.stockNewsProviderState.deleteMany({where:{provider:{startsWith:'TEST_NEWS35'}}});await db.collectorRun.deleteMany({where:{jobType:'stock-news'}});await db.collectorLock.deleteMany({where:{jobName:'stock-news'}});await db.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await db.account.delete({where:{id:account.id}});await db.security.delete({where:{id:security.id}});await app.close();await db.$disconnect();
+ }
+});
+
+test('explicit report identity repair preserves news/summary and valid relations, isolates accounts, locks and resumes without source calls',async()=>{
+ assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/);
+ const app=buildApp(),repo=new PrismaCollectorRepository(db),stamp=new Date(),ids:bigint[]=[],accounts:bigint[]=[];
+ const {hash}=await import('@roxstock/shared/news/policy');
+ const key=hash('NEWS35_REPORT_IDENTITY_FIXTURE');
+ try{
+  const kt=await db.security.create({data:{symbol:'989352',name:'KT',marketType:'OTHER'}}),ktg=await db.security.create({data:{symbol:'989353',name:'KT&G',marketType:'OTHER'}});ids.push(kt.id,ktg.id);
+  for(const security of [kt,ktg]){const a=await db.account.create({data:{name:'NEWS35_REPORT_SCOPE',brokerName:'CI',cashBalance:'0'}});accounts.push(a.id);await db.accountWatchlistItem.create({data:{accountId:a.id,securityId:security.id,listType:'WATCHLIST'}});}
+  const item=await db.stockNewsItem.create({data:{provider:'HANKYUNG_CONSENSUS',providerId:'999989353',canonicalHash:key,fingerprint:key,title:'KT&G(989353) 실적 전망',originalUrl:'https://consensus.hankyung.com/analysis/downpdf?report_idx=999989353',sourceName:'CI',publishedAt:stamp,materialType:'REPORT',priority:1,accessCondition:'UNKNOWN',summary:'기존 유효 요약 보존',summaryMethod:'PUBLIC_REPORT_ABSTRACT',collectedAt:stamp,securities:{create:ids.map(securityId=>({securityId}))}}});
+  await db.stockNewsCandidate.create({data:{canonicalHash:key,fingerprint:key,provider:'HANKYUNG_CONSENSUS',providerId:'999989353',payload:{title:item.title,originalUrl:item.originalUrl,securityIds:ids.map(String)},priority:1,publishedAt:stamp,expiresAt:new Date(stamp.getTime()+72*3600000),status:'DEFERRED',reason:'SELECTION_RANK',firstSeenAt:stamp,lastCheckedAt:stamp}});
+  assert.equal((await app.inject('/api/accounts/'+accounts[0]+'/stock-news')).json().meta.total,1);
+  assert.equal(await repo.acquireLock('stock-news','NEWS35_OTHER_OWNER',120),true);
+  assert.equal((await reconcileReportIdentities(db)).status,'LOCKED');await repo.releaseLock('stock-news','NEWS35_OTHER_OWNER');
+  const fixed=await reconcileReportIdentities(db);assert.equal(fixed.status,'SUCCESS');if(fixed.status!=='SUCCESS')throw Error('expected repair');assert.equal(fixed.relationsRemoved,1);assert.equal(fixed.candidatesCorrected,1);assert.equal(fixed.sourceCalls,0);
+  const stored=await db.stockNewsItem.findUniqueOrThrow({where:{id:item.id},include:{securities:true}});assert.equal(stored.summary,'기존 유효 요약 보존');assert.equal(stored.collectedAt.toISOString(),stamp.toISOString());assert.deepEqual(stored.securities.map(r=>r.securityId),[ktg.id]);
+  assert.deepEqual((await db.stockNewsCandidate.findUniqueOrThrow({where:{canonicalHash:key}})).payload,{title:item.title,originalUrl:item.originalUrl,securityIds:[String(ktg.id)]});
+  assert.equal((await app.inject('/api/accounts/'+accounts[0]+'/stock-news')).json().meta.total,0);assert.equal((await app.inject('/api/accounts/'+accounts[1]+'/stock-news')).json().meta.total,1);
+  const again=await reconcileReportIdentities(db);assert.equal(again.status,'SUCCESS');if(again.status!=='SUCCESS')throw Error('expected repeated repair');assert.equal(again.relationsRemoved,0);assert.equal(again.candidatesCorrected,0);
+  assert.equal(await db.stockNewsSlot.count(),0);assert.equal(await db.stockNewsState.count(),0);
+  console.log('NEWS_REPORT_IDENTITY_DB_PROOF',JSON.stringify({wrongRelationRemoved:1,validRelationPreserved:true,summaryAndCollectionTimePreserved:true,candidateCorrected:true,accountsIsolated:true,lockRespected:true,idempotent:true,sourceCalls:0,supplementNotRepeated:true}));
+ }finally{
+  await repo.releaseLock('stock-news','NEWS35_OTHER_OWNER');await db.stockNewsSecurity.deleteMany({where:{securityId:{in:ids}}});await db.stockNewsItem.deleteMany({where:{canonicalHash:key}});await db.stockNewsCandidate.deleteMany({where:{canonicalHash:key}});await db.collectorRun.deleteMany({where:{jobType:'stock-news-maintenance',provider:'REPORT_IDENTITY'}});await db.accountWatchlistItem.deleteMany({where:{accountId:{in:accounts}}});await db.account.deleteMany({where:{id:{in:accounts}}});await db.security.deleteMany({where:{id:{in:ids}}});await app.close();await db.$disconnect();
  }
 });

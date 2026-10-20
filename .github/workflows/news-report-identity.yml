@@ -1,0 +1,60 @@
+name: News Report Identity Verification
+on:
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Merged main commit for DB-only report identity reconciliation
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: news-report-identity-production
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      TARGET_SHA: ${{ inputs.target_sha || github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/github-script@v7
+        id: revision
+        with:
+          script: |
+            const {data: branch} = await github.rest.repos.getBranch({...context.repo, branch: 'main'});
+            const sha = process.env.TARGET_SHA;
+            if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Immutable SHA required');
+            core.setOutput('current', String(branch.commit.sha === sha));
+      - uses: actions/checkout@v4
+        if: steps.revision.outputs.current == 'true'
+        with:
+          ref: ${{ inputs.target_sha || github.event.workflow_run.head_sha }}
+      - name: Reconcile explicit report symbols without repeating collection
+        if: steps.revision.outputs.current == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.1.26 || exit 0
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/verify-news-report-identity-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-news-identity-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-news-identity-$TARGET_SHA.sh $TARGET_SHA" | tee "$RUNNER_TEMP/news-report-identity-result.txt"
+          grep -q NEWS_REPORT_IDENTITY_RECONCILED_WITHOUT_COLLECTION "$RUNNER_TEMP/news-report-identity-result.txt"
+          cat "$RUNNER_TEMP/news-report-identity-result.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.revision.outputs.current == 'true'
+        with:
+          name: news-report-identity-production-result
+          path: ${{ runner.temp }}/news-report-identity-result.txt
