@@ -73,7 +73,15 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   check((await app.inject({method:'POST',url:'/api/auth/verify',headers,payload:{token:verify,password:'incorrect registration password'}})).statusCode,400);
   check((await app.inject({method:'POST',url:'/api/auth/verify',headers,payload:{token:verify,password}})).statusCode,200);
   check((await app.inject({method:'POST',url:'/api/auth/verify',headers,payload:{token:verify,password}})).statusCode,410);
-  check((await app.inject({method:'POST',url:'/api/auth/register',headers,payload:{email:users[1]!.email,password,confirmation:password}})).statusCode,403);
+  check((await app.inject({method:'POST',url:'/api/auth/register',headers,payload:{email:users[1]!.email,password,confirmation:password}})).statusCode,409);
+  const signupEmail=`signup-${suffix}@example.invalid`;
+  try{
+   check((await app.inject({method:'POST',url:'/api/auth/register',headers,payload:{email:signupEmail,password,confirmation:password}})).statusCode,503);
+   const signup=await prisma.authUser.findUniqueOrThrow({where:{email:signupEmail}});
+   check(signup.role,'USER');check(signup.verifiedAt,null);
+   check((await app.inject({method:'POST',url:'/api/auth/login',headers,payload:{email:signupEmail,password}})).statusCode,401);
+   check((await app.inject({method:'POST',url:'/api/auth/register',headers,payload:{email:signupEmail,password,confirmation:password}})).statusCode,409);
+  }finally{await prisma.authUser.deleteMany({where:{email:signupEmail}});}
   check((await app.inject({method:'POST',url:'/api/auth/logout',headers:b,payload:{}})).statusCode,200);
   check((await app.inject({url:'/api/auth/me',headers:b})).statusCode,401);
   await prisma.authUser.update({where:{id:users[1]!.id},data:{mustChangePassword:false,temporaryExpiresAt:new Date(Date.now()-1000),temporaryUsedAt:null}});

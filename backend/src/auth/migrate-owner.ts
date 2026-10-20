@@ -26,7 +26,6 @@ export async function migrateOwner(outputDirectory:string){
  if(!address||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address))throw Error('PRIVATE_LEGACY_OWNER_EMAIL_REQUIRED');
  await prisma.$transaction(async tx=>{
   const user=await tx.authUser.upsert({where:{email:address},create:{email:address,role:'ADMIN',verifiedAt:new Date(),legacyKey:'legacy'},update:{legacyKey:'legacy'}});
-  await tx.authInvitation.upsert({where:{email:address},create:{email:address},update:{}});
   // Ownership metadata must not change financial data or original account timestamps.
   await tx.$executeRaw`UPDATE accounts SET user_id=${user.id} WHERE user_id IS NULL`;
   await tx.$executeRaw`UPDATE watchlist_items SET user_id=${user.id} WHERE user_id IS NULL`;

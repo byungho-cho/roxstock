@@ -3,13 +3,13 @@ import {fixture} from './phase3-fixture';
 const lot=(id:string,date:string,quantity:string)=>({id,boughtAt:date,buyDate:date.slice(0,10),quantity,unitPrice:'100',remainingQuantity:'0',soldQuantity:quantity,sellTrades:[],security:{id:'1',name:'종목1',symbol:'000001',marketType:'KOSPI'}});
 const previous=[lot('9007199254740992','2026-10-01T03:00:00Z','11'),lot('99','2025-10-01T03:00:00Z','99'),lot('9007199254740993','2026-10-01T03:00:00Z','20')];
 async function buyFixture(page:Page,delay=false,empty=false){
- await fixture(page);let release!:()=>void;const reads:string[]=[];
+ await fixture(page);let held=delay;const releases:Array<()=>void>=[];const reads:string[]=[];
  await page.route('**/api/accounts/*/buy-lots**',async route=>{
   const url=new URL(route.request().url());reads.push(url.pathname+url.search);
-  if(delay&&url.searchParams.get('remainingOnly')==='false')await new Promise<void>(r=>{release=r;});
+  if(held&&url.searchParams.get('remainingOnly')==='false')await new Promise<void>(resolve=>releases.push(resolve));
   return route.fulfill({json:{data:!empty&&url.pathname.includes('/1/')&&url.searchParams.get('securityId')==='1'?previous:[]}});
  });
- return {reads,release:()=>release(),ready:()=>!!release};
+ return {reads,release:()=>{held=false;releases.splice(0).forEach(resolve=>resolve());},ready:()=>releases.length>0};
 }
 test('new buy uses registered quantity of latest fully sold lot; edit keeps saved quantity',async({page},info)=>{
  const f=await buyFixture(page);await page.goto('/trade?type=buy&stock=1');

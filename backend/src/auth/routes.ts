@@ -21,12 +21,10 @@ export async function authRoutes(app:FastifyInstance){
   app.post<{Body:Body}>('/register',async req=>{
     const address=email(req.body?.email),password=newPassword(req.body.password,req.body.confirmation);
     await rateLimit(`signup:${req.ip}`,10,3600);
-    if(!await prisma.authInvitation.findUnique({where:{email:address}}))throw new ApiError(403,'INVITATION_REQUIRED','현재는 승인되거나 초대된 이메일로 가입할 수 있습니다.');
     const existing=await prisma.authUser.findUnique({where:{email:address}});
-    if(existing?.verifiedAt)throw new ApiError(409,'EMAIL_EXISTS','이미 가입된 이메일입니다. 로그인해 주세요.');
+    if(existing)throw new ApiError(409,'EMAIL_EXISTS','이미 가입된 이메일입니다. 로그인해 주세요.');
     const encoded=await passwordHash(password);
-    const user=existing??await prisma.authUser.create({data:{email:address,passwordHash:encoded}});
-    // Pending users keep their original password; only a verified reset can replace it.
+    const user=await prisma.authUser.create({data:{email:address,passwordHash:encoded}});
     await emailLink(user.id,'VERIFY',address);return {data:{sent:true}};
   });
   app.post<{Body:Body}>('/resend',async req=>{
@@ -62,10 +60,6 @@ export async function authRoutes(app:FastifyInstance){
     if(body.selectedAccountId!==undefined){if(typeof body.selectedAccountId!=='string'||!/^\d{1,20}$/.test(body.selectedAccountId)||!await prisma.account.findFirst({where:{id:BigInt(body.selectedAccountId),userId:user.id},select:{id:true}}))throw new ApiError(404,'NOT_FOUND','계좌를 찾을 수 없습니다.');settings.selectedAccountId=body.selectedAccountId;}
     if(body.legacyImported===true&&user.legacyKey==='legacy')settings.legacyImported=true;
     await prisma.authUser.update({where:{id:user.id},data:{settings}});return {data:settings};
-  });
-  app.post<{Body:{email?:unknown}}>('/invitations',async req=>{
-    if(req.auth!.role!=='ADMIN')throw new ApiError(403,'ADMIN_REQUIRED','관리자만 사용할 수 있습니다.');
-    const address=email(req.body?.email);await prisma.authInvitation.upsert({where:{email:address},create:{email:address},update:{}});return {data:{approved:true}};
   });
   app.post('/refresh',async(req,reply)=>{await refreshSession(req,reply,req.auth!);return {data:{refreshed:true}};});
   app.post('/logout',async(req,reply)=>{await prisma.authSession.updateMany({where:{id:req.auth!.sessionId,revokedAt:null},data:{revokedAt:new Date()}});authCookies(reply,'','',false,true);return {data:{loggedOut:true}};});
