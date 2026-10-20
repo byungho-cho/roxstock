@@ -8,7 +8,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
  process.env.AUTH_PUBLIC_ORIGIN='http://127.0.0.1:3000';delete process.env.SMTP_PASSWORD;
  const app=buildApp(),suffix=randomToken().slice(0,10),password='Ab12'+randomToken().replace(/[^A-Za-z0-9]/g,'').slice(0,12),encoded=await passwordHash(password);
  const inject=app.inject.bind(app);
- app.inject=((options:any)=>inject({...options,remoteAddress:'192.0.2.42'})) as typeof app.inject;
+ app.inject=((options:any)=>inject({...options,remoteAddress:`198.18.${suffix.charCodeAt(0)}.${suffix.charCodeAt(1)}`})) as typeof app.inject;
  const users=await Promise.all(['a','b'].map(letter=>prisma.authUser.create({data:{email:`auth-${suffix}-${letter}@example.invalid`,passwordHash:encoded,verifiedAt:new Date()}})));
  const accounts=await Promise.all(users.map(user=>prisma.account.create({data:{userId:user.id,name:'isolated-test',brokerName:'AUTH_TEST',accountNumber:suffix+'shared',normalizedAccountNumber:suffix+'shared'}})));
  const security=await prisma.security.findFirst({select:{id:true}});assert.ok(security,'An existing shared security is required for isolated Lot fixtures.');
@@ -25,6 +25,8 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
  try{
   check((await app.inject({url:'/api/accounts'})).statusCode,401);
   let a=await login(0,true);const b=await login(1);
+  const empty=await prisma.account.create({data:{userId:users[0]!.id,name:'delete-test',brokerName:'AUTH_TEST',normalizedAccountNumber:suffix+'delete'}});
+  check((await app.inject({method:'DELETE',url:'/api/accounts/'+empty.id,headers:a,payload:{}})).statusCode,200);
   check((await app.inject({url:'/api/accounts',headers:{...a,'x-auth-user':String(users[1]!.id)}})).statusCode,409);
   for(const [owner,other] of [[a,1],[b,0]] as const){
    const list=await app.inject({url:'/api/accounts',headers:owner});check(list.statusCode,200);check(list.json().data.length,1);check(list.json().data[0].id,String(accounts[1-other]!.id));

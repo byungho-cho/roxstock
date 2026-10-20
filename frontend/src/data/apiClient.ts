@@ -9,8 +9,9 @@ export class ApiError extends Error {
 }
 
 export async function apiEnvelope<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetchRead(path, init.body || init.headers ? {
-    ...init, headers: { ...(init.body ? { 'Content-Type': 'application/json','X-CSRF-Token':csrfToken(),...identityHeaders() } : {}), ...init.headers },
+  const write=!['GET','HEAD','OPTIONS'].includes((init.method??'GET').toUpperCase());
+  const response = await fetchRead(path, write || init.body || init.headers ? {
+    ...init, ...(write?{body:init.body??'{}'}:{}),headers: { ...(write||init.body ? { 'Content-Type': 'application/json','X-CSRF-Token':csrfToken(),...identityHeaders() } : {}), ...init.headers },
   } : init);
   if (!response.ok) {
     if(response.status===401)window.dispatchEvent(new Event('roxstock-auth-required'));

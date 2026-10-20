@@ -15,6 +15,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: node --import tsx --test frontend/src/data/apiClient.test.ts
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test -c frontend/playwright.auth.config.ts
       - uses: actions/upload-artifact@v4
