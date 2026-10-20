@@ -1,0 +1,1478 @@
+[
+  {
+    "symbol": "000270",
+    "corpCode": "00106641",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "000270",
+    "corpCode": "00106641",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "000660",
+    "corpCode": "00164779",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "000660",
+    "corpCode": "00164779",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "000720",
+    "corpCode": "00164478",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "000720",
+    "corpCode": "00164478",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "003490",
+    "corpCode": "00113526",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "003490",
+    "corpCode": "00113526",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "004370",
+    "corpCode": "00108241",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "004370",
+    "corpCode": "00108241",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "005180",
+    "corpCode": "00124726",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "005180",
+    "corpCode": "00124726",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "005380",
+    "corpCode": "00164742",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "005380",
+    "corpCode": "00164742",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "005440",
+    "corpCode": "00105280",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "005440",
+    "corpCode": "00105280",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "005490",
+    "corpCode": "00155319",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "005490",
+    "corpCode": "00155319",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "005930",
+    "corpCode": "00126380",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "005930",
+    "corpCode": "00126380",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "008770",
+    "corpCode": "00165680",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "008770",
+    "corpCode": "00165680",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "009450",
+    "corpCode": "00101488",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "009450",
+    "corpCode": "00101488",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "012330",
+    "corpCode": "00164788",
+    "year": 2018,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "012330",
+    "corpCode": "00164788",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "012330",
+    "corpCode": "00164788",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2015,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2016,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2017,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2018,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2019,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2020,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2020,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2020,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2020,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2021,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2021,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2021,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2021,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2022,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2022,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2022,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2022,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2023,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2023,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "016360",
+    "corpCode": "00104856",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2015,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2016,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2017,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2018,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2019,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2020,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2020,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2020,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2020,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2021,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2021,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2021,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2021,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2022,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2022,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2022,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2022,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2023,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2023,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "024110",
+    "corpCode": "00149646",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "028050",
+    "corpCode": "00126308",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "028050",
+    "corpCode": "00126308",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "028260",
+    "corpCode": "00149655",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "028260",
+    "corpCode": "00149655",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "030200",
+    "corpCode": "00190321",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "030200",
+    "corpCode": "00190321",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "032190",
+    "corpCode": "00238782",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "032190",
+    "corpCode": "00238782",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "032640",
+    "corpCode": "00231363",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "032640",
+    "corpCode": "00231363",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "033780",
+    "corpCode": "00244455",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "033780",
+    "corpCode": "00244455",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "034220",
+    "corpCode": "00105873",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "034220",
+    "corpCode": "00105873",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "035420",
+    "corpCode": "00266961",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "035420",
+    "corpCode": "00266961",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "035720",
+    "corpCode": "00258801",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "035720",
+    "corpCode": "00258801",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "036570",
+    "corpCode": "00261443",
+    "year": 2017,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "036570",
+    "corpCode": "00261443",
+    "year": 2019,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "036570",
+    "corpCode": "00261443",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "036570",
+    "corpCode": "00261443",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "057050",
+    "corpCode": "00412597",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "057050",
+    "corpCode": "00412597",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2020,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2020,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2020,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2021,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2021,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2021,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2022,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2022,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2022,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2026,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "060310",
+    "corpCode": "00378363",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "066570",
+    "corpCode": "00401731",
+    "year": 2020,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "DART_CORP_CODE_NOT_MAPPED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "066570",
+    "corpCode": "00401731",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "066570",
+    "corpCode": "00401731",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "072710",
+    "corpCode": "00459871",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "072710",
+    "corpCode": "00459871",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "086280",
+    "corpCode": "00360595",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "086280",
+    "corpCode": "00360595",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2015,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2016,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2017,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2018,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2019,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2020,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2020,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2020,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2020,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2021,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2021,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2021,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2021,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2022,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2022,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2022,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2022,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2023,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2023,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "ROWS_NOT_PUBLISHED",
+    "periodEnd": null
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "105560",
+    "corpCode": "00688996",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "161390",
+    "corpCode": "00937324",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "161390",
+    "corpCode": "00937324",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "192400",
+    "corpCode": "00132354",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "192400",
+    "corpCode": "00132354",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "194370",
+    "corpCode": "00332927",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "194370",
+    "corpCode": "00332927",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2015,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2016,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2017,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2018,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2019,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2020,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2020,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2020,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2020,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2021,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2021,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2021,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2021,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2022,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2022,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2022,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2022,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2023,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2023,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2023,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2023,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2024,
+    "reportCode": "11013",
+    "period": "Q1",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2024,
+    "reportCode": "11012",
+    "period": "Q2",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2024,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": null
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2026,
+    "reportCode": "11014",
+    "period": "Q3",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-09-30"
+  },
+  {
+    "symbol": "475560",
+    "corpCode": "00968607",
+    "year": 2026,
+    "reportCode": "11011",
+    "period": "ANNUAL",
+    "reason": "NO_PERIODIC_FILING",
+    "periodEnd": "2026-12-31"
+  }
+]

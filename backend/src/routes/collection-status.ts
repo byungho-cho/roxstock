@@ -1,5 +1,6 @@
+import {dartProgress,dartDisplayStatus,dartStatusWhere,type DartDisplayStatus} from '@roxstock/shared/collection/dart-task-status';
 import {eligibleWhere} from '@roxstock/shared/collection/collection-policy';
-import {dartTaskScope,dartWorkerStatus} from '@roxstock/shared/collection/dart-backfill';
+import {dartTaskScope,dartTaskPeriodScope,dartWorkerStatus} from '@roxstock/shared/collection/dart-backfill';
 import {newsCollectionState} from '@roxstock/shared/news/state';
 import {runViews,effectiveResult} from './collection-run-view.js';
 import {dailyScheduleHealth, skipKind} from '@roxstock/shared/domain/collection-health';
@@ -119,12 +120,12 @@ async function summary() {
       const [state, usage, progress, priorityBehind, universeBehind,reviewRequired] = await Promise.all([
         prisma.dartCollectorState.findUnique({ where: { id: 1 } }),
         prisma.dartApiDailyUsage.findUnique({ where: { usageDate: new Date(`${getSeoulClock(now).dateKey}T00:00:00.000Z`) } }),
-        prisma.dartBackfillTask.groupBy({ by: ['status'],where:dartTaskScope(now), _count: { _all: true } }),
+        prisma.dartBackfillTask.groupBy({ by: ['status','errorCode'],where:dartTaskScope(now), _count: { _all: true } }),
         priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
         prisma.dartSecurityState.count({ where: { security: { ...eligibleWhere('dart-financial-statements'),isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
         prisma.dartBackfillTask.count({where:{...dartTaskScope(now),status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
       ]);
-      const counts = Object.fromEntries(progress.map((item) => [item.status, item._count._all]));
+      const taskProgress=dartProgress(progress),counts=taskProgress.byStatus;
       const phase = state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
       const config = loadCollectorConfig();
       const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
@@ -137,7 +138,7 @@ async function summary() {
         lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
         lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: !automaticWindow ? iso(nextAutomaticAt) : null,
         recent,resultScope,
-        phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0)-reviewRequired },
+        phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { ...taskProgress,planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired:taskProgress.reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0) },
         priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
     const config = loadCollectorConfig();
@@ -172,6 +173,23 @@ const dateFilter = (value: string | undefined) => value && /^\d{4}-\d{2}-\d{2}$/
 
 export async function collectionStatusRoutes(app: FastifyInstance) {
   await collectionPageRoutes(app);
+  app.get<{Querystring:{status?:string;scope?:string;offset?:string}}>('/collection/dart/tasks',async(request,reply)=>{
+    const allowed:DartDisplayStatus[]=['SUCCESS','NOT_DUE','NO_FILING','DATA_UNAVAILABLE','EXCLUDED','REVIEW_REQUIRED','PENDING','PROCESSING','FAILED'];
+    const status=request.query.status as DartDisplayStatus;
+    if(!allowed.includes(status)||!['all','priority'].includes(request.query.scope??'all'))return reply.code(400).send({error:{code:'INVALID_FILTER',message:'유효한 상태·범위를 선택해 주세요.'}});
+    const priority=request.query.scope==='priority',ids=priority?await new PrismaDartRepository(prisma).prioritySecurityIds():undefined;
+    const offset=Number(request.query.offset??0);
+    if(!Number.isSafeInteger(offset)||offset<0||offset>1000000)return reply.code(400).send({error:{code:'INVALID_OFFSET',message:'잘못된 페이지입니다.'}});
+    const now=new Date();
+    const where={AND:[status==='EXCLUDED'?{...dartTaskPeriodScope(now),security:{securityType:'STOCK' as const}}:dartTaskScope(now),dartStatusWhere(status),...(ids?[{securityId:{in:ids}}]:[])]};
+    const [total,rows]=await prisma.$transaction(async tx=>Promise.all([
+      tx.dartBackfillTask.count({where}),tx.dartBackfillTask.findMany({where,orderBy:{id:'asc'},skip:offset,take:50,include:{security:{select:{symbol:true,name:true}}}}),
+    ]),{isolationLevel:'RepeatableRead'});
+    return {data:{total,nextOffset:offset+rows.length<total?offset+rows.length:null,items:rows.map(task=>({
+      id:String(task.id),symbol:task.security.symbol,name:task.security.name,year:task.fiscalYear,reportCode:task.reportCode,period:task.periodType,
+      status:dartDisplayStatus(task.status,task.errorCode),reason:safeReason(task.errorMessage)??task.errorCode,nextCheckAt:iso(task.nextAttemptAt),checkedAt:iso(task.lastAttemptAt),
+    }))}};
+  });
   app.get('/collection/status', async () => {
     const [run, price] = await Promise.all([
       currentRun('market-prices'),
@@ -208,8 +226,8 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
       detail.realtime = { state: realtime, aggregates, issues: issues.map((issue) => ({ at: iso(issue.occurredAt), stage: issue.stage, symbol: issue.symbol, reason: safeReason(issue.message) })) };
     }
     if (feature.id === 'dart-financial-statements') {
-      const [state, taskCounts, usage, priorityDelayed, universeDelayed] = await Promise.all([
-        prisma.dartCollectorState.findUnique({ where: { id: 1 } }), prisma.dartBackfillTask.groupBy({ by: ['status'],where:dartTaskScope(now), _count: { _all: true } }),
+      const [state, usage, priorityDelayed, universeDelayed] = await Promise.all([
+        prisma.dartCollectorState.findUnique({ where: { id: 1 } }),
         prisma.dartApiDailyUsage.findMany({ where: { usageDate: { gte: dateFilter(q.from) ?? new Date(now.getTime() - 30 * 86_400_000) } }, orderBy: { usageDate: 'desc' }, take: 90 }),
         priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
         prisma.dartSecurityState.count({ where: { security: { ...eligibleWhere('dart-financial-statements'),isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
@@ -217,14 +235,13 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
       const repo = new PrismaDartRepository(prisma);
       const priorityIds=await repo.prioritySecurityIds();
       const ids=(await prisma.security.findMany({where:{...eligibleWhere('dart-financial-statements'),id:{in:priorityIds},securityType:'STOCK',dartCorpMapping:{isNot:null}},select:{id:true}})).map(stock=>stock.id);
-      const [priorityCounts,reviewRequired,errorGroups,priorityReviewRequired] = await Promise.all([
-        prisma.dartBackfillTask.groupBy({by:['status'],where:{...dartTaskScope(now),securityId:{in:ids}},_count:{_all:true}}),
-        prisma.dartBackfillTask.count({where:{...dartTaskScope(now),status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
-        prisma.dartBackfillTask.groupBy({by:['errorCode'],where:{...dartTaskScope(now),status:'FAILED'},_count:{_all:true}}),
-        prisma.dartBackfillTask.count({where:{...dartTaskScope(now),securityId:{in:ids},status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
-      ]);
-      const priorityByStatus = Object.fromEntries(priorityCounts.map(row=>[row.status,row._count._all]));
-      detail.dart = { holidayCalendar: holidayCalendarStatus(now), priority: { reviewRequired:priorityReviewRequired,securities:ids.length,planned:priorityCounts.reduce((n,row)=>n+row._count._all,0),byStatus:priorityByStatus }, reviewRequired, errors:errorGroups.map(row=>({code:row.errorCode??'UNKNOWN',count:row._count._all})), phase: state?.phase ?? 'NOT_INITIALIZED', backfill: { planned: taskCounts.reduce((sum, row) => sum + row._count._all, 0), byStatus: Object.fromEntries(taskCounts.map((row) => [row.status, row._count._all])), completedAt: iso(state?.backfillCompletedAt) },
+      const [taskCounts,priorityCounts,errorGroups] = await prisma.$transaction(async tx=>Promise.all([
+        tx.dartBackfillTask.groupBy({by:['status','errorCode'],where:dartTaskScope(now),_count:{_all:true}}),
+        tx.dartBackfillTask.groupBy({by:['status','errorCode'],where:{...dartTaskScope(now),securityId:{in:ids}},_count:{_all:true}}),
+        tx.dartBackfillTask.groupBy({by:['errorCode'],where:{...dartTaskScope(now),status:'FAILED'},_count:{_all:true}}),
+      ]),{isolationLevel:'RepeatableRead'});
+      const allProgress=dartProgress(taskCounts),priorityProgress=dartProgress(priorityCounts);
+      detail.dart = { holidayCalendar: holidayCalendarStatus(now), priority: {...priorityProgress,securities:ids.length}, reviewRequired:allProgress.reviewRequired, errors:errorGroups.map(row=>({code:row.errorCode??'UNKNOWN',count:row._count._all})), phase: state?.phase ?? 'NOT_INITIALIZED', backfill: { ...allProgress,completedAt: iso(state?.backfillCompletedAt) },
         current: { priorityCheckedWithinDay: priorityDelayed, universeOver90Days: universeDelayed }, usage: usage.map((row) => ({ date: iso(row.usageDate), apiCalls: row.apiCallCount, companyChecks: row.companyCheckCount, noData: row.noDataCount, failures: row.errorCount })) };
     }
     return { data: detail };

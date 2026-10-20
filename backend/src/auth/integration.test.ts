@@ -37,6 +37,7 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
    check((await app.inject({method:'PATCH',url:`/api/accounts/${otherId}`,headers:owner,payload:{name:'forbidden'}})).statusCode,404);
    check((await app.inject({method:'DELETE',url:`/api/accounts/${otherId}`,headers:owner,payload:{}})).statusCode,404);
    check((await app.inject({url:'/api/collection/monitoring',headers:owner})).statusCode,403);
+   check((await app.inject({url:'/api/collection/dart/tasks?status=EXCLUDED&scope=priority',headers:owner})).statusCode,403);
    for(const [kind,identifier] of [['buy-trades',lots[other]!.id],['sell-trades',sells[other]!.id]] as const){
     for(const method of ['GET','PATCH','DELETE'] as const)check((await app.inject({method,url:`/api/${kind}/${identifier}`,headers:owner,...(method==='GET'?{}:{payload:{}})})).statusCode,404);
    }

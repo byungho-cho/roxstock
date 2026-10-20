@@ -103,6 +103,8 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
     if (corpSyncSucceeded) await repo.markUnmappedTasksNotApplicable(now);
     stage='TASK_QUERY';
     await repo.resetInterruptedTasks();
+    await repo.recoverMappedTasks(now);
+    await repo.reactivateDueTasks(now);
     let processed = 0;
 
     let noFiling = 0;
@@ -145,15 +147,17 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
             const reportList = await repo.cachedReports(security.corpCode!, task.fiscalYear, () => dart.listPeriodicReports(security.corpCode!, task.fiscalYear));
             const report = reportList.find(item=>item.reportCode===spec.code&&!item.withdrawn);
             if (!report) {
-              await repo.updateTask(task.id,{status:'NO_FILING',processedAt:new Date(),selectedReceiptNo:null,errorCode:'NO_PERIODIC_FILING',errorMessage:null,nextAttemptAt:null});
-              await repo.addRunItem(runId!,security,task,'NO_DATA','공시 목록에 대상 보고서가 없습니다.'); noFiling += 1; return;
+              const decision=await repo.missingReportDecision(security.id,task.fiscalYear,task.periodType,reportList,new Date());
+              await repo.updateTask(task.id,{...decision,processedAt:decision.status==='NO_FILING'?new Date():null});
+              await repo.addRunItem(runId!,security,task,decision.status==='FAILED'?'FAILED':'NO_DATA',decision.errorMessage,decision.diagnostics); noFiling += 1; return;
             }
             requireDartReportPeriod(report,security.corpCode!,task.fiscalYear);
+            await repo.updateTask(task.id,{status:'PROCESSING',selectedReceiptNo:report.receiptNo});
             stage = 'FETCH';
             const filing = await getCfsThenOfs(dart,security.corpCode!,task.fiscalYear,spec.code,report);
             if (!filing.rows.length) {
-              await repo.updateTask(task.id,{status:'NO_FILING',selectedReceiptNo:report.receiptNo,processedAt:new Date(),errorCode:'ROWS_NOT_PUBLISHED',errorMessage:null,nextAttemptAt:null});
-              await repo.addRunItem(runId!,security,task,'NO_DATA','보고서는 있으나 재무자료가 없습니다.'); noFiling += 1; return;
+              await repo.updateTask(task.id,{status:'FAILED',selectedReceiptNo:report.receiptNo,processedAt:null,errorCode:'REVIEW_REQUIRED',errorMessage:'CFS/OFS 재무 API 자료 미제공 확인 · 공시 원문 보완 필요',diagnostics:{availability:'API_DATA_UNAVAILABLE',supplementRequired:true,selectedReceiptNo:report.receiptNo,financialResponses:filing.diagnostics??[],checkedAt:new Date().toISOString()},nextAttemptAt:null});
+              await repo.addRunItem(runId!,security,task,'FAILED','재무 API 자료 미제공 확인 · 원문 보완 필요.'); noFiling += 1; return;
             }
             stage = 'VERIFY_SOURCE';
             const source = filing.source??validateDartFiling({corpCode:security.corpCode!,taskFiscalYear:task.fiscalYear,report,rows:filing.rows,fsDivision:filing.division});
@@ -268,11 +272,19 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
 
 export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string, year: number, reportCode: DartReportCode, report?:DartReport) {
   const publicSource=report&&await provider.fetchPublicAnnual(report,corpCode,year);
-  if(publicSource)return publicSource;
+  const financialCompany=['00104856','00149646','00688996'].includes(corpCode);
+  if(publicSource){if(financialCompany)throw new DartApiError('DART_SOURCE_REVIEW','금융업 원문 계정과목 대응 검증 필요',false,false,{validationResult:'FINANCIAL_ACCOUNT_SCHEMA_UNVERIFIED'});return {...publicSource,diagnostics:[]};}
+  if(provider.financialDiagnostics)provider.financialDiagnostics.length=0;
   const cfs = await provider.fetchFinancials(corpCode, year, reportCode, 'CFS');
-  if (cfs.length) return { division: 'CFS' as const, rows: cfs,source:undefined };
+  if (cfs.length) return { division: 'CFS' as const, rows: cfs,source:undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
   const ofs = await provider.fetchFinancials(corpCode, year, reportCode, 'OFS');
-  return { division: 'OFS' as const, rows: ofs,source:undefined };
+  if(!ofs.length&&financialCompany&&report){
+    try{
+      const supplement=await provider.fetchPublicAnnual(report,corpCode,year,true);
+      if(supplement)throw new DartApiError('DART_SOURCE_REVIEW','원문 추출 가능 · 금융업 계정과목 대응 검증 필요',false,false,{validationResult:'FINANCIAL_ACCOUNT_SCHEMA_UNVERIFIED'});
+    }catch(error){if(error instanceof DartApiError)throw new DartApiError(error.code,error.message,error.noData,error.quotaExceeded,{...error.diagnostics,availability:'API_DATA_UNAVAILABLE',supplementRequired:true,financialResponses:(provider.financialDiagnostics??[]).slice(),selectedReceiptNo:report.receiptNo});throw error;}
+  }
+  return { division: 'OFS' as const, rows: ofs,source:undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
 }
 
 export function parseDartDate(value: string): Date {

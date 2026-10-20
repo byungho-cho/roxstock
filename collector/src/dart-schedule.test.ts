@@ -32,7 +32,7 @@ test('weekend general collection cannot collect priority stocks through the univ
     acquireLock: async () => true, releaseLock: async () => {},
     createRun: async () => ({ id: 1n }), prioritySecurityIds: async () => [1n],
     corpCodeMappingsSyncedAt: async () => now,
-    ensureBackfillPlan: async () => {}, resetInterruptedTasks: async () => {},
+    ensureBackfillPlan: async () => {}, resetInterruptedTasks: async () => {}, recoverMappedTasks:async()=>0, reactivateDueTasks:async()=>0,
     listPhase2Securities: async (phase) => phase === 'PRIORITY' ? [priority] : [priority, general],
     markCompanyChecked: async (id) => { checked.push(id); },
     cachedReports: async () => [], setPhase2Check: async () => {},
@@ -71,7 +71,7 @@ test('automatic safe boundaries serve FIFO manual requests one at a time and res
   getState:async()=>({backfillCompletedAt:now}),getDailyUsage:async()=>null,
   acquireLock:async()=>{assert.equal(held,false);held=true;events.push('acquire');return true;},releaseLock:async()=>{held=false;events.push('release');},
   createRun:async()=>({id:1n}),prioritySecurityIds:async()=>[],corpCodeMappingsSyncedAt:async()=>now,
-  ensureBackfillPlan:async()=>{},resetInterruptedTasks:async()=>{},listPhase2Securities:async(phase)=>phase==='UNIVERSE'?[general]:[],
+  ensureBackfillPlan:async()=>{},resetInterruptedTasks:async()=>{},recoverMappedTasks:async()=>0,reactivateDueTasks:async()=>0,listPhase2Securities:async(phase)=>phase==='UNIVERSE'?[general]:[],
   markCompanyChecked:async()=>{assert.equal(held,true);events.push('auto');if(!enqueued){queue.push(10,11);enqueued=true;}},
   cachedReports:async()=>[],setPhase2Check:async()=>{},addPhase2RunItem:async()=>{},finishRun:async()=>{},updateStateError:async()=>{},cleanupRealtimeRetention:async()=>{},
  };
@@ -90,7 +90,7 @@ test('phase two keeps review-held reports untouched instead of fetching them aga
  const stock={id:2n,symbol:'GENERAL',corpCode:'2'},held:any[]=[];let reports=0;
  const mocks:Record<string,(...args:any[])=>any>={
   getState:async()=>({backfillCompletedAt:now}),getDailyUsage:async()=>null,acquireLock:async()=>true,releaseLock:async()=>{},
-  createRun:async()=>({id:1n}),prioritySecurityIds:async()=>[],corpCodeMappingsSyncedAt:async()=>now,ensureBackfillPlan:async()=>{},resetInterruptedTasks:async()=>{},
+  createRun:async()=>({id:1n}),prioritySecurityIds:async()=>[],corpCodeMappingsSyncedAt:async()=>now,ensureBackfillPlan:async()=>{},resetInterruptedTasks:async()=>{},recoverMappedTasks:async()=>0,reactivateDueTasks:async()=>0,
   listPhase2Securities:async(phase)=>phase==='UNIVERSE'?[stock]:[],markCompanyChecked:async()=>{},
   cachedReports:async(_corp,year)=>year===2026?[{reportCode:'11011',periodType:'ANNUAL',receiptNo:'20261010000001'}]:[],
   isReviewHeld:async(...args)=>{held.push(args);return true;},setPhase2Check:async()=>{},

@@ -150,6 +150,8 @@ jobs:
         run: |
           node --import tsx --test frontend/src/utils/assetComposition.test.ts
           cd frontend && npx playwright test -c playwright.phase35.config.ts
+      - name: DART statuses, progress and task detail (cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.dart-task-status.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
       - uses: actions/upload-artifact@v4

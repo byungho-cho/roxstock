@@ -241,6 +241,8 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
 };
 
 export class OpenDartProvider {
+  readonly financialDiagnostics:Array<{corpCode:string;fiscalYear:number;reportCode:string;fsDivision:string;status:string;rowCount:number;checkedAt:string;returnedReceiptNos:string[]}>=[];
+
   private readonly fetchFn: typeof fetch;
   private readonly sleepFn: (milliseconds: number) => Promise<void>;
   private lastResponseAt = 0;
@@ -386,8 +388,8 @@ export class OpenDartProvider {
     return mapPeriodicReports(all, fiscalYear);
   }
 
-  async fetchPublicAnnual(report:DartReport,corpCode:string,year:number){
-    const target=publicAnnualTarget(report,corpCode,year);if(!target)return;
+  async fetchPublicAnnual(report:DartReport,corpCode:string,year:number,verifyEmptyApi=false){
+    const target=publicAnnualTarget(report,corpCode,year)??(verifyEmptyApi&&report.periodType==='ANNUAL'&&report.selection?.version===2&&!report.selection.periodError?report:undefined);if(!target)return;
     const read=async(url:string)=>{const response=await this.request(new URL(url));try{const reader=response.body?.getReader();if(!reader)throw new DartApiError('INVALID_JSON','Public document body unavailable.');const chunks:Uint8Array[]=[];let size=0;try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2_000_000){await reader.cancel();throw new DartApiError('DART_SOURCE_REVIEW','Public document size requires review.');}chunks.push(value);}}finally{reader.releaseLock();}return new TextDecoder('utf-8').decode(Buffer.concat(chunks));}finally{this.lastResponseAt=Date.now();}};
     const main=await read('https://dart.fss.or.kr/dsaf001/main.do?rcpNo='+target.receiptNo),urls=publicSectionUrls(main,target.receiptNo);
     if(urls.length>3)throw new DartApiError('DART_SOURCE_REVIEW','Ambiguous public document navigation.');
@@ -396,9 +398,18 @@ export class OpenDartProvider {
   }
 
   async fetchFinancials(corpCode: string, fiscalYear: number, reportCode: DartReportCode, fsDiv: 'CFS' | 'OFS'): Promise<DartFinancialRow[]> {
-    const body = await this.json<RawFinancial>('fnlttSinglAcntAll.json', {
+    let body:DartEnvelope<RawFinancial>;
+    try{body=await this.json<RawFinancial>('fnlttSinglAcntAll.json', {
       corp_code: corpCode, bsns_year: String(fiscalYear), reprt_code: reportCode, fs_div: fsDiv,
-    });
+    });}catch(error){
+      if(error instanceof DartApiError){
+        this.financialDiagnostics.push({corpCode,fiscalYear,reportCode,fsDivision:fsDiv,status:error.code,rowCount:0,checkedAt:new Date().toISOString(),returnedReceiptNos:[]});
+        if(this.financialDiagnostics.length>20)this.financialDiagnostics.shift();
+        throw new DartApiError(error.code,error.message,error.noData,error.quotaExceeded,{...error.diagnostics,corpCode,taskFiscalYear:fiscalYear,reportCode,fsDivision:fsDiv,financialResponses:this.financialDiagnostics.slice()});
+      }throw error;
+    }
+    this.financialDiagnostics.push({corpCode,fiscalYear,reportCode,fsDivision:fsDiv,status:body.status,rowCount:Array.isArray(body.list)?body.list.length:0,checkedAt:new Date().toISOString(),returnedReceiptNos:[...new Set((Array.isArray(body.list)?body.list:[]).map(r=>String(r.rcept_no??'')))]});
+    if(this.financialDiagnostics.length>20)this.financialDiagnostics.splice(0,this.financialDiagnostics.length-20);
     if (body.status === '013') return [];
     if (!Array.isArray(body.list)) throw new DartApiError('INVALID_JSON', 'Financial statement list is not an array.');
     return body.list.flatMap((row) => {
