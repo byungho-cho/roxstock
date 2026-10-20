@@ -80,12 +80,12 @@ test('whole card and pencil edit the displayed latest record outside list period
  expect(state.writes[0]).toMatchObject({path:'/api/cash-transactions/99',body:{accountId:'1',expectedLatestId:'99',balanceAfter:'12345',amount:'1000'}});expect(state.writes.some(w=>w.path.endsWith('/cash-balance'))).toBe(false);
 });
 test('no ledger and failed latest lookup never substitute a historical edit target or zero',async({page})=>{
- const state=await setup(page);state.noLedger();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('—');
- await page.getByTestId('cash-balance').click();await expect(page.getByTestId('cash-form')).not.toBeVisible();await expect(page.getByRole('alert')).toContainText('예수금 내역이 없습니다. 입금을 등록해 주세요.');expect(state.writes).toHaveLength(0);
+ const state=await setup(page);state.noLedger();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('예수금 내역이 없습니다. 입금을 등록해 주세요.');
+ await page.getByTestId('cash-balance').click();await expect(page.getByTestId('cash-form')).not.toBeVisible();await expect(page.getByTestId('cash-balance')).toContainText('예수금 내역이 없습니다. 입금을 등록해 주세요.');await expect(page.getByRole('button',{name:'이전 1개월 불러오기'})).toBeDisabled();expect(state.writes).toHaveLength(0);
  state.fail('/cash-overview');await page.reload();await expect(page.getByText('예수금 조회 실패 · 다시 시도',{exact:true})).toBeVisible();await expect(page.getByTestId('cash-form')).not.toBeVisible();
 });
 test('missing net amount remains explicit and its latest record is editable without fallback',async({page})=>{
- const state=await setup(page);state.topType(2);state.missing();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('—');
+ const state=await setup(page);state.topType(2);state.missing();await ready(page);await expect(page.getByTestId('cash-balance-value')).toHaveText('최신 내역의 세후예수금이 없습니다.');
  await page.getByRole('button',{name:'현재 예수금 편집',exact:true}).click();await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('');await page.getByRole('button',{name:'저장',exact:true}).click();expect(state.writes).toHaveLength(0);
  await page.getByLabel('세후예수금',{exact:true}).fill('0');await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByTestId('cash-form')).not.toBeVisible();expect(state.writes[0].body.balanceAfter).toBe('0');
 });

@@ -1,3 +1,4 @@
+import {useAuth} from './auth/AuthGate';
 const NewsCollectionSettings=lazy(()=>import('./pages/news/NewsCollectionSettings').then(m=>({default:m.NewsCollectionSettings})));
 const NewsCollectionStatus=lazy(()=>import('./pages/news/NewsCollectionStatus').then(m=>({default:m.NewsCollectionStatus})));
 const StockNewsPage=lazy(()=>import('./pages/news/StockNewsPage').then(m=>({default:m.StockNewsPage})));
@@ -10,7 +11,7 @@ import { RouteContent } from './components/common/RouteLoading';
 import {lazy,useCallback,useRef,useState} from 'react';
 import {Box,Dialog,DialogContent,DialogTitle,IconButton,useMediaQuery} from '@mui/material';
 import {HeaderSlotContext} from './components/navigation/Navigation';
-import { Navigate, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { liveApiEnabled } from './data/liveData';
 
@@ -41,6 +42,8 @@ import {MorePage} from './pages/more/MorePage';
 import {SettingsPage} from './pages/more/SettingsPage';
 const CollectionMonitoringPage = lazy(() => import('./pages/more/CollectionMonitoringPage').then(module => ({ default: module.CollectionMonitoringPage })));
 
+function MonitoringAccess(){const {user}=useAuth();return !liveApiEnabled||user?.role==='ADMIN'?<Outlet/>:<Navigate to="/more" replace/>;}
+
 export function App() {
   const location=useLocation(),navigate=useNavigate(),modalContent=useRef<HTMLDivElement>(null);
   const tablet=useMediaQuery('(min-width:600px)'),[inputTitle,setInputTitle]=useState(''),inputBusy=useRef(false);
@@ -66,7 +69,7 @@ export function App() {
         <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
-        <Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/collection-monitoring/stock-news" element={<NewsCollectionStatus/>}/><Route path="detail/stock-news" element={<StockNewsPage/>}/>
+        <Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/stock-news" element={<StockNewsPage/>}/>
         <Route path="detail/stock-news/:newsId" element={<StockNewsDetailPage/>}/>
         <Route path="detail/investor-trends" element={<InvestorTrendsPage/>} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
@@ -74,10 +77,13 @@ export function App() {
         <Route path="more" element={<MorePage />} />
         <Route path="detail/security-management" element={<SecurityManagementPage />} />
         <Route path="detail/settings" element={<SettingsPage />} />
-        <Route path="detail/collection-monitoring/bug-reports" element={<CollectionBugReports />} />
-        <Route path="detail/collection-monitoring" element={<CollectionMonitoringPage />} />
-        <Route path="detail/collection-monitoring/:feature/:stream" element={<CollectionMonitoringPage />} />
-        <Route path="detail/collection-monitoring/:feature" element={<CollectionMonitoringPage />} />
+        <Route path="detail/collection-monitoring" element={<MonitoringAccess/>}>
+          <Route index element={<CollectionMonitoringPage/>}/>
+          <Route path="stock-news" element={<NewsCollectionStatus/>}/>
+          <Route path="bug-reports" element={<CollectionBugReports/>}/>
+          <Route path=":feature/:stream" element={<CollectionMonitoringPage/>}/>
+          <Route path=":feature" element={<CollectionMonitoringPage/>}/>
+        </Route>
         <Route path="detail/compound" element={<CompoundPage />} />
         <Route path="detail/financials" element={<FinancialPage />} />
         <Route path="detail/value" element={<ValueAnalysisPage />} />

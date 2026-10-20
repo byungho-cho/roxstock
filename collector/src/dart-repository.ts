@@ -1,3 +1,4 @@
+import {dartTaskScope,dartAutomaticWork} from '@roxstock/shared/collection/dart-backfill';
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {publicAnnualTarget} from './dart-public-source.js';
 import {CollectionJobRepository} from '@roxstock/shared/collection/job-repository';
@@ -160,7 +161,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async listStartedBackfillSecurities(now = new Date()): Promise<DartSecurityRecord[]> {
     const states = await this.prisma.dartSecurityState.findMany({
       where: { backfillStartedAt: { not: null }, backfillCompletedAt: null,
-        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { OR: [{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{}], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] } } } },
+        security: { ...eligibleWhere('dart-financial-statements'), isActive: true, dartBackfillTasks: { some: { AND:[dartAutomaticWork(now),{OR:[{status:{in:['PENDING','PROCESSING']}},{nextAttemptAt:null},{nextAttemptAt:{lte:now}}]}] } } } },
       select: { securityId: true, security: { select: { collectionRevision:true,symbol: true, marketType: true, securityType: true, dartCorpMapping: { select: { corpCode: true } } } } },
       orderBy: { backfillStartedAt: 'asc' },
     });
@@ -297,20 +298,25 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async completeSecurityIfDone(securityId: bigint, now = new Date()): Promise<boolean> {
-    const pending = await this.prisma.dartBackfillTask.count({ where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const pending = await this.prisma.dartBackfillTask.count({ where: { ...dartAutomaticWork(now),securityId } });
     if (pending) return false;
-    await this.prisma.dartSecurityState.update({ where: { securityId }, data: { backfillCompletedAt: now, lastError: null } });
+    await this.prisma.dartSecurityState.update({ where: { securityId }, data: { backfillCompletedAt: now } });
     return true;
+  }
+
+  async isReviewHeld(securityId:bigint,fiscalYear:number,reportCode:string):Promise<boolean> {
+    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}},select:{status:true,errorCode:true}});
+    return task?.status==='FAILED'&&task.errorCode==='REVIEW_REQUIRED';
   }
 
   async markSecurityError(securityId: bigint, message: string): Promise<void> {
     await this.prisma.$transaction(tx=>tx.dartSecurityState.update({ where: { securityId }, data: { lastError: message.slice(0, 1000) } }));
   }
 
-  async backfillProgress() {
+  async backfillProgress(now=new Date()) {
     const [total, rows, completeSecurities, activeSecurities] = await Promise.all([
-      this.prisma.dartBackfillTask.count(),
-      this.prisma.dartBackfillTask.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.dartBackfillTask.count({where:dartTaskScope(now)}),
+      this.prisma.dartBackfillTask.groupBy({ by: ['status'],where:dartTaskScope(now), _count: { _all: true } }),
       this.prisma.dartSecurityState.count({ where: { backfillCompletedAt: { not: null } } }),
       this.prisma.security.count({ where: { isActive: true } }),
     ]);
@@ -319,9 +325,9 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async markBackfillCompleteIfReady(now = new Date()): Promise<boolean> {
-    const remaining = await this.prisma.dartBackfillTask.count({ where: { security:{...eligibleWhere('dart-financial-statements')},fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } });
+    const remaining = await this.prisma.dartBackfillTask.count({ where: {...dartAutomaticWork(now),security:eligibleWhere('dart-financial-statements')} });
     if (remaining) return false;
-    await this.setState({ phase: 'CURRENT', backfillCompletedAt: now, phase2StartedAt: now, lastError: null });
+    if(!(await this.getState())?.backfillCompletedAt)await this.setState({ phase: 'CURRENT', backfillCompletedAt: now, phase2StartedAt: now });
     return true;
   }
 

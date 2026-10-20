@@ -22,7 +22,7 @@ for(const item of cases)test(`${item.name}: account wait keeps fixed controls, n
  if(calendar)expect(await page.getByTestId('journal-calendar-card').boundingBox()).toEqual(calendar);
  if(chart)expect(await page.getByTestId('analysis-chart-region').boundingBox()).toEqual(chart);
  if(accountHeight)expect((await page.getByTestId('account-card-1').boundingBox())!.height).toBe(accountHeight);
- if(item.name==='accounts'){const button=page.getByRole('button',{name:'계좌 추가',exact:true});expect((await button.boundingBox())!.y).toBeLessThan((await page.getByTestId('account-card-1').boundingBox())!.y);}
+ if(item.name==='accounts'){const button=page.getByRole('button',{name:'계좌 추가',exact:true});expect((await button.boundingBox())!.y).toBeGreaterThan((await page.getByTestId('account-card-1').boundingBox())!.y);}
  await capture(page,item.name,'ready',info.project.name);
 });
 test('analysis independent failure retains successful areas; condition changes never show previous values',async({page})=>{

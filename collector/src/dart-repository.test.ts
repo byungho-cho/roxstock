@@ -68,3 +68,21 @@ test('verified public targets requeue ambiguous/content tasks with attempt count
  assert.ok(await new PrismaDartRepository(db).reviewCalendarTask(task));assert.equal(changed.data.status,'PENDING');assert.equal(changed.where.attempts,3);assert.equal(changed.data.attempts,undefined);assert.equal(changed.data.diagnostics.previousValidationResult,reason);assert.equal(changed.data.diagnostics.existingVerifiedSourceReused,false);
  }
 });
+
+
+test('review holds allow automatic stage transition without changing failed task evidence',async()=>{
+ const held={status:'FAILED',errorCode:'REVIEW_REQUIRED',attempts:3,diagnostics:{validationResult:'PUBLIC_DOCUMENT_UNIT'}};
+ const before=JSON.stringify(held);let waiting=1,state:any={phase:'BACKFILL',backfillCompletedAt:null};
+ const db:any={dartBackfillTask:{count:async(q:any)=>{assert.equal(q.where.OR[1].OR[1].errorCode.not,'REVIEW_REQUIRED');assert.ok(q.where.security);return waiting;}},dartCollectorState:{findUnique:async()=>state,upsert:async(q:any)=>{state={...state,...q.update};return state;}}};
+ const repo=new PrismaDartRepository(db);
+ assert.equal(await repo.markBackfillCompleteIfReady(),false);assert.equal(state.phase,'BACKFILL');
+ waiting=0;assert.equal(await repo.markBackfillCompleteIfReady(),true);assert.equal(state.phase,'CURRENT');
+ const completed=state.backfillCompletedAt;assert.equal(await repo.markBackfillCompleteIfReady(),true);assert.equal(state.backfillCompletedAt,completed);
+ assert.equal(JSON.stringify(held),before);
+});
+
+test('current collection identifies held reports by exact stock, year and report code',async()=>{
+ const seen:any[]=[];const repo=new PrismaDartRepository({dartBackfillTask:{findUnique:async(q:any)=>{seen.push(q.where);return q.where.securityId_fiscalYear_reportCode.fiscalYear===2025?{status:'FAILED',errorCode:'REVIEW_REQUIRED'}:{status:'SUCCESS',errorCode:null};}}} as any);
+ assert.equal(await repo.isReviewHeld(1n,2025,'11011'),true);assert.equal(await repo.isReviewHeld(1n,2026,'11011'),false);
+ assert.deepEqual(seen[0],{securityId_fiscalYear_reportCode:{securityId:1n,fiscalYear:2025,reportCode:'11011'}});
+});
