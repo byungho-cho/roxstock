@@ -1,4 +1,5 @@
 import type {PrismaClient} from '@roxstock/shared/prisma';
+import {reportTargetIds} from './news-report-identity.js';
 import {canonicalUrl,contentSummary,importance,kstStart,plainText,relatedTargets,seoulDay,type NewsCandidate,type NewsTarget} from '@roxstock/shared/news/policy';
 import {loadCollectorConfig} from '@roxstock/shared/collection/config';
 import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
@@ -54,7 +55,7 @@ export function parseReports(html:string,targets:NewsTarget[],from:Date,to:Date,
   if(cells.length<6)return [];const title=plainText(/<a\b[^>]*>([\s\S]*?)<\/a>/i.exec(cells[2]!)?.[1]??'');
   diagnostics.rawParsed=(diagnostics.rawParsed??0)+1;
   const reportId=/report_idx=(\d+)/.exec(row)?.[1],day=plainText(cells[0]!);if(!reportId||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!title)throw Error('INVALID_REPORT_METADATA');
-  const publishedAt=kstStart(day),securityIds=relatedTargets(title,targets);if(day<seoulDay(from)||publishedAt>to)return [];diagnostics.periodPassed=(diagnostics.periodPassed??0)+1;if(!securityIds.length){diagnostics.irrelevant=(diagnostics.irrelevant??0)+1;return [];}diagnostics.securityMatched=(diagnostics.securityMatched??0)+1;
+  const publishedAt=kstStart(day),securityIds=reportTargetIds(title,targets);if(day<seoulDay(from)||publishedAt>to)return [];diagnostics.periodPassed=(diagnostics.periodPassed??0)+1;if(!securityIds.length){diagnostics.irrelevant=(diagnostics.irrelevant??0)+1;return [];}diagnostics.securityMatched=(diagnostics.securityMatched??0)+1;
   const sourceName=plainText(cells[4]!).slice(0,120),snippets=[...cells[2]!.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)].map(m=>plainText(m[1]!));
   const shortTitle=title.replace(/^.*?\(\d{6}\)\s*/,''),evidence=snippets.filter(s=>s!==title&&s!==shortTitle).join(' '),summary=contentSummary(evidence,title),priority=importance(title,'REPORT');if(!priority)return [];
   return [{provider:'HANKYUNG_CONSENSUS',providerId:reportId,title:title.slice(0,500),originalUrl:canonicalUrl('https://consensus.hankyung.com/analysis/downpdf?report_idx='+reportId),sourceName,publishedAt,publishedPrecision:'DATE',materialType:'REPORT',priority,accessCondition:'UNKNOWN',summary,summaryMethod:summary?'PUBLIC_REPORT_ABSTRACT':'NONE',securityIds} as NewsCandidate];
