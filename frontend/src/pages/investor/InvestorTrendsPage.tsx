@@ -28,8 +28,8 @@ export function InvestorTrendsPage(){
  const [historyDate]=useState(selectedDate);
  const location=useLocation(),navigatePage=useNavigate(),detail=params.get('chart')==='detail';
  const openDetail=()=>{const next=new URLSearchParams(params);next.set('chart','detail');navigatePage({pathname:location.pathname,search:next.toString()},{state:{...location.state,investorChartDetail:true}});};
- const closeDetail=()=>{if(location.state?.investorChartDetail)navigatePage(-1);else{const next=new URLSearchParams(params);next.delete('chart');setParams(next,{replace:true});}};
- const set=(values:Record<string,string>)=>setParams(previous=>{const next=new URLSearchParams(previous);for(const [key,value]of Object.entries(values))next.set(key,value);return next;},{replace:true});
+ const closeDetail=()=>{if(location.state?.investorChartDetail)navigatePage(-1);else{const next=new URLSearchParams(params);next.delete('chart');setParams(next,{replace:true,state:location.state});}};
+ const set=(values:Record<string,string>)=>setParams(previous=>{const next=new URLSearchParams(previous);for(const [key,value]of Object.entries(values))next.set(key,value);return next;},{replace:true,state:location.state});
  const targets=useQuery({queryKey:['investor-targets',accountId],queryFn:({signal})=>apiRequest<Target[]>(`/accounts/${accountId}/investor-targets`,{signal}),enabled:!!accountId,staleTime:30000});
  const list=mode==='market'?[{symbol:'KOSPI',name:'KOSPI'},{symbol:'KOSDAQ',name:'KOSDAQ'}]:targets.data??[];
  const requested=params.get(mode==='market'?'market':'symbol');

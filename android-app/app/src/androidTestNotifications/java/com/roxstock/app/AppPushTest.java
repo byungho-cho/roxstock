@@ -19,8 +19,9 @@ public final class AppPushTest {
   shell("pm grant "+pkg+" android.permission.POST_NOTIFICATIONS");assertTrue(AppPush.granted(c));
   String id=java.util.UUID.randomUUID().toString();java.util.Map<String,String> data=new java.util.HashMap<>();data.put("eventId",id);data.put("kind","NEWS");data.put("binding","fixture-binding");data.put("expiresAt",String.valueOf(System.currentTimeMillis()+600000));
   AppPush.unbind(c);AppPush.display(c,data);expectCount(m,0);
-  AppPush.preferences(c).edit().putString("binding","fixture-binding").putBoolean("newsEnabled",true).commit();AppPush.display(c,data);expectCount(m,1);m.cancelAll();AppPush.display(c,data);expectCount(m,0);
+  AppPush.preferences(c).edit().putString("binding","fixture-binding").putBoolean("newsEnabled",true).putString("boundTokenHash",AppPush.tokenHash("fixture-token")).commit();AppPush.display(c,data);expectCount(m,1);m.cancelAll();AppPush.display(c,data);expectCount(m,0);
   assertEquals("/?pushEvent="+id,AppPush.launchPath(new Intent().putExtra("pushEvent",id)));assertEquals("/",AppPush.launchPath(new Intent().putExtra("pushEvent","https://evil.invalid")));
+  AppPush.tokenChanged(c,"fixture-token");assertEquals("fixture-binding",AppPush.preferences(c).getString("binding",""));AppPush.tokenChanged(c,"rotated-token");assertEquals("",AppPush.preferences(c).getString("binding",""));
   AppPush.unbind(c);data.put("eventId",java.util.UUID.randomUUID().toString());AppPush.display(c,data);expectCount(m,0);
   // Revoking a runtime permission terminates this instrumentation process. Denial is checked before the grant above.
  }

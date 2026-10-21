@@ -167,3 +167,5 @@ jobs:
             frontend/test-results/stock-news-phase34
             frontend/test-results/news-schedule-dashboard
             frontend/test-results/bottom-nav-viewport
+            frontend/test-results/app-notifications-admin
+            frontend/test-results/dart-task-status
