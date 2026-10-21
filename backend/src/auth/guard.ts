@@ -31,7 +31,7 @@ export function installAuth(app:FastifyInstance){
       const session=await prisma.authSession.findUnique({where:{id:identity.sessionId},select:{csrfHash:true}});
       if(!token||token!==header||tokenHash(token)!==session?.csrfHash)throw new ApiError(403,'CSRF_FORBIDDEN','요청을 다시 시도해 주세요.');
     }
-    const admin=/^\/api\/(collection(?:\/|$)|backups?(?:\/|$)|security-management(?:\/|$)|stock-news\/settings|prices\/.+refresh)/.test(path)||/financial-refresh|annual-estimates\/refresh/.test(path)||(!['GET','HEAD','OPTIONS'].includes(request.method)&&/^\/api\/securities\/\d+\/(analysis|price)$/.test(path));
+    const admin=/^\/api\/(admin(?:\/|$)|collection(?:\/|$)|backups?(?:\/|$)|security-management(?:\/|$)|stock-news\/settings|prices\/.+refresh)/.test(path)||/financial-refresh|annual-estimates\/refresh/.test(path)||(!['GET','HEAD','OPTIONS'].includes(request.method)&&/^\/api\/securities\/\d+\/(analysis|price)$/.test(path));
     if(admin&&identity.role!=='ADMIN')throw new ApiError(403,'ADMIN_REQUIRED','관리자만 사용할 수 있습니다.');
   });
   app.addHook('preHandler',async request=>{

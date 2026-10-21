@@ -152,6 +152,8 @@ jobs:
           cd frontend && npx playwright test -c playwright.phase35.config.ts
       - name: DART statuses, progress and task detail (cover and tablet)
         run: cd frontend && npx playwright test -c playwright.dart-task-status.config.ts
+      - name: App notifications and administrator separation (cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.app-notifications.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
       - uses: actions/upload-artifact@v4

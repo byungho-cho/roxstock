@@ -1,3 +1,5 @@
+import {notificationRoutes} from './notifications/routes.js';
+import {adminUserRoutes} from './routes/admin-users.js';
 import {stockNewsRoutes} from './routes/stock-news.js';
 import {installAuth} from './auth/guard.js';
 import {authRoutes} from './auth/routes.js';
@@ -90,6 +92,8 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
   void app.register(annualConsensusRoutes, { prefix: '/api' });
   void app.register(financialRefreshRoutes, { prefix: '/api' });
   void app.register(financialRefreshActiveRoutes, { prefix: '/api' });
+  void app.register(notificationRoutes,{prefix:'/api'});
+  void app.register(adminUserRoutes,{prefix:'/api'});
   void app.register(targetArrivalRoutes, { prefix: '/api' });
   void app.register(stockNewsRoutes,{prefix:'/api'});
   void app.register(investorTrendRoutes, {prefix:'/api'});

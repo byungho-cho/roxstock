@@ -67,6 +67,9 @@ jobs:
       - name: Phase23 security management and collection fences (real MariaDB API)
         run: node --import tsx --test backend/tests/security-management.integration.ts
 
+      - name: App notifications and admin authorization (real MariaDB)
+        run: node --import tsx --test backend/tests/app-notifications.integration.ts
+
       - name: DART authenticated priority task detail isolation
         run: node --import tsx --test backend/tests/dart-task-scope.integration.ts
 

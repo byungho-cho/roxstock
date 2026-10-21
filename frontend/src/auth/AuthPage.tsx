@@ -24,7 +24,7 @@ export function AuthPage({user,onLogin}:{user:AuthUser|null;onLogin:()=>Promise<
  const submit=async(event:FormEvent)=>{
   event.preventDefault();if(busy)return;setBusy(true);setError('');
   try{
-   if(mode==='login'){await authRequest('login',{email:address,password,remember});await onLogin();navigate('/',{replace:true});}
+   if(mode==='login'){await authRequest('login',{email:address,password,remember});await onLogin();navigate(/^\?pushEvent=[a-f0-9-]{36}$/.test(location.search)?'/'+location.search:'/',{replace:true});}
    if(mode==='register'){await authRequest('register',{email:address,password,confirmation});setSentPurpose('VERIFY');setWait(60);go('sent');}
    if(mode==='forgot')await send('RESET');
    if(mode==='reset'){await authRequest('reset',{token,password,confirmation});showSuccessToast('비밀번호를 변경했습니다.');await onLogin();go('complete');}

@@ -1,3 +1,5 @@
+import {AdminPage,AdminUsers,AdminUserDetail} from './pages/admin/AdminPage';
+import {PushLifecycle} from './notifications/PushLifecycle';
 import {useAuth} from './auth/AuthGate';
 const NewsCollectionSettings=lazy(()=>import('./pages/news/NewsCollectionSettings').then(m=>({default:m.NewsCollectionSettings})));
 const NewsCollectionStatus=lazy(()=>import('./pages/news/NewsCollectionStatus').then(m=>({default:m.NewsCollectionStatus})));
@@ -42,6 +44,7 @@ import {MorePage} from './pages/more/MorePage';
 import {SettingsPage} from './pages/more/SettingsPage';
 const CollectionMonitoringPage = lazy(() => import('./pages/more/CollectionMonitoringPage').then(module => ({ default: module.CollectionMonitoringPage })));
 
+function AdminAccess(){const {user}=useAuth();return user?.role==='ADMIN'?<Outlet/>:<Navigate to="/more" replace/>;}
 function MonitoringAccess(){const {user}=useAuth();return !liveApiEnabled||user?.role==='ADMIN'?<Outlet/>:<Navigate to="/more" replace/>;}
 
 export function App() {
@@ -55,7 +58,7 @@ export function App() {
   const modal=tablet&&(adding||location.pathname==='/trade');
   const close=()=>{if(!inputBusy.current){if(suppliedBackground)navigate(-1);else navigate(background.pathname+background.search,{replace:true});}};
   const title=adding?inputTitle||`종목추가(${params.get('from')==='home'||params.get('type')==='holding'?'보유종목':'관심종목'})`:`${params.get('type')==='sell'?'매도':'매수'} ${params.has('edit')?'수정':'등록'}`;
-  return (<>
+  return (<><PushLifecycle/>
     <Routes location={modal?background:location}>
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
@@ -69,13 +72,13 @@ export function App() {
         <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
-        <Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/stock-news" element={<StockNewsPage/>}/>
+        <Route element={<AdminAccess/>}><Route path="detail/admin" element={<AdminPage/>}/><Route path="detail/admin/users" element={<AdminUsers/>}/><Route path="detail/admin/users/:subjectId" element={<AdminUserDetail/>}/><Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/security-management" element={<SecurityManagementPage/>}/></Route><Route path="detail/stock-news" element={<StockNewsPage/>}/>
         <Route path="detail/stock-news/:newsId" element={<StockNewsDetailPage/>}/>
         <Route path="detail/investor-trends" element={<InvestorTrendsPage/>} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />
         <Route path="detail/cash" element={liveApiEnabled ? <LiveCashPage /> : <CashPage />} />
         <Route path="more" element={<MorePage />} />
-        <Route path="detail/security-management" element={<SecurityManagementPage />} />
+
         <Route path="detail/settings" element={<SettingsPage />} />
         <Route path="detail/collection-monitoring" element={<MonitoringAccess/>}>
           <Route index element={<CollectionMonitoringPage/>}/>
