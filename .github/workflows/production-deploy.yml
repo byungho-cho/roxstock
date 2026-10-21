@@ -61,8 +61,8 @@ jobs:
           apk_version="$(node -e 'const s=require("fs").readFileSync("android-app/app/build.gradle","utf8"); const m=s.match(/\bversionName\s+[\x27]([^\x27]+)[\x27]/); if(!m)throw Error("Android version missing"); process.stdout.write(m[1]);')"
           # Recover a previously built but unpublished APK after a partial deployment.
           if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app &&
-             curl --fail --silent --show-error --max-time 15 --retry 1 https://newrox.cafe24.com/downloads/android/latest.json -o "$RUNNER_TEMP/published-android.json" &&
-             node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.version===process.argv[2]+"-webonly"?0:1)' "$RUNNER_TEMP/published-android.json" "$apk_version"; then
+             curl --fail --silent --show-error --max-time 15 --retry 1 https://newrox.cafe24.com/downloads/android/notifications-latest.json -o "$RUNNER_TEMP/published-android.json" &&
+             node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.version===process.argv[2] && p.firebaseConfigured===true?0:1)' "$RUNNER_TEMP/published-android.json" "$apk_version"; then
             echo "android=false" >> "$GITHUB_OUTPUT"
           else
             echo "android=true" >> "$GITHUB_OUTPUT"
@@ -182,10 +182,6 @@ jobs:
           ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/download-artifact@v4
         with:
-          name: roxstock-web-only-apk
-          path: apk
-      - uses: actions/download-artifact@v4
-        with:
           name: roxstock-notifications-apk
           path: notifications-apk
           run-id: ${{ github.run_id }}
@@ -215,33 +211,6 @@ jobs:
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$apk_file" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.apk"
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes android-app/publish-notifications-apk.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.sh"
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notifications-$TARGET_SHA.sh $TARGET_SHA $digest $configured"
-      - name: Publish signed Chrome-capable APK and verify public digest
-        env:
-          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
-          apk_file="$(find apk -name 'app-webOnly-release.apk' -type f -print -quit)"
-          test -n "$apk_file"
-          digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
-          python3 - "$apk_file" "$digest" <<'PY'
-          import json,pathlib,sys
-          apk=pathlib.Path(sys.argv[1]); report=json.loads(apk.with_suffix('.verification.json').read_text())
-          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.7-webonly'
-          assert report['applicationId']=='com.roxstock.app.webonly.debug'
-          PY
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$apk_file" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-webonly-$TARGET_SHA.apk"
-          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes android-app/publish-stock-news-apk.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-apk-$TARGET_SHA.sh"
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-apk-$TARGET_SHA.sh $TARGET_SHA $digest" | tee "$RUNNER_TEMP/stock-news-apk-publish.txt"
-          cat "$RUNNER_TEMP/stock-news-apk-publish.txt" >> "$GITHUB_STEP_SUMMARY"
 
   dart_status_correction:
     needs: [revision, backend, collector, frontend]

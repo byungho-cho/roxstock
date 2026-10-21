@@ -4,7 +4,7 @@ const at='2026-10-12T00:00:00Z';
 const stock=(id:number)=>({id:String(id),symbol:'X23'+String(id).padStart(3,'0'),name:'검증종목'+String(id).padStart(3,'0'),marketType:'OTHER',listingYear:2020,registrationSource:'MANUAL',canCorrectCode:true,isActive:true,collectionExcluded:false,excludedFeatures:[] as string[],automaticExclusion:false,exclusionReason:null as string|null,collectionRevision:0,deleteBlockedReasons:[] as string[]});
 async function setup(page:Page,total=105){
  await fixture(page);const securities=Array.from({length:total},(_,i)=>stock(i+1));const reads:{kind:string;cursor:string|null;query:string;result:string|null;runId:string|null}[]=[],writes:any[]=[];let failSave=false;
- await page.route('**/downloads/android/latest.json',r=>r.fulfill({json:{version:'0.1.0',updatedAt:'2026-10-12',url:'/downloads/android/roxstock-0.1.0.apk'}}));
+ await page.route('**/downloads/android/*latest.json',r=>r.fulfill({json:{version:'0.1.0',updatedAt:'2026-10-12',url:'/downloads/android/roxstock-0.1.0.apk'}}));
  await page.route('**/downloads/android/*.apk',r=>r.fulfill({body:'phase23 download fixture',contentType:'application/vnd.android.package-archive'}));
  await page.route('**/api/security-management**',async r=>{
   const u=new URL(r.request().url()),id=Number(u.pathname.split('/')[3]),s=securities.find(s=>Number(s.id)===id);
