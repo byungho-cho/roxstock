@@ -44,11 +44,13 @@ jobs:
           umask 077
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/roxstock.p12"
           echo "ROXSTOCK_SIGNING_KEYSTORE=$RUNNER_TEMP/roxstock.p12" >> "$GITHUB_ENV"
-      - name: Build separate APKs and verify web-only package
+      - name: Build signed release APKs and separate instrumentation targets
         run: |
-          gradle --no-daemon -p android-app assembleWebOnlyDebug lintWebOnlyDebug assembleNotificationsDebug lintNotificationsDebug assembleNotificationsDebugAndroidTest assembleWebOnlyDebugAndroidTest
-          python3 android-app/scripts/verify-notifications-apk.py android-app/app/build/outputs/apk/notifications/debug/app-notifications-debug.apk
-          python3 android-app/scripts/verify-web-only-apk.py android-app/app/build/outputs/apk/webOnly/debug/app-webOnly-debug.apk
+          node --test android-app/scripts/firebase-client-config.test.mjs
+          python3 -m unittest discover -s android-app/scripts -p "*_test.py"
+          gradle --no-daemon -p android-app assembleWebOnlyRelease lintWebOnlyRelease assembleNotificationsRelease lintNotificationsRelease assembleNotificationsDebugAndroidTest assembleWebOnlyDebugAndroidTest
+          python3 android-app/scripts/verify-notifications-apk.py android-app/app/build/outputs/apk/notifications/release/app-notifications-release.apk
+          python3 android-app/scripts/verify-web-only-apk.py android-app/app/build/outputs/apk/webOnly/release/app-webOnly-release.apk
       - name: Enable KVM for installation test
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -65,17 +67,17 @@ jobs:
           script: gradle --no-daemon -p android-app connectedWebOnlyDebugAndroidTest connectedNotificationsDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
-          name: roxstock-web-only-test-apk
+          name: roxstock-web-only-apk
           path: |
-            android-app/app/build/outputs/apk/webOnly/debug/*.apk
-            android-app/app/build/outputs/apk/webOnly/debug/*.verification.json
+            android-app/app/build/outputs/apk/webOnly/release/*.apk
+            android-app/app/build/outputs/apk/webOnly/release/*.verification.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
-          name: roxstock-notifications-test-apk
+          name: roxstock-notifications-apk
           path: |
-            android-app/app/build/outputs/apk/notifications/debug/*.apk
-            android-app/app/build/outputs/apk/notifications/debug/*.verification.json
+            android-app/app/build/outputs/apk/notifications/release/*.apk
+            android-app/app/build/outputs/apk/notifications/release/*.verification.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()

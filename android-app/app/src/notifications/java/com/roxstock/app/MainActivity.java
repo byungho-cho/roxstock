@@ -72,7 +72,7 @@ public final class MainActivity extends Activity {
             handler.postDelayed(updateBadge, 3000);
         };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.6");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/" + BuildConfig.VERSION_NAME);
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);

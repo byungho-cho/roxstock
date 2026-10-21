@@ -5,7 +5,7 @@ SHA="${1:?commit SHA required}"
 EXPECTED="${2:?APK digest required}"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ && "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || exit 2
 APK="/tmp/roxstock-webonly-$SHA.apk"
-PUBLIC_FILE="roxstock-web-only-0.1.6-${SHA:0:12}-${EXPECTED:0:12}.apk"
+PUBLIC_FILE="roxstock-web-only-0.1.7-${SHA:0:12}-${EXPECTED:0:12}.apk"
 printf '%s  %s\n' "$EXPECTED" "$APK" | sha256sum -c -
 BACKUP="/opt/roxstock/.deploy/apk-news-$SHA"
 install -d -m 700 "$BACKUP"
@@ -16,7 +16,7 @@ docker exec roxstock-proxy chmod 644 "/data/roxstock-public/downloads/android/$P
 python3 - "$SHA" "$EXPECTED" "$BACKUP/latest.json" "$PUBLIC_FILE" <<'PY'
 import datetime,json,sys
 sha,digest,path,filename=sys.argv[1:]
-with open(path,'w') as f:json.dump({'version':'0.1.6-webonly-test','versionCode':7,'certificateSha256':'0c419a20f4672e1829ad5427e9d7ea81d6f94f668729c045e564711dcda7ef86','updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/'+filename,'sha256':digest,'commit':sha},f)
+with open(path,'w') as f:json.dump({'version':'0.1.7-webonly','versionCode':8,'certificateSha256':'0c419a20f4672e1829ad5427e9d7ea81d6f94f668729c045e564711dcda7ef86','updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/'+filename,'sha256':digest,'commit':sha},f)
 PY
 curl --fail --silent --show-error --max-time 60 "https://newrox.cafe24.com/downloads/android/$PUBLIC_FILE" -o "$BACKUP/downloaded.apk"
 printf '%s  %s\n' "$EXPECTED" "$BACKUP/downloaded.apk" | sha256sum -c -
