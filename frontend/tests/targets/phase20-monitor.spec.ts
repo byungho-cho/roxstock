@@ -55,9 +55,9 @@ test('fast response and fresh cache never paint skeletons',async({page})=>{
  else {await page.goBack();await expect(page.getByTestId('monitor-summary')).toContainText('완료 7건');await page.getByTestId('monitor-feature-market-prices').click();}
  await expect(page.getByTestId('monitor-history-data')).toContainText('123');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(f.state.summaryCalls).toBe(calls);expect(f.state.detailCalls).toBe(details);expect(await page.evaluate(()=>(window as any).monitorFlashes)).toBe(0);
 });
-test('APK name and original URL from settings entry paths',async({page})=>{
- await setup(page);const url='/downloads/android/roxstock-web-0.1.2.apk';await page.route('**/downloads/android/latest.json',r=>r.fulfill({json:{version:'0.1.2',updatedAt:'2026-10-09',url}}));
- for(const entry of ['/detail/settings','/detail/settings?view=settings']){await page.goto(entry);const link=page.getByRole('link',{name:'APK 다운로드',exact:true});await expect(link).toHaveAttribute('href',url);await expect(link).toHaveAttribute('download','');await expect(page.locator('main')).not.toContainText('시험');await expect(page.locator('main')).toContainText('체결 알림 수집 제외');}
+test('single notifications APK from every settings entry path',async({page})=>{
+ await setup(page);const url='/downloads/android/roxstock-notifications-0.1.7.apk';await page.route('**/downloads/android/notifications-latest.json',r=>r.fulfill({json:{version:'0.1.2',updatedAt:'2026-10-09',url}}));
+ for(const entry of ['/detail/settings','/detail/settings?view=settings']){await page.goto(entry);const link=page.getByRole('link',{name:'APK 다운로드',exact:true});await expect(link).toHaveAttribute('href',url);await expect(link).toHaveAttribute('download','');await expect(page.locator('main')).not.toContainText('시험');await expect(page.locator('main')).toContainText('알림 지원');await expect(link).toHaveCount(1);await expect(page.getByText('알림 지원 APK 다운로드',{exact:true})).toHaveCount(0);}
  await page.goto('/more');await page.getByTestId('more-menu').getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('link',{name:'APK 다운로드',exact:true})).toHaveAttribute('href',url);
  await page.goto('/more');await page.getByTestId('bottom-menu-scroll').getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('link',{name:'APK 다운로드',exact:true})).toHaveAttribute('href',url);
 });
