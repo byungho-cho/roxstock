@@ -10,11 +10,9 @@ import { OverlayRegionScrollbar } from '../../components/navigation/OverlayRegio
 import { PageHeader } from '../../components/navigation/Navigation';
 import type {MoreView} from './MoreScreens';
 import {SettingsMenu} from './SettingsMenu';
-const DatabaseBackup=lazy(()=>import('./DatabaseBackup').then(m=>({default:m.DatabaseBackup})));
 const AccountForm=lazy(()=>import('./MoreScreens').then(m=>({default:m.AccountForm})));
 import {AccountManagement} from './AccountManagement';
 const CashAdjustment=lazy(()=>import('./MoreScreens').then(m=>({default:m.CashAdjustment})));
-const CollectionSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.CollectionSettings})));
 const ThemeSettings=lazy(()=>import('./MoreScreens').then(m=>({default:m.ThemeSettings})));
 const AccountResetFlow=lazy(()=>import('./AccountResetFlow').then(m=>({default:m.AccountResetFlow})));
 const TargetArrivalSettings=lazy(()=>import('./TargetArrivalSettings').then(m=>({default:m.TargetArrivalSettings})));
@@ -31,7 +29,7 @@ export function SettingsPage() {
   const detailRef = useRef<HTMLDivElement>(null);
   useEffect(() => { detailRef.current?.scrollTo({ top: 0 }); }, [detailView]);
   const backPath = ['backup','collection'].includes(view)?'/detail/admin':view === 'settings' ? '/more' : view==='reset'?'/detail/settings?view=edit&accountId='+params.get('accountId'):['add', 'edit', 'cash'].includes(view) ? '/detail/settings?view=account' : '/detail/settings?view=settings';
-  if(['backup','collection'].includes(view)&&user?.role!=='ADMIN')return <Navigate to="/more" replace/>;
+  if(['backup','collection'].includes(view))return <Navigate to={user?.role==='ADMIN'?'/detail/admin/'+view:'/more'} replace/>;
   return <>
     <PageHeader embedded showBack={view !== 'settings'} title={tablet ? '설정' : labels[view]} backPath={tablet ? '/more' : backPath} backIcon={<img src="/stocks-v03/back.svg" alt="" />} showBackTablet showAdd={false} variant="more" compact />
     <Box className="rox-home" data-testid="settings-layout" sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
@@ -40,13 +38,11 @@ export function SettingsPage() {
         <Box sx={{ px: 0, pt: ['target-arrival','account'].includes(detailView) ? 0 : '14px', pb: '80px' }}>
           <Suspense fallback={<Skeleton aria-label="설정 상세 코드 불러오는 중" height={100}/>} >
           {detailView === 'notifications' && <NotificationSettings/>}
-          {detailView === 'backup' && <DatabaseBackup />}
           {detailView === 'target-arrival' && <TargetArrivalSettings />}
           {detailView === 'account' && <AccountManagement openReset={() => navigate('/detail/settings?view=reset')} />}
           {detailView === 'add' && <AccountForm key={'add'} add />}
           {detailView === 'edit' && <AccountForm key={'edit'} add={false} />}
           {detailView === 'cash' && <CashAdjustment />}
-          {detailView === 'collection' && <CollectionSettings />}
           {detailView === 'theme' && <ThemeSettings />}
           {detailView === 'reset' && <AccountResetFlow key={detailView} />}
           </Suspense>
