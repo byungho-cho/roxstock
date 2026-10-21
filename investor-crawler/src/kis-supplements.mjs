@@ -4,7 +4,7 @@ import {Prisma} from '../../shared/dist/generated/prisma/index.js';
 import {CollectionJobRepository} from '../../shared/dist/collection/job-repository.js';
 import {withFinancialLease,assertFinancialLease} from '../../shared/dist/collection/financial-lease.js';
 import {ProviderError} from './provider.mjs';
-import {annualSupplement} from './kis-annual-supplement.mjs';
+import {annualSupplement,annualSupplementExcluded} from './kis-annual-supplement.mjs';
 import {mergeCurrentFundamentals} from './krx-fundamentals.mjs';
 
 const job='kis-fundamentals';
@@ -56,7 +56,7 @@ export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols
  const financialRepo=new CollectionJobRepository(db);let annualRemaining=10;
  const acquired=await db.collectorLock.updateMany({where:{jobName:job,lockedUntil:{lt:now()}},data:{ownerToken:owner,lockedUntil:new Date(now().getTime()+120000)}});
  if(!acquired.count){try{await db.collectorLock.create({data:{jobName:job,ownerToken:owner,lockedUntil:new Date(now().getTime()+120000)}});}catch(e){if(e.code==='P2002')return {stored:0,failed:0,locked:true};throw e;}}
- let lost=false,run;let stored=0,failed=0,skipped=0,annualFailures=0,referenceFailures=0,annualFilledTotal=0;
+ let lost=false,run;let stored=0,failed=0,skipped=0,annualFailures=0,annualDeferred=0,referenceFailures=0,annualFilledTotal=0;
  const heartbeat=setInterval(()=>{void db.collectorLock.updateMany({where:{jobName:job,ownerToken:owner,lockedUntil:{gt:now()}},data:{lockedUntil:new Date(now().getTime()+120000)}}).then(r=>{if(!r.count)lost=true;}).catch(()=>{lost=true;});},30000);
  try{
   await db.collectorRun.updateMany({where:{jobType:job,status:'RUNNING'},data:{status:'FAILED',finishedAt:now(),failureReason:'EXPIRED_OWNER_LEASE'}});
@@ -81,12 +81,12 @@ export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols
     let annualRows=[],annualError=null;
     if(annualRemaining&&!primaryError&&supplementPermissions(target).valuation&&typeof kis.annualFundamentals==='function'){
      const periods=await db.periodValuation.findMany({where:{securityId:target.id,periodType:'ANNUAL',fiscalYear:{gte:2015,lte:Number(dateKey(now()).slice(0,4))}},orderBy:{fiscalYear:'desc'},take:annualRemaining});
-     if(periods.some(p=>['eps','bps','roe'].some(key=>p.values?.[key]==null))){
+     if(periods.some(p=>!annualSupplementExcluded(p)&&['eps','bps','roe'].some(key=>p.values?.[key]==null))){
       try{annualRows=await kis.annualFundamentals(target.symbol,{sleep,signal});}catch(error){if(signal?.aborted)throw error;annualError=error instanceof ProviderError?error.code:'ANNUAL_INTERNAL_ERROR';annualFailures++;}
      }
     }
     let financialOwned=false;
-    if(annualRows.length){financialOwned=await financialRepo.acquireLock(owner,90);if(!financialOwned){annualRows=[];annualError='FINANCIAL_LEASE_BUSY';annualFailures++;}}
+    if(annualRows.length){financialOwned=await financialRepo.acquireLock(owner,90);if(!financialOwned){annualRows=[];annualError='FINANCIAL_LEASE_BUSY';annualDeferred++;}}
     let filled;
     try{filled=await (financialOwned?work=>withFinancialLease(owner,work):work=>work())(()=>db.$transaction(async tx=>{
      if(financialOwned){await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;await assertFinancialLease(tx);}
@@ -125,8 +125,8 @@ export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols
    }
    await sleep(requestDelayMs,undefined,{signal});
   }
-  await db.collectorRun.update({where:{id:run.id},data:{status:failed||annualFailures||referenceFailures?(stored?'PARTIAL':'FAILED'):stored?'SUCCESS':'SKIPPED',finishedAt:now(),successCount:stored,failureCount:failed+annualFailures+referenceFailures,skippedCount:skipped,metadata:{observedDate:dateKey(now()),referenceOnly:false,annualMissingOnly:true,targets:targets.length,annualFilled:annualFilledTotal,annualFailures,referenceFailures}}});
-  log('KIS_SUPPLEMENT_FINISHED',{runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,referenceFailures});return {runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,referenceFailures};
+  await db.collectorRun.update({where:{id:run.id},data:{status:failed||annualFailures||referenceFailures?(stored?'PARTIAL':'FAILED'):stored?'SUCCESS':'SKIPPED',finishedAt:now(),successCount:stored,failureCount:failed+annualFailures+referenceFailures,skippedCount:skipped,metadata:{observedDate:dateKey(now()),referenceOnly:false,annualMissingOnly:true,targets:targets.length,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures}}});
+  log('KIS_SUPPLEMENT_FINISHED',{runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures});return {runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures};
  }catch(error){
   if(run)await db.collectorRun.update({where:{id:run.id},data:{status:'FAILED',finishedAt:now(),successCount:stored,failureCount:failed,failureReason:error instanceof ProviderError?error.code:'INTERRUPTED_OR_INTERNAL_ERROR'}});
   throw error;

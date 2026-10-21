@@ -24,6 +24,15 @@ test('BPS denominator and ROE basis must independently reconcile; never replace 
  const b=basis();b.row.values.bps=null;b.row.values.roe=null;b.annual.eps=null;b.annual.bps='101';const previous={...b.f,fiscalYear:2023};let r=annualSupplement(b.row,[b.annual],[b.f,previous]);assert.equal(r.data.values.eps,null);assert.equal(r.data.values.bps,null);assert.equal(r.data.values.roe,'10');
  b.annual.bps='100';r=annualSupplement(b.row,[b.annual],[b.f,previous]);assert.equal(r.data.values.bps,'100');assert.equal(r.data.provenance.perMetric.bps.sharesReceiptNo,'r');
 });
+
+test('annual exclusion applies only to the explicitly reviewed year and preserves stored values',()=>{
+ const b=basis(),before=JSON.stringify(b.row.values);
+ b.row.supplemental.kisAnnualExclusion={reason:'USER_PERIOD_COLLECTION_EXCLUDED',fiscalYear:2024};
+ assert.equal(annualSupplement(b.row,[b.annual],[b.f]).reason,'USER_PERIOD_COLLECTION_EXCLUDED');
+ assert.equal(JSON.stringify(b.row.values),before);
+ b.row.supplemental.kisAnnualExclusion.fiscalYear=2023;
+ assert.equal(annualSupplement(b.row,[b.annual],[b.f]).changed,true);
+});
 test('annual provider uses annual endpoints, matches dates, converts hundred-million amounts, and spaces requests',async()=>{
  const calls=[],delays=[];const provider=new KisInvestorProvider({appKey:'key',appSecret:'secret',accessToken:'token',expiresAt:Date.now()+3600000,fetcher:async(url,options)=>{calls.push({url,options});let output=url.includes('financial-ratio')?[{stac_yymm:'202412',eps:'323',bps:'9280',roe_val:'3.58'},{stac_yymm:'202409',eps:'9'}]:url.includes('balance-sheet')?[{stac_yymm:'202412',total_cptl:'1860',total_aset:'2242'}]:[{stac_yymm:'202412',thtr_ntin:'66',sale_account:'1402'}];return new Response(JSON.stringify({rt_cd:'0',output}));}});
  const r=await provider.annualFundamentals('008420',{sleep:async ms=>delays.push(ms)});assert.equal(r.length,1);assert.equal(r[0].fiscalYear,2024);assert.equal(r[0].equity,'186000000000');assert.equal(r[0].eps,'323');assert.deepEqual(delays,[2000,2000,2000]);assert.ok(calls.every(c=>new URL(c.url).searchParams.get('fid_div_cls_code')==='0'));assert.ok(!JSON.stringify(r).includes('secret'));
@@ -39,4 +48,10 @@ test('scheduled supplement persists only verified gaps atomically and invalidate
  const kis={currentFundamentals:async()=>observation,annualFundamentals:async()=>[b.annual]};
  const r=await runKisSupplements({db,kis,sleep:async()=>{}});assert.equal(r.annualFilled,1);assert.equal(patch.values.eps,'-3');assert.notEqual(patch.values.eps,observation.eps);assert.deepEqual(bumps,['financial','security:1']);assert.equal(finalRun.status,'SUCCESS');
  patch=null;bumps=[];kis.annualFundamentals=async()=>{throw new Error('unavailable')};const failed=await runKisSupplements({db,kis,sleep:async()=>{}});assert.equal(failed.stored,1);assert.equal(patch,null);assert.equal(finalRun.status,'PARTIAL');assert.equal(finalRun.metadata.annualFailures,1);
+ kis.annualFundamentals=async()=>[b.annual];db.$queryRaw=async()=>[{owner_token:'another-worker',valid:1}];
+ const deferred=await runKisSupplements({db,kis,sleep:async()=>{}});
+ assert.equal(deferred.annualDeferred,1);assert.equal(deferred.annualFailures,0);assert.equal(finalRun.failureCount,0);assert.equal(finalRun.status,'SUCCESS');assert.equal(patch,null);
+ b.row.supplemental.kisAnnualExclusion={reason:'USER_PERIOD_COLLECTION_EXCLUDED',fiscalYear:2024};
+ kis.annualFundamentals=async()=>{assert.fail('excluded annual period must not trigger an API request');};
+ const excluded=await runKisSupplements({db,kis,sleep:async()=>{}});assert.equal(excluded.stored,1);assert.equal(excluded.annualFailures,0);assert.equal(excluded.annualDeferred,0);assert.equal(patch,null);
 });
