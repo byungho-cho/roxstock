@@ -39,7 +39,7 @@ test('same-query refresh and failed refresh preserve results, retry recovers',as
  f.state.failDetail=false;f.state.failSummary=false;await page.getByRole('button',{name:'통계 새로고침',exact:true}).last().click();await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByTestId('monitor-history-data')).toContainText('123');
 });
 test('initial query failure never reports an empty result; retry shows collector error separately',async({page},info)=>{
- const f=await setup(page);f.state.failDetail=true;f.state.failSummary=true;await page.goto('/detail/collection-monitoring/realtime-prices');await expect(page.getByRole('alert').first()).toContainText('조회 실패',{timeout:15000});await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('완료 6건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);const before=await boxes(page);
+ const f=await setup(page);f.state.failDetail=true;f.state.failSummary=true;await page.goto('/detail/collection-monitoring/realtime-prices');await expect(page.getByRole('alert').first()).toContainText('조회 실패',{timeout:15000});await expect(page.locator('main')).not.toContainText('실행 이력이 없습니다.');await expect(page.locator('main')).not.toContainText('완료 7건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);const before=await boxes(page);
  f.state.failDetail=false;f.state.failSummary=false;f.state.collectorError=true;await page.getByRole('button',{name:'통계 새로고침',exact:true}).last().click();await expect(page.getByTestId('monitor-current')).toContainText('오류');await expect(page.getByTestId('monitor-history-data')).toContainText('실제 수집 실패');await expect(page.getByRole('alert')).toHaveCount(0);await capture(page,'collector-error',info.project.name);
 });
 test('detail waiting does not hide ready summary or show fake progress',async({page})=>{
@@ -48,11 +48,11 @@ test('detail waiting does not hide ready summary or show fake progress',async({p
 test('fast response and fresh cache never paint skeletons',async({page})=>{
  const f=await setup(page);
  await page.addInitScript(()=>{(window as any).monitorFlashes=0;new MutationObserver(()=>{if(document.querySelector('[aria-label="데이터 조회 중"] [data-loading-indicator="visible"]'))(window as any).monitorFlashes++;}).observe(document,{subtree:true,attributes:true,childList:true});});
- await page.goto('/detail/collection-monitoring');await expect(page.getByTestId('monitor-summary')).toContainText('완료 6건');
+ await page.goto('/detail/collection-monitoring');await expect(page.getByTestId('monitor-summary')).toContainText('완료 7건');
  await page.getByTestId('monitor-feature-market-prices').click();await expect(page.getByTestId('monitor-history-data')).toContainText('123');
  const calls=f.state.summaryCalls,details=f.state.detailCalls;
  if(page.viewportSize()!.width>=600){await page.getByTestId('monitor-feature-security-master').click();await expect(page.getByTestId('monitor-history-data')).toContainText('123');await page.getByTestId('monitor-feature-market-prices').click();}
- else {await page.goBack();await expect(page.getByTestId('monitor-summary')).toContainText('완료 6건');await page.getByTestId('monitor-feature-market-prices').click();}
+ else {await page.goBack();await expect(page.getByTestId('monitor-summary')).toContainText('완료 7건');await page.getByTestId('monitor-feature-market-prices').click();}
  await expect(page.getByTestId('monitor-history-data')).toContainText('123');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(f.state.summaryCalls).toBe(calls);expect(f.state.detailCalls).toBe(details);expect(await page.evaluate(()=>(window as any).monitorFlashes)).toBe(0);
 });
 test('APK name and original URL from settings entry paths',async({page})=>{
