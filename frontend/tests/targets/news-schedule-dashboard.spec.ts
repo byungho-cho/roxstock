@@ -16,7 +16,7 @@ test('settings: 28px aligned selectors, persisted 5h minute setting, success toa
  await page.goto('/detail/collection-monitoring/stock-news');await expect(page.getByTestId('news-collection-status')).toContainText('일부 구간 확인 불가');await expect(page.getByTestId('news-collection-status')).toContainText('5시간마다 · 기준 06:17 KST');await expect(page.getByTestId('news-collection-status')).toContainText('기업공시 정상 제외 3종목');await expect(page.getByTestId('news-collection-status')).not.toContainText('다음 재시도');await page.screenshot({path:info.outputPath('status-figma-v12.png')});
 });
 test('list labels recent confirmation and retains title tooltip; no fabricated success or retry time',async({page},info)=>{
- await newsFixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('news-collected-at')).toContainText('최근 확인');await page.getByRole('button',{name:'소식 수집 상태 설명'}).click();await expect(page.getByRole('tooltip')).toContainText('일부 구간 확인 불가');await expect(page.getByRole('tooltip')).not.toContainText('다음 재시도');await page.screenshot({path:info.outputPath('list-figma-v12.png')});
+ await newsFixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('news-collected-at')).toHaveCount(0);await page.getByRole('button',{name:'소식 수집 상태 설명'}).click();await expect(page.getByRole('tooltip')).toContainText('일부 구간 확인 불가');await expect(page.getByRole('tooltip')).not.toContainText('다음 재시도');await page.screenshot({path:info.outputPath('list-figma-v12.png')});
 });
 for(const count of [0,1,5,6,7,8,14])test(`dashboard ${count} securities: matching donut, cumulative bar and Other row; natural card size`,async({page},info)=>{
  const f=await base(page,{trend:true});

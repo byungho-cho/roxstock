@@ -10,7 +10,13 @@ export const kstStart=(day:string)=>new Date(day+'T00:00:00+09:00');
 export function canonicalUrl(raw:string){
  if(raw.length>2048)throw Error('INVALID_ORIGINAL_URL');
  const u=new URL(raw);if(u.protocol!=='https:'||u.username||u.password||u.port)throw Error('INVALID_ORIGINAL_URL');
- if(!['www.hankyung.com','consensus.hankyung.com','dart.fss.or.kr'].includes(u.hostname))throw Error('UNTRUSTED_ORIGINAL_HOST');
+ if(!['www.hankyung.com','consensus.hankyung.com','dart.fss.or.kr','n.news.naver.com','news.naver.com'].includes(u.hostname))throw Error('UNTRUSTED_ORIGINAL_HOST');
+ if(['n.news.naver.com','news.naver.com'].includes(u.hostname)){
+  const article=/^\/(?:mnews\/|sports\/|entertain\/)?article\/(\d{3})\/(\d{10})\/?$/.exec(u.pathname);
+  const legacy=u.pathname==='/main/read.naver'&&/^\d{3}$/.test(u.searchParams.get('oid')??'')&&/^\d{10}$/.test(u.searchParams.get('aid')??'');
+  if(!article&&!legacy)throw Error('INVALID_NAVER_ARTICLE_URL');
+  return 'https://n.news.naver.com/mnews/article/'+(article?article[1]+'/'+article[2]:u.searchParams.get('oid')+'/'+u.searchParams.get('aid'));
+ }
  if(u.hostname==='dart.fss.or.kr'){
   const receipt=u.searchParams.get('rcpNo');if(!receipt||!/^\d{14}$/.test(receipt))throw Error('INVALID_RECEIPT_URL');
   return 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo='+receipt;
@@ -56,9 +62,9 @@ export function importance(title:string,type:NewsType):number{
  return 0;
 }
 export function candidateKeys(c:NewsCandidate){return {canonicalHash:hash(canonicalUrl(c.originalUrl)),fingerprint:hash(c.title.normalize('NFKC').toLowerCase().replace(/[\p{P}\p{Z}\s]/gu,'')+'|'+[...c.securityIds].sort((a,b)=>a<b?-1:1).join(',')+'|'+seoulDay(c.publishedAt))};}
-export function selectNews(candidates:NewsCandidate[],existing=new Set<string>()){
+export function selectNews(candidates:NewsCandidate[],existing=new Set<string>(),holdingIds=new Set<bigint>()){
  const seen=new Set(existing);const rows=candidates.filter(c=>{if(!c.priority||!c.securityIds.length)return false;const k=candidateKeys(c),providerKey='provider:'+c.provider+':'+c.providerId;if(seen.has(k.canonicalHash)||seen.has(k.fingerprint)||seen.has(providerKey))return false;seen.add(k.canonicalHash);seen.add(k.fingerprint);seen.add(providerKey);return true;})
- .sort((a,b)=>b.priority-a.priority||b.publishedAt.getTime()-a.publishedAt.getTime()||a.originalUrl.localeCompare(b.originalUrl));
- const important=rows.filter(r=>r.priority===2).length;
- return rows.slice(0,Math.min(10,Math.max(5,important)));
+ .sort((a,b)=>Number(b.securityIds.some(id=>holdingIds.has(id)))-Number(a.securityIds.some(id=>holdingIds.has(id)))||b.priority-a.priority||Number(b.provider==='NAVER_NEWS')-Number(a.provider==='NAVER_NEWS')||b.publishedAt.getTime()-a.publishedAt.getTime()||a.originalUrl.localeCompare(b.originalUrl));
+ const counts={ARTICLE:0,REPORT:0,DISCLOSURE:0};
+ return rows.filter(row=>row.materialType==='DISCLOSURE'||counts[row.materialType]++<5);
 }
