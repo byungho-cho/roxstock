@@ -270,3 +270,30 @@ jobs:
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/reconcile-dart-status-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-dart-status-$TARGET_SHA.sh"
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-dart-status-$TARGET_SHA.sh $TARGET_SHA" | tee "$RUNNER_TEMP/dart-status-summary.txt"
           cat "$RUNNER_TEMP/dart-status-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+
+
+  app_notification_verification:
+    needs: [revision, backend, frontend, android_publish]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.frontend.result == 'success' && needs.android_publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+      - name: Verify notification defaults and safe admin projections without dispatching push
+        env:
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.3 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/verify-app-notifications-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notification-verify-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notification-verify-$TARGET_SHA.sh $TARGET_SHA"
