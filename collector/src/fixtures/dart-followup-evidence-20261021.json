@@ -1,0 +1,2223 @@
+{
+  "version": 1,
+  "source": "WEB_SERVER_OPERATOR_VERIFIED_RESPONSE_METADATA",
+  "responseMetadataCommit": "151fcf1eb73f3e42441fee3206a4feceb26d32d9",
+  "targetCommit": "2c881923541f1f4e7412212f4b159cf98bef5aa1",
+  "responseMetadataSha256": "a1ebbefd2433e77d6992ab56bb8488a548bf0f47e9fbb9f84fdd0ae5e86aa7db",
+  "targetMetadataSha256": "5d05c44c5a1a0fac4f6bfb26e0b7baa097e392585853617befe333c3276eea56",
+  "financial": [
+    {
+      "taskId": "21296",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2015,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20160330003747",
+      "expectedUpdatedAt": "2026-10-06T19:13:17.017Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:12.999+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_55"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:18.058+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_56"
+        }
+      ]
+    },
+    {
+      "taskId": "21292",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2016,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20170331004922",
+      "expectedUpdatedAt": "2026-10-06T19:12:58.525Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:02.895+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_53"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:07.946+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_54"
+        }
+      ]
+    },
+    {
+      "taskId": "21288",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2017,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20180330003188",
+      "expectedUpdatedAt": "2026-10-06T19:12:40.016Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:52.760+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_51"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:57.855+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_52"
+        }
+      ]
+    },
+    {
+      "taskId": "21284",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2018,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20190401005163",
+      "expectedUpdatedAt": "2026-10-06T19:12:21.571Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:42.647+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_49"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:47.708+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_50"
+        }
+      ]
+    },
+    {
+      "taskId": "21280",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2019,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20200330004714",
+      "expectedUpdatedAt": "2026-10-06T19:12:03.094Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:32.497+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_47"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:37.577+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_48"
+        }
+      ]
+    },
+    {
+      "taskId": "21276",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2020,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210311001118",
+      "expectedUpdatedAt": "2026-10-06T19:11:44.710Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:22.345+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_45"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:27.422+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_46"
+        }
+      ]
+    },
+    {
+      "taskId": "21274",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2020,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20200814001971",
+      "expectedUpdatedAt": "2026-10-06T19:11:48.750Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:02.063+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_41"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:07.132+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_42"
+        }
+      ]
+    },
+    {
+      "taskId": "21273",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2020,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20200515001795",
+      "expectedUpdatedAt": "2026-10-06T19:11:52.790Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:51.869+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_39"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:56.944+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_40"
+        }
+      ]
+    },
+    {
+      "taskId": "21275",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2020,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20201113000758",
+      "expectedUpdatedAt": "2026-10-06T19:11:56.838Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:12.196+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_43"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:28:17.264+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_44"
+        }
+      ]
+    },
+    {
+      "taskId": "21272",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2021,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20220310000784",
+      "expectedUpdatedAt": "2026-10-06T19:11:26.317Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:41.616+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_37"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:46.786+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_38"
+        }
+      ]
+    },
+    {
+      "taskId": "21270",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2021,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20210817002177",
+      "expectedUpdatedAt": "2026-10-06T19:11:30.370Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:21.335+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_33"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:26.454+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_34"
+        }
+      ]
+    },
+    {
+      "taskId": "21269",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2021,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20210517001488",
+      "expectedUpdatedAt": "2026-10-06T19:11:34.423Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:11.239+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_31"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:16.279+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_32"
+        }
+      ]
+    },
+    {
+      "taskId": "21271",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2021,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20211115001521",
+      "expectedUpdatedAt": "2026-10-06T19:11:38.465Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:31.517+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_35"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:36.563+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_36"
+        }
+      ]
+    },
+    {
+      "taskId": "21268",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2022,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20230309000572",
+      "expectedUpdatedAt": "2026-10-06T19:11:07.896Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:01.137+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_29"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:27:06.192+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_30"
+        }
+      ]
+    },
+    {
+      "taskId": "21266",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2022,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20220816001490",
+      "expectedUpdatedAt": "2026-10-06T19:11:11.947Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:40.917+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_25"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:45.973+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_26"
+        }
+      ]
+    },
+    {
+      "taskId": "21265",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2022,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20220516001832",
+      "expectedUpdatedAt": "2026-10-06T19:11:15.998Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:30.789+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_23"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:35.840+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_24"
+        }
+      ]
+    },
+    {
+      "taskId": "21267",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2022,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20221114001357",
+      "expectedUpdatedAt": "2026-10-06T19:11:20.076Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:51.040+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_27"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:56.087+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_28"
+        }
+      ]
+    },
+    {
+      "taskId": "21262",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2023,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20230814001951",
+      "expectedUpdatedAt": "2026-10-06T19:10:55.551Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:20.680+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_21"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:25.738+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_22"
+        }
+      ]
+    },
+    {
+      "taskId": "21261",
+      "symbol": "016360",
+      "corpCode": "00104856",
+      "year": 2023,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20230515001601",
+      "expectedUpdatedAt": "2026-10-06T19:10:59.600Z",
+      "responses": [
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:10.552+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_19"
+        },
+        {
+          "corpCode": "00104856",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:26:15.635+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_20"
+        }
+      ]
+    },
+    {
+      "taskId": "25520",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2015,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20160330003986",
+      "expectedUpdatedAt": "2026-10-07T15:58:04.227Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:31.325+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_94"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:36.383+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_95"
+        }
+      ]
+    },
+    {
+      "taskId": "25516",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2016,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20170331004847",
+      "expectedUpdatedAt": "2026-10-07T15:54:42.477Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:21.182+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_92"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:26.251+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_93"
+        }
+      ]
+    },
+    {
+      "taskId": "25512",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2017,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20180814001442",
+      "expectedUpdatedAt": "2026-10-07T15:51:16.890Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:10.928+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_90"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:15.984+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_91"
+        }
+      ]
+    },
+    {
+      "taskId": "25508",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2018,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20190813000456",
+      "expectedUpdatedAt": "2026-10-07T15:47:53.745Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:00.783+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_88"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:05.846+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_89"
+        }
+      ]
+    },
+    {
+      "taskId": "25504",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2019,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20200330004624",
+      "expectedUpdatedAt": "2026-10-07T15:43:15.852Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:50.549+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_86"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:55.667+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_87"
+        }
+      ]
+    },
+    {
+      "taskId": "25500",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2020,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210317000931",
+      "expectedUpdatedAt": "2026-10-07T15:37:06.341Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:40.146+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_84"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:45.458+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_85"
+        }
+      ]
+    },
+    {
+      "taskId": "25498",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2020,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20200814002504",
+      "expectedUpdatedAt": "2026-10-07T15:37:10.386Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:19.899+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_80"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:24.952+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_81"
+        }
+      ]
+    },
+    {
+      "taskId": "25497",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2020,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20200515002364",
+      "expectedUpdatedAt": "2026-10-07T15:37:14.451Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:09.760+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_78"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:14.811+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_79"
+        }
+      ]
+    },
+    {
+      "taskId": "25499",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2020,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20201116002058",
+      "expectedUpdatedAt": "2026-10-07T15:37:18.520Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:30.009+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_82"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:35.095+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_83"
+        }
+      ]
+    },
+    {
+      "taskId": "25496",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2021,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20220316001255",
+      "expectedUpdatedAt": "2026-10-07T15:30:37.505Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:59.569+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_76"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:31:04.704+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_77"
+        }
+      ]
+    },
+    {
+      "taskId": "25494",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2021,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20210817002105",
+      "expectedUpdatedAt": "2026-10-07T15:30:41.553Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:39.147+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_72"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:44.219+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_73"
+        }
+      ]
+    },
+    {
+      "taskId": "25493",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2021,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20210517002026",
+      "expectedUpdatedAt": "2026-10-07T15:30:45.622Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:29.038+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_70"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:34.091+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_71"
+        }
+      ]
+    },
+    {
+      "taskId": "25495",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2021,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20211115001435",
+      "expectedUpdatedAt": "2026-10-07T15:30:49.690Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:49.401+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_74"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:54.485+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_75"
+        }
+      ]
+    },
+    {
+      "taskId": "25492",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2022,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20230315001098",
+      "expectedUpdatedAt": "2026-10-07T15:24:18.174Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:18.883+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_68"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:23.989+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_69"
+        }
+      ]
+    },
+    {
+      "taskId": "25490",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2022,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20220816002012",
+      "expectedUpdatedAt": "2026-10-07T15:24:22.220Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:58.529+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_64"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:03.637+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_65"
+        }
+      ]
+    },
+    {
+      "taskId": "25489",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2022,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20220516002068",
+      "expectedUpdatedAt": "2026-10-07T15:24:26.276Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:48.411+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_62"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:53.472+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_63"
+        }
+      ]
+    },
+    {
+      "taskId": "25491",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2022,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20221114001559",
+      "expectedUpdatedAt": "2026-10-07T15:24:30.352Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:08.751+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_66"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:30:13.827+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_67"
+        }
+      ]
+    },
+    {
+      "taskId": "25486",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2023,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20240430000581",
+      "expectedUpdatedAt": "2026-10-07T15:18:11.122Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:38.309+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_60"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:43.368+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_61"
+        }
+      ]
+    },
+    {
+      "taskId": "25485",
+      "symbol": "024110",
+      "corpCode": "00149646",
+      "year": 2023,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20230630000653",
+      "expectedUpdatedAt": "2026-10-07T15:18:15.191Z",
+      "responses": [
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:28.190+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_58"
+        },
+        {
+          "corpCode": "00149646",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:29:33.264+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_59"
+        }
+      ]
+    },
+    {
+      "taskId": "63052",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2015,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20160401000506",
+      "expectedUpdatedAt": "2026-10-07T16:00:49.032Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:49.317+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_133"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2015,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:54.403+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_134"
+        }
+      ]
+    },
+    {
+      "taskId": "63048",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2016,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20170331004054",
+      "expectedUpdatedAt": "2026-10-07T15:56:40.085Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:39.174+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_131"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2016,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:44.250+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_132"
+        }
+      ]
+    },
+    {
+      "taskId": "63044",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2017,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210427000354",
+      "expectedUpdatedAt": "2026-10-07T15:53:18.532Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:29.057+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_129"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2017,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:34.111+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_130"
+        }
+      ]
+    },
+    {
+      "taskId": "63040",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2018,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210427000426",
+      "expectedUpdatedAt": "2026-10-07T15:49:50.812Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:18.902+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_127"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2018,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:23.959+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_128"
+        }
+      ]
+    },
+    {
+      "taskId": "63036",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2019,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210427000468",
+      "expectedUpdatedAt": "2026-10-07T15:45:47.652Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:08.791+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_125"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2019,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:13.834+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_126"
+        }
+      ]
+    },
+    {
+      "taskId": "63032",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2020,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20210427000533",
+      "expectedUpdatedAt": "2026-10-07T15:40:16.874Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:58.673+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_123"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:35:03.742+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_124"
+        }
+      ]
+    },
+    {
+      "taskId": "63030",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2020,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20210427000500",
+      "expectedUpdatedAt": "2026-10-07T15:40:20.953Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:38.396+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_119"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:43.472+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_120"
+        }
+      ]
+    },
+    {
+      "taskId": "63029",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2020,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20210427000485",
+      "expectedUpdatedAt": "2026-10-07T15:40:25.007Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:28.296+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_117"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:33.338+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_118"
+        }
+      ]
+    },
+    {
+      "taskId": "63031",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2020,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20210427000513",
+      "expectedUpdatedAt": "2026-10-07T15:40:29.091Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:48.532+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_121"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2020,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:53.595+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_122"
+        }
+      ]
+    },
+    {
+      "taskId": "63028",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2021,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20220325001281",
+      "expectedUpdatedAt": "2026-10-07T15:33:48.470Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:18.194+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_115"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:23.250+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_116"
+        }
+      ]
+    },
+    {
+      "taskId": "63026",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2021,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20210817001770",
+      "expectedUpdatedAt": "2026-10-07T15:33:52.527Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:57.955+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_111"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:03.015+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_112"
+        }
+      ]
+    },
+    {
+      "taskId": "63025",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2021,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20210517001542",
+      "expectedUpdatedAt": "2026-10-07T15:33:56.580Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:47.416+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_109"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:52.913+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_110"
+        }
+      ]
+    },
+    {
+      "taskId": "63027",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2021,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20241230000601",
+      "expectedUpdatedAt": "2026-10-07T15:34:00.665Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:08.079+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_113"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2021,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:34:13.127+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_114"
+        }
+      ]
+    },
+    {
+      "taskId": "63024",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2022,
+      "reportCode": "11011",
+      "selectedReceiptNo": "20231005000471",
+      "expectedUpdatedAt": "2026-10-07T15:27:29.377Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:37.302+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_107"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11011",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:42.357+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_108"
+        }
+      ]
+    },
+    {
+      "taskId": "63022",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2022,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20220816001769",
+      "expectedUpdatedAt": "2026-10-07T15:27:33.443Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:17.089+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_103"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:22.137+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_104"
+        }
+      ]
+    },
+    {
+      "taskId": "63021",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2022,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20220516002493",
+      "expectedUpdatedAt": "2026-10-07T15:27:37.528Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:06.991+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_101"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:12.038+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_102"
+        }
+      ]
+    },
+    {
+      "taskId": "63023",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2022,
+      "reportCode": "11014",
+      "selectedReceiptNo": "20241230000609",
+      "expectedUpdatedAt": "2026-10-07T15:27:41.600Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:27.184+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_105"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2022,
+          "reportCode": "11014",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:32.247+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_106"
+        }
+      ]
+    },
+    {
+      "taskId": "63018",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2023,
+      "reportCode": "11012",
+      "selectedReceiptNo": "20231005000482",
+      "expectedUpdatedAt": "2026-10-07T15:21:22.715Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:56.726+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_99"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2023,
+          "reportCode": "11012",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:33:01.938+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_100"
+        }
+      ]
+    },
+    {
+      "taskId": "63017",
+      "symbol": "105560",
+      "corpCode": "00688996",
+      "year": 2023,
+      "reportCode": "11013",
+      "selectedReceiptNo": "20231005000478",
+      "expectedUpdatedAt": "2026-10-07T15:21:26.771Z",
+      "responses": [
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "CFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:46.558+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_97"
+        },
+        {
+          "corpCode": "00688996",
+          "fiscalYear": 2023,
+          "reportCode": "11013",
+          "fsDivision": "OFS",
+          "httpStatus": 200,
+          "status": "013",
+          "rowCount": 0,
+          "checkedAt": "2026-10-21T08:32:51.640+09:00",
+          "returnedReceiptNos": [],
+          "evidenceId": "PHASE1_CALL_98"
+        }
+      ]
+    }
+  ],
+  "policy": [
+    {
+      "taskId": "110484",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2015,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2015-12-31"
+    },
+    {
+      "taskId": "110480",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2016,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2016-12-31"
+    },
+    {
+      "taskId": "110476",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2017,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2017-12-31"
+    },
+    {
+      "taskId": "110472",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2018,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2018-12-31"
+    },
+    {
+      "taskId": "110468",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2019,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2019-12-31"
+    },
+    {
+      "taskId": "110464",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2020,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2020-12-31"
+    },
+    {
+      "taskId": "110462",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2020,
+      "reportCode": "11012",
+      "period": "Q2",
+      "periodEnd": "2020-06-30"
+    },
+    {
+      "taskId": "110461",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2020,
+      "reportCode": "11013",
+      "period": "Q1",
+      "periodEnd": "2020-03-31"
+    },
+    {
+      "taskId": "110463",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2020,
+      "reportCode": "11014",
+      "period": "Q3",
+      "periodEnd": "2020-09-30"
+    },
+    {
+      "taskId": "110460",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2021,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2021-12-31"
+    },
+    {
+      "taskId": "110458",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2021,
+      "reportCode": "11012",
+      "period": "Q2",
+      "periodEnd": "2021-06-30"
+    },
+    {
+      "taskId": "110457",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2021,
+      "reportCode": "11013",
+      "period": "Q1",
+      "periodEnd": "2021-03-31"
+    },
+    {
+      "taskId": "110459",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2021,
+      "reportCode": "11014",
+      "period": "Q3",
+      "periodEnd": "2021-09-30"
+    },
+    {
+      "taskId": "110456",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2022,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2022-12-31"
+    },
+    {
+      "taskId": "110454",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2022,
+      "reportCode": "11012",
+      "period": "Q2",
+      "periodEnd": "2022-06-30"
+    },
+    {
+      "taskId": "110453",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2022,
+      "reportCode": "11013",
+      "period": "Q1",
+      "periodEnd": "2022-03-31"
+    },
+    {
+      "taskId": "110455",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2022,
+      "reportCode": "11014",
+      "period": "Q3",
+      "periodEnd": "2022-09-30"
+    },
+    {
+      "taskId": "110452",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2023,
+      "reportCode": "11011",
+      "period": "ANNUAL",
+      "periodEnd": "2023-12-31"
+    },
+    {
+      "taskId": "110450",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2023,
+      "reportCode": "11012",
+      "period": "Q2",
+      "periodEnd": "2023-06-30"
+    },
+    {
+      "taskId": "110449",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2023,
+      "reportCode": "11013",
+      "period": "Q1",
+      "periodEnd": "2023-03-31"
+    },
+    {
+      "taskId": "110451",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2023,
+      "reportCode": "11014",
+      "period": "Q3",
+      "periodEnd": "2023-09-30"
+    },
+    {
+      "taskId": "110446",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2024,
+      "reportCode": "11012",
+      "period": "Q2",
+      "periodEnd": "2024-06-30"
+    },
+    {
+      "taskId": "110445",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2024,
+      "reportCode": "11013",
+      "period": "Q1",
+      "periodEnd": "2024-03-31"
+    },
+    {
+      "taskId": "110447",
+      "symbol": "475560",
+      "corpCode": "00968607",
+      "year": 2024,
+      "reportCode": "11014",
+      "period": "Q3",
+      "periodEnd": "2024-09-30"
+    }
+  ]
+}

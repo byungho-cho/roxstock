@@ -20,6 +20,10 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   const due=await create(2025,'NOT_DUE','FILING_NOT_DUE',{nextAttemptAt:new Date(now.getTime()-1000)});
   const success=await create(2024,'SUCCESS',null,{selectedReceiptNo:'20250401000001'});
   const unmapped=await db.dartBackfillTask.create({data:{securityId:stocks[1]!.id,fiscalYear:2018,reportCode:'11011',periodType:'ANNUAL',status:'NOT_APPLICABLE',errorCode:'DART_CORP_CODE_NOT_MAPPED'}});
+  await db.security.update({where:{id:stocks[0]!.id},data:{isActive:false}});
+  const originalPriority=repo.prioritySecurityIds.bind(repo);repo.prioritySecurityIds=async()=>[stocks[0]!.id];
+  assert.ok((await repo.listPhase2Securities('PRIORITY',100,now,true)).some(s=>s.id===stocks[0]!.id));
+  repo.prioritySecurityIds=originalPriority;
   const changed=await Promise.all([repo.recoverMappedTasks(now),new PrismaDartRepository(db).recoverMappedTasks(now)]);
   assert.equal(changed.reduce((n,v)=>n+v,0),1);
   assert.equal(await db.dartTaskDecision.count({where:{taskId:recovered.id}}),1);
@@ -40,7 +44,9 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   const {buildPlan,applyPlan,restorePlan}=await import('../src/scripts/reconcile-dart-task-status.js');
   const real=await db.security.create({data:{symbol:'475560',name:'Theborn policy fixture',marketType:'OTHER',securityType:'STOCK'}});ids.push(real.id);
   await db.dartCorpMapping.create({data:{securityId:real.id,stockCode:'475560',collectionSymbol:'475560',corpCode:'00968607',corpName:'fixture',syncedAt:now}});
-  const before=await db.dartBackfillTask.create({data:{securityId:real.id,fiscalYear:2023,reportCode:'11011',periodType:'ANNUAL',status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',attempts:2}});
+  const evidence=(await import('../src/fixtures/dart-followup-evidence-20261021.json',{with:{type:'json'}})).default;
+  const policyId=evidence.policy.find(p=>p.year===2023&&p.period==='ANNUAL')!.taskId;
+  const before=await db.dartBackfillTask.create({data:{id:BigInt(policyId),securityId:real.id,fiscalYear:2023,reportCode:'11011',periodType:'ANNUAL',status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',attempts:2}});
   const plan=await buildPlan(now);assert.ok(plan.changes.some(c=>c.id===String(before.id)));
   const apply=await Promise.all([applyPlan(plan),applyPlan(plan)]);assert.equal(apply.reduce((n,r)=>n+r.changed,0),1);
   assert.equal((await buildPlan(now)).changes.some(c=>c.id===String(before.id)),false);

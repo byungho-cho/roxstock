@@ -1,3 +1,4 @@
+import {verifiedPolicyPeriod,verifiedLegacyApiAbsence} from '../dart-followup-evidence.js';
 import 'dotenv/config';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createHash,randomUUID} from 'node:crypto';
@@ -5,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {Prisma} from '@roxstock/shared/prisma';
 import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
-import {dartProgress,dartStatusWhere,dartPeriodEnd,thebornPreListingTask} from '@roxstock/shared/collection/dart-task-status';
+import {dartProgress,dartStatusWhere,thebornPreListingTask} from '@roxstock/shared/collection/dart-task-status';
 import {dartTaskScope} from '@roxstock/shared/collection/dart-backfill';
 import {PrismaDartRepository,taskSnapshot} from '../dart-repository.js';
 import fixtures from '../fixtures/dart-priority-audit-20261021.json' with {type:'json'};
@@ -27,14 +28,8 @@ export async function buildPlan(now=new Date()):Promise<Plan>{
   if(await prisma.dartFinancialFiling.count({where:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false}}))continue;
   let next:Record<string,unknown>|undefined,reason='';
   if(task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'&&thebornPreListingTask(fixture.symbol,task.fiscalYear,task.periodType)){
-    let policyEvidence:Record<string,unknown>={listingDate:'2024-11-06',periodEndUpperBound:`${task.fiscalYear}-12-31`,policyScope:'AUDITED_24_TASKS_ONLY'};
-    if(task.fiscalYear===2024){
-      const annual=await prisma.dartFinancialFiling.findFirst({where:{securityId:task.securityId,fiscalYear:2024,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3}},orderBy:{collectedAt:'desc'},select:{periodEndDate:true,sourceValidation:true}});
-      const proof=annual?.sourceValidation as {version?:number;corpCode?:string}|null;
-      if(!annual||proof?.version!==2||proof.corpCode!==mapping.corpCode||annual.periodEndDate.toISOString().slice(0,10)!=='2024-12-31')continue;
-      const end=dartPeriodEnd(task.fiscalYear,task.periodType,12);if(end>='2024-11-06')continue;
-      policyEvidence={...policyEvidence,periodEnd:end,closingMonth:12,monthEvidence:'validated 2024 annual statement'};
-    }
+    const policyEvidence=verifiedPolicyPeriod({id:task.id,symbol:fixture.symbol,corpCode:mapping.corpCode,fiscalYear:task.fiscalYear,reportCode:task.reportCode});
+    if(!policyEvidence)continue;
     next={status:'EXCLUDED',errorCode:'PRE_LISTING_POLICY_EXCLUDED',errorMessage:'상장 전 수집 제외',diagnostics:{...((task.diagnostics&&typeof task.diagnostics==='object'&&!Array.isArray(task.diagnostics))?task.diagnostics:{}),policyEvidence},processedAt:now.toISOString(),nextAttemptAt:null};reason='USER_POLICY_475560_PRE_LISTING_20241106';
   }else if(task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'&&fixture.periodEnd){
     const cache=await prisma.dartReportCache.findUnique({where:{corpCode_fiscalYear:{corpCode:mapping.corpCode,fiscalYear:task.fiscalYear}}});
@@ -49,7 +44,9 @@ export async function buildPlan(now=new Date()):Promise<Plan>{
   }else if(task.status==='NOT_APPLICABLE'&&task.errorCode==='DART_CORP_CODE_NOT_MAPPED'){
     next={status:'PENDING',processedAt:null,nextAttemptAt:now.toISOString()};reason='EXACT_MAPPING_RECOVERED';
   }else if(task.status==='NO_FILING'&&task.errorCode==='ROWS_NOT_PUBLISHED'){
-    next={status:'FAILED',errorCode:'REVIEW_REQUIRED',errorMessage:'기존 CFS/OFS 원응답 근거 부족 · 자료 미제공 여부 및 원문 보완 검증 필요',processedAt:null,nextAttemptAt:null};reason='LEGACY_FINANCIAL_RESPONSE_UNVERIFIED';
+    const proof=verifiedLegacyApiAbsence({id:task.id,symbol:fixture.symbol,corpCode:mapping.corpCode,fiscalYear:task.fiscalYear,reportCode:task.reportCode,updatedAt:task.updatedAt,selectedReceiptNo:task.selectedReceiptNo,lastAttemptAt:task.lastAttemptAt});
+    if(proof){next={status:'DATA_UNAVAILABLE',needsSupplement:true,errorCode:'API_ROWS_UNAVAILABLE',errorMessage:'보존된 CFS/OFS HTTP200·DART013·0행 확인 · 원문 보완 필요',diagnostics:{...((task.diagnostics&&typeof task.diagnostics==='object'&&!Array.isArray(task.diagnostics))?task.diagnostics:{}),...proof},processedAt:null,nextAttemptAt:null};reason='VERIFIED_LEGACY_API_ABSENCE';}
+    else{next={status:'FAILED',errorCode:'REVIEW_REQUIRED',errorMessage:'기존 CFS/OFS 원응답 근거 부족 또는 이후 변경 · 자료 미제공 여부 및 원문 보완 검증 필요',processedAt:null,nextAttemptAt:null};reason='LEGACY_FINANCIAL_RESPONSE_UNVERIFIED';}
   }
   // Mapping recovery is separately re-evaluated against live master identities under the lease.
   if(next)changes.push({id:String(task.id),updatedAt:task.updatedAt.toISOString(),symbol:fixture.symbol,year:task.fiscalYear,period:task.periodType,previous:taskSnapshot(task),next,reason});
@@ -85,7 +82,7 @@ export async function applyPlan(plan:Plan){
  }
  return {changed,skipped};
 }
-export async function restorePlan(plan:Plan){
+export async function restorePlan(plan:Plan,dryRun=false){
  let restored=0,skipped=0;
  for(const change of plan.changes){
   const n=await prisma.$transaction(async tx=>{
@@ -93,11 +90,12 @@ export async function restorePlan(plan:Plan){
    const task=await tx.dartBackfillTask.findUnique({where:{id:BigInt(change.id)}});
    if(!task||!audit||digest(taskSnapshot(task))!==digest(audit.next)||task.status==='SUCCESS')return 0;
    if(await tx.dartFinancialFiling.count({where:{securityId:task.securityId,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false}}))return 0;
+   if(dryRun)return 1;
    const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,updatedAt:task.updatedAt},data:updateData(change.previous)});
    if(result.count)await tx.dartTaskDecision.create({data:{taskId:task.id,reason:'AUDIT_CORRECTION_RESTORED',previous:json(taskSnapshot(task)),next:json(change.previous)}});
    return result.count;
   });restored+=n;if(!n)skipped++;
- }return {restored,skipped};
+ }return {restored:dryRun?0:restored,restorable:dryRun?restored:undefined,skipped,dryRun};
 }
 async function main(){
  const [mode,file]=process.argv.slice(2);
@@ -111,9 +109,13 @@ async function main(){
   }else{
    const plan=JSON.parse(readFileSync(file,'utf8')) as Plan;
    const result=mode==='restore'?await restorePlan(plan):await applyPlan(plan);
-   const mappingRecovered=0;
-   const rows=await prisma.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:dartTaskScope(),_count:{_all:true}});
-   console.log(JSON.stringify({mode,...result,mappingRecovered,progress:dartProgress(rows),reviewRequired:await prisma.dartBackfillTask.count({where:{AND:[dartTaskScope(),dartStatusWhere('REVIEW_REQUIRED')]}}),financialRecollectionExecuted:false}));
+   const mappingRecovered=0,restoreVerification=mode==='apply'?await restorePlan(plan,true):null;
+   const symbols=[...new Set(fixtures.map(f=>f.symbol))];
+   const [rows,cohortRows]=await prisma.$transaction(async tx=>Promise.all([
+     tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:dartTaskScope(),_count:{_all:true}}),
+     tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:{AND:[dartTaskScope(),{security:{symbol:{in:symbols}}}]},_count:{_all:true}}),
+   ]),{isolationLevel:'RepeatableRead'});
+   console.log(JSON.stringify({mode,...result,mappingRecovered,restoreVerification,progress:dartProgress(rows),auditedCohort:{securities:symbols.length,...dartProgress(cohortRows)},reviewRequired:await prisma.dartBackfillTask.count({where:{AND:[dartTaskScope(),dartStatusWhere('REVIEW_REQUIRED')]}}),financialRecollectionExecuted:false}));
   }
  });}finally{await repo.releaseLock(owner);await prisma.$disconnect();}
 }
