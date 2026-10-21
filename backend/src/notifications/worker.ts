@@ -4,8 +4,8 @@ import {defaultTargetConditions,evaluateTargetLots,validateTargetConditions} fro
 import {targetTransition} from './policy.js';
 import {pushConfigured,sendPush} from './fcm.js';
 type Tx=Prisma.TransactionClient;
-async function event(tx:Tx,uid:bigint,kind:string,key:string,epoch:number){
- const e=await tx.appNotificationEvent.upsert({where:{identityKey:key},create:{id:randomUUID(),userId:uid,kind,identityKey:key,epoch},update:{}});
+async function event(tx:Tx,uid:bigint,kind:string,key:string,epoch:number,accountId:bigint|null=null){
+ const e=await tx.appNotificationEvent.upsert({where:{identityKey:key},create:{id:randomUUID(),userId:uid,kind,identityKey:key,epoch,accountId},update:{}});
  const devices=await tx.appPushDevice.findMany({where:{userId:uid},take:100,select:{id:true,binding:true}});
  for(const d of devices)await tx.appPushDelivery.upsert({where:{eventId_deviceId:{eventId:e.id,deviceId:d.id}},create:{eventId:e.id,deviceId:d.id,binding:d.binding},update:{}});
 }
@@ -15,7 +15,11 @@ export async function scanNotificationUser(db:PrismaClient,userId:bigint,now=new
   const p=await tx.appNotificationPreference.findUnique({where:{userId}});if(!p)return;
   if(p.newsEnabled){
    const items=await tx.stockNewsItem.findMany({where:{id:{gt:p.newsCursor}},orderBy:{id:'asc'},take:100,select:{id:true,collectedAt:true,publishedAt:true,notificationSecurityIds:true,securities:{where:{security:{OR:[{buyTrades:{some:{account:{userId,isActive:true}}}},{accountWatchlistItems:{some:{listType:'WATCHLIST',account:{userId,isActive:true}}}}]}},select:{securityId:true}}}});
-   for(const n of items)if(Array.isArray(n.notificationSecurityIds)&&n.securities.some(s=>(n.notificationSecurityIds as string[]).includes(String(s.securityId)))&&p.newsEnabledAt&&n.collectedAt>p.newsEnabledAt&&n.publishedAt>p.newsEnabledAt)await event(tx,userId,'NEWS',`${userId}:NEWS:${n.id}`,p.newsEpoch);
+   for(const n of items)if(Array.isArray(n.notificationSecurityIds)&&p.newsEnabledAt&&n.collectedAt>p.newsEnabledAt&&n.publishedAt>p.newsEnabledAt){
+    const ids=n.securities.filter(s=>(n.notificationSecurityIds as string[]).includes(String(s.securityId))).map(s=>s.securityId);if(!ids.length)continue;
+    const account=await tx.account.findFirst({where:{userId,isActive:true,OR:[{buyTrades:{some:{securityId:{in:ids}}}},{watchlistItems:{some:{listType:'WATCHLIST',securityId:{in:ids}}}}]},select:{id:true},orderBy:[{isDefault:'desc'},{id:'asc'}]});
+    if(account)await event(tx,userId,'NEWS',`${userId}:NEWS:${n.id}`,p.newsEpoch,account.id);
+   }
    if(items.length)await tx.appNotificationPreference.update({where:{userId},data:{newsCursor:items.at(-1)!.id}});
   }
   if(p.targetEnabled){
@@ -32,7 +36,7 @@ export async function scanNotificationUser(db:PrismaClient,userId:bigint,now=new
      const previous=await tx.appTargetNotificationState.findUnique({where:{userId_lotId:{userId,lotId:r.id}}});
      const next=targetTransition(previous?.epoch===p.targetEpoch?previous:null,result.data.length>0,!p.targetBaseline,now);
      const {fire,...state}=next;await tx.appTargetNotificationState.upsert({where:{userId_lotId:{userId,lotId:r.id}},create:{userId,lotId:r.id,epoch:p.targetEpoch,...state},update:{epoch:p.targetEpoch,...state}});
-     if(fire)await event(tx,userId,'TARGET',`${userId}:TARGET:${p.targetEpoch}:${r.id}:${state.generation}`,p.targetEpoch);
+     if(fire)await event(tx,userId,'TARGET',`${userId}:TARGET:${p.targetEpoch}:${r.id}:${state.generation}`,p.targetEpoch,r.accountId);
     }
     if(rows.length<100)break;cursor=rows.at(-1)!.id;
    }

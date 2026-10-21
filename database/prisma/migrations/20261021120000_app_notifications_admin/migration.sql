@@ -40,6 +40,7 @@ CREATE TABLE `app_target_notification_states` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE `app_notification_events` (
+    `account_id` BIGINT UNSIGNED NULL,
     `id` VARCHAR(64) NOT NULL,
     `user_id` BIGINT UNSIGNED NOT NULL,
     `kind` VARCHAR(16) NOT NULL,

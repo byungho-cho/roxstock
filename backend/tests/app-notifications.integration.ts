@@ -44,7 +44,7 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
   await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:110,priceUpdatedAt:new Date()}});
   await Promise.all([scanNotificationUser(prisma,uid),scanNotificationUser(prisma,uid)]);
   assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);
-  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);
+  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);const arrival=await prisma.appNotificationEvent.findFirstOrThrow({where:{userId:uid,kind:'TARGET'}});assert.equal((await call(1,'/api/notifications/events/'+arrival.id)).json().data.accountId,String(accounts[1]!.id));
   // Cancel the pending target delivery while leaving news ON; the following send assertion isolates the news event.
   await call(1,'/api/notifications/settings','PUT',{targetEnabled:false,newsEnabled:true});
 

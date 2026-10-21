@@ -1188,6 +1188,7 @@ model AppTargetNotificationState {
   @@map("app_target_notification_states")
 }
 model AppNotificationEvent {
+  accountId BigInt? @map("account_id") @db.UnsignedBigInt
   id String @id @db.VarChar(64)
   userId BigInt @map("user_id") @db.UnsignedBigInt
   kind String @db.VarChar(16)

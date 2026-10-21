@@ -35,6 +35,6 @@ export async function notificationRoutes(app:FastifyInstance){
  });
  app.delete<{Params:{installationId:string}}>('/notifications/devices/:installationId',async req=>{await prisma.appPushDevice.deleteMany({where:{id:req.params.installationId,userId:req.auth!.userId,sessionId:req.auth!.sessionId}});return {data:{removed:true}};});
  app.get<{Params:{eventId:string}}>('/notifications/events/:eventId',async req=>{
-  if(!/^[a-f0-9-]{36}$/.test(req.params.eventId))throw bad();const event=await prisma.appNotificationEvent.findFirst({where:{id:req.params.eventId,userId:req.auth!.userId}});if(!event)throw new ApiError(404,'NOT_FOUND','알림을 찾을 수 없습니다.');return {data:{destination:notificationDestination(event.kind)}};
+  if(!/^[a-f0-9-]{36}$/.test(req.params.eventId))throw bad();const event=await prisma.appNotificationEvent.findFirst({where:{id:req.params.eventId,userId:req.auth!.userId}});if(!event)throw new ApiError(404,'NOT_FOUND','알림을 찾을 수 없습니다.');if(event.accountId&&!await prisma.account.findFirst({where:{id:event.accountId,userId:req.auth!.userId,isActive:true},select:{id:true}}))throw new ApiError(404,'NOT_FOUND','알림의 대상 계좌를 찾을 수 없습니다.');return {data:{destination:notificationDestination(event.kind),accountId:event.accountId?String(event.accountId):null}};
  });
 }

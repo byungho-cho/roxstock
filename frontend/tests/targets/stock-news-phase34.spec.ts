@@ -28,15 +28,15 @@ test('detail loading and request failure keep same available card height',async(
  await page.goto('/detail/stock-news/100');await expect(page.getByTestId('news-summary-card')).toBeVisible();const before=await frame(page);release();await expect(page.getByRole('alert')).toContainText('소식 요약 조회 실패',{timeout:15000});const after=await frame(page);expect(after.card.height).toBe(before.card.height);
 });
 test('target condition confirmation uses fixed common toast only after saved and refreshed report',async({page},info)=>{
- let version=0,failSave=false,failRefresh=false,reads=0;const conditions=[{days:30,rate:'10'}];
+ let version=0,failSave=false,failRefresh=false,reads=0,monitorReads=0;const conditions=[{days:30,rate:'10'}];
  await page.route('**/api/**',async r=>{const u=new URL(r.request().url()),p=u.pathname;if(p.startsWith('/api/pages/'))return r.fulfill({status:404,json:{error:{message:'legacy'}}});
- if(p==='/api/collection/monitoring')return r.fulfill({status:503,json:{error:{message:'배경 수집 조회 실패'}}});
+ if(p==='/api/collection/monitoring'){monitorReads++;return r.fulfill({status:503,json:{error:{message:'배경 수집 조회 실패'}}});}
  if(p==='/api/accounts')return r.fulfill({json:{data:[{id:'1',name:'검증 계좌',isActive:true,isDefault:true}]}});
  if(p.endsWith('/target-arrival-conditions')){if(r.request().method()==='PUT'){if(failSave)return r.fulfill({status:500,json:{error:{message:'저장 실패'}}});version++;}return r.fulfill({json:{data:{accountId:'1',scope:'ACCOUNT',version,conditions}}});}
  if(p.endsWith('/target-arrivals')){reads++;if(failRefresh)return r.fulfill({status:503,json:{error:{message:'홈 목록 갱신 실패'}}});return r.fulfill({json:{data:[],meta:{accountId:'1',conditionsVersion:version,total:0,enabled:true}}});}
  return r.fulfill({json:{data:[]}});});
- await page.goto('/detail/settings?view=target-arrival');const save=page.getByRole('button',{name:'저장',exact:true});await expect(save).toBeEnabled();const background=page.getByRole('alert').filter({hasText:'수집 상태 조회에 실패했습니다.'});await expect(background).toBeVisible();const y=(await save.boundingBox())!.y;
- await save.click();const toast=page.getByRole('alert').filter({hasText:'저장했습니다. 홈 목록을 갱신했습니다.'});await expect(toast).toBeVisible();expect(reads).toBeGreaterThan(0);expect((await save.boundingBox())!.y).toBe(y);expect(await toast.evaluate(n=>!!n.closest('.MuiSnackbar-root'))).toBe(true);await page.screenshot({path:info.outputPath('save-toast.png')});await expect(toast).not.toBeVisible({timeout:10000});await expect(background).toBeVisible();
+ await page.goto('/detail/settings?view=target-arrival');const save=page.getByRole('button',{name:'저장',exact:true});await expect(save).toBeEnabled();const background=page.getByRole('alert').filter({hasText:'수집 상태 조회에 실패했습니다.'});await expect(background).toHaveCount(0);expect(monitorReads).toBe(0);const y=(await save.boundingBox())!.y;
+ await save.click();const toast=page.getByRole('alert').filter({hasText:'저장했습니다. 홈 목록을 갱신했습니다.'});await expect(toast).toBeVisible();expect(reads).toBeGreaterThan(0);expect((await save.boundingBox())!.y).toBe(y);expect(await toast.evaluate(n=>!!n.closest('.MuiSnackbar-root'))).toBe(true);await page.screenshot({path:info.outputPath('save-toast.png')});await expect(toast).not.toBeVisible({timeout:10000});await expect(background).toHaveCount(0);expect(monitorReads).toBe(0);
  failSave=true;await save.click();await expect(page.getByRole('alert').filter({hasText:'저장 실패'})).toBeVisible();await expect(toast).toHaveCount(0);
  failSave=false;failRefresh=true;await save.click();await expect(page.getByRole('alert').filter({hasText:'홈 목록 갱신 실패'})).toBeVisible({timeout:15000});await expect(toast).toHaveCount(0);
 });

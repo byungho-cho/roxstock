@@ -32,3 +32,11 @@ test('stock detail button forwards exact symbol, keeps buy action and restores d
  await page.route('**/api/investor-trends?**',route=>{targets.push(new URL(route.request().url()).searchParams.get('target')!);return route.fulfill({json:{data:{rows:[],points:[],reason:'자료 없음',status:'NO_DATA'}}});});
  await page.goto('/stocks/1?detailTab=summary');const content=page.getByTestId('stock-detail-content');await expect(content.getByRole('button',{name:'매수',exact:true})).toBeVisible();await content.getByRole('button',{name:'투자동향',exact:true}).click();await expect(page).toHaveURL(/mode=stock&symbol=000001/);await expect.poll(()=>targets.length).toBeGreaterThan(0);expect(targets.every(t=>t==='000001')).toBe(true);await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/stocks\/1\?detailTab=summary/);await expect(page.getByRole('tab',{name:'요약',exact:true})).toHaveAttribute('aria-selected','true');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+test('cold push link survives login and selects the server-authorized destination account',async({page})=>{
+ await fixture(page);let logged=false,selected:string|null=null;const event='00000000-0000-0000-0000-000000000123';
+ await page.route('**/api/auth/me',route=>route.fulfill({status:logged?200:401,json:logged?{data:{id:'fixture-user',role:'USER',email:'fixture@example.invalid',mustChangePassword:false,settings:{}}}:{error:{code:'LOGIN_REQUIRED'}}}));
+ await page.route('**/api/auth/login',route=>{logged=true;return route.fulfill({json:{data:{ok:true}}});});
+ await page.route('**/api/auth/settings',route=>{selected=route.request().postDataJSON().selectedAccountId;return route.fulfill({json:{data:{selectedAccountId:selected}}});});
+ await page.route('**/api/notifications/events/'+event,route=>route.fulfill({json:{data:{destination:'/',accountId:'2'}}}));
+ await page.goto('/?pushEvent='+event);await page.getByLabel('이메일',{exact:true}).fill('fixture@example.invalid');await page.getByLabel('비밀번호',{exact:true}).fill('fixture-password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect.poll(()=>selected).toBe('2');await expect(page).toHaveURL(/\/$/);expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:fixture-user:selected-account-id'))).toBe('2');
+});
