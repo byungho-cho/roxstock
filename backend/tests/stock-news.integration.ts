@@ -49,7 +49,11 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   const notHeld=await get(`accounts/${b.id}/stock-news`);assert.ok(notHeld.data.every((r:any)=>!r.isHeld));
   assert.equal((await get(`accounts/${a.id}/stock-news/${held.data[0].id}`)).data.isHeld,true);
   await prisma.sellTrade.create({data:{buyTradeId:holding2.id,soldAt:now,quantity:'0.5',unitPrice:'110'}});
+  assert.ok((await get(`accounts/${a.id}/stock-news`)).data.every((r:any)=>r.isHeld));
+  assert.ok((await get(`accounts/${a.id}/stock-news?held=true`)).data.every((r:any)=>r.isHeld));
+  await prisma.sellTrade.create({data:{buyTradeId:holding1.id,soldAt:now,quantity:'0.5',unitPrice:'110'}});
   assert.ok((await get(`accounts/${a.id}/stock-news`)).data.every((r:any)=>!r.isHeld));
+  assert.equal((await get(`accounts/${a.id}/stock-news?held=true`)).meta.total,0);
   // Legacy pending rows remain preserved but can never trigger summary retries.
   const queued=await prisma.stockNewsItem.findMany({where:{provider:'TEST_NEWS33'},orderBy:{id:'asc'},take:6});
   assert.ok(queued.length>=6);
@@ -61,7 +65,7 @@ test('phase33 isolated DB: target union, single shared collection, partial/failu
   for(const elapsed of [0,1000,3601000,7202000,10803000])assert.equal((await supplementNewsSummaries(prisma,{now:new Date(now.getTime()+elapsed),extract})).status,'DISABLED');
   assert.equal(summaryCalls,0);
   assert.deepEqual(await prisma.stockNewsItem.findMany({where:{id:{in:queued.map(r=>r.id)}},orderBy:{id:'asc'}}),beforeSummaries);
-  console.log('STOCK_NEWS_SUMMARY_INITIAL_ONLY_DB_PROOF',JSON.stringify({accountHoldings:true,belowOneNotHeld:true,summaryCalls,legacyPendingPreserved:true,existingSummaryPreserved:true,titleOnlySuccess:true}));
+  console.log('STOCK_NEWS_SUMMARY_INITIAL_ONLY_DB_PROOF',JSON.stringify({accountHoldings:true,fractionalHoldingIncluded:true,summaryCalls,legacyPendingPreserved:true,existingSummaryPreserved:true,titleOnlySuccess:true}));
   await prisma.account.update({where:{id:a.id},data:{isActive:false}});await get(`accounts/${a.id}/stock-news`,404);
   console.log('STOCK_NEWS_DB_PROOF',JSON.stringify({sharedSourceCalls:calls,firstSaved:8,firstPage:10,snapshotTotal:33,unique:33,reportTotal:13,accountsIsolated:true,failedCollectionRetained:true,initialOnce:true,restartRecovery:true}));
  }finally{
