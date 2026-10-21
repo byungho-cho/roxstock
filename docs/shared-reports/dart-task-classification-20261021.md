@@ -1,5 +1,7 @@
 # DART 작업 분류·집계 보완 — v1.2.2
 
+최종 상태: PR #288 병합·v1.2.2 운영 배포·151건 보정·API/DB 대조 완료. 실측 수치와 남은 보류는 [운영 결과 보고서](dart-task-classification-production-20261021.md)에 기록했다. 아래 실행 전 상태와 검산 예시는 준비 당시 기록이다.
+
 기준: main `f31662ece9c1c68d7853f2dd620e222be94cf89b` (v1.2.1), 조사 PR [#287](https://github.com/byungho-cho/roxstock/pull/287), 조사 브랜치 `085da991fe205cf75c0d56849b8b2cdb7c8554e5`.
 
 초기 조사 이후 [1차 후속 #289](https://github.com/byungho-cho/roxstock/pull/289) 및 [2차 보정 준비 보고서](https://github.com/byungho-cho/roxstock/blob/docs/dart-second-correction-20261021/docs/shared-reports/dart-second-correction-20261021.md)를 추가 대조했다. 1차 후속에서 미매핑 13건은 모두 SUCCESS로 수집 완료됐고 현재 성공은 990이 아닌 1,003건이다. 이 13건은 상태/재수집 대상에서 제외한다. 금융 57건은 기존 114개 응답의 HTTP200/DART013/0행을 확인한 운영 담당의 공개 감사 메타데이터를 가져오며, 조회를 반복하지 않는다. 2차 보고서는 운영 상태 보정 미실행이고 개발 배포를 기다리고 있다. 초기 조사 #287은 문서 초안으로 유지한다.
