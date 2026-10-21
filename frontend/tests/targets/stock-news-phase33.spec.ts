@@ -4,7 +4,7 @@ async function geometry(page:Page){expect(await page.evaluate(()=>document.docum
 async function swipe(page:Page,left=true,vertical=false){const rect=(await page.getByTestId('news-content-summary').boundingBox())!,cdp=await page.context().newCDPSession(page),x=left?Math.min(page.viewportSize()!.width-32,rect.x+rect.width-40):rect.x+40,y=rect.y+Math.min(12,rect.height/2);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(left?-110:110),y:y+(vertical?150:1)}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
 
 test('list matches filters/count/paging; original links and icons do not open details; menu preserves all items and news is tenth',async({page},info)=>{
- const f=await fixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await expect(page.getByTestId('news-display-count')).toHaveText('10/26');await expect(page.getByTestId('news-collected-at')).toHaveText('최근 확인 10/19 15:00');await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
+ const f=await fixture(page);await page.goto('/detail/stock-news');await expect(page.getByTestId('stock-news-card')).toHaveCount(10);await expect(page.getByTestId('news-display-count')).toHaveText('10/26');await expect(page.getByTestId('news-collected-at')).toHaveCount(0);await expect(page.getByRole('button',{name:'뒤로가기',exact:true})).toHaveCount(0);
  const filters=page.getByRole('tablist');expect(await filters.evaluate(n=>getComputedStyle(n).gap)).toBe('6px');expect(await page.getByRole('tab',{name:'전체',exact:true}).evaluate(n=>[getComputedStyle(n).paddingLeft,getComputedStyle(n).paddingRight])).toEqual(['16px','16px']);
  const first=page.getByTestId('stock-news-card').first(),handle=await first.elementHandle();expect(await first.evaluate(n=>[getComputedStyle(n).paddingLeft,getComputedStyle(n).paddingRight])).toEqual(['8px','8px']);
  await first.getByRole('button',{name:'중요',exact:true}).click();await expect(page).toHaveURL(/\/detail\/stock-news$/);await expect(page.getByRole('tooltip')).toContainText('중요');await page.keyboard.press('Escape');
@@ -35,10 +35,10 @@ test('failure and account change retain only correct data, empty differs from in
  await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});await expect(page.getByTestId('stock-news-card')).toHaveCount(0);expect(f.paths.every(p=>!p.includes('/collect'))).toBe(true);
 });
 test('normal zero and not-collected states are different',async({page})=>{
- await fixture(page,{empty:true,before:true});await page.goto('/detail/stock-news');await expect(page.getByText('최초 수집 전입니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('최근 확인 —');await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
+ await fixture(page,{empty:true,before:true});await page.goto('/detail/stock-news');await expect(page.getByText('최초 수집 전입니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveCount(0);await expect(page.getByTestId('news-display-count')).toHaveText('0/0');
 });
 
-test('successful empty collection is normal zero news',async({page})=>{await fixture(page,{empty:true,partial:false});await page.goto('/detail/stock-news');await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveText('최근 확인 10/19 15:00');});
+test('successful empty collection is normal zero news',async({page})=>{await fixture(page,{empty:true,partial:false});await page.goto('/detail/stock-news');await expect(page.getByText('선별된 소식이 없습니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('news-collected-at')).toHaveCount(0);});
 
 test('filtered final item disables next; filter and count return unchanged',async({page})=>{
  await fixture(page);await page.goto('/detail/stock-news?type=REPORT');await expect(page.getByTestId('news-display-count')).toHaveText('9/9');

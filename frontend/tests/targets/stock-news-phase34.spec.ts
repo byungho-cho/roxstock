@@ -1,5 +1,31 @@
 import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './stock-news-fixture';
+test('header counter and held-only scope include all pages, retain type and hide date bars',async({page},info)=>{
+ await fixture(page);await page.goto('/detail/stock-news');
+ await expect(page.getByTestId('news-display-count')).toHaveText('10/26');
+ await expect(page.getByText('최근 확인',{exact:false})).toHaveCount(0);
+ const scope=page.getByRole('group',{name:'소식 대상'});
+ await scope.getByRole('button',{name:'보유',exact:true}).click();
+ await expect(page.getByTestId('news-display-count')).toHaveText('10/13');await expect(page.getByTestId('news-date-header')).toHaveCount(0);
+ await page.getByTestId('news-more').click();await expect(page.getByTestId('news-display-count')).toHaveText('13/13');
+ await page.getByRole('tab',{name:'기사',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('4/4');
+ await expect(scope.getByRole('button',{name:'보유',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByTestId('stock-news-card').first().getByTestId('stock-news-title').click();await expect(page).toHaveURL(/held=true/);await expect(page.getByTestId('news-detail-count')).toHaveText('1/4');
+ await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('4/4');
+ await scope.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('news-display-count')).toHaveText('9/9');await expect(page.getByTestId('news-date-header')).toHaveCount(1);
+ await page.screenshot({path:info.outputPath('news-scope-counter.png')});
+});
+test('collection date headers keep full daily counts across pages and date-only news hides unknown time',async({page},info)=>{
+ const data=await fixture(page);
+ data.items.forEach((item,index)=>{item.collectedAt=index<12?'2026-10-21T01:00:00Z':'2026-10-20T01:00:00Z';});
+ data.items[0]!.publishedPrecision='DATE';
+ data.items[0]!.originalUrl='https://n.news.naver.com/mnews/article/001/0012345678';
+ await page.goto('/detail/stock-news');
+ const headers=page.getByTestId('news-date-header');await expect(headers).toHaveCount(1);await expect(headers.first()).toContainText('2026. 10. 21');await expect(headers.first()).toContainText('수집 12건');
+ const card=page.getByTestId('stock-news-card').first();await expect(card).not.toContainText('시각 미상');await expect(card).not.toContainText('15:00');await expect(card.getByRole('link',{name:'원문보기'})).toHaveAttribute('href',data.items[0]!.originalUrl);
+ await page.getByTestId('news-more').click();await expect(page.getByTestId('stock-news-card')).toHaveCount(20);await expect(headers).toHaveCount(2);await expect(headers.last()).toContainText('수집 14건');
+ await page.screenshot({path:info.outputPath('news-date-headers.png')});
+});
 async function frame(page:Page){
  const result=await page.getByTestId('news-summary-card').evaluate(card=>{const main=document.querySelector('main')!,body=document.querySelector('[data-testid="news-summary-body"]')!,nav=document.querySelector('[aria-label="하단 메뉴"]')!;return {card:card.getBoundingClientRect().toJSON(),main:main.getBoundingClientRect().toJSON(),nav:nav.getBoundingClientRect().toJSON(),overflow:main.scrollHeight-main.clientHeight,bodyStyle:getComputedStyle(body).overflowY,documentOverflow:document.documentElement.scrollWidth-innerWidth};});
  expect(result.nav.top-result.card.bottom).toBeGreaterThanOrEqual(7);expect(result.nav.top-result.card.bottom).toBeLessThanOrEqual(9);expect(result.overflow).toBeLessThanOrEqual(1);expect(result.bodyStyle).toBe('auto');expect(result.documentOverflow).toBeLessThanOrEqual(0);return result;

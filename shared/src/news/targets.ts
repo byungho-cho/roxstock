@@ -1,5 +1,10 @@
 import type {PrismaClient} from '../generated/prisma/index.js';
 import type {NewsTarget} from './policy.js';
+import {Prisma} from '../generated/prisma/index.js';
+export async function newsHoldingIds(db:PrismaClient):Promise<Set<bigint>>{
+ const lots=await db.buyTrade.findMany({where:{account:{isActive:true}},select:{securityId:true,quantity:true,sellTrades:{select:{quantity:true}}}});
+ return new Set(lots.filter(lot=>lot.quantity.minus(lot.sellTrades.reduce((sum,sale)=>sum.plus(sale.quantity),new Prisma.Decimal(0))).greaterThan(0)).map(lot=>lot.securityId));
+}
 export const accountNewsScope=(accountId:bigint)=>({OR:[{buyTrades:{some:{accountId}}},{accountWatchlistItems:{some:{accountId,listType:'WATCHLIST' as const}}}]});
 export async function newsTargets(db:PrismaClient,accountId?:bigint):Promise<NewsTarget[]>{
  const result:NewsTarget[]=[];let cursor=0n;

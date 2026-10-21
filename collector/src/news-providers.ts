@@ -6,6 +6,7 @@ import {withFinancialLease} from '@roxstock/shared/collection/financial-lease';
 import {OpenDartProvider,DartApiError} from './dart-provider.js';
 import {PrismaDartRepository} from './dart-repository.js';
 import {randomUUID} from 'node:crypto';
+import {naverNewsSource} from './naver-news.js';
 export type ProviderResult={provider:string;candidates:NewsCandidate[];warnings:string[];requests:number;available?:boolean;diagnostics?:Record<string,number>;gaps?:{from:string;to:string;reason:string;section?:string}[];normalExcluded?:number};
 export type NewsSource={id:string;collect:(targets:NewsTarget[],from:Date,to:Date,signal?:AbortSignal,requiredFrom?:Date)=>Promise<ProviderResult>};
 const sleep=(ms:number,signal?:AbortSignal)=>new Promise<void>((resolve,reject)=>{if(signal?.aborted)return reject(Error('ABORTED'));const t=setTimeout(()=>{signal?.removeEventListener('abort',abort);resolve();},ms);const abort=()=>{clearTimeout(t);reject(Error('ABORTED'));};signal?.addEventListener('abort',abort,{once:true});});
@@ -69,6 +70,7 @@ export function publicDescription(head:string){
 }
 export function defaultNewsSources(db:PrismaClient):NewsSource[]{
  return [
+  ...(process.env.NAVER_NEWS_ENABLED==='true'?[naverNewsSource()]:[]),
   {id:'HANKYUNG_RSS',collect:async(targets,from,to,signal,requiredFrom)=>{
    const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],warnings:string[]=[],diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0},gaps:NonNullable<ProviderResult['gaps']>=[];let readable=0;
    for(const section of ['finance','economy','it'])try{

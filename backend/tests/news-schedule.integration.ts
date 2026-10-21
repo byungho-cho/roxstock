@@ -7,7 +7,7 @@ import {PrismaCollectorRepository} from '../../collector/src/repository.js';
 import {buildApp} from '../src/auth/route-test-app.js';
 import type {NewsCandidate} from '@roxstock/shared/news/policy';
 import {kstStart,seoulDay} from '@roxstock/shared/news/policy';
-test('phase35 DB: per-slot retry isolation, daily cap, deferred and legacy reconsideration, coalescing, settings and supplement once',async()=>{
+test('phase35 DB: per-slot retry isolation, per-run report cap without daily cap, deferred and legacy reconsideration, coalescing, settings and supplement once',async()=>{
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/);
  const app=buildApp(),now=new Date(kstStart(seoulDay(new Date())).getTime()+6*3600000),account=await db.account.create({data:{name:'NEWS35',brokerName:'CI',cashBalance:'0'}}),security=await db.security.create({data:{symbol:'989351',name:'검증회사',marketType:'OTHER'}});
  let good=0,bad=0,fail=true;
@@ -24,7 +24,7 @@ test('phase35 DB: per-slot retry isolation, daily cap, deferred and legacy recon
   assert.equal(good,1);assert.equal(bad,2);assert.equal(retried.status,'SUCCESS');assert.equal(retried.saved,5);assert.equal(await db.stockNewsItem.count(),10);
   assert.ok(await db.stockNewsItem.findUnique({where:{canonicalHash:legacy.canonicalHash}}));
   assert.equal((await db.stockNewsSeen.findUniqueOrThrow({where:{key:legacy.canonicalHash}})).status,'STORED');
-  const late=new Date(now.getTime()+10*3600000);await collectStockNews(db,{now:late,sources,enrich:false});const calls=good;await collectStockNews(db,{now:late,sources,enrich:false});assert.equal(good,calls);assert.equal(await db.stockNewsItem.count(),10);
+  const late=new Date(now.getTime()+10*3600000);await collectStockNews(db,{now:late,sources,enrich:false});const calls=good;await collectStockNews(db,{now:late,sources,enrich:false});assert.equal(good,calls);assert.equal(await db.stockNewsItem.count(),15);
   const supplement=await collectStockNews(db,{now:late,sources,enrich:false,manualDate:seoulDay(late)});assert.equal(supplement.saved,0);assert.equal(supplement.kind,'SUPPLEMENT');const manualCalls=good;await collectStockNews(db,{now:late,sources,enrich:false,manualDate:seoulDay(late)});assert.equal(good,manualCalls);
   assert.equal(await db.stockNewsSlot.count({where:{kind:'SUPPLEMENT'}}),1);
   const settings=await app.inject('/api/stock-news/settings');assert.equal(settings.statusCode,200);assert.equal(settings.json().data.intervalHours,3);
@@ -46,7 +46,7 @@ test('phase35 DB: per-slot retry isolation, daily cap, deferred and legacy recon
   await collectStockNews(db,{now:cursorAt,enrich:false,sources:[{id:'TEST_NEWS35_CURSOR',collect:async(_targets,from)=>{requestedFrom=from;return {provider:'TEST_NEWS35_CURSOR',candidates:[],warnings:[],requests:1};}}]});
   assert.equal(requestedFrom?.toISOString(),kstStart(seoulDay(now)).toISOString());
   const latest=await db.stockNewsState.findUniqueOrThrow({where:{id:'stock-news'}});assert.ok(latest.lastAttemptAt);assert.ok(latest.lastFinishedAt);assert.ok(latest.lastFullSuccessAt);assert.ok(latest.lastNewStoredAt);
-  console.log('NEWS35_DB_PROOF',JSON.stringify({dailyStored:10,deferredReconsidered:5,legacyReconsidered:true,goodProviderSkippedOnRetry:true,sameSlotOnce:true,missedSlotsCoalesced:true,supplementOnce:true,settingsValidated:true,settingsNoCollection:true,inflightSettingsPreserved:true,coverageWarningWithCandidate:true,continuousCursorNotAdvanced:true,noFutileCoverageRetry:true,confirmedCursorUsed:true}));
+  console.log('NEWS35_DB_PROOF',JSON.stringify({dailyStored:15,deferredReconsidered:5,legacyReconsidered:true,goodProviderSkippedOnRetry:true,sameSlotOnce:true,missedSlotsCoalesced:true,supplementOnce:true,settingsValidated:true,settingsNoCollection:true,inflightSettingsPreserved:true,coverageWarningWithCandidate:true,continuousCursorNotAdvanced:true,noFutileCoverageRetry:true,confirmedCursorUsed:true}));
  }finally{
   await db.stockNewsSecurity.deleteMany({where:{securityId:security.id}});await db.stockNewsItem.deleteMany({where:{provider:{startsWith:'TEST_NEWS35'}}});await db.stockNewsCandidate.deleteMany();await db.stockNewsSlot.deleteMany();await db.stockNewsSchedule.deleteMany();await db.stockNewsState.deleteMany();await db.stockNewsSeen.deleteMany();await db.stockNewsProviderState.deleteMany({where:{provider:{startsWith:'TEST_NEWS35'}}});await db.collectorRun.deleteMany({where:{jobType:'stock-news'}});await db.collectorLock.deleteMany({where:{jobName:'stock-news'}});await db.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await db.account.delete({where:{id:account.id}});await db.security.delete({where:{id:security.id}});await app.close();await db.$disconnect();
  }
