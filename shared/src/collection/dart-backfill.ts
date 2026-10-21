@@ -1,3 +1,4 @@
+import {dartIncludedTasks} from './dart-task-status.js';
 import type {Prisma} from '../generated/prisma/index.js';
 import {eligibleWhere} from './collection-policy.js';
 import {getSeoulClock} from './time.js';
@@ -8,7 +9,7 @@ export function dartTaskPeriodScope(now=new Date()):Prisma.DartBackfillTaskWhere
 }
 
 export function dartTaskScope(now=new Date()):Prisma.DartBackfillTaskWhereInput {
-  return {...dartTaskPeriodScope(now),security:eligibleWhere('dart-financial-statements')};
+  return {...dartTaskPeriodScope(now),AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]},dartIncludedTasks],security:eligibleWhere('dart-financial-statements')};
 }
 
 /** Review holds are unresolved, but must not block the next automatic stage. */

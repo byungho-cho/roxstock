@@ -1,3 +1,4 @@
+import {dartProgress,dartPolicyExclusions,missingDartReport} from '@roxstock/shared/collection/dart-task-status';
 import {dartTaskScope,dartAutomaticWork} from '@roxstock/shared/collection/dart-backfill';
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {publicAnnualTarget} from './dart-public-source.js';
@@ -125,6 +126,58 @@ export class PrismaDartRepository extends CollectionJobRepository {
     if (historicalPlanActive) await this.prisma.dartBackfillTask.updateMany({ where: { status: 'PENDING', securityId:{notIn:priorityIds}, security: { isActive: false } }, data: { status: 'NOT_APPLICABLE', processedAt: initializedAt, errorCode: 'SECURITY_INACTIVE', errorMessage: 'Security became inactive before its backfill was started.' } });
   }
 
+  async missingReportDecision(securityId:bigint,year:number,period:DartPeriodType,reports:DartReport[],now=new Date()) {
+    const months=[...new Set(reports.filter(r=>r.selection?.version===2&&!r.selection.periodError).map(r=>r.selection?.fiscalYearEndMonth).filter((m):m is number=>!!m))];
+    let month=months.length===1?months[0]!:null;
+    let evidence='validated disclosure selection';
+    if(!month){
+      const annuals=await this.prisma.dartFinancialFiling.findMany({where:{securityId,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3},sourceValidation:{path:'$.version',equals:2},fiscalYear:{lte:year}},select:{periodEndDate:true},orderBy:{periodEndDate:'desc'},take:2});
+      const stored=[...new Set(annuals.map(r=>r.periodEndDate.getUTCMonth()+1))];
+      if(annuals.length&&stored.length===1){month=stored[0]!;evidence='stored validated annual period ends';}
+    }
+    return missingDartReport({now,year,period,closingMonth:month,monthEvidence:evidence});
+  }
+
+  /** Indexed, bounded page. Global financial lease serializes this with collection/manual work. */
+  async reactivateDueTasks(now=new Date(),limit=100) {
+    const year=Number(getSeoulClock(now).dateKey.slice(0,4));
+    const tasks=await this.prisma.dartBackfillTask.findMany({where:{...dartTaskScope(now),OR:[
+      {status:{in:['NOT_DUE','NO_FILING']},nextAttemptAt:{lte:now}},
+      {status:'FAILED',errorCode:'REVIEW_REQUIRED',diagnostics:{path:'$.reason',equals:'SUBMISSION_DEADLINE_UNVERIFIED'},nextAttemptAt:{lte:now}},
+      // Upgrade legacy current/previous calendar periods without loading the universe.
+      // ROWS_NOT_PUBLISHED is deliberately excluded: operator evidence owns those tasks.
+      {status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',fiscalYear:{gte:year-1},nextAttemptAt:null},
+    ]},orderBy:[{nextAttemptAt:'asc'},{id:'asc'}],take:limit});
+    let changed=0;
+    for(const task of tasks){
+      const count=await this.prisma.$transaction(async tx=>{
+        const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:task.status,updatedAt:task.updatedAt,nextAttemptAt:task.nextAttemptAt},data:{status:'PENDING',processedAt:null,nextAttemptAt:now}});
+        if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'?'LEGACY_PERIOD_RECHECK':'SCHEDULED_RECHECK',previous:taskSnapshot(task),next:{status:'PENDING',checkedAt:now.toISOString()}}});
+          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});
+          await tx.dartCollectorState.updateMany({where:{id:1},data:{phase:'BACKFILL',backfillCompletedAt:null}});}
+        return result.count;
+      });changed+=count;
+    }
+    return changed;
+  }
+
+  async recoverMappedTasks(now=new Date(),limit=100) {
+    const tasks=await this.prisma.dartBackfillTask.findMany({where:{status:'NOT_APPLICABLE',errorCode:'DART_CORP_CODE_NOT_MAPPED',security:{...eligibleWhere('dart-financial-statements'),securityType:'STOCK',dartCorpMapping:{isNot:null}}},orderBy:{id:'asc'},take:limit,include:{security:{include:{dartCorpMapping:true}}}});
+    let changed=0;
+    for(const task of tasks){
+      const security=task.security,mapping=security.dartCorpMapping;
+      if(!mapping||!/^\d{8}$/.test(mapping.corpCode)||mapping.stockCode!==security.symbol||mapping.collectionSymbol!==security.symbol)continue;
+      const count=await this.prisma.$transaction(async tx=>{
+        const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:'NOT_APPLICABLE',errorCode:'DART_CORP_CODE_NOT_MAPPED',updatedAt:task.updatedAt,security:{...eligibleWhere('dart-financial-statements'),securityType:'STOCK',symbol:mapping.stockCode,dartCorpMapping:{is:{corpCode:mapping.corpCode,stockCode:mapping.stockCode,collectionSymbol:mapping.stockCode}}}},data:{status:'PENDING',processedAt:null,nextAttemptAt:now}});
+        if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:'EXACT_MAPPING_RECOVERED',previous:taskSnapshot(task),next:{status:'PENDING',corpCode:mapping.corpCode,stockCode:mapping.stockCode,checkedAt:now.toISOString()}}});
+          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});
+          await tx.dartCollectorState.updateMany({where:{id:1},data:{phase:'BACKFILL',backfillCompletedAt:null}});}
+        return result.count;
+      });changed+=count;
+    }
+    return changed;
+  }
+
   async resetInterruptedTasks(): Promise<number> {
     const result = await this.prisma.dartBackfillTask.updateMany({ where: { status: 'PROCESSING' }, data: { status: 'PENDING', errorCode: 'PROCESS_RESTARTED', errorMessage: 'The previous collector process stopped before completing this report.' } });
     return result.count;
@@ -170,7 +223,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
 
   async listTasksForSecurity(securityId: bigint, now = new Date()): Promise<DartBackfillTaskRecord[]> {
     const tasks = await this.prisma.dartBackfillTask.findMany({
-      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:'NO_FILING',fiscalYear:Number(getSeoulClock(now).dateKey.slice(0,4)),lastAttemptAt:{lt:new Date(now.getTime()-86400000)}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}},{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}},{diagnostics:{path:'$.validationResult',equals:'NON_KRW_STORAGE_UNSUPPORTED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
+      where: { securityId, fiscalYear:{gte:2015,lte:Number(getSeoulClock(now).dateKey.slice(0,4))}, AND:[{OR:[{periodType:'ANNUAL'},{fiscalYear:{gte:2020}}]}], OR: [{status:{in:['NOT_DUE','NO_FILING']},nextAttemptAt:{lte:now}},{ status: 'PENDING' }, { status: 'PROCESSING' }, { status: 'FAILED', AND: [{ OR: [{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}},{diagnostics:{path:'$.validationResult',equals:'CLOSING_MONTH_CHANGED'}},{diagnostics:{path:'$.validationResult',equals:'NON_KRW_STORAGE_UNSUPPORTED'}}] }], OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
       select: { id: true, securityId: true, fiscalYear: true, reportCode: true, periodType: true, attempts: true, errorCode:true,diagnostics:true },
       take:100,
       orderBy: [{ fiscalYear: 'desc' }, { reportCode: 'asc' }],
@@ -228,8 +281,13 @@ export class PrismaDartRepository extends CollectionJobRepository {
     return this.prisma.dartApiDailyUsage.findUnique({ where: { usageDate: toDatabaseDate(getSeoulClock(now).dateKey) } });
   }
 
-  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED'; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
-    return this.prisma.$transaction(tx=>tx.dartBackfillTask.update({ where: { id: taskId }, data: {...update,...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})} }));
+  async updateTask(taskId: bigint, update: { status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED' | 'NOT_DUE' | 'DATA_UNAVAILABLE' | 'EXCLUDED'; needsSupplement?:boolean; attempts?: number; selectedReceiptNo?: string | null; lastAttemptAt?: Date; nextAttemptAt?: Date | null; processedAt?: Date | null; errorCode?: string | null; errorMessage?: string | null; diagnostics?: Prisma.InputJsonValue }) {
+    return this.prisma.$transaction(async tx=>{
+      const previous=await tx.dartBackfillTask.findUniqueOrThrow({where:{id:taskId}});
+      const next=await tx.dartBackfillTask.update({where:{id:taskId},data:{...update,...(update.status==='SUCCESS'?{needsSupplement:false}:{}),...(update.errorCode?{errorCode:storedDartCode(update.errorCode)}:{})}});
+      await tx.dartTaskDecision.create({data:{taskId,reason:update.errorCode??update.status,previous:taskSnapshot(previous),next:taskSnapshot(next)}});
+      return next;
+    });
   }
 
   async markTasks(securityId: bigint, fiscalYear: number, reportCode: string, status: 'NO_FILING' | 'NOT_APPLICABLE' | 'FAILED', now: Date, errorCode?: string, errorMessage?: string) {
@@ -304,9 +362,21 @@ export class PrismaDartRepository extends CollectionJobRepository {
     return true;
   }
 
+  async completeTaskFromStorage(securityId:bigint,fiscalYear:number,reportCode:string,receiptNo:string,selectedReceiptNo:string) {
+    const filing=await this.prisma.dartFinancialFiling.findUnique({where:{receiptNo}});
+    const proof=filing?.sourceValidation as Record<string,unknown>|null;
+    if(!filing||filing.isWithdrawn||filing.securityId!==securityId||filing.fiscalYear!==fiscalYear||filing.reportCode!==reportCode||filing.normalizationVersion<3||proof?.version!==2||proof.taskFiscalYear!==fiscalYear||proof.reportCode!==reportCode||proof.fsDivision!==filing.fsDivision||proof.reportPeriod!==filing.periodEndDate.toISOString().slice(0,7)||proof?.selectedReceiptNo!==selectedReceiptNo||proof?.returnedReceiptNo!==receiptNo)return false;
+    const mapping=await this.prisma.dartCorpMapping.findUnique({where:{securityId}});
+    if(!mapping||mapping.corpCode!==proof.corpCode)return false;
+    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}}});
+    if(!task||task.periodType!==filing.periodType||['SUCCESS','EXCLUDED'].includes(task.status)||task.status==='NOT_APPLICABLE'&&dartPolicyExclusions.includes(task.errorCode??''))return false;
+    await this.updateTask(task.id,{status:'SUCCESS',needsSupplement:false,processedAt:new Date(),nextAttemptAt:null,errorCode:null,errorMessage:null,selectedReceiptNo,diagnostics:filing.sourceValidation as Prisma.InputJsonValue});
+    return true;
+  }
+
   async isReviewHeld(securityId:bigint,fiscalYear:number,reportCode:string):Promise<boolean> {
-    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}},select:{status:true,errorCode:true}});
-    return task?.status==='FAILED'&&task.errorCode==='REVIEW_REQUIRED';
+    const task=await this.prisma.dartBackfillTask.findUnique({where:{securityId_fiscalYear_reportCode:{securityId,fiscalYear,reportCode}},select:{status:true,errorCode:true,needsSupplement:true}});
+    return task?.status==='FAILED'&&task.errorCode==='REVIEW_REQUIRED'||task?.status==='DATA_UNAVAILABLE'&&task.needsSupplement;
   }
 
   async markSecurityError(securityId: bigint, message: string): Promise<void> {
@@ -316,12 +386,12 @@ export class PrismaDartRepository extends CollectionJobRepository {
   async backfillProgress(now=new Date()) {
     const [total, rows, completeSecurities, activeSecurities] = await Promise.all([
       this.prisma.dartBackfillTask.count({where:dartTaskScope(now)}),
-      this.prisma.dartBackfillTask.groupBy({ by: ['status'],where:dartTaskScope(now), _count: { _all: true } }),
+      this.prisma.dartBackfillTask.groupBy({ by: ['status','errorCode','needsSupplement'],where:dartTaskScope(now), _count: { _all: true } }),
       this.prisma.dartSecurityState.count({ where: { backfillCompletedAt: { not: null } } }),
       this.prisma.security.count({ where: { isActive: true } }),
     ]);
-    const counts = Object.fromEntries(rows.map((row) => [row.status, row._count._all]));
-    return { totalReports: total, processedReports: total - (counts.PENDING ?? 0) - (counts.PROCESSING ?? 0) - (counts.FAILED ?? 0), success: counts.SUCCESS ?? 0, noFiling: counts.NO_FILING ?? 0, notApplicable: counts.NOT_APPLICABLE ?? 0, failed: counts.FAILED ?? 0, pending: counts.PENDING ?? 0, processing: counts.PROCESSING ?? 0, completedSecurities: completeSecurities, activeSecurities };
+    const progress=dartProgress(rows),counts=progress.byStatus;
+    return { ...progress,totalReports: progress.currentTarget, processedReports: progress.completed, success: counts.SUCCESS ?? 0, noFiling: counts.NO_FILING ?? 0, notApplicable: counts.NOT_APPLICABLE ?? 0, failed: counts.FAILED ?? 0, pending: counts.PENDING ?? 0, processing: counts.PROCESSING ?? 0, completedSecurities: completeSecurities, activeSecurities };
   }
 
   async markBackfillCompleteIfReady(now = new Date()): Promise<boolean> {
@@ -374,19 +444,12 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 
   async markUnmappedTasksNotApplicable(now = new Date()): Promise<number> {
-    const noMap = await this.prisma.security.findMany({ where: { isActive: true, OR: [{ securityType: 'STOCK', dartCorpMapping: null }, { securityType: { not: 'STOCK' } }] }, select: { id: true } });
-    if (!noMap.length) return 0;
-    return (await this.prisma.dartBackfillTask.updateMany({
-      where: { securityId: { in: noMap.map((x) => x.id) }, status: { in: ['PENDING', 'FAILED'] } },
-      data: { status: 'NOT_APPLICABLE', processedAt: now, errorCode: 'NOT_DART_LISTED_EQUITY', errorMessage: 'No DART periodic financial statement collection applies to this security.' },
-    })).count;
+    // A missing identity never proves a policy exclusion. The normal task path records a retry.
+    return 0;
   }
 
   async markAllSecurityTasksNotApplicable(securityId: bigint, code: string, message: string): Promise<number> {
-    return (await this.prisma.dartBackfillTask.updateMany({
-      where: { securityId, status: { in: ['PENDING', 'FAILED'] } },
-      data: { status: 'NOT_APPLICABLE', processedAt: new Date(), errorCode: storedDartCode(code), errorMessage: message.slice(0, 1000) },
-    })).count;
+    return (await this.prisma.dartBackfillTask.updateMany({where:{securityId,status:'PENDING'},data:{status:'FAILED',processedAt:null,nextAttemptAt:new Date(Date.now()+86400000),errorCode:storedDartCode(code),errorMessage:message.slice(0,1000)}})).count;
   }
 
   async settleInterruptedTasks(runId: bigint, security: DartSecurityRecord, status: 'PENDING' | 'FAILED', code: string, message: string, now = new Date()): Promise<number> {
@@ -442,3 +505,7 @@ export class PrismaDartRepository extends CollectionJobRepository {
   }
 }
 
+
+export function taskSnapshot(task:{status:string;needsSupplement:boolean;errorCode:string|null;errorMessage:string|null;attempts:number;selectedReceiptNo:string|null;diagnostics:Prisma.JsonValue;nextAttemptAt:Date|null;lastAttemptAt:Date|null;processedAt:Date|null}) {
+ return {status:task.status,needsSupplement:task.needsSupplement,errorCode:task.errorCode,errorMessage:task.errorMessage,attempts:task.attempts,selectedReceiptNo:task.selectedReceiptNo,diagnostics:task.diagnostics,nextAttemptAt:task.nextAttemptAt?.toISOString()??null,lastAttemptAt:task.lastAttemptAt?.toISOString()??null,processedAt:task.processedAt?.toISOString()??null};
+}

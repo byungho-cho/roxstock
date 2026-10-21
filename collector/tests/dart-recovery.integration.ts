@@ -19,7 +19,7 @@ test('MariaDB full codes, mapping validation/rollback, successful tasks and fili
  await repo.markAllSecurityTasksNotApplicable(stock.id,'DART_CORP_CODE_NOT_MAPPED','fixture');
  await repo.markUnmappedTasksNotApplicable();
  const tasks=await db.dartBackfillTask.findMany({orderBy:{fiscalYear:'desc'}});
- assert.ok(tasks.some(t=>t.errorCode==='DART_CORP_CODE_NOT_MAPPED'));assert.ok(tasks.some(t=>t.errorCode==='NOT_DART_LISTED_EQUITY'));
+ assert.ok(tasks.some(t=>t.errorCode==='DART_CORP_CODE_NOT_MAPPED'));assert.ok(!tasks.some(t=>t.errorCode==='NOT_DART_LISTED_EQUITY'));assert.equal(tasks.find(t=>t.errorCode==='DART_CORP_CODE_NOT_MAPPED')?.status,'FAILED');
  assert.equal(tasks.find(t=>t.fiscalYear===2023)?.status,'SUCCESS');assert.equal(tasks.find(t=>t.fiscalYear===2022)?.status,'NO_FILING');
  const corp={corpCode:'00991111',corpName:'Fixture',stockCode:'991111',modifiedDate:'20261001'};
  await repo.syncCorporations([corp]);const before=await db.dartCorpMapping.findMany(),state=await db.dartCollectorState.findUnique({where:{id:1}});

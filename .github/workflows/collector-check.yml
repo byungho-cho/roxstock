@@ -43,7 +43,7 @@ jobs:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_dart_recovery_test
         run: |
           node --import tsx backend/tests/prepare-dart-recovery.ts
-          node --import tsx --test --test-concurrency=1 collector/tests/dart-recovery.integration.ts collector/tests/dart-source-validation.integration.ts collector/tests/native-currency.integration.ts
+          node --import tsx --test --test-concurrency=1 collector/tests/dart-recovery.integration.ts collector/tests/dart-source-validation.integration.ts collector/tests/native-currency.integration.ts collector/tests/dart-task-classification.integration.ts
       - name: Bounded valuation queue, memory cap and hard-exit recovery
         env:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_valuation_queue_phase16_test
