@@ -37,12 +37,13 @@ const statusStyle: Record<string, { label: string; background: string; foregroun
   SKIPPED: { label: '건너뜀', background: '#7A8CA8', foreground: '#050A12' },
 };
 const featureNames: Record<string, string> = {
-  'security-master': '종목 마스터',
   'realtime-prices': '실시간 주가',
-  'market-prices': '전체 종목 주가',
   'account-snapshots': '일별 계좌 스냅샷',
+  'market-prices': '전체 종목 주가',
   'investor-trends': '투자동향',
   'dart-financial-statements': 'DART 재무제표',
+  'security-master': '종목 마스터',
+  'stock-news': '종목소식',
 };
 const dateText = (value?: string | null) => value
   ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
@@ -379,7 +380,12 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   };
 
   if (!feature) {
-    const features = summary.data?.features ?? Object.keys(featureNames).map(featureShell);
+    const sourceFeatures = summary.data?.features ?? Object.keys(featureNames).map(featureShell);
+    const featureOrder = Object.keys(featureNames);
+    const features = [...sourceFeatures].sort((a, b) => {
+      const rank = (id: string) => featureOrder.includes(id) ? featureOrder.indexOf(id) : featureOrder.length;
+      return rank(a.id) - rank(b.id);
+    });
     const generatedAt = summary.data?.generatedAt ?? '';
     
     return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box sx={{ pb: '80px' }}>

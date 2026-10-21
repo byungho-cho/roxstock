@@ -1,10 +1,12 @@
 import {Prisma} from '../../shared/dist/generated/prisma/index.js';
 const dec=v=>v==null?null:new Prisma.Decimal(v);
 const close=(a,b)=>a!=null&&b!=null&&dec(a).minus(b).abs().lte('50000000');
+export const annualSupplementExcluded=row=>row.periodType==='ANNUAL'&&row.supplemental?.kisAnnualExclusion?.reason==='USER_PERIOD_COLLECTION_EXCLUDED'&&row.supplemental.kisAnnualExclusion.fiscalYear===row.fiscalYear;
 /** Confirm fiscal period and unique DART division using independently reported balances and flows. */
 export function annualSupplement(row,annualRows,filings){
  const original=row.values??{},provenance=row.provenance??{},supplemental=row.supplemental??{};
  const unchanged=reason=>({changed:false,reason});
+ if(annualSupplementExcluded(row))return unchanged('USER_PERIOD_COLLECTION_EXCLUDED');
  if(row.periodType!=='ANNUAL')return unchanged('ANNUAL_ONLY');
  const candidates=annualRows.filter(a=>a.source==='KIS_API'&&a.periodType==='ANNUAL'&&a.fiscalYear===row.fiscalYear&&a.stacYymm===`${row.fiscalYear}12`&&a.periodEnd===`${row.fiscalYear}-12-31`&&a.currency==='KRW');
  if(candidates.length!==1)return unchanged('KIS_MATCHING_YEAR_UNAVAILABLE');
