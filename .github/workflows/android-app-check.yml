@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
+      ROXSTOCK_FCM_APP_ID: ${{ vars.ROXSTOCK_FCM_APP_ID }}
+      ROXSTOCK_FCM_API_KEY: ${{ secrets.ROXSTOCK_FCM_API_KEY }}
+      ROXSTOCK_FCM_PROJECT_ID: ${{ vars.ROXSTOCK_FCM_PROJECT_ID }}
+      ROXSTOCK_FCM_SENDER_ID: ${{ vars.ROXSTOCK_FCM_SENDER_ID }}
       ROXSTOCK_SIGNING_PASSWORD: ${{ secrets.ROXSTOCK_ANDROID_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +46,8 @@ jobs:
           echo "ROXSTOCK_SIGNING_KEYSTORE=$RUNNER_TEMP/roxstock.p12" >> "$GITHUB_ENV"
       - name: Build separate APKs and verify web-only package
         run: |
-          gradle --no-daemon -p android-app assembleWebOnlyDebug lintWebOnlyDebug assembleNotificationsDebug assembleWebOnlyDebugAndroidTest
+          gradle --no-daemon -p android-app assembleWebOnlyDebug lintWebOnlyDebug assembleNotificationsDebug lintNotificationsDebug assembleNotificationsDebugAndroidTest assembleWebOnlyDebugAndroidTest
+          python3 android-app/scripts/verify-notifications-apk.py android-app/app/build/outputs/apk/notifications/debug/app-notifications-debug.apk
           python3 android-app/scripts/verify-web-only-apk.py android-app/app/build/outputs/apk/webOnly/debug/app-webOnly-debug.apk
       - name: Enable KVM for installation test
         run: |
@@ -57,13 +62,20 @@ jobs:
           target: google_apis
           profile: pixel_6
           disable-animations: true
-          script: gradle --no-daemon -p android-app connectedWebOnlyDebugAndroidTest
+          script: gradle --no-daemon -p android-app connectedWebOnlyDebugAndroidTest connectedNotificationsDebugAndroidTest
       - uses: actions/upload-artifact@v4
         with:
           name: roxstock-web-only-test-apk
           path: |
             android-app/app/build/outputs/apk/webOnly/debug/*.apk
             android-app/app/build/outputs/apk/webOnly/debug/*.verification.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roxstock-notifications-test-apk
+          path: |
+            android-app/app/build/outputs/apk/notifications/debug/*.apk
+            android-app/app/build/outputs/apk/notifications/debug/*.verification.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()

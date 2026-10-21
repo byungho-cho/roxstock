@@ -18,7 +18,7 @@ import { getAccountDataState, deleteAccount, createAccount, getCollectionStatus,
 import { FormTextField, NumberField } from '../../components/forms/Fields';
 import { colors } from '../../styles/tokens';
 
-export type MoreView = 'backup' | 'target-arrival' | 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
+export type MoreView = 'notifications' | 'backup' | 'target-arrival' | 'settings' | 'account' | 'add' | 'edit' | 'cash' | 'collection' | 'theme' | 'reset';
 const panel = { bgcolor: '#0E1420', border: '1px solid #1F2B42', borderRadius: '8px', p: '16px', minWidth: 0 } as const;
 const row = { bgcolor: '#111825', border: '1px solid #25344D', borderRadius: '8px' } as const;
 const fmt = (value: string | number | null) => value === null ? '—' : `${Number(value).toLocaleString('ko-KR')}원`;

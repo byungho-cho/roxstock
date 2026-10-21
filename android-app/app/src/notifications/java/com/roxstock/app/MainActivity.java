@@ -21,6 +21,8 @@ import java.util.Collections;
 
 public final class MainActivity extends Activity {
     private WebView web;
+    private androidx.webkit.JavaScriptReplyProxy permissionReply;
+    private JSONObject permissionResponse;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable updateBadge;
     private boolean trusted(Uri uri) {
@@ -55,6 +57,7 @@ public final class MainActivity extends Activity {
     }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        AppPush.initialize(this);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         AppWindowInsets.install(this, root);
         Button inbox = new Button(this); inbox.setText("거래 알림 · 등록 대기");
@@ -69,7 +72,7 @@ public final class MainActivity extends Activity {
             handler.postDelayed(updateBadge, 3000);
         };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.5");
+        web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/0.1.6");
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
@@ -84,6 +87,31 @@ public final class MainActivity extends Activity {
             Uri uri = Uri.parse(url); if (trusted(uri)) ExternalBrowser.open(MainActivity.this, uri);
         });
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(web, "RoxStockPush", Collections.singleton(BuildConfig.SITE_ORIGIN), (view, message, origin, mainFrame, reply) -> {
+                if (!mainFrame || !trusted(origin)) return;
+                JSONObject response = new JSONObject();
+                try {
+                    JSONObject command = new JSONObject(message.getData());response.put("requestId", command.optString("requestId"));
+                    switch(command.getString("action")) {
+                        case "push-status": response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured());break;
+                        case "permission":
+                            if(android.os.Build.VERSION.SDK_INT>=33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){permissionReply=reply;permissionResponse=response;requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},701);return;}
+                            response.put("granted",AppPush.granted(this));break;
+                        case "token":
+                            response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured()).put("installationId",AppPush.installation(this)).put("revision",String.valueOf(AppPush.preferences(this).getLong("revision",0)));
+                            if(AppPush.configured()&&AppPush.granted(this)){
+                                com.google.firebase.messaging.FirebaseMessaging.getInstance().setAutoInitEnabled(true);
+                                com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task->{try{if(task.isSuccessful()){AppPush.preferences(this).edit().putString("issuedTokenHash",AppPush.tokenHash(task.getResult())).commit();response.put("token",task.getResult());}else response.put("error","푸시 기기 등록에 실패했습니다.");}catch(Exception ignored){}reply.postMessage(response.toString());});return;
+                            }break;
+                        case "bind": if(!command.optString("revision").equals(String.valueOf(AppPush.preferences(this).getLong("revision",0))))throw new IllegalArgumentException();String binding=command.getString("binding");if(!binding.matches("[a-f0-9-]{36}"))throw new IllegalArgumentException();AppPush.preferences(this).edit().putString("binding",binding).putString("boundTokenHash",AppPush.preferences(this).getString("issuedTokenHash","")).commit();break;
+                        case "unbind": AppPush.unbind(this);break;
+                        case "preferences": AppPush.preferences(this).edit().putBoolean("targetEnabled","true".equals(command.optString("targetEnabled"))).putBoolean("newsEnabled","true".equals(command.optString("newsEnabled"))).commit();break;
+                        case "settings": AppPush.settings(this);break;
+                        default: throw new IllegalArgumentException();
+                    }
+                }catch(Exception error){try{response.put("error","앱 알림 처리에 실패했습니다.");}catch(Exception ignored){}}
+                reply.postMessage(response.toString());
+            });
             WebViewCompat.addWebMessageListener(web, "RoxStockNative", Collections.singleton(BuildConfig.SITE_ORIGIN), (view, message, origin, mainFrame, reply) -> {
                 if (!mainFrame || !trusted(origin)) return;
                 JSONObject response = new JSONObject();
@@ -93,6 +121,7 @@ public final class MainActivity extends Activity {
                     switch (command.getString("action")) {
                         case "list": response.put("entries", db.list()).put("permission", enabled()).put("storageError", getSharedPreferences("status", MODE_PRIVATE).getBoolean("storageError", false)); break;
                         case "status": db.status(command.getString("id"), command.getString("status")); break;
+                        case "push-status": response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured());break;
                         case "permission": startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); break;
                         default: throw new IllegalArgumentException("Unsupported command");
                     }
@@ -106,8 +135,10 @@ public final class MainActivity extends Activity {
                 else if (index == 1) startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
                 else new AlertDialog.Builder(this).setMessage("작성 중인 화면을 나가시겠습니까? 저장하지 않은 입력은 다시 입력해야 할 수 있습니다.").setNegativeButton("취소", null).setPositiveButton("목록 열기", (confirm, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications")).show();
             }).setNegativeButton("닫기", null).show());
-        AuthCookies.start(() -> { if (!isFinishing()) web.loadUrl(BuildConfig.SITE_ORIGIN); });
+        AuthCookies.start(() -> { if (!isFinishing()) web.loadUrl(BuildConfig.SITE_ORIGIN + AppPush.launchPath(getIntent())); });
     }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){super.onRequestPermissionsResult(requestCode,permissions,results);if(requestCode==701&&permissionReply!=null){try{permissionResponse.put("granted",AppPush.granted(this));permissionReply.postMessage(permissionResponse.toString());}catch(Exception ignored){}permissionReply=null;permissionResponse=null;}}
+    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(web!=null)web.loadUrl(BuildConfig.SITE_ORIGIN+AppPush.launchPath(intent));}
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     @Override protected void onResume() { super.onResume(); if (updateBadge != null) handler.post(updateBadge); }
     @Override protected void onPause() { AuthCookies.persist(); handler.removeCallbacksAndMessages(null); super.onPause(); }

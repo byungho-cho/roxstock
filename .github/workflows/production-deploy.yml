@@ -184,6 +184,37 @@ jobs:
         with:
           name: roxstock-web-only-test-apk
           path: apk
+      - uses: actions/download-artifact@v4
+        with:
+          name: roxstock-notifications-test-apk
+          path: notifications-apk
+          run-id: ${{ github.run_id }}
+      - name: Publish verified signed notifications APK
+        env:
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          apk_file="$(find notifications-apk -name 'app-notifications-debug.apk' -type f -print -quit)"
+          test -n "$apk_file"
+          digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
+          configured="$(python3 - "$apk_file" "$digest" <<'PY'
+          import json,pathlib,sys
+          r=json.loads(pathlib.Path(sys.argv[1]).with_suffix('.verification.json').read_text())
+          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.6-test'
+          print('true' if r['firebaseConfigured'] else 'false')
+          PY
+          )"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$apk_file" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.apk"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes android-app/publish-notifications-apk.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notifications-$TARGET_SHA.sh $TARGET_SHA $digest $configured"
       - name: Publish signed Chrome-capable APK and verify public digest
         env:
           TARGET_SHA: ${{ inputs.target_sha || github.sha }}
@@ -200,7 +231,7 @@ jobs:
           python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           apk=pathlib.Path(sys.argv[1]); report=json.loads(apk.with_suffix('.verification.json').read_text())
-          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.5-webonly-test'
+          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.6-webonly-test'
           assert report['applicationId']=='com.roxstock.app.webonly.debug'
           PY
           install -d -m 700 "$HOME/.ssh"
@@ -239,3 +270,30 @@ jobs:
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/reconcile-dart-status-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-dart-status-$TARGET_SHA.sh"
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-dart-status-$TARGET_SHA.sh $TARGET_SHA" | tee "$RUNNER_TEMP/dart-status-summary.txt"
           cat "$RUNNER_TEMP/dart-status-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+
+
+  app_notification_verification:
+    needs: [revision, backend, frontend, android_publish]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.frontend.result == 'success' && needs.android_publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+      - name: Verify notification defaults and safe admin projections without dispatching push
+        env:
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.3 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes scripts/verify-app-notifications-production.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notification-verify-$TARGET_SHA.sh"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notification-verify-$TARGET_SHA.sh $TARGET_SHA"

@@ -1,3 +1,4 @@
+import {startNotificationWorker} from './notifications/worker.js';
 import {startCollectionBugReporter} from './domain/collection-bug-reports.js';
 import 'dotenv/config';
 
@@ -12,8 +13,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 }
 
 const app = buildApp();
+let stopNotifications:(()=>Promise<void>)|undefined;
 let stopReports:(()=>Promise<void>)|undefined;
-app.addHook('onClose',async()=>{await stopReports?.();});
+app.addHook('onClose',async()=>{await stopReports?.();await stopNotifications?.();});
 
 async function shutdown(signal: string) {
   app.log.info({ signal }, 'Shutting down server');
@@ -26,6 +28,7 @@ process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
 try {
   await app.listen({ host, port });
+  stopNotifications=startNotificationWorker(prisma,()=>app.log.error({code:'APP_NOTIFICATION_WORKER_FAILED'}));
   stopReports=startCollectionBugReporter(prisma,()=>app.log.error({code:'BUG_REPORT_SCAN_FAILED'},'오류 리포트 기록 실패; 다음 주기에 재시도합니다.'));
 } catch (error) {
   app.log.error(error);

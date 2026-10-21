@@ -62,7 +62,7 @@ export function AppLayout() {
   }, [location.pathname]);
   const isMoreMenu = location.pathname === '/more';
   const isMoreSettings = location.pathname === '/detail/settings'; const isCollectionMonitoring = location.pathname.startsWith('/detail/collection-monitoring');
-  const hasPageHeader = location.pathname==='/detail/news-collection-settings'||location.pathname==='/detail/collection-monitoring/stock-news'||isNews || isInvestor || location.pathname==='/detail/security-management' || isTargetPage || isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings || isAnalysis || isInvestment || isValue || isCompound || isFinancial;
+  const hasPageHeader = location.pathname.startsWith('/detail/admin')||location.pathname==='/detail/news-collection-settings'||location.pathname==='/detail/collection-monitoring/stock-news'||isNews || isInvestor || location.pathname==='/detail/security-management' || isTargetPage || isTradePage || isStockFlowPage || isAssetOverview || isJournal || isMoreSettings || isAnalysis || isInvestment || isValue || isCompound || isFinancial;
   return <HeaderSlotContext.Provider value={headerSlot}><Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
     <Box component="div" ref={setHeaderSlot} sx={{ height: pageMetrics.headerHeight, flexShrink: 0, width: '100%', bgcolor: colors.canvas, zIndex: 11 }}>
       {isMoreMenu && <PageHeader title="메뉴" showAdd={false} action={<ReleaseVersion />} />}

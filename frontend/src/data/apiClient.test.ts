@@ -14,3 +14,10 @@ test('bodyless DELETE and POST retain JSON, CSRF and the rendered identity',asyn
   assert.equal(requests.length,2);
  }finally{globalThis.fetch=fetchBefore;setAuthIdentity();for(const [name,value] of [['document',documentBefore],['window',windowBefore]] as const){if(value)Object.defineProperty(globalThis,name,value);else Reflect.deleteProperty(globalThis,name);}}
 });
+
+test('revoked administrator permission requests a fresh identity before cached private views persist',async()=>{
+ const originalFetch=globalThis.fetch,originalWindow=Object.getOwnPropertyDescriptor(globalThis,'window');let refresh=0;
+ const events=new EventTarget();events.addEventListener('roxstock-auth-required',()=>refresh++);Object.defineProperty(globalThis,'window',{value:events,configurable:true});
+ globalThis.fetch=async()=>Response.json({error:{code:'ADMIN_REQUIRED',message:'관리자만 사용할 수 있습니다.'}},{status:403});
+ try{await assert.rejects(apiRequest('/admin/users'));assert.equal(refresh,1);}finally{globalThis.fetch=originalFetch;if(originalWindow)Object.defineProperty(globalThis,'window',originalWindow);else Reflect.deleteProperty(globalThis,'window');}
+});

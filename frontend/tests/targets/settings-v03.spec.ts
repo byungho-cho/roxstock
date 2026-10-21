@@ -25,7 +25,7 @@ async function fixture(page: Page) {
   });
   return {writes,fail:()=>{fail=true;},succeed:()=>{fail=false;}};
 }
-const menuLabels=['계좌 관리','목표가 도래 조건','시세 수집','테마 설정'];
+const menuLabels=['계좌 관리','목표가 도래 조건','알림 설정','테마 설정'];
 test('settings layout: fixed menu, padding, shared forms and detail scrolling',async({page},info)=>{
   await fixture(page);await page.goto('/detail/settings?view=settings');
   const menu=page.getByTestId('settings-menu');await expect(menu.getByRole('button')).toHaveCount(4);
