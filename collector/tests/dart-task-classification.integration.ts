@@ -18,6 +18,7 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   const policy=await create(2019,'EXCLUDED','PRE_LISTING_POLICY_EXCLUDED'),user=await create(2020,'NOT_APPLICABLE','USER_COLLECTION_EXCLUDED');
   const future=await create(2026,'NOT_DUE','FILING_NOT_DUE',{nextAttemptAt:new Date(now.getTime()+86400000)});
   const due=await create(2025,'NOT_DUE','FILING_NOT_DUE',{nextAttemptAt:new Date(now.getTime()-1000)});
+  const legacy=await db.dartBackfillTask.create({data:{securityId:stocks[0]!.id,fiscalYear:2026,reportCode:'11014',periodType:'Q3',status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',nextAttemptAt:null}});
   const success=await create(2024,'SUCCESS',null,{selectedReceiptNo:'20250401000001'});
   const unmapped=await db.dartBackfillTask.create({data:{securityId:stocks[1]!.id,fiscalYear:2018,reportCode:'11011',periodType:'ANNUAL',status:'NOT_APPLICABLE',errorCode:'DART_CORP_CODE_NOT_MAPPED'}});
   await db.security.update({where:{id:stocks[0]!.id},data:{isActive:false}});
@@ -30,7 +31,8 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   const restored=await db.dartBackfillTask.findUniqueOrThrow({where:{id:recovered.id}});
   assert.equal(restored.status,'PENDING');assert.equal(restored.attempts,3);assert.equal(restored.selectedReceiptNo,'20190401000001');assert.deepEqual(restored.diagnostics,{originalCode:'RECEIPT_MISMATCH'});
   assert.equal(await repo.recoverMappedTasks(now),0);
-  const wake=await Promise.all([repo.reactivateDueTasks(now),new PrismaDartRepository(db).reactivateDueTasks(now)]);assert.equal(wake.reduce((n,v)=>n+v,0),1);
+  const wake=await Promise.all([repo.reactivateDueTasks(now),new PrismaDartRepository(db).reactivateDueTasks(now)]);assert.equal(wake.reduce((n,v)=>n+v,0),2);
+  assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:legacy.id}})).status,'PENDING');
   assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:due.id}})).status,'PENDING');
   // A new repository instance has no memory of the schedule: future work stays durable in DB.
   assert.equal(await new PrismaDartRepository(db).reactivateDueTasks(now),0);
@@ -38,7 +40,7 @@ test('durable rechecks, exact mapping recovery, audit history, exclusions, concu
   for(const task of [policy,user,success,unmapped])assert.equal((await db.dartBackfillTask.findUniqueOrThrow({where:{id:task.id}})).status,task.status);
   const where={...dartTaskScope(now),securityId:{in:ids}};
   const rows=await db.dartBackfillTask.groupBy({where,by:['status','errorCode','needsSupplement'],_count:{_all:true}}),progress=dartProgress(rows);
-  assert.equal(progress.planned,5);assert.equal(progress.currentTarget,4);assert.equal(progress.completed,1);assert.equal(progress.reviewRequired,1);assert.equal(progress.byStatus.EXCLUDED,undefined);
+  assert.equal(progress.planned,6);assert.equal(progress.currentTarget,5);assert.equal(progress.completed,1);assert.equal(progress.reviewRequired,1);assert.equal(progress.byStatus.EXCLUDED,undefined);
   for(const [status,n] of Object.entries(progress.byStatus))assert.equal(await db.dartBackfillTask.count({where:{AND:[where,dartStatusWhere(status as any)]}}),n);
   assert.equal(await db.dartBackfillTask.count({where:{AND:[{securityId:{in:ids}},dartStatusWhere('EXCLUDED')]}}),2);
   const {buildPlan,applyPlan,restorePlan}=await import('../src/scripts/reconcile-dart-task-status.js');

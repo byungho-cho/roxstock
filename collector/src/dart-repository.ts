@@ -140,12 +140,19 @@ export class PrismaDartRepository extends CollectionJobRepository {
 
   /** Indexed, bounded page. Global financial lease serializes this with collection/manual work. */
   async reactivateDueTasks(now=new Date(),limit=100) {
-    const tasks=await this.prisma.dartBackfillTask.findMany({where:{...dartTaskScope(now),OR:[{status:{in:['NOT_DUE','NO_FILING']}},{status:'FAILED',errorCode:'REVIEW_REQUIRED',diagnostics:{path:'$.reason',equals:'SUBMISSION_DEADLINE_UNVERIFIED'}}],nextAttemptAt:{lte:now}},orderBy:[{nextAttemptAt:'asc'},{id:'asc'}],take:limit});
+    const year=Number(getSeoulClock(now).dateKey.slice(0,4));
+    const tasks=await this.prisma.dartBackfillTask.findMany({where:{...dartTaskScope(now),OR:[
+      {status:{in:['NOT_DUE','NO_FILING']},nextAttemptAt:{lte:now}},
+      {status:'FAILED',errorCode:'REVIEW_REQUIRED',diagnostics:{path:'$.reason',equals:'SUBMISSION_DEADLINE_UNVERIFIED'},nextAttemptAt:{lte:now}},
+      // Upgrade legacy current/previous calendar periods without loading the universe.
+      // ROWS_NOT_PUBLISHED is deliberately excluded: operator evidence owns those tasks.
+      {status:'NO_FILING',errorCode:'NO_PERIODIC_FILING',fiscalYear:{gte:year-1},nextAttemptAt:null},
+    ]},orderBy:[{nextAttemptAt:'asc'},{id:'asc'}],take:limit});
     let changed=0;
     for(const task of tasks){
       const count=await this.prisma.$transaction(async tx=>{
-        const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:task.status,updatedAt:task.updatedAt,nextAttemptAt:{lte:now}},data:{status:'PENDING',processedAt:null}});
-        if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:'SCHEDULED_RECHECK',previous:taskSnapshot(task),next:{status:'PENDING',checkedAt:now.toISOString()}}});
+        const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:task.status,updatedAt:task.updatedAt,nextAttemptAt:task.nextAttemptAt},data:{status:'PENDING',processedAt:null,nextAttemptAt:now}});
+        if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'?'LEGACY_PERIOD_RECHECK':'SCHEDULED_RECHECK',previous:taskSnapshot(task),next:{status:'PENDING',checkedAt:now.toISOString()}}});
           await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});}
         return result.count;
       });changed+=count;
