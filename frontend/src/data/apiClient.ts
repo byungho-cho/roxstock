@@ -16,6 +16,7 @@ export async function apiEnvelope<T>(path: string, init: RequestInit = {}): Prom
   if (!response.ok) {
     if(response.status===401)window.dispatchEvent(new Event('roxstock-auth-required'));
     const payload = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
+    if((response.status===403&&payload?.error?.code==='ADMIN_REQUIRED')||(response.status===409&&payload?.error?.code==='IDENTITY_CHANGED'))window.dispatchEvent(new Event('roxstock-auth-required'));
     throw new ApiError(response.status, payload?.error?.code ?? 'HTTP_ERROR', payload?.error?.message ?? `API 요청 실패 (${response.status})`);
   }
   if (init.method && !['GET', 'HEAD', 'OPTIONS'].includes(init.method.toUpperCase())) window.dispatchEvent(new Event('roxstock-data-mutated'));

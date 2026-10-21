@@ -17,7 +17,7 @@ export async function sendPush(token:string,data:Record<string,string>):Promise<
   const response=await fetch(`https://fcm.googleapis.com/v1/projects/${credentials.project_id}/messages:send`,{method:'POST',headers:{Authorization:`Bearer ${cached.token}`,'Content-Type':'application/json'},body:JSON.stringify({message:{token,data,android:{priority:'HIGH',ttl:'600s'}}}),signal:AbortSignal.timeout(10000)});
   if(response.ok)return 'SENT';
   const payload=await response.json() as {error?:{details?:{errorCode?:string}[]}};
-  if(payload.error?.details?.some(d=>d.errorCode==='UNREGISTERED'))return 'INVALID';
+  if(payload.error?.details?.some(d=>['UNREGISTERED','INVALID_ARGUMENT'].includes(d.errorCode??'')))return 'INVALID';
   if(response.status===401||response.status===403){cached=undefined;return 'CONFIGURATION';}return 'RETRY';
  }catch{return 'RETRY';}
 }

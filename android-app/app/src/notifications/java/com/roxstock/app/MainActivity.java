@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
                 try {
                     JSONObject command = new JSONObject(message.getData());response.put("requestId", command.optString("requestId"));
                     switch(command.getString("action")) {
+                        case "push-status": response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured());break;
                         case "permission":
                             if(android.os.Build.VERSION.SDK_INT>=33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){permissionReply=reply;permissionResponse=response;requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},701);return;}
                             response.put("granted",AppPush.granted(this));break;
@@ -120,6 +121,7 @@ public final class MainActivity extends Activity {
                     switch (command.getString("action")) {
                         case "list": response.put("entries", db.list()).put("permission", enabled()).put("storageError", getSharedPreferences("status", MODE_PRIVATE).getBoolean("storageError", false)); break;
                         case "status": db.status(command.getString("id"), command.getString("status")); break;
+                        case "push-status": response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured());break;
                         case "permission": startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); break;
                         default: throw new IllegalArgumentException("Unsupported command");
                     }
