@@ -1,0 +1,6 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {firebaseClientEnvironment} from './firebase-client-config.mjs';
+const sample=()=>({project_info:{project_id:'roxstock-ef8ef',project_number:'176267262855'},client:[{client_info:{mobilesdk_app_id:'1:176267262855:android:e834d260b28a38479ef122',android_client_info:{package_name:'com.roxstock.app.debug'}},api_key:[{current_key:'AIza'+'example'.repeat(5)}]}]});
+test('extract only existing four build variables from the approved Android app',()=>{const c=sample(),e=firebaseClientEnvironment(c);assert.deepEqual(Object.keys(e).sort(),['ROXSTOCK_FCM_API_KEY','ROXSTOCK_FCM_APP_ID','ROXSTOCK_FCM_PROJECT_ID','ROXSTOCK_FCM_SENDER_ID']);assert.equal(e.ROXSTOCK_FCM_SENDER_ID,'176267262855');});
+test('reject other projects, packages, duplicate clients, missing keys and server credentials',()=>{for(const change of [c=>c.project_info.project_id='other',c=>c.project_info.project_number='1',c=>c.client[0].client_info.mobilesdk_app_id='wrong',c=>c.client[0].client_info.android_client_info.package_name='com.roxstock.app',c=>c.client.push(c.client[0]),c=>c.client[0].api_key=[],c=>c.private_key='forbidden',c=>c.type='service_account']){const c=sample();change(c);assert.throws(()=>firebaseClientEnvironment(c));}});

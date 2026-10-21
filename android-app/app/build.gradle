@@ -10,14 +10,12 @@ android {
         applicationId 'com.roxstock.app'
         minSdk 24
         targetSdk 35
-        versionCode 7
-        versionName '0.1.6'
+        versionCode 8
+        versionName '0.1.7'
         resValue 'string', 'app_name', 'RoxStock'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         ['APP_ID','API_KEY','PROJECT_ID','SENDER_ID'].each { key ->
-            def value = System.getenv('ROXSTOCK_FCM_' + key) ?: ''
-            if (!(value ==~ /[A-Za-z0-9_:.\-]*/)) throw new GradleException('Invalid Firebase client configuration')
-            buildConfigField 'String', 'FCM_' + key, '"' + value + '"'
+            buildConfigField 'String', 'FCM_' + key, '""'
         }
         buildConfigField 'String', 'SITE_ORIGIN', '"' + site + '"'
     }
@@ -28,9 +26,19 @@ android {
             dimension 'capability'
             applicationIdSuffix '.webonly'
             versionNameSuffix '-webonly'
-            resValue 'string', 'app_name', 'RoxStock 웹 시험'
+            resValue 'string', 'app_name', 'RoxStock 웹'
         }
-        notifications { dimension 'capability' }
+        notifications {
+            dimension 'capability'
+            def keys = ['APP_ID','API_KEY','PROJECT_ID','SENDER_ID']
+            def values = keys.collect { System.getenv('ROXSTOCK_FCM_' + it) ?: '' }
+            if (values.any { it } && !values.every { it }) throw new GradleException('Incomplete Firebase client configuration')
+            keys.eachWithIndex { key, index ->
+                def value = values[index]
+                if (!(value ==~ /[A-Za-z0-9_:.\-]*/)) throw new GradleException('Invalid Firebase client configuration')
+                buildConfigField 'String', 'FCM_' + key, '"' + value + '"'
+            }
+        }
     }
     signingConfigs {
         if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) {
@@ -45,10 +53,13 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix '.debug'; versionNameSuffix '-test'
+            applicationIdSuffix '.debug'
             if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
         }
         release {
+            // Preserve the installed, approved package identity for in-place updates.
+            applicationIdSuffix '.debug'
+            debuggable false
             minifyEnabled false
             if (System.getenv('ROXSTOCK_SIGNING_KEYSTORE')) signingConfig signingConfigs.stable
         }

@@ -28,7 +28,7 @@ try{
  assert.equal((await app.inject({url:'/api/admin/users/'+admin.id,headers:{'x-smoke-role':'USER'}})).statusCode,403);
  for(const path of ['/api/notifications/settings','/api/admin/users','/api/collection/monitoring']){const r=await fetch('https://newrox.cafe24.com'+path,{signal:AbortSignal.timeout(10000)});assert.equal(r.status,401);}
  const version=await fetch('https://newrox.cafe24.com/api/version',{signal:AbortSignal.timeout(10000)});assert.equal((await version.json()).data.version,'1.2.3');
- const apk=await fetch('https://newrox.cafe24.com/downloads/android/notifications-latest.json',{signal:AbortSignal.timeout(10000)});assert.equal(apk.status,200);const manifest=await apk.json();assert.equal(manifest.version,'0.1.6-test');
+ const apk=await fetch('https://newrox.cafe24.com/downloads/android/notifications-latest.json',{signal:AbortSignal.timeout(10000)});assert.equal(apk.status,200);const manifest=await apk.json();assert.equal(manifest.version,'0.1.7');
  let serverCredentialPresent=false;if(process.env.FCM_SERVICE_ACCOUNT_FILE)try{await access(process.env.FCM_SERVICE_ACCOUNT_FILE);serverCredentialPresent=true;}catch{}
  console.log('APP_NOTIFICATION_DEPLOYMENT_VERIFIED',JSON.stringify({version:'1.2.3',adminProjectionChecked:true,anonymousDenied:true,ordinaryUserApiDenied:true,apiHandlerOnly:true,authenticatedBrowserChecked:false,apkVersion:manifest.version,clientFirebaseConfigured:manifest.firebaseConfigured===true,serverCredentialPresent,enabledPreferences:await prisma.appNotificationPreference.count({where:{OR:[{targetEnabled:true},{newsEnabled:true}]}}),realDeviceVerified:false}));
 }catch{console.error('APP_NOTIFICATION_DEPLOYMENT_VERIFICATION_FAILED');process.exitCode=1;}finally{await app.close();await prisma.$disconnect();}

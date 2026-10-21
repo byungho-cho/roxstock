@@ -62,7 +62,7 @@ jobs:
           # Recover a previously built but unpublished APK after a partial deployment.
           if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app &&
              curl --fail --silent --show-error --max-time 15 --retry 1 https://newrox.cafe24.com/downloads/android/latest.json -o "$RUNNER_TEMP/published-android.json" &&
-             node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.version===process.argv[2]+"-webonly-test"?0:1)' "$RUNNER_TEMP/published-android.json" "$apk_version"; then
+             node -e 'const p=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); process.exit(p.version===process.argv[2]+"-webonly"?0:1)' "$RUNNER_TEMP/published-android.json" "$apk_version"; then
             echo "android=false" >> "$GITHUB_OUTPUT"
           else
             echo "android=true" >> "$GITHUB_OUTPUT"
@@ -182,11 +182,11 @@ jobs:
           ref: ${{ inputs.target_sha || github.sha }}
       - uses: actions/download-artifact@v4
         with:
-          name: roxstock-web-only-test-apk
+          name: roxstock-web-only-apk
           path: apk
       - uses: actions/download-artifact@v4
         with:
-          name: roxstock-notifications-test-apk
+          name: roxstock-notifications-apk
           path: notifications-apk
           run-id: ${{ github.run_id }}
       - name: Publish verified signed notifications APK
@@ -198,13 +198,13 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
-          apk_file="$(find notifications-apk -name 'app-notifications-debug.apk' -type f -print -quit)"
+          apk_file="$(find notifications-apk -name 'app-notifications-release.apk' -type f -print -quit)"
           test -n "$apk_file"
           digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
           configured="$(python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           r=json.loads(pathlib.Path(sys.argv[1]).with_suffix('.verification.json').read_text())
-          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.6-test'
+          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.7'
           print('true' if r['firebaseConfigured'] else 'false')
           PY
           )"
@@ -225,13 +225,13 @@ jobs:
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
-          apk_file="$(find apk -name 'app-webOnly-debug.apk' -type f -print -quit)"
+          apk_file="$(find apk -name 'app-webOnly-release.apk' -type f -print -quit)"
           test -n "$apk_file"
           digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
           python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           apk=pathlib.Path(sys.argv[1]); report=json.loads(apk.with_suffix('.verification.json').read_text())
-          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.6-webonly-test'
+          assert report['sha256']==sys.argv[2] and report['signatureVerified'] and report['versionName']=='0.1.7-webonly'
           assert report['applicationId']=='com.roxstock.app.webonly.debug'
           PY
           install -d -m 700 "$HOME/.ssh"

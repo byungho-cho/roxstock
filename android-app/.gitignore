@@ -10,3 +10,7 @@ keystore.properties
 .env
 .env.*
 !.env.example
+google-services*.json
+*.p12
+firebase-client*.json
+__pycache__/
