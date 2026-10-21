@@ -93,7 +93,8 @@ test('KIS annual supplement respects the shared execution lease while preserving
  const observation={per:null,pbr:null,eps:null,bps:null,listedShares:'1000',foreignHoldingShares:'0',foreignExhaustionRate:'0',collectedAt:now(),raw:{}};
  try{
   const result=await runKisSupplements({db,symbols:[security.symbol],kis:{currentFundamentals:async()=>observation,annualFundamentals:async()=>[{fiscalYear:2020}]},sleep:async()=>{}});
-  assert.equal(result.stored,1);assert.equal(result.annualFailures,1);assert.deepEqual((await db.periodValuation.findUniqueOrThrow({where})).values,{eps:null,bps:null,roe:null});
+  assert.equal(result.stored,1);assert.equal(result.annualFailures,0);assert.equal(result.annualDeferred,1);
+  const run=await db.collectorRun.findFirstOrThrow({where:{jobType:'kis-fundamentals',items:{some:{securityId:security.id}}},orderBy:{startedAt:'desc'}});assert.equal(run.status,'SUCCESS');assert.equal(run.failureCount,0);assert.deepEqual((await db.periodValuation.findUniqueOrThrow({where})).values,{eps:null,bps:null,roe:null});
   assert.equal(await db.fundamentalSnapshot.count({where:{securityId:security.id}}),1);assert.equal((await db.collectorLock.findUniqueOrThrow({where:{jobName:'dart-financial-statements'}})).ownerToken,'manual-common-fixture');
  }finally{await repo.releaseLock('manual-common-fixture');await db.fundamentalSnapshot.deleteMany({where:{securityId:security.id}});await db.periodValuation.delete({where});await db.security.delete({where:{id:security.id}});}
 });
