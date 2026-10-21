@@ -12,6 +12,7 @@ test('target baseline, continued match, short bounce, 24h rearm and missing obse
  assert.equal(targetTransition(s,true,false,new Date(start+rearmAfterMs+120000)).fire,false);
  const gap=targetTransition({...s,matched:false,falseSince:at},true,false,new Date(start+rearmAfterMs+600000));assert.equal(gap.fire,false);
  assert.equal(targetTransition(null,true,false,at).fire,true);
+ const unknown={matched:false,falseSince:null,lastObservedAt:at,lastEventAt:null,generation:0};const firstKnown=targetTransition(unknown,true,false,new Date(+at+60000));assert.equal(firstKnown.fire,false);const dipped=targetTransition(firstKnown,false,false,new Date(+at+120000));assert.equal(targetTransition(dipped,true,false,new Date(+at+180000)).fire,false);
  const initialUnmatched=targetTransition(null,false,true,at);assert.equal(targetTransition(initialUnmatched,true,false,new Date(+at+60000)).fire,true);
 });
 test('notification routes are server-defined and account projections never expose short originals',()=>{

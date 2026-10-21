@@ -30,6 +30,7 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
   assert.equal((await call(1,'/api/notifications/settings','PUT',{targetEnabled:true,newsEnabled:true,userId:String(users[2]!.id)})).statusCode,400);
   assert.equal((await call(1,'/api/notifications/settings','PUT',{targetEnabled:true,newsEnabled:true})).statusCode,200);
   assert.equal((await call(2,'/api/notifications/settings')).json().data.newsEnabled,false);
+  await Promise.all([call(2,'/api/notifications/settings','PUT',{targetEnabled:true,newsEnabled:true}),call(2,'/api/notifications/settings','PUT',{targetEnabled:true,newsEnabled:true})]);const concurrent=await prisma.appNotificationPreference.findUniqueOrThrow({where:{userId:users[2]!.id}});assert.equal(concurrent.newsEpoch,1);assert.equal(concurrent.targetEpoch,1);
   const install=randomUUID();const device=(await call(1,'/api/notifications/devices','POST',{installationId:install,token:'f'.repeat(150)})).json().data;assert.ok(device.binding);
   const eventId=randomUUID();await prisma.appNotificationEvent.create({data:{id:eventId,userId:uid,kind:'NEWS',identityKey:eventId,epoch:1}});await prisma.appPushDelivery.create({data:{eventId,deviceId:install,binding:device.binding}});
   assert.equal((await call(2,'/api/notifications/events/'+eventId)).statusCode,404);

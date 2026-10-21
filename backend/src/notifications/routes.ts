@@ -11,8 +11,9 @@ export async function notificationRoutes(app:FastifyInstance){
  app.put<{Body:unknown}>('/notifications/settings',async req=>{
   const body=req.body as Record<string,unknown>;if(!body||Object.keys(body).some(k=>!['targetEnabled','newsEnabled'].includes(k))||typeof body.targetEnabled!=='boolean'||typeof body.newsEnabled!=='boolean')throw bad();
   const uid=req.auth!.userId;
+  // Ensure existence before the transaction. No consistent read may precede its locking read.
+  await prisma.appNotificationPreference.createMany({data:[{userId:uid}],skipDuplicates:true});
   return prisma.$transaction(async tx=>{
-   await tx.appNotificationPreference.upsert({where:{userId:uid},create:{userId:uid},update:{}});
    await tx.$queryRaw`SELECT user_id FROM app_notification_preferences WHERE user_id=${uid} FOR UPDATE`;
    const p=(await tx.appNotificationPreference.findUnique({where:{userId:uid}}))!;
    const data:any={targetEnabled:body.targetEnabled,newsEnabled:body.newsEnabled};
