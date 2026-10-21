@@ -61,5 +61,5 @@ test('more v0.3: tablet settings links and persisted theme selection',async({pag
   await expect(panel.getByRole('button',{name:'다크',exact:true})).toHaveAttribute('aria-pressed','true');
   for(const [label,value] of [['라이트','light'],['시스템 설정','system'],['다크','dark']] as const){await panel.getByRole('button',{name:label,exact:true}).click();await expect(panel.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-pressed','true');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('roxstock-170-demo-settings-v2')!).theme)).toBe(value);}
   await page.reload();await expect(page.getByTestId('more-settings-panel').getByRole('button',{name:'다크',exact:true})).toHaveAttribute('aria-pressed','true');
-  for(const [label,view] of [['계좌 관리','account'],['시세 수집','collection'],['테마 설정','theme']] as const){await page.goto('/more');await page.getByTestId('more-settings-panel').getByRole('button',{name:new RegExp(label)}).click();await expect(page).toHaveURL(new RegExp('detail/settings\\?view='+view+'$'));}
+  for(const [label,view] of [['계좌 관리','account'],['알림 설정','notifications'],['테마 설정','theme']] as const){await page.goto('/more');await page.getByTestId('more-settings-panel').getByRole('button',{name:new RegExp(label)}).click();await expect(page).toHaveURL(new RegExp('detail/settings\\?view='+view+'$'));}
 });
