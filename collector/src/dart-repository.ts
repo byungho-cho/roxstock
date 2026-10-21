@@ -153,11 +153,11 @@ export class PrismaDartRepository extends CollectionJobRepository {
       const count=await this.prisma.$transaction(async tx=>{
         const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:task.status,updatedAt:task.updatedAt,nextAttemptAt:task.nextAttemptAt},data:{status:'PENDING',processedAt:null,nextAttemptAt:now}});
         if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:task.status==='NO_FILING'&&task.errorCode==='NO_PERIODIC_FILING'?'LEGACY_PERIOD_RECHECK':'SCHEDULED_RECHECK',previous:taskSnapshot(task),next:{status:'PENDING',checkedAt:now.toISOString()}}});
-          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});}
+          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});
+          await tx.dartCollectorState.updateMany({where:{id:1},data:{phase:'BACKFILL',backfillCompletedAt:null}});}
         return result.count;
       });changed+=count;
     }
-    if(changed)await this.setState({phase:'BACKFILL',backfillCompletedAt:null});
     return changed;
   }
 
@@ -170,11 +170,11 @@ export class PrismaDartRepository extends CollectionJobRepository {
       const count=await this.prisma.$transaction(async tx=>{
         const result=await tx.dartBackfillTask.updateMany({where:{id:task.id,status:'NOT_APPLICABLE',errorCode:'DART_CORP_CODE_NOT_MAPPED',updatedAt:task.updatedAt,security:{...eligibleWhere('dart-financial-statements'),securityType:'STOCK',symbol:mapping.stockCode,dartCorpMapping:{is:{corpCode:mapping.corpCode,stockCode:mapping.stockCode,collectionSymbol:mapping.stockCode}}}},data:{status:'PENDING',processedAt:null,nextAttemptAt:now}});
         if(result.count){await tx.dartTaskDecision.create({data:{taskId:task.id,reason:'EXACT_MAPPING_RECOVERED',previous:taskSnapshot(task),next:{status:'PENDING',corpCode:mapping.corpCode,stockCode:mapping.stockCode,checkedAt:now.toISOString()}}});
-          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});}
+          await tx.dartSecurityState.updateMany({where:{securityId:task.securityId},data:{backfillCompletedAt:null}});
+          await tx.dartCollectorState.updateMany({where:{id:1},data:{phase:'BACKFILL',backfillCompletedAt:null}});}
         return result.count;
       });changed+=count;
     }
-    if(changed)await this.setState({phase:'BACKFILL',backfillCompletedAt:null});
     return changed;
   }
 
