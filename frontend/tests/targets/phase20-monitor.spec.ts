@@ -2,8 +2,9 @@ import {test,expect,type Page} from './authenticated-test';
 import {fixture} from './phase3-fixture';
 import path from 'node:path';
 const ids=['security-master','realtime-prices','market-prices','account-snapshots','investor-trends','dart-financial-statements'];
+const summaryIds=[...ids,'stock-news'];
 const at='2026-10-11T03:00:00Z';
-const summary=(failed=false)=>({generatedAt:at,timezone:'Asia/Seoul',features:ids.map(id=>({id,name:id,status:failed?'FAILED':'OK',phase:'CURRENT',lastAttemptAt:at,lastSuccessAt:at,nextAt:at,recent:{target:123,processed:120,success:120,failed:failed?3:0,skipped:0},backfillCompletedAt:at,backfill:{planned:123,success:120,noFiling:0,notApplicable:0},dailyApiCalls:12,dailyApiLimit:100,priorityPending:1,universePending:2,companyChecks:12,realtime:{heartbeatAt:at,session:'OPEN',lastPriceReceivedAt:at,lastSourcePriceAt:at,lastDbSavedAt:at,lastSsePublishedAt:at,sourceError:failed?'원천 연결 실패':null}}))});
+const summary=(failed=false)=>({generatedAt:at,timezone:'Asia/Seoul',features:summaryIds.map(id=>({id,name:id,status:failed?'FAILED':'OK',phase:'CURRENT',lastAttemptAt:at,lastSuccessAt:at,nextAt:at,recent:{target:123,processed:120,success:120,failed:failed?3:0,skipped:0},backfillCompletedAt:at,backfill:{planned:123,success:120,noFiling:0,notApplicable:0},dailyApiCalls:12,dailyApiLimit:100,priorityPending:1,universePending:2,companyChecks:12,realtime:{heartbeatAt:at,session:'OPEN',lastPriceReceivedAt:at,lastSourcePriceAt:at,lastDbSavedAt:at,lastSsePublishedAt:at,sourceError:failed?'원천 연결 실패':null}}))});
 const detail=(failed=false)=>({runs:[{id:'r1',status:failed?'FAILED':'SUCCESS',startedAt:at,target:123,success:120,failed:failed?3:0,skipped:0,failureReason:failed?'실제 수집 실패':null}],items:[{symbol:'005930',status:failed?'FAILED':'SUCCESS',occurredAt:at,reason:failed?'실제 수집 실패':null}],dart:{backfill:{planned:127488,byStatus:{SUCCESS:120000,FAILED:448,PENDING:7040}},priority:{planned:12,securities:4,byStatus:{SUCCESS:10}},current:{priorityCheckedWithinDay:5,universeOver90Days:2},holidayCalendar:'AVAILABLE'}});
 async function setup(page:Page){
  await fixture(page);const state={holdSummary:false,holdDetail:false,failSummary:false,failDetail:false,collectorError:false,summaryCalls:0,detailCalls:0};
@@ -20,9 +21,11 @@ const boxes=async(page:Page)=>page.locator('[data-testid^="monitor-"]:not([data-
 test('summary slow first load keeps all cards, labels and geometry',async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto('/detail/collection-monitoring');
  await expect(page.getByTestId('monitor-summary')).toContainText('전체 상태');for(const id of ids)await expect(page.getByTestId(`monitor-feature-${id}`)).toBeAttached();
- await expect(page.getByTestId('monitor-summary')).not.toContainText('완료 6건');await expect(page.locator('main')).not.toContainText('0건');await expect(page.getByTestId('monitor-summary').getByRole('button')).toHaveCount(0);
+ await expect(page.getByTestId('monitor-summary')).not.toContainText('완료 7건');await expect(page.locator('main')).not.toContainText('0건');await expect(page.getByTestId('monitor-summary').getByRole('button')).toHaveCount(0);
  await expect(page.locator('[data-loading-indicator="visible"]').first()).toBeVisible();const before=await boxes(page);await capture(page,'loading',info.project.name);
- f.release();await expect(page.getByTestId('monitor-summary')).toContainText('완료 6건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);await capture(page,'ready',info.project.name);
+ f.release();await expect(page.getByTestId('monitor-summary')).toContainText('완료 7건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);
+ expect(await page.locator('[data-testid^="monitor-feature-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')))).toEqual(['realtime-prices','account-snapshots','market-prices','investor-trends','dart-financial-statements','security-master','stock-news'].map(id=>'monitor-feature-'+id));
+ await capture(page,'ready',info.project.name);
 });
 for(const id of ids)test(`${id}: independent slow data preserves detail card sizes`,async({page},info)=>{
  const f=await setup(page);f.state.holdSummary=true;f.state.holdDetail=true;await page.goto(`/detail/collection-monitoring/${id}`);
