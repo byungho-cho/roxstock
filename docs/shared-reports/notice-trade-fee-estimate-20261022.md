@@ -41,3 +41,8 @@ cash_transactions에 fee_tax_status (UNKNOWN/ESTIMATED/CONFIRMED), fee_tax_basis
 네트워크 조회와 입력 적용이 동일한 적격 조건(같은 계좌·열린 매수/매도 입력·UNKNOWN 0원)을 사용하도록 통일했다. CONFIRMED/기존 ESTIMATED/비영 비용에는 캐시가 남아 있어도 적용하지 않는다. 별도 브랜치 fix/confirmed-fee-cache-20261022, 기준 main 49c5dff9dcb9df37c8c12f3126c9cc2a589a2fee. 후속은 frontend와 버전 메타데이터 1.2.12만 변경하며 DB·backend 실행 코드·Android는 변경하지 않는다.
 
 커버/태블릿의 내역 전환 회귀 2건을 추가해 통합 알림 32건 통과. 후속 frontend 타입 검사·production build도 통과했다. 기존 수동 거래/실 DB 검증은 #308의 결과를 유지한다. 후속 CI·실제 배포 완료 근거는 운영 반영 후 별도로 기록한다.
+
+## 배포 검증 시간 예산 보완
+1.2.12 Production Deploy 39763555777의 최초 실행은 브라우저 의존성 다운로드가 약 7분 걸려 20분 제한에 도달했다. 통합 알림 32건과 하단 메뉴 21건은 성공했으나 종료 직후 작업이 cancelled가 되어 publish/deploy가 skipped됐다. 이 실행을 운영 반영 완료로 계산하지 않는다. 같은 최종 커밋으로 취소된 작업을 재실행했다.
+
+설치·전체 검사·결과 보관을 모두 포함하도록 Native currency UI 작업 제한을 20분에서 30분으로 보완한다. 테스트나 검증 단계를 삭제하지 않는다. workflow-only 변경이므로 앱 버전은 1.2.12를 유지한다. 실행 중 배포가 뜻하지 않게 superseded되지 않도록 적용 시점을 분리한다.
