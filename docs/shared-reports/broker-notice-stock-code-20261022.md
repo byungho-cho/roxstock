@@ -1,6 +1,6 @@
 # 카카오 거래 알림 종목 코드 식별 수정 (2026-10-22 KST)
 
-기준 main: af5fe6ffd8608d88926823a0d99fde0faf1b9377 (1.2.9). 별도 브랜치 fix/broker-notice-stock-code-20261022. 패치 1.2.10 준비.
+기준 main: af5fe6ffd8608d88926823a0d99fde0faf1b9377 (1.2.9). 별도 브랜치 fix/broker-notice-stock-code-20261022. 패치 1.2.10 운영 반영 완료 (아래 근거 참조).
 
 ## 재현과 원인 구분
 미래에셋 원문의 종목명 기아(A000270)를 기존 파서에 전달하면 name='기아(A000270)', symbol=undefined였다. 기존 연결 조건은 코드가 없으면 종목명을 정확히 비교하므로 앱의 name='기아', symbol='000270'과 일치하지 않았다. 수정 전 파서 회귀 테스트에서 이 차이를 재현했다. 이 오류는 클라이언트 종목 선택 단계에서 매수 POST 이전에 발생한다.
@@ -29,3 +29,12 @@ Android SQLite는 raw 원문과 원본 ID/상태를 보관하고 조회 시 웹 
 이 보고서 최초 작성 시점에는 CI·병합·실제 배포 전이다. CI 통과 후 main 병합과 웹 배포를 진행하고 실제 공개 웹 bundle 및 /api/version 1.2.10을 확인한다. 네이티브 변경이 없어 APK는 0.1.8 유지한다. 실제 휴대전화의 원문 재수신·로컬 SQLite 클릭은 미검증이다. 운영 개인 계좌에 테스트 거래를 임의 생성하지 않으며 실제 기기 재시도 확인은 별도로 남긴다.
 
 운영 DB 변경·알림 재수집·강제 상태 초기화·자료 삭제는 하지 않는다. 문제 시 기존 배포 이력의 이전 frontend 이미지로 복귀하고 원문/상태를 유지한다.
+
+## 실제 병합·배포 확인 (2026-10-22 17:02 KST)
+- 코드 PR [#306](https://github.com/byungho-cho/roxstock/pull/306) main 병합 완료. 적용 커밋 `49396d64a6f747fcbfaea879ba96b986f034e9b3`.
+- PR 필수 CI 통과. Frontend Check [39740374685](https://github.com/byungho-cho/roxstock/actions/runs/39740374685)에서 순수 테스트 7건/실패 0, 통합 알림 24건, 하단 메뉴 21건 및 기존 화면 회귀 검사 통과.
+- Production Deploy [39742760706](https://github.com/byungho-cho/roxstock/actions/runs/39742760706) completed/success. frontend deploy job 119709753430에서 `Deployment completed`, 적용 source SHA 일치, frontend healthy 확인. 실행 시작이나 superseded skip을 완료로 계산하지 않았다.
+- 공개 `/api/version` 응답 `1.2.10`, 실제 `/assets/index-Ku5XBT_1.js`에 새 코드 식별 가드 `CONFLICTING_CODES`/`INVALID_CODE` 존재를 외부 조회로 확인했다.
+- 이번 배포는 frontend만 교체했다. backend/collector 실행 코드는 기존 배포 유지, 공유 release 메타데이터는 1.2.10으로 반영. Android 네이티브 변경이 없어 APK 0.1.8 유지.
+- 운영 DB 보정·재수집·원문 초기화·사용자 거래 생성 없음. 새 웹을 다시 로드한 후 저장된 동일 기아 알림을 다시 열어 등록할 수 있다.
+- 실제 Android 카카오 수신/SQLite 보관함 클릭/키보드 및 운영 개인 계좌 저장은 실기기 미검증이다. 모의 native bridge와 격리 DB 검증 결과를 실기기 완료로 표시하지 않는다.
