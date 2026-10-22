@@ -1,8 +1,12 @@
 name: Manual Buy Incident Audit
 on:
-  push:
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [in_progress, completed]
     branches: [main]
-    paths: ['backend/src/auth/scoped-db.ts', '.github/workflows/manual-buy-audit.yml']
+  pull_request_target:
+    branches: [main]
+    types: [edited]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,10 +15,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   audit:
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.number == 302
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Read incident logs and aggregate linkage without modifying production
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
