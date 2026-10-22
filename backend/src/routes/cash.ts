@@ -1,3 +1,4 @@
+import {estimateCashFee} from '../domain/fee-estimate.js';
 import { cashBasis } from '../domain/current-cash.js';
 import type { FastifyInstance } from 'fastify';
 import { CashTransactionType, Prisma } from '@roxstock/shared/prisma';
@@ -85,10 +86,11 @@ export const summarizeCashGroups = (groups: CashGroup[]) => {
 
 const mapTransaction = (transaction: {
   id: bigint; transactionType: CashTransactionType; transactionDate: Date; amount: Prisma.Decimal;
-  feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal | null; memo: string | null; createdAt: Date; updatedAt: Date;
+  feeTaxStatus?: string; feeTaxBasisCount?: number|null; feeTaxAmount: Prisma.Decimal; balanceAfter: Prisma.Decimal | null; memo: string | null; createdAt: Date; updatedAt: Date;
   dividend?: { id: bigint; securityId: bigint; grossAmount: Prisma.Decimal; netAmount: Prisma.Decimal; security: { name: string } } | null;
 }) => ({
   id: transaction.id.toString(),
+  feeTaxStatus: transaction.feeTaxStatus??'UNKNOWN', feeTaxBasisCount:transaction.feeTaxBasisCount??null,
   transactionType: transaction.transactionType,
   transactionDate: transaction.transactionDate.toISOString(),
   amount: transaction.amount.toString(),
@@ -114,6 +116,10 @@ const groupedSummary = (accountId: bigint, range: DateRange, types?: CashTransac
 });
 
 export async function cashRoutes(app: FastifyInstance) {
+  app.get<{Params:{accountId:string;id:string}}>('/accounts/:accountId/cash-transactions/:id/fee-estimate',async request=>{
+    const accountId=id(request.params.accountId,'accountId');await ensureAccount(accountId);
+    return {data:await estimateCashFee(prisma,accountId,id(request.params.id,'id'))};
+  });
   app.get<{ Params: { accountId: string; id: string } }>('/accounts/:accountId/cash-transactions/:id', async request => {
     const accountId = id(request.params.accountId, 'accountId');
     await ensureAccount(accountId);

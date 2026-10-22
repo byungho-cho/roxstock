@@ -7,7 +7,7 @@ import { ApiError } from '@roxstock/shared/lib/api-error';
 import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../auth/scoped-db.js';
 
-type CashEditBody = { accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
+type CashEditBody = { feeTaxStatus?:unknown; feeTaxBasisCount?:unknown; accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
 type DividendBody = { requestId?:unknown; accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
 async function latestAccount(tx: Prisma.TransactionClient, cash: {id: bigint; accountId: bigint}) {
@@ -84,7 +84,17 @@ export async function cashMutationRoutes(app: FastifyInstance) {
       };
       const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : decimalAmount(body.feeTaxAmount, 'feeTaxAmount', true);
       const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : decimalAmount(body.balanceAfter, 'balanceAfter');
-      await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter } });
+      const tradeCost=cash.transactionType==='BUY'||cash.transactionType==='SELL';
+      let feeTaxStatus=cash.feeTaxStatus,feeTaxBasisCount=cash.feeTaxBasisCount;
+      if(tradeCost){
+        if(body.feeTaxStatus!==undefined&&!['UNKNOWN','ESTIMATED','CONFIRMED'].includes(String(body.feeTaxStatus)))throw new ApiError(400,'INVALID_INPUT','Invalid fee confirmation status.');
+        if(body.feeTaxStatus==='CONFIRMED'&&body.feeTaxAmount===undefined)throw new ApiError(400,'INVALID_INPUT','확인할 실제 제세금을 입력해 주세요.');
+        if(body.feeTaxStatus!==undefined)feeTaxStatus=String(body.feeTaxStatus);
+        else if(!feeTaxAmount.eq(cash.feeTaxAmount))feeTaxStatus='UNKNOWN';
+        feeTaxBasisCount=feeTaxStatus==='ESTIMATED'&&Number.isInteger(body.feeTaxBasisCount)&&Number(body.feeTaxBasisCount)>=1&&Number(body.feeTaxBasisCount)<=3?Number(body.feeTaxBasisCount):null;
+        if(feeTaxStatus==='CONFIRMED'&&feeTaxAmount.lt(0))throw new ApiError(400,'INVALID_INPUT','확정 제세금은 0원 이상이어야 합니다.');
+      }
+      await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter,feeTaxStatus,feeTaxBasisCount } });
       const basis = latest.transactionId === cash.id.toString() ? await syncCurrentCash(tx, cash.accountId) : latest;
       return { id: transactionId.toString(), cashBalanceAdjusted: latest.transactionId === cash.id.toString(), currentBalance: basis.balance?.toString() ?? null, balanceStatus: basis.status };
 
