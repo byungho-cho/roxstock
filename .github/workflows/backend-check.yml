@@ -67,6 +67,11 @@ jobs:
       - name: Phase23 security management and collection fences (real MariaDB API)
         run: node --import tsx --test backend/tests/security-management.integration.ts
 
+      - name: Authenticated manual and notification buys (real MariaDB)
+        run: |
+          node --test scripts/tests/buy-write-diagnostics.test.mjs
+          node --import tsx --test backend/tests/authenticated-trades.integration.ts
+
       - name: App notifications and admin authorization (real MariaDB)
         run: node --import tsx --test backend/tests/app-notifications.integration.ts
 

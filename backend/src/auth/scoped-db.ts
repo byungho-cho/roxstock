@@ -60,7 +60,8 @@ export function scopedClient<T extends object>(db:T):T {
               }
               for(const [field,parent] of [['accountId','account'],['buyTradeId','buyTrade'],['planId','compoundGrowthPlan']] as const)if(row[field]!=null){
                 const parentModel=parent[0]!.toUpperCase()+parent.slice(1);
-                if(!await (unscoped as any)[parent].findFirst({where:{id:BigInt(row[field]),...owner(parentModel,uid)},select:{id:true}}))throw new ApiError(404,'NOT_FOUND','항목을 찾을 수 없습니다.');
+                // Parent writes may be uncommitted: validate through this client's transaction.
+                if(!await (target as any)[parent].findFirst({where:{id:BigInt(row[field]),...owner(parentModel,uid)},select:{id:true}}))throw new ApiError(404,'NOT_FOUND','항목을 찾을 수 없습니다.');
               }
             }
           }

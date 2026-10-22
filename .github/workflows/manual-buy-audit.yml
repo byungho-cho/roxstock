@@ -1,0 +1,58 @@
+name: Manual Buy Incident Audit
+on:
+  push:
+    branches: [main]
+    paths: ['backend/src/auth/scoped-db.ts', '.github/workflows/manual-buy-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: manual-buy-incident-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read incident logs and aggregate linkage without modifying production
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.8 || exit 0
+          umask 077
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          trap 'rm -f "$RUNNER_TEMP/buy-original-log.jsonl" "$HOME/.ssh/deploy_key"' EXIT
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            'docker logs --since 24h --tail 20000 roxstock-backend 2>&1' > "$RUNNER_TEMP/buy-original-log.jsonl"
+          node scripts/filter-buy-write-diagnostics.mjs < "$RUNNER_TEMP/buy-original-log.jsonl" | tee "$RUNNER_TEMP/buy-audit-summary.txt"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            'docker exec -i roxstock-backend node --input-type=module' <<'NODE' | tee -a "$RUNNER_TEMP/buy-audit-summary.txt"
+          import {PrismaClient} from './shared/dist/generated/prisma/index.js';
+          const db=new PrismaClient();
+          try {
+            const period={gte:new Date('2026-10-21T15:00:00Z'),lt:new Date('2026-10-22T15:00:00Z')};
+            const where={security:{symbol:'005380',marketType:'KOSPI'},boughtAt:period,quantity:5,unitPrice:300000};
+            const [matchingBuys,withoutLedger,linkedLedger,unlinkedLedgerCandidates]=await Promise.all([
+              db.buyTrade.count({where}),db.buyTrade.count({where:{...where,cashTransaction:{is:null}}}),
+              db.cashTransaction.count({where:{transactionType:'BUY',buyTrade:{is:where}}}),
+              db.cashTransaction.count({where:{transactionType:'BUY',transactionDate:period,amount:1500000,buyTradeId:null}})
+            ]);
+            console.log(JSON.stringify({incidentDateKst:'2026-10-22',matchingBuys,withoutLedger,linkedLedger,unlinkedLedgerCandidates,readOnly:true,attribution:'aggregate-only; original user/account request not logged'}));
+          } finally {await db.$disconnect();}
+          NODE
+          cat "$RUNNER_TEMP/buy-audit-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manual-buy-incident-summary
+          path: ${{ runner.temp }}/buy-audit-summary.txt
