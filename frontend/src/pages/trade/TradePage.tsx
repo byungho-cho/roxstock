@@ -33,7 +33,7 @@ function AccountTradeForm({entry}:{entry?:NotificationTradeEntry}){
  const [savedCashId,setSavedCashId]=useState<string|null>(null);
  const [routeParams]=useSearchParams(),params=entry?new URLSearchParams({type:entry.notice.kind==='SELL'?'sell':'buy',stock:entry.stockId,...(entry.lotId?{lot:entry.lotId}:{})}):routeParams,location=useLocation(),navigate=useNavigate(),client=useQueryClient();const {accountId}=useActiveAccount();
  const type=params.get('type')==='sell'?'sell':'buy',editId=params.get('edit'),stockId=params.get('stock')??'';
- const {data:stocks,isError:stocksError}=useStocks(),{data:dashboard,isError:cashError}=useDashboard();
+ const {data:stocks,isError:stocksError}=useStocks(undefined,{forceFetch:!!entry}),{data:dashboard,isError:cashError}=useDashboard();
  const detail=useQuery({...storedQueryOptions,queryKey:['tradeDetail',accountId,type,editId],enabled:!!accountId&&!!editId,queryFn:({signal})=>getTradeDetail(type,editId!,accountId,signal)});
  const stock=stocks?.find(s=>s.id===(detail.data?.security.id??stockId));
  const lots=useQuery({queryKey:['allBuyLots',accountId,stock?.id],enabled:!!accountId&&!!stock,queryFn:({signal})=>getBuyLots(accountId!,stock!.id,false,signal)});

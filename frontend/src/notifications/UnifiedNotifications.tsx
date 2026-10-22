@@ -32,7 +32,7 @@ export function UnifiedNotifications(){
  const settings=useQuery({queryKey:['notification-settings',user?.id],queryFn:()=>apiRequest<NotificationPreferences>('/notifications/settings')});
  const inbox=useQuery({queryKey:['notification-inbox',user?.id],queryFn:()=>apiRequest<{rows:Event[];total:number}>('/notifications/inbox'),refetchInterval:15000});
  const local=useQuery({queryKey:['broker-inbox',user?.id],queryFn:async()=>{const r=await brokerNative('list');if(r.protocolVersion!==2)throw new Error('통합 알림 지원 APK 업데이트가 필요합니다.');return r;},enabled:brokerAvailable()&&!!settings.data?.tradeEnabled,refetchInterval:3000});
- const stocks=useStocks(undefined,{enabled:open||!!sell||!!entry});
+ const stocks=useStocks(undefined,{enabled:open||!!sell||!!entry,forceFetch:true});
  const notices=(settings.data?.tradeEnabled?local.data?.entries??[]:[]).map(parseTradeNotice).filter((n):n is TradeNotice=>!!n);
  const rows=[...notices.map(n=>({...n,title:n.name||'종목 확인 필요',detail:n.kind==='DIVIDEND'?`배당금 ${n.net||n.gross||'확인 필요'}원`:`${n.quantity||'?'}주 × ${n.price||'?'}원`,time:n.receivedAt})),...(inbox.data?.rows??[]).filter(n=>n.kind==='NEWS'?settings.data?.newsEnabled:settings.data?.targetEnabled).map(n=>({...n,time:Date.parse(n.createdAt)}))].sort((a,b)=>b.time-a.time);
  const total=(settings.data?.tradeEnabled?local.data?.total??notices.length:0)+(inbox.data?.total??0);

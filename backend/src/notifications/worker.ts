@@ -37,11 +37,20 @@ export async function scanNotificationUser(db:PrismaClient,userId:bigint,now=new
     for(const r of rows){
      let conditions;try{conditions=r.account.targetArrivalConditions===null?defaultTargetConditions:validateTargetConditions(r.account.targetArrivalConditions);}catch{continue;}
      const evaluate=(condition:typeof conditions[number])=>evaluateTargetLots([{id:String(r.id),securityId:String(r.securityId),symbol:r.security.symbol,name:r.security.name,boughtAt:r.boughtAt,quantity:r.quantity.toString(),soldQuantities:r.sellTrades.map(s=>s.quantity.toString()),unitPrice:r.unitPrice.toString(),currentPrice:r.security.marketPrice?.currentPrice.toString()??null,priceUpdatedAt:r.security.marketPrice?.priceUpdatedAt??null}],[condition],now);
+     if(!conditions.length)continue;
+     const first=evaluate(conditions[0]!);
+     if(first.unavailable.length){
+      if(!p.targetBaseline)await tx.appTargetNotificationState.upsert({where:{userId_lotId:{userId,lotId:r.id}},create:{userId,lotId:r.id,epoch:p.targetEpoch,matched:false,falseSince:null,lastObservedAt:now},update:{epoch:p.targetEpoch,matched:false,falseSince:null,lastEventAt:null,lastObservedAt:now}});
+      continue;
+     }
+     const prior=await tx.appTargetNotificationState.findUnique({where:{userId_lotId:{userId,lotId:r.id}}});
+     const pendingBaseline=prior?.epoch===p.targetEpoch&&prior.falseSince===null&&prior.lastEventAt===null;
+     const baseline=!p.targetBaseline||pendingBaseline;
      // Evaluate each original condition independently; do not change home matching.
      for(const condition of conditions){
       const result=evaluate(condition);if(result.unavailable.length||!result.data.length)continue;
       const key=dailyTargetIdentity(userId,r.accountId,r.securityId,condition,now);
-      if(!p.targetBaseline){
+      if(baseline){
        // A durable acknowledgement prevents first-enable backlog and OFF/ON replay.
        await tx.appNotificationEvent.upsert({where:{identityKey:key},create:{id:randomUUID(),userId,kind:'TARGET',identityKey:key,epoch:p.targetEpoch,accountId:r.accountId,readAt:now,dismissedAt:now},update:{}});
       }else{
@@ -50,6 +59,7 @@ export async function scanNotificationUser(db:PrismaClient,userId:bigint,now=new
        if(!existing)await event(tx,userId,'TARGET',key,p.targetEpoch,r.accountId,r.security.name,`${condition.days}일 이내 · ${condition.rate}% 목표 도래`);
       }
      }
+     if(pendingBaseline)await tx.appTargetNotificationState.update({where:{userId_lotId:{userId,lotId:r.id}},data:{lastObservedAt:now,lastEventAt:now}});
     }
     if(rows.length<100)break;cursor=rows.at(-1)!.id;
    }
