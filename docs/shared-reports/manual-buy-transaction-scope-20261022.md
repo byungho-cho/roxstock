@@ -36,3 +36,13 @@ Android 종목목록 수동 매수의 기존 요청은 POST /api/buy-trades다. 
 읽기 전용 운영 진단 run 39734676004가 성공했다. 교체 전 backend의 bounded 최근 로그에서 POST /api/buy-trades 404 응답 3건을 확인했다. 2026-10-22 KST·005380·5주·300,000원 조건의 matchingBuys / withoutLedger / linkedLedger / unlinkedLedgerCandidates는 모두 0이었다. 원본 응답 code와 개별 사용자 귀속은 기존 로그에 없으며, 404 NOT_FOUND code는 동일 코드 경로의 인증 DB 재현 결과로 확인했다. 운영 요청 식별자가 정상이라고 원본 로그에서 직접 검증했다고 주장하지 않는다.
 
 PR #302의 최초 배포 run 39734213077은 workflow success였지만 실제 backend 적용 로그에 Superseded deployment skipped가 있었다. 진단 설정 PR #303의 main 선행 병합으로 SHA 검증에서 건너뛴 것이므로 1.2.8 운영 적용 완료로 간주하지 않는다. 최신 main 기반 1.2.9로 재배포하며, 이후에는 응답 code도 비밀값 없이 대조할 수 있도록 매수 POST 거절만 고정 event/HTTP 상태/API code로 로깅한다. 사용자·계좌·요청 본문은 로그에 추가하지 않는다. 최종 버전·이미지 healthy를 확인한 뒤 배포 완료로 보고한다.
+
+
+## 최종 실제 배포 완료
+- 코드/진단 PR #302·#303·#304 병합 완료. 실제 운영 적용 커밋: 340f7f817dc6bd1bbb4ef747a4ea63fa3e13e900.
+- 최종 배포: https://github.com/byungho-cho/roxstock/actions/runs/39735720602 — completed / success.
+- backend Deploy 로그에서 서버 비공개 백업 검증, No pending migrations to apply, Database schema is up to date, Healthy backend deployed 및 해당 SHA의 container healthy를 확인했다. 건너뛴 이전 배포와 구분했다.
+- 외부 https://newrox.cafe24.com/api/version 응답은 {"data":{"version":"1.2.9"}}로 직접 확인했다.
+- 최종 소스의 backend CI, 실제 인증 매수 회귀, 기존 소유권/세션 검증, 단위 테스트, 28차를 포함한 실행 대상 회귀 및 PR Gate가 통과했다. 배포용 backend test/build/image/실제 서버 적용도 통과했다.
+- frontend/collector/Android에는 이번 backend 변경을 적용할 필요가 없어 해당 배포 단계는 skipped였다. APK 재설치나 재빌드가 필요하지 않다.
+- 운영 원장 재수집·거래 자동 재등록·개인 자료 보정은 하지 않았다. 실제 사용자 계좌에 테스트 매수를 생성하지 않았으므로 Android 개인 계좌의 재시도 성공은 사용자 확인이 남아 있다. 오류 전 데이터 미변경은 인증 DB의 재현/강제 롤백과 운영 사건 조건의 저장 0건 집계로 검증했으며, 기존 로그에 없는 사용자별 원본 ID/응답 본문을 확인한 것으로 주장하지 않는다.
