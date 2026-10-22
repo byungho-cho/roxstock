@@ -77,6 +77,9 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ApiError) {
+      if (_request.method === 'POST' && _request.routeOptions.url === '/api/buy-trades') {
+        _request.log.warn({event:'BUY_WRITE_REJECTED',statusCode:error.statusCode,code:error.code},'Buy registration rejected');
+      }
       return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message } });
     }
     if(typeof error==='object'&&error&&'code' in error&&error.code==='P2002'&&'meta' in error&&(error.meta as {modelName?:string}|undefined)?.modelName==='Security')return reply.code(409).send({error:{code:'DUPLICATE_SECURITY_CODE',message:'이미 등록된 종목코드입니다.'}});
