@@ -43,8 +43,17 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
   await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),0);
   await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:110,priceUpdatedAt:new Date()}});
   await Promise.all([scanNotificationUser(prisma,uid),scanNotificationUser(prisma,uid)]);
-  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);
-  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);const arrival=await prisma.appNotificationEvent.findFirstOrThrow({where:{userId:uid,kind:'TARGET'}});assert.equal((await call(1,'/api/notifications/events/'+arrival.id)).json().data.accountId,String(accounts[1]!.id));
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);const arrival=await prisma.appNotificationEvent.findFirstOrThrow({where:{userId:uid,kind:'TARGET'}});assert.equal((await call(1,'/api/notifications/events/'+arrival.id)).json().data.accountId,String(accounts[1]!.id));
+  await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:104,priceUpdatedAt:new Date()}});await scanNotificationUser(prisma,uid);
+  await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:110,priceUpdatedAt:new Date()}});await scanNotificationUser(prisma,uid);
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  assert.equal((await call(2,'/api/notifications/events/'+arrival.id+'/state','POST',{action:'dismiss'})).statusCode,404);
+  assert.equal((await call(1,'/api/notifications/events/'+arrival.id+'/state','POST',{action:'dismiss'})).statusCode,200);
+  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  const nextDay=new Date(Date.now()+86400000);await Promise.all([scanNotificationUser(prisma,uid,nextDay),scanNotificationUser(prisma,uid,nextDay)]);
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),4);
+  const inbox=(await call(1,'/api/notifications/inbox')).json().data;assert.ok(inbox.rows.every((r:any)=>r.accountId===String(accounts[1]!.id)||r.accountId===null));assert.ok(inbox.rows.every((r:any)=>r.token===undefined));
   // Cancel the pending target delivery while leaving news ON; the following send assertion isolates the news event.
   await call(1,'/api/notifications/settings','PUT',{targetEnabled:false,newsEnabled:true});
 

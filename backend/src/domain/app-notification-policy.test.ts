@@ -1,21 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {notificationDestination,targetTransition,rearmAfterMs} from '../notifications/policy.js';
-import {maskAccount} from '../routes/admin-users.js';
-test('target baseline, continued match, short bounce, 24h rearm and missing observation gap',()=>{
- const at=new Date('2026-10-21T00:00:00Z');let s=targetTransition(null,true,true,at);assert.equal(s.fire,false);
- s=targetTransition(s,true,false,new Date(+at+60000));assert.equal(s.fire,false);
- s=targetTransition(s,false,false,new Date(+at+120000));s=targetTransition(s,true,false,new Date(+at+180000));assert.equal(s.fire,false);
- s=targetTransition(s,false,false,new Date(+at+240000));const start=+at+240000;
- for(let t=start+60000;t<=start+rearmAfterMs;t+=60000)s=targetTransition(s,false,false,new Date(t));
- s=targetTransition(s,true,false,new Date(start+rearmAfterMs+60000));assert.equal(s.fire,true);assert.equal(s.generation,1);
- assert.equal(targetTransition(s,true,false,new Date(start+rearmAfterMs+120000)).fire,false);
- const gap=targetTransition({...s,matched:false,falseSince:at},true,false,new Date(start+rearmAfterMs+600000));assert.equal(gap.fire,false);
- assert.equal(targetTransition(null,true,false,at).fire,true);
- const unknown={matched:false,falseSince:null,lastObservedAt:at,lastEventAt:null,generation:0};const firstKnown=targetTransition(unknown,true,false,new Date(+at+60000));assert.equal(firstKnown.fire,false);const dipped=targetTransition(firstKnown,false,false,new Date(+at+120000));assert.equal(targetTransition(dipped,true,false,new Date(+at+180000)).fire,false);
- const initialUnmatched=targetTransition(null,false,true,at);assert.equal(targetTransition(initialUnmatched,true,false,new Date(+at+60000)).fire,true);
+import {dailyTargetIdentity,notificationDestination} from '../notifications/policy.js';
+import {evaluateTargetLots} from './target-arrival.js';
+test('daily event identity persists across reentry/restart and separates Korean date, owner, account, stock and condition',()=>{
+ const t=new Date('2026-10-22T14:59:59Z'),c={days:7,rate:'5'};
+ const id=dailyTargetIdentity(1n,2n,3n,c,t);assert.equal(id,dailyTargetIdentity(1n,2n,3n,c,new Date(+t-3600000)));
+ for(const other of [dailyTargetIdentity(2n,2n,3n,c,t),dailyTargetIdentity(1n,4n,3n,c,t),dailyTargetIdentity(1n,2n,4n,c,t),dailyTargetIdentity(1n,2n,3n,{days:30,rate:'10'},t),dailyTargetIdentity(1n,2n,3n,c,new Date(+t+1000))])assert.notEqual(other,id);
+ assert.match(id,/2026-10-22$/);
 });
-test('notification routes are server-defined and account projections never expose short originals',()=>{
- assert.equal(notificationDestination('TARGET'),'/');assert.equal(notificationDestination('NEWS'),'/detail/stock-news');assert.equal(notificationDestination('https://evil.invalid'),null);
- assert.equal(maskAccount('1234'),'****');assert.equal(maskAccount('1234567890'),'******7890');assert.equal(maskAccount(null),'미등록');
+test('original target comparison supports separate 5/10 conditions without rounding or changing home representative',()=>{
+ const now=new Date('2026-10-22T00:00:00Z'),lot={id:'1',securityId:'3',symbol:'005380',name:'현대차',boughtAt:new Date('2026-10-21T00:00:00Z'),quantity:'10',soldQuantities:[],unitPrice:'100',currentPrice:'110',priceUpdatedAt:now};
+ const cs=[{days:7,rate:'5'},{days:30,rate:'10'}];assert.equal(evaluateTargetLots([lot],cs,now).data.length,1);
+ assert.equal(cs.filter(c=>evaluateTargetLots([lot],[c],now).data.length).length,2);
+ assert.equal(evaluateTargetLots([{...lot,currentPrice:'104.9999'}],[cs[0]!],now).data.length,0);
+ assert.equal(evaluateTargetLots([{...lot,currentPrice:null}],[cs[0]!],now).unavailable.length,1);
 });
+test('notification navigation is allowlisted',()=>{assert.equal(notificationDestination('NEWS'),'/detail/stock-news');assert.equal(notificationDestination('TARGET'),'/');assert.equal(notificationDestination('https://evil.invalid'),null);});

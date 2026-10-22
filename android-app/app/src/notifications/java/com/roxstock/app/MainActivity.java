@@ -35,42 +35,12 @@ public final class MainActivity extends Activity {
         if (listeners != null) for (String value : listeners.split(":")) if (component.equals(value)) return true;
         return false;
     }
-    private void showInbox() {
-        try (InboxDb db = new InboxDb(this)) {
-            org.json.JSONArray rows = db.list();
-            java.util.List<String> labels = new java.util.ArrayList<>();
-            java.util.List<JSONObject> pending = new java.util.ArrayList<>();
-            for (int i = 0; i < rows.length(); i++) {
-                JSONObject row = rows.getJSONObject(i);
-                if (!"pending".equals(row.getString("status"))) continue;
-                pending.add(row);
-                String raw = row.getString("raw");
-                labels.add(raw.substring(0, Math.min(100, raw.length())).replace('\n', ' '));
-            }
-            if (pending.isEmpty()) { new AlertDialog.Builder(this).setMessage("대기 알림이 없습니다. 알림 접근을 허용한 이후 새로 수신한 전량체결·배당 알림을 확인하세요.").setPositiveButton("확인", null).show(); return; }
-            new AlertDialog.Builder(this).setTitle("등록 대기 " + pending.size() + "건").setItems(labels.toArray(new String[0]), (dialog, index) -> {
-                JSONObject entry = pending.get(index);
-                new AlertDialog.Builder(this).setTitle("수신 내용 확인").setMessage(entry.optString("raw"))
-                    .setNegativeButton("닫기", null).setPositiveButton("등록 화면", (detail, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications?notice=" + entry.optString("id"))).show();
-            }).setNegativeButton("닫기", null).show();
-        } catch (Exception error) { new AlertDialog.Builder(this).setMessage("알림 보관함을 열지 못했습니다.").setPositiveButton("확인", null).show(); }
-    }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         AppPush.initialize(this);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         AppWindowInsets.install(this, root);
-        Button inbox = new Button(this); inbox.setText("거래 알림 · 등록 대기");
-        root.addView(inbox, new LinearLayout.LayoutParams(-1, -2));
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
-        updateBadge = () -> {
-            try (InboxDb db = new InboxDb(this)) {
-                org.json.JSONArray rows = db.list(); int count = 0;
-                for (int i = 0; i < rows.length(); i++) if ("pending".equals(rows.getJSONObject(i).getString("status"))) count++;
-                inbox.setText("거래 알림 · 등록 대기 " + count + "건");
-            } catch (Exception ignored) { inbox.setText("거래 알림 · 보관함 확인 필요"); }
-            handler.postDelayed(updateBadge, 3000);
-        };
         web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setUserAgentString(web.getSettings().getUserAgentString() + " RoxStockApp/" + BuildConfig.VERSION_NAME);
         web.getSettings().setAllowFileAccess(false); web.getSettings().setAllowContentAccess(false);
@@ -105,7 +75,7 @@ public final class MainActivity extends Activity {
                             }break;
                         case "bind": if(!command.optString("revision").equals(String.valueOf(AppPush.preferences(this).getLong("revision",0))))throw new IllegalArgumentException();String binding=command.getString("binding");if(!binding.matches("[a-f0-9-]{36}"))throw new IllegalArgumentException();AppPush.preferences(this).edit().putString("binding",binding).putString("boundTokenHash",AppPush.preferences(this).getString("issuedTokenHash","")).commit();break;
                         case "unbind": AppPush.unbind(this);break;
-                        case "preferences": AppPush.preferences(this).edit().putBoolean("targetEnabled","true".equals(command.optString("targetEnabled"))).putBoolean("newsEnabled","true".equals(command.optString("newsEnabled"))).commit();break;
+                        case "preferences": String owner=command.optString("userId");if(!owner.matches("[1-9][0-9]{0,19}"))throw new IllegalArgumentException();AppPush.preferences(this).edit().putString("inboxOwner",owner).putBoolean("tradeEnabled","true".equals(command.optString("tradeEnabled"))).putBoolean("targetEnabled","true".equals(command.optString("targetEnabled"))).putBoolean("newsEnabled","true".equals(command.optString("newsEnabled"))).commit();break;
                         case "settings": AppPush.settings(this);break;
                         default: throw new IllegalArgumentException();
                     }
@@ -119,8 +89,8 @@ public final class MainActivity extends Activity {
                     JSONObject command = new JSONObject(message.getData());
                     response.put("requestId", command.optString("requestId"));
                     switch (command.getString("action")) {
-                        case "list": response.put("entries", db.list()).put("permission", enabled()).put("storageError", getSharedPreferences("status", MODE_PRIVATE).getBoolean("storageError", false)); break;
-                        case "status": db.status(command.getString("id"), command.getString("status")); break;
+                        case "list": response.put("protocolVersion",2).put("entries", db.list(AppPush.preferences(this).getString("inboxOwner",""))).put("total",db.count(AppPush.preferences(this).getString("inboxOwner",""))).put("permission", enabled()).put("storageError", getSharedPreferences("status", MODE_PRIVATE).getBoolean("storageError", false)); break;
+                        case "status": db.status(command.getString("id"), command.getString("status"),AppPush.preferences(this).getString("inboxOwner","")); break;
                         case "push-status": response.put("granted",AppPush.granted(this)).put("configured",AppPush.configured());break;
                         case "permission": startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); break;
                         default: throw new IllegalArgumentException("Unsupported command");
@@ -129,12 +99,6 @@ public final class MainActivity extends Activity {
                 reply.postMessage(response.toString());
             });
         } else new AlertDialog.Builder(this).setMessage("알림 기능을 사용하려면 Android System WebView 또는 Chrome을 업데이트해 주세요.").setPositiveButton("확인", null).show();
-        inbox.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("거래 알림")
-            .setItems(new String[]{"휴대폰에 수신한 대기 알림 확인", "알림 접근 허용·설정", "웹 등록 대기 목록"}, (dialog, index) -> {
-                if (index == 0) showInbox();
-                else if (index == 1) startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-                else new AlertDialog.Builder(this).setMessage("작성 중인 화면을 나가시겠습니까? 저장하지 않은 입력은 다시 입력해야 할 수 있습니다.").setNegativeButton("취소", null).setPositiveButton("목록 열기", (confirm, which) -> web.loadUrl(BuildConfig.SITE_ORIGIN + "/detail/notifications")).show();
-            }).setNegativeButton("닫기", null).show());
         AuthCookies.start(() -> { if (!isFinishing()) web.loadUrl(BuildConfig.SITE_ORIGIN + AppPush.launchPath(getIntent())); });
     }
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){super.onRequestPermissionsResult(requestCode,permissions,results);if(requestCode==701&&permissionReply!=null){try{permissionResponse.put("granted",AppPush.granted(this));permissionReply.postMessage(permissionResponse.toString());}catch(Exception ignored){}permissionReply=null;permissionResponse=null;}}
