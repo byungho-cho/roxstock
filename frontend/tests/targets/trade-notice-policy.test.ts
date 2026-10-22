@@ -34,3 +34,11 @@ test('buy, sell and dividend share embedded code identity without changing store
 test('notice numbers group thousands without changing numeric values or decimal precision',()=>{
  assert.equal(formatNoticeNumber('108400'),'108,400');assert.equal(formatNoticeNumber('1084000'),'1,084,000');assert.equal(formatNoticeNumber('108400.0123'),'108,400.0123');assert.equal(formatNoticeNumber(''),'?' );assert.equal(formatNoticeNumber('', '확인 필요'),'확인 필요');
 });
+
+test('notification date uses explicit date or persisted receipt day in Seoul, never opening day',()=>{
+ const without=raw.replace('체결일자: 2026.10.22\n','');
+ for(const [receivedAt,expected] of [[Date.parse('2026-10-21T14:59:59Z'),'2026-10-21'],[Date.parse('2026-10-21T15:00:00Z'),'2026-10-22']] as const){
+  assert.equal(parseTradeNotice({id:'old',raw:without,receivedAt})!.date,expected);
+  assert.equal(parseTradeNotice({id:'old',raw,receivedAt})!.date,'2026-10-22');
+ }
+});

@@ -523,6 +523,8 @@ model CashTransaction {
   transactionDate DateTime            @map("transaction_date") @db.DateTime(3)
   amount          Decimal             @db.Decimal(19, 4)
   feeTaxAmount    Decimal             @default(0) @map("fee_tax_amount") @db.Decimal(19, 4)
+  feeTaxStatus    String              @default("UNKNOWN") @map("fee_tax_status") @db.VarChar(16)
+  feeTaxBasisCount Int?               @map("fee_tax_basis_count") @db.UnsignedTinyInt
   balanceAfter    Decimal             @map("balance_after") @db.Decimal(19, 4)
   memo            String?             @db.VarChar(500)
   createdAt       DateTime            @default(now()) @map("created_at") @db.DateTime(3)
@@ -534,6 +536,7 @@ model CashTransaction {
 
   @@index([accountId, transactionDate])
   @@index([accountId, transactionType, transactionDate])
+  @@index([accountId, transactionType, feeTaxStatus, transactionDate, id], map: "cash_fee_history_idx")
   @@map("cash_transactions")
 }
 

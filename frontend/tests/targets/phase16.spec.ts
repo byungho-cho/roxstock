@@ -80,7 +80,7 @@ for(const type of ['buy','sell'])test(`${type} exact linked cash editor focuses 
  else await page.getByTestId('lot-lot1').getByRole('button',{name:'2026-09-10 Lot 매도'}).click();
  await page.getByLabel(type==='buy'?'매수수량':'매도수량',{exact:true}).fill('1');
  await page.getByRole('button',{name:type==='buy'?'매수':'매도',exact:true}).click();
- const confirm=page.getByRole('dialog').filter({hasText:'제세금을 입력하시겠습니까?'});await expect(confirm).toBeVisible();
+ const confirm=page.getByRole('dialog').filter({hasText:'예수금을 입력하시겠습니까?'});await expect(confirm).toBeVisible();
  await confirm.getByRole('button',{name:'확인',exact:true}).click();
  const tax=page.getByLabel('제세금',{exact:true});await expect(page.getByLabel('세후예수금',{exact:true})).toBeFocused();await tax.fill('100');
  await page.getByRole('button',{name:'저장',exact:true}).click();

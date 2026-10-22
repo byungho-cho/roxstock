@@ -9,13 +9,13 @@ import { invalidatePortfolio } from '../../data/invalidatePortfolio';
 import {ConfirmActionDialog} from '../../components/common/ConfirmActionDialog';
 import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
-import { Box, Button, MenuItem, Select, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, Checkbox, FormControlLabel, MenuItem, Select, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { ActionButton, AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
-import { getCashTransaction, getBuyLots, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
+import { getCashFeeEstimate, getCashTransaction, getBuyLots, createCashTransaction, createDividend, deleteCashTransaction, getCashOverview, updateCashTransaction, type CashTransactionDto } from '../../data/roxstockApi';
 import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { flushSync } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -114,12 +114,17 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   const [amount, setAmount] = useState('');
   const [gross, setGross] = useState('');
   const [tax, setTax] = useState('');
+  const [feeStatus,setFeeStatus]=useState<'UNKNOWN'|'ESTIMATED'|'CONFIRMED'>('UNKNOWN');
+  const [feeCount,setFeeCount]=useState<number|undefined>();
+  const feeTouched=useRef(false),estimateApplied=useRef<string|null>(null);
+  const changeFeeState=()=>{feeTouched.current=true;setFeeStatus('UNKNOWN');setFeeCount(undefined);};
+
   const [after, setAfter] = useState('');
   const tradeEdit = !!editing && (type === 'BUY' || type === 'SELL');
   const canDelete = !!editing && !balance.isError && editing.id === balance.data?.recentTransactions[0]?.id;
-  const changeGross = (value:string) => {setGross(value); setTax(''); if(tradeEdit) setAfter(''); else setAmount('');};
-  const changeAfter = (value:string) => {if(tradeEdit) setAfter(value); else setAmount(value); setTax(value !== '' && gross !== '' ? cashDifference(gross,value) : '');};
-  const changeTax = (value:string) => {setTax(value); const calculated=value !== '' && gross !== '' ? cashDifference(gross,value) : ''; if(tradeEdit) setAfter(calculated); else setAmount(calculated);};
+  const changeGross = (value:string) => {changeFeeState();setGross(value); setTax(''); if(tradeEdit) setAfter(''); else setAmount('');};
+  const changeAfter = (value:string) => {changeFeeState();if(tradeEdit) setAfter(value); else setAmount(value); setTax(value !== '' && gross !== '' ? cashDifference(gross,value) : '');};
+  const changeTax = (value:string) => {changeFeeState();setTax(value); const calculated=value !== '' && gross !== '' ? cashDifference(gross,value) : ''; if(tradeEdit) setAfter(calculated); else setAmount(calculated);};
   const [securityId, setSecurityId] = useState('');
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
@@ -134,7 +139,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   const inputVisible = tablet ? open : params.has('cashInput') || (!!linkedId && open);
   const searching = tablet ? searchOpen : params.get('cashInput') === 'search';
   const focusInitial=()=>{
-    if(notification||initialFocusDone.current||!inputVisible||searching||linkedId&&(!linked.data||openedLinked.current!==linkedId))return;
+    if(notification||location.state?.notificationEntry||initialFocusDone.current||!inputVisible||searching||linkedId&&(!linked.data||openedLinked.current!==linkedId))return;
     const target=editing?(tradeEdit?amountRef:afterRef).current:(type==='DIVIDEND'?grossRef:amountRef).current;
     if(!target)return;
     const active=document.activeElement;
@@ -167,11 +172,12 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   useEffect(() => { if (inputVisible && !editingAccountId && accountId) setEditingAccountId(accountId); }, [inputVisible, editingAccountId, accountId]);
   const openCreate = () => { setCardEditing(false); setCardError(''); setEditing(null); setEditingAccountId(accountId ?? null); setType('DEPOSIT'); setDate(today()); setAmount(''); setGross(''); setTax(''); setSecurityId(''); setSecurityName(''); setMemo(''); setError(''); setFieldErrors({}); setOpen(true); enterInput(); };
   const openEdit = (entry: CashTransactionDto, fromCard = false, linkedTrade = false) => {
+    feeTouched.current=false;estimateApplied.current=null;setFeeStatus(entry.feeTaxStatus??'UNKNOWN');setFeeCount(entry.feeTaxBasisCount??undefined);
     setCardEditing(fromCard); setCardError('');
     setEditing(entry); setEditingAccountId(accountId ?? null); setType(entry.transactionType);
     setDate(new Date(entry.transactionDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
     setAmount(entry.amount); setGross(entry.dividend?.grossAmount ?? ((entry.transactionType === 'BUY' || entry.transactionType === 'SELL') ? cashDifference(entry.balanceAfter ?? '',entry.feeTaxAmount,'add') : ''));
-    setTax(entry.dividend ? cashDifference(entry.dividend.grossAmount,entry.dividend.netAmount) : entry.feeTaxAmount);
+    setTax(entry.dividend ? cashDifference(entry.dividend.grossAmount,entry.dividend.netAmount) : (!entry.feeTaxStatus||entry.feeTaxStatus==='UNKNOWN')&&Number(entry.feeTaxAmount)===0?'':entry.feeTaxAmount);
     setAfter(entry.balanceAfter ?? '');
     setSecurityId(entry.dividend?.securityId ?? ''); setSecurityName(entry.dividend?.securityName ?? ''); setMemo(entry.memo ?? ''); setError(''); setFieldErrors({}); setOpen(true); if (!linkedTrade) enterInput();
   };
@@ -180,6 +186,13 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     openedLinked.current = linkedId;
     openEdit(linked.data, false, true);
   }, [linkedId,linkedAccount,accountId,linked.data]);
+
+  const feeEstimate=useQuery({queryKey:['cash-fee-estimate',accountId,editing?.id],enabled:!!accountId&&accountId===editingAccountId&&tradeEdit&&open&&(!editing.feeTaxStatus||editing.feeTaxStatus==='UNKNOWN')&&Number(editing.feeTaxAmount)===0,queryFn:({signal})=>getCashFeeEstimate(accountId!,editing!.id,signal),retry:false});
+  useEffect(()=>{
+    if(!feeEstimate.data||!editing||feeTouched.current||estimateApplied.current===editing.id||accountId!==editingAccountId)return;
+    estimateApplied.current=editing.id;
+    setTax(feeEstimate.data.amount);setAfter(cashDifference(gross,feeEstimate.data.amount));setFeeStatus('ESTIMATED');setFeeCount(feeEstimate.data.count);
+  },[feeEstimate.data,editing?.id,accountId,editingAccountId,gross]);
   const invalidateCash = async () => invalidatePortfolio(queryClient);
   const latestEntry = !balance.isError ? balance.data?.recentTransactions[0] : undefined;
   const editBalance = () => {
@@ -228,7 +241,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     setSaving(true); setError('');
     try {
       const transactionDate = new Date(`${date}T12:00:00+09:00`).toISOString();
-      if (editing) await updateCashTransaction(editing.id, { transactionDate, amount, memo: memo || null, ...(type === 'DIVIDEND' ? { securityId, grossAmount: gross } : {}), ...(editing ? { balanceAfter: after, accountId, ...(cardEditing ? { expectedLatestId: editing.id } : {}) } : {}), ...(tradeEdit ? {feeTaxAmount:tax} : {}) });
+      if (editing) await updateCashTransaction(editing.id, { transactionDate, amount, memo: memo || null, ...(type === 'DIVIDEND' ? { securityId, grossAmount: gross } : {}), ...(editing ? { balanceAfter: after, accountId, ...(cardEditing ? { expectedLatestId: editing.id } : {}) } : {}), ...(tradeEdit ? {feeTaxAmount:tax,feeTaxStatus:feeStatus,...(feeCount?{feeTaxBasisCount:feeCount}:{})} : {}) });
       else if (type === 'DIVIDEND') await createDividend({ ...(notification?{requestId:notification.notice.id}:{}),accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
       else if(type==='DEPOSIT'||type==='WITHDRAWAL') await createCashTransaction({ accountId, transactionType: type, transactionDate, amount, memo: memo || null });
       if(notification){notificationSaved.current=true;await notification.onSaved();}
@@ -266,17 +279,19 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   }} /> : <Stack spacing="8px" data-testid="cash-form" sx={{ '& .MuiInputBase-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiTypography-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiInputBase-root + img': {ml:'8px'}, '& input': { fontSize: '14px !important', fontWeight: '600 !important' }, '& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root': { fontSize: 12 } }}>
     {!tradeEdit && <Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || !!notification || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>}
     <DateField size="small" calendarIconSrc="/cash-v04/calendar.svg" label="거래일자" value={date} onChange={setDate} inputRef={dateRef} error={fieldErrors.date} disabled={saving} onEnter={() => type === 'DIVIDEND' || tradeEdit ? grossRef.current?.focus() : amountRef.current?.focus()} enterKeyHint="next" />
-    {tradeEdit && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
+    {tradeEdit && <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
     {type === 'DIVIDEND' && <>
       <Select size="small" displayEmpty value={securityId} disabled={saving||dividendLots.isPending} onChange={e=>{setSecurityId(e.target.value);setSecurityName(dividendOptions.find(s=>s.id===e.target.value)?.name??'');}} inputProps={{'aria-label':'배당 종목 선택',required:true}} sx={{height:36,bgcolor:colors.raised,fontSize:12}}><MenuItem value="" disabled>종목을 선택하세요.</MenuItem>{dividendOptions.map(stock=><MenuItem key={stock.id} value={stock.id}>{stock.name}</MenuItem>)}</Select>
       {dividendLots.isError&&<QueryErrorNotice message="종목 조회 실패 · 다시 시도" onRetry={()=>void dividendLots.refetch()}/>}
       {fieldErrors.security && <Typography role="alert" sx={{ fontSize: 11, color: colors.error }}>{fieldErrors.security}</Typography>}
-      <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing} label="세전 배당" value={gross} onChange={changeGross} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
+      <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing} label="세전 배당" value={gross} onChange={changeGross} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
     </>}
-    <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing&&type!=='DIVIDEND'} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
-    {(tradeEdit || type === 'DIVIDEND') && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
-    {editing && !tradeEdit && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" inputRef={afterRef} value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
-    <FormTextField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
+    <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing&&type!=='DIVIDEND'} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
+    {(tradeEdit || type === 'DIVIDEND') && <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
+    {tradeEdit&&<Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>{feeStatus==='ESTIMATED'?`추정 · 최근 ${type==='BUY'?'매수':'매도'} ${feeCount??0}건 기준`:feeStatus==='CONFIRMED'?'실제 금액 확인됨':'실제 비용 미확인'}</Typography><FormControlLabel sx={{m:0,'& .MuiTypography-root':{fontSize:11}}} control={<Checkbox size="small" checked={feeStatus==='CONFIRMED'} disabled={saving||tax===''||Number(tax)<0} onChange={(_,checked)=>{feeTouched.current=true;setFeeStatus(checked?'CONFIRMED':feeCount?'ESTIMATED':'UNKNOWN');}}/>} label="실제 금액으로 확인"/></Stack>}
+    {tradeEdit&&feeEstimate.isError&&<Typography sx={{fontSize:11,color:colors.textMuted}}>추정 조회 실패 · 제세금을 직접 입력해 주세요.</Typography>}
+    {editing && !tradeEdit && <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" inputRef={afterRef} value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
+    <FormTextField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{tradeEdit ? '제세금 반영 결과' : '변동 정보'}</Typography>
     <AppCard sx={{ p: '8px 14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{tradeEdit ? '제세금' : '변동금액'}</Typography><Typography sx={{ fontSize: 11, color: !tradeEdit && (type === 'WITHDRAWAL'||type==='BUY') ? colors.marketFall : colors.marketRise }}>{tradeEdit ? (tax !== '' ? formatWon(Number(tax)) : '—') : amount ? signed(((type === 'WITHDRAWAL'||type==='BUY') ? -1 : 1) * Number(amount)) : '—'}</Typography></Stack>

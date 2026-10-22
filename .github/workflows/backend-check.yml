@@ -71,6 +71,7 @@ jobs:
         run: |
           node --test scripts/tests/buy-write-diagnostics.test.mjs
           node --import tsx --test backend/tests/authenticated-trades.integration.ts
+          node --import tsx --test backend/tests/fee-estimate.integration.ts
 
       - name: App notifications and admin authorization (real MariaDB)
         run: node --import tsx --test backend/tests/app-notifications.integration.ts
