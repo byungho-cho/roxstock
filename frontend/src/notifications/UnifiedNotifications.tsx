@@ -1,7 +1,7 @@
 import {authRequest} from '../auth/client';
 import {selectedAccountStorageKey} from '../data/roxstockApi';
 import {usePopupHistory} from '../hooks/usePopupHistory';
-import {lazy,Suspense,useEffect,useState} from 'react';
+import {lazy,Suspense,useEffect,useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {NotificationsRounded} from '@mui/icons-material';
 import {Alert,Badge,Box,Button,ButtonBase,DialogContent,DialogTitle,IconButton,Stack,Typography} from '@mui/material';
@@ -40,11 +40,13 @@ export function UnifiedNotifications(){
  const complete=async(n:TradeNotice)=>{await brokerNative('status',{id:n.id,status:'completed'});await refresh();};
  const lots=useQuery({queryKey:['notice-sell-lots',user?.id,accountId,sell?.stockId],queryFn:()=>getBuyLots(accountId!,sell!.stockId,false),enabled:!!sell&&!!accountId});
  const candidates=sell?sellCandidates(lots.data??[],sell.notice):[];
- useEffect(()=>{setOpen(false);setSell(null);setEntry(null);setLotId('');setError('');},[user?.id,accountId]);
+ const previousScope=useRef({userId:user?.id,accountId});
+ useEffect(()=>{const previous=previousScope.current;previousScope.current={userId:user?.id,accountId};if(previous.userId===user?.id&&(!previous.accountId||previous.accountId===accountId))return;setOpen(false);setSell(null);setEntry(null);setLotId('');setError('');},[user?.id,accountId]);
  const selectTrade=async(notice:TradeNotice)=>{
-  setError('');const matching=(accounts.data??[]).filter(a=>a.isActive&&a.brokerName.includes('미래')&&accountMatches(notice.account,a.accountNumber??''));
+  setError('');if(accounts.isPending){setPendingTrade(notice);return;}const matching=(accounts.data??[]).filter(a=>a.isActive&&a.brokerName.includes('미래')&&accountMatches(notice.account,a.accountNumber??''));
   if(matching.length!==1){setError('알림의 계좌를 유일하게 확인할 수 없습니다. 계좌번호를 확인하고 수동 거래 입력을 이용해 주세요.');return;}
   if(matching[0].id!==accountId){setBusy(true);try{await authRequest('settings',{selectedAccountId:matching[0].id});setPendingTrade(notice);localStorage.setItem(selectedAccountStorageKey,matching[0].id);window.dispatchEvent(new Event('roxstock-selected-account'));}catch{setError('알림의 계좌를 선택하지 못했습니다.');}finally{setBusy(false);}return;}
+  if(stocks.isPending){setPendingTrade(notice);return;}
   const matchingStocks=(stocks.data??[]).filter(s=>notice.symbol?s.symbol===notice.symbol:!!notice.name&&s.name===notice.name);
   if(matchingStocks.length!==1){setError('종목을 정확히 확인할 수 없습니다. 종목을 등록하거나 수동 거래 입력을 이용해 주세요.');return;}
   if(notice.kind==='SELL'&&(!notice.date||!notice.quantity||!notice.price)){setError('매도일·수량·단가가 확인되지 않아 연결 매수를 선택할 수 없습니다. 수동 거래 입력을 이용해 주세요.');return;}

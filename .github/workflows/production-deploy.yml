@@ -200,7 +200,7 @@ jobs:
           configured="$(python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           r=json.loads(pathlib.Path(sys.argv[1]).with_suffix('.verification.json').read_text())
-          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.7'
+          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.8' and r['versionCode']==9
           print('true' if r['firebaseConfigured'] else 'false')
           PY
           )"
