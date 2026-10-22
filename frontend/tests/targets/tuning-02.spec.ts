@@ -16,8 +16,10 @@ const screens=[
 for(const screen of screens)test(`batched reads render ${screen.url}`,async({page},info)=>{
   const batches:string[][]=[],direct:string[]=[],errors:string[]=[];
   page.on('pageerror',error=>errors.push(error.message));
-  page.on('request',request=>{const path=new URL(request.url()).pathname;if(path.startsWith('/api/')&&path!=='/api/pages/read')direct.push(path);});
+  page.on('request',request=>{const path=new URL(request.url()).pathname;if(path.startsWith('/api/')&&!path.startsWith('/api/notifications/')&&path!=='/api/pages/read')direct.push(path);});
   await fixture(page,{batch:true,onBatch:paths=>batches.push(paths),read:url=>{
+    if(url.pathname==='/api/notifications/settings')return {json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}};
+    if(url.pathname==='/api/notifications/inbox')return {json:{data:{rows:[],total:0}}};
     if(['/api/value-analysis','/api/financial-statements'].includes(url.pathname))return {json:{data:{year:2026,market:'KOSPI',query:'',total:0,rows:[]}}};
     if(url.pathname.endsWith('/cash-overview'))return {json:{data:{account:{id:'1',name:'기본',currentBalance:'65000',balanceStatus:'AVAILABLE',updatedAt:'2026-10-07T03:00:00Z'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},currentYearTax:{year:2026,amount:'0'},recentTransactions:[]}}};
     return undefined;
@@ -39,6 +41,8 @@ for(const screen of screens)test(`batched reads render ${screen.url}`,async({pag
 test('phase26 stock profit scope survives batching, linked detail and account switching',async({page})=>{
   const batches:string[][]=[];
   await fixture(page,{batch:true,onBatch:paths=>batches.push(paths),read:url=>{
+    if(url.pathname==='/api/notifications/settings')return {json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}};
+    if(url.pathname==='/api/notifications/inbox')return {json:{data:{rows:[],total:0}}};
     if(!url.pathname.endsWith('/investment-profit'))return undefined;
     const accountId=url.pathname.split('/')[3],securityId=url.searchParams.get('securityId');
     const profit=accountId==='2'?'505':securityId==='1'?'120':'-30';
