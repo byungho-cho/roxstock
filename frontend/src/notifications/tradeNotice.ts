@@ -6,7 +6,7 @@ export function parseTradeNotice(row:{id:string;raw:string;receivedAt:number}):T
  const side=field(raw,'매매구분');const kind=raw.match(/\[미래에셋증권\]\s*전량체결/)&&['매수','매도'].includes(side)?side==='매수'?'BUY':'SELL':raw.includes('권리 입금 안내')&&/배당금\s*입금/.test(raw)?'DIVIDEND':null;
  if(!kind)return null;
  const date=field(raw,'체결일자|거래일자|입금일자').replace(/[./]/g,'-');
- const validDate=/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date))?date:'';
+ const validDate=/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date?date:'';
  const symbol=field(raw,'종목코드');
  return {id:row.id,kind,name:field(raw,'종목명|종목'),symbol:/^\d{6}$/.test(symbol)?symbol:undefined,account:field(raw,'계좌번호|계좌'),date:validDate,quantity:numeric(field(raw,'체결수량|거래수량')),price:numeric(field(raw,'체결단가|체결가격|거래단가')),gross:numeric(field(raw,'세전배당금|세전 배당금')),net:numeric(field(raw,'세후배당금|세후 배당금|입금액')),receivedAt:row.receivedAt};
 }
