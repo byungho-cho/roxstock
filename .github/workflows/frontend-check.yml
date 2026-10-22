@@ -155,6 +155,8 @@ jobs:
         run: cd frontend && npx playwright test -c playwright.dart-task-status.config.ts
       - name: App notifications and administrator separation (cover and tablet)
         run: cd frontend && npx playwright test -c playwright.app-notifications.config.ts
+      - name: Unified notification flows (cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.unified-notifications.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
       - uses: actions/upload-artifact@v4
@@ -169,4 +171,5 @@ jobs:
             frontend/test-results/news-schedule-dashboard
             frontend/test-results/bottom-nav-viewport
             frontend/test-results/app-notifications-admin
+            frontend/test-results/unified-notifications
             frontend/test-results/dart-task-status

@@ -1,3 +1,5 @@
+import {StockInputContext} from '../stocks/StockInputContext';
+import type {TradeNotice} from '../../notifications/tradeNotice';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {DelayedSkeleton as Skeleton} from '../../components/common/DelayedSkeleton';
 import {useAccountAllocation} from '../../hooks/useAccountAllocation';
@@ -9,7 +11,7 @@ import { usePageMemory } from '../../hooks/navigation/usePageMemory';
 import { ChevronLeftRounded, ChevronRightRounded } from '@mui/icons-material';
 import { Box, Button, MenuItem, Select, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { ActionButton, AppCard } from '../../components/common/Common';
 import { DateField, FormTextField, NumberField } from '../../components/forms/Fields';
 import { PageHeader } from '../../components/navigation/Navigation';
@@ -36,7 +38,8 @@ const overviewQuery = (accountId: string, mode: 'month' | 'year', period: string
   ...storedQueryOptions,
 });
 
-export function LiveCashPage() {
+export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;stockId:string;onClose:()=>void;onSaved:()=>Promise<void>}} = {}) {
+  const inputHost=useContext(StockInputContext);
   const queryClient = useQueryClient();
   const { accountId, accounts } = useActiveAccount();
   const tablet = useMediaQuery('(min-width:600px)'), navigate = useNavigate(), location = useLocation();
@@ -120,7 +123,10 @@ export function LiveCashPage() {
   const [securityId, setSecurityId] = useState('');
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
+  const notificationSaved=useRef(false);
+  useEffect(()=>{if(notification){setType('DIVIDEND');setDate(notification.notice.date);setGross(notification.notice.gross);setAmount(notification.notice.net);setTax(notification.notice.gross&&notification.notice.net?cashDifference(notification.notice.gross,notification.notice.net):'');setSecurityId(notification.stockId);setEditingAccountId(accountId??null);}},[notification?.notice.id,accountId]);
   const [saving, setSaving] = useState(false);
+  useEffect(()=>{if(notification)inputHost?.setBusy(saving);return()=>{if(notification)inputHost?.setBusy(false);};},[saving,!!notification,inputHost?.setBusy]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useMainLoading(olderLoading);
   const dividendLots = useQuery({queryKey:['allBuyLots',accountId,'dividend-options'],queryFn:()=>getBuyLots(accountId!,undefined,false),enabled:!!accountId});
@@ -128,7 +134,7 @@ export function LiveCashPage() {
   const inputVisible = tablet ? open : params.has('cashInput') || (!!linkedId && open);
   const searching = tablet ? searchOpen : params.get('cashInput') === 'search';
   const focusInitial=()=>{
-    if(initialFocusDone.current||!inputVisible||searching||linkedId&&(!linked.data||openedLinked.current!==linkedId))return;
+    if(notification||initialFocusDone.current||!inputVisible||searching||linkedId&&(!linked.data||openedLinked.current!==linkedId))return;
     const target=editing?(tradeEdit?amountRef:afterRef).current:(type==='DIVIDEND'?grossRef:amountRef).current;
     if(!target)return;
     const active=document.activeElement;
@@ -148,6 +154,7 @@ export function LiveCashPage() {
     // Initial focus is applied once, after the selected record has loaded.
   };
   const closeInput = () => {
+    if(notification){notification.onClose();return;}
     setOpen(false); setSearchOpen(false);
     if (linkedId) { navigate(location.state?.taxReturnTo ?? '/detail/cash', {replace:true}); return; }
     if (tablet) return;
@@ -197,6 +204,7 @@ export function LiveCashPage() {
     if (Math.abs(horizontal) > 55 && Math.abs(horizontal) > Math.abs(y - start.y)) changePeriod(horizontal < 0 ? 1 : -1);
   };
   const submit = async () => {
+    if(notificationSaved.current)return;
     if (mutationLock.current) return;
     if (!accountId || accountId !== editingAccountId) { setError('계좌가 변경됐습니다. 다시 열어 주세요.'); return; }
     const invalid: Record<string, string> = {};
@@ -221,8 +229,9 @@ export function LiveCashPage() {
     try {
       const transactionDate = new Date(`${date}T12:00:00+09:00`).toISOString();
       if (editing) await updateCashTransaction(editing.id, { transactionDate, amount, memo: memo || null, ...(type === 'DIVIDEND' ? { securityId, grossAmount: gross } : {}), ...(editing ? { balanceAfter: after, accountId, ...(cardEditing ? { expectedLatestId: editing.id } : {}) } : {}), ...(tradeEdit ? {feeTaxAmount:tax} : {}) });
-      else if (type === 'DIVIDEND') await createDividend({ accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
+      else if (type === 'DIVIDEND') await createDividend({ ...(notification?{requestId:notification.notice.id}:{}),accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
       else if(type==='DEPOSIT'||type==='WITHDRAWAL') await createCashTransaction({ accountId, transactionType: type, transactionDate, amount, memo: memo || null });
+      if(notification){notificationSaved.current=true;await notification.onSaved();}
       await invalidateCash();
       closeInput(); setAmount(''); setMemo('');
     } catch (cause) { setError(cause instanceof Error ? cause.message : '예수금 등록에 실패했습니다.'); }
@@ -255,19 +264,19 @@ export function LiveCashPage() {
     setSecurityId(security.id); setSecurityName(security.name); backFromSearch();
     requestAnimationFrame(() => grossRef.current?.focus());
   }} /> : <Stack spacing="8px" data-testid="cash-form" sx={{ '& .MuiInputBase-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiTypography-root + .MuiIconButton-root': {ml:'8px'}, '& .MuiInputBase-root + img': {ml:'8px'}, '& input': { fontSize: '14px !important', fontWeight: '600 !important' }, '& .MuiFormControl-root > .MuiStack-root > .MuiBox-root > .MuiTypography-root': { fontSize: 12 } }}>
-    {!tradeEdit && <Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>}
+    {!tradeEdit && <Stack direction="row" spacing="6px">{(['DEPOSIT', 'WITHDRAWAL', 'DIVIDEND'] as const).map(option => <Button key={option} aria-pressed={type === option} disabled={saving || !!notification || (!!editing && type !== option)} onClick={() => { setType(option); setFieldErrors({}); }} sx={{ flex: 1, height: 32, minWidth: 0, borderRadius: '10px', bgcolor: type === option ? colors.buttonPrimary : colors.surface, color: type === option ? '#fff' : colors.textMuted, fontSize: 14, fontWeight: 600 }}>{labels[option]}</Button>)}</Stack>}
     <DateField size="small" calendarIconSrc="/cash-v04/calendar.svg" label="거래일자" value={date} onChange={setDate} inputRef={dateRef} error={fieldErrors.date} disabled={saving} onEnter={() => type === 'DIVIDEND' || tradeEdit ? grossRef.current?.focus() : amountRef.current?.focus()} enterKeyHint="next" />
-    {tradeEdit && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
+    {tradeEdit && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세전예수금" value={gross} onChange={changeGross} suffix="원" inputRef={grossRef} error={fieldErrors.gross} disabled={saving} onEnter={()=>amountRef.current?.focus()} />}
     {type === 'DIVIDEND' && <>
       <Select size="small" displayEmpty value={securityId} disabled={saving||dividendLots.isPending} onChange={e=>{setSecurityId(e.target.value);setSecurityName(dividendOptions.find(s=>s.id===e.target.value)?.name??'');}} inputProps={{'aria-label':'배당 종목 선택',required:true}} sx={{height:36,bgcolor:colors.raised,fontSize:12}}><MenuItem value="" disabled>종목을 선택하세요.</MenuItem>{dividendOptions.map(stock=><MenuItem key={stock.id} value={stock.id}>{stock.name}</MenuItem>)}</Select>
       {dividendLots.isError&&<QueryErrorNotice message="종목 조회 실패 · 다시 시도" onRetry={()=>void dividendLots.refetch()}/>}
       {fieldErrors.security && <Typography role="alert" sx={{ fontSize: 11, color: colors.error }}>{fieldErrors.security}</Typography>}
-      <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!editing} label="세전 배당" value={gross} onChange={changeGross} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
+      <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing} label="세전 배당" value={gross} onChange={changeGross} suffix="원" error={fieldErrors.gross} inputRef={grossRef} disabled={saving} enterKeyHint="next" onEnter={() => amountRef.current?.focus()} />
     </>}
-    <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!editing&&type!=='DIVIDEND'} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
-    {(tradeEdit || type === 'DIVIDEND') && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
-    {editing && !tradeEdit && <NumberField size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" inputRef={afterRef} value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
-    <FormTextField size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
+    <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing&&type!=='DIVIDEND'} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
+    {(tradeEdit || type === 'DIVIDEND') && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
+    {editing && !tradeEdit && <NumberField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" inputRef={afterRef} value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
+    <FormTextField selectOnFocus={!notification} size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{tradeEdit ? '제세금 반영 결과' : '변동 정보'}</Typography>
     <AppCard sx={{ p: '8px 14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <Stack direction="row" sx={{ height: 18, justifyContent: 'space-between', alignItems: 'center' }}><Typography sx={{ fontSize: 11, color: colors.textMuted }}>{tradeEdit ? '제세금' : '변동금액'}</Typography><Typography sx={{ fontSize: 11, color: !tradeEdit && (type === 'WITHDRAWAL'||type==='BUY') ? colors.marketFall : colors.marketRise }}>{tradeEdit ? (tax !== '' ? formatWon(Number(tax)) : '—') : amount ? signed(((type === 'WITHDRAWAL'||type==='BUY') ? -1 : 1) * Number(amount)) : '—'}</Typography></Stack>
@@ -278,6 +287,7 @@ export function LiveCashPage() {
 
   </Stack>;
 
+  if(notification)return <Stack spacing={1}>{inputContent}{inputActions}</Stack>;
   return <Box className="rox-home" data-testid="cash-page" data-screen-id={tablet ? 'T1300' : 'C1300'} sx={{ height: '100%', minHeight: 0, fontFamily: 'RoxHomeInter, sans-serif', '& .MuiButton-root': { minHeight: 0 } }}>
     <PageHeader embedded showBack={!tablet && inputVisible} assetOverview title={!tablet && inputVisible ? inputTitle : '예수금'} backPath="/" showBackTablet={!tablet && inputVisible} onBack={!tablet && inputVisible ? () => { if (!saving) searching ? backFromSearch() : closeInput(); } : undefined} backIcon={<Box component="span" sx={{ fontSize: 30, width: 11 }}>‹</Box>} action={!tablet && inputVisible ? <Box /> : <IconButton aria-label="예수금 등록" onClick={openCreate} sx={{ width: 32, height: 32, p: 0, bgcolor: colors.raised, color: colors.textPrimary, fontSize: 22 }}>+</IconButton>} />
     <Box ref={bodyRef} data-scroll-region="cash-body" data-list-condition={!tablet && inputVisible ? params.get('cashInput') : condition} data-restoration-ready={inputVisible || !history.isPending || history.isError} sx={{ ...scrollStyle, height: '100%', overflowY: tablet ? 'hidden' : 'auto', pb: tablet ? 0 : '80px', boxSizing: 'border-box' }}>

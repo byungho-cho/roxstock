@@ -81,7 +81,7 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  expect(await monthly.filter({hasText:'매매'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(251, 113, 133)');
  expect(await monthly.filter({hasText:'배당'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(250, 199, 31)');
  const previous=page.getByRole('button',{name:/이전 상세/});expect(await previous.evaluate(n=>getComputedStyle(n).whiteSpace)).toBe('nowrap');
- const before=f.requests.length;await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(f.requests.length).toBe(before);
+ const businessRequests=()=>f.requests.filter(url=>!String(url).includes('/notifications/')).length;const before=businessRequests();await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(businessRequests()).toBe(before);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath('profit.png')});
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();

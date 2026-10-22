@@ -25,4 +25,12 @@ public final class AppPushTest {
   AppPush.unbind(c);data.put("eventId",java.util.UUID.randomUUID().toString());AppPush.display(c,data);expectCount(m,0);
   // Revoking a runtime permission terminates this instrumentation process. Denial is checked before the grant above.
  }
+ @Test public void brokerOwnerDedupOffAndRestart()throws Exception{
+  Context c=InstrumentationRegistry.getInstrumentation().getTargetContext();c.deleteDatabase("broker-inbox.db");
+  String raw="[미래에셋증권] 전량체결\n매매구분: 매수\n계좌번호: 1234-12-5678\n주문번호: 123\n종목명: fixture\n체결수량: 1주\n체결단가: 100원";
+  AppPush.preferences(c).edit().putString("inboxOwner","1").putBoolean("tradeEnabled",true).commit();
+  try(InboxDb db=new InboxDb(c)){db.receive(raw,System.currentTimeMillis());assertEquals(1,db.count("1"));assertEquals(0,db.count("2"));String id=db.list("1").getJSONObject(0).getString("id");db.status(id,"ignored","2");assertEquals(1,db.count("1"));db.status(id,"ignored","1");assertEquals(0,db.count("1"));}
+  try(InboxDb db=new InboxDb(c)){db.receive(raw,System.currentTimeMillis()+86400000);assertEquals(0,db.count("1"));AppPush.preferences(c).edit().putBoolean("tradeEnabled",false).commit();db.receive(raw+" new",System.currentTimeMillis());assertEquals(0,db.count("1"));}
+  AppPush.unbind(c);assertEquals("",AppPush.preferences(c).getString("inboxOwner",""));c.deleteDatabase("broker-inbox.db");
+ }
 }

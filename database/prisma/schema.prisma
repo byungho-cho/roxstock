@@ -1154,6 +1154,7 @@ model DartTaskDecision {
 // Private per-user notification ledger; no device tokens in public API projections.
 model AppNotificationPreference {
   userId BigInt @id @map("user_id") @db.UnsignedBigInt
+  tradeEnabled Boolean @default(false) @map("trade_enabled")
   targetEnabled Boolean @default(false) @map("target_enabled")
   newsEnabled Boolean @default(false) @map("news_enabled")
   targetBaseline Boolean @default(false) @map("target_baseline")
@@ -1188,6 +1189,10 @@ model AppTargetNotificationState {
   @@map("app_target_notification_states")
 }
 model AppNotificationEvent {
+  readAt DateTime? @map("read_at") @db.DateTime(3)
+  dismissedAt DateTime? @map("dismissed_at") @db.DateTime(3)
+  title String? @db.VarChar(160)
+  detail String? @db.VarChar(500)
   accountId BigInt? @map("account_id") @db.UnsignedBigInt
   id String @id @db.VarChar(64)
   userId BigInt @map("user_id") @db.UnsignedBigInt
@@ -1196,6 +1201,7 @@ model AppNotificationEvent {
   epoch Int
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
   @@index([userId,createdAt])
+  @@index([userId,readAt,dismissedAt,createdAt],map:"app_notification_inbox")
   @@map("app_notification_events")
 }
 model AppPushDelivery {

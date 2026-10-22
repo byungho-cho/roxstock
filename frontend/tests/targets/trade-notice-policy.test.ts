@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseTradeNotice,accountMatches,sellCandidates} from '../../src/notifications/tradeNotice';
+const raw='[미래에셋증권] 전량체결\n매매구분: 매도\n계좌번호: 1234-**-5678\n종목명: 현대차\n종목코드: 005380\n체결일자: 2026.10.22\n체결수량: 5주\n체결단가: 311,000원';
+test('only supported broker messages parse, unknown dates and fields stay empty',()=>{assert.equal(parseTradeNotice({id:'1',raw:'친구 메시지 매수 10주',receivedAt:0}),null);const n=parseTradeNotice({id:'1',raw,receivedAt:0})!;assert.equal(n.quantity,'5');assert.equal(n.price,'311000');assert.equal(n.date,'2026-10-22');assert.equal(parseTradeNotice({id:'1',raw:raw.replace('2026.10.22','10.22'),receivedAt:0})!.date,'');assert.equal(parseTradeNotice({id:'1',raw:raw.replace('2026.10.22','2026.02.31'),receivedAt:0})!.date,'');});
+test('account masking and lot eligibility never combine lots or choose a future purchase',()=>{assert.equal(accountMatches('1234-**-5678','1234-12-5678'),true);assert.equal(accountMatches('','1234'),false);const n=parseTradeNotice({id:'1',raw,receivedAt:0})!;const lots=[{id:'a',boughtAt:'2026-10-21T15:00:00Z',remainingQuantity:'5'},{id:'b',boughtAt:'2026-10-22T15:00:00Z',remainingQuantity:'10'},{id:'c',boughtAt:'2026-10-21T00:00:00Z',remainingQuantity:'4'}];assert.deepEqual(sellCandidates(lots,n).map(l=>l.id),['a']);});

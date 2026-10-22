@@ -9,7 +9,7 @@ APK="/tmp/roxstock-notifications-$SHA.apk"
 printf '%s  %s\n' "$EXPECTED" "$APK" | sha256sum -c -
 BACKUP="/opt/roxstock/.deploy/apk-notifications-$SHA"
 install -d -m 700 "$BACKUP"
-PUBLIC_FILE="roxstock-notifications-0.1.7-${SHA:0:12}-${EXPECTED:0:12}.apk"
+PUBLIC_FILE="roxstock-notifications-0.1.8-${SHA:0:12}-${EXPECTED:0:12}.apk"
 docker cp roxstock-proxy:/data/roxstock-public/downloads/android/notifications-latest.json "$BACKUP/latest.previous.json" 2>/dev/null || true
 docker cp roxstock-proxy:/data/roxstock-public/downloads/android/latest.json "$BACKUP/default.previous.json" 2>/dev/null || true
 
@@ -21,7 +21,7 @@ printf '%s  %s\n' "$EXPECTED" "$BACKUP/downloaded.apk" | sha256sum -c -
 python3 - "$BACKUP/latest.json" "$PUBLIC_FILE" "$SHA" "$EXPECTED" "$CONFIGURED" <<'PY'
 import datetime,json,sys
 path,filename,sha,digest,configured=sys.argv[1:]
-with open(path,'w') as f:json.dump({'version':'0.1.7','versionCode':8,'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/'+filename,'commit':sha,'sha256':digest,'firebaseConfigured':configured=='true'},f)
+with open(path,'w') as f:json.dump({'version':'0.1.8','versionCode':9,'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':'/downloads/android/'+filename,'commit':sha,'sha256':digest,'firebaseConfigured':configured=='true'},f)
 PY
 docker cp "$BACKUP/latest.json" roxstock-proxy:/data/roxstock-public/downloads/android/notifications-latest.json.new
 docker exec roxstock-proxy sh -c 'chmod 644 /data/roxstock-public/downloads/android/notifications-latest.json.new && mv /data/roxstock-public/downloads/android/notifications-latest.json.new /data/roxstock-public/downloads/android/notifications-latest.json'

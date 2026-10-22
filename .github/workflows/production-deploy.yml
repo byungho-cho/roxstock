@@ -142,6 +142,12 @@ jobs:
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           case "$(node -p 'require("./backend/src/release.json").version')" in 1.1.18|1.1.19|1.1.20|1.1.25) ;; *) exit 0 ;; esac
+          # Initial stock-news activation belongs only to its original releases.
+          # Later authenticated releases must not repeat collection or call private APIs anonymously.
+          case "$(node -p 'require("./backend/src/release.json").version')" in
+            1.1.24|1.1.25) ;;
+            *) echo "Stock-news initial activation is not required for this release"; exit 0 ;;
+          esac
           [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 2
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
@@ -200,7 +206,7 @@ jobs:
           configured="$(python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           r=json.loads(pathlib.Path(sys.argv[1]).with_suffix('.verification.json').read_text())
-          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.7'
+          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.8' and r['versionCode']==9
           print('true' if r['firebaseConfigured'] else 'false')
           PY
           )"

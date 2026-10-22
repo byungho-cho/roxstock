@@ -1,3 +1,4 @@
+import {cashMutationRoutes} from '../src/routes/cash-mutations.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
@@ -13,7 +14,7 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/);process.env.AUTH_PUBLIC_ORIGIN='https://fixture.invalid';
  const users=await Promise.all(['admin','a','b'].map((n,i)=>prisma.authUser.create({data:{email:`push-${randomUUID()}-${n}@example.invalid`,role:i===0?'ADMIN':'USER',verifiedAt:new Date()}})));
  const accounts=await Promise.all(users.map(u=>prisma.account.create({data:{userId:u.id,name:'fixture',brokerName:'TEST',accountNumber:'1234567890',isDefault:true}})));
- const app=Fastify();installAuth(app);app.setErrorHandler((e,_r,reply)=>reply.code(e instanceof ApiError?e.statusCode:500).send({error:{message:e.message}}));await app.register(notificationRoutes,{prefix:'/api'});await app.register(adminUserRoutes,{prefix:'/api'});
+ const app=Fastify();installAuth(app);app.setErrorHandler((e,_r,reply)=>reply.code(e instanceof ApiError?e.statusCode:500).send({error:{message:e.message}}));await app.register(notificationRoutes,{prefix:'/api'});await app.register(cashMutationRoutes,{prefix:'/api'});await app.register(adminUserRoutes,{prefix:'/api'});
  // Obtain real sessions with a route on a separate fixture app (no authentication bypass in tested handlers).
  const login=Fastify();login.get<{Params:{i:string}}>('/:i',async(req,reply)=>{await loginSession(users[Number(req.params.i)]!.id,true,reply);return {};});
  const auth=[];for(let i=0;i<users.length;i++){const r=await login.inject('/'+i);const cookies=r.cookies.map(c=>c.name+'='+c.value).join('; '),csrf=r.cookies.find(c=>c.name===cookieNames.csrf)!.value;auth.push({cookie:cookies,'x-csrf-token':csrf,origin:'https://fixture.invalid','content-type':'application/json'});}
@@ -43,8 +44,22 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
   await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),0);
   await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:110,priceUpdatedAt:new Date()}});
   await Promise.all([scanNotificationUser(prisma,uid),scanNotificationUser(prisma,uid)]);
-  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);
-  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),1);const arrival=await prisma.appNotificationEvent.findFirstOrThrow({where:{userId:uid,kind:'TARGET'}});assert.equal((await call(1,'/api/notifications/events/'+arrival.id)).json().data.accountId,String(accounts[1]!.id));
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);const arrival=await prisma.appNotificationEvent.findFirstOrThrow({where:{userId:uid,kind:'TARGET'}});assert.equal((await call(1,'/api/notifications/events/'+arrival.id)).json().data.accountId,String(accounts[1]!.id));
+  await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:104,priceUpdatedAt:new Date()}});await scanNotificationUser(prisma,uid);
+  await prisma.marketPrice.update({where:{securityId:security.id},data:{currentPrice:110,priceUpdatedAt:new Date()}});await scanNotificationUser(prisma,uid);
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  assert.equal((await call(2,'/api/notifications/events/'+arrival.id+'/state','POST',{action:'dismiss'})).statusCode,404);
+  assert.equal((await call(1,'/api/notifications/events/'+arrival.id+'/state','POST',{action:'dismiss'})).statusCode,200);
+  await scanNotificationUser(prisma,uid);assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),2);
+  const nextDay=new Date(Date.now()+86400000);await Promise.all([scanNotificationUser(prisma,uid,nextDay),scanNotificationUser(prisma,uid,nextDay)]);
+  assert.equal(await prisma.appNotificationEvent.count({where:{userId:uid,kind:'TARGET'}}),4);
+  const inbox=(await call(1,'/api/notifications/inbox')).json().data;assert.ok(inbox.rows.every((r:any)=>r.accountId===String(accounts[1]!.id)||r.accountId===null));assert.ok(inbox.rows.every((r:any)=>r.token===undefined));
+  // A saved broker dividend must survive a lost native acknowledgement without double credit.
+  await prisma.cashTransaction.create({data:{accountId:accounts[1]!.id,transactionType:'DEPOSIT',transactionDate:new Date(),amount:1000,feeTaxAmount:0,balanceAfter:1000}});
+  const dividendInput={requestId:'d'.repeat(64),accountId:String(accounts[1]!.id),securityId:String(security.id),receivedDate:'2026-10-22',grossAmount:'110',netAmount:'100',memo:null};
+  const dividends=await Promise.all([call(1,'/api/dividends','POST',dividendInput),call(1,'/api/dividends','POST',dividendInput)]);assert.ok(dividends.every(r=>r.statusCode===201));assert.equal(dividends[0]!.json().data.id,dividends[1]!.json().data.id);assert.equal(await prisma.dividend.count({where:{accountId:accounts[1]!.id}}),1);
+  assert.equal((await call(1,'/api/dividends','POST',{...dividendInput,netAmount:'99'})).statusCode,409);
   // Cancel the pending target delivery while leaving news ON; the following send assertion isolates the news event.
   await call(1,'/api/notifications/settings','PUT',{targetEnabled:false,newsEnabled:true});
 
@@ -55,6 +70,6 @@ test('real DB: notification ownership, OFF fences, epochs, concurrency, news ins
   const event2=randomUUID();await prisma.appNotificationEvent.create({data:{id:event2,userId:uid,kind:'NEWS',identityKey:event2,epoch:3}});await prisma.appPushDelivery.create({data:{eventId:event2,deviceId:install,binding:device.binding}});await prisma.authSession.updateMany({where:{userId:uid},data:{revokedAt:new Date()}});await deliverNotifications(prisma,sender);assert.equal(sends,1);
   assert.equal(await prisma.adminUserReadAudit.count({where:{actorId:users[0]!.id}}),2);
  }finally{
-  await app.close();await login.close();const ids=users.map(u=>u.id);const events=await prisma.appNotificationEvent.findMany({where:{userId:{in:ids}},select:{id:true}});await prisma.appPushDelivery.deleteMany({where:{eventId:{in:events.map(e=>e.id)}}});await prisma.appNotificationEvent.deleteMany({where:{userId:{in:ids}}});await prisma.appPushDevice.deleteMany({where:{userId:{in:ids}}});await prisma.appTargetNotificationState.deleteMany({where:{userId:{in:ids}}});await prisma.appNotificationPreference.deleteMany({where:{userId:{in:ids}}});await prisma.adminUserReadAudit.deleteMany({where:{actorId:{in:ids}}});if(security){await prisma.buyTrade.deleteMany({where:{securityId:security.id}});await prisma.marketPrice.deleteMany({where:{securityId:security.id}});await prisma.stockNewsItem.deleteMany({where:{provider:'fixture',securities:{some:{securityId:security.id}}}});await prisma.accountWatchlistItem.deleteMany({where:{securityId:security.id}});await prisma.security.delete({where:{id:security.id}});}await prisma.account.deleteMany({where:{id:{in:accounts.map(a=>a.id)}}});await prisma.authUser.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
+  await app.close();await login.close();const ids=users.map(u=>u.id);const events=await prisma.appNotificationEvent.findMany({where:{userId:{in:ids}},select:{id:true}});await prisma.appPushDelivery.deleteMany({where:{eventId:{in:events.map(e=>e.id)}}});await prisma.appNotificationEvent.deleteMany({where:{userId:{in:ids}}});await prisma.appPushDevice.deleteMany({where:{userId:{in:ids}}});await prisma.appTargetNotificationState.deleteMany({where:{userId:{in:ids}}});await prisma.appNotificationPreference.deleteMany({where:{userId:{in:ids}}});await prisma.adminUserReadAudit.deleteMany({where:{actorId:{in:ids}}});if(security){await prisma.dividend.deleteMany({where:{securityId:security.id}});await prisma.cashTransaction.deleteMany({where:{accountId:{in:accounts.map(a=>a.id)}}});await prisma.tradeRequest.deleteMany({where:{accountId:{in:accounts.map(a=>a.id)}}});await prisma.buyTrade.deleteMany({where:{securityId:security.id}});await prisma.marketPrice.deleteMany({where:{securityId:security.id}});await prisma.stockNewsItem.deleteMany({where:{provider:'fixture',securities:{some:{securityId:security.id}}}});await prisma.accountWatchlistItem.deleteMany({where:{securityId:security.id}});await prisma.security.delete({where:{id:security.id}});}await prisma.account.deleteMany({where:{id:{in:accounts.map(a=>a.id)}}});await prisma.authUser.deleteMany({where:{id:{in:ids}}});await prisma.$disconnect();
  }
 });
