@@ -187,12 +187,13 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     openEdit(linked.data, false, true);
   }, [linkedId,linkedAccount,accountId,linked.data]);
 
-  const feeEstimate=useQuery({queryKey:['cash-fee-estimate',accountId,editing?.id],enabled:!!accountId&&accountId===editingAccountId&&tradeEdit&&open&&(!editing.feeTaxStatus||editing.feeTaxStatus==='UNKNOWN')&&Number(editing.feeTaxAmount)===0,queryFn:({signal})=>getCashFeeEstimate(accountId!,editing!.id,signal),retry:false});
+  const estimateEligible=!!accountId&&accountId===editingAccountId&&tradeEdit&&open&&(!editing.feeTaxStatus||editing.feeTaxStatus==='UNKNOWN')&&Number(editing.feeTaxAmount)===0;
+  const feeEstimate=useQuery({queryKey:['cash-fee-estimate',accountId,editing?.id],enabled:estimateEligible,queryFn:({signal})=>getCashFeeEstimate(accountId!,editing!.id,signal),retry:false});
   useEffect(()=>{
-    if(!feeEstimate.data||!editing||feeTouched.current||estimateApplied.current===editing.id||accountId!==editingAccountId)return;
+    if(!estimateEligible||!feeEstimate.data||!editing||feeTouched.current||estimateApplied.current===editing.id||accountId!==editingAccountId)return;
     estimateApplied.current=editing.id;
     setTax(feeEstimate.data.amount);setAfter(cashDifference(gross,feeEstimate.data.amount));setFeeStatus('ESTIMATED');setFeeCount(feeEstimate.data.count);
-  },[feeEstimate.data,editing?.id,accountId,editingAccountId,gross]);
+  },[estimateEligible,feeEstimate.data,editing?.id,accountId,editingAccountId,gross]);
   const invalidateCash = async () => invalidatePortfolio(queryClient);
   const latestEntry = !balance.isError ? balance.data?.recentTransactions[0] : undefined;
   const editBalance = () => {

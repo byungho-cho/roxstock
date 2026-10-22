@@ -94,3 +94,17 @@ test('unconfirmed estimate persists as estimate and an existing actual cost is p
  await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('3');await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>saved).toMatchObject({feeTaxStatus:'ESTIMATED',feeTaxBasisCount:3,feeTaxAmount:'3'});
  await cashFixture(page,'CONFIRMED','9');await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('9');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();
 });
+test('cached estimate cannot replace a confirmed cost when switching cash records',async({page})=>{
+ await setup(page);
+ const row={id:'92',transactionType:'BUY',transactionDate:'2026-10-07T03:00:00Z',createdAt:'2026-10-07T03:00:00Z',updatedAt:'2026-10-07T03:00:00Z',amount:'110',feeTaxAmount:'0',feeTaxStatus:'UNKNOWN',balanceAfter:'1000',signedAmount:'-110',memo:null,dividend:null};
+ const other={...row,id:'93',feeTaxAmount:'7',feeTaxStatus:'CONFIRMED',balanceAfter:'2000'};
+ await page.route('**/api/accounts/1/cash-transactions/92',r=>r.fulfill({json:{data:row}}));
+ await page.route('**/api/accounts/1/cash-transactions?**',r=>r.fulfill({json:{data:[row,other],meta:{total:2,limit:100,offset:0}}}));
+ await page.route('**/api/accounts/1/cash-overview**',r=>r.fulfill({json:{data:{account:{id:'1',currentBalance:row.balanceAfter},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},recentTransactions:[row]}}}));
+ await page.route('**/api/accounts/1/cash-transactions/92/fee-estimate',r=>r.fulfill({json:{data:{amount:'3',count:3}}}));
+ await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('3');
+ await page.route('**/api/cash-transactions/92',r=>{row.feeTaxAmount='9';row.feeTaxStatus='CONFIRMED';row.balanceAfter='1001';return r.fulfill({json:{data:{id:'92'}}});});
+ await page.getByLabel('세전예수금',{exact:true}).fill('1010');await page.getByLabel('제세금',{exact:true}).fill('9');await page.getByLabel('실제 금액으로 확인',{exact:true}).check();await page.getByRole('button',{name:'저장',exact:true}).click();
+ await page.locator('[data-scroll-item="93"]').click();await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('7');await page.getByRole('button',{name:'취소',exact:true}).click();
+ await page.locator('[data-scroll-item="92"]').click();await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('9');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();
+});
