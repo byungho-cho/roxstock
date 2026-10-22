@@ -287,7 +287,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
 
   </Stack>;
 
-  if(notification)return <Stack spacing={1}><Typography sx={{fontWeight:600}}>배당 등록</Typography>{inputContent}{inputActions}</Stack>;
+  if(notification)return <Stack spacing={1}>{inputContent}{inputActions}</Stack>;
   return <Box className="rox-home" data-testid="cash-page" data-screen-id={tablet ? 'T1300' : 'C1300'} sx={{ height: '100%', minHeight: 0, fontFamily: 'RoxHomeInter, sans-serif', '& .MuiButton-root': { minHeight: 0 } }}>
     <PageHeader embedded showBack={!tablet && inputVisible} assetOverview title={!tablet && inputVisible ? inputTitle : '예수금'} backPath="/" showBackTablet={!tablet && inputVisible} onBack={!tablet && inputVisible ? () => { if (!saving) searching ? backFromSearch() : closeInput(); } : undefined} backIcon={<Box component="span" sx={{ fontSize: 30, width: 11 }}>‹</Box>} action={!tablet && inputVisible ? <Box /> : <IconButton aria-label="예수금 등록" onClick={openCreate} sx={{ width: 32, height: 32, p: 0, bgcolor: colors.raised, color: colors.textPrimary, fontSize: 22 }}>+</IconButton>} />
     <Box ref={bodyRef} data-scroll-region="cash-body" data-list-condition={!tablet && inputVisible ? params.get('cashInput') : condition} data-restoration-ready={inputVisible || !history.isPending || history.isError} sx={{ ...scrollStyle, height: '100%', overflowY: tablet ? 'hidden' : 'auto', pb: tablet ? 0 : '80px', boxSizing: 'border-box' }}>
