@@ -21,8 +21,14 @@ final class InboxDb extends SQLiteOpenHelper {
     InboxDb(Context context) { super(context, "broker-inbox.db", null, 2); this.context=context; }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE inbox (id TEXT PRIMARY KEY, raw TEXT NOT NULL, received INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', owner TEXT)");
+        db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");
     }
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if(oldVersion<2)db.execSQL("ALTER TABLE inbox ADD COLUMN owner TEXT"); }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if(oldVersion<2){db.execSQL("ALTER TABLE inbox ADD COLUMN owner TEXT");db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");
+        try(Cursor c=db.rawQuery("SELECT raw FROM inbox",null)){while(c.moveToNext()){ContentValues v=new ContentValues();v.put("fingerprint",fingerprint(c.getString(0)));db.insertWithOnConflict("receipts",null,v,SQLiteDatabase.CONFLICT_IGNORE);}}
+    } }
+    private static String fingerprint(String raw){
+        try {byte[] hash=MessageDigest.getInstance("SHA-256").digest(raw.replaceAll("\\s+"," ").trim().getBytes(StandardCharsets.UTF_8));StringBuilder out=new StringBuilder();for(byte b:hash)out.append(String.format(Locale.ROOT,"%02x",b&0xff));return out.toString();}catch(Exception e){throw new IllegalStateException();}
+    }
     private static String find(String text, String regex) {
         Matcher matcher = Pattern.compile(regex).matcher(text);
         return matcher.find() ? matcher.group(1) : "";
@@ -45,7 +51,11 @@ final class InboxDb extends SQLiteOpenHelper {
         for (byte b : hash) id.append(String.format(Locale.ROOT, "%02x", b & 0xff));
         ContentValues values = new ContentValues();
         values.put("owner",owner); values.put("id", id.toString()); values.put("raw", raw); values.put("received", receivedAt);
-        getWritableDatabase().insertWithOnConflict("inbox", null, values, SQLiteDatabase.CONFLICT_IGNORE);
+        SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
+            ContentValues receipt=new ContentValues();receipt.put("fingerprint",fingerprint(raw));
+            if(db.insertWithOnConflict("receipts",null,receipt,SQLiteDatabase.CONFLICT_IGNORE)!=-1)db.insertWithOnConflict("inbox", null, values, SQLiteDatabase.CONFLICT_IGNORE);
+            db.setTransactionSuccessful();
+        }finally{db.endTransaction();}
     }
     int count(String owner) {
         try(Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM inbox WHERE owner = ? AND status = 'pending'",new String[]{owner})) {return c.moveToFirst()?c.getInt(0):0;}

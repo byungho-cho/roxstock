@@ -7,7 +7,7 @@ const home=(id='1')=>({accounts:[account(id)],accountId:id,dashboard:{account:ac
 const stocks=()=>({accounts:[account()],accountId:'1',stocks:{catalog:[],holdings:[holding],trades:[]}});
 async function setup(page:Page){
  const calls:string[]=[];
- await page.route('**/api/**',route=>{const path=new URL(route.request().url()).pathname;calls.push(path);return route.fulfill({status:404,json:{error:{message:'Unexpected request'}}});});
+ await page.route('**/api/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/notifications/settings')return route.fulfill({json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}});if(path==='/api/notifications/inbox')return route.fulfill({json:{data:{rows:[],total:0}}});calls.push(path);return route.fulfill({status:404,json:{error:{message:'Unexpected request'}}});});
  await page.route('**/api/pages/**',route=>{const url=new URL(route.request().url());if(url.pathname==='/api/pages/read')return route.fulfill({status:404,json:{error:{message:'Use legacy reads in tuning-01 fixture'}}});calls.push(url.pathname);return route.fulfill({json:{data:url.pathname.endsWith('/stocks')?stocks():home(url.searchParams.get('accountId')??'1')}});});
  return calls;
 }

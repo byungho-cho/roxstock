@@ -1,3 +1,4 @@
+import {registerTrade,requestId} from '../domain/trade-request.js';
 import { lockCashAccount, readCurrentCash, requireCash, syncCurrentCash } from '../domain/current-cash.js';
 import { serializable } from '../lib/transaction.js';
 import type { FastifyInstance } from 'fastify';
@@ -7,7 +8,7 @@ import { dateTime, id, optionalMemo, positiveDecimal } from '../lib/input.js';
 import { prisma } from '../auth/scoped-db.js';
 
 type CashEditBody = { accountId?: unknown; expectedLatestId?: unknown; transactionDate?: unknown; amount?: unknown; memo?: unknown; securityId?: unknown; grossAmount?: unknown; feeTaxAmount?: unknown; balanceAfter?: unknown };
-type DividendBody = { accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
+type DividendBody = { requestId?:unknown; accountId?: unknown; securityId?: unknown; receivedDate?: unknown; grossAmount?: unknown; netAmount?: unknown; memo?: unknown };
 const dividendDay = (date: Date) => new Date(`${date.toISOString().slice(0, 10)}T00:00:00.000Z`);
 async function latestAccount(tx: Prisma.TransactionClient, cash: {id: bigint; accountId: bigint}) {
   const account = await tx.account.findUnique({where:{id:cash.accountId}});
@@ -27,7 +28,7 @@ export async function cashMutationRoutes(app: FastifyInstance) {
     const netAmount = positiveDecimal(body.netAmount, 'netAmount');
     if (grossAmount.lessThan(netAmount)) throw new ApiError(400, 'INVALID_INPUT', 'grossAmount must be at least netAmount.');
     const memo = optionalMemo(body.memo);
-    const result = await serializable(async (tx) => {
+    const result = await registerTrade(accountId,'DIVIDEND',requestId(body.requestId),{securityId:String(securityId),receivedAt:receivedAt.toISOString(),grossAmount:String(grossAmount),netAmount:String(netAmount),memo},async (tx) => {
       await lockCashAccount(tx, accountId);
       const account = await tx.account.findUnique({ where: { id: accountId } });
       if (!account || !account.isActive) throw new ApiError(404, 'ACCOUNT_NOT_FOUND', 'Account not found.');

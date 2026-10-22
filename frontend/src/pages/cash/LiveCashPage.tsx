@@ -229,7 +229,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     try {
       const transactionDate = new Date(`${date}T12:00:00+09:00`).toISOString();
       if (editing) await updateCashTransaction(editing.id, { transactionDate, amount, memo: memo || null, ...(type === 'DIVIDEND' ? { securityId, grossAmount: gross } : {}), ...(editing ? { balanceAfter: after, accountId, ...(cardEditing ? { expectedLatestId: editing.id } : {}) } : {}), ...(tradeEdit ? {feeTaxAmount:tax} : {}) });
-      else if (type === 'DIVIDEND') await createDividend({ accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
+      else if (type === 'DIVIDEND') await createDividend({ ...(notification?{requestId:notification.notice.id}:{}),accountId, securityId, receivedDate: transactionDate, grossAmount: gross, netAmount: amount, memo: memo || null });
       else if(type==='DEPOSIT'||type==='WITHDRAWAL') await createCashTransaction({ accountId, transactionType: type, transactionDate, amount, memo: memo || null });
       if(notification){notificationSaved.current=true;await notification.onSaved();}
       await invalidateCash();

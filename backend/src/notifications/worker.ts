@@ -14,11 +14,19 @@ export async function scanNotificationUser(db:PrismaClient,userId:bigint,now=new
   await tx.$queryRaw`SELECT user_id FROM app_notification_preferences WHERE user_id=${userId} FOR UPDATE`;
   const p=await tx.appNotificationPreference.findUnique({where:{userId}});if(!p)return;
   if(p.newsEnabled){
-   const items=await tx.stockNewsItem.findMany({where:{id:{gt:p.newsCursor}},orderBy:{id:'asc'},take:100,select:{id:true,title:true,collectedAt:true,publishedAt:true,notificationSecurityIds:true,securities:{where:{security:{OR:[{buyTrades:{some:{account:{userId,isActive:true}}}},{accountWatchlistItems:{some:{listType:'WATCHLIST',account:{userId,isActive:true}}}}]}},select:{securityId:true}}}});
+   const items=await tx.stockNewsItem.findMany({
+    where:{id:{gt:p.newsCursor}},orderBy:{id:'asc'},take:100,
+    select:{id:true,title:true,collectedAt:true,publishedAt:true,notificationSecurityIds:true,
+     securities:{where:{security:{OR:[
+      {buyTrades:{some:{account:{userId,isActive:true}}}},
+      {accountWatchlistItems:{some:{listType:'WATCHLIST',account:{userId,isActive:true}}}}
+     ]}},select:{securityId:true,security:{select:{name:true}}}}
+    }
+   });
    for(const n of items)if(Array.isArray(n.notificationSecurityIds)&&p.newsEnabledAt&&n.collectedAt>p.newsEnabledAt&&n.publishedAt>p.newsEnabledAt){
     const ids=n.securities.filter(s=>(n.notificationSecurityIds as string[]).includes(String(s.securityId))).map(s=>s.securityId);if(!ids.length)continue;
     const account=await tx.account.findFirst({where:{userId,isActive:true,OR:[{buyTrades:{some:{securityId:{in:ids}}}},{watchlistItems:{some:{listType:'WATCHLIST',securityId:{in:ids}}}}]},select:{id:true},orderBy:[{isDefault:'desc'},{id:'asc'}]});
-    if(account)await event(tx,userId,'NEWS',`${userId}:NEWS:${n.id}`,p.newsEpoch,account.id,'종목소식',n.title);
+    if(account)await event(tx,userId,'NEWS',`${userId}:NEWS:${n.id}`,p.newsEpoch,account.id,n.securities.filter(s=>ids.includes(s.securityId)).map(s=>s.security.name).join(' · ').slice(0,160),n.title.slice(0,500));
    }
    if(items.length)await tx.appNotificationPreference.update({where:{userId},data:{newsCursor:items.at(-1)!.id}});
   }
