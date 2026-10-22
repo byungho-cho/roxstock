@@ -1,6 +1,6 @@
 # 알림 거래 등록 화면·제세금 추정 (2026-10-22 KST)
 
-기준 main: 848e7bb2051a22e81bfce3cd7b8bfd85abbe0390 (1.2.10). 별도 브랜치 feat/notice-routes-cost-estimate-20261022. 배포 예정 1.2.11.
+기준 main: 848e7bb2051a22e81bfce3cd7b8bfd85abbe0390 (1.2.10). 별도 브랜치 feat/notice-routes-cost-estimate-20261022. 기본 기능 1.2.11 및 최종 웹 보호 1.2.12 운영 적용 완료 (아래 검증 근거).
 
 ## 원인과 범위
 알림 거래는 공통 거래 폼을 별도 로컬 팝업으로 감싸고 있었다. 수동 등록과 동일한 `/trade` 라우트로 이동하도록 변경했다. 태블릿은 기존 수동 등록 라우트의 반응형 다이얼로그를 그대로 재사용한다. 알림 전용 매수·매도 폼/팝업은 제거하고 연결 매수 선택과 배당의 기존 흐름은 유지했다. 중복 저장이 실제 발생했다고 단정하지 않는다. 기존 requestId 원자적 중복 방지와 저장 후 제출 잠금은 보존했다.
@@ -33,7 +33,7 @@ cash_transactions에 fee_tax_status (UNKNOWN/ESTIMATED/CONFIRMED), fee_tax_basis
 ## 배포·백업·복구
 이 보고서 최초 작성 시 CI/병합/배포 전이다. 필수 CI 통과 후 main 병합 및 기존 운영 배포 경로로 적용한다. 기존 배포 스크립트의 서버 로컬 DB 백업·gzip/checksum 검증을 마친 뒤 additive migration을 적용한다. 원본 DB/계좌/토큰/비밀값은 공개하지 않는다. 실제 배포 source SHA·healthy·공개 버전 1.2.11 및 웹 bundle을 별도 확인한다.
 
-문제 시 우선 frontend를 직전 이미지로 복구하고 새 backend 및 additive 컬럼은 유지한다. 컬럼/비용 상태를 삭제하거나 DB 전체를 덮어쓰지 않는다. backend까지 이전 버전으로 되돌려야 하면 비용 편집을 중지하고 변경분 백업 후 진행한다. 이전 backend는 비용 확인 상태를 관리하지 못하므로, 복구 기간 변경된 비용을 재검토하기 전 CONFIRMED 이력으로 사용하면 안 된다. 전체 백업 복원은 이후 사용자 거래 손실을 유발할 수 있어 이번 절차에서 자동 실행하지 않는다.
+문제 시 우선 frontend를 정상 동작이 확인된 이전 이미지(이 작업의 기준 1.2.10)로 복구하고 새 backend 및 additive 컬럼은 유지한다. 컬럼/비용 상태를 삭제하거나 DB 전체를 덮어쓰지 않는다. backend까지 이전 버전으로 되돌려야 하면 비용 편집을 중지하고 변경분 백업 후 진행한다. 이전 backend는 비용 확인 상태를 관리하지 못하므로, 복구 기간 변경된 비용을 재검토하기 전 CONFIRMED 이력으로 사용하면 안 된다. 전체 백업 복원은 이후 사용자 거래 손실을 유발할 수 있어 이번 절차에서 자동 실행하지 않는다.
 
 ## 확정 비용 재진입 캐시 보호 후속 (1.2.12)
 최종 점검에서 일반 화면 재진입은 정상이었으나, 같은 화면의 여러 예수금 내역을 오가는 재현에서 다음 경로를 확인했다. UNKNOWN 0원일 때 추정 3원을 조회한 거래에 실제 9원을 확인·저장한 뒤 다른 거래를 열었다가 돌아오면, 네트워크 조회가 disabled여도 React Query에 남은 3원 응답이 입력에 적용될 수 있었다. 수정 전 커버 테스트에서 기대 9원/실제 3원 실패를 재현했다. 자동 DB 저장은 아니며 실제 운영 데이터가 변경됐다고 단정하지 않는다.
@@ -41,3 +41,18 @@ cash_transactions에 fee_tax_status (UNKNOWN/ESTIMATED/CONFIRMED), fee_tax_basis
 네트워크 조회와 입력 적용이 동일한 적격 조건(같은 계좌·열린 매수/매도 입력·UNKNOWN 0원)을 사용하도록 통일했다. CONFIRMED/기존 ESTIMATED/비영 비용에는 캐시가 남아 있어도 적용하지 않는다. 별도 브랜치 fix/confirmed-fee-cache-20261022, 기준 main 49c5dff9dcb9df37c8c12f3126c9cc2a589a2fee. 후속은 frontend와 버전 메타데이터 1.2.12만 변경하며 DB·backend 실행 코드·Android는 변경하지 않는다.
 
 커버/태블릿의 내역 전환 회귀 2건을 추가해 통합 알림 32건 통과. 후속 frontend 타입 검사·production build도 통과했다. 기존 수동 거래/실 DB 검증은 #308의 결과를 유지한다. 후속 CI·실제 배포 완료 근거는 운영 반영 후 별도로 기록한다.
+
+## 배포 검증 시간 예산 보완
+1.2.12 Production Deploy 39763555777의 최초 실행은 브라우저 의존성 다운로드가 약 7분 걸려 20분 제한에 도달했다. 통합 알림 32건과 하단 메뉴 21건은 성공했으나 종료 직후 작업이 cancelled가 되어 publish/deploy가 skipped됐다. 이 실행을 운영 반영 완료로 계산하지 않는다. 같은 최종 커밋으로 취소된 작업을 재실행했다.
+
+설치·전체 검사·결과 보관을 모두 포함하도록 Native currency UI 작업 제한을 20분에서 30분으로 보완한다. 테스트나 검증 단계를 삭제하지 않는다. workflow-only 변경이므로 앱 버전은 1.2.12를 유지한다. 실행 중 배포가 뜻하지 않게 superseded되지 않도록 적용 시점을 분리한다.
+
+## 최종 운영 반영 확인 (2026-10-22 KST)
+- 기능 PR [#308](https://github.com/byungho-cho/roxstock/pull/308), 캐시 보호 PR [#309](https://github.com/byungho-cho/roxstock/pull/309) main 병합 완료. 최종 앱 표시 버전 **1.2.12**.
+- 기본 기능 운영 [39757501080](https://github.com/byungho-cho/roxstock/actions/runs/39757501080) completed/success. 서버 로컬 pre-migration 백업 검증, cash_fee_confirmation migration 적용 성공, backend/collector source `49c5dff9dcb9df37c8c12f3126c9cc2a589a2fee` 및 healthy 확인. 기존 금액·거래·연결 ID의 일괄 보정은 실행하지 않았다.
+- 최종 웹 운영 [39763555777](https://github.com/byungho-cho/roxstock/actions/runs/39763555777) **attempt 2 completed/success**. frontend deploy job 119789830257의 Deployment completed, source `c58d037c904f406b75e0ef14bf9c1bfccddbe192`, healthy 확인. 최초 attempt 1은 20분 제한 cancelled로 publish/deploy skipped였으며 완료로 계산하지 않았다. 재실행은 모든 UI 검사를 통과한 뒤 실제 적용했다.
+- 공개 `/api/version` 응답 1.2.12, `/assets/index-fE_5dgfQ.js` 및 실제 비용 화면 `LiveCashPage-2PeWus0U.js` 확인. 비용 화면 SHA256 `00f07a11c53ebba05205505bff596b51236d5f6e464df8fcbc8e14fccbe41e37`이며 1.2.11 파일과 다르다. 공개 번들에서 조회 enabled와 입력 적용 effect가 같은 적격 조건을 참조하는 것까지 확인했다.
+- PR #309의 별도 Phase27 검색 회귀 검사 1건은 최초 큰 커버 화면에서 필터 미반영으로 실패했다. 동일 커밋의 실패 UI 작업 재실행에서 36건 전체 통과. 검색 코드를 변경하거나 근본 원인을 해결했다고 주장하지 않으며 최초 간헐 실패 원인은 미확정으로 별도 추적 대상으로 남긴다. 비용/캐시 보호 테스트 32건은 통과했다.
+- 운영 사용자 거래 생성·원문 알림 재수집·알림 상태 강제 초기화·기존 비용 자동 확정 없음. 사용자 실기기의 카카오 클릭/소프트 키보드/실제 계좌 저장은 미검증이다. APK는 0.1.8 유지, 재설치 없이 앱을 완전히 종료 후 다시 열어 새 웹을 로드한다.
+- 기존 비용 이력은 확인 근거가 없으면 UNKNOWN을 유지한다. 과거 실제 비용을 열어 ‘실제 금액으로 확인’ 후 저장한 이력부터 이후 추정에 사용된다. 추정값만 저장하면 ESTIMATED로 남는다.
+- PR #310은 위 실제 배포 확인 후 검증 시간 예산·보고서만 병합한다. 앱 실행 코드나 DB migration을 추가하지 않으며 운영 버전 1.2.12를 유지한다.
