@@ -1201,6 +1201,7 @@ model AppNotificationEvent {
   epoch Int
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
   @@index([userId,createdAt])
+  @@index([userId,readAt,dismissedAt,createdAt],map:"app_notification_inbox")
   @@map("app_notification_events")
 }
 model AppPushDelivery {
