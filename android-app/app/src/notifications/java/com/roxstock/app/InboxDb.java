@@ -21,9 +21,9 @@ final class InboxDb extends SQLiteOpenHelper {
     InboxDb(Context context) { super(context, "broker-inbox.db", null, 2); this.context=context; }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE inbox (id TEXT PRIMARY KEY, raw TEXT NOT NULL, received INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', owner TEXT)");
-        db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");
+        db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");db.execSQL("CREATE INDEX inbox_owner_pending ON inbox(owner,status,received)");
     }
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if(oldVersion<2){db.execSQL("ALTER TABLE inbox ADD COLUMN owner TEXT");db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { if(oldVersion<2){db.execSQL("ALTER TABLE inbox ADD COLUMN owner TEXT");db.execSQL("CREATE TABLE receipts (fingerprint TEXT PRIMARY KEY)");db.execSQL("CREATE INDEX inbox_owner_pending ON inbox(owner,status,received)");
         try(Cursor c=db.rawQuery("SELECT raw FROM inbox",null)){while(c.moveToNext()){ContentValues v=new ContentValues();v.put("fingerprint",fingerprint(c.getString(0)));db.insertWithOnConflict("receipts",null,v,SQLiteDatabase.CONFLICT_IGNORE);}}
     } }
     private static String fingerprint(String raw){

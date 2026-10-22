@@ -23,3 +23,14 @@ test('buy notification reuses form without focus; cancel and failed save preserv
 test('sell requires explicit lot confirmation and preserves notice on cancel',async({page},info)=>{
  await setup(page);await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();await expect(page.getByRole('heading',{name:'연결 매수 선택'})).toBeVisible();const next=page.getByRole('button',{name:'선택 후 매도 등록'});await expect(next).toBeDisabled();await page.getByRole('button',{name:/매수 · 100원/}).first().click();await page.screenshot({path:info.outputPath('notice-sell-lot.png')});await next.click();await expect(page.getByTestId('trade-form')).toBeVisible();await expect(page.getByLabel('매도수량',{exact:true})).toHaveValue('1');expect(await page.evaluate(()=>document.activeElement?.tagName)).not.toBe('INPUT');
 });
+test('successful buy removes only saved notice and keeps original request identity',async({page})=>{
+ await setup(page);let request:any;await page.route('**/api/buy-trades',r=>{request=r.request().postDataJSON();return r.fulfill({json:{data:{id:'91',cashTransactionId:'92'}}});});await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매수 종목1',exact:true}).click();await page.getByTestId('trade-form').getByRole('button',{name:'매수',exact:true}).click();await expect(page.getByRole('button',{name:'알림 1건',exact:true})).toBeVisible();expect(request.requestId).toBe('a'.repeat(64));expect(request.accountId).toBe('1');expect(request.quantity).toBe('1');
+});
+test('news and target read only after authorized navigation; ignore retains dispatch history',async({page})=>{
+ await setup(page);let done=false;const event='00000000-0000-0000-0000-000000000111',actions:string[]=[];
+ await page.route('**/api/notifications/inbox',r=>r.fulfill({json:{data:{rows:done?[]:[{id:event,kind:'TARGET',title:'현대차',detail:'5% 목표 도래',accountId:'1',createdAt:'2026-10-07T00:00:00Z'}],total:done?0:1}}}));
+ await page.route('**/api/notifications/events/'+event,r=>r.fulfill({json:{data:{destination:'/',accountId:'1'}}}));
+ await page.route('**/api/auth/settings',r=>r.fulfill({json:{data:{selectedAccountId:'1'}}}));
+ await page.route('**/api/notifications/events/'+event+'/state',r=>{actions.push(r.request().postDataJSON().action);done=true;return r.fulfill({json:{data:{updated:true}}});});
+ await page.goto('/');await page.getByRole('button',{name:'알림 3건',exact:true}).click();await page.getByRole('button',{name:'목표 현대차',exact:true}).click();await expect.poll(()=>actions).toContain('read');await expect(page.getByRole('button',{name:'알림 2건',exact:true})).toBeVisible();
+});

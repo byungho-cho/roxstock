@@ -1,3 +1,5 @@
+import {authRequest} from '../auth/client';
+import {selectedAccountStorageKey} from '../data/roxstockApi';
 import {usePopupHistory} from '../hooks/usePopupHistory';
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
@@ -23,6 +25,7 @@ const labels={BUY:'매수',SELL:'매도',DIVIDEND:'배당',NEWS:'소식',TARGET:
 const tones={BUY:'#336ec7',SELL:'#bf404d',DIVIDEND:'#916f2b',NEWS:'#278761',TARGET:'#8055ba'};
 export function UnifiedNotifications(){
  const {user}=useAuth(),{accountId,accounts}=useActiveAccount(),client=useQueryClient(),navigate=useNavigate(),location=useLocation();
+ const [pendingTrade,setPendingTrade]=useState<TradeNotice|null>(null);
  const [open,setOpen]=useState(false),[error,setError]=useState(''),[sell,setSell]=useState<{notice:TradeNotice;stockId:string}|null>(null),[lotId,setLotId]=useState(''),[entry,setEntry]=useState<NotificationTradeEntry|null>(null),[busy,setBusy]=useState(false);
  const closePopup=usePopupHistory(open||!!sell||!!entry,()=>{if(!busy){setOpen(false);setSell(null);setEntry(null);}});
  const settings=useQuery({queryKey:['notification-settings',user?.id],queryFn:()=>apiRequest<NotificationPreferences>('/notifications/settings')});
@@ -37,17 +40,20 @@ export function UnifiedNotifications(){
  const lots=useQuery({queryKey:['notice-sell-lots',user?.id,accountId,sell?.stockId],queryFn:()=>getBuyLots(accountId!,sell!.stockId,false),enabled:!!sell&&!!accountId});
  const candidates=sell?sellCandidates(lots.data??[],sell.notice):[];
  useEffect(()=>{setOpen(false);setSell(null);setEntry(null);setLotId('');setError('');},[user?.id,accountId]);
- const selectTrade=(notice:TradeNotice)=>{
+ const selectTrade=async(notice:TradeNotice)=>{
   setError('');const matching=(accounts.data??[]).filter(a=>a.isActive&&a.brokerName.includes('미래')&&accountMatches(notice.account,a.accountNumber??''));
-  if(matching.length!==1||matching[0].id!==accountId){setError('알림의 계좌와 현재 계좌가 일치하는지 확인하고 해당 계좌를 선택해 주세요.');return;}
+  if(matching.length!==1){setError('알림의 계좌를 유일하게 확인할 수 없습니다. 계좌번호를 확인하고 수동 거래 입력을 이용해 주세요.');return;}
+  if(matching[0].id!==accountId){setBusy(true);try{await authRequest('settings',{selectedAccountId:matching[0].id});setPendingTrade(notice);localStorage.setItem(selectedAccountStorageKey,matching[0].id);window.dispatchEvent(new Event('roxstock-selected-account'));}catch{setError('알림의 계좌를 선택하지 못했습니다.');}finally{setBusy(false);}return;}
   const matchingStocks=(stocks.data??[]).filter(s=>notice.symbol?s.symbol===notice.symbol:!!notice.name&&s.name===notice.name);
   if(matchingStocks.length!==1){setError('종목을 정확히 확인할 수 없습니다. 종목을 등록하거나 수동 거래 입력을 이용해 주세요.');return;}
   if(notice.kind==='SELL'&&(!notice.date||!notice.quantity||!notice.price)){setError('매도일·수량·단가가 확인되지 않아 연결 매수를 선택할 수 없습니다. 수동 거래 입력을 이용해 주세요.');return;}
   const stockId=matchingStocks[0].id;setOpen(false);
   if(notice.kind==='SELL'){setLotId('');setSell({notice,stockId});}else setEntry({notice,stockId,onClose:()=>setEntry(null),onSaved:()=>complete(notice)});
  };
+ useEffect(()=>{if(pendingTrade&&stocks.data&&accounts.data?.some(a=>a.id===accountId&&accountMatches(pendingTrade.account,a.accountNumber??''))){setPendingTrade(null);void selectTrade(pendingTrade);}},[pendingTrade,accountId,stocks.data]);
+ useEffect(()=>setPendingTrade(null),[user?.id]);
  const state=async(id:string,action:'read'|'dismiss')=>{await apiRequest('/notifications/events/'+id+'/state',{method:'POST',body:JSON.stringify({action})});await client.invalidateQueries({queryKey:['notification-inbox',user?.id]});};
- const click=async(row:typeof rows[number])=>{if(busy)return;if(row.kind!=='NEWS'&&row.kind!=='TARGET'){selectTrade(row as TradeNotice);return;}setBusy(true);setError('');try{await apiRequest('/notifications/events/'+row.id);await closePopup();navigate('/?pushEvent='+encodeURIComponent(row.id));setOpen(false);}catch{setError('알림 화면으로 이동하지 못했습니다.');}finally{setBusy(false);}};
+ const click=async(row:typeof rows[number])=>{if(busy)return;if(row.kind!=='NEWS'&&row.kind!=='TARGET'){await selectTrade(row as TradeNotice);return;}setBusy(true);setError('');try{await apiRequest('/notifications/events/'+row.id);await closePopup();navigate('/?pushEvent='+encodeURIComponent(row.id));setOpen(false);}catch{setError('알림 화면으로 이동하지 못했습니다.');}finally{setBusy(false);}};
  useEffect(()=>{const id=new URLSearchParams(location.search).get('readNotification');if(!id||!['/','/detail/stock-news'].includes(location.pathname))return;void state(id,'read').catch(()=>setError('읽음 저장에 실패했습니다. 알림을 다시 확인해 주세요.'));},[location.pathname,location.search]);
  const paper={width:338,height:356,maxWidth:'calc(100vw - 24px)',maxHeight:'calc(100dvh - 24px)',m:0,p:1.5,borderRadius:'12px',bgcolor:colors.surface,backgroundImage:'none'};
  const dismiss=async(row:typeof rows[number])=>{setBusy(true);try{if(row.kind==='NEWS'||row.kind==='TARGET')await state(row.id,'dismiss');else{await brokerNative('status',{id:row.id,status:'ignored'});await refresh();}}catch{setError('알림을 처리하지 못했습니다. 다시 시도해 주세요.');}finally{setBusy(false);}};
