@@ -21,6 +21,8 @@ test('home holdings use profit in middle, quantity and valuation right; click an
  const right=await cells.nth(2).evaluate(n=>getComputedStyle(n).textAlign);expect(right).toBe('right');await expect(page.getByTestId('recent-buy-lot').first()).toContainText('10 × 100원');await page.screenshot({path:info.outputPath('home-holdings.png'),fullPage:true});await row.click();await expect(page).toHaveURL(/stocks\/1/);
 });
 async function cash(page:any,cost='0'){
+ await page.route('**/api/pages/read',(r:any)=>r.fulfill({status:404,json:{error:{code:'LEGACY_FIXTURE'}}}));
+ await page.route('**/api/accounts/1/cash-transactions?**',(r:any)=>r.fulfill({json:{data:[],meta:{total:0,count:0,limit:100,offset:0},summary:{}}}));
  const row={id:'92',accountId:'1',transactionType:'BUY',transactionDate:'2026-10-07T03:00:00Z',amount:'110',feeTaxAmount:cost,feeTaxStatus:cost==='0'?'UNKNOWN':'CONFIRMED',balanceAfter:cost==='0'?'1000':'844.2351',signedAmount:'-110',createdAt:'2026-10-07T03:00:00Z'};
  await page.route('**/api/accounts/1/cash-transactions/92',r=>r.fulfill({json:{data:row}}));
  await page.route('**/api/accounts/1/cash-overview**',r=>r.fulfill({json:{data:{account:{id:'1',name:'기본',cashBalance:row.balanceAfter,currentBalance:row.balanceAfter,balanceStatus:'KNOWN'},monthly:{},yearly:{},recentTransactions:[row]}}}));
