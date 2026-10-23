@@ -23,6 +23,22 @@ public final class AppPushTest {
   assertEquals("/?pushEvent="+id,AppPush.launchPath(new Intent().putExtra("pushEvent",id)));assertEquals("/",AppPush.launchPath(new Intent().putExtra("pushEvent","https://evil.invalid")));
   AppPush.tokenChanged(c,"fixture-token");assertEquals("fixture-binding",AppPush.preferences(c).getString("binding",""));AppPush.tokenChanged(c,"rotated-token");assertEquals("",AppPush.preferences(c).getString("binding",""));
   AppPush.unbind(c);data.put("eventId",java.util.UUID.randomUUID().toString());AppPush.display(c,data);expectCount(m,0);
+  c.deleteDatabase("broker-inbox.db");m.cancelAll();
+  String raw="[미래에셋증권] 전량체결\n매매구분: 매수\n계좌번호: 1234-12-5678\n주문번호: 456\n종목명: fixture\n체결수량: 1주\n체결단가: 100원";
+  AppPush.preferences(c).edit().putString("inboxOwner","1").putBoolean("tradeEnabled",true).commit();
+  String brokerId;
+  try(InboxDb db=new InboxDb(c)){
+   db.receive(raw,System.currentTimeMillis());expectCount(m,1);brokerId=db.list("1").getJSONObject(0).getString("id");
+   assertEquals(com.roxstock.app.R.drawable.ic_roxstock_notification,m.getActiveNotifications()[0].getNotification().getSmallIcon().getResId());
+   m.cancelAll();assertEquals(1,db.count("1"));db.receive(raw,System.currentTimeMillis());expectCount(m,0);
+   BrokerAlerts.rememberClick(c,new Intent().putExtra("brokerId",brokerId).putExtra("brokerOwner","2"));assertEquals("",BrokerAlerts.pendingClick(c,"1"));
+   BrokerAlerts.rememberClick(c,new Intent().putExtra("brokerId",brokerId).putExtra("brokerOwner","1"));assertEquals(brokerId,BrokerAlerts.pendingClick(c,"1"));assertEquals("",BrokerAlerts.pendingClick(c,"2"));
+   BrokerAlerts.clearSession(c,true);BrokerAlerts.preferences(c,"1",true,false,false);assertEquals(brokerId,BrokerAlerts.pendingClick(c,"1"));
+   BrokerAlerts.preferences(c,"2",true,false,false);assertEquals("",BrokerAlerts.pendingClick(c,"2"));BrokerAlerts.preferences(c,"1",true,false,false);
+   BrokerAlerts.display(c,brokerId,"1");expectCount(m,1);db.status(brokerId,"ignored","2");expectCount(m,1);db.status(brokerId,"completed","1");expectCount(m,0);
+   AppPush.preferences(c).edit().putBoolean("tradeEnabled",false).commit();db.receive(raw+" changed",System.currentTimeMillis());assertEquals(0,db.count("1"));expectCount(m,0);
+  }
+  AppPush.unbind(c);assertEquals("",BrokerAlerts.pendingClick(c,"1"));c.deleteDatabase("broker-inbox.db");
   // Revoking a runtime permission terminates this instrumentation process. Denial is checked before the grant above.
  }
  @Test public void brokerOwnerDedupOffAndRestart()throws Exception{

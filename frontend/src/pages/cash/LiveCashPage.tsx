@@ -116,15 +116,17 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   const [tax, setTax] = useState('');
   const [feeStatus,setFeeStatus]=useState<'UNKNOWN'|'ESTIMATED'|'CONFIRMED'>('UNKNOWN');
   const [feeCount,setFeeCount]=useState<number|undefined>();
+  const confirmationChoice=useRef<boolean|null>(null);
   const feeTouched=useRef(false),estimateApplied=useRef<string|null>(null);
-  const changeFeeState=()=>{feeTouched.current=true;setFeeStatus('UNKNOWN');setFeeCount(undefined);};
+  const updateConfirmation=(value:string)=>{const positive=value.trim()!==''&&Number.isFinite(Number(value))&&Number(value)>0;setFeeStatus(positive&&confirmationChoice.current!==false?'CONFIRMED':'UNKNOWN');};
+  const changeFeeState=()=>{feeTouched.current=true;setFeeCount(undefined);};
 
   const [after, setAfter] = useState('');
   const tradeEdit = !!editing && (type === 'BUY' || type === 'SELL');
   const canDelete = !!editing && !balance.isError && editing.id === balance.data?.recentTransactions[0]?.id;
-  const changeGross = (value:string) => {changeFeeState();setGross(value); setTax(''); if(tradeEdit) setAfter(''); else setAmount('');};
-  const changeAfter = (value:string) => {changeFeeState();if(tradeEdit) setAfter(value); else setAmount(value); setTax(value !== '' && gross !== '' ? cashDifference(gross,value) : '');};
-  const changeTax = (value:string) => {changeFeeState();setTax(value); const calculated=value !== '' && gross !== '' ? cashDifference(gross,value) : ''; if(tradeEdit) setAfter(calculated); else setAmount(calculated);};
+  const changeGross = (value:string) => {changeFeeState();setGross(value); setTax(''); updateConfirmation(''); if(tradeEdit) setAfter(''); else setAmount('');};
+  const changeAfter = (value:string) => {changeFeeState();if(tradeEdit) setAfter(value); else setAmount(value); const next=value !== '' && gross !== '' ? cashDifference(gross,value) : '';setTax(next);updateConfirmation(next);};
+  const changeTax = (value:string) => {changeFeeState();setTax(value);updateConfirmation(value); const calculated=value !== '' && gross !== '' ? cashDifference(gross,value) : ''; if(tradeEdit) setAfter(calculated); else setAmount(calculated);};
   const [securityId, setSecurityId] = useState('');
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
@@ -172,7 +174,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   useEffect(() => { if (inputVisible && !editingAccountId && accountId) setEditingAccountId(accountId); }, [inputVisible, editingAccountId, accountId]);
   const openCreate = () => { setCardEditing(false); setCardError(''); setEditing(null); setEditingAccountId(accountId ?? null); setType('DEPOSIT'); setDate(today()); setAmount(''); setGross(''); setTax(''); setSecurityId(''); setSecurityName(''); setMemo(''); setError(''); setFieldErrors({}); setOpen(true); enterInput(); };
   const openEdit = (entry: CashTransactionDto, fromCard = false, linkedTrade = false) => {
-    feeTouched.current=false;estimateApplied.current=null;setFeeStatus(entry.feeTaxStatus??'UNKNOWN');setFeeCount(entry.feeTaxBasisCount??undefined);
+    confirmationChoice.current=null;feeTouched.current=false;estimateApplied.current=null;setFeeStatus(Number(entry.feeTaxAmount)>0?'CONFIRMED':entry.feeTaxBasisCount?'ESTIMATED':'UNKNOWN');setFeeCount(entry.feeTaxBasisCount??undefined);
     setCardEditing(fromCard); setCardError('');
     setEditing(entry); setEditingAccountId(accountId ?? null); setType(entry.transactionType);
     setDate(new Date(entry.transactionDate).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }));
@@ -192,7 +194,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
   useEffect(()=>{
     if(!estimateEligible||!feeEstimate.data||!editing||feeTouched.current||estimateApplied.current===editing.id||accountId!==editingAccountId)return;
     estimateApplied.current=editing.id;
-    setTax(feeEstimate.data.amount);setAfter(cashDifference(gross,feeEstimate.data.amount));setFeeStatus('ESTIMATED');setFeeCount(feeEstimate.data.count);
+    setTax(feeEstimate.data.amount);setAfter(cashDifference(gross,feeEstimate.data.amount));setFeeStatus(Number(feeEstimate.data.amount)>0&&confirmationChoice.current!==false?'CONFIRMED':'ESTIMATED');setFeeCount(feeEstimate.data.count);
   },[estimateEligible,feeEstimate.data,editing?.id,accountId,editingAccountId,gross]);
   const invalidateCash = async () => invalidatePortfolio(queryClient);
   const latestEntry = !balance.isError ? balance.data?.recentTransactions[0] : undefined;
@@ -233,7 +235,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     if(tradeEdit) {
       if(!/^\d+(?:\.\d+)?$/.test(gross)) invalid.gross='세전예수금을 입력해 주세요.';
       if(!/^\d+(?:\.\d+)?$/.test(after)) invalid.amount='세후예수금을 입력해 주세요.';
-      if(!/^-?\d+(?:\.\d+)?$/.test(tax) || Number(cashDifference(gross,after))!==Number(tax)) invalid.tax='제세금을 확인해 주세요.';
+      if(!/^\d+(?:\.\d+)?$/.test(tax) || Number(cashDifference(gross,after))!==Number(tax)) invalid.tax='제세금을 확인해 주세요.';
     }
     if (editing && !/^\d+(?:\.\d+)?$/.test(after)) invalid.after = '세후예수금을 입력해 주세요.';
     setFieldErrors(invalid);
@@ -289,8 +291,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     </>}
     <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" autoFocus={!notification&&!editing&&type!=='DIVIDEND'} label={tradeEdit ? '세후예수금' : type === 'DIVIDEND' ? '세후 배당' : '금액'} value={tradeEdit ? after : amount} onChange={value => {if(tradeEdit || type === 'DIVIDEND') changeAfter(value); else setAmount(value);}} suffix="원" error={fieldErrors.amount} inputRef={amountRef} disabled={saving} enterKeyHint="next" onEnter={() => (tradeEdit || type === 'DIVIDEND' ? taxRef : memoRef).current?.focus()} />
     {(tradeEdit || type === 'DIVIDEND') && <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="제세금" value={tax} onChange={changeTax} suffix="원" error={fieldErrors.tax} inputRef={taxRef} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
-    {tradeEdit&&<Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}><Typography sx={{fontSize:11,color:colors.textMuted}}>{feeStatus==='ESTIMATED'?`추정 · 최근 ${type==='BUY'?'매수':'매도'} ${feeCount??0}건 기준`:feeStatus==='CONFIRMED'?'실제 금액 확인됨':'실제 비용 미확인'}</Typography><FormControlLabel sx={{m:0,'& .MuiTypography-root':{fontSize:11}}} control={<Checkbox size="small" checked={feeStatus==='CONFIRMED'} disabled={saving||tax===''||Number(tax)<0} onChange={(_,checked)=>{feeTouched.current=true;setFeeStatus(checked?'CONFIRMED':feeCount?'ESTIMATED':'UNKNOWN');}}/>} label="실제 금액으로 확인"/></Stack>}
-    {tradeEdit&&feeEstimate.isError&&<Typography sx={{fontSize:11,color:colors.textMuted}}>추정 조회 실패 · 제세금을 직접 입력해 주세요.</Typography>}
+    {tradeEdit&&<Stack sx={{alignItems:'stretch'}}>{feeCount!=null&&<Typography sx={{fontSize:11,color:colors.textMuted}}>{`추정 · 최근 ${type==='BUY'?'매수':'매도'} ${feeCount}건 기준`}</Typography>}{feeEstimate.isError&&<Typography sx={{fontSize:11,color:colors.textMuted}}>비용 추정 조회 실패 · 직접 입력해 주세요.</Typography>}<FormControlLabel sx={{m:0,width:'100%',justifyContent:'flex-start','& .MuiTypography-root':{fontSize:11}}} control={<Checkbox size="small" checked={feeStatus==='CONFIRMED'} disabled={saving||tax===''||Number(tax)<0} onChange={(_,checked)=>{confirmationChoice.current=checked;setFeeStatus(checked?'CONFIRMED':feeCount?'ESTIMATED':'UNKNOWN');}}/>} label="실제 금액으로 확인"/></Stack>}
     {editing && !tradeEdit && <NumberField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="세후예수금" inputRef={afterRef} value={after} onChange={setAfter} suffix="원" error={fieldErrors.after} disabled={saving} enterKeyHint="next" onEnter={() => memoRef.current?.focus()} />}
     <FormTextField selectOnFocus={!notification&&!location.state?.notificationEntry} size="small" clearIconSrc="/stocks-v03/clear.svg" label="메모" value={memo} onChange={setMemo} inputRef={memoRef} disabled={saving} enterKeyHint="done" onEnter={() => void submit()} />
     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{tradeEdit ? '제세금 반영 결과' : '변동 정보'}</Typography>

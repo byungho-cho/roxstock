@@ -41,3 +41,14 @@ test('cold push link survives login and selects the server-authorized destinatio
  await page.route('**/api/notifications/events/'+event,route=>route.fulfill({json:{data:{destination:'/',accountId:'2'}}}));
  await page.goto('/?pushEvent='+event);await page.getByRole('button',{name:'비밀번호를 잊으셨나요?',exact:true}).click();await page.getByRole('button',{name:'로그인으로 돌아가기',exact:true}).click();await page.getByLabel('이메일',{exact:true}).fill('fixture@example.invalid');await page.getByLabel('비밀번호',{exact:true}).fill('fixture-password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect.poll(()=>selected).toBe('2');await expect(page).toHaveURL(/\/(?:\?readNotification=.+)?$/);expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:fixture-user:selected-account-id'))).toBe('2');
 });
+
+test('investor chart starts with one year and preserves chosen period across stocks',async({page})=>{
+ await identity(page);const periods:string[]=[];await page.route('**/api/investor-trends/history?**',r=>r.fulfill({json:{data:{rows:[],nextCursor:null}}}));
+ await page.route('**/api/accounts/*/investor-targets',r=>r.fulfill({json:{data:[{id:'1',symbol:'000001',name:'종목1'},{id:'2',symbol:'000002',name:'종목2'}]}}));
+ await page.route('**/api/investor-trends?**',r=>{periods.push(new URL(r.request().url()).searchParams.get('period')!);return r.fulfill({json:{data:{rows:[],points:[],status:'NO_DATA'}}});});
+ await page.goto('/detail/investor-trends?mode=stock&symbol=000001');await expect(page.getByRole('button',{name:'1년',exact:true}).first()).toHaveAttribute('aria-pressed','true');await expect.poll(()=>periods).toContain('1y');
+ await page.getByRole('button',{name:'60일',exact:true}).first().click();await expect.poll(()=>periods).toContain('60');await page.getByRole('button',{name:'다음 시장 또는 종목',exact:true}).click();await expect(page.getByRole('button',{name:'60일',exact:true}).first()).toHaveAttribute('aria-pressed','true');await expect(page).toHaveURL(/period=60/);
+});
+test('summary value indicators opens existing value detail and returns to summary',async({page})=>{
+ await identity(page);await page.route('**/api/value-analysis/*',r=>{const id=new URL(r.request().url()).pathname.split('/').at(-1)!;return r.fulfill({json:{data:{security:{id,name:'종목'+id,symbol:id.padStart(6,'0'),currentPrice:'200'},year:2026,valuation:null,w:null,fairPrices:[],rows:[],notices:[],mode:'annual'}}});});await page.goto('/stocks/1?detailTab=summary');await page.getByRole('button',{name:'(가치지표)',exact:true}).click();await expect(page).toHaveURL(/stocks\/1\/value/);await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/stocks\/1\?detailTab=summary/);await expect(page.getByRole('tab',{name:'요약',exact:true})).toHaveAttribute('aria-selected','true');
+});

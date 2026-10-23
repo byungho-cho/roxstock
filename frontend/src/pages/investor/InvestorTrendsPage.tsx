@@ -24,7 +24,7 @@ function amount(value:string|null|undefined){if(value==null)return '—';const [
 
 export function InvestorTrendsPage(){
  const {accountId}=useActiveAccount(),[params,setParams]=useSearchParams();
- const mode=params.get('mode')==='stock'?'stock':'market',selectedDate=params.get('date')??today(),metric=params.get('metric')==='quantity'?'quantity':params.get('metric')==='amount'?'amount':mode==='stock'?'quantity':'amount',period=params.get('period')??'30';
+ const mode=params.get('mode')==='stock'?'stock':'market',selectedDate=params.get('date')??today(),metric=params.get('metric')==='quantity'?'quantity':params.get('metric')==='amount'?'amount':mode==='stock'?'quantity':'amount',period=params.get('period')??'1y';
  const [historyDate]=useState(selectedDate);
  const location=useLocation(),navigatePage=useNavigate(),detail=params.get('chart')==='detail';
  const openDetail=()=>{const next=new URLSearchParams(params);next.set('chart','detail');navigatePage({pathname:location.pathname,search:next.toString()},{state:{...location.state,investorChartDetail:true}});};

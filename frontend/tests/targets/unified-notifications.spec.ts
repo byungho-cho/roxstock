@@ -9,13 +9,13 @@ async function setup(page:any,nativeRows?:Array<{id:string;raw:string;receivedAt
  await page.addInitScript((nativeRows:Array<{id:string;raw:string;receivedAt:number}>|null)=>{
   const raw=(side:string)=>`[미래에셋증권] 전량체결\n매매구분: ${side}\n계좌번호: 1234-**-5678\n종목명: 종목1\n종목코드: 000001\n체결일자: 2026.10.07\n체결수량: 1주\n체결단가: 110원`;
   (window as any).nativeEntries=nativeRows??[{id:'a'.repeat(64),raw:raw('매수'),receivedAt:2},{id:'b'.repeat(64),raw:raw('매도'),receivedAt:1}];
-  (window as any).RoxStockNative={postMessage:(raw:string)=>{const c=JSON.parse(raw);let response:any={requestId:c.requestId};if(c.action==='list')response={...response,protocolVersion:2,permission:true,total:(window as any).nativeEntries.length,entries:(window as any).nativeEntries};if(c.action==='status')(window as any).nativeEntries=(window as any).nativeEntries.filter((e:any)=>e.id!==c.id);setTimeout(()=>(window as any).RoxStockNative.onmessage?.({data:JSON.stringify(response)}),0);}};
+  (window as any).RoxStockNative={postMessage:(raw:string)=>{const c=JSON.parse(raw);let response:any={requestId:c.requestId};if(c.action==='list')response={...response,protocolVersion:2,openInbox:(window as any).nativeOpen??'',permission:true,total:(window as any).nativeEntries.length,entries:(window as any).nativeEntries};if(c.action==='ack-click')(window as any).nativeOpen='';if(c.action==='status')(window as any).nativeEntries=(window as any).nativeEntries.filter((e:any)=>e.id!==c.id);setTimeout(()=>(window as any).RoxStockNative.onmessage?.({data:JSON.stringify(response)}),0);}};
  },nativeRows??null);
 }
 test('unified dialog geometry, ignored notice never creates a trade, empty inbox hides bell',async({page},info)=>{
  await setup(page);let writes=0;await page.route('**/api/buy-trades',r=>{writes++;return r.fulfill({json:{data:{}}});});
  await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('heading',{name:'알림',exact:true})).toBeVisible();const box=await dialog.boundingBox();expect(Math.round(box!.width)).toBe(338);expect(Math.round(box!.height)).toBe(356);expect(Math.abs(box!.x+box!.width/2-page.viewportSize()!.width/2)).toBeLessThan(2);
- await page.screenshot({animations:'disabled',path:info.outputPath('unified-inbox.png')});await dialog.getByRole('button',{name:'무시',exact:true}).first().click();await expect(dialog.getByText('1건',{exact:true})).toBeVisible();await dialog.getByRole('button',{name:'무시',exact:true}).click();await dialog.getByRole('button',{name:'닫기',exact:true}).click();await expect(page.getByRole('button',{name:/^알림 \d+건$/})).toHaveCount(0);expect(writes).toBe(0);
+ const ignore=dialog.getByRole('button',{name:'무시',exact:true}).first();const ignoreBox=await ignore.boundingBox();const cardBox=await ignore.locator('..').boundingBox();expect(ignoreBox!.width).toBe(50);expect(ignoreBox!.height).toBe(28);expect(Math.abs(ignoreBox!.y+14-cardBox!.y-cardBox!.height/2)).toBeLessThan(1);await page.screenshot({animations:'disabled',path:info.outputPath('unified-inbox.png')});await dialog.getByRole('button',{name:'무시',exact:true}).first().click();await expect(dialog.getByText('1건',{exact:true})).toBeVisible();await dialog.getByRole('button',{name:'무시',exact:true}).click();await dialog.getByRole('button',{name:'닫기',exact:true}).click();await expect(page.getByRole('button',{name:/^알림 \d+건$/})).toHaveCount(0);expect(writes).toBe(0);
 });
 test('buy notification reuses form without focus; cancel and failed save preserve notice',async({page},info)=>{
  await setup(page);await page.route('**/api/buy-trades',r=>r.fulfill({status:500,json:{error:{message:'저장 실패'}}}));await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매수 종목1',exact:true}).click();const form=page.getByTestId('trade-form');await expect(form).toBeVisible();await expect(page.getByLabel('매수수량',{exact:true})).toHaveValue('1');await expect(page.getByLabel('매수가격',{exact:true})).toHaveValue('110');expect(await page.evaluate(()=>document.activeElement?.tagName)).not.toBe('INPUT');await page.screenshot({animations:'disabled',path:info.outputPath('notice-buy.png')});await form.getByRole('button',{name:'매수',exact:true}).click();await expect(form.getByRole('alert')).toContainText('저장 실패');await form.getByRole('button',{name:'취소',exact:true}).click();await expect(page.getByRole('button',{name:'알림 2건',exact:true})).toBeVisible();
@@ -81,17 +81,17 @@ test('notification goes through trade route then replaces it with linked cash an
  await page.getByRole('button',{name:'취소',exact:true}).click();await expect(page).toHaveURL(/\/$/);await expect(page.getByTestId('trade-form')).toHaveCount(0);expect(buys).toBe(1);await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('2');
  await page.getByLabel('실제 금액으로 확인',{exact:true}).check();await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>settlement).toMatchObject({feeTaxAmount:'2',feeTaxStatus:'CONFIRMED',balanceAfter:'998',amount:'110'});expect(buys).toBe(1);await expect(page).toHaveURL(/\/detail\/cash$/);
 });
-test('late fee estimate cannot overwrite user amount; save without confirmation stays unknown',async({page})=>{
+test('late fee estimate cannot overwrite user amount or explicit unchecked choice',async({page})=>{
  await setup(page);await cashFixture(page);let release!:()=>void;const ready=new Promise<void>(r=>release=r);let settlement:any;
  await page.route('**/api/accounts/1/cash-transactions/92/fee-estimate',async r=>{await ready;await r.fulfill({json:{data:{amount:'2',count:1}}});});
  await page.route('**/api/cash-transactions/92',r=>{settlement=r.request().postDataJSON();return r.fulfill({json:{data:{id:'92'}}});});
- await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toBeVisible();await page.getByLabel('제세금',{exact:true}).fill('7');release();await page.waitForTimeout(300);await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('7');await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('993');await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>settlement).toMatchObject({feeTaxStatus:'UNKNOWN',feeTaxAmount:'7'});
+ await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toBeVisible();await page.getByLabel('제세금',{exact:true}).fill('7');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();await page.getByLabel('실제 금액으로 확인',{exact:true}).uncheck();release();await page.waitForTimeout(300);await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('7');await expect(page.getByLabel('세후예수금',{exact:true})).toHaveValue('993');await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>settlement).toMatchObject({feeTaxStatus:'UNKNOWN',feeTaxAmount:'7'});
 });
 test('unconfirmed estimate persists as estimate and an existing actual cost is preserved',async({page})=>{
  await setup(page);await cashFixture(page);let saved:any;
  await page.route('**/api/accounts/1/cash-transactions/92/fee-estimate',r=>r.fulfill({json:{data:{amount:'3',count:3}}}));
  await page.route('**/api/cash-transactions/92',r=>{saved=r.request().postDataJSON();return r.fulfill({json:{data:{id:'92'}}});});
- await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('3');await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>saved).toMatchObject({feeTaxStatus:'ESTIMATED',feeTaxBasisCount:3,feeTaxAmount:'3'});
+ await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('3');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();await page.getByLabel('실제 금액으로 확인',{exact:true}).uncheck();await page.getByRole('button',{name:'저장',exact:true}).click();await expect.poll(()=>saved).toMatchObject({feeTaxStatus:'ESTIMATED',feeTaxBasisCount:3,feeTaxAmount:'3'});
  await cashFixture(page,'CONFIRMED','9');await page.goto('/detail/cash?editCash=92&cashAccount=1');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('9');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();
 });
 test('cached estimate cannot replace a confirmed cost when switching cash records',async({page})=>{
@@ -107,4 +107,19 @@ test('cached estimate cannot replace a confirmed cost when switching cash record
  await page.getByLabel('세전예수금',{exact:true}).fill('1010');await page.getByLabel('제세금',{exact:true}).fill('9');await page.getByLabel('실제 금액으로 확인',{exact:true}).check();await page.getByRole('button',{name:'저장',exact:true}).click();
  await page.locator('[data-scroll-item="93"]').click();await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('7');await page.getByRole('button',{name:'취소',exact:true}).click();
  await page.locator('[data-scroll-item="92"]').click();await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('9');await expect(page.getByLabel('실제 금액으로 확인',{exact:true})).toBeChecked();
+});
+
+test('cost defaults, whole row toggle, zero clearing and no implicit save',async({page})=>{
+ await setup(page);await cashFixture(page,'UNKNOWN','5');let writes=0;
+ await page.route('**/api/cash-transactions/92',r=>{writes++;return r.fulfill({json:{data:{id:'92'}}});});
+ await page.goto('/detail/cash?editCash=92&cashAccount=1');const check=page.getByLabel('실제 금액으로 확인',{exact:true});
+ await expect(check).toBeChecked();await expect(page.getByText('실제 비용 미확인',{exact:true})).toHaveCount(0);
+ const label=page.locator('label').filter({hasText:'실제 금액으로 확인'});const box=await label.boundingBox();await label.click({position:{x:box!.width-4,y:box!.height/2}});await expect(check).not.toBeChecked();
+ await page.getByLabel('제세금',{exact:true}).fill('8');await expect(check).not.toBeChecked();
+ await check.focus();await page.keyboard.press('Space');await expect(check).toBeChecked();
+ await page.getByLabel('제세금',{exact:true}).fill('0');await expect(check).not.toBeChecked();await page.getByLabel('제세금',{exact:true}).fill('');await expect(check).not.toBeChecked();await page.getByLabel('세후예수금',{exact:true}).fill('1001');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('-1');await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByText('제세금을 확인해 주세요.',{exact:true})).toBeVisible();expect(writes).toBe(0);
+});
+
+test('durable native click opens unified inbox without saving or completing a trade',async({page})=>{
+ await setup(page);await page.addInitScript(()=>{(window as any).nativeOpen='a'.repeat(64);});let writes=0;await page.route('**/api/buy-trades',r=>{writes++;return r.fulfill({json:{data:{}}});});await page.goto('/');await expect(page.getByRole('heading',{name:'알림',exact:true})).toBeVisible();await expect(page.getByRole('dialog').getByText('2건',{exact:true})).toBeVisible();await expect.poll(()=>page.evaluate(()=>(window as any).nativeEntries.length)).toBe(2);await expect.poll(()=>page.evaluate(()=>(window as any).nativeOpen)).toBe('');expect(writes).toBe(0);
 });

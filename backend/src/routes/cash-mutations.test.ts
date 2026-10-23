@@ -5,7 +5,7 @@ import { prisma } from '@roxstock/shared/lib/prisma';
 import { buildApp } from '../auth/route-test-app.js';
 const d=(v:number)=>new Prisma.Decimal(v);
 function fixture(type='DEPOSIT') {
- const cash:any={id:2n,accountId:1n,transactionType:type,amount:d(100),feeTaxAmount:d(type==='BUY'?-10:10),balanceAfter:d(900),transactionDate:new Date(),createdAt:new Date('2026-10-01'),updatedAt:new Date(),memo:null,dividend:type==='DIVIDEND'?{id:3n,securityId:4n,grossAmount:d(110)}:null};
+ const cash:any={id:2n,accountId:1n,transactionType:type,amount:d(100),feeTaxAmount:d(10),balanceAfter:d(900),transactionDate:new Date(),createdAt:new Date('2026-10-01'),updatedAt:new Date(),memo:null,dividend:type==='DIVIDEND'?{id:3n,securityId:4n,grossAmount:d(110)}:null};
  let rows:any[]=[{...cash,id:1n,balanceAfter:d(700),createdAt:new Date('2026-09-01')},cash,{...cash,id:3n,balanceAfter:d(1200),createdAt:new Date('2026-10-02')}];
  const writes:any[]=[];const reads:any[]=[];const locks:bigint[]=[];
  const tx:any={$queryRaw:async(_parts:any,accountId:bigint)=>{locks.push(accountId);},cashTransaction:{
@@ -38,8 +38,16 @@ test('scope mismatch, concurrent new latest, malformed values and retired balanc
   assert.equal((await app.inject({method:'PATCH',url:'/api/accounts/1/cash-balance',payload:{amount:'20'}})).statusCode,409);assert.equal(f.writes.length,0);
  });
 });
-test('signed tax on legacy buy remains editable without changing original trade',async()=>{
- const f=fixture('BUY');await withApp(f,async app=>{const result=await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{feeTaxAmount:'-10',balanceAfter:'900'}});assert.equal(result.statusCode,200,result.body);assert.equal(f.cash.feeTaxAmount.toString(),'-10');assert.equal(f.cash.amount.toString(),'100');assert.equal(f.writes.length,0);});
+test('negative trade costs reject every status and preserve legacy values until explicitly corrected',async()=>{
+ const f=fixture('BUY');f.cash.feeTaxAmount=d(-10);
+ await withApp(f,async app=>{
+  for(const feeTaxStatus of ['UNKNOWN','ESTIMATED','CONFIRMED']){
+   const result=await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{feeTaxAmount:'-20',feeTaxStatus,balanceAfter:'800'}});
+   assert.equal(result.statusCode,400,result.body);assert.equal(f.cash.feeTaxAmount.toString(),'-10');assert.equal(f.cash.balanceAfter.toString(),'900');assert.equal(f.writes.length,0);
+  }
+  const corrected=await app.inject({method:'PATCH',url:'/api/cash-transactions/2',payload:{feeTaxAmount:'10',feeTaxStatus:'CONFIRMED',balanceAfter:'900'}});
+  assert.equal(corrected.statusCode,200,corrected.body);assert.equal(f.cash.feeTaxAmount.toString(),'10');assert.equal(f.cash.amount.toString(),'100');assert.equal(f.writes.length,0);
+ });
 });
 test('deleting last row returns explicit missing state without old cache fallback',async()=>{
  const f=fixture();f.setRows([f.cash]);await withApp(f,async app=>{const result=await app.inject({method:'DELETE',url:'/api/cash-transactions/2'});assert.equal(result.statusCode,200,result.body);assert.equal(result.json().data.currentBalance,null);assert.equal(result.json().data.balanceStatus,'NO_TRANSACTIONS');assert.equal(f.writes.length,0);});

@@ -92,7 +92,7 @@ export async function cashMutationRoutes(app: FastifyInstance) {
         if(body.feeTaxStatus!==undefined)feeTaxStatus=String(body.feeTaxStatus);
         else if(!feeTaxAmount.eq(cash.feeTaxAmount))feeTaxStatus='UNKNOWN';
         feeTaxBasisCount=feeTaxStatus==='ESTIMATED'&&Number.isInteger(body.feeTaxBasisCount)&&Number(body.feeTaxBasisCount)>=1&&Number(body.feeTaxBasisCount)<=3?Number(body.feeTaxBasisCount):null;
-        if(feeTaxStatus==='CONFIRMED'&&feeTaxAmount.lt(0))throw new ApiError(400,'INVALID_INPUT','확정 제세금은 0원 이상이어야 합니다.');
+        if(feeTaxAmount.lt(0))throw new ApiError(400,'INVALID_INPUT','제세금은 0원 이상이어야 합니다.');
       }
       await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter,feeTaxStatus,feeTaxBasisCount } });
       const basis = latest.transactionId === cash.id.toString() ? await syncCurrentCash(tx, cash.accountId) : latest;

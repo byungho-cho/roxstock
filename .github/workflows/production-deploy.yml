@@ -203,20 +203,24 @@ jobs:
           apk_file="$(find notifications-apk -name 'app-notifications-release.apk' -type f -print -quit)"
           test -n "$apk_file"
           digest="$(sha256sum "$apk_file" | cut -d ' ' -f 1)"
-          configured="$(python3 - "$apk_file" "$digest" <<'PY'
+          apk_metadata="$(python3 - "$apk_file" "$digest" <<'PY'
           import json,pathlib,sys
           r=json.loads(pathlib.Path(sys.argv[1]).with_suffix('.verification.json').read_text())
-          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']=='0.1.8' and r['versionCode']==9
-          print('true' if r['firebaseConfigured'] else 'false')
+          sys.path.insert(0,'android-app/scripts')
+          from apk_verification import expected_version
+          version,code=expected_version('notifications')
+          assert r['sha256']==sys.argv[2] and r['signatureVerified'] and r['applicationId']=='com.roxstock.app.debug' and r['versionName']==version and r['versionCode']==code
+          print('true' if r['firebaseConfigured'] else 'false', version, code)
           PY
           )"
+          read -r configured apk_version apk_code <<< "$apk_metadata"
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "$apk_file" "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.apk"
           scp -i "$HOME/.ssh/deploy_key" -P "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes android-app/publish-notifications-apk.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/roxstock-notifications-$TARGET_SHA.sh"
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notifications-$TARGET_SHA.sh $TARGET_SHA $digest $configured"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/roxstock-notifications-$TARGET_SHA.sh $TARGET_SHA $digest $configured $apk_version $apk_code"
 
   dart_status_correction:
     needs: [revision, backend, collector, frontend]

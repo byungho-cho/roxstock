@@ -33,7 +33,8 @@ final class InboxDb extends SQLiteOpenHelper {
         Matcher matcher = Pattern.compile(regex).matcher(text);
         return matcher.find() ? matcher.group(1) : "";
     }
-    void receive(String raw, long receivedAt) throws Exception {
+    void receive(String raw, long receivedAt) throws Exception { synchronized(BrokerAlerts.class){receiveSaved(raw,receivedAt);} }
+    private void receiveSaved(String raw, long receivedAt) throws Exception {
         String owner=AppPush.preferences(context).getString("inboxOwner", "");
         if(owner.isEmpty() || !AppPush.preferences(context).getBoolean("tradeEnabled",false))return;
         if (raw.length() > 20000 || !raw.contains("[미래에셋증권]")) return;
@@ -51,11 +52,14 @@ final class InboxDb extends SQLiteOpenHelper {
         for (byte b : hash) id.append(String.format(Locale.ROOT, "%02x", b & 0xff));
         ContentValues values = new ContentValues();
         values.put("owner",owner); values.put("id", id.toString()); values.put("raw", raw); values.put("received", receivedAt);
+        boolean inserted=false;
         SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
             ContentValues receipt=new ContentValues();receipt.put("fingerprint",fingerprint(raw));
-            if(db.insertWithOnConflict("receipts",null,receipt,SQLiteDatabase.CONFLICT_IGNORE)!=-1)db.insertWithOnConflict("inbox", null, values, SQLiteDatabase.CONFLICT_IGNORE);
+            if(db.insertWithOnConflict("receipts",null,receipt,SQLiteDatabase.CONFLICT_IGNORE)!=-1)inserted=db.insertWithOnConflict("inbox", null, values, SQLiteDatabase.CONFLICT_IGNORE)!=-1;
             db.setTransactionSuccessful();
         }finally{db.endTransaction();}
+        // A display failure must never roll back or discard a committed inbox entry.
+        if(inserted)try{BrokerAlerts.display(context,id.toString(),owner);}catch(Exception ignored){}
     }
     int count(String owner) {
         try(Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM inbox WHERE owner = ? AND status = 'pending'",new String[]{owner})) {return c.moveToFirst()?c.getInt(0):0;}
@@ -67,9 +71,10 @@ final class InboxDb extends SQLiteOpenHelper {
         }
         return rows;
     }
-    void status(String id, String state, String owner) {
+    void status(String id, String state, String owner) { synchronized(BrokerAlerts.class){statusSaved(id,state,owner);} }
+    private void statusSaved(String id, String state, String owner) {
         if (!state.equals("completed") && !state.equals("ignored")) throw new IllegalArgumentException("Invalid status");
         ContentValues values = new ContentValues(); values.put("status", state);
-        getWritableDatabase().update("inbox", values, "id = ? AND status = 'pending' AND owner = ?", new String[]{id,owner});
+        if(getWritableDatabase().update("inbox", values, "id = ? AND status = 'pending' AND owner = ?", new String[]{id,owner})>0)try{BrokerAlerts.cancel(context,id);}catch(Exception ignored){}
     }
 }
