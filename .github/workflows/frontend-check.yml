@@ -161,7 +161,7 @@ jobs:
         run: cd frontend && npx playwright test -c playwright.app-notifications.config.ts
       - name: Unified notification flows (cover and tablet)
         run: |
-          node --import tsx --test frontend/tests/targets/trade-notice-policy.test.ts
+          node --import tsx --test frontend/tests/targets/trade-notice-policy.test.ts frontend/tests/targets/lot-selection-policy.test.ts
           cd frontend && npx playwright test -c playwright.unified-notifications.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
