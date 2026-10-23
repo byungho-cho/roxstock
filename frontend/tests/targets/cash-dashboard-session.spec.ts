@@ -4,7 +4,7 @@ const user={id:'1',email:'fixture@example.invalid',role:'USER',mustChangePasswor
 async function setup(page:any){const f=await base(page);await page.route('**/api/auth/me',(r:any)=>r.fulfill({json:{data:user}}));return f;}
 const resume=async(page:any)=>page.evaluate(()=>{document.dispatchEvent(new Event('visibilitychange'));});
 test('legend toggle changes only numbers; grouped amounts, layout and refresh persistence',async({page},info)=>{
- const f=await setup(page);let reads=0;
+ await page.clock.install();const f=await setup(page);let reads=0;
  const read=async(path:string)=>{const r=await f.read(path);if(path.includes('/dashboard')){reads++;const amounts=[23070000,15000,10000,9000,8000,7000,6000,5000,4000];r.body.data={...r.body.data,stockValue:String(amounts.reduce((a,b)=>a+b)),holdings:amounts.map((v,i)=>({securityId:String(i+1),symbol:String(i+1),name:'아주 긴 종목명 '+i,quantity:'100000',averagePurchasePrice:'23070',purchaseAmount:'23070000',currentPrice:'23070',marketValue:String(v),unrealizedProfitLoss:i%2?'500':'-500',unrealizedReturnRate:i%2?'50':'-50'}))};}return r;};
  await page.route('**/api/pages/read',async r=>r.fulfill({json:{data:await Promise.all(r.request().postDataJSON().paths.map(read))}}));
  await page.route('**/api/accounts/*/dashboard**',async r=>{const u=new URL(r.request().url());return r.fulfill({json:(await read(u.pathname.slice(4)+u.search)).body});});
@@ -12,7 +12,7 @@ test('legend toggle changes only numbers; grouped amounts, layout and refresh pe
  const donut=await page.getByTestId('asset-donut').innerHTML(),count=reads,names=await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents();
  await toggle.click();await expect(toggle).toHaveText('금액');await expect(legends.first()).toContainText('2,307만원');await expect(legends.nth(3)).toContainText('1만원 미만');await expect(legends.last()).toContainText('기타1만원 미만');expect(reads).toBe(count);expect(await page.getByTestId('asset-donut').innerHTML()).toBe(donut);
  expect(await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents()).toEqual(names);
- await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect.poll(()=>reads).toBeGreaterThan(count);await expect(toggle).toHaveText('금액');
+ await page.clock.fastForward(300000);await expect.poll(()=>reads).toBeGreaterThan(count);await expect(toggle).toHaveText('금액');
  for(const row of await legends.all()){const boxes=await row.locator('p').evaluateAll(ns=>ns.map(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right})));expect(boxes[0].right).toBeLessThanOrEqual(boxes[1].left);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('legend-amount.png'),fullPage:true});
 });
@@ -48,4 +48,19 @@ test('only confirmed expiry logs out; unrelated 403 and malformed identity retai
 });
 test('broadcast identity uncertainty blocks previous account; old delayed response cannot restore old user',async({page})=>{
  await setup(page);await page.goto('/');await expect(page.getByTestId('home-holdings-card')).toBeVisible();let release!:()=>void;const held=new Promise<void>(r=>release=r);await page.route('**/api/auth/me',async r=>{await held;return r.fulfill({json:{data:{...user,id:'2'}}});});await page.evaluate(()=>{const c=new BroadcastChannel('roxstock-auth');c.postMessage({source:'other-tab'});c.close();});await expect(page.getByRole('status').filter({hasText:'로그인을 확인'})).toBeVisible();release();await expect(page.getByRole('status').filter({hasText:'로그인을 확인'})).toHaveCount(0);expect(await page.evaluate(()=>localStorage.getItem('roxstock:user:1:selected-account-id'))).not.toBe('2');
+});
+test('older foreground response cannot replace a newer verified user',async({page})=>{
+ await setup(page);await page.goto('/auth/login');await page.getByLabel('이메일',{exact:true}).fill('old-draft@example.invalid');let calls=0,release!:()=>void;const held=new Promise<void>(r=>release=r);
+ await page.route('**/api/auth/me',async r=>{if(++calls===1){await held;return r.fulfill({json:{data:user}});}return r.fulfill({json:{data:{...user,id:'2'}}});});
+ await resume(page);await expect.poll(()=>calls).toBe(1);await page.evaluate(()=>window.dispatchEvent(new Event('online')));release();await expect(page.getByRole('status').filter({hasText:'로그인을 확인'})).toHaveCount(0);await page.getByLabel('이메일',{exact:true}).fill('new-draft@example.invalid');await expect.poll(()=>calls).toBe(2);await expect(page.getByLabel('이메일',{exact:true})).toHaveValue('new-draft@example.invalid');
+});
+test('automatic recovery stops after three retries and resumes on an explicit online signal',async({page})=>{
+ await page.clock.install();await setup(page);await page.goto('/auth/login');await page.getByLabel('이메일',{exact:true}).fill('retained@example.invalid');let calls=0,fail=true;await page.route('**/api/auth/me',r=>{calls++;return r.fulfill(fail?{status:503,json:{error:{code:'UNAVAILABLE'}}}:{json:{data:user}});});await resume(page);
+ await expect.poll(()=>calls).toBe(1);await expect(page.getByRole('alert')).toBeVisible();for(const [delay,count] of [[2000,2],[5000,3],[15000,4]]){await page.clock.fastForward(delay);await expect.poll(()=>calls).toBe(count);await expect(page.getByRole('alert')).toBeVisible();}await page.clock.fastForward(60000);expect(calls).toBe(4);fail=false;await page.evaluate(()=>window.dispatchEvent(new Event('online')));await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByLabel('이메일',{exact:true})).toHaveValue('retained@example.invalid');
+});
+
+test('same-origin tabs serialize a pending renewal before a new login cookie response',async({page,context})=>{
+ await setup(page);await page.goto('/auth/login');const second=await context.newPage();await setup(second);await second.goto('/auth/login');await second.getByLabel('이메일',{exact:true}).fill('new@example.invalid');await second.getByLabel('비밀번호',{exact:true}).fill('fixture-password');let release!:()=>void,calls=0,loginCalls=0;const held=new Promise<void>(r=>release=r);
+ await page.route('**/api/auth/me',async r=>{calls++;await held;return r.fulfill({json:{data:user}});});await second.route('**/api/auth/login',r=>{loginCalls++;return r.fulfill({json:{data:{...user,id:'2'}}});});
+ await resume(page);await expect.poll(()=>calls).toBe(1);await second.getByRole('button',{name:'로그인',exact:true}).click();expect(loginCalls).toBe(0);release();await expect.poll(()=>loginCalls).toBe(1);await second.close();
 });

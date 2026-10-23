@@ -10,7 +10,16 @@ export class AuthRequestError extends Error {
 }
 const sessionFailures=new Set(['LOGIN_REQUIRED','AUTH_COOKIE_MISSING','AUTH_COOKIE_INVALID','AUTH_SESSION_UNKNOWN','AUTH_SESSION_EXPIRED','AUTH_SESSION_REVOKED','AUTH_USER_DISABLED','AUTH_TOKEN_MISMATCH','AUTH_TOKEN_RETIRED','AUTH_TEMPORARY_EXPIRED']);
 export const confirmedSessionFailure=(error:unknown)=>error instanceof AuthRequestError&&error.status===401&&sessionFailures.has(error.code);
+let cookieQueue:Promise<unknown>=Promise.resolve();
 export async function authRequest<T>(path:string,body?:unknown):Promise<T>{
+  const execute=()=>executeAuthRequest<T>(path,body);
+  if(!['me','refresh','login','logout','change-password'].includes(path))return execute();
+  // Same-origin Web Locks serialize cookie responses across tabs. Older single-view
+  // WebViews retain the same ordering within their document through the promise queue.
+  if(typeof navigator!=='undefined'&&navigator.locks)return navigator.locks.request('roxstock-auth-cookie',execute);
+  const result=cookieQueue.then(execute,execute);cookieQueue=result.then(()=>{},()=>{});return result;
+}
+async function executeAuthRequest<T>(path:string,body?:unknown):Promise<T>{
   const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),15000);
   try{
     const result=await fetch('/api/auth/'+path,{signal:abort.signal,cache:'no-store',method:body===undefined?'GET':'POST',credentials:'same-origin',headers:{...(['settings','change-password'].includes(path)?identityHeaders():{}),...(body===undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrfToken()})},...(body===undefined?{}:{body:JSON.stringify(body)})});
