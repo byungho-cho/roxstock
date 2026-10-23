@@ -1,4 +1,4 @@
-type Result={protocolVersion?:number;total?:number;entries?:{id:string;raw:string;receivedAt:number;status:string}[];permission?:boolean;error?:string;requestId:string};
+type Result={openInbox?:string;protocolVersion?:number;total?:number;entries?:{id:string;raw:string;receivedAt:number;status:string}[];permission?:boolean;error?:string;requestId:string};
 declare global{interface Window{RoxStockNative?:{postMessage:(s:string)=>void;onmessage?:(e:MessageEvent)=>void}}}
 let serial=0;const pending=new Map<string,{resolve:(r:Result)=>void;reject:(e:Error)=>void}>();
 export const brokerAvailable=()=>!!window.RoxStockNative;
