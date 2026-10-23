@@ -1,28 +1,21 @@
-name: Manual Buy Incident Audit
+name: Auth Predeploy Diagnostics
+run-name: Authentication pre-deploy read-only diagnostics
 on:
-  workflow_run:
-    workflows: [Production Deploy]
-    types: [in_progress, completed]
-    branches: [main]
-  pull_request_target:
-    branches: [main]
-    types: [edited]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: manual-buy-incident-audit
+  group: auth-predeploy-readonly
   cancel-in-progress: false
 jobs:
-  audit:
-    if: github.event_name != 'pull_request_target' || github.event.pull_request.number == 302
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
-      - name: Read incident logs and aggregate linkage without modifying production
+          ref: ${{ github.sha }}
+      - name: Verify current app and summarize available session diagnostics (read only)
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -31,35 +24,19 @@ jobs:
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         shell: bash
         run: |
-          set -Eeuo pipefail
-          case "$(node -p 'require("./backend/src/release.json").version')" in 1.2.8|1.2.9) ;; *) exit 0 ;; esac
-          umask 077
+          set -euo pipefail
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.13 || exit 0
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
-          trap 'rm -f "$RUNNER_TEMP/buy-original-log.jsonl" "$HOME/.ssh/deploy_key"' EXIT
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            'docker logs --since 24h --tail 20000 roxstock-backend 2>&1' > "$RUNNER_TEMP/buy-original-log.jsonl"
-          node scripts/filter-buy-write-diagnostics.mjs < "$RUNNER_TEMP/buy-original-log.jsonl" | tee "$RUNNER_TEMP/buy-audit-summary.txt"
-          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            'docker exec -i roxstock-backend node --input-type=module' <<'NODE' | tee -a "$RUNNER_TEMP/buy-audit-summary.txt"
-          import {PrismaClient} from './shared/dist/generated/prisma/index.js';
-          const db=new PrismaClient();
-          try {
-            const period={gte:new Date('2026-10-21T15:00:00Z'),lt:new Date('2026-10-22T15:00:00Z')};
-            const where={security:{symbol:'005380',marketType:'KOSPI'},boughtAt:period,quantity:5,unitPrice:300000};
-            const [matchingBuys,withoutLedger,linkedLedger,unlinkedLedgerCandidates]=await Promise.all([
-              db.buyTrade.count({where}),db.buyTrade.count({where:{...where,cashTransaction:{is:null}}}),
-              db.cashTransaction.count({where:{transactionType:'BUY',buyTrade:{is:where}}}),
-              db.cashTransaction.count({where:{transactionType:'BUY',transactionDate:period,amount:1500000,buyTradeId:null}})
-            ]);
-            console.log(JSON.stringify({incidentDateKst:'2026-10-22',matchingBuys,withoutLedger,linkedLedger,unlinkedLedgerCandidates,readOnly:true,attribution:'aggregate-only; original user/account request not logged'}));
-          } finally {await db.$disconnect();}
-          NODE
-          cat "$RUNNER_TEMP/buy-audit-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+            "docker logs --since 168h --tail 10000 roxstock-backend 2>&1" | node scripts/auth-log-summary.mjs > "$RUNNER_TEMP/session-diagnostics.json"
+          cat "$RUNNER_TEMP/session-diagnostics.json" >> "$GITHUB_STEP_SUMMARY"
+          curl --fail --silent --show-error --max-time 20 https://newrox.cafe24.com/api/version -o "$RUNNER_TEMP/release.json"
+          node -e 'const v=require(process.argv[1]).data.version;if(v!=="1.2.13")throw Error("Production version differs");console.log("PRODUCTION_API_VERSION="+v)' "$RUNNER_TEMP/release.json" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: manual-buy-incident-summary
-          path: ${{ runner.temp }}/buy-audit-summary.txt
+          name: session-predeploy-diagnostics
+          path: ${{ runner.temp }}/session-diagnostics.json
+          retention-days: 14
