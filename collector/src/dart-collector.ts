@@ -38,7 +38,7 @@ export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCo
   const dayKey = getSeoulClock(now).dateKey;
   const priorState = await repo.getState();
   const blockedCode = priorState?.lastError?.split(':', 1)[0];
-  if (priorState?.lastRunAt && getSeoulClock(priorState.lastRunAt).dateKey === dayKey && ['020', 'DAILY_CALL_LIMIT'].includes(blockedCode ?? '')) return { status: 'QUOTA_BLOCKED' as const };
+  if (priorState?.lastRunAt && getSeoulClock(priorState.lastRunAt).dateKey === dayKey && blockedCode === '020') return { status: 'QUOTA_BLOCKED' as const };
   const usage = await repo.getDailyUsage(now);
   if ((usage?.apiCallCount ?? 0) >= config.dailyCallLimit) return { status: 'QUOTA_BLOCKED' as const };
   const turn=await prisma.valuationSupplementScan?.findUnique({where:{id:1},select:{automaticTurnUntil:true,heartbeatAt:true}});

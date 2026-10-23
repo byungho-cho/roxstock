@@ -87,8 +87,8 @@ export const loadCollectorConfig = (): CollectorConfig => {
     throw new Error('COLLECTOR_SNAPSHOT_HOURS must contain comma-separated hours from 0 to 23');
   }
 
-  const dartDailyCallLimit = positiveInteger(process.env.DART_DAILY_CALL_LIMIT, 3000, 'DART_DAILY_CALL_LIMIT');
-  if (dartDailyCallLimit > 3000) throw new Error('DART_DAILY_CALL_LIMIT cannot exceed 3000');
+  const dartDailyCallLimit = positiveInteger(process.env.DART_DAILY_CALL_LIMIT, 10000, 'DART_DAILY_CALL_LIMIT');
+  if (dartDailyCallLimit > 10000) throw new Error('DART_DAILY_CALL_LIMIT cannot exceed 10000');
   const dartBackfillStartYear = positiveInteger(process.env.DART_BACKFILL_START_YEAR, 2015, 'DART_BACKFILL_START_YEAR');
   if (dartBackfillStartYear !== 2015) throw new Error('DART_BACKFILL_START_YEAR must remain 2015');
   const dartBackfillCompanyLimit = positiveInteger(process.env.DART_BACKFILL_COMPANY_LIMIT, 250, 'DART_BACKFILL_COMPANY_LIMIT');

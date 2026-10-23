@@ -12,6 +12,9 @@ for(const scenario of ['mixed','empty','future'] as const)test(`DART ${scenario}
  const requested:string[]=[];
  await page.route('**/api/collection/dart/tasks?**',route=>{requested.push(route.request().url());return route.fulfill({json:{data:{total:1,nextOffset:null,items:[{id:'1',symbol:'060310',name:'3S',year:2026,period:'Q2',status:'NOT_DUE',reason:'3월 결산 · 대상기간 2026-09-30',checkedAt:at,nextCheckAt:'2026-10-22T00:00:00Z'}]}}});});
  await page.goto('/detail/collection-monitoring/dart-financial-statements');
+ await expect(page.getByTestId('monitor-dart-active-phase')).toHaveText('현재 단계: 2단계 · 현행 수집');
+ await expect(page.getByTestId('monitor-dart-current')).toContainText('2단계 전환 완료');
+ const currentCard=await page.getByTestId('monitor-dart-current').boundingBox(),historyCard=await page.getByTestId('monitor-dart-backfill').boundingBox();expect(currentCard!.y).toBeLessThan(historyCard!.y);
  const frame=page.getByTestId('monitor-dart-backfill');
  if(scenario==='mixed'){
   await expect(frame).toContainText('93.3%');await expect(frame).toContainText('990 / 1,061');await expect(frame).toContainText('미도래 70');await expect(frame).toContainText('검토 보류 71');
@@ -22,4 +25,16 @@ for(const scenario of ['mixed','empty','future'] as const)test(`DART ${scenario}
  expect(new URL(requested[0]!).searchParams.get('scope')).toBe('priority');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath(`${scenario}.png`),fullPage:true});
+});
+
+
+test('DART current stage remains visible when the 10000-call budget is exhausted',async({page})=>{
+ await fixture(page);const at='2026-10-23T01:00:00Z';
+ await page.route('**/api/collection/monitoring**',route=>{const path=new URL(route.request().url()).pathname;return route.fulfill({json:{data:path.endsWith('/monitoring')?{generatedAt:at,features:[{id:'dart-financial-statements',name:'DART',status:'WAITING',phase:'CURRENT',backfillCompletedAt:at,collectionState:'DAILY_LIMIT',dailyApiCalls:10000,dailyApiLimit:10000,recent:{target:0,success:0,failed:0,skipped:0}}]}:/\/(runs|items)$/.test(path)?{rows:[],hasNext:false,nextCursor:null}:{dart:{backfill:{planned:10,currentTarget:10,completed:9,byStatus:{SUCCESS:9,REVIEW_REQUIRED:1}},priority:{},reviewRequired:1},runs:[],items:[]}}});});
+ await page.goto('/detail/collection-monitoring/dart-financial-statements');
+ await expect(page.getByTestId('monitor-dart-active-phase')).toHaveText('현재 단계: 2단계 · 현행 수집');
+ await expect(page.getByTestId('monitor-dart-current')).toContainText('2단계 전환 완료 · 오늘 호출 한도 도달로 대기');
+ await expect(page.getByTestId('monitor-dart-backfill')).toContainText('1단계 · 과거 자료 수집 결과');
+ await expect(page.getByTestId('monitor-dart-backfill')).toContainText('10,000 / 10,000회');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
