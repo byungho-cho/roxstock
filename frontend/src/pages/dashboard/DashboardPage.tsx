@@ -54,7 +54,7 @@ export function DashboardPage() {
 export function HoldingRow({ stock, onClick }: { stock: StockItem; onClick: () => void }) {
   const cost = stock.purchaseAmount ?? (stock.quantity !== undefined && stock.averagePrice !== undefined ? stock.quantity * stock.averagePrice : Number.NaN);
   return <HomeTwoLineRow testId="home-holding" onClick={onClick} color={getMarketColor(stock.profitAmount ?? Number.NaN)}
-    first={[stock.name, `${stock.quantity?.toLocaleString('ko-KR') ?? '—'} × ${formatWon(stock.averagePrice ?? Number.NaN)}`, formatRate(stock.profitRate ?? Number.NaN)]}
-    second={[formatWon(cost), formatWon(stock.marketValue ?? Number.NaN), formatSignedWon(stock.profitAmount ?? Number.NaN)]} />;
+    first={[stock.name, formatRate(stock.profitRate ?? Number.NaN), `${stock.quantity?.toLocaleString('ko-KR') ?? '—'} × ${formatWon(stock.averagePrice ?? Number.NaN)}`]}
+    second={[formatWon(cost), formatSignedWon(stock.profitAmount ?? Number.NaN), formatWon(stock.marketValue ?? Number.NaN)]} />;
 }
 

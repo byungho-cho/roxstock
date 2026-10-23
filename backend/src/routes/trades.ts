@@ -410,7 +410,7 @@ export async function tradeRoutes(app: FastifyInstance) {
     const boughtAt = dateTime(body.boughtAt, 'boughtAt');
     const quantity = positiveDecimal(body.quantity, 'quantity');
     const unitPrice = positiveDecimal(body.unitPrice, 'unitPrice');
-    const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount');
+    const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount').ceil();
     const memo = optionalMemo(body.memo);
 
     const result = await registerTrade(accountId, 'BUY', requestId(body.requestId), {
@@ -456,7 +456,7 @@ export async function tradeRoutes(app: FastifyInstance) {
     const soldAt = dateTime(body.soldAt, 'soldAt');
     const quantity = positiveDecimal(body.quantity, 'quantity');
     const unitPrice = positiveDecimal(body.unitPrice, 'unitPrice');
-    const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount');
+    const feeTaxAmount = nonNegativeDecimal(body.feeTaxAmount, 'feeTaxAmount').ceil();
     const memo = optionalMemo(body.memo);
 
     const owner = await prisma.buyTrade.findUnique({ where: { id: buyTradeId }, select: { accountId: true } });

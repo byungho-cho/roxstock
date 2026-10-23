@@ -52,7 +52,7 @@ export async function authRoutes(app:FastifyInstance){
     return {data:{valid:true}};
   });
   app.post<{Body:Body}>('/reset',async req=>{const password=newPassword(req.body?.password,req.body?.confirmation);await rateLimit(`reset-use:${req.ip}`,20,900);await consumeLink(req.body.token,'RESET',password);return {data:{changed:true}};});
-  app.get('/me',async req=>({data:serialize(await prisma.authUser.findUniqueOrThrow({where:{id:req.auth!.userId}}))}));
+  app.get('/me',async(req,reply)=>{const user=await prisma.authUser.findUniqueOrThrow({where:{id:req.auth!.userId}});await refreshSession(req,reply,req.auth!);return {data:serialize(user)};});
   app.post<{Body:{theme?:unknown;favorites?:unknown;selectedAccountId?:unknown;legacyImported?:unknown}}>('/settings',async req=>{
     const body=req.body??{},user=await prisma.authUser.findUniqueOrThrow({where:{id:req.auth!.userId}}),settings={...(user.settings as Record<string,any>??{})};
     if(body.theme!==undefined){if(!['dark','light','system'].includes(String(body.theme)))throw new ApiError(400,'INVALID_INPUT','테마를 확인해 주세요.');settings.theme=body.theme;}

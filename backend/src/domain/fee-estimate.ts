@@ -3,12 +3,12 @@ import {ApiError} from '@roxstock/shared/lib/api-error';
 
 type CostSample = {amount:Prisma.Decimal;feeTaxAmount:Prisma.Decimal};
 export function weightedFee(amount:Prisma.Decimal, rows:CostSample[]) {
-  const total=rows.reduce((n,r)=>n.plus(r.amount),new Prisma.Decimal(0));
-  if(!rows.length||total.lte(0))return null;
-  const costs=rows.reduce((n,r)=>n.plus(r.feeTaxAmount),new Prisma.Decimal(0));
-  // Keep intermediate precision; the existing cash ledger stores DECIMAL(19,4).
   const Exact=Prisma.Decimal.clone({precision:60,rounding:Prisma.Decimal.ROUND_HALF_UP});
-  return {amount:new Exact(amount.toString()).mul(costs.toString()).div(total.toString()).toDecimalPlaces(4).toString(),count:rows.length};
+  const total=rows.reduce((n,r)=>n.plus(r.amount.toString()),new Exact(0));
+  if(!rows.length||total.lte(0))return null;
+  const costs=rows.reduce((n,r)=>n.plus(r.feeTaxAmount.toString()),new Exact(0));
+  // Only the final KRW cost is rounded; the weighted rate retains 60-digit precision.
+  return {amount:new Exact(amount.toString()).mul(costs).div(total).ceil().toString(),count:rows.length};
 }
 
 export async function estimateCashFee(db:Prisma.TransactionClient,accountId:bigint,cashId:bigint) {

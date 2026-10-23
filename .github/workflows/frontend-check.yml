@@ -159,6 +159,10 @@ jobs:
         run: |
           node --import tsx --test frontend/tests/targets/trade-notice-policy.test.ts
           cd frontend && npx playwright test -c playwright.unified-notifications.config.ts
+      - name: KRW costs, dashboard display and resilient sessions
+        run: |
+          node --import tsx --test frontend/src/pages/cash/cashCost.test.ts
+          cd frontend && npx playwright test -c playwright.cash-dashboard-session.config.ts
       - name: Common bottom navigation viewport regression
         run: cd frontend && npx playwright test -c playwright.bottom-nav-viewport.config.ts
       - uses: actions/upload-artifact@v4
@@ -173,5 +177,6 @@ jobs:
             frontend/test-results/news-schedule-dashboard
             frontend/test-results/bottom-nav-viewport
             frontend/test-results/app-notifications-admin
+            frontend/test-results/cash-dashboard-session
             frontend/test-results/unified-notifications
             frontend/test-results/dart-task-status

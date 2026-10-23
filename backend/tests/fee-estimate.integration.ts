@@ -59,6 +59,18 @@ test('authenticated fee history and settlement preserve scope, confirmed provena
   assert.equal((await app.inject({url:`/api/accounts/${accounts[2]!.id}/cash-transactions/${current.id}/fee-estimate`,headers})).statusCode,404);
   assert.equal((await app.inject({url:`/api/accounts/${accounts[1]!.id}/cash-transactions/${current.id}/fee-estimate`,headers})).statusCode,404);
   const sellCurrent=await seed(24,10000,0,'UNKNOWN',aid,securities[0]!,'SELL');const sellRes=await app.inject({url:`/api/accounts/${aid}/cash-transactions/${sellCurrent.id}/fee-estimate`,headers});assert.deepEqual(sellRes.json().data,{amount:'3330',count:1});
+  // Editing a legacy fractional cost is draft-only until PATCH; repeated save is idempotent.
+  const legacy=await seed(26,10000,155.7649,'CONFIRMED');
+  const legacyBefore=await db.cashTransaction.findUniqueOrThrow({where:{id:legacy.id}});
+  const oldRows=await db.cashTransaction.findMany({where:{accountId:aid,id:{not:legacy.id}},orderBy:{id:'asc'}});
+  const snapshots=await db.dailyAccountSnapshot.findMany({where:{accountId:aid}});
+  const payload={accountId:String(aid),feeTaxAmount:'155.7649',balanceAfter:legacyBefore.balanceAfter!.toString(),feeTaxStatus:'CONFIRMED'};
+  for(let i=0;i<2;i++){
+   const saved=await app.inject({method:'PATCH',url:`/api/cash-transactions/${legacy.id}`,headers,payload});assert.equal(saved.statusCode,200,saved.body);
+   const row=await db.cashTransaction.findUniqueOrThrow({where:{id:legacy.id}});assert.equal(row.feeTaxAmount.toString(),'156');assert.equal(row.balanceAfter!.toString(),'999844');
+  }
+  assert.deepEqual(await db.cashTransaction.findMany({where:{accountId:aid,id:{not:legacy.id}},orderBy:{id:'asc'}}),oldRows);
+  assert.deepEqual(await db.dailyAccountSnapshot.findMany({where:{accountId:aid}}),snapshots);
   const count=await db.buyTrade.count({where:{accountId:aid}});const unchanged=await db.cashTransaction.findUniqueOrThrow({where:{id:current.id}});const unchangedBalance=await db.account.findUniqueOrThrow({where:{id:aid}});for(const status of ['UNKNOWN','ESTIMATED','CONFIRMED']){const invalid=await patch({feeTaxStatus:status,feeTaxAmount:'-1'});assert.equal(invalid.statusCode,400);assert.equal((await db.cashTransaction.findUniqueOrThrow({where:{id:current.id}})).feeTaxAmount.toString(),unchanged.feeTaxAmount.toString());assert.equal((await db.account.findUniqueOrThrow({where:{id:aid}})).cashBalance.toString(),unchangedBalance.cashBalance.toString());}assert.equal(await db.buyTrade.count({where:{accountId:aid}}),count);
  }finally{
   const ids=accounts.map(a=>a.id);await db.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await db.sellTrade.deleteMany({where:{buyTrade:{accountId:{in:ids}}}});await db.buyTrade.deleteMany({where:{accountId:{in:ids}}});await db.account.deleteMany({where:{id:{in:ids}}});await db.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await db.security.deleteMany({where:{id:{in:securities.map(s=>s.id)}}});await app.close();await login.close();await db.$disconnect();
