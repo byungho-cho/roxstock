@@ -51,3 +51,10 @@ export function cashDifference(before: string, value: string, operation: 'subtra
   const digits=(difference<0n?-difference:difference).toString().padStart(scale+1,'0');
   return sign+(scale ? (digits.slice(0,-scale)+'.'+digits.slice(-scale)).replace(/\.?0+$/, '') : digits);
 }
+
+// Exact non-negative KRW cost normalization; do not coerce large amounts to Number.
+export function ceilWonCost(value:string){
+ if(!/^\d+(?:\.\d+)?$/.test(value))return value;
+ const [whole,fraction='']=value.split('.');
+ return (BigInt(whole)+(/[1-9]/.test(fraction)?1n:0n)).toString();
+}

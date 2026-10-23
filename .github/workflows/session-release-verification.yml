@@ -1,0 +1,45 @@
+name: Session Release Verification
+on:
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: session-release-verification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Verify current app and summarize available session diagnostics (read only)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.14 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker logs --since 168h --tail 10000 roxstock-backend 2>&1" | node scripts/auth-log-summary.mjs > "$RUNNER_TEMP/session-diagnostics.json"
+          cat "$RUNNER_TEMP/session-diagnostics.json" >> "$GITHUB_STEP_SUMMARY"
+          curl --fail --silent --show-error --max-time 20 https://newrox.cafe24.com/api/version -o "$RUNNER_TEMP/release.json"
+          node -e 'const v=require(process.argv[1]).data.version;if(v!=="1.2.14")throw Error("Production version differs");console.log("PRODUCTION_API_VERSION="+v)' "$RUNNER_TEMP/release.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-production-diagnostics
+          path: ${{ runner.temp }}/session-diagnostics.json
+          retention-days: 14

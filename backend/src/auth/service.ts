@@ -36,16 +36,23 @@ export async function rateLimit(key:string,max:number,seconds:number){
   });
 }
 export async function sessionIdentity(request:FastifyRequest):Promise<AuthIdentity|null>{
-  const token=cookies(request)[cookieNames.session];if(!token||!/^[-\w]{43}\.[-\w]{43}$/.test(token))return null;
+  const reject=(code:string):never=>{request.log.info({authEvent:code},'Session rejected');throw new ApiError(401,code,'로그인이 필요합니다.');};
+  const token=cookies(request)[cookieNames.session];
+  if(!token)return reject('AUTH_COOKIE_MISSING');
+  if(!/^[-\w]{43}\.[-\w]{43}$/.test(token))return reject('AUTH_COOKIE_INVALID');
   const [id]=token.split('.'),hash=tokenHash(token),now=new Date();
   const row=await prisma.authSession.findUnique({where:{id},include:{user:true}});
-  if(!row||row.revokedAt||row.expiresAt<=now||!row.user.verifiedAt)return null;
+  if(!row)return reject('AUTH_SESSION_UNKNOWN');
+  if(row.revokedAt)return reject('AUTH_SESSION_REVOKED');
+  if(row.expiresAt<=now)return reject('AUTH_SESSION_EXPIRED');
+  if(!row.user.verifiedAt)return reject('AUTH_USER_DISABLED');
   if(hash!==row.tokenHash){
     const retired=await prisma.authRetiredToken.findUnique({where:{tokenHash:hash}});
-    if(!retired||retired.sessionId!==row.id)return null;
-    if(retired.graceUntil<now){await prisma.authSession.update({where:{id},data:{revokedAt:now}});return null;}
+    if(!retired||retired.sessionId!==row.id)return reject('AUTH_TOKEN_MISMATCH');
+    // A delayed request must never revoke the independent current credential.
+    if(retired.graceUntil<now)return reject('AUTH_TOKEN_RETIRED');
   }
-  if(row.user.temporaryExpiresAt&&row.user.temporaryExpiresAt<=now)return null;
+  if(row.user.temporaryExpiresAt&&row.user.temporaryExpiresAt<=now)return reject('AUTH_TEMPORARY_EXPIRED');
   return {userId:row.userId,role:row.user.role,sessionId:row.id,mustChangePassword:row.user.mustChangePassword};
 }
 export async function loginSession(userId:bigint,persistent:boolean,reply:FastifyReply){
@@ -57,13 +64,13 @@ export async function refreshSession(request:FastifyRequest,reply:FastifyReply,i
   const now=new Date(),provided=cookies(request)[cookieNames.session]??'',csrf=cookies(request)[cookieNames.csrf]??'';
   const row=await prisma.authSession.findUniqueOrThrow({where:{id:identity.sessionId}});
   if(row.tokenHash!==tokenHash(provided))return; // A concurrent refresh already rotated this token.
-  const token=row.id+'.'+randomToken();
-  const changed=await prisma.$transaction(async tx=>{
-    const changed=await tx.authSession.updateMany({where:{id:row.id,tokenHash:row.tokenHash,revokedAt:null,expiresAt:{gt:now}},data:{previousTokenHash:row.tokenHash,previousValidUntil:new Date(+now+30000),tokenHash:tokenHash(token),rotatedAt:now,expiresAt:new Date(+now+(row.persistent?90*day:12*3600000))}});
-    if(changed.count)await tx.authRetiredToken.create({data:{tokenHash:row.tokenHash,sessionId:row.id,graceUntil:new Date(+now+30000)}});
-    return changed;
-  });
-  if(changed.count)authCookies(reply,token,csrf,row.persistent);
+  // Sliding renewal keeps the active credential stable. Concurrent tabs and
+  // out-of-order renewal responses therefore cannot restore a retired token.
+  // Fresh login still issues an independent random token; DB revocation is checked
+  // on every request. Retired pre-upgrade credentials retain only their original grace.
+  const changed=await prisma.authSession.updateMany({where:{id:row.id,tokenHash:row.tokenHash,revokedAt:null,expiresAt:{gt:now}},data:{expiresAt:new Date(+now+(row.persistent?90*day:12*3600000))}});
+  if(changed.count&&tokenHash(csrf)===row.csrfHash)authCookies(reply,provided,csrf,row.persistent);
+
 }
 export async function emailLink(userId:bigint,purpose:'VERIFY'|'RESET',address:string){
   await rateLimit(`mail:${purpose}:${address}`,1,60);

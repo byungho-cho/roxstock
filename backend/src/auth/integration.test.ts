@@ -53,10 +53,20 @@ test('real DB: isolated users, cookie sessions, CSRF, reset revocation and one-t
   const latestCookie=(renewed.headers['set-cookie'] as string[]).map(value=>value.split(';')[0]).join('; ');
   check((await app.inject({url:'/api/auth/me',headers:a})).statusCode,200);
   const restarted=buildApp();try{check((await restarted.inject({url:'/api/auth/me',headers:{...a,cookie:latestCookie}})).statusCode,200);}finally{await restarted.close();}
-  const previousHash=tokenHash(/rox_session=([^;]+)/.exec(a.cookie)![1]!);
-  await prisma.authRetiredToken.update({where:{tokenHash:previousHash},data:{graceUntil:new Date(Date.now()-1000)}});
-  check((await app.inject({url:'/api/auth/me',headers:a})).statusCode,401);
-  check((await app.inject({url:'/api/auth/me',headers:{...a,cookie:latestCookie}})).statusCode,401);
+  // Stable sliding renewal: apply responses in reverse order, then restart the API.
+  check(latestCookie,a.cookie);
+  const currentToken=/rox_session=([^;]+)/.exec(a.cookie)![1]!,sessionId=currentToken.split('.')[0]!;
+  const oldToken=sessionId+'.'+randomToken();
+  await prisma.authRetiredToken.create({data:{tokenHash:tokenHash(oldToken),sessionId,graceUntil:new Date(Date.now()-1000)}});
+  const oldCookie=a.cookie.replace(currentToken,oldToken);
+  const stale=await app.inject({url:'/api/auth/me',headers:{...a,cookie:oldCookie}});check(stale.statusCode,401);check(stale.json().error.code,'AUTH_TOKEN_RETIRED');
+  check((await prisma.authSession.findUniqueOrThrow({where:{id:sessionId}})).revokedAt,null);
+  check((await app.inject({url:'/api/auth/me',headers:a})).statusCode,200);
+  await prisma.authSession.update({where:{id:sessionId},data:{expiresAt:new Date(Date.now()+60000)}});
+  check((await app.inject({url:'/api/auth/me',headers:a})).statusCode,200);
+  assert.ok(+(await prisma.authSession.findUniqueOrThrow({where:{id:sessionId}})).expiresAt>Date.now()+89*86400000);
+  await prisma.authSession.update({where:{id:sessionId},data:{expiresAt:new Date(Date.now()-1000)}});
+  const expiredSession=await app.inject({url:'/api/auth/me',headers:a});check(expiredSession.statusCode,401);check(expiredSession.json().error.code,'AUTH_SESSION_EXPIRED');
   a=await login(0,true);
   const created=await app.inject({method:'POST',url:'/api/accounts',headers:b,payload:{name:'new-test',brokerName:'AUTH_TEST',accountNumber:suffix+'new'}});check(created.statusCode,201);
   check((await app.inject({method:'POST',url:'/api/accounts',headers:b,payload:{name:'duplicate-test',brokerName:'AUTH_TEST',accountNumber:suffix+'new'}})).statusCode,409);

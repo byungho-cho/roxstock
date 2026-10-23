@@ -82,8 +82,8 @@ export async function cashMutationRoutes(app: FastifyInstance) {
         if (typeof value !== 'string' || !(signed ? /^-?\d+(\.\d+)?$/ : /^\d+(\.\d+)?$/).test(value)) throw new ApiError(400, 'INVALID_INPUT', `${field} must be ${signed ? 'a signed' : 'a non-negative'} decimal string.`);
         return new Prisma.Decimal(value);
       };
-      const feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : decimalAmount(body.feeTaxAmount, 'feeTaxAmount', true);
-      const balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : decimalAmount(body.balanceAfter, 'balanceAfter');
+      let feeTaxAmount = body.feeTaxAmount === undefined ? (cash.dividend ? (body.grossAmount === undefined ? cash.dividend.grossAmount : positiveDecimal(body.grossAmount, 'grossAmount')).minus(amount) : cash.feeTaxAmount) : decimalAmount(body.feeTaxAmount, 'feeTaxAmount', true);
+      let balanceAfter = body.balanceAfter === undefined ? cash.balanceAfter : decimalAmount(body.balanceAfter, 'balanceAfter');
       const tradeCost=cash.transactionType==='BUY'||cash.transactionType==='SELL';
       let feeTaxStatus=cash.feeTaxStatus,feeTaxBasisCount=cash.feeTaxBasisCount;
       if(tradeCost){
@@ -93,6 +93,12 @@ export async function cashMutationRoutes(app: FastifyInstance) {
         else if(!feeTaxAmount.eq(cash.feeTaxAmount))feeTaxStatus='UNKNOWN';
         feeTaxBasisCount=feeTaxStatus==='ESTIMATED'&&Number.isInteger(body.feeTaxBasisCount)&&Number(body.feeTaxBasisCount)>=1&&Number(body.feeTaxBasisCount)<=3?Number(body.feeTaxBasisCount):null;
         if(feeTaxAmount.lt(0))throw new ApiError(400,'INVALID_INPUT','제세금은 0원 이상이어야 합니다.');
+        // Cash BUY/SELL endpoints are KRW. Preserve the submitted pre-tax balance,
+        // and adjust only this explicitly saved ledger row (never later rows/snapshots).
+        const rawFee=feeTaxAmount;
+        feeTaxAmount=rawFee.ceil();
+        if(balanceAfter!==null)balanceAfter=balanceAfter.plus(body.balanceAfter===undefined?cash.feeTaxAmount:rawFee).minus(feeTaxAmount);
+        if(balanceAfter?.lt(0))throw new ApiError(400,'INVALID_INPUT','세후예수금을 확인해 주세요.');
       }
       await tx.cashTransaction.update({ where: { id: transactionId }, data: { transactionDate, amount, memo, feeTaxAmount, balanceAfter,feeTaxStatus,feeTaxBasisCount } });
       const basis = latest.transactionId === cash.id.toString() ? await syncCurrentCash(tx, cash.accountId) : latest;

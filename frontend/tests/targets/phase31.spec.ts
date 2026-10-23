@@ -73,6 +73,8 @@ test('controlled before/after measurements distinguish shell, API and data displ
   const samples=[];
   for(let i=0;i<3;i++){
    const p=await browser.newPage({viewport:page.viewportSize()!});await fixture(p);
+   // New contexts do not inherit authenticated-test's page init script.
+   await p.route('**/api/auth/me',r=>r.fulfill({json:{data:{id:'fixture-user',email:'fixture@example.invalid',role:'ADMIN',mustChangePassword:false,settings:{}}}}));
    let apiMs=0;await p.route('**/api/accounts/*/trades*',async r=>{const start=Date.now();await new Promise(resolve=>setTimeout(resolve,300));apiMs=Date.now()-start;return r.fulfill({json:empty});});
    const start=Date.now();await p.goto(base+'/journal?date=2026-01-07');
    await expect(p.getByTestId('journal-calendar-card')).toBeVisible();const shellMs=Date.now()-start;
