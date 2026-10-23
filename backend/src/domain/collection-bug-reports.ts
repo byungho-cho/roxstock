@@ -143,6 +143,8 @@ export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodT
  });
 }
 export async function saveBugEvent(db:PrismaClient,event:BugEvent){
+ // News collection diagnostics remain in collector runs, outside the bug-report backlog.
+ if(event.feature==='stock-news'||event.feature==='stock-news-summary')return false;
  const eventKey=hash(event.sourceKey),fingerprint=reportFingerprint(event.feature,event.code,event.metric);
  return db.$transaction(async tx=>{
   if(event.securityId!=null&&heldFinancialWarning(event)){
