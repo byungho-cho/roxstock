@@ -63,6 +63,7 @@ test('authenticated fee history and settlement preserve scope, confirmed provena
   const legacy=await seed(26,10000,155.7649,'CONFIRMED');
   const legacyBefore=await db.cashTransaction.findUniqueOrThrow({where:{id:legacy.id}});
   const oldRows=await db.cashTransaction.findMany({where:{accountId:aid,id:{not:legacy.id}},orderBy:{id:'asc'}});
+  await db.dailyAccountSnapshot.create({data:{accountId:aid,snapshotDate:new Date('2026-10-20'),cashBalance:'123.4567',stockValue:500,totalAssetValue:'623.4567'}});
   const snapshots=await db.dailyAccountSnapshot.findMany({where:{accountId:aid}});
   const payload={accountId:String(aid),feeTaxAmount:'155.7649',balanceAfter:legacyBefore.balanceAfter!.toString(),feeTaxStatus:'CONFIRMED'};
   for(let i=0;i<2;i++){
@@ -73,6 +74,6 @@ test('authenticated fee history and settlement preserve scope, confirmed provena
   assert.deepEqual(await db.dailyAccountSnapshot.findMany({where:{accountId:aid}}),snapshots);
   const count=await db.buyTrade.count({where:{accountId:aid}});const unchanged=await db.cashTransaction.findUniqueOrThrow({where:{id:current.id}});const unchangedBalance=await db.account.findUniqueOrThrow({where:{id:aid}});for(const status of ['UNKNOWN','ESTIMATED','CONFIRMED']){const invalid=await patch({feeTaxStatus:status,feeTaxAmount:'-1'});assert.equal(invalid.statusCode,400);assert.equal((await db.cashTransaction.findUniqueOrThrow({where:{id:current.id}})).feeTaxAmount.toString(),unchanged.feeTaxAmount.toString());assert.equal((await db.account.findUniqueOrThrow({where:{id:aid}})).cashBalance.toString(),unchangedBalance.cashBalance.toString());}assert.equal(await db.buyTrade.count({where:{accountId:aid}}),count);
  }finally{
-  const ids=accounts.map(a=>a.id);await db.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await db.sellTrade.deleteMany({where:{buyTrade:{accountId:{in:ids}}}});await db.buyTrade.deleteMany({where:{accountId:{in:ids}}});await db.account.deleteMany({where:{id:{in:ids}}});await db.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await db.security.deleteMany({where:{id:{in:securities.map(s=>s.id)}}});await app.close();await login.close();await db.$disconnect();
+  const ids=accounts.map(a=>a.id);await db.dailyAccountSnapshot.deleteMany({where:{accountId:{in:ids}}});await db.cashTransaction.deleteMany({where:{accountId:{in:ids}}});await db.sellTrade.deleteMany({where:{buyTrade:{accountId:{in:ids}}}});await db.buyTrade.deleteMany({where:{accountId:{in:ids}}});await db.account.deleteMany({where:{id:{in:ids}}});await db.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await db.security.deleteMany({where:{id:{in:securities.map(s=>s.id)}}});await app.close();await login.close();await db.$disconnect();
  }
 });
