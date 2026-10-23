@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.14 || exit 0
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.15 || exit 0
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
@@ -37,7 +37,7 @@ jobs:
             "docker logs --since 168h --tail 10000 roxstock-backend 2>&1" | node scripts/auth-log-summary.mjs > "$RUNNER_TEMP/session-diagnostics.json"
           cat "$RUNNER_TEMP/session-diagnostics.json" >> "$GITHUB_STEP_SUMMARY"
           curl --fail --silent --show-error --max-time 20 https://newrox.cafe24.com/api/version -o "$RUNNER_TEMP/release.json"
-          node -e 'const v=require(process.argv[1]).data.version;if(v!=="1.2.14")throw Error("Production version differs");console.log("PRODUCTION_API_VERSION="+v)' "$RUNNER_TEMP/release.json" >> "$GITHUB_STEP_SUMMARY"
+          node -e 'const v=require(process.argv[1]).data.version;if(v!=="1.2.15")throw Error("Production version differs");console.log("PRODUCTION_API_VERSION="+v)' "$RUNNER_TEMP/release.json" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: session-production-diagnostics

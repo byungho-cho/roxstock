@@ -83,3 +83,12 @@ test('verified identity change stays private until native owner unlink recovers'
  await page.goto('/');await expect(page.getByTestId('home-shell')).toBeVisible();await page.evaluate(()=>(window as any).failNative=true);await page.route('**/api/auth/me',r=>r.fulfill({json:{data:{...user,id:'2'}}}));await resume(page);await expect(page.getByRole('alert')).toContainText('로그인 확인을 기다리고');await expect(page.getByTestId('home-shell')).toHaveCount(0);
  await page.evaluate(()=>(window as any).failNative=false);await page.getByRole('button',{name:'다시 시도',exact:true}).click();await expect(page.getByTestId('home-shell')).toBeVisible();
 });
+
+for(const id of ['1','2'])test(`delayed native logout response cannot clear newer verified identity ${id}`,async({page})=>{
+ await setup(page);await page.addInitScript(()=>{(window as any).deferUnbind=false;(window as any).RoxStockPush={postMessage:(raw:string)=>{const c=JSON.parse(raw);if(c.action==='unbind'&&(window as any).deferUnbind){(window as any).heldUnbind=c.requestId;return;}setTimeout(()=>(window as any).RoxStockPush.onmessage?.({data:JSON.stringify({requestId:c.requestId})}),0);}};});
+ await page.goto('/auth/login');await page.getByLabel('이메일',{exact:true}).fill('old@example.invalid');let calls=0;
+ await page.route('**/api/auth/me',r=>r.fulfill(++calls===1?{status:401,json:{error:{code:'AUTH_TOKEN_RETIRED'}}}:{json:{data:{...user,id}}}));
+ await page.evaluate(()=>(window as any).deferUnbind=true);await resume(page);await expect.poll(()=>page.evaluate(()=>(window as any).heldUnbind)).toBeTruthy();
+ await page.evaluate(()=>{(window as any).deferUnbind=false;window.dispatchEvent(new Event('online'));});await expect.poll(()=>calls).toBe(2);await expect(page.getByRole('status')).toHaveCount(0);await page.getByLabel('이메일',{exact:true}).fill('latest@example.invalid');
+ await page.evaluate(()=>(window as any).RoxStockPush.onmessage({data:JSON.stringify({requestId:(window as any).heldUnbind})}));await page.waitForTimeout(100);await expect(page.getByLabel('이메일',{exact:true})).toHaveValue('latest@example.invalid');
+});

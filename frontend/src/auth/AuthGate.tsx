@@ -33,6 +33,7 @@ export function AuthGate({children}:{children:ReactNode}){
     if(confirmedSessionFailure(error)){
       setPending(true);await clear();if(request!==revision.current||!alive.current)return;
       if(nativePushAvailable())await nativePush('unbind',{preserveBrokerClick:'true'}).catch(()=>{});
+      if(request!==revision.current||!alive.current)return;
       currentUser.current=null;setAuthIdentity();setUser(null);setConnectionError(false);setBlocked(false);stopRetry();
     }else{
       setConnectionError(true);
