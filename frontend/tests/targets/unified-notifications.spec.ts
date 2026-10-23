@@ -117,7 +117,7 @@ test('cost defaults, whole row toggle, zero clearing and no implicit save',async
  const label=page.locator('label').filter({hasText:'실제 금액으로 확인'});const box=await label.boundingBox();await label.click({position:{x:box!.width-4,y:box!.height/2}});await expect(check).not.toBeChecked();
  await page.getByLabel('제세금',{exact:true}).fill('8');await expect(check).not.toBeChecked();
  await check.focus();await page.keyboard.press('Space');await expect(check).toBeChecked();
- await page.getByLabel('제세금',{exact:true}).fill('0');await expect(check).not.toBeChecked();await page.getByLabel('제세금',{exact:true}).fill('');await expect(check).not.toBeChecked();expect(writes).toBe(0);
+ await page.getByLabel('제세금',{exact:true}).fill('0');await expect(check).not.toBeChecked();await page.getByLabel('제세금',{exact:true}).fill('');await expect(check).not.toBeChecked();await page.getByLabel('세후예수금',{exact:true}).fill('1001');await expect(page.getByLabel('제세금',{exact:true})).toHaveValue('-1');await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByText('제세금을 확인해 주세요.',{exact:true})).toBeVisible();expect(writes).toBe(0);
 });
 
 test('durable native click opens unified inbox without saving or completing a trade',async({page})=>{

@@ -235,7 +235,7 @@ export function LiveCashPage({notification}:{notification?:{notice:TradeNotice;s
     if(tradeEdit) {
       if(!/^\d+(?:\.\d+)?$/.test(gross)) invalid.gross='세전예수금을 입력해 주세요.';
       if(!/^\d+(?:\.\d+)?$/.test(after)) invalid.amount='세후예수금을 입력해 주세요.';
-      if(!/^-?\d+(?:\.\d+)?$/.test(tax) || Number(cashDifference(gross,after))!==Number(tax)) invalid.tax='제세금을 확인해 주세요.';
+      if(!/^\d+(?:\.\d+)?$/.test(tax) || Number(cashDifference(gross,after))!==Number(tax)) invalid.tax='제세금을 확인해 주세요.';
     }
     if (editing && !/^\d+(?:\.\d+)?$/.test(after)) invalid.after = '세후예수금을 입력해 주세요.';
     setFieldErrors(invalid);
