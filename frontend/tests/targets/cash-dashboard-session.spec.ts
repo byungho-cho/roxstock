@@ -5,7 +5,7 @@ async function setup(page:any){const f=await base(page);await page.route('**/api
 const resume=async(page:any)=>page.evaluate(()=>{document.dispatchEvent(new Event('visibilitychange'));});
 test('legend toggle changes only numbers; grouped amounts, layout and refresh persistence',async({page},info)=>{
  await page.clock.install();const f=await setup(page);let reads=0;
- const read=async(path:string)=>{const r=await f.read(path);if(path.includes('/dashboard')){reads++;const amounts=[23070000,15000,10000,9000,8000,7000,6000,5000,4000];r.body.data={...r.body.data,stockValue:String(amounts.reduce((a,b)=>a+b)),holdings:amounts.map((v,i)=>({securityId:String(i+1),symbol:String(i+1),name:'아주 긴 종목명 '+i,quantity:'100000',averagePurchasePrice:'23070',purchaseAmount:'23070000',currentPrice:'23070',marketValue:String(v),unrealizedProfitLoss:i%2?'500':'-500',unrealizedReturnRate:i%2?'50':'-50'}))};}return r;};
+ const read=async(path:string)=>{const r=await f.read(path);if(path.includes('/dashboard')){reads++;const amounts=[23070000,15000,10000,9000,8000,7000,6000,5000,4000];r.body.data={...r.body.data,stockValue:String(amounts.reduce((a,b)=>a+b)),totalAssetValue:String(amounts.reduce((a,b)=>a+b)+1000),holdings:amounts.map((v,i)=>({securityId:String(i+1),symbol:String(i+1),name:'아주 긴 종목명 '+i,quantity:'100000',averagePurchasePrice:'23070',purchaseAmount:'23070000',currentPrice:'23070',marketValue:String(v),unrealizedProfitLoss:i%2?'500':'-500',unrealizedReturnRate:i%2?'50':'-50'}))};}return r;};
  await page.route('**/api/pages/read',async r=>r.fulfill({json:{data:await Promise.all(r.request().postDataJSON().paths.map(read))}}));
  await page.route('**/api/accounts/*/dashboard**',async r=>{const u=new URL(r.request().url());return r.fulfill({json:(await read(u.pathname.slice(4)+u.search)).body});});
  await page.goto('/detail/assets');const legends=page.getByTestId('asset-legend-row');await expect(legends).toHaveCount(8);const toggle=page.getByRole('button',{name:'자산구성 범례 표시 변경'});await expect(toggle).toHaveText('비율');
@@ -14,11 +14,11 @@ test('legend toggle changes only numbers; grouped amounts, layout and refresh pe
  expect(await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents()).toEqual(names);
  await page.clock.fastForward(300000);await expect.poll(()=>reads).toBeGreaterThan(count);await expect(toggle).toHaveText('금액');
  for(const row of await legends.all()){const boxes=await row.locator('p').evaluateAll(ns=>ns.map(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right})));expect(boxes[0].right).toBeLessThanOrEqual(boxes[1].left);}
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('legend-amount.png'),fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('legend-amount.png'),fullPage:true});await legends.last().scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('legend-other.png')});
 });
 test('home holdings use profit in middle, quantity and valuation right; click and other rows preserved',async({page},info)=>{
  await setup(page);await page.goto('/');const row=page.getByTestId('home-holding').first();await expect(row).toBeVisible();const cells=row.locator(':scope > div > div');await expect(cells.nth(1)).toContainText('50.0%');await expect(cells.nth(2)).toContainText('10 × 100원');await expect(cells.nth(4)).toContainText('500원');await expect(cells.nth(5)).toContainText('1,500원');
- const right=await cells.nth(2).evaluate(n=>getComputedStyle(n).textAlign);expect(right).toBe('right');await expect(page.getByTestId('recent-buy-lot').first()).toContainText('10 × 100원');await page.screenshot({path:info.outputPath('home-holdings.png'),fullPage:true});await row.click();await expect(page).toHaveURL(/stocks\/1/);
+ const right=await cells.nth(2).evaluate(n=>getComputedStyle(n).textAlign);expect(right).toBe('right');await expect(page.getByTestId('recent-buy-lot').first()).toContainText('10 × 100원');await row.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('home-holdings.png'),fullPage:true});await row.click();await expect(page).toHaveURL(/stocks\/1/);
 });
 async function cash(page:any,cost='0'){
  await page.route('**/api/pages/read',(r:any)=>r.fulfill({status:404,json:{error:{code:'LEGACY_FIXTURE'}}}));
@@ -65,4 +65,15 @@ test('same-origin tabs serialize a pending renewal before a new login cookie res
  await setup(page);await page.goto('/auth/login');const second=await context.newPage();await setup(second);await second.goto('/auth/login');await second.getByLabel('이메일',{exact:true}).fill('new@example.invalid');await second.getByLabel('비밀번호',{exact:true}).fill('fixture-password');let release!:()=>void,calls=0,loginCalls=0;const held=new Promise<void>(r=>release=r);
  await page.route('**/api/auth/me',async r=>{calls++;await held;return r.fulfill({json:{data:user}});});await second.route('**/api/auth/login',r=>{loginCalls++;return r.fulfill({json:{data:{...user,id:'2'}}});});
  await resume(page);await expect.poll(()=>calls).toBe(1);await second.getByRole('button',{name:'로그인',exact:true}).click();expect(loginCalls).toBe(0);release();await expect.poll(()=>loginCalls).toBe(1);await second.close();
+});
+
+test('long holding name and large quantity and won amounts never overlap columns',async({page},info)=>{
+ const f=await setup(page),dashboard=(await f.read('/accounts/1/dashboard')).body.data;
+ const holdings=[{securityId:'1',symbol:'000001',name:'아주 긴 보유종목 이름 주식회사 테스트',quantity:'999999999',averagePurchasePrice:'99999999',purchaseAmount:'99999999999999',currentPrice:'100000000',marketValue:'999999999999999',unrealizedProfitLoss:'99999999999',unrealizedReturnRate:'12345.6'}];
+ await page.route('**/api/pages/home**',r=>r.fulfill({json:{data:{accounts:[{id:'1',name:'기본',isActive:true,isDefault:true}],accountId:'1',dashboard:{...dashboard,holdings},recent:{data:[],meta:{count:0,total:0,more:false}},targets:{data:[],meta:{total:0}}}}}));
+ await page.goto('/');const row=page.getByTestId('home-holding');await expect(row).toHaveCount(1);const cells=row.locator(':scope > div > div');
+ const boxes=await cells.evaluateAll(ns=>ns.map(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right,width:n.clientWidth,scroll:n.scrollWidth,style:getComputedStyle(n).whiteSpace})));
+ for(const i of [0,3]){expect(boxes[i].right).toBeLessThanOrEqual(boxes[i+1].left);expect(boxes[i+1].right).toBeLessThanOrEqual(boxes[i+2].left);}
+ expect(boxes[0].style).toBe('nowrap');for(const i of [1,2,4,5])expect(boxes[i].scroll).toBeLessThanOrEqual(boxes[i].width+1);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await row.scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('home-large.png'),fullPage:true});
 });
