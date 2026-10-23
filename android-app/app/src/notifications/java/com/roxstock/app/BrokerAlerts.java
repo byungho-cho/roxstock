@@ -28,6 +28,11 @@ final class BrokerAlerts {
             .setContentText("새 거래 알림을 확인하세요.").setContentIntent(click).setAutoCancel(true).setPriority(Notification.PRIORITY_HIGH).build();
         ((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).notify("broker:"+id,0,n);
     }
+    static synchronized void clearSession(Context c,boolean preserveClick) {
+        String id=AppPush.preferences(c).getString("brokerClick", ""),owner=AppPush.preferences(c).getString("brokerClickOwner", "");
+        AppPush.unbind(c);
+        if(preserveClick&&!id.isEmpty())AppPush.preferences(c).edit().putString("brokerClick",id).putString("brokerClickOwner",owner).commit();
+    }
     static synchronized void preferences(Context c,String owner,boolean trade,boolean target,boolean news) {
         if(!owner.matches("[1-9][0-9]{0,19}"))throw new IllegalArgumentException();
         String previous=AppPush.preferences(c).getString("inboxOwner", "");
