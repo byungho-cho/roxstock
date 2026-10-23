@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {fixture} from './phase3-fixture';
-async function setup(page:any,nativeRows?:Array<{id:string;raw:string;receivedAt:number}>){
+export async function setup(page:any,nativeRows?:Array<{id:string;raw:string;receivedAt:number}>){
  await fixture(page);
  await page.route('**/api/auth/me',(r:any)=>r.fulfill({json:{data:{id:'1',role:'USER',email:'test@example.invalid',mustChangePassword:false,settings:{}}}}));
  await page.route('**/api/accounts',(r:any)=>r.fulfill({json:{data:[{id:'1',name:'기본',brokerName:'미래에셋증권',accountNumber:'1234-12-5678',isActive:true,isDefault:true}]}}));
@@ -20,8 +20,8 @@ test('unified dialog geometry, ignored notice never creates a trade, empty inbox
 test('buy notification reuses form without focus; cancel and failed save preserve notice',async({page},info)=>{
  await setup(page);await page.route('**/api/buy-trades',r=>r.fulfill({status:500,json:{error:{message:'저장 실패'}}}));await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매수 종목1',exact:true}).click();const form=page.getByTestId('trade-form');await expect(form).toBeVisible();await expect(page.getByLabel('매수수량',{exact:true})).toHaveValue('1');await expect(page.getByLabel('매수가격',{exact:true})).toHaveValue('110');expect(await page.evaluate(()=>document.activeElement?.tagName)).not.toBe('INPUT');await page.screenshot({animations:'disabled',path:info.outputPath('notice-buy.png')});await form.getByRole('button',{name:'매수',exact:true}).click();await expect(form.getByRole('alert')).toContainText('저장 실패');await form.getByRole('button',{name:'취소',exact:true}).click();await expect(page.getByRole('button',{name:'알림 2건',exact:true})).toBeVisible();
 });
-test('sell requires explicit lot confirmation and preserves notice on cancel',async({page},info)=>{
- await setup(page);await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();await expect(page.getByRole('heading',{name:'연결 매수 선택'})).toBeVisible();const next=page.getByRole('button',{name:'선택 후 매도 등록'});await expect(next).toBeDisabled();await page.getByRole('button',{name:/매수 · 100원/}).first().click();await page.screenshot({animations:'disabled',path:info.outputPath('notice-sell-lot.png')});await next.click();await expect(page).toHaveURL(/\/trade\?type=sell/);await expect(page.getByTestId('trade-form')).toBeVisible();await expect(page.getByLabel('매도수량',{exact:true})).toHaveValue('1');expect(await page.evaluate(()=>document.activeElement?.tagName)).not.toBe('INPUT');
+test('sell defaults first sorted lot and still requires confirmation before opening form',async({page},info)=>{
+ await setup(page);await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();await expect(page.getByRole('heading',{name:'연결 매수 선택'})).toBeVisible();const next=page.getByRole('button',{name:'선택 후 매도 등록'});await expect(next).toBeEnabled();await expect(page.getByTestId('sell-candidate-11')).toHaveAttribute('aria-pressed','true');await page.screenshot({animations:'disabled',path:info.outputPath('notice-sell-lot.png')});await next.click();await expect(page).toHaveURL(/\/trade\?type=sell/);await expect(page.getByTestId('trade-form')).toBeVisible();await expect(page.getByLabel('매도수량',{exact:true})).toHaveValue('1');expect(await page.evaluate(()=>document.activeElement?.tagName)).not.toBe('INPUT');
 });
 test('successful buy removes only saved notice and keeps original request identity',async({page})=>{
  await setup(page);let request:any;await page.route('**/api/buy-trades',r=>{request=r.request().postDataJSON();return r.fulfill({json:{data:{id:'91',cashTransactionId:'92'}}});});await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매수 종목1',exact:true}).click();await page.getByTestId('trade-form').getByRole('button',{name:'매수',exact:true}).click();await page.getByRole('dialog',{name:'예수금을 입력하시겠습니까?'}).getByRole('button',{name:'취소',exact:true}).click();await expect(page.getByRole('button',{name:'알림 1건',exact:true})).toBeVisible();expect(request.requestId).toBe('a'.repeat(64));expect(request.accountId).toBe('1');expect(request.quantity).toBe('1');
@@ -34,9 +34,9 @@ test('news and target read only after authorized navigation; ignore retains disp
  await page.route('**/api/notifications/events/'+event+'/state',r=>{actions.push(r.request().postDataJSON().action);done=true;return r.fulfill({json:{data:{updated:true}}});});
  await page.goto('/');await page.getByRole('button',{name:'알림 3건',exact:true}).click();await page.getByRole('button',{name:'목표 현대차',exact:true}).click();await expect.poll(()=>actions).toContain('read');await expect(page.getByRole('button',{name:'알림 2건',exact:true})).toBeVisible();
 });
-for(const count of [0,1])test(`sell with ${count} eligible lot requires explicit choice`,async({page})=>{
+for(const count of [0,1])test(`sell with ${count} eligible lot defaults safely without saving`,async({page})=>{
  await setup(page);await page.route('**/api/accounts/*/buy-lots**',r=>r.fulfill({json:{data:count?[{id:'71',boughtAt:'2026-10-01T03:00:00Z',unitPrice:'100',remainingQuantity:'2',security:{id:'1',symbol:'000001',name:'종목1'}}]:[]}}));
- await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();const next=page.getByRole('button',{name:'선택 후 매도 등록'});await expect(next).toBeDisabled();if(count){await page.getByRole('button',{name:/매수 · 100원/}).click();await expect(next).toBeEnabled();}else await expect(page.getByText('동일 계좌·종목에 매도일 이전 매수 중 잔여수량이 충분한 매수가 없습니다.')).toBeVisible();
+ await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();const next=page.getByRole('button',{name:'선택 후 매도 등록'});if(count){await expect(next).toBeEnabled();await expect(page.getByTestId('sell-candidate-71')).toHaveAttribute('aria-pressed','true');}else {await expect(next).toBeDisabled();await expect(page.getByText('동일 계좌·종목에 매도일 이전 매수 중 잔여수량이 충분한 매수가 없습니다.')).toBeVisible();}
 });
 test('dividend opens existing form with confirmed amounts and preserves notice on cancel',async({page})=>{
  await setup(page);await page.route('**/api/accounts/*/cash-overview',r=>r.fulfill({json:{data:{account:{id:'1',currentBalance:'10000'},currentYearTax:{year:2026,amount:'0'},monthly:{deposit:'0',withdrawal:'0',dividend:'0'},yearly:{deposit:'0',withdrawal:'0',dividend:'0'},recentTransactions:[]}}}));await page.addInitScript(()=>{(window as any).nativeEntries=[{id:'c'.repeat(64),receivedAt:3,raw:'[미래에셋증권] 권리 입금 안내\n배당금 입금\n계좌번호: 1234-**-5678\n종목명: 종목1\n종목코드: 000001\n입금일자: 2026.10.07\n세전배당금: 1,000원\n세후배당금: 846원'}];});
@@ -122,4 +122,39 @@ test('cost defaults, whole row toggle, zero clearing and no implicit save',async
 
 test('durable native click opens unified inbox without saving or completing a trade',async({page})=>{
  await setup(page);await page.addInitScript(()=>{(window as any).nativeOpen='a'.repeat(64);});let writes=0;await page.route('**/api/buy-trades',r=>{writes++;return r.fulfill({json:{data:{}}});});await page.goto('/');await expect(page.getByRole('heading',{name:'알림',exact:true})).toBeVisible();await expect(page.getByRole('dialog').getByText('2건',{exact:true})).toBeVisible();await expect.poll(()=>page.evaluate(()=>(window as any).nativeEntries.length)).toBe(2);await expect.poll(()=>page.evaluate(()=>(window as any).nativeOpen)).toBe('');expect(writes).toBe(0);
+});
+
+test('lot selector sorts, styles, scrolls and preserves a valid user choice on refresh',async({page},info)=>{
+ await setup(page);let rows=[
+  {id:'loss',unitPrice:'140',boughtAt:'2026-10-01T03:00:00Z',remainingQuantity:'10'},
+  {id:'new',unitPrice:'100',boughtAt:'2026-10-02T03:00:00Z',remainingQuantity:'2'},
+  {id:'first',unitPrice:'100',boughtAt:'2026-10-01T03:00:00Z',remainingQuantity:'10'},
+  {id:'flat',unitPrice:'110',boughtAt:'2026-10-01T03:00:00Z',remainingQuantity:'10'},
+  ...Array.from({length:8},(_,i)=>({id:'extra'+i,unitPrice:'150',boughtAt:'2026-10-01T03:00:00Z',remainingQuantity:'1000000'}))
+ ];let reads=0;
+ await page.route('**/api/accounts/*/buy-lots**',r=>{reads++;return r.fulfill({json:{data:rows.map(l=>({...l,security:{id:'1',symbol:'000001',name:'종목1'}}))}});});
+ await page.goto('/');await page.getByRole('button',{name:'알림 2건',exact:true}).click();await page.getByRole('button',{name:'매도 종목1',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'연결 매수 선택'}),first=page.getByTestId('sell-candidate-first'),next=dialog.getByRole('button',{name:'선택 후 매도 등록'});
+ await expect(first).toHaveAttribute('aria-pressed','true');await expect(next).toBeEnabled();
+ expect((await dialog.locator('[data-testid^="sell-candidate-"]').evaluateAll(els=>els.map(e=>e.getAttribute('data-testid')))).slice(0,4)).toEqual(['sell-candidate-first','sell-candidate-new','sell-candidate-flat','sell-candidate-loss']);
+ await expect(first.getByTestId('candidate-profit')).toHaveText('+10원');await expect(first.getByTestId('candidate-total')).toHaveText('1,000원');await expect(first).toContainText('10 × 100원');
+ expect(await first.evaluate(el=>{const s=getComputedStyle(el);return[s.paddingTop,s.paddingBottom,s.rowGap];})).toEqual(['8px','8px','4px']);
+ for(const [id,color] of [['first','rgb(248, 113, 113)'],['flat','rgb(248, 250, 252)'],['loss','rgb(96, 165, 250)']])expect(await page.getByTestId('sell-candidate-'+id).evaluate(el=>getComputedStyle(el).color)).toBe(color);
+ const box=(await dialog.boundingBox())!;expect(box.width).toBe(354);expect(Math.abs(box.x+box.width/2-page.viewportSize()!.width/2)).toBeLessThan(1);expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height-32);
+ const list=page.getByTestId('sell-lot-list');expect(await list.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);await list.evaluate(el=>el.scrollTop=9999);await expect(next).toBeInViewport();await expect(dialog.getByRole('heading')).toBeInViewport();await list.evaluate(el=>el.scrollTop=0);
+ await page.getByTestId('sell-candidate-new').click();await page.waitForTimeout(3200);await expect(page.getByTestId('sell-candidate-new')).toHaveAttribute('aria-pressed','true');
+ const previous=reads;rows=rows.filter(l=>l.id!=='new');await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{value:'hidden',configurable:true});window.dispatchEvent(new Event('visibilitychange'));});await page.waitForTimeout(100);await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{value:'visible',configurable:true});window.dispatchEvent(new Event('visibilitychange'));});await expect.poll(()=>reads).toBeGreaterThan(previous);await expect(first).toHaveAttribute('aria-pressed','true');
+ await page.screenshot({animations:'disabled',path:info.outputPath('lot-selector-sorted.png')});await next.click();await expect(page).toHaveURL(/lot=first/);await page.getByTestId('trade-form').getByRole('button',{name:'취소',exact:true}).click();await expect(page.getByRole('button',{name:'알림 2건',exact:true})).toBeVisible();
+});
+
+test('trade cards show per-sale Seoul holding days and reserve edit delete controls',async({page},info)=>{
+ await setup(page);
+ const security={id:'1',name:'아주 긴 종목명 현대자동차',symbol:'000001'};
+ const buy={id:'buy',type:'BUY',tradedAt:'2025-12-31T15:00:00Z',security,quantity:'10',unitPrice:'100',amount:'1000',realizedProfitLoss:null};
+ const sell=(id:string,tradedAt:string)=>({id,type:'SELL',buyTradeId:'buy',tradedAt,security,quantity:'1',unitPrice:'110',amount:'110',realizedProfitLoss:'10'});
+ await page.route('**/api/accounts/*/trades?*',r=>r.fulfill({json:{data:[buy,sell('same','2026-01-01T14:59:59Z'),sell('split','2026-01-03T03:00:00Z')],summary:{realizedProfitLoss:'20',buyAmount:'1000',sellAmount:'220'},daily:[]}}));
+ await page.goto('/stocks/1?detailTab=trades');await expect(page.getByTestId('sell-same').getByTestId('trade-holding-days')).toHaveText('보유 0일');await expect(page.getByTestId('sell-split').getByTestId('trade-holding-days')).toHaveText('보유 2일');
+ const card=page.getByTestId('sell-same');expect(await card.getByTestId('trade-holding-days').evaluate(el=>{const s=getComputedStyle(el);return[s.fontSize,s.fontWeight,s.color];})).toEqual(['9px','400','rgb(255, 255, 255)']);
+ const text=(await card.getByTestId('trade-holding-days').boundingBox())!,icon=(await card.getByRole('button',{name:'same 매도 수정',exact:true}).boundingBox())!;expect(text.x+text.width<=icon.x||text.y>=icon.y+icon.height).toBe(true);
+ await page.screenshot({animations:'disabled',path:info.outputPath('trade-holding-days.png')});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

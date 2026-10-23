@@ -1,3 +1,4 @@
+import {seoulTradeDate} from '../utils/tradeDates';
 export type TradeNotice={id:string;kind:'BUY'|'SELL'|'DIVIDEND';name:string;symbol?:string;identityIssue?:'INVALID_CODE'|'CONFLICTING_CODES';account:string;date:string;quantity:string;price:string;gross:string;net:string;receivedAt:number};
 const field=(raw:string,label:string)=>raw.match(new RegExp(`(?:^|\\n)\\s*(?:${label})\\s*[:：]\\s*([^\\n]+)`))?.[1].trim()??'';
 const numeric=(value:string)=>/^\d[\d,]*(?:\.\d+)?(?:\s*(?:주|원))?$/.test(value)?value.replace(/[,주원\s]/g,''):'';
@@ -31,4 +32,34 @@ export function parseTradeNotice(row:{id:string;raw:string;receivedAt:number}):T
  return {id:row.id,kind,...identity,account:field(raw,'계좌번호|계좌'),date:validDate,quantity:numeric(field(raw,'체결수량|거래수량')),price:numeric(field(raw,'체결단가|체결가격|거래단가')),gross:numeric(field(raw,'세전배당금|세전 배당금')),net:numeric(field(raw,'세후배당금|세후 배당금|입금액')),receivedAt:row.receivedAt};
 }
 export function accountMatches(pattern:string,number:string){const p=pattern.replace(/[\s-]/g,'');const n=number.replace(/[\s-]/g,'');return p.length>=6&&/^[\d*]+$/.test(p)&&p.length===n.length&&[...p].every((c,i)=>c==='*'||c===n[i]);}
-export function sellCandidates<T extends {boughtAt:string;remainingQuantity:string}>(lots:T[],notice:TradeNotice){return notice.date&&Number(notice.quantity)>0?lots.filter(l=>Number(l.remainingQuantity)>=Number(notice.quantity)&&new Date(l.boughtAt).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'})<=notice.date):[];}
+export function sellCandidates<T extends {boughtAt:string;remainingQuantity:string}>(lots:T[],notice:TradeNotice){
+ const quantity=decimalUnits(notice.quantity),date=seoulTradeDate(notice.date);
+ return date&&quantity!==null&&quantity>0n?lots.filter(l=>{const remaining=decimalUnits(l.remainingQuantity),bought=seoulTradeDate(l.boughtAt);return remaining!==null&&remaining>=quantity&&bought!==null&&bought<=date;}):[];
+}
+// API trade quantities/prices use at most six decimal places (prices use four); comparisons stay exact.
+const scale=1000000n;
+function decimalUnits(value:string):bigint|null {
+ if(!/^\d+(?:\.\d{1,6})?$/.test(value))return null;
+ const [whole,fraction='']=value.split('.');return BigInt(whole)*scale+BigInt(fraction.padEnd(6,'0'));
+}
+function decimalText(value:bigint,places:number){
+ const sign=value<0n?'-':'',digits=(value<0n?-value:value).toString().padStart(places+1,'0');
+ return sign+(digits.slice(0,-places)+'.'+digits.slice(-places)).replace(/\.?0+$/,'');
+}
+export function candidateAmounts(lot:{unitPrice:string;remainingQuantity:string},notice:TradeNotice){
+ const buy=decimalUnits(lot.unitPrice),sell=decimalUnits(notice.price),quantity=decimalUnits(notice.quantity),remaining=decimalUnits(lot.remainingQuantity);
+ if(buy===null||buy<=0n||sell===null||sell<=0n||quantity===null||quantity<=0n||remaining===null)return null;
+ const profit=(sell-buy)*quantity;
+ return {profit:decimalText(profit,12),total:decimalText(buy*remaining,12),sign:profit>0n?1:profit<0n?-1:0};
+}
+export function sortedSellCandidates<T extends {id:string;boughtAt:string;unitPrice:string;remainingQuantity:string}>(lots:T[],notice:TradeNotice){
+ return sellCandidates(lots,notice).filter(l=>candidateAmounts(l,notice)!==null).sort((a,b)=>{
+  const buyA=decimalUnits(a.unitPrice)!,buyB=decimalUnits(b.unitPrice)!,sell=decimalUnits(notice.price)!;
+  // (sell-buy)/buy, compared before any display rounding.
+  const difference=(sell-buyA)*buyB-(sell-buyB)*buyA;
+  if(difference!==0n)return difference>0n?-1:1;
+  const dateA=seoulTradeDate(a.boughtAt)!,dateB=seoulTradeDate(b.boughtAt)!;
+  return dateA<dateB?-1:dateA>dateB?1:a.id<b.id?-1:a.id>b.id?1:0;
+ });
+}
+export function formatCandidateAmount(value:string,signed=false){return (signed&&!value.startsWith('-')&&value!=='0'?'+':'')+value.replace(/^-?\d+/,whole=>whole.replace(/\B(?=(\d{3})+(?!\d))/g,','))+'원';}
