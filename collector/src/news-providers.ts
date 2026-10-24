@@ -49,7 +49,7 @@ export function parseRss(xml:string,targets:NewsTarget[],provider:string,from:Da
 }
 export function parseReports(html:string,targets:NewsTarget[],from:Date,to:Date,diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0}):NewsCandidate[]{
  if(!/<tbody\b/i.test(html)||!html.includes('report_idx')){
-  if(/검색.*결과.*없|데이터.*없/.test(plainText(html)))return [];throw Error('INVALID_REPORT_LIST');
+  if(/검색.*결과.*없|데이터.*없/.test(plainText(html))||/<tbody\b[^>]*>[\s\S]*?<td\b[^>]*colspan=["']?6["']?[^>]*>\s*결과가 없습니다\.\s*<\/td>[\s\S]*?<\/tbody>/i.test(html))return [];throw Error('INVALID_REPORT_LIST');
  }
  return [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].flatMap(match=>{
   const row=match[1]!,cells=[...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m=>m[1]!);
@@ -85,7 +85,7 @@ export function defaultNewsSources(db:PrismaClient):NewsSource[]{
   }},
   {id:'HANKYUNG_CONSENSUS',collect:async(targets,from,to,signal)=>{const http=new NewsHttp(signal),candidates:NewsCandidate[]=[],diagnostics:Record<string,number>={rawParsed:0,periodPassed:0,securityMatched:0,selectionExcluded:0};for(let page=1;page<=8;page++){
    const url='https://consensus.hankyung.com/analysis/list?'+new URLSearchParams({sdate:seoulDay(from),edate:seoulDay(to),now_page:String(page),pagenum:'80',report_type:'',search_value:''});
-   let html:string;try{html=await http.text(url);candidates.push(...parseReports(html,targets,from,to,diagnostics));}catch{return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:['REPORT_PAGE_UNAVAILABLE'],requests:http.requests,available:page>1};}
+   let html:string;try{html=await http.text(url);candidates.push(...parseReports(html,targets,from,to,diagnostics));}catch(error){if(signal?.aborted)throw error;const message=error instanceof Error?error.message:'';const reason=/^(SOURCE_HTTP_[0-9]{3}|SOURCE_ACCESS_DENIED|SOURCE_UNAVAILABLE|SOURCE_SIZE_BOUND|EMPTY_SOURCE_BODY|PDF_BODY_NOT_COLLECTED|INVALID_REPORT_(?:LIST|METADATA)|NEWS_REQUEST_BOUND)$/.test(message)?message:error instanceof TypeError&&message==='fetch failed'?'NETWORK':error instanceof Error&&/Timeout/.test(error.name)?'TIMEOUT':null;if(!reason)throw error;return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:['REPORT_OPTIONAL_SKIPPED:'+reason],requests:http.requests,available:page>1};}
    const pages=[...html.matchAll(/now_page=(\d+)/g)].map(m=>Number(m[1]));if(Math.max(1,...pages)<=page)return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:[],requests:http.requests};
   }return {provider:'HANKYUNG_CONSENSUS',candidates,diagnostics,warnings:['REPORT_PAGE_BOUND'],requests:http.requests};}},
   {id:'DART',collect:async(targets,from,to,signal)=>{

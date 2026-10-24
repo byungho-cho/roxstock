@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NewsHttp,parseReports,parseRss,publicDescription,rssItemDates} from './news-providers.js';
+import {defaultNewsSources,NewsHttp,parseReports,parseRss,publicDescription,rssItemDates} from './news-providers.js';
 const targets=[{id:1n,symbol:'005930',name:'삼성전자'},{id:2n,symbol:'005380',name:'현대자동차'}],from=new Date('2026-10-18T15:00:00Z'),to=new Date('2026-10-19T06:00:00Z');
 const rss=(title:string,url='https://www.hankyung.com/article/202610190001',date='Mon, 19 Oct 2026 10:00:00 +0900')=>`<?xml version="1.0"?><rss><channel><item><title><![CDATA[${title}]]></title><link>${url}</link><pubDate>${date}</pubDate></item></channel></rss>`;
 test('explicit report code never associates KT with KT&G or leaks an unrelated report into a KT-only target set',()=>{
@@ -34,4 +34,19 @@ test('RSS retention uses only valid item dates, ignoring channel publication and
  const xml=rss('삼성전자 실적 전망 변경').replace('<channel>','<channel><pubDate>Mon, 01 Jan 2001 00:00:00 +0900</pubDate>');
  assert.equal(rssItemDates(xml).length,1);assert.equal(rssItemDates(xml)[0],new Date('2026-10-19T10:00:00+09:00').getTime());
  const stats:Record<string,number>={};parseRss(xml,targets,'HANKYUNG_RSS',from,to,stats);assert.deepEqual(stats,{rawParsed:1,periodPassed:1,securityMatched:1});
+});
+
+const emptyReports='<table><thead><tr><th>작성일</th><th>제목</th></tr></thead><tbody><tr class="last listNone"><td colspan="6">결과가 없습니다.</td></tr></tbody></table>';
+test('consensus explicit empty list is a successful zero-report response; arbitrary HTML still fails',()=>{
+ assert.deepEqual(parseReports(emptyReports,targets,from,to),[]);
+ assert.throws(()=>parseReports('<html>결과가 없습니다.</html>',targets,from,to),/INVALID_REPORT_LIST/);
+});
+test('consensus normal empty response and optional access failure remain distinguishable',async(t)=>{
+ const source=defaultNewsSources({} as any).find(s=>s.id==='HANKYUNG_CONSENSUS')!;
+ const fetchMock=t.mock.method(globalThis,'fetch',async()=>new Response(emptyReports));
+ const empty=await source.collect(targets,from,to);
+ assert.deepEqual(empty.warnings,[]);assert.equal(empty.candidates.length,0);
+ fetchMock.mock.mockImplementation(async()=>new Response('blocked',{status:403}));
+ const skipped=await source.collect(targets,from,to);
+ assert.deepEqual(skipped.warnings,['REPORT_OPTIONAL_SKIPPED:SOURCE_HTTP_403']);assert.equal(skipped.available,false);
 });
