@@ -27,13 +27,13 @@ test('time precision obeys the incremental boundary, while date-only sources sta
  assert.equal(withinNewsWindow({publishedAt:new Date(+now+1),publishedPrecision:'TIME'},previous,now),false);
 });
 function fixture(prior:any){
- let owner='',stored=0,providerData:any,runData:any;
+ let owner='',stored=0,providerData:any,runData:any,stateData:any;
  const db:any={
   $executeRaw:async(_:any,...values:any[])=>{owner=values[1];return 1;},
   $queryRaw:async()=>[{owner_token:owner,valid:1}],
   $transaction:async(fn:any)=>fn(db),
   collectorLock:{deleteMany:async()=>({count:1})},
-  stockNewsState:{upsert:async()=>({id:'stock-news',initialDate:'2026-10-19',initialCompletedAt:new Date('2026-10-19'),lastFinishedAt:previous,lastStatus:'PARTIAL'}),update:async()=>({})},
+  stockNewsState:{upsert:async()=>({id:'stock-news',initialDate:'2026-10-19',initialCompletedAt:new Date('2026-10-19'),lastFinishedAt:previous,lastStatus:'PARTIAL'}),update:async({data}:any)=>{stateData=data;return {};}},
   stockNewsSchedule:{upsert:async()=>({intervalHours:3,startTime:'00:00',anchorAt:midnight,updatedAt:midnight,revision:1})},
   stockNewsSlot:{findFirst:async()=>null,findUnique:async()=>null,updateMany:async()=>({count:0}),upsert:async()=>({}),update:async()=>({}),findMany:async()=>[]},
   collectorRun:{updateMany:async()=>({count:0}),create:async()=>({id:1n}),update:async({data}:any)=>{runData=data;return {};},findMany:async()=>[]},
@@ -45,7 +45,7 @@ function fixture(prior:any){
   stockNewsSeen:{findMany:async({where}:any)=>where.key?prior.seen??[]:[],upsert:async()=>({})},
   stockNewsCandidate:{findMany:async({where}:any)=>{assert.equal(where.status,undefined,'must not revive deferred history');return [];},upsert:async()=>({})},
  };
- return {db:db as PrismaClient,get stored(){return stored;},get provider(){return providerData;},get run(){return runData;}};
+ return {db:db as PrismaClient,get stored(){return stored;},get provider(){return providerData;},get run(){return runData;},get state(){return stateData;}};
 }
 const prior=()=>({slotKey:'old',lastCheckedAt:new Date(+previous+180000),lastAttemptAt:previous,watermark:new Date('2026-10-19'),attempts:1,gaps:[{from:'2026-10-18T15:00:00Z',to:'2026-10-19T12:00:00Z',reason:'OLD_GAP'}],diagnostics:{}});
 const make=(precision:'TIME'|'DATE',at:Date):NewsCandidate=>({provider:'TEST',providerId:'1',title:'삼성전자 실적 발표',originalUrl:'https://www.hankyung.com/article/202610240001',sourceName:'test',publishedAt:at,publishedPrecision:precision,materialType:'REPORT',accessCondition:'FREE',summary:'공개 요약',summaryMethod:'PUBLIC_REPORT_ABSTRACT',securityIds:[1n],priority:3});
@@ -67,4 +67,22 @@ test('today date-only metadata is saved once, but previously observed date-only 
  await collectStockNews(f.db,{now,enrich:false,sources});assert.equal(f.stored,1);
  const old={...prior(),seen:[{key:candidateKeys(row).canonicalHash,status:'DEFERRED'}]},again=fixture(old);
  await collectStockNews(again.db,{now,enrich:false,sources});assert.equal(again.stored,0);
+});
+
+test('optional consensus failure is skipped without advancing its confirmed cursor or marking a provider success',async()=>{
+ const f=fixture(prior());const result=await collectStockNews(f.db,{now,enrich:false,sources:[{id:'HANKYUNG_CONSENSUS',collect:async()=>({provider:'HANKYUNG_CONSENSUS',candidates:[],warnings:['REPORT_OPTIONAL_SKIPPED:SOURCE_HTTP_403'],requests:1,available:false})}]});
+ assert.equal(result.status,'SUCCESS');assert.equal(f.provider.status,'SKIPPED');assert.equal(f.provider.lastCheckedAt,undefined);assert.equal(f.provider.lastSuccessAt,undefined);assert.equal(f.provider.watermark,undefined);assert.equal(f.provider.nextRetryAt,null);assert.equal(f.run.failureCount,0);assert.equal(f.stored,0);
+});
+test('unexpected report source errors remain failures rather than being silently skipped',async()=>{
+ const f=fixture(prior());const result=await collectStockNews(f.db,{now,enrich:false,sources:[{id:'HANKYUNG_CONSENSUS',collect:async()=>{throw Error('UNEXPECTED_INTERNAL_ERROR');}}]});
+ assert.equal(result.status,'FAILED');assert.equal(f.provider.status,'FAILED');
+});
+
+test('optional skip does not hide a required provider failure or claim a full successful check',async()=>{
+ const f=fixture(prior());const result=await collectStockNews(f.db,{now,enrich:false,sources:[{id:'DART',collect:async()=>({provider:'DART',candidates:[],warnings:['NEWS_SOURCE_UNAVAILABLE'],requests:1,available:false})},{id:'HANKYUNG_CONSENSUS',collect:async()=>({provider:'HANKYUNG_CONSENSUS',candidates:[],warnings:['REPORT_OPTIONAL_SKIPPED:SOURCE_HTTP_403'],requests:1,available:false})}]});
+ assert.equal(result.status,'FAILED');assert.equal(f.state.lastFullSuccessAt,undefined);assert.equal(f.state.lastCollectedAt,undefined);
+});
+test('healthy required providers with optional report skip keep a successful run without advancing full-check time',async()=>{
+ const f=fixture(prior());const result=await collectStockNews(f.db,{now,enrich:false,sources:[{id:'DART',collect:async()=>({provider:'DART',candidates:[],warnings:[],requests:1})},{id:'HANKYUNG_CONSENSUS',collect:async()=>({provider:'HANKYUNG_CONSENSUS',candidates:[],warnings:['REPORT_OPTIONAL_SKIPPED:INVALID_REPORT_LIST'],requests:1,available:false})}]});
+ assert.equal(result.status,'SUCCESS');assert.equal(f.state.lastFullSuccessAt,undefined);assert.equal(+f.state.lastCollectedAt,+now);assert.equal(f.run.failureCount,0);
 });

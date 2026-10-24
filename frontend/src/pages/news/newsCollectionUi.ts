@@ -1,6 +1,7 @@
 export const newsProviderNames:Record<string,string>={NAVER_NEWS:'네이버 뉴스',HANKYUNG_RSS:'한경 RSS',HANKYUNG_CONSENSUS:'리포트',DART:'DART'};
 export function newsProviderReason(error:string|null){
  if(!error)return '정상 확인';
+ if(error.startsWith('REPORT_OPTIONAL_SKIPPED:'))return /INVALID_REPORT/.test(error)?'리포트 형식 확인 필요 · 이번 회차 건너뜀':'리포트 제공처 응답 불가 · 이번 회차 건너뜀';
  const messages:string[]=[];
  if(/NAVER_CONFIG_MISSING/.test(error))messages.push('네이버 API 설정 필요');
  if(/NAVER_AUTH_FAILED/.test(error))messages.push('네이버 API 인증 또는 권한 확인 필요');
