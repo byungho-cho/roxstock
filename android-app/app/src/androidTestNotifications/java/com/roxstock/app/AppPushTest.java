@@ -38,7 +38,7 @@ public final class AppPushTest {
    BrokerAlerts.clearSession(c,true);BrokerAlerts.preferences(c,"1",true,false,false);assertEquals(brokerId,BrokerAlerts.pendingClick(c,"1"));
    BrokerAlerts.preferences(c,"2",true,false,false);assertEquals("",BrokerAlerts.pendingClick(c,"2"));BrokerAlerts.preferences(c,"1",true,false,false);
    policy(c,true);BrokerAlerts.display(c,brokerId,"1");expectCount(m,1);db.status(brokerId,"ignored","2");expectCount(m,1);db.status(brokerId,"completed","1");expectCount(m,0);
-   policy(c,false);AppPush.preferences(c).edit().putBoolean("tradeEnabled",false).commit();db.receive(raw+" changed",System.currentTimeMillis());assertEquals(0,db.count("1"));expectCount(m,0);policy(c,true);assertEquals(1,db.count("1"));expectCount(m,0);
+   policy(c,false);AppPush.preferences(c).edit().putBoolean("tradeEnabled",false).commit();db.receive(raw.replace("주문번호: 456","주문번호: 457"),System.currentTimeMillis());assertEquals(0,db.count("1"));expectCount(m,0);policy(c,true);assertEquals(1,db.count("1"));expectCount(m,0);
   }
   AppPush.unbind(c);assertEquals("",BrokerAlerts.pendingClick(c,"1"));c.deleteDatabase("broker-inbox.db");
   // Revoking a runtime permission terminates this instrumentation process. Denial is checked before the grant above.
