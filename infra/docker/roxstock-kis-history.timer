@@ -1,0 +1,10 @@
+[Unit]
+Description=RoxStock temporary history campaign, every five minutes after batch completion
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+Unit=roxstock-kis-history.service
+
+[Install]
+WantedBy=timers.target
