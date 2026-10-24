@@ -1,5 +1,5 @@
 import {ensureNewsSchedule} from '@roxstock/shared/news/state';
-import {regularSlot,nextNewsAt,newsWindow} from '@roxstock/shared/news/schedule';
+import {regularSlot,nextNewsAt,newsWindow,newsQueryCursor,withinNewsWindow} from '@roxstock/shared/news/schedule';
 import {Prisma} from '@roxstock/shared/prisma';
 import {summaryExtractor,initialNewsSummary} from './news-summary.js';
 import {randomUUID} from 'node:crypto';
@@ -33,7 +33,7 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
   claimedKey=key;
   const kind=options.manualDate?'SUPPLEMENT':initial?'INITIAL':previous?.kind??'REGULAR';
   const scheduledAt=previous?.scheduledAt??(kind==='REGULAR'?latest:now),attempts=(previous?.attempts??0)+1;
-  const plan={kind,day:seoulDay(now),from:kstStart(state.initialDate)};
+  const plan={kind,day:seoulDay(now),from:kstStart(seoulDay(now))};
   await db.stockNewsSlot.updateMany({where:{nextRetryAt:{not:null},key:{not:key},scheduledAt:{lte:scheduledAt}},data:{nextRetryAt:null}});
   await db.stockNewsProviderState.updateMany({where:{nextRetryAt:{not:null},slotKey:{not:key}},data:{nextRetryAt:null}});
   const run=await db.$transaction(async tx=>{
@@ -53,32 +53,24 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    }
    const prior=await db.stockNewsProviderState.findUnique({where:{provider:source.id}});
    // A retry reuses the successful providers of this exact slot, not a different slot/account.
-   if(prior?.slotKey===key&&(!prior.nextRetryAt||prior.nextRetryAt>now)){
+   if((prior?.diagnostics as {windowPolicyVersion?:number}|null)?.windowPolicyVersion===3&&prior?.lastAttemptAt&&seoulDay(prior.lastAttemptAt)===plan.day&&prior.slotKey===key&&(!prior.nextRetryAt||prior.nextRetryAt>now)){
     results.push({provider:source.id,status:prior.status,count:0,requests:0,warnings:prior.lastError?.split(', ')??[],reused:true,attempt:prior.attempts,diagnostics:prior.diagnostics??{},gaps:prior.gaps??[],nextRetryAt:prior.nextRetryAt?.toISOString()??null});continue;
    }
    try{
     if(lost||signal.aborted)throw Error(lost?'NEWS_LEASE_LOST':'NEWS_TIME_BOUND');
-    // Only a short-retention RSS feed may move its query window past an explicit retained gap.
-    // Reports and DART keep querying from confirmed coverage after mapping/API failures.
-    const cursor=source.id==='HANKYUNG_RSS'?prior?.lastCheckedAt??prior?.watermark:prior?.watermark;
-    const lower=plan.kind==='INITIAL'?plan.from:newsWindow(state.initialDate,cursor??null,now);
-    const required=new Date(Math.max(kstStart(state.initialDate).getTime(),(prior?.lastCheckedAt??prior?.watermark??lower).getTime()));
-    const response=targets.length?await source.collect(targets,lower,now,signal,required):{candidates:[] as NewsCandidate[],warnings:[] as string[],requests:0};
+    const lower=newsWindow(state.initialDate,newsQueryCursor(prior),now);
+    const response=targets.length?await source.collect(targets,lower,now,signal,lower):{candidates:[] as NewsCandidate[],warnings:[] as string[],requests:0};
     if(response.candidates.length>2000)response.warnings.push('NEWS_CANDIDATE_BOUND');
-    candidates.push(...response.candidates.slice(0,2000).filter(c=>c.publishedAt>=kstStart(state.initialDate)&&c.publishedAt<=now));
-    if(Array.isArray(prior?.gaps)&&prior.gaps.length&&!response.warnings.includes('UNCONFIRMED_HISTORY'))response.warnings.push('UNCONFIRMED_HISTORY');
+    candidates.push(...response.candidates.slice(0,2000).filter(c=>withinNewsWindow(c,lower,now)));
     const warnings=response.warnings.filter(w=>!w.startsWith('NORMAL_EXCLUDED:'));
     const available= !('available' in response&&response.available===false);
-    results.push({provider:source.id,status:!available?'FAILED':warnings.length?'PARTIAL':('normalExcluded' in response&&response.normalExcluded===targets.length?'EXCLUDED':'SUCCESS'),count:response.candidates.length,requests:response.requests,warnings:response.warnings.slice(0,20),attempt:prior?.slotKey===key?prior.attempts+1:1,diagnostics:'diagnostics' in response?response.diagnostics:{},gaps:'gaps' in response?response.gaps:[]});
+    results.push({provider:source.id,status:!available?'FAILED':warnings.length?'PARTIAL':('normalExcluded' in response&&response.normalExcluded===targets.length?'EXCLUDED':'SUCCESS'),count:response.candidates.length,requests:response.requests,warnings:response.warnings.slice(0,20),attempt:prior?.slotKey===key?prior.attempts+1:1,diagnostics:{...('diagnostics' in response?response.diagnostics:{}),windowPolicyVersion:3,queryFromMs:lower.getTime(),queryToMs:now.getTime()},gaps:'gaps' in response?response.gaps:[],...((prior?.diagnostics as {windowPolicyVersion?:number}|null)?.windowPolicyVersion!==3&&Array.isArray(prior?.gaps)&&prior.gaps.length?{previousCoverageGaps:prior.gaps}:{})});
    }catch{results.push({provider:source.id,status:'FAILED',count:0,requests:0,warnings:['NEWS_SOURCE_UNAVAILABLE'],attempt:prior?.slotKey===key?prior.attempts+1:1,diagnostics:{},gaps:[]});}
   }
-  // Reconsider ranking exclusions from stored metadata; at most 200 rows, 72-hour validity.
-  const pendingCandidates=await db.stockNewsCandidate.findMany({where:{status:'DEFERRED',expiresAt:{gte:now}},orderBy:[{priority:'desc'},{publishedAt:'desc'},{canonicalHash:'asc'}],take:200});
-  const currentTargetIds=new Set(targets.map(t=>String(t.id)));
-  for(const row of pendingCandidates){try{const raw=row.payload as any,c={...raw,publishedAt:new Date(raw.publishedAt),securityIds:raw.securityIds.filter((id:string)=>currentTargetIds.has(id)).map(BigInt)} as NewsCandidate;if(c.securityIds.length&&c.priority)candidates.push(c);}catch{/* Invalid legacy metadata remains diagnosable and is not published. */}}
+  // Old deferred metadata is retained for diagnostics, never backfilled into a new query.
   const keys=candidates.map(candidateKeys),existing=new Set<string>(),pastExcluded=new Set<string>(),knownItems=new Map<string,bigint>();
   for(let i=0;i<keys.length;i+=100){const rows=await db.stockNewsItem.findMany({where:{OR:keys.slice(i,i+100).flatMap((k,j)=>[{canonicalHash:k.canonicalHash},{fingerprint:k.fingerprint},{provider:candidates[i+j]!.provider,providerId:candidates[i+j]!.providerId}])},select:{id:true,canonicalHash:true,fingerprint:true,provider:true,providerId:true}});for(const r of rows){existing.add(r.canonicalHash);existing.add(r.fingerprint);knownItems.set(r.canonicalHash,r.id);knownItems.set(r.fingerprint,r.id);for(let j=i;j<Math.min(keys.length,i+100);j++)if(candidates[j]!.provider===r.provider&&candidates[j]!.providerId===r.providerId){existing.add(keys[j]!.canonicalHash);knownItems.set(keys[j]!.canonicalHash,r.id);}}const seen=await db.stockNewsSeen.findMany({where:{key:{in:keys.slice(i,i+100).flatMap(k=>[k.canonicalHash,k.fingerprint])}},select:{key:true,status:true}});for(const r of seen)if(r.status!=='STORED')pastExcluded.add(r.key);/* Seen is an observation, never proof of an actual stored item. */}
-  const selected=selectNews(candidates.filter(c=>c.publishedAt.getTime()+72*3600000>=now.getTime()&&(c.provider!=='NAVER_NEWS'||c.priority>=2)),existing,holdingIds),duplicates=(()=>{const seen=new Set(existing);let count=0;for(const c of candidates){const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))count++;else{seen.add(k.canonicalHash);seen.add(k.fingerprint);}}return count;})();
+  const selected=selectNews(candidates.filter(c=>seoulDay(c.publishedAt)===plan.day&&(c.provider!=='NAVER_NEWS'||c.priority>=2)&&(c.publishedPrecision!=='DATE'||!pastExcluded.has(candidateKeys(c).canonicalHash)&&!pastExcluded.has(candidateKeys(c).fingerprint))),existing,holdingIds),duplicates=(()=>{const seen=new Set(existing);let count=0;for(const c of candidates){const k=candidateKeys(c);if(seen.has(k.canonicalHash)||seen.has(k.fingerprint))count++;else{seen.add(k.canonicalHash);seen.add(k.fingerprint);}}return count;})();
   // Existing provider summaries need no extra request; missing ones get one attempt.
   const extract=summaryExtractor(db,signal,new NewsHttp(signal,fetch,1000,1));
   if(options.enrich!==false)for(const item of selected.filter(c=>!c.summary&&c.provider!=='NAVER_NEWS')){
@@ -111,24 +103,23 @@ export async function collectStockNews(db:PrismaClient,options:{now?:Date;signal
    const unique=new Map(candidates.map(c=>[candidateKeys(c).canonicalHash,c]));
    const counts=new Map<string,{storedDuplicates:number;pastExcluded:number;selectionExcluded:number;saved:number;linked:number}>();
    for(const c of unique.values()){
-    const k=candidateKeys(c),stored=existing.has(k.canonicalHash)||existing.has(k.fingerprint),chosen=selectedKeys.has(k.canonicalHash),expired=c.publishedAt.getTime()+72*3600000<now.getTime(),status=stored||chosen?'STORED':!expired&&c.priority&&c.securityIds.length?'DEFERRED':'EXCLUDED',reason=expired&&!stored&&!chosen?'CANDIDATE_EXPIRED':status==='DEFERRED'?(c.materialType!=='DISCLOSURE'&&selected.filter(row=>row.materialType===c.materialType).length>=5?'TYPE_RUN_LIMIT':'SELECTION_RANK'):status==='EXCLUDED'?'NOT_RELEVANT':null;
+    const k=candidateKeys(c),stored=existing.has(k.canonicalHash)||existing.has(k.fingerprint),chosen=selectedKeys.has(k.canonicalHash),expired=seoulDay(c.publishedAt)!==plan.day,status=stored||chosen?'STORED':!expired&&c.priority&&c.securityIds.length?'DEFERRED':'EXCLUDED',reason=expired&&!stored&&!chosen?'CANDIDATE_EXPIRED':status==='DEFERRED'?(c.materialType!=='DISCLOSURE'&&selected.filter(row=>row.materialType===c.materialType).length>=5?'TYPE_RUN_LIMIT':'SELECTION_RANK'):status==='EXCLUDED'?'NOT_RELEVANT':null;
     const count=counts.get(c.provider)??{storedDuplicates:0,pastExcluded:0,selectionExcluded:0,saved:0,linked:0};
-    if(stored)count.storedDuplicates++;if(pastExcluded.has(k.canonicalHash)||pastExcluded.has(k.fingerprint)||pendingCandidates.some(p=>p.canonicalHash===k.canonicalHash))count.pastExcluded++;if(status==='DEFERRED')count.selectionExcluded++;if(chosen)count.saved++;count.linked+=relations.filter(r=>knownItems.get(k.canonicalHash)===r.newsId).length;counts.set(c.provider,count);
+    if(stored)count.storedDuplicates++;if(pastExcluded.has(k.canonicalHash)||pastExcluded.has(k.fingerprint))count.pastExcluded++;if(status==='DEFERRED')count.selectionExcluded++;if(chosen)count.saved++;count.linked+=relations.filter(r=>knownItems.get(k.canonicalHash)===r.newsId).length;counts.set(c.provider,count);
     const payload=JSON.parse(JSON.stringify({...c,securityIds:c.securityIds.map(String),summary:c.provider==='NAVER_NEWS'?c.summary:null,summaryMethod:c.provider==='NAVER_NEWS'?c.summaryMethod:'NONE'}));
-    await tx.stockNewsCandidate.upsert({where:{canonicalHash:k.canonicalHash},create:{...k,provider:c.provider,providerId:c.providerId,payload,priority:c.priority,publishedAt:c.publishedAt,expiresAt:new Date(c.publishedAt.getTime()+72*3600000),status,reason,firstSeenAt:finished,lastCheckedAt:finished},update:{payload,status,reason,lastCheckedAt:finished}});
+    await tx.stockNewsCandidate.upsert({where:{canonicalHash:k.canonicalHash},create:{...k,provider:c.provider,providerId:c.providerId,payload,priority:c.priority,publishedAt:c.publishedAt,expiresAt:new Date(kstStart(plan.day).getTime()+86400000),status,reason,firstSeenAt:finished,lastCheckedAt:finished},update:{payload,status,reason,lastCheckedAt:finished}});
     for(const seenKey of [k.canonicalHash,k.fingerprint])await tx.stockNewsSeen.upsert({where:{key:seenKey},create:{key:seenKey,firstSeenAt:finished,status,reason,lastCheckedAt:finished},update:{status,reason,lastCheckedAt:finished}});
    }
    const nextRetries:Date[]=[];
    for(const r of results){
-    if(r.reused){r.diagnostics={rawParsed:0,periodPassed:0,securityMatched:0,...counts.get(r.provider)};await tx.stockNewsProviderState.update({where:{provider:r.provider},data:{diagnostics:r.diagnostics}});if(r.nextRetryAt)nextRetries.push(new Date(r.nextRetryAt));continue;}
+    if(r.reused){r.diagnostics={...r.diagnostics,rawParsed:0,periodPassed:0,securityMatched:0,...counts.get(r.provider)};await tx.stockNewsProviderState.update({where:{provider:r.provider},data:{diagnostics:r.diagnostics}});if(r.nextRetryAt)nextRetries.push(new Date(r.nextRetryAt));continue;}
     const recoverable=r.warnings.some((w:string)=>/UNAVAILABLE|FAILED|QUOTA|YIELDED|TIME_BOUND|PAGE_BOUND|CALL_BOUND|SOURCE_BOUND/.test(w));
     const nextRetryAt=recoverable&&r.attempt<3?new Date(finished.getTime()+15*60000*r.attempt):null;
     if(nextRetryAt)nextRetries.push(nextRetryAt);
     r.nextRetryAt=nextRetryAt?.toISOString()??null;r.retryEndReason=nextRetryAt?null:r.status==='SUCCESS'||r.status==='EXCLUDED'?'COMPLETE':recoverable?'RETRY_EXHAUSTED':'COVERAGE_UNRECOVERABLE';
     r.diagnostics={...r.diagnostics,...counts.get(r.provider),selectionExcluded:(r.diagnostics?.selectionExcluded??0)+(counts.get(r.provider)?.selectionExcluded??0)};
-    const prior=await tx.stockNewsProviderState.findUnique({where:{provider:r.provider}});
-    const gaps=[...(Array.isArray(prior?.gaps)?prior!.gaps:[]),...(Array.isArray(r.gaps)?r.gaps:[])].slice(-24);
-    const data={slotKey:key,status:r.status,attempts:r.attempt,nextRetryAt,lastAttemptAt:now,...(r.status!=='FAILED'&&!recoverable?{lastCheckedAt:finished}:{}),gaps,diagnostics:r.diagnostics,lastError:r.warnings.join(', ').slice(0,500)||null,...(r.status==='SUCCESS'||r.status==='EXCLUDED'?{lastSuccessAt:finished,...(!gaps.length?{watermark:now}:{})}:{})};
+    const gaps=(Array.isArray(r.gaps)?r.gaps:[]).slice(-24);
+    const data={slotKey:key,status:r.status,attempts:r.attempt,nextRetryAt,lastAttemptAt:now,...(r.status!=='FAILED'&&!recoverable?{lastCheckedAt:now}:{}),gaps,diagnostics:r.diagnostics,lastError:r.warnings.join(', ').slice(0,500)||null,...(r.status==='SUCCESS'||r.status==='EXCLUDED'?{lastSuccessAt:finished,...(!gaps.length?{watermark:now}:{})}:{})};
     await tx.stockNewsProviderState.upsert({where:{provider:r.provider},create:{provider:r.provider,...data},update:data});
     if(!['SUCCESS','EXCLUDED'].includes(r.status))await tx.collectorRunItem.create({data:{runId:run.id,symbol:r.provider,status:'FAILED',message:r.warnings.join(', ').slice(0,1000),diagnostics:{provider:r.provider,status:r.status,retryEndReason:r.retryEndReason,metadataRetained:true}}});
    }

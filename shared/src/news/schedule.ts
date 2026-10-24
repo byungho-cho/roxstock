@@ -13,5 +13,16 @@ export function regularSlot(config:NewsScheduleConfig,now:Date){
 }
 export function nextNewsAt(config:NewsScheduleConfig,now:Date){return now<config.anchorAt?new Date(config.anchorAt):new Date(regularSlot(config,now).getTime()+config.intervalHours*3600000);}
 export function newsWindow(initialDate:string,lastCheckedAt:Date|null,now:Date){
- return new Date(Math.max(kstStart(initialDate).getTime(),(lastCheckedAt??now).getTime()-72*3600000));
+ return new Date(Math.min(now.getTime(),Math.max(kstStart(initialDate).getTime(),kstStart(seoulDay(now)).getTime(),lastCheckedAt?.getTime()??0)));
+}
+
+/** Legacy lastCheckedAt used completion time; the query only covered through its start. */
+export function newsQueryCursor(state:{lastCheckedAt:Date|null;lastAttemptAt:Date|null;watermark:Date|null}|null){
+ if(!state)return null;
+ return state.lastCheckedAt?new Date(Math.min(state.lastCheckedAt.getTime(),state.lastAttemptAt?.getTime()??Infinity)):state.watermark;
+}
+
+/** Date-only sources cannot filter by hour; discovery identity handles repeated rows. */
+export function withinNewsWindow(item:{publishedAt:Date;publishedPrecision:'TIME'|'DATE'},from:Date,to:Date){
+ return item.publishedAt<=to&&(item.publishedPrecision==='DATE'?seoulDay(item.publishedAt)===seoulDay(to):item.publishedAt>=from);
 }
