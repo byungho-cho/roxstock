@@ -1,6 +1,7 @@
 /** Public explanations retain actionable status, never request URLs, credentials, SQL or stack traces. */
 export function collectionPublicMessage(value:string|null|undefined):string|null{
  if(!value)return null;
+ if(value === 'snapshot not written: missing prices for CURRENT_CASH_MISSING')return '스냅샷 미생성: 예수금이 등록되지 않았습니다.';
  const text=value.replace(/\bBearer\s+[^\s,;]+/gi,'Bearer [민감정보 숨김]').replace(/(?:https?|mysql|postgres(?:ql)?):\/\/[^\s<>"']+/gi,'[요청 주소 숨김]')
  .replace(/(["']?(?:crtfc_key|api[_-]?key|service[_-]?key|auth[_-]?key|인증키|서비스키|authorization|password|passwd|token|secret)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s&,;}]+)/gi,'$1[민감정보 숨김]')
 

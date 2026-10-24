@@ -65,10 +65,20 @@ export const collectDailyAccountSnapshots = async (
     const accounts = await repository.listActiveAccountsForSnapshot();
     const snapshotDate = toDatabaseDate(clock.dateKey);
     for (const account of accounts) {
+      if (account.cashBalance === null && account.lots.length === 0) {
+        counters.skipped += 1;
+        await repository.addRunItem(runId, {
+          symbol: `account:${account.id}`, status: 'SKIPPED',
+          message: '빈 계좌 수집 제외: 예수금과 매수 내역이 없어 스냅샷을 생성하지 않습니다.',
+        });
+        continue;
+      }
       const calculation = calculateSnapshot(account);
       if (!calculation.value) {
         counters.failed += 1;
-        const reason = `snapshot not written: missing prices for ${calculation.missingSymbols.join(', ')}`;
+        const reason = calculation.missingSymbols.includes('CURRENT_CASH_MISSING')
+          ? '스냅샷 미생성: 예수금이 등록되지 않았습니다.'
+          : `스냅샷 미생성: 보유 종목의 현재가가 없습니다 (${calculation.missingSymbols.join(', ')}).`;
         await repository.addRunItem(runId, { symbol: `account:${account.id}`, status: 'FAILED', message: reason });
         log('warn', 'account snapshot skipped', { runId, accountId: account.id, reason });
         continue;
@@ -78,7 +88,7 @@ export const collectDailyAccountSnapshots = async (
       await repository.addRunItem(runId, { symbol: `account:${account.id}`, status: 'SUCCESS', observedAt: now });
     }
     const status: CollectorRunStatus = accounts.length === 0 ? 'SKIPPED'
-      : counters.success === accounts.length ? 'SUCCESS'
+      : counters.failed === 0 ? 'SUCCESS'
       : counters.success > 0 ? 'PARTIAL'
       : 'FAILED';
     await repository.finishRun(runId, status, counters, status === 'FAILED' ? 'no account snapshot was stored' : undefined);

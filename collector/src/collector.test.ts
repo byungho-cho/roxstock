@@ -164,6 +164,40 @@ test('snapshot is not written when any held position lacks a price', async () =>
   const result = await collectDailyAccountSnapshots(repository, { lockTtlSeconds: 30, now: new Date('2026-09-27T14:00:00Z') });
   assert.equal(result.status, 'FAILED');
   assert.equal(repository.snapshots.size, 0);
+  assert.match(repository.items[0].message!, /보유 종목의 현재가가 없습니다 \(005930\)/);
+});
+
+test('empty accounts without cash are normally excluded, while explicit zero still produces a snapshot', async () => {
+  const repository = new MemoryRepository();
+  repository.accounts = [
+    {id: 1n, name: 'empty', cashBalance: null, lots: []},
+    {id: 2n, name: 'zero', cashBalance: '0', lots: []},
+  ];
+  const result = await collectDailyAccountSnapshots(repository, {lockTtlSeconds: 30});
+  assert.equal(result.status, 'SUCCESS');
+  assert.equal(result.failed, 0);
+  assert.equal(result.skipped, 1);
+  assert.equal(result.success, 1);
+  assert.equal(repository.items[0].status, 'SKIPPED');
+  assert.match(repository.items[0].message!, /^빈 계좌 수집 제외:/);
+  assert.equal(repository.snapshots.size, 1);
+  assert.equal([...repository.snapshots.values()][0].totalAssetValue, '0');
+});
+
+test('only empty accounts is a normal exclusion, but missing cash with any purchase history remains a failure', async () => {
+  const repository = new MemoryRepository();
+  repository.accounts = [{id: 1n, name: 'empty', cashBalance: null, lots: []}];
+  const excluded = await collectDailyAccountSnapshots(repository, {lockTtlSeconds: 30});
+  assert.equal(excluded.status, 'SUCCESS');
+  assert.equal(excluded.skipped, 1);
+  repository.accounts = [{id: 2n, name: 'sold', cashBalance: null,
+    lots: [{symbol: '005930', quantity: '1', soldQuantity: '1', unitPrice: '400', currentPrice: '500'}]}];
+  const failed = await collectDailyAccountSnapshots(repository, {lockTtlSeconds: 30});
+  assert.equal(failed.status, 'FAILED');
+  assert.equal(failed.failed, 1);
+  assert.equal(failed.skipped, 0);
+  assert.equal(repository.items.at(-1)?.message, '스냅샷 미생성: 예수금이 등록되지 않았습니다.');
+  assert.equal(repository.snapshots.size, 0);
 });
 
 test('snapshot obeys cash plus current holdings value and UPSERTs same account/date', async () => {

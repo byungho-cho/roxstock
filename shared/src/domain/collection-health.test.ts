@@ -17,6 +17,7 @@ test('multiple configured slots and long-running boundary are independent of res
 test('only proven exclusions count as normal; empty, unknown, lock, stale, inactive are not success',()=>{
   assert.equal(skipKind('사용자 설정: 해당 기능 수집에서 제외'),'EXCLUDED');
   assert.equal(skipKind('Z99 코드: 수집 제외'),'EXCLUDED');
+  assert.equal(skipKind('빈 계좌 수집 제외: 예수금과 매수 내역이 없어 스냅샷을 생성하지 않습니다.'),'EXCLUDED');
   assert.equal(skipKind('another execution holds the collector lock'),'LOCK_CONFLICT');
   assert.equal(skipKind(null),'UNKNOWN');
   assert.equal(priceRunResult({success:2,failed:0,stale:0,skipped:1},1),'SUCCESS');
