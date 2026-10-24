@@ -39,8 +39,8 @@ export function NotificationSettings(){
  const flush=async()=>{
   if(running.current)return;running.current=true;const owner=user!.id;
   try{while(queue.current.length&&scope.current===owner){const job=queue.current[0];try{
-    const saved=await apiRequest<{policyRevision:number}>('/notifications/settings/accounts/'+job.id,{method:'PATCH',body:JSON.stringify({[job.key]:job.checked})});
-    confirmed.current={...apply(confirmed.current!,job),policyRevision:saved.policyRevision};queue.current.shift();
+    const saved=await apiRequest<NotificationPreferences>('/notifications/settings/accounts/'+job.id,{method:'PATCH',body:JSON.stringify({[job.key]:job.checked})});
+    confirmed.current=saved;queue.current.shift();
    }catch{queue.current.shift();setError('알림 설정 저장에 실패했습니다. 이전 설정으로 되돌렸습니다. 다시 시도해 주세요.');}
    if(scope.current!==owner)break;
    const next=queue.current.reduce(apply,confirmed.current!);publish(next);

@@ -5,8 +5,15 @@ import {ApiError} from '@roxstock/shared/lib/api-error';
 import {pushConfigured} from './fcm.js';
 import {notificationDestination} from './policy.js';
 import {effective,ensureNotificationAccounts,highestPending,notificationFields,type NotificationField} from './accounts.js';
+import type {Prisma} from '@roxstock/shared/prisma';
 const bad=()=>new ApiError(400,'INVALID_NOTIFICATION_INPUT','알림 설정 값을 확인해 주세요.');
 const view=(p:{targetEnabled:boolean;newsEnabled:boolean;tradeEnabled?:boolean}|null)=>({tradeEnabled:p?.tradeEnabled??false,targetEnabled:p?.targetEnabled??false,newsEnabled:p?.newsEnabled??false,pushConfigured:pushConfigured()});
+async function settingsView(tx:Prisma.TransactionClient,userId:bigint){
+ const accounts=await tx.account.findMany({where:{userId,isActive:true},orderBy:[{isDefault:'desc'},{displayOrder:'asc'},{id:'asc'}],select:{id:true,name:true,brokerName:true,accountNumber:true,isDefault:true}});
+ const preferences=await tx.accountNotificationPreference.findMany({where:{userId,accountId:{in:accounts.map(a=>a.id)}}});
+ const {policyRevision}=await tx.appNotificationPreference.findUniqueOrThrow({where:{userId}});
+ return {...view(null),policyRevision,tradeEnabled:preferences.some(p=>effective(p,'BUY')||effective(p,'SELL')||effective(p,'DIVIDEND')),newsEnabled:preferences.some(p=>effective(p,'NEWS')),targetEnabled:preferences.some(p=>effective(p,'TARGET')),accounts:accounts.map(a=>{const p=preferences.find(p=>p.accountId===a.id);return {...a,id:String(a.id),...Object.fromEntries(notificationFields.map(k=>[k,p?.[k]??false]))};})};
+}
 export async function notificationRoutes(app:FastifyInstance){
  app.get<{Querystring:{accountId?:string;kind?:string;eventId?:string}}>('/notifications/eligibility',async req=>{
   const {accountId,kind,eventId}=req.query;if(!accountId||!/^[1-9][0-9]{0,19}$/.test(accountId)||!['BUY','SELL','DIVIDEND','NEWS','TARGET'].includes(kind??'')||(eventId!==undefined&&!/^[a-f0-9-]{36}$/.test(eventId)))throw bad();
@@ -17,13 +24,10 @@ export async function notificationRoutes(app:FastifyInstance){
   return {data:{allowed:!!account&&!!pending&&effective(p,kind!)}};
  });
  app.get('/notifications/settings',async req=>{
-  const userId=req.auth!.userId,accounts=await ensureNotificationAccounts(prisma,userId);
+  const userId=req.auth!.userId;await ensureNotificationAccounts(prisma,userId);
   return prisma.$transaction(async tx=>{
   await tx.$queryRaw`SELECT user_id FROM app_notification_preferences WHERE user_id=${userId} FOR UPDATE`;
-  const preferences=await tx.accountNotificationPreference.findMany({where:{userId,accountId:{in:accounts.map(a=>a.id)}}});
-  const {policyRevision}=await tx.appNotificationPreference.findUniqueOrThrow({where:{userId}});
-  const rows=accounts.map(a=>{const p=preferences.find(p=>p.accountId===a.id)!;return {...a,id:String(a.id),...Object.fromEntries(notificationFields.map(k=>[k,p[k]]))};});
-  return {data:{...view(null),policyRevision,tradeEnabled:preferences.some(p=>effective(p,'BUY')||effective(p,'SELL')||effective(p,'DIVIDEND')),newsEnabled:preferences.some(p=>effective(p,'NEWS')),targetEnabled:preferences.some(p=>effective(p,'TARGET')),accounts:rows}};
+  return {data:await settingsView(tx,userId)};
   });
  });
  app.patch<{Params:{accountId:string};Body:unknown}>('/notifications/settings/accounts/:accountId',async req=>{
@@ -49,7 +53,7 @@ export async function notificationRoutes(app:FastifyInstance){
    const disabled=['TARGET','NEWS'].filter(kind=>!effective(next,kind));
    const events=await tx.appNotificationEvent.findMany({where:{userId,accountId,kind:{in:disabled}},select:{id:true}});
    await tx.appPushDelivery.updateMany({where:{eventId:{in:events.map(e=>e.id)},status:'PENDING'},data:{status:'CANCELLED',errorCode:'ACCOUNT_DISABLED'}});
-   return {data:{accountId:String(accountId),policyRevision,...Object.fromEntries(notificationFields.map(k=>[k,next[k]]))}};
+   return {data:{...await settingsView(tx,userId),accountId:String(accountId),policyRevision}};
   });
  });
  app.put('/notifications/settings',async()=>{throw new ApiError(409,'ACCOUNT_SETTINGS_REQUIRED','계좌별 알림 설정 화면에서 변경해 주세요.');});
