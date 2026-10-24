@@ -1,25 +1,62 @@
 import {brokerAvailable,brokerNative} from './brokerNative';
-import {useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {Alert,Box,Button,FormControlLabel,Stack,Switch,Typography} from '@mui/material';
+import {Alert,Box,Button,ButtonBase,Stack,Typography} from '@mui/material';
 import {useAuth} from '../auth/AuthGate';
 import {apiRequest} from '../data/apiClient';
 import {showSuccessToast,QueryErrorNotice} from '../components/common/QueryErrorNotice';
 import {nativePush,nativePushAvailable} from './native';
-export type NotificationPreferences={tradeEnabled:boolean;targetEnabled:boolean;newsEnabled:boolean;pushConfigured:boolean};
+export const notificationKinds=[['buyEnabled','매수'],['sellEnabled','매도'],['dividendEnabled','배당'],['newsEnabled','종목 소식'],['targetEnabled','목표 도래']] as const;
+export type NotificationField='enabled'|typeof notificationKinds[number][0];
+export type AccountNotificationSettings={id:string;name:string;brokerName:string;accountNumber:string|null;isDefault:boolean}&Record<NotificationField,boolean>;
+export type NotificationPreferences={policyRevision:number;tradeEnabled:boolean;targetEnabled:boolean;newsEnabled:boolean;pushConfigured:boolean;accounts:AccountNotificationSettings[]};
+export const effectiveNotification=(p:AccountNotificationSettings|undefined,kind:string)=>!!p?.enabled&&!!p[({BUY:'buyEnabled',SELL:'sellEnabled',DIVIDEND:'dividendEnabled',NEWS:'newsEnabled',TARGET:'targetEnabled'} as const)[kind as 'BUY']];
+export async function syncNativePreferences(userId:string,p:NotificationPreferences){
+ if(!nativePushAvailable())return;
+ const result=await nativePush('preferences',{userId,policyRevision:String(p.policyRevision),tradeEnabled:String(p.tradeEnabled),targetEnabled:String(p.targetEnabled),newsEnabled:String(p.newsEnabled),accounts:JSON.stringify(p.accounts)});
+ if(result.protocolVersion!==3){await nativePush('preferences',{userId,tradeEnabled:'false',targetEnabled:'false',newsEnabled:'false'});throw new Error('계좌별 알림을 사용하려면 최신 APK로 업데이트해 주세요.');}
+}
 export async function registerPush(){
  const result=await nativePush('token');if(!result.granted)throw new Error('시스템 알림 권한이 꺼져 있습니다. 시스템 설정에서 허용해 주세요.');if(!result.configured||!result.token||!result.installationId)throw new Error('FCM 앱 설정이 필요합니다. 알림 지원 APK와 서버 설정을 확인해 주세요.');
- const device=await apiRequest<{binding:string}>('/notifications/devices',{method:'POST',body:JSON.stringify({installationId:result.installationId,token:result.token})});await nativePush('bind',{binding:device.binding,revision:result.revision??''});
+ if(result.protocolVersion!==3)throw new Error('최신 APK로 업데이트해 주세요.');
+ const device=await apiRequest<{binding:string}>('/notifications/devices',{method:'POST',body:JSON.stringify({installationId:result.installationId,token:result.token,policyVersion:3})});await nativePush('bind',{binding:device.binding,revision:result.revision??''});
+}
+function SettingSwitch({checked,disabled,label,onChange}:{checked:boolean;disabled?:boolean;label:string;onChange:()=>void}){
+ return <ButtonBase role="switch" aria-label={label} aria-checked={checked} disabled={disabled} onClick={e=>{e.stopPropagation();onChange();}} sx={{width:42,height:24,flexShrink:0,borderRadius:'12px',opacity:disabled?.45:1}}><img src={'/notifications-v14/switch-'+(checked?'on':'off')+'.svg'} alt=""/></ButtonBase>;
 }
 export function NotificationSettings(){
- const {user}=useAuth(),client=useQueryClient(),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const {user}=useAuth(),client=useQueryClient(),[error,setError]=useState(''),[expanded,setExpanded]=useState<Record<string,boolean>>({});
  const q=useQuery({queryKey:['notification-settings',user?.id],queryFn:()=>apiRequest<NotificationPreferences>('/notifications/settings'),staleTime:0});
- const os=useQuery({queryKey:['push-os-status',user?.id],queryFn:()=>nativePush('push-status'),enabled:nativePushAvailable(),staleTime:0});
- const broker=useQuery({queryKey:['broker-os-status',user?.id],queryFn:()=>brokerNative('list'),enabled:brokerAvailable(),staleTime:0,refetchOnWindowFocus:true});
- const change=async(key:'tradeEnabled'|'targetEnabled'|'newsEnabled',checked:boolean)=>{if(!q.data||busy)return;setBusy(true);setError('');try{
-  if(checked&&key==='tradeEnabled'){if(!brokerAvailable())throw new Error('거래 알림은 Android 알림 지원 APK에서 사용할 수 있습니다.');const status=await brokerNative('list');if(status.protocolVersion!==2)throw new Error('통합 알림 지원 APK 업데이트가 필요합니다.');if(!status.permission)await brokerNative('permission');await nativePush('permission');}
-  if(checked&&key!=='tradeEnabled'){if(!q.data.pushConfigured)throw new Error('서버 푸시 설정이 아직 준비되지 않았습니다.');await nativePush('permission');await registerPush();}
-  const saved=await apiRequest<NotificationPreferences>('/notifications/settings',{method:'PUT',body:JSON.stringify({tradeEnabled:q.data.tradeEnabled,targetEnabled:q.data.targetEnabled,newsEnabled:q.data.newsEnabled,[key]:checked})});client.setQueryData(['notification-settings',user?.id],saved);if(nativePushAvailable())await nativePush('preferences',{userId:user!.id,tradeEnabled:String(saved.tradeEnabled),targetEnabled:String(saved.targetEnabled),newsEnabled:String(saved.newsEnabled)});await client.invalidateQueries({queryKey:['notification-inbox',user?.id]});showSuccessToast('알림 설정을 저장했습니다.');
- }catch(e){setError((e as Error).message);void q.refetch();}finally{setBusy(false);if(nativePushAvailable())void os.refetch();if(brokerAvailable())void broker.refetch();}};
- return <Stack spacing={1}><Typography component="h2" sx={{fontSize:16,fontWeight:600}}>알림 설정</Typography><Typography sx={{fontSize:12}}>OS 알림 권한과 사용자별 수신 설정은 각각 관리됩니다. 새 설정은 OFF입니다.</Typography>{nativePushAvailable()&&<Typography sx={{fontSize:12}}>시스템 알림: {os.data?.granted?'허용':os.isPending?'확인 중':'꺼짐 또는 확인 필요'} · 거래 시스템 알림: {os.data?.tradeGranted?'허용':'꺼짐 또는 확인 필요'} · 앱 FCM: {os.data?.configured?'설정됨':'설정 필요'}</Typography>}{brokerAvailable()&&<Typography sx={{fontSize:12}}>거래 알림 접근: {broker.data?.permission?'허용':'확인 필요'} · 미래에셋증권 전량체결·배당 형식 지원</Typography>}{brokerAvailable()&&<Button onClick={()=>void brokerNative('permission').catch(e=>setError(e.message))}>카카오 거래 알림 접근 설정</Button>}<QueryErrorNotice active={q.isError} message="알림 설정을 불러오지 못했습니다." onRetry={()=>void q.refetch()}/>{q.isPending&&<Typography role="status">설정 조회 중</Typography>}{q.data&&<>{(['tradeEnabled','newsEnabled','targetEnabled'] as const).map((key,i)=><FormControlLabel key={key} label={i===0?'거래 알림':i===1?'종목소식 알림':'목표가 도래 알림'} control={<Switch checked={q.data[key]} disabled={busy} onChange={(_,checked)=>void change(key,checked)}/>} />)}{!q.data.pushConfigured&&<Alert severity="info">푸시 외부 설정 준비 중입니다. 현재 알림을 발송하지 않습니다.</Alert>}</>}{error&&<Alert severity="error">{error}</Alert>}{nativePushAvailable()?<Button onClick={()=>void nativePush('settings').catch(e=>setError(e.message))}>시스템 알림 설정</Button>:<Box sx={{fontSize:12}}>앱 알림은 알림 지원 Android APK에서 사용할 수 있습니다.</Box>}<Typography sx={{fontSize:11}}>기존 목록과 OFF 기간의 알림은 보내지 않습니다. 목표 알림은 한국 날짜 기준 계좌·종목·조건별 하루 최초 1회만 발생합니다.</Typography></Stack>;
+ const [optimistic,setOptimistic]=useState<NotificationPreferences|null>(null);
+ const current=useRef<NotificationPreferences|null>(null),confirmed=useRef<NotificationPreferences|null>(null),queue=useRef<Array<{id:string;key:NotificationField;checked:boolean}>>([]),running=useRef(false),scope=useRef(user?.id);
+ useEffect(()=>{if(!running.current&&q.data){confirmed.current=q.data;current.current=q.data;setOptimistic(q.data);}},[q.data]);
+ useEffect(()=>{scope.current=user?.id;return()=>{scope.current=undefined;};},[user?.id]);
+ const apply=(p:NotificationPreferences,job:{id:string;key:NotificationField;checked:boolean}):NotificationPreferences=>{
+  const accounts=p.accounts.map(a=>a.id===job.id?{...a,[job.key]:job.checked}:a);
+  return {...p,accounts,tradeEnabled:accounts.some(a=>['BUY','SELL','DIVIDEND'].some(k=>effectiveNotification(a,k))),newsEnabled:accounts.some(a=>effectiveNotification(a,'NEWS')),targetEnabled:accounts.some(a=>effectiveNotification(a,'TARGET'))};
+ };
+ const publish=(p:NotificationPreferences)=>{current.current=p;setOptimistic(p);client.setQueryData(['notification-settings',user?.id],p);};
+ const flush=async()=>{
+  if(running.current)return;running.current=true;const owner=user!.id;
+  try{while(queue.current.length&&scope.current===owner){const job=queue.current[0];try{
+    const saved=await apiRequest<{policyRevision:number}>('/notifications/settings/accounts/'+job.id,{method:'PATCH',body:JSON.stringify({[job.key]:job.checked})});
+    confirmed.current={...apply(confirmed.current!,job),policyRevision:saved.policyRevision};queue.current.shift();
+   }catch{queue.current.shift();setError('알림 설정 저장에 실패했습니다. 이전 설정으로 되돌렸습니다. 다시 시도해 주세요.');}
+   if(scope.current!==owner)break;
+   const next=queue.current.reduce(apply,confirmed.current!);publish(next);
+   // Native sync uses only confirmed values; queued newer intents remain on screen.
+   try{await syncNativePreferences(owner,confirmed.current!);}catch{setError('계좌 설정은 저장됐지만 앱 반영을 확인하지 못했습니다. 앱을 다시 열어 주세요.');}
+  }}finally{running.current=false;if(scope.current===owner){await client.invalidateQueries({queryKey:['notification-inbox',owner]});await client.invalidateQueries({queryKey:['broker-inbox',owner]});}}
+ };
+ const change=(id:string,key:NotificationField,checked:boolean)=>{if(!current.current)return;setError('');const job={id,key,checked};queue.current.push(job);publish(apply(current.current,job));void flush();};
+ const permission=async()=>{try{setError('');if(brokerAvailable())await brokerNative('permission');if(nativePushAvailable()){await nativePush('permission');if(optimistic?.pushConfigured)await registerPush();}showSuccessToast('앱 알림 권한을 확인했습니다.');}catch(e){setError((e as Error).message);}};
+ return <Stack spacing="8px" sx={{px:'8px'}}><Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',height:24,gap:1}}><Typography sx={{fontSize:14,fontWeight:600}}>계좌별 알림</Typography><Typography sx={{fontSize:10,color:'#94a3b8',textAlign:'right'}}>계좌를 펼쳐 알림을 설정하세요.</Typography></Box>
+  <QueryErrorNotice active={q.isError} message="알림 설정을 불러오지 못했습니다." onRetry={()=>void q.refetch()}/>{q.isPending&&<Typography role="status">설정 조회 중</Typography>}
+  <Box sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,338px))'},gap:'12px',alignItems:'start'}}>{optimistic?.accounts.map(a=><Box key={a.id} data-testid={'account-notifications-'+a.id} sx={{bgcolor:'#111b2b',borderRadius:'10px',p:'8px 12px',minWidth:0}}>
+   <Box sx={{display:'flex',height:32,alignItems:'center',gap:'12px'}}><ButtonBase aria-expanded={!!expanded[a.id]} aria-controls={'notification-types-'+a.id} onClick={()=>setExpanded(p=>({...p,[a.id]:!p[a.id]}))} sx={{minWidth:0,flex:1,display:'flex',gap:'6px',justifyContent:'flex-start',height:32}}><img src={'/notifications-v14/chevron-'+(expanded[a.id]?'down':'right')+'.svg'} alt=""/><Typography noWrap sx={{fontSize:12,fontWeight:600,minWidth:0}}>{a.brokerName} · {a.name}</Typography><Typography noWrap sx={{fontSize:10,color:'#94a3b8',minWidth:0}}>{a.accountNumber}</Typography></ButtonBase><SettingSwitch label={`${a.name} 계좌 알림`} checked={a.enabled} onChange={()=>change(a.id,'enabled',!a.enabled)}/></Box>
+   {expanded[a.id]&&<Box id={'notification-types-'+a.id} sx={{borderTop:'1px solid #334054',mt:'4px',pt:'4px'}}>{notificationKinds.map(([key,label])=><Box key={key} sx={{display:'flex',height:36,alignItems:'center',justifyContent:'space-between',gap:1}}><Typography sx={{fontSize:12}}>{label}</Typography><SettingSwitch label={`${a.name} ${label}`} checked={a[key]} disabled={!a.enabled} onChange={()=>change(a.id,key,!a[key])}/></Box>)}</Box>}
+  </Box>)}</Box>
+  {optimistic&&!optimistic.accounts.length&&<Typography sx={{fontSize:12,textAlign:'center'}}>등록된 계좌가 없습니다.</Typography>}{error&&<Alert severity="error">{error}</Alert>}
+  {nativePushAvailable()&&<Button onClick={()=>void permission()}>앱 알림 권한 설정</Button>}
+ </Stack>;
 }

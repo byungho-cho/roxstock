@@ -6,6 +6,12 @@ import android.os.Build;
 
 /** Local display only; the durable inbox and receipt tombstones remain authoritative. */
 final class BrokerAlerts {
+    static void queueDisplay(Context c,String id,String owner){
+      final long revision=AppPush.preferences(c).getLong("policyRevision",0);
+      try(InboxDb db=new InboxDb(c)){String raw=db.raw(id,owner);if(!AccountAlerts.allowed(c,AccountAlerts.resolve(c,AccountAlerts.account(raw)),AccountAlerts.kind(raw)))return;}
+      AccountAlerts.dispatch.execute(()->{
+        try(InboxDb db=new InboxDb(c)){String raw=db.raw(id,owner);if(revision==AppPush.preferences(c).getLong("policyRevision",0)&&AccountAlerts.serverAllowed(c,AccountAlerts.resolve(c,AccountAlerts.account(raw)),AccountAlerts.kind(raw))&&revision==AppPush.preferences(c).getLong("policyRevision",0))display(c,id,owner);}catch(Exception ignored){}
+    });}
     static final String CHANNEL="roxstock-trades";
     static void initialize(Context c) {
         if(Build.VERSION.SDK_INT>=26)((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE))
@@ -20,6 +26,7 @@ final class BrokerAlerts {
     @android.annotation.SuppressLint("MissingPermission")
     static synchronized void display(Context c,String id,String owner) {
         if(!owner.equals(AppPush.preferences(c).getString("inboxOwner",""))||!AppPush.preferences(c).getBoolean("tradeEnabled",false)||!granted(c))return;
+        try(InboxDb db=new InboxDb(c)){String raw=db.raw(id,owner);if(!AccountAlerts.allowed(c,AccountAlerts.resolve(c,AccountAlerts.account(raw)),AccountAlerts.kind(raw)))return;}catch(Exception e){return;}
         Intent launch=new Intent(c,MainActivity.class).putExtra("brokerId",id).putExtra("brokerOwner",owner)
             .setData(android.net.Uri.parse("roxstock://broker/"+id)).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent click=PendingIntent.getActivity(c,0,launch,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
@@ -44,6 +51,14 @@ final class BrokerAlerts {
     static void cancelAll(Context c) {
         NotificationManager m=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
         for(android.service.notification.StatusBarNotification n:m.getActiveNotifications())if(n.getTag()!=null&&n.getTag().startsWith("broker:"))m.cancel(n.getTag(),n.getId());
+    }
+    static void cancelDisabled(Context c){
+        NotificationManager m=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
+        for(android.service.notification.StatusBarNotification n:m.getActiveNotifications()){
+            String tag=n.getTag();if(tag==null)continue;
+            if(tag.startsWith("broker:"))try(InboxDb db=new InboxDb(c)){String raw=db.raw(tag.substring(7),AppPush.preferences(c).getString("inboxOwner",""));if(!AccountAlerts.allowed(c,AccountAlerts.resolve(c,AccountAlerts.account(raw)),AccountAlerts.kind(raw)))m.cancel(tag,n.getId());}catch(Exception e){m.cancel(tag,n.getId());}
+            if(tag.startsWith("account:")){String[] parts=tag.split(":");if(parts.length<3||!AccountAlerts.allowed(c,parts[1],parts[2]))m.cancel(tag,n.getId());}
+        }
     }
     static void cancel(Context c,String id) {((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel("broker:"+id,0);}
     static void rememberClick(Context c,Intent intent) {
