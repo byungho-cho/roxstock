@@ -1,4 +1,4 @@
-type PushResult={tradeGranted?:boolean;revision?:string;installationId?:string;token?:string;binding?:string;granted?:boolean;configured?:boolean};
+type PushResult={protocolVersion?:number;tradeGranted?:boolean;revision?:string;installationId?:string;token?:string;binding?:string;granted?:boolean;configured?:boolean};
 declare global {interface Window {RoxStockPush?:{postMessage:(value:string)=>void};}}
 let serial=0;const waiting=new Map<string,{resolve:(r:PushResult)=>void;reject:(e:Error)=>void}>();
 export const nativePushAvailable=()=>!!window.RoxStockPush;

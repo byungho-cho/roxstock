@@ -36,7 +36,7 @@ final class InboxDb extends SQLiteOpenHelper {
     void receive(String raw, long receivedAt) throws Exception { synchronized(BrokerAlerts.class){receiveSaved(raw,receivedAt);} }
     private void receiveSaved(String raw, long receivedAt) throws Exception {
         String owner=AppPush.preferences(context).getString("inboxOwner", "");
-        if(owner.isEmpty() || !AppPush.preferences(context).getBoolean("tradeEnabled",false))return;
+        if(owner.isEmpty())return;
         if (raw.length() > 20000 || !raw.contains("[미래에셋증권]")) return;
         boolean trade = raw.matches("(?s).*\\[미래에셋증권\\]\\s*전량체결.*") && raw.matches("(?s).*매매구분\\s*[:：]\\s*(매수|매도).*");
         boolean dividend = raw.contains("권리 입금 안내") && raw.matches("(?s).*배당금\\s*입금.*");
@@ -59,15 +59,19 @@ final class InboxDb extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
         }finally{db.endTransaction();}
         // A display failure must never roll back or discard a committed inbox entry.
-        if(inserted)try{BrokerAlerts.display(context,id.toString(),owner);}catch(Exception ignored){}
+        if(inserted)try{BrokerAlerts.queueDisplay(context,id.toString(),owner);}catch(Exception ignored){}
     }
     int count(String owner) {
-        try(Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM inbox WHERE owner = ? AND status = 'pending'",new String[]{owner})) {return c.moveToFirst()?c.getInt(0):0;}
+        try{return list(owner).length();}catch(Exception e){return 0;}
     }
+    String raw(String id,String owner){try(Cursor c=getReadableDatabase().rawQuery("SELECT raw FROM inbox WHERE id=? AND owner=? AND status='pending'",new String[]{id,owner})){return c.moveToFirst()?c.getString(0):"";}}
     JSONArray list(String owner) throws Exception {
         JSONArray rows = new JSONArray();
         try (Cursor cursor = getReadableDatabase().rawQuery("SELECT id, raw, received, status FROM inbox WHERE owner = ? AND status = 'pending' ORDER BY received DESC LIMIT 1000", new String[]{owner})) {
-            while (cursor.moveToNext()) rows.put(new JSONObject().put("id", cursor.getString(0)).put("raw", cursor.getString(1)).put("receivedAt", cursor.getLong(2)).put("status", cursor.getString(3)));
+            while (cursor.moveToNext()) {
+                String raw=cursor.getString(1);
+                if(AccountAlerts.allowed(context,AccountAlerts.resolve(context,AccountAlerts.account(raw)),AccountAlerts.kind(raw)))rows.put(new JSONObject().put("id", cursor.getString(0)).put("raw",raw).put("receivedAt", cursor.getLong(2)).put("status", cursor.getString(3)));
+            }
         }
         return rows;
     }

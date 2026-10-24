@@ -10,8 +10,8 @@ android {
         applicationId 'com.roxstock.app'
         minSdk 24
         targetSdk 35
-        versionCode 10
-        versionName '0.1.9'
+        versionCode 11
+        versionName '0.1.10'
         resValue 'string', 'app_name', 'RoxStock'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         ['APP_ID','API_KEY','PROJECT_ID','SENDER_ID'].each { key ->

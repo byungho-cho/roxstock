@@ -1,0 +1,10 @@
+import {Box,Button,ButtonBase,Typography} from '@mui/material';
+import {colors} from '../styles/tokens';
+export const notificationLabels={BUY:'매수',SELL:'매도',DIVIDEND:'배당',NEWS:'소식',TARGET:'목표'};
+export const notificationTones={BUY:'#2e6ec4',SELL:'#bf404d',DIVIDEND:'#916f2b',NEWS:'#1f805c',TARGET:'#7d4fb2'};
+export function NotificationCard({kind,title,detail,busy,onOpen,onIgnore}:{kind:keyof typeof notificationLabels;title:string;detail:string;busy:boolean;onOpen:()=>void;onIgnore:()=>void}){
+ return <Box data-testid="notification-card" role="group" tabIndex={busy?-1:0} aria-label={`${notificationLabels[kind]} ${title}`} onClick={e=>{if(!busy&&!(e.target as Element).closest('button'))onOpen();}} onKeyDown={e=>{if(!busy&&e.target===e.currentTarget&&['Enter',' '].includes(e.key)){e.preventDefault();onOpen();}}} sx={{bgcolor:colors.raised,borderRadius:'8px',p:'8px 10px',minHeight:68,boxSizing:'border-box',display:'flex',flexDirection:'column',gap:'4px',minWidth:0,cursor:'pointer'}}>
+  <ButtonBase onClick={onOpen} disabled={busy} sx={{width:'100%',minWidth:0,height:20,justifyContent:'flex-start',gap:'8px'}}><Box sx={{width:30,height:18,borderRadius:'4px',bgcolor:notificationTones[kind],fontSize:9,fontWeight:600,display:'grid',placeItems:'center',flexShrink:0}}>{notificationLabels[kind]}</Box><Typography noWrap sx={{fontSize:13,lineHeight:'18px',fontWeight:600,minWidth:0}}>{title||notificationLabels[kind]}</Typography></ButtonBase>
+  <Box sx={{display:'flex',alignItems:'center',gap:'8px',minWidth:0,minHeight:28}}><ButtonBase onClick={onOpen} disabled={busy} sx={{minWidth:0,flex:1,justifyContent:'flex-start',height:28}}><Typography noWrap sx={{fontSize:12,fontWeight:400,lineHeight:'18px',minWidth:0}}>{detail||'알림 확인'}</Typography></ButtonBase><Button disabled={busy} onClick={event=>{event.stopPropagation();onIgnore();}} sx={{width:50,minWidth:50,height:28,minHeight:28,flexShrink:0,p:0,fontSize:10,fontWeight:400,borderRadius:'4px',bgcolor:'#2e3b4f',color:'#d9e0ed'}}>무시</Button></Box>
+ </Box>;
+}

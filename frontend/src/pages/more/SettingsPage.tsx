@@ -31,11 +31,11 @@ export function SettingsPage() {
   const backPath = ['backup','collection'].includes(view)?'/detail/admin':view === 'settings' ? '/more' : view==='reset'?'/detail/settings?view=edit&accountId='+params.get('accountId'):['add', 'edit', 'cash'].includes(view) ? '/detail/settings?view=account' : '/detail/settings?view=settings';
   if(['backup','collection'].includes(view))return <Navigate to={user?.role==='ADMIN'?'/detail/admin/'+view:'/more'} replace/>;
   return <>
-    <PageHeader embedded showBack={view !== 'settings'} title={tablet ? '설정' : labels[view]} backPath={tablet ? '/more' : backPath} backIcon={<img src="/stocks-v03/back.svg" alt="" />} showBackTablet showAdd={false} variant="more" compact />
-    <Box className="rox-home" data-testid="settings-layout" sx={{ display: { xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
-      <Box ref={menuRef} data-scroll-region="settings-menu" data-testid="settings-menu" sx={{ display: { xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: '80px' }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
+    <PageHeader embedded showBack={view !== 'settings'} title={tablet && view!=='notifications' ? '설정' : labels[view]} backPath={tablet && view!=='notifications' ? '/more' : backPath} backIcon={<img src="/stocks-v03/back.svg" alt="" />} showBackTablet showAdd={false} variant="more" compact />
+    <Box className="rox-home" data-testid="settings-layout" sx={{ display: view==='notifications'?'block':{ xs: 'block', sm: 'grid' }, gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '8px', height: { sm: '100%' }, minHeight: 0 }}>
+      <Box ref={menuRef} data-scroll-region="settings-menu" data-testid="settings-menu" sx={{ display: view==='notifications'?'none':{ xs: view === 'settings' ? 'block' : 'none', sm: 'block' }, minWidth: 0, minHeight: 0, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: '80px' }}><SettingsMenu active={tablet ? detailView : undefined} /></Box>
       {detailView !== 'settings' && <Box ref={detailRef} data-scroll-region="settings-detail" data-testid="settings-detail" sx={{ minWidth: 0, minHeight: 0, height: { sm: '100%' }, overflowY: { sm: 'auto' }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, p: 0, '& .MuiButton-root': { borderRadius: '8px' }, '& .settings-condition-delete': { borderRadius: '2px' } }}>
-        <Box sx={{ px: 0, pt: ['target-arrival','account'].includes(detailView) ? 0 : '14px', pb: '80px' }}>
+        <Box sx={{ px: 0, pt: ['target-arrival','account','notifications'].includes(detailView) ? 0 : '14px', pb: '80px' }}>
           <Suspense fallback={<Skeleton aria-label="설정 상세 코드 불러오는 중" height={100}/>} >
           {detailView === 'notifications' && <NotificationSettings/>}
           {detailView === 'target-arrival' && <TargetArrivalSettings />}
