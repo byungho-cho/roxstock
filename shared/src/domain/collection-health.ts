@@ -1,7 +1,7 @@
 import {getSeoulClock} from '../collection/time.js';
 
 export function skipKind(message: string | null | undefined) {
-  if (message?.startsWith('사용자 설정:') || message?.startsWith('Z99 코드:')) return 'EXCLUDED';
+  if (message?.startsWith('사용자 설정:') || message?.startsWith('Z99 코드:') || message?.startsWith('빈 계좌 수집 제외:')) return 'EXCLUDED';
   if (message === 'another execution holds the collector lock') return 'LOCK_CONFLICT';
   if (message === 'requested symbol is not an active security') return 'INACTIVE';
   if (message?.startsWith('종목코드 또는 수집 설정 변경:')) return 'IDENTITY_CHANGED';
