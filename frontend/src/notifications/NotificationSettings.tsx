@@ -45,7 +45,14 @@ export function NotificationSettings(){
    if(scope.current!==owner)break;
    const next=queue.current.reduce(apply,confirmed.current!);publish(next);
    // Native sync uses only confirmed values; queued newer intents remain on screen.
-   try{await syncNativePreferences(owner,confirmed.current!);}catch{setError('계좌 설정은 저장됐지만 앱 반영을 확인하지 못했습니다. 앱을 다시 열어 주세요.');}
+   try{
+    const saved=confirmed.current!;await syncNativePreferences(owner,saved);
+    if(job.checked&&nativePushAvailable()){
+     await nativePush('permission');
+     if(saved.tradeEnabled&&brokerAvailable()){const status=await brokerNative('list');if(!status.permission)await brokerNative('permission');}
+     if(saved.pushConfigured&&(saved.targetEnabled||saved.newsEnabled))await registerPush();
+    }
+   }catch(e){setError('계좌 설정은 저장됐습니다. '+((e as Error).message||'앱을 다시 열어 알림 권한을 확인해 주세요.'));}
   }}finally{running.current=false;if(scope.current===owner){await client.invalidateQueries({queryKey:['notification-inbox',owner]});await client.invalidateQueries({queryKey:['broker-inbox',owner]});}}
  };
  const change=(id:string,key:NotificationField,checked:boolean)=>{if(!current.current)return;setError('');const job={id,key,checked};queue.current.push(job);publish(apply(current.current,job));void flush();};
