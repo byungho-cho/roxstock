@@ -28,6 +28,10 @@ const stateFile=directory+'/state.json';
 const json=v=>JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x);
 const save=async(file,value)=>{await writeFile(file+'.tmp',json(value),{mode:0o600});await rename(file+'.tmp',file);};
 const load=async(file)=>{try{return JSON.parse(await readFile(file,'utf8'));}catch(e){if(e.code==='ENOENT')return null;throw e;}};
+const verifiedAnnual=async(securityId,fiscalYear)=>{
+  const filing=await db.dartFinancialFiling.findFirst({where:{securityId,fiscalYear,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3},sourceValidation:{path:'$.version',equals:2}}});
+  return !!filing&&['totalAssets','totalLiabilities','totalEquity','operatingProfitYtd','netIncomeYtd'].every(k=>filing[k]!=null);
+};
 const stopped=async()=>{try{await access(directory+'/STOP');return true;}catch(e){if(e.code==='ENOENT')return false;throw e;}};
 let signalStop=false;process.on('SIGTERM',()=>{signalStop=true;});process.on('SIGINT',()=>{signalStop=true;});
 const allowed=async()=>{if(signalStop||await stopped())throw Object.assign(Error('HISTORY_STOPPED'),{code:'HISTORY_STOPPED'});};
@@ -99,8 +103,13 @@ try {
             const mode=task.periodType==='ANNUAL'?'0':'1';
             const kisHasYear=cached.tables.some(t=>t.mode===mode&&t.endpoint!=='financial-ratio'&&t.rows.some(r=>String(r.stac_yymm).startsWith(String(task.fiscalYear))));
             if(decision.status!=='NOT_DUE'&&!kisHasYear)decision={status:'DATA_UNAVAILABLE',needsSupplement:false,errorCode:'API_ROWS_UNAVAILABLE',errorMessage:'한투 과거 재무자료 및 DART 대상 공시 미제공 · 해당 조회 범위에서 확인',nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,availability:'PROVIDERS_NO_HISTORICAL_SOURCE',kisCheckedAt:cached.at,taskFiscalYear:task.fiscalYear,reportCode:task.reportCode,notALegalNonFilingDetermination:true}};
+            if(decision.status==='DATA_UNAVAILABLE'){
+              const annualVerified=task.periodType!=='ANNUAL'&&await verifiedAnnual(security.id,task.fiscalYear);
+              const excluded=quarterExclusion({year:task.fiscalYear,period:task.periodType,annualVerified,noReport:true,noKisPeriod:!kisHasYear});
+              if(excluded)decision={...decision,status:'EXCLUDED',errorCode:excluded,errorMessage:'공시 및 한투 과거 분기 자료 미제공 확인 · 해당 기간 수집 제외',diagnostics:{...decision.diagnostics,validationResult:excluded,annualVerified}};
+            }
             await preserve();await repo.updateTask(task.id,{...decision,processedAt:decision.status==='NO_FILING'?new Date():null});
-            await emit(task,security,decision.status==='FAILED'?'FAILED':'NO_DATA',decision.errorCode??'NO_PERIODIC_FILING',decision.diagnostics);return;
+            await emit(task,security,decision.status==='FAILED'?'FAILED':decision.status==='EXCLUDED'?'NOT_APPLICABLE':'NO_DATA',decision.errorCode??'NO_PERIODIC_FILING',decision.diagnostics);return;
           }
           requireDartReportPeriod(report,corpCode,task.fiscalYear);
           const existing=await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false}});
@@ -110,8 +119,8 @@ try {
           // must prove the selected correction chain against the actual response.
           const fetched=await getCfsThenOfs(dart,corpCode,task.fiscalYear,task.reportCode,report);
           if(!fetched.rows.length){
-            const annual=task.periodType!=='ANNUAL'&&await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:task.fiscalYear,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3},sourceValidation:{path:'$.version',equals:2}}});
-            const excluded=quarterExclusion({year:task.fiscalYear,period:task.periodType,annualVerified:!!annual,cfsEmpty:true,ofsEmpty:true});
+            const annual=task.periodType!=='ANNUAL'&&await verifiedAnnual(security.id,task.fiscalYear);
+            const excluded=quarterExclusion({year:task.fiscalYear,period:task.periodType,annualVerified:annual,cfsEmpty:true,ofsEmpty:true});
             if(excluded){
               await preserve();await repo.updateTask(task.id,{status:'EXCLUDED',needsSupplement:false,errorCode:excluded,errorMessage:'분기 재무 API 미제공 · 한투 출처 식별 근거 미확인으로 해당 기간 보완 제외',processedAt:new Date(),nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,validationResult:excluded,taskFiscalYear:task.fiscalYear,reportPeriod:report.selection?.periodEndDate.slice(0,7),annualVerified:!!annual,cfsEmpty:true,ofsEmpty:true,kisCheckedAt:cached.at,manualOriginalReviewPossible:true}});
               await emit(task,security,'NOT_APPLICABLE',excluded);return;
