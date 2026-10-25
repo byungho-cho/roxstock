@@ -47,10 +47,10 @@ export function projectValueRows(securities:Awaited<ReturnType<typeof loadSecuri
  });
 }
 export type ValueReadRow=Awaited<ReturnType<typeof loadValueRows>>[number];
-/** Omit private snapshot fields from list transport; basis provenance remains in metricBasis. */
+/** Omit internal snapshot fields from list transport; retain list basis labels and warnings. */
 export const publicValueRows=(rows:ValueReadRow[],compact=false)=>rows.map(({valuation: _valuation,codeRevision: _revision,...row})=>{
  if(!compact)return row;
- // Full calculation evidence remains in the server snapshot/detail; all tooltip fields stay in the list.
+ // Full calculation evidence is loaded from original period records by the detail route.
  const {provenance:_provenance,...metricBasis}=row.metricBasis;
  return {...row,metricBasis};
 });
