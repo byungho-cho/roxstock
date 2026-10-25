@@ -2,7 +2,8 @@ import {PageCache} from '../domain/page-cache.js';
 import {randomUUID} from 'node:crypto';
 import type {PrismaClient,Prisma} from '../generated/prisma/index.js';
 import {loadValueRows,type ValueReadRow,type ValueFilter} from './value-rows.js';
-const schemaVersion=8;
+import {compactValueCacheRow} from './value-cache-row.js';
+const schemaVersion=9;
 type Payload={schemaVersion:number;financialRevision:string;revisions:Record<string,string>;rows:ValueReadRow[];priceCacheGeneratedAt:string};
 type Entry={revision:string;payload:Payload;generatedAt:Date};
 export class ValueReadModel {
@@ -15,7 +16,7 @@ export class ValueReadModel {
  private async stored(year:number){
   const row=await this.db.analysisReadCache.findUnique({where:{key:`value:${year}`}});
   const payload=row?.payload as unknown as Payload;
-  return row&&payload&&[1,2,3,4,5,6,7,schemaVersion].includes(payload.schemaVersion)&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
+  return row&&payload&&[1,2,3,4,5,6,7,8,schemaVersion].includes(payload.schemaVersion)&&Array.isArray(payload.rows)&&typeof payload.financialRevision==='string'&&payload.revisions?{...row,payload}:undefined;
  }
  async get(year:number,filter?:ValueFilter){
   const memory=this.memory.get(year);
@@ -27,7 +28,7 @@ export class ValueReadModel {
   if(!previous){
    // No daily snapshot (including first startup): use the existing stored-data query, never collect externally.
    const key=JSON.stringify([year,revision,filter]);
-   const cached=await this.fallbackCache.get(key,()=>this.loader(year,undefined,undefined,filter));
+   const cached=await this.fallbackCache.get(key,async()=>(await this.loader(year,undefined,undefined,filter)).map(compactValueCacheRow));
    return {rows:cached.value,meta:{status:'FALLBACK',queryCacheStatus:cached.status,generatedAt:null,priceCacheGeneratedAt:null,financialRevision:revision}};
   }
   try{const {entry,status}=await this.refresh(year,false,previous);return {rows:entry.payload.rows,meta:this.meta(entry,status)};}
@@ -53,7 +54,7 @@ export class ValueReadModel {
   const updated=await this.loader(year,ids,!prices&&previous?new Map(previous.payload.rows.map(r=>[r.id,r])):undefined);
   const priceFailures=new Set(failedSymbols);
   if(prices)for(const row of updated)if(priceFailures.has(row.symbol)){row.collectionErrors.push('PRICE_COLLECTION_FAILED_LAST_VALUE_RETAINED');row.collectionStatus='ERROR';}
-  const rows=ids&&previous?[...previous.payload.rows.filter(r=>!dirty.includes(r.id)),...updated]:updated;
+  const rows=(ids&&previous?[...previous.payload.rows.filter(r=>!dirty.includes(r.id)),...updated]:updated).map(compactValueCacheRow);
   if(await this.revision()!==before)throw new Error('FINANCIAL_REVISION_CHANGED_DURING_BUILD');
   const generatedAt=new Date(),entry:Entry={revision:randomUUID(),generatedAt,payload:{schemaVersion,financialRevision:before,revisions,rows,priceCacheGeneratedAt:prices||!previous?generatedAt.toISOString():previous.payload.priceCacheGeneratedAt}};
   const data={revision:entry.revision,payload:entry.payload as unknown as Prisma.InputJsonValue,generatedAt};
