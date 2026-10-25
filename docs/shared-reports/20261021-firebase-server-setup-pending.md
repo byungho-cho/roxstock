@@ -1,128 +1,98 @@
-# Firebase 푸시 서버 설정: 접근 차단 및 운영 실행 절차
+# Firebase 서버 적용 결과 및 발송 준비 상태
 
-작성 시각: 2026-10-21 16:10 KST. 이 시각은 점검 시각이며 적용 시각이 아니다.
-프로젝트: roxstock-ef8ef. 대상: roxstock-backend.
+갱신일: 2026-10-21 (KST). 실제 운영 적용 시각은 사용자에게 미제공되어 미확인.
+관련: [PR #294](https://github.com/byungho-cho/roxstock/pull/294) (병합 완료).
+판정: **서버 적용 완료(사용자 운영 SSH 실행 결과), OAuth 및 FCM 발송 권한 검증 필요.**
 
-## 실제 결과
+## 증거 출처별 결과
 
-| 항목 | 결과 |
-|---|---|
-| 서버 설정 적용 / 적용 시각 | 미적용 / 없음 |
-| 키 파일 메타데이터 | 현재 작업 환경에서 root:root, 600 확인. 운영 SSH에서 재확인 필요 |
-| 프로젝트 ID / 실행 사용자 키 읽기 | 미확인 |
-| 읽기 전용 마운트 / 환경변수 | 미확인 |
-| 백엔드 실행 / 헬스 | 미확인 |
-| 기존 로그인·API·메일 설정 유지 | 변경하지 않음. 운영 기능 검증 미수행 |
-| OAuth 인증 | 미수행 |
-| FCM HTTP v1 API 활성화 / 발송 권한 | 미확인 / 미확인 |
-| 이후 배포 유지 | 미반영 |
-| 실제 발송 / 실기기 수신·클릭 | 미수행 / 미수행 |
+| 항목 | 사용자 운영 SSH 실행 결과 | 담당자 직접 확인 |
+|---|---|---|
+| 원본 키 | /root/roxstock-secrets/fcm-service-account.json | 이번 작업에서 원문 열람 없음 |
+| 런타임 키 | /opt/roxstock/.deploy/runtime/fcm-service-account.json, UID/GID 1000:1000, 모드 600 | 운영 메타데이터 재확인 불가 |
+| 앱 사용자 | uid=1000(node), gid=1000(node) | 운영 재확인 불가 |
+| 키 읽기/JSON | readable=true, projectMatches=true, privateKeyPresent=true, clientEmailPresent=true | 운영 재확인 불가 |
+| 프로젝트 | roxstock-ef8ef | 운영 재확인 불가 |
+| 마운트 | /opt/roxstock/.deploy/runtime → /run/roxstock, RW=false | 저장소 템플릿에 backend 런타임 :ro 연결 확인; 운영 재확인 불가 |
+| 환경변수 | FCM_SERVICE_ACCOUNT_FILE=/run/roxstock/fcm-service-account.json, fcmPathMatches=true | 운영 재확인 불가 |
+| 재생성 | 같은 이미지로 backend만 재생성 | 운영 재확인 불가 |
+| 실행/헬스 | running / healthy | 운영 재확인 불가 |
+| OAuth | 결과 미제공 | 미수행 |
+| FCM HTTP v1 API 활성화 | 결과 미제공 | 미확인 |
+| 발송 권한 | 결과 미제공 | 미확인 |
+| SMTP·인증·DB 보존 | 기존 파일 백업 후 경로 설정 추가 | 값 비교·기능 검증 미수행 |
+| 다음 배포 유지 | 원본과 현재 배포 작업 디렉터리 양쪽 .env.auth 수정 | 저장소의 복사·마운트 구조 확인; 실제 다음 배포 미검증 |
+| 실제 발송·실기기 수신·클릭 이동 | 후속 검증 예정 | 이번 범위에서 수행하지 않음 |
 
-현재 실행 환경에서 Docker 소켓 접근이 거부되고 sudo 초기화도 실패했다.
-운영 서버 SSH 목적지 정보가 없어 실제 운영 SSH 연결은 시도하지 않았다.
-Docker 소켓·sudoers·운영 설정·키 권한·서비스·데이터·알림 이력은 변경하지 않았다.
-전체 푸시 기능 완료 보고가 아니다.
+사용자는 다음 두 파일을 비공개 백업한 뒤 FCM 경로 항목을 추가했다고 전달했다.
+- /opt/roxstock/backend/.env.auth
+- /opt/roxstock/.deploy/commits/22001ac9c3da8f3dbb7ac492c511e492baf76e93/backend/.env.auth
 
-## 운영 SSH에서 먼저 실행할 점검
+이 보고서는 사용자 실행 결과를 직접 운영 점검으로 표현하지 않는다.
+운영 SSH 목적지 정보가 제공되지 않아 담당자는 운영 SSH에 접속하지 못했다.
+이전 별도 실행 환경의 Docker 접근·sudo 초기화 실패를 운영 서버 장애로 해석하지 않는다.
+이번 작업에서 Docker/sudoers/키/환경변수/서비스를 변경하지 않았다.
 
-아래는 읽기 전용 점검이다. root 계정이면 sudo를 생략한다.
-셸 추적(set -x)을 사용하지 않는다. 전체 inspect, 환경변수, Compose 렌더링 원문을 공유하지 않는다.
+## 담당자가 직접 확인한 배포 코드
 
-```bash
-sudo docker inspect roxstock-backend --format 'service={{index .Config.Labels "com.docker.compose.service"}}
-project={{index .Config.Labels "com.docker.compose.project"}}
-working_dir={{index .Config.Labels "com.docker.compose.project.working_dir"}}
-config_files={{index .Config.Labels "com.docker.compose.project.config_files"}}
-configured_user={{.Config.User}}
-image={{.Config.Image}}'
+- infra/docker/compose.prod-backend.yml: backend만 backend/.env.auth를 읽는다.
+  backend만 런타임 디렉터리를 /run/roxstock:ro로 연결한다.
+  기본 호스트 경로는 /opt/roxstock/.deploy/runtime이며 ROXSTOCK_RUNTIME_DIR로 변경 가능하다.
+  수집기들의 env_file에는 .env.auth가 없다.
+- scripts/deploy-production-component.sh: 원본 /opt/roxstock/backend/.env.auth와 .env.production을
+  배포 커밋 작업 디렉터리에 install -m 600으로 복사한다.
+  런타임 디렉터리를 유지하며 release.json만 별도 교체한다.
+  확인한 코드에는 fcm-service-account.json 삭제/덮어쓰기 단계가 없다.
+- scripts/deploy-service.sh: 배포 작업 디렉터리의 Compose 템플릿으로 실행한다.
+  이번 확인을 위해 이 스크립트를 실행하지 않았다. 배포 래퍼에는 DB 마이그레이션 등이 있어
+  이번 읽기 전용 검증에 사용하면 안 된다.
 
-sudo docker exec roxstock-backend node -e '
-const fs=require("node:fs");
-const s=fs.readFileSync("/proc/1/status","utf8");
-console.log(s.split("\n").filter(x=>/^(Name|Uid|Gid|Groups):/.test(x)).join("\n"));
-console.log("exec_uid="+process.getuid()+" exec_gid="+process.getgid());
-'
-sudo docker inspect roxstock-backend --format '{{range .Mounts}}{{println .Type .Source "->" .Destination "RW=" .RW}}{{end}}'
-sudo readlink -f /root/roxstock-secrets/fcm-service-account.json
-sudo stat -c '%n owner=%u:%g mode=%a' /root/roxstock-secrets/fcm-service-account.json
-command -v getenforce >/dev/null && getenforce
-```
+따라서 원본 .env.auth가 유지되고, 운영 배포가 확인한 스크립트/템플릿을 사용하며
+런타임 경로가 바뀌지 않는 조건에서는 FCM 경로·키 연결이 다음 배포에도 유지되는 구조다.
+운영의 실제 배포 코드 버전, 경로 재정의, 외부 정리 작업 및 다음 배포 결과는 미확인이다.
+현재 작업 디렉터리의 .env.auth만 수정하는 것으로는 향후 유지가 보장되지 않는다.
+기존 디렉터리 마운트를 활용했으므로 별도의 키 파일 마운트를 추가할 필요가 없다.
 
-PID 1이 래퍼이면 실제 Node 프로세스의 /proc/<PID>/status도 확인한다.
-실제 앱과 docker exec의 UID/GID가 다르면 키 검증에 docker exec --user UID:GID를 사용한다.
-운영 Compose 파일과 배포 스크립트를 서버 내부에서 읽어 env_file 경로, 프로젝트명,
-Compose 파일 순서, --env-file, 이미지 변수 및 재시작 정책을 확인한다.
-민감한 값은 출력하거나 보고서에 옮기지 않는다.
+## 운영 SSH에서 실행할 읽기 전용 재확인
 
-## 설정 백업 및 반영
-
-1. 서버 비공개 디렉터리를 root 소유 700으로 만들고 변경할 Compose 원본과 배포 스크립트를
-   cp -a로 백업한다. 백업 파일은 600으로 제한한다. 저장소나 공개 웹 디렉터리에 백업하지 않는다.
-   기존 키 소유자·모드 및 SELinux 컨텍스트도 비공개 기록에 남긴다.
-2. 키 JSON을 서버 내부에서 파싱해 project_id가 roxstock-ef8ef인지 비교하고 PASS/FAIL만 출력한다.
-3. 실제 앱 UID가 0이면 기존 root:root 600을 유지한다.
-   비root 앱이면 검증한 실제 GID에 한해 root:GID 640 등 최소 읽기 권한을 부여한다.
-   UID 매핑 또는 SELinux 사용 시 호스트 숫자 GID만으로 접근을 보장한다고 판단하지 않는다.
-4. 키를 런타임 경로로 복사해야 한다면 프론트엔드·수집기와 공유되는 디렉터리에 넣지 않는다.
-   SELinux Enforcing이면 해당 파일 접근 거부 여부를 서버 내부에서 확인한다.
-   정책에 맞춰 해당 파일만 처리하며 SELinux를 끄거나 상위 디렉터리를 재귀 relabel하지 않는다.
-5. 실제 운영 Compose의 backend에만 다음 항목을 기존 항목에 병합한다.
-   기존 environment/volumes 키를 중복 생성하거나 전체 내용을 교체하지 않는다.
-
-```yaml
-services:
-  backend:
-    environment:
-      FCM_SERVICE_ACCOUNT_FILE: /run/roxstock/fcm-service-account.json
-    volumes:
-      - type: bind
-        source: /root/roxstock-secrets/fcm-service-account.json
-        target: /run/roxstock/fcm-service-account.json
-        read_only: true
-        bind:
-          create_host_path: false
-```
-
-기존 /run/roxstock 디렉터리 마운트가 있으면 반드시 유지하고 개별 파일 연결을 검증한다.
-키가 다른 서비스에도 노출되는 공유 경로를 source로 사용하지 않는다.
-구형 Compose에서 create_host_path를 지원하지 않으면 버전을 확인한 뒤 호환 문법을 선택한다.
-다음 배포가 Compose 파일을 덮어쓴다면 배포에서 사용하는 저장소 원본에도 같은 설정을 반영한다.
-일회성 override 파일만 만들고 배포 스크립트에 포함하지 않는 방식은 완료로 인정하지 않는다.
-키 JSON은 저장소·이미지·빌드 컨텍스트에 넣지 않는다.
-
-## 백엔드만 재생성
-
-기존 배포의 작업 디렉터리, 프로젝트, Compose 파일 순서, 환경 파일 및 이미지 변수를 그대로 사용한다.
-먼저 config --quiet로 구문을 검사한다. config 원문을 공개하지 않는다.
-서버 내부에서 변경 전후 렌더링을 비교해 backend의 FCM 환경변수와 키 마운트 외 차이가 없는지 확인한다.
-렌더링을 저장한다면 비공개 600 파일로만 저장한다.
-이미지 ID, 기존 환경변수 값, 기존 마운트·네트워크·재시작 정책도 비밀값 출력 없이 비교한다.
-
-기존 Compose 호출에 붙일 인수:
-- 구문 확인: config --quiet
-- 적용: up -d --no-deps --force-recreate --pull never <확인한 backend 서비스명>
-
-이는 완성된 명령이 아니다. 위 점검 결과로 기존 호출 옵션을 확인한 뒤 실행한다.
-동시에 이미지 태그를 변경하거나 build, down, 전체 서비스 재시작을 수행하지 않는다.
-기존 이미지가 같은 태그로 교체되지 않았는지도 재생성 전에 확인한다.
-SMTP·인증·DB·수집기 환경 파일 전체를 덮어쓰지 않는다.
-
-## 비밀값을 출력하지 않는 적용 검증
+root 계정은 sudo를 생략할 수 있다. set -x를 사용하지 않는다.
+아래 명령은 전체 환경변수·키·토큰·원본 운영 로그를 출력하지 않는다.
 
 ```bash
-sudo docker inspect roxstock-backend --format '{{range .Mounts}}{{if eq .Destination "/run/roxstock/fcm-service-account.json"}}FCM mount RW={{.RW}}{{end}}{{end}}'
 sudo docker inspect roxstock-backend --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}'
+sudo docker inspect roxstock-backend --format '{{range .Mounts}}{{if eq .Destination "/run/roxstock"}}runtimeMount source={{.Source}} RW={{.RW}}{{end}}{{end}}'
+sudo docker exec --user 1000:1000 roxstock-backend node -e '
+const fs=require("node:fs");
+try {
+  const path=process.env.FCM_SERVICE_ACCOUNT_FILE;
+  const matched=path==="/run/roxstock/fcm-service-account.json";
+  if (!matched) throw new Error();
+  fs.accessSync(path, fs.constants.R_OK);
+  const key=JSON.parse(fs.readFileSync(path,"utf8"));
+  console.log(JSON.stringify({
+    uid:process.getuid(), gid:process.getgid(),
+    fcmPathMatches:matched, readable:true,
+    projectMatches:key.project_id==="roxstock-ef8ef",
+    privateKeyPresent:typeof key.private_key==="string" && key.private_key.length>0,
+    clientEmailPresent:typeof key.client_email==="string" && key.client_email.length>0
+  }));
+} catch { console.log("keyReadCheck=FAIL"); process.exitCode=1; }
+'
 ```
 
-마운트 출력이 없으면 실패이며 기대값은 RW=false다.
-전체 컨테이너의 마운트 목록을 서버 내부에서 검사해 키가 backend에만 연결됐는지 확인한다.
-백엔드는 running, 헬스체크가 있으면 healthy를 확인한다.
+이번 운영 구성은 개별 파일이 아닌 상위 디렉터리가 마운트되어 있다.
+개별 파일 목적지에 해당하는 Mounts 항목이 없어도 실패로 판단하지 않는다.
+실제 앱 사용자도 1000:1000인지 운영에서 재확인한다.
 
-아래 명령은 실제 앱과 exec 사용자가 동일함을 확인한 후 실행한다.
-다르면 docker exec에 --user UID:GID를 추가한다.
+## OAuth·발송 권한·API 상태 조회 (발송 없음)
+
+다음은 서비스 계정 키를 컨테이너 내부에서 읽고 토큰을 메모리에서만 사용한다.
+실제 발송 엔드포인트, validate_only 요청, 테스트 이벤트, 기기 토큰을 사용하지 않는다.
+OAuth에는 firebase.messaging과 조회용 cloud-platform.read-only 스코프를 요청한다.
+스코프 요청 자체는 IAM 권한을 추가하지 않으며, IAM 정책을 변경하지 않는다.
 
 ```bash
-sudo docker exec -i roxstock-backend node <<'NODE'
+sudo docker exec --user 1000:1000 -i roxstock-backend node <<'NODE'
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 (async () => {
@@ -137,7 +107,7 @@ const crypto = require('node:crypto');
     enc({alg:'RS256',typ:'JWT'}),
     enc({
       iss:key.client_email,
-      scope:'https://www.googleapis.com/auth/firebase.messaging',
+      scope:'https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/cloud-platform.read-only',
       aud:'https://oauth2.googleapis.com/token',
       iat:now, exp:now+3600
     })
@@ -160,6 +130,43 @@ const crypto = require('node:crypto');
   const data = await res.json();
   if (!data.access_token) throw new Error();
   console.log('OAuth: PASS');
+  async function query(label, url, body) {
+    try {
+      const response = await fetch(url, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          Authorization: 'Bearer '+data.access_token,
+          ...(body ? {'Content-Type':'application/json'} : {})
+        },
+        ...(body ? {body:JSON.stringify(body)} : {}),
+        signal:AbortSignal.timeout(15000)
+      });
+      if (!response.ok) {
+        console.log(label+': UNKNOWN HTTP '+response.status);
+        return null;
+      }
+      return await response.json();
+    } catch {
+      console.log(label+': UNKNOWN (request failed)');
+      return null;
+    }
+  }
+  const permission = 'cloudmessaging.messages.create';
+  const iam = await query('FCM permission',
+    'https://cloudresourcemanager.googleapis.com/v1/projects/roxstock-ef8ef:testIamPermissions',
+    {permissions:[permission]});
+  if (iam) console.log('FCM permission: '+
+    (iam.permissions?.includes(permission) ? 'PASS' : 'NOT_CONFIRMED'));
+  const project = await query('Project metadata',
+    'https://cloudresourcemanager.googleapis.com/v1/projects/roxstock-ef8ef');
+  if (project?.projectNumber && /^\\d+$/.test(String(project.projectNumber))) {
+    const service = await query('FCM API',
+      'https://serviceusage.googleapis.com/v1/projects/'+project.projectNumber+'/services/fcm.googleapis.com');
+    if (service) console.log('FCM API: '+
+      (service.state === 'ENABLED' ? 'ENABLED' : service.state === 'DISABLED' ? 'DISABLED' : 'UNKNOWN'));
+  } else {
+    console.log('FCM API: UNKNOWN (project metadata unavailable)');
+  }
 })().catch(()=>{
   console.error('검증: FAIL (원문 오류·응답은 출력하지 않음)');
   process.exitCode=1;
@@ -167,34 +174,75 @@ const crypto = require('node:crypto');
 NODE
 ```
 
-OAuth 결과만으로 FCM 활성화·발송 권한을 PASS 처리하지 않는다.
-권한이 있는 관리자 세션에서 프로젝트 roxstock-ef8ef의 fcm.googleapis.com 활성화 여부를 확인한다.
-서비스 계정에 대상 프로젝트의 cloudmessaging.messages.create 권한이
-역할·조건·상위 정책을 고려해 유효한지 확인한다.
-관리자 권한이 없거나 정책을 확인할 수 없으면 미확인으로 기록한다.
-키·액세스 토큰·기기 토큰을 CLI 인수, 셸 이력, 보고서에 넣지 않는다.
+결과 해석:
+- OAuth PASS는 이 키로 토큰 발급이 성공했다는 뜻이다. API·권한 확인을 대체하지 않는다.
+- FCM permission PASS는 해당 서비스 계정으로 대상 프로젝트의
+  cloudmessaging.messages.create를 testIamPermissions에서 확인했다는 뜻이다.
+- NOT_CONFIRMED는 해당 조회에서 권한이 확인되지 않았다는 뜻이다.
+  관리자 정책 검토 전에는 자동으로 역할을 추가하거나 기존 권한을 제거하지 않는다.
+- FCM API ENABLED와 permission PASS는 각각 별도 항목으로 기록한다.
+- UNKNOWN/HTTP 오류는 조회 권한 부족, API 설정, 네트워크 등 때문에 확인하지 못한 상태다.
+  403을 FCM 비활성화나 발송 권한 부재로 단정하지 않는다.
+  서비스 계정에 조회용 관리자 권한을 추가하지 말고 기존 관리자 세션에서 확인한다.
+- 상태 조회에 필요한 프로젝트 번호를 못 얻으면 API는 UNKNOWN으로 남긴다.
 
-기존 로그인/API는 테스트 계정과 알려진 정상 요청으로 확인하고 결과 코드만 기록한다.
-메일은 기존 설정의 값이 변경되지 않았는지 비공개 비교하고,
-실제 전송은 승인된 테스트 수신자에게만 수행한다. 미수행 항목은 미확인으로 보고한다.
+서비스 계정에 조회 권한이 없을 때, 기존 권한 있는 관리자 gcloud 세션에서 다음을 실행한다.
+로그인 계정을 임의로 바꾸거나 키를 gcloud 계정으로 등록하지 않는다.
 
-## 복구
+```bash
+gcloud services list --enabled --project=roxstock-ef8ef \
+  --filter='config.name=fcm.googleapis.com' --format='value(config.name)'
+```
 
-문제가 생기면 변경 전 백업 Compose/배포 스크립트를 원래 위치에 복원한다.
-같은 환경 파일·프로젝트·이미지와 기존 Compose 호출 옵션으로 backend만
-up -d --no-deps --force-recreate --pull never 재실행한다.
-이미지를 새 버전으로 교체하거나 DB/수집기를 재시작하지 않는다.
-원래 마운트·환경·네트워크·재시작 정책과 running/healthy 복귀를 확인한다.
-키 권한/SELinux 컨텍스트도 필요한 경우 기록한 원래 값으로 되돌린다.
-배포 원본에 변경을 반영했다면 해당 변경도 되돌려 다음 배포에서 재적용되지 않게 한다.
-기존 데이터·알림 이력을 삭제하거나 키를 무조건 삭제하지 않는다.
+이 명령은 성공 시 fcm.googleapis.com 출력으로 활성화를 확인한다.
+출력이 없을 때는 종료 코드와 관리자 권한을 함께 확인하고 자동 활성화하지 않는다.
+권한 실패 시 Google Cloud 콘솔의 Enabled APIs 또는 Firebase Cloud Messaging 설정에서 확인한다.
+IAM 관리자에게는 키의 서비스 계정을 서버 내부에서 식별해
+대상 프로젝트 cloudmessaging.messages.create의 유효 권한을 조건·상속·거부 정책과 함께 검토하도록 한다.
+과도한 역할은 최소 권한 검토 대상으로만 기록하며 기존 권한을 임의로 제거하지 않는다.
 
-## 남은 작업과 보고 갱신
+## 재배포 유지 및 기존 설정 보존 점검
 
-운영 SSH 점검 결과를 바탕으로 정확한 Compose 명령을 확정하고 설정·배포 원본을 반영해야 한다.
-완료 후 위 표를 실제 결과와 적용 시각(KST)으로 갱신한다.
-운영 검증 증거 없이 이 보고서의 미확인 항목을 완료로 바꾸지 않는다.
-실제 발송은 개발 담당과 테스트 기기·시점을 맞춘 단일 테스트로만 수행한다.
-FCM 요청 접수와 실기기 수신·클릭 이동 성공을 별도로 기록한다.
-기존 목표가 도래·과거 소식 또는 전체 사용자 일괄 알림은 발송하지 않는다.
-Firebase 연결값 등록·APK 재빌드·실기기 수신·클릭 이동 검증은 개발 측 별도 작업이다.
+운영의 Compose 라벨에서 실제 파일 위치·작업 디렉터리를 확인한다.
+원본 .env.auth와 현재 작업 디렉터리 파일을 서버 내부에서 파싱해 FCM 경로 일치를 불리언으로만 출력한다.
+중복 FCM 키, environment의 덮어쓰기 및 별도 env_file 순서도 확인한다.
+기존 배포 코드에 .env.auth 복사와 backend 전용 런타임 :ro 연결이 존재하는지 확인한다.
+다른 컨테이너의 마운트를 서버 내부에서 점검해 키 디렉터리 또는 상위 경로가 노출되지 않았는지 확인한다.
+전체 환경변수/Compose/inspect 원문은 보고서에 올리지 않는다.
+
+비공개 변경 전 백업과 두 .env.auth 파일을 파싱해 FCM_SERVICE_ACCOUNT_FILE을 제외한
+모든 키/값이 동일한지 비교한다. 중복 키가 있으면 검토 필요로 표시한다.
+비교 결과는 authEnvOtherValuesPreserved=true/false처럼 불리언만 공유한다.
+.env.production 변경 여부도 비공개 백업이 있다면 값 출력 없이 비교한다.
+백업이 없으면 과거 설정 보존 여부는 미확인으로 남긴다.
+running/healthy만으로 로그인·SMTP·DB 정상까지 입증하지 않는다.
+이번에는 로그인 상태 변경, 메일 발송, DB 보정, 재수집, 수집기 변경을 수행하지 않는다.
+
+## 설정 복구 절차
+
+1. 현재 정상 실행 중이므로 검증 미완료만을 이유로 복구하지 않는다.
+2. 복구가 필요하면 사용자 비공개 백업의 실제 경로와 생성 시각을 확인한다.
+   이후 다른 정당한 변경이 없을 때만 두 .env.auth 백업을 각각 원래 위치에 복원한다.
+   이후 변경이 있으면 전체 파일을 덮어쓰지 말고 FCM 항목만 이전 상태로 병합한다.
+3. 동일 이미지, 기존 Compose 파일 목록·프로젝트명·환경변수·네트워크·볼륨·재시작 정책을 보존해
+   backend만 up -d --no-deps --force-recreate --pull never로 재생성한다.
+   실제 호출 옵션은 운영 라벨과 기존 실행 기록으로 확정한다.
+   DB 마이그레이션을 포함하는 정기 배포 래퍼를 이번 복구에 사용하지 않는다.
+4. running/healthy 및 기존 구성 복귀를 확인한다. 수집기·DB는 재시작하지 않는다.
+5. 기존 /run/roxstock 디렉터리 마운트는 원래 구성의 일부이므로 제거하지 않는다.
+   원본 키·런타임 키를 무조건 삭제하거나 공개하지 않는다.
+   기존 데이터와 알림 이력을 보존한다.
+
+## 후속 작업
+
+운영 SSH에서 위 읽기 전용 검증을 실행한 요약 결과를 받아 OAuth/API/권한 항목을 갱신해야 한다.
+다음 정기 배포 때 FCM 경로·키 읽기·RW=false를 다시 확인한다.
+실제 발송·실기기 수신·클릭 이동: **후속 검증 예정**.
+Firebase 연결값 등록과 APK 재빌드는 개발 측 별도 작업이다.
+서버 설정 완료를 전체 푸시 기능 완료로 보고하지 않는다.
+
+## 확인에 사용한 공식 문서
+
+- [testIamPermissions](https://docs.cloud.google.com/resource-manager/reference/rest/v1/projects/testIamPermissions): 호출 주체의 프로젝트 권한 조회
+- [Service Usage services.get](https://docs.cloud.google.com/service-usage/docs/reference/rest/v1/services/get): 서비스 활성화 상태 조회와 조회 권한
+- [Firebase IAM permissions](https://firebase.google.com/docs/projects/iam/permissions): FCM 발송 권한
