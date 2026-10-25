@@ -1,0 +1,1866 @@
+{
+  "atUtc": "2026-10-11T22:30:49.954656Z",
+  "logs": [
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:07:10.681335688Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2026,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:07:10.942444342Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:10:52.627155489Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "069540",
+      "year": 2026,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:10:52.718416404Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:13:21.861204634Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "072770",
+      "year": 2026,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:13:21.918042788Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:32:15.898133639Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2026,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:32:15.938387219Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:20.538293873Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "023960",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:20.576435995Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:24.692088947Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "025320",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:24.730963732Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:28.813670876Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "025540",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:28.834453015Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:34.906188993Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "030960",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:34.920063113Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:41.003888709Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "030960",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:41.016836897Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:45.143251148Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "032800",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:45.212917953Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:49.246990820Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "032800",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:49.288734008Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:53.353301495Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033160",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:53.382219316Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:57.448520272Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:35:57.469537898Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:01.566616589Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:01.599188775Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:05.630057112Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2025,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:05.638363293Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:09.756310751Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033290",
+      "year": 2025,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:09.849119253Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:13.825315435Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033500",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:13.844071670Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:20.021237286Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033790",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:20.045253307Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:24.122817660Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "037270",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:24.167842984Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:28.210656904Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "039420",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:28.220132576Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:32.286246096Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "041460",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:32.300889610Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:36.356639809Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "042520",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:36.395783039Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:40.443677843Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "043610",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:36:40.466384590Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:55:38.112126265Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "079900",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:55:38.132907222Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:59:16.157632689Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "082210",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T18:59:16.188686506Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:02:50.167328081Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "084110",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:02:50.174221242Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:03:26.772691428Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "084440",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:03:26.786268889Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:04:26.952497593Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "084730",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:04:26.963940382Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:09:30.439790164Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "088260",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:09:30.454729378Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:12:31.993203698Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "089590",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:12:32.005116626Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:14:30.068609606Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "090360",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:14:30.093769909Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:14.279635086Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092220",
+      "year": 2025,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:14.316263624Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:49.019410377Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:49.035656490Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:53.081285952Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:53.087847405Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:57.141878623Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2025,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:18:57.160734562Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:20:25.570297041Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093240",
+      "year": 2025,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:20:25.576662917Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:20:29.626745147Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093240",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:20:29.635092828Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:21:02.382952464Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093380",
+      "year": 2025,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:21:02.438233437Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:41.370227574Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "025860",
+      "year": 2024,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:41.386448968Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:47.467846871Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "030960",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:47.475573477Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:53.553939853Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "030960",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:53.572917567Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:57.627575864Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "032800",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:23:57.639544335Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:01.734504552Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "032800",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:01.780792745Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:05.756334441Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:05.783555492Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:09.818275633Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:09.826673923Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:13.888621946Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "033200",
+      "year": 2024,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:13.901690196Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:18.071859476Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "042520",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:24:18.085668803Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:29:29.695206087Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "047920",
+      "year": 2024,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:29:29.719651414Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:35:12.002793334Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "050860",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:35:12.029617011Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:35:18.051810303Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "050860",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T19:35:18.057533679Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:39.063723451Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "067010",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:39.081289181Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:45.140567912Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "067010",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:45.152556213Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:51.240971756Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "067010",
+      "year": 2024,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:09:51.248319792Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:19:15.933713013Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "071840",
+      "year": 2024,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:19:15.965936117Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:37:16.842426389Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "084440",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:37:16.882212251Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:43:21.467801834Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "088260",
+      "year": 2024,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:43:21.484836138Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:46:10.088991144Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "089470",
+      "year": 2024,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:46:10.153801342Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:28.669577401Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:28.678760948Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:32.708942302Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:32.714036752Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:36.770167917Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "092440",
+      "year": 2024,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:52:36.776500821Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:04.648019561Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093240",
+      "year": 2024,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:04.666545691Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:08.749008484Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093240",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:08.772581387Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:41.460176309Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 1,
+      "review": false,
+      "symbol": "093380",
+      "year": 2024,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:54:41.465794873Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:18.294827105Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "900290",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:18.331429442Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:22.333615316Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "900290",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:22.339050243Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:28.394843853Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "001080",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:28.401616930Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:34.605123228Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "001080",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:34.617803556Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:38.764348204Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "001720",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:38.776151168Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:42.926888061Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "001720",
+      "year": 2023,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:42.932159118Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:49.016258910Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "002630",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:49.031804268Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:55.090026449Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "002630",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:57:55.130545925Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:01.169074844Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "002630",
+      "year": 2023,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:01.182574152Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:05.240136765Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "003610",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:05.253134859Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:09.327932355Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "005950",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:09.338984636Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:13.395435996Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "008870",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:13.407906060Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:17.488450936Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "012200",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:17.525195738Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:21.535286562Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "017250",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:21.542725069Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:25.594256805Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "018500",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:25.604440742Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:29.677710985Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "018500",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:29.682947325Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:33.743304540Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "018500",
+      "year": 2023,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:33.749130414Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:37.798680392Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "019010",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:37.809305190Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:43.882620112Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "020180",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:43.890537114Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:49.948560815Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "020180",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:49.954203387Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:56.024559047Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "020180",
+      "year": 2023,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:58:56.039328007Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:00.092724180Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "021820",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:00.099320802Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:04.162789539Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "021820",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:04.173603570Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:08.213070457Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "021880",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:08.226389105Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:12.273098631Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 3,
+      "review": true,
+      "symbol": "021880",
+      "year": 2023,
+      "report": "11014",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:12.278746602Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:16.358510327Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "024720",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:16.366409042Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:22.441568195Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "024850",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:22.462589036Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:28.530825689Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "024850",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:28.536440048Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:34.609613594Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "024850",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:34.614882108Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:38.760295849Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "030610",
+      "year": 2023,
+      "report": "11011",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:38.772717168Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:44.828874606Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "030960",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:44.836861008Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:50.911973871Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "030960",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:50.939089711Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:54.999435082Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "032800",
+      "year": 2023,
+      "report": "11012",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:55.014052237Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:59.080490292Z"
+    },
+    {
+      "event": "DART task failed",
+      "stage": "FETCH",
+      "code": "RECEIPT_MISMATCH",
+      "attempt": 2,
+      "review": false,
+      "symbol": "032800",
+      "year": 2023,
+      "report": "11013",
+      "runId": "4780",
+      "atUtc": "2026-10-11T20:59:59.095296999Z"
+    },
+    {
+      "event": "DART task primary failure",
+      "stage": "LIST",
+      "code": "SCHEDULE_WINDOW_ENDED",
+      "runId": "4780",
+      "atUtc": "2026-10-11T21:00:01.092492982Z"
+    },
+    {
+      "event": "DART collector cycle finished",
+      "status": "PARTIAL",
+      "succeeded": 3377,
+      "failures": 97,
+      "processed": 4023,
+      "apiCalls": 5065,
+      "noFiling": 548,
+      "atUtc": "2026-10-11T21:00:01.457443016Z"
+    }
+  ],
+  "events": []
+}

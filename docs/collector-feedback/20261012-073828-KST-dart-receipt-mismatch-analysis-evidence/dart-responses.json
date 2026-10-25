@@ -1,0 +1,603 @@
+{
+  "atUtc": "2026-10-11T22:30:24.195Z",
+  "maxCalls": 12,
+  "calls": 8,
+  "records": [
+    {
+      "path": "list.json",
+      "params": {
+        "corp_code": "01170962",
+        "bgn_de": "20230101",
+        "end_de": "20261012",
+        "last_reprt_at": "N",
+        "pblntf_ty": "A",
+        "sort": "date",
+        "sort_mth": "asc",
+        "page_no": "1",
+        "page_count": "100"
+      },
+      "at": "2026-10-11T22:30:09.189Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 17,
+      "totalPage": 1,
+      "totalCount": 17,
+      "rows": [
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "반기보고서 (2022.12)",
+          "rcept_no": "20230302000421",
+          "rcept_dt": "20230302",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2023.03)",
+          "rcept_no": "20230530000675",
+          "rcept_dt": "20230530",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "사업보고서 (2023.06)",
+          "rcept_no": "20231030000107",
+          "rcept_dt": "20231030",
+          "rm": "정연"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2023.09)",
+          "rcept_no": "20231129001208",
+          "rcept_dt": "20231129",
+          "rm": "정"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "[기재정정]사업보고서 (2023.06)",
+          "rcept_no": "20240102000351",
+          "rcept_dt": "20240102",
+          "rm": "연"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "[기재정정]분기보고서 (2023.09)",
+          "rcept_no": "20240102000362",
+          "rcept_dt": "20240102",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "반기보고서 (2023.12)",
+          "rcept_no": "20240229002271",
+          "rcept_dt": "20240229",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2024.03)",
+          "rcept_no": "20240530000884",
+          "rcept_dt": "20240530",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "사업보고서 (2024.06)",
+          "rcept_no": "20241018000064",
+          "rcept_dt": "20241018",
+          "rm": "연"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2024.09)",
+          "rcept_no": "20241125000285",
+          "rcept_dt": "20241125",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "반기보고서 (2024.12)",
+          "rcept_no": "20250304000174",
+          "rcept_dt": "20250304",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2025.03)",
+          "rcept_no": "20250527000357",
+          "rcept_dt": "20250527",
+          "rm": "정"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "[기재정정]분기보고서 (2025.03)",
+          "rcept_no": "20250616000355",
+          "rcept_dt": "20250616",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "사업보고서 (2025.06)",
+          "rcept_no": "20251023000250",
+          "rcept_dt": "20251023",
+          "rm": "연"
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2025.09)",
+          "rcept_no": "20251201000288",
+          "rcept_dt": "20251201",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "반기보고서 (2025.12)",
+          "rcept_no": "20260303002688",
+          "rcept_dt": "20260303",
+          "rm": ""
+        },
+        {
+          "corp_code": "01170962",
+          "stock_code": "900290",
+          "report_nm": "분기보고서 (2026.03)",
+          "rcept_no": "20260601000609",
+          "rcept_dt": "20260601",
+          "rm": ""
+        }
+      ]
+    },
+    {
+      "path": "fnlttSinglAcntAll.json",
+      "params": {
+        "corp_code": "01170962",
+        "bsns_year": "2024",
+        "reprt_code": "11012",
+        "fs_div": "CFS"
+      },
+      "at": "2026-10-11T22:30:11.814Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 126,
+      "identities": [
+        {
+          "corp_code": "01170962",
+          "bsns_year": "2024",
+          "reprt_code": "11012",
+          "rcept_no": "20250304000174"
+        }
+      ]
+    },
+    {
+      "path": "fnlttSinglAcntAll.json",
+      "params": {
+        "corp_code": "01170962",
+        "bsns_year": "2024",
+        "reprt_code": "11011",
+        "fs_div": "CFS"
+      },
+      "at": "2026-10-11T22:30:13.897Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 132,
+      "identities": [
+        {
+          "corp_code": "01170962",
+          "bsns_year": "2024",
+          "reprt_code": "11011",
+          "rcept_no": "20241018000064"
+        }
+      ]
+    },
+    {
+      "path": "fnlttSinglAcntAll.json",
+      "params": {
+        "corp_code": "01170962",
+        "bsns_year": "2023",
+        "reprt_code": "11012",
+        "fs_div": "CFS"
+      },
+      "at": "2026-10-11T22:30:15.952Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 143,
+      "identities": [
+        {
+          "corp_code": "01170962",
+          "bsns_year": "2023",
+          "reprt_code": "11012",
+          "rcept_no": "20240229002271"
+        }
+      ]
+    },
+    {
+      "path": "list.json",
+      "params": {
+        "corp_code": "00113410",
+        "bgn_de": "20240101",
+        "end_de": "20261012",
+        "last_reprt_at": "N",
+        "pblntf_ty": "A",
+        "sort": "date",
+        "sort_mth": "asc",
+        "page_no": "1",
+        "page_count": "100"
+      },
+      "at": "2026-10-11T22:30:17.984Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 13,
+      "totalPage": 1,
+      "totalCount": 13,
+      "rows": [
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "사업보고서 (2023.12)",
+          "rcept_no": "20240315000705",
+          "rcept_dt": "20240315",
+          "rm": "정연"
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "[기재정정]사업보고서 (2023.12)",
+          "rcept_no": "20240320001789",
+          "rcept_dt": "20240320",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "분기보고서 (2024.03)",
+          "rcept_no": "20240516002192",
+          "rcept_dt": "20240516",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "반기보고서 (2024.06)",
+          "rcept_no": "20240814003694",
+          "rcept_dt": "20240814",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "분기보고서 (2024.09)",
+          "rcept_no": "20241114002639",
+          "rcept_dt": "20241114",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "사업보고서 (2024.12)",
+          "rcept_no": "20250317000953",
+          "rcept_dt": "20250317",
+          "rm": "정연"
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "[첨부정정]사업보고서 (2024.12)",
+          "rcept_no": "20250317001020",
+          "rcept_dt": "20250317",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "분기보고서 (2025.03)",
+          "rcept_no": "20250515002127",
+          "rcept_dt": "20250515",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "반기보고서 (2025.06)",
+          "rcept_no": "20250814004310",
+          "rcept_dt": "20250814",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "분기보고서 (2025.09)",
+          "rcept_no": "20251114001761",
+          "rcept_dt": "20251114",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "사업보고서 (2025.12)",
+          "rcept_no": "20260316001417",
+          "rcept_dt": "20260316",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "분기보고서 (2026.03)",
+          "rcept_no": "20260515002802",
+          "rcept_dt": "20260515",
+          "rm": ""
+        },
+        {
+          "corp_code": "00113410",
+          "stock_code": "000120",
+          "report_nm": "반기보고서 (2026.06)",
+          "rcept_no": "20260814003838",
+          "rcept_dt": "20260814",
+          "rm": ""
+        }
+      ]
+    },
+    {
+      "path": "fnlttSinglAcntAll.json",
+      "params": {
+        "corp_code": "00113410",
+        "bsns_year": "2024",
+        "reprt_code": "11011",
+        "fs_div": "CFS"
+      },
+      "at": "2026-10-11T22:30:20.016Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 272,
+      "identities": [
+        {
+          "corp_code": "00113410",
+          "bsns_year": "2024",
+          "reprt_code": "11011",
+          "rcept_no": "20250317000953"
+        }
+      ]
+    },
+    {
+      "path": "list.json",
+      "params": {
+        "corp_code": "00126380",
+        "bgn_de": "20240101",
+        "end_de": "20261012",
+        "last_reprt_at": "N",
+        "pblntf_ty": "A",
+        "sort": "date",
+        "sort_mth": "asc",
+        "page_no": "1",
+        "page_count": "100"
+      },
+      "at": "2026-10-11T22:30:22.067Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 11,
+      "totalPage": 1,
+      "totalCount": 11,
+      "rows": [
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "사업보고서 (2023.12)",
+          "rcept_no": "20240312000736",
+          "rcept_dt": "20240312",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "분기보고서 (2024.03)",
+          "rcept_no": "20240516001421",
+          "rcept_dt": "20240516",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "반기보고서 (2024.06)",
+          "rcept_no": "20240814003284",
+          "rcept_dt": "20240814",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "분기보고서 (2024.09)",
+          "rcept_no": "20241114002642",
+          "rcept_dt": "20241114",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "사업보고서 (2024.12)",
+          "rcept_no": "20250311001085",
+          "rcept_dt": "20250311",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "분기보고서 (2025.03)",
+          "rcept_no": "20250515001922",
+          "rcept_dt": "20250515",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "반기보고서 (2025.06)",
+          "rcept_no": "20250814003156",
+          "rcept_dt": "20250814",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "분기보고서 (2025.09)",
+          "rcept_no": "20251114002447",
+          "rcept_dt": "20251114",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "사업보고서 (2025.12)",
+          "rcept_no": "20260310002820",
+          "rcept_dt": "20260310",
+          "rm": "연"
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "분기보고서 (2026.03)",
+          "rcept_no": "20260515002181",
+          "rcept_dt": "20260515",
+          "rm": ""
+        },
+        {
+          "corp_code": "00126380",
+          "stock_code": "005930",
+          "report_nm": "반기보고서 (2026.06)",
+          "rcept_no": "20260814003699",
+          "rcept_dt": "20260814",
+          "rm": ""
+        }
+      ]
+    },
+    {
+      "path": "fnlttSinglAcntAll.json",
+      "params": {
+        "corp_code": "00126380",
+        "bsns_year": "2024",
+        "reprt_code": "11011",
+        "fs_div": "CFS"
+      },
+      "at": "2026-10-11T22:30:24.159Z",
+      "http": 200,
+      "status": "000",
+      "rowCount": 213,
+      "identities": [
+        {
+          "corp_code": "00126380",
+          "bsns_year": "2024",
+          "reprt_code": "11011",
+          "rcept_no": "20250311001085"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "name": "GRT",
+      "corp": "01170962",
+      "year": 2024,
+      "code": "11012",
+      "label": "non_december_failure",
+      "selected": {
+        "receiptNo": "20240229002271",
+        "receiptDate": "20240229",
+        "reportName": "반기보고서 (2023.12)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false
+      },
+      "financialStatus": "000",
+      "returnedReceipts": [
+        "20250304000174"
+      ]
+    },
+    {
+      "name": "GRT",
+      "corp": "01170962",
+      "year": 2024,
+      "code": "11011",
+      "label": "same_company_annual_control",
+      "selected": {
+        "receiptNo": "20241018000064",
+        "receiptDate": "20241018",
+        "reportName": "사업보고서 (2024.06)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false
+      },
+      "financialStatus": "000",
+      "returnedReceipts": [
+        "20241018000064"
+      ]
+    },
+    {
+      "name": "GRT",
+      "corp": "01170962",
+      "year": 2023,
+      "code": "11012",
+      "label": "period_year_comparison",
+      "selected": {
+        "receiptNo": "20240229002271",
+        "receiptDate": "20240229",
+        "reportName": "반기보고서 (2023.12)",
+        "reportCode": "11012",
+        "periodType": "Q2",
+        "withdrawn": false
+      },
+      "financialStatus": "000",
+      "returnedReceipts": [
+        "20240229002271"
+      ]
+    },
+    {
+      "name": "CJ대한통운",
+      "corp": "00113410",
+      "year": 2024,
+      "code": "11011",
+      "label": "amendment_failure",
+      "selected": {
+        "receiptNo": "20250317001020",
+        "receiptDate": "20250317",
+        "reportName": "[첨부정정]사업보고서 (2024.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false
+      },
+      "financialStatus": "000",
+      "returnedReceipts": [
+        "20250317000953"
+      ]
+    },
+    {
+      "name": "삼성전자",
+      "corp": "00126380",
+      "year": 2024,
+      "code": "11011",
+      "label": "annual_control",
+      "selected": {
+        "receiptNo": "20250311001085",
+        "receiptDate": "20250311",
+        "reportName": "사업보고서 (2024.12)",
+        "reportCode": "11011",
+        "periodType": "ANNUAL",
+        "withdrawn": false
+      },
+      "financialStatus": "000",
+      "returnedReceipts": [
+        "20250311001085"
+      ]
+    }
+  ]
+}
