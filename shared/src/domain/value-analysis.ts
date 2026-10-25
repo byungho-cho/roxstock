@@ -1,6 +1,7 @@
 import {financialCurrency,sameFinancialCurrency,currencyConversionRequired,FX_REQUIRED} from './financial-currency.js';
 import { Prisma, type FinancialStatement, type DartFinancialFiling, type ValuationMetric, type PeriodValuation } from '../generated/prisma/index.js';
 import { periodCollectionState } from './collection-status.js';
+import {isFinancialReference,financialReferenceBasis} from './financial-reference.js';
 const ExactDecimal=Prisma.Decimal.clone({precision:100,toExpPos:100,toExpNeg:-100});
 const seoulCurrentYear=()=>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date()));
 
@@ -42,8 +43,8 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
   }
   return [...keys].map(key => {
     const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), candidate = manualMap.get(key), f = filingMap.get(key);
-    // KIS history is a rounded reference fallback, never an override of a DART filing.
-    const reference=candidate?.source==='KIS_API_REFERENCE';
+    // Historical references never override a validated DART financial filing.
+    const reference=isFinancialReference(candidate);
     const manualCurrency=financialCurrency(periodType==='Q4'?filingMap.get(year+':ANNUAL'):f)==='KRW'&&!(reference&&f)?candidate:undefined;
     const m=fiscalPeriodReview(f)&&candidate?.periodEndDate.getTime()!==f?.periodEndDate.getTime()?undefined:manualCurrency;
     const annual = filingMap.get(year + ':ANNUAL'), q3 = filingMap.get(year + ':Q3');
@@ -64,7 +65,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
     return { currency:financialCurrency(derived?annual:f),amountMultiplier:'1',periodReview:fiscalPeriodReview(f),fiscalYear, periodType, periodEndDate: (m?.periodEndDate ?? f?.periodEndDate ?? (derived ? annual?.periodEndDate : undefined))?.toISOString().slice(0, 10) ?? fiscalYear + '-12-31',
       revenue: flow('revenue'), operatingProfit: flow('operatingProfit'), netIncome: flow('netIncome'),
       totalAssets: balance('totalAssets'), totalLiabilities: balance('totalLiabilities'), totalEquity: balance('totalEquity'),
-      basis: m&&reference?'KIS_API:REFERENCE_UNVERIFIED_DIVISION':(m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
+      basis: m&&reference?financialReferenceBasis(m):(m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
       collectedAt: (f?.collectedAt ?? (derived ? annual?.collectedAt : undefined) ?? m?.updatedAt)?.toISOString() ?? null, isDerived: derived };
   });
 }
@@ -77,7 +78,7 @@ export function periods(year: number, quarter: number | null, count: number): Pe
   });
 }
 export function growth(current: Statement | undefined, previous: Statement | undefined, field: 'revenue' | 'netIncome'): string | null {
-  if (!current || !previous || current.periodReview||previous.periodReview||current.periodType!==previous.periodType||current.periodEndDate.slice(5)!==previous.periodEndDate.slice(5)||current.basis !== previous.basis||(current.currency??'KRW')!==(previous.currency??'KRW')) return null;
+  if (!current || !previous || current.periodReview||previous.periodReview||current.basis.includes('UNVERIFIED_STANDARD')||previous.basis.includes('UNVERIFIED_STANDARD')||current.periodType!==previous.periodType||current.periodEndDate.slice(5)!==previous.periodEndDate.slice(5)||current.basis !== previous.basis||(current.currency??'KRW')!==(previous.currency??'KRW')) return null;
   const a = decimal(current[field]), b = decimal(previous[field]);
   return a && b?.gt(0) ? a.minus(b).div(b).mul(100).toString() : null;
 }
