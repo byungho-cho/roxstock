@@ -1,0 +1,188 @@
+{
+  "readOnly": true,
+  "externalDartRequests": 0,
+  "baselineBackup": "/opt/roxstock/.deploy/backups/roxstock-before-0f660310ceec289228497a60cec338849d641963-20261012T002756Z.sql.gz",
+  "baselineAt": "2026-10-12T00:27:56Z",
+  "deploymentCutoff": "2026-10-12T00:29:40Z",
+  "verification": {
+    "at": "2026-10-13T04:31:48.155Z",
+    "baselineFound": 458,
+    "outcomes": {
+      "FAILED": 412,
+      "SUCCESS": 46
+    },
+    "remainingGroups": {
+      "REVIEW_REQUIRED": 165,
+      "NON_KRW_STORAGE_UNSUPPORTED": 1,
+      "RECEIPT_MISMATCH": 235,
+      "NETWORK_ERROR": 1,
+      "CLOSING_MONTH_CHANGED": 3,
+      "MULTIPLE_ANNUAL_PERIODS": 4,
+      "CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION": 2,
+      "CORRECTION_RELATION_UNVERIFIED": 1
+    },
+    "newFailed": [
+      {
+        "id": "69216",
+        "status": "FAILED",
+        "errorCode": "REVIEW_REQUIRED",
+        "diagnostics": {
+          "corpCode": "00664853",
+          "reportCode": "11011",
+          "fsDivision": "CFS",
+          "reportPeriod": "2025-12",
+          "selectedReceiptNo": "20260318001500",
+          "selectedCorrectionType": "ATTACHMENT",
+          "sourceCorrectionType": "ADDITION",
+          "validationResult": "CORRECTION_RELATION_UNVERIFIED",
+          "taskFiscalYear": 2025,
+          "apiFiscalYear": 2025,
+          "returnedReceiptNos": [
+            "20260318001183"
+          ],
+          "originalCode": "DART_SOURCE_REVIEW",
+          "stage": "VERIFY_SOURCE",
+          "attempt": 1,
+          "runId": "5814",
+          "symbol": "137950"
+        },
+        "security": {
+          "symbol": "137950",
+          "name": "제이씨케미칼"
+        },
+        "fiscalYear": 2025,
+        "reportCode": "11011"
+      },
+      {
+        "id": "113975",
+        "status": "FAILED",
+        "errorCode": "REVIEW_REQUIRED",
+        "diagnostics": {
+          "corpCode": "01170962",
+          "reportCode": "11014",
+          "fsDivision": "CFS",
+          "reportPeriod": "2026-03",
+          "selectedReceiptNo": "20260601000609",
+          "selectedCorrectionType": "ORIGINAL",
+          "sourceCorrectionType": "ORIGINAL",
+          "validationResult": "NON_KRW_STORAGE_UNSUPPORTED",
+          "taskFiscalYear": 2026,
+          "apiFiscalYear": 2026,
+          "returnedReceiptNos": [
+            "20260601000609"
+          ],
+          "originalCode": "DART_SOURCE_REVIEW",
+          "stage": "VERIFY_SOURCE",
+          "attempt": 4,
+          "runId": "5814",
+          "symbol": "900290"
+        },
+        "security": {
+          "symbol": "900290",
+          "name": "GRT"
+        },
+        "fiscalYear": 2026,
+        "reportCode": "11014"
+      },
+      {
+        "id": "119042",
+        "status": "FAILED",
+        "errorCode": "REVIEW_REQUIRED",
+        "diagnostics": {
+          "corpCode": "00544452",
+          "reportCode": "11012",
+          "reportPeriod": "2026-03",
+          "selectedReceiptNo": "20260515001091",
+          "validationResult": "CLOSING_MONTH_CHANGED",
+          "taskFiscalYear": 2026,
+          "apiFiscalYear": 2026,
+          "originalCode": "DART_SOURCE_REVIEW",
+          "stage": "LIST",
+          "attempt": 2,
+          "runId": "5814",
+          "symbol": "088260"
+        },
+        "security": {
+          "symbol": "088260",
+          "name": "이리츠코크렙"
+        },
+        "fiscalYear": 2026,
+        "reportCode": "11012"
+      },
+      {
+        "id": "120314",
+        "status": "FAILED",
+        "errorCode": "REVIEW_REQUIRED",
+        "diagnostics": {
+          "corpCode": "00858124",
+          "reportCode": "11012",
+          "fsDivision": "CFS",
+          "reportPeriod": "2026-06",
+          "selectedReceiptNo": "20260929000169",
+          "selectedCorrectionType": "ATTACHMENT",
+          "sourceCorrectionType": "ADDITION",
+          "validationResult": "CORRECTION_RELATION_UNVERIFIED",
+          "taskFiscalYear": 2026,
+          "apiFiscalYear": 2026,
+          "returnedReceiptNos": [
+            "20260814002367"
+          ],
+          "originalCode": "DART_SOURCE_REVIEW",
+          "stage": "VERIFY_SOURCE",
+          "attempt": 1,
+          "runId": "5814",
+          "symbol": "140670"
+        },
+        "security": {
+          "symbol": "140670",
+          "name": "알에스오토메이션"
+        },
+        "fiscalYear": 2026,
+        "reportCode": "11012"
+      }
+    ],
+    "preservation": {
+      "baseline": 31549,
+      "missing": 0,
+      "changed": 0
+    }
+  },
+  "candidateCheckAt": "2026-10-13T04:25:08.108Z",
+  "candidates": {
+    "original": 324,
+    "found": 324,
+    "corrected": 0,
+    "stillCandidates": 324,
+    "confirmedErrors": false
+  },
+  "sourceTables": [
+    "collector_runs",
+    "collector_run_items",
+    "dart_backfill_tasks",
+    "dart_financial_filings",
+    "dart_collector_state",
+    "dart_api_daily_usage"
+  ],
+  "preservationFields": [
+    "id",
+    "security_id",
+    "fiscal_year",
+    "period_type",
+    "report_code",
+    "receipt_no",
+    "period_end_date",
+    "revenue_quarter",
+    "revenue_ytd",
+    "operating_profit_quarter",
+    "operating_profit_ytd",
+    "net_income_quarter",
+    "net_income_ytd",
+    "total_assets",
+    "total_liabilities",
+    "total_equity",
+    "operating_cash_flow_quarter",
+    "operating_cash_flow_ytd",
+    "capital_expenditure_quarter",
+    "capital_expenditure_ytd"
+  ]
+}
