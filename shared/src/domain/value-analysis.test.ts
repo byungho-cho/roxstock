@@ -24,3 +24,16 @@ test('actual reviewed fiscal period is preserved without Q4 subtraction, cross-p
  const merged=mergeStatements([m],[f,q3]);assert.equal(merged.some(r=>r.periodType==='Q4'),false);const annual=merged.find(r=>r.periodType==='ANNUAL')!;assert.equal(annual.revenue,'100');assert.equal(annual.periodEndDate,'2025-06-30');assert.equal(annual.periodReview,true);assert.equal(growth(annual,statement({fiscalYear:2024}),'revenue'),null);
  const chart=financialRows(periods(2025,null,1),merged,[{metricDate:new Date('2025-06-30'),per:new Prisma.Decimal(10),pbr:new Prisma.Decimal(1),roe:new Prisma.Decimal(5)} as ValuationMetric]);assert.equal(chart[0]!.per,null);assert.equal(chart[0]!.roe,null);
 });
+
+test('audited public-document references retain source basis and yield to validated DART',()=>{
+ const m={source:'DART_PUBLIC_REFERENCE',sourceMetadata:{fsDivision:'OFS',accountingStandard:'KGAAP'},fiscalYear:2023,periodType:'ANNUAL',periodEndDate:new Date('2023-12-31'),revenue:new Prisma.Decimal('100'),operatingProfit:new Prisma.Decimal('-5'),netIncome:new Prisma.Decimal('0'),updatedAt:new Date('2026-10-25')} as FinancialStatement;
+ const f={fiscalYear:2023,periodType:'ANNUAL',fsDivision:'CFS',periodEndDate:new Date('2023-12-31'),revenueYtd:new Prisma.Decimal('120'),operatingProfitYtd:new Prisma.Decimal('7'),collectedAt:new Date('2026-10-25')} as DartFinancialFiling;
+ const reference=mergeStatements([m],[])[0]!;assert.equal(reference.basis,'DART_PUBLIC:REFERENCE_OFS:KGAAP');assert.equal(reference.operatingProfit,'-5');assert.equal(reference.netIncome,'0');
+ const preferred=mergeStatements([m],[f])[0]!;assert.equal(preferred.basis,'CFS');assert.equal(preferred.revenue,'120');assert.equal(preferred.operatingProfit,'7');
+ assert.equal(mergeStatements([{...m,source:'MANUAL'}],[f])[0]!.revenue,'100');
+});
+
+test('public references do not compare different or unverified accounting standards',()=>{
+ assert.equal(growth(statement({basis:'DART_PUBLIC:REFERENCE_OFS:KIFRS'}),statement({basis:'DART_PUBLIC:REFERENCE_OFS:KGAAP',revenue:'100'}),'revenue'),null);
+ assert.equal(growth(statement({basis:'DART_PUBLIC:REFERENCE_OFS:UNVERIFIED_STANDARD'}),statement({basis:'DART_PUBLIC:REFERENCE_OFS:UNVERIFIED_STANDARD',revenue:'100'}),'revenue'),null);
+});
