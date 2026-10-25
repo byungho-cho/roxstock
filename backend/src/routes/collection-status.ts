@@ -128,20 +128,23 @@ async function summary() {
       const taskProgress=dartProgress(progress),counts=taskProgress.byStatus;
       const temporaryHistory=temporaryDartHistory(state);
       const phase = temporaryHistory?'BACKFILL':state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
-      const nextBatchAt=temporaryHistory&&run?.finishedAt?new Date(run.finishedAt.getTime()+300000):undefined;
+      const historyMetadata=run?.metadata&&typeof run.metadata==='object'&&!Array.isArray(run.metadata)?run.metadata as Record<string,unknown>:{};
+      const historyDone=temporaryHistory&&historyMetadata.done===true;
+      const historyPaused=temporaryHistory&&historyMetadata.executionState==='PAUSED'&&historyMetadata.pauseReason==='HISTORY_STOPPED';
+      const nextBatchAt=temporaryHistory&&!historyDone&&!historyPaused&&run?.finishedAt?new Date(run.finishedAt.getTime()+300000):undefined;
       const config = loadCollectorConfig();
       const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
       const night = dartWindowOpen(now,config.dartWindowStartHour,config.dartWindowEndHour,await publicHolidayDates(now),config.dartRestDayAllDay);
       const automaticWindow = night || dartPriorityWindowOpen(now, config.dartPriorityWindowStartHour, config.dartPriorityWindowEndHour);
       const nextAutomaticAt = new Date(Math.min(localSchedule(config.dartPriorityWindowStartHour, now).getTime(), localSchedule(config.dartWindowStartHour, now).getTime()));
       const quotaBlocked = (usage?.apiCallCount ?? 0) >= limit || Boolean(state?.lastRunAt && getSeoulClock(state.lastRunAt).dateKey===getSeoulClock(now).dateKey && state.lastError?.startsWith('020:'));
-      const dartStatus=dartWorkerStatus({now,configured:process.env.DART_COLLECTOR_ENABLED!=='false'&&!!process.env.DART_API_KEY?.trim(),stateExists:!!state,quotaBlocked,automaticWindow,runStatus:run?.status,nextBatchAt,workerDates:[run?.startedAt,run?.finishedAt,state?.updatedAt]});
+      const dartStatus=dartWorkerStatus({now,configured:process.env.DART_COLLECTOR_ENABLED!=='false'&&!!process.env.DART_API_KEY?.trim(),stateExists:!!state,quotaBlocked,automaticWindow,runStatus:run?.status,nextBatchAt,paused:historyDone||historyPaused,workerDates:[run?.startedAt,run?.finishedAt,state?.updatedAt]});
       return { id: job.id, name: job.name, schedule: job.schedule, status: dartStatus,
         lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
         lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: nextBatchAt?iso(nextBatchAt):!automaticWindow ? iso(nextAutomaticAt) : null,
         recent,resultScope,
         phase, temporaryHistory, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { ...taskProgress,planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired:taskProgress.reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0) },
-        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
+        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: historyDone?'HISTORY_REVIEW_COMPLETE':historyPaused?'HISTORY_PAUSED':quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
     const config = loadCollectorConfig();
     const hours = job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];

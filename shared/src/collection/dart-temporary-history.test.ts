@@ -9,4 +9,6 @@ test('expected batch gap waits without inventing success or masking actual failu
  assert.equal(dartWorkerStatus({...input,runStatus:'SUCCESS'}),'WAITING');
  assert.equal(dartWorkerStatus({...input,runStatus:'PARTIAL'}),'PARTIAL');
  assert.equal(dartWorkerStatus({...input,now:new Date('2026-10-25T01:08:00Z'),runStatus:'SUCCESS'}),'DELAYED');
+ assert.equal(dartWorkerStatus({...input,now:new Date('2026-10-26T01:08:00Z'),paused:true,nextBatchAt:undefined,runStatus:'SUCCESS'}),'WAITING');
+ assert.equal(dartWorkerStatus({...input,now:new Date('2026-10-26T01:08:00Z'),paused:true,nextBatchAt:undefined,runStatus:'PARTIAL'}),'PARTIAL');
 });
