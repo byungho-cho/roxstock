@@ -22,5 +22,5 @@ export function publicDartReview(value:unknown,fallbackCode?:string|null,taskSym
  const missing=Array.isArray(d.missingFields)?d.missingFields.filter((k):k is string=>typeof k==='string'&&Object.hasOwn(fields,k)).map(k=>fields[k]):[];
  const symbolYear=taskSymbol?.match(/^[A-Z0-9]{6}:(\d{4}):\d{5}$/)?.[1];
  const resolution=d.resolutionStatus==='SUCCESS'?' · 후속 보완 완료':d.resolutionStatus==='EXCLUDED'?' · 현재 해당 기간 수집 제외':'';
- return {validationResult:code,message:(code?dartReviewLabel(code)??'공시 원본 검증 보류':'상세 사유 미기록')+(missing.length?' · 미확인: '+missing.join(', '):'')+resolution,requestedYear:typeof d.taskFiscalYear==='number'?d.taskFiscalYear:symbolYear?Number(symbolYear):null,candidatePeriod:typeof d.reportPeriod==='string'&&/^\d{4}-\d{2}$/.test(d.reportPeriod)?d.reportPeriod:null};
+ return {validationResult:code,resolutionStatus:['SUCCESS','EXCLUDED'].includes(String(d.resolutionStatus))?String(d.resolutionStatus):null,message:(code?dartReviewLabel(code)??'공시 원본 검증 보류':'상세 사유 미기록')+(missing.length?' · 미확인: '+missing.join(', '):'')+resolution,requestedYear:typeof d.taskFiscalYear==='number'?d.taskFiscalYear:symbolYear?Number(symbolYear):null,candidatePeriod:typeof d.reportPeriod==='string'&&/^\d{4}-\d{2}$/.test(d.reportPeriod)?d.reportPeriod:null};
 }

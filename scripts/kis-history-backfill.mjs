@@ -40,7 +40,7 @@ let state,run,locked=false;const counts={success:0,failed:0,skipped:0},start=Dat
 const emit=async(task,security,outcome,code,extra={})=>{
   await appendFile(directory+'/results.jsonl',json({at:new Date(),taskId:task.id,securityId:security.id,symbol:security.symbol,year:task.fiscalYear,period:task.periodType,outcome,code,...extra})+'\n',{mode:0o600});
   counts[outcome==='SUCCESS'?'success':outcome==='FAILED'?'failed':'skipped']++;
-  await repo.addRunItem(run.id,security,task,outcome,code,{taskFiscalYear:task.fiscalYear,validationResult:code,...extra});
+  await repo.addRunItem(run.id,security,task,outcome,code,{taskFiscalYear:task.fiscalYear,validationResult:code,...(outcome==='NOT_APPLICABLE'&&['HISTORICAL_QUARTER_UNAVAILABLE','QUARTER_SOURCE_NOT_PROVIDED'].includes(code)?{resolutionStatus:'EXCLUDED'}:{}),...extra});
 };
 try {
   await mkdir(directory+'/cache',{recursive:true,mode:0o700});
