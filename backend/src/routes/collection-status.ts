@@ -1,6 +1,6 @@
 import {dartProgress,dartDisplayStatus,dartStatusWhere,type DartDisplayStatus} from '@roxstock/shared/collection/dart-task-status';
 import {eligibleWhere} from '@roxstock/shared/collection/collection-policy';
-import {dartTaskScope,dartTaskPeriodScope,dartWorkerStatus} from '@roxstock/shared/collection/dart-backfill';
+import {dartTaskScope,dartTaskPeriodScope,dartWorkerStatus,temporaryDartHistory} from '@roxstock/shared/collection/dart-backfill';
 import {newsCollectionState} from '@roxstock/shared/news/state';
 import {runViews,effectiveResult} from './collection-run-view.js';
 import {dailyScheduleHealth, skipKind} from '@roxstock/shared/domain/collection-health';
@@ -126,20 +126,25 @@ async function summary() {
         prisma.dartBackfillTask.count({where:{...dartTaskScope(now),status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
       ]);
       const taskProgress=dartProgress(progress),counts=taskProgress.byStatus;
-      const phase = state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
+      const temporaryHistory=temporaryDartHistory(state);
+      const phase = temporaryHistory?'BACKFILL':state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
+      const historyMetadata=run?.metadata&&typeof run.metadata==='object'&&!Array.isArray(run.metadata)?run.metadata as Record<string,unknown>:{};
+      const historyDone=temporaryHistory&&historyMetadata.done===true;
+      const historyPaused=temporaryHistory&&historyMetadata.executionState==='PAUSED'&&historyMetadata.pauseReason==='HISTORY_STOPPED';
+      const nextBatchAt=temporaryHistory&&!historyDone&&!historyPaused&&run?.finishedAt?new Date(run.finishedAt.getTime()+300000):undefined;
       const config = loadCollectorConfig();
       const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
       const night = dartWindowOpen(now,config.dartWindowStartHour,config.dartWindowEndHour,await publicHolidayDates(now),config.dartRestDayAllDay);
       const automaticWindow = night || dartPriorityWindowOpen(now, config.dartPriorityWindowStartHour, config.dartPriorityWindowEndHour);
       const nextAutomaticAt = new Date(Math.min(localSchedule(config.dartPriorityWindowStartHour, now).getTime(), localSchedule(config.dartWindowStartHour, now).getTime()));
       const quotaBlocked = (usage?.apiCallCount ?? 0) >= limit || Boolean(state?.lastRunAt && getSeoulClock(state.lastRunAt).dateKey===getSeoulClock(now).dateKey && state.lastError?.startsWith('020:'));
-      const dartStatus=dartWorkerStatus({now,configured:process.env.DART_COLLECTOR_ENABLED!=='false'&&!!process.env.DART_API_KEY?.trim(),stateExists:!!state,quotaBlocked,automaticWindow,runStatus:run?.status,workerDates:[run?.startedAt,run?.finishedAt,state?.updatedAt]});
+      const dartStatus=dartWorkerStatus({now,configured:process.env.DART_COLLECTOR_ENABLED!=='false'&&!!process.env.DART_API_KEY?.trim(),stateExists:!!state,quotaBlocked,automaticWindow,runStatus:run?.status,nextBatchAt,paused:historyDone||historyPaused,workerDates:[run?.startedAt,run?.finishedAt,state?.updatedAt]});
       return { id: job.id, name: job.name, schedule: job.schedule, status: dartStatus,
         lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
-        lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: !automaticWindow ? iso(nextAutomaticAt) : null,
+        lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: nextBatchAt?iso(nextBatchAt):!automaticWindow ? iso(nextAutomaticAt) : null,
         recent,resultScope,
-        phase, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { ...taskProgress,planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired:taskProgress.reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0) },
-        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
+        phase, temporaryHistory, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { ...taskProgress,planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired:taskProgress.reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0) },
+        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: historyDone?'HISTORY_REVIEW_COMPLETE':historyPaused?'HISTORY_PAUSED':quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
     }
     const config = loadCollectorConfig();
     const hours = job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];
@@ -217,7 +222,7 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
     const now = new Date();
     const views=await runViews(runIds);
     const detail: Record<string, unknown> = { id: feature.id, name: feature.name, generatedAt: now.toISOString(), runs: filteredRuns.map((run) => ({ id: run.id.toString(), status: effectiveResult(run,views.get(String(run.id))!), originalStatus:run.status, excluded:views.get(String(run.id))?.excluded??null, startedAt: iso(run.startedAt), finishedAt: iso(run.finishedAt), success: run.successCount+(feature.id==='investor-trends'?(views.get(String(run.id))?.investor.quantityStored??0):0), failed: run.failureCount, skipped: run.skippedCount, target: run.successCount + run.failureCount + run.staleCount + run.skippedCount, failureReason: safeReason(run.failureReason), metadata: collectionPublicMetadata(run.metadata) })),
-      items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: feature.id==='investor-trends'&&item.status==='STALE'&&item.message?.startsWith('PARTIAL_FIELDS:')?'SUCCESS':item.status, reason: safeReason(item.message),sourceReview:publicDartReview(item.diagnostics), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };
+      items: items.map((item) => ({ symbol: item.symbol, security: item.security, status: feature.id==='investor-trends'&&item.status==='STALE'&&item.message?.startsWith('PARTIAL_FIELDS:')?'SUCCESS':item.status, reason: safeReason(item.message),sourceReview:publicDartReview(item.diagnostics,item.message,item.symbol), occurredAt: iso(item.createdAt), observedAt: iso(item.observedAt) })), nextOffset: q.offset ? Number(q.offset) + filteredRuns.length : filteredRuns.length };
     if (feature.id === 'realtime-prices') {
       const realtime = await prisma.realtimeWorkerState.findUnique({ where: { id: 'selected-prices' } });
       const [aggregates, issues] = await Promise.all([

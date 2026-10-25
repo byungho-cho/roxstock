@@ -261,7 +261,7 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
       {pending ? <Stack spacing={1}><DataValue width={180}/><DataValue width={220}/></Stack> : items.length ? items.map(item=>{
         const style=statusStyle[String(item.status)]??unknownStatus;
         const emptyAccountExcluded=feature==='account-snapshots'&&item.status==='SKIPPED'&&item.reason?.startsWith('빈 계좌 수집 제외:');
-        const label=emptyAccountExcluded?'수집 제외':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?(item.reason.includes('시장 순매수')?'시장 순매수 금액 저장':item.reason.includes('수량·금액')?'KRX 수량·금액 저장':'KRX 수량 저장'):feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':feature==='investor-trends'&&item.reason?.startsWith('API_MARKET_NOT_READY:')?'시장 API 검증 대기':style.label;
+        const label=emptyAccountExcluded||item.status==='NOT_APPLICABLE'&&item.sourceReview?.resolutionStatus==='EXCLUDED'?'수집 제외':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?(item.reason.includes('시장 순매수')?'시장 순매수 금액 저장':item.reason.includes('수량·금액')?'KRX 수량·금액 저장':'KRX 수량 저장'):feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':feature==='investor-trends'&&item.reason?.startsWith('API_MARKET_NOT_READY:')?'시장 API 검증 대기':style.label;
         return <Box key={item.id} data-testid="monitor-target-row" data-scroll-item={`item-${item.id}`} sx={{py:0.5,borderBottom:'1px solid #26334A',minWidth:0,overflowWrap:'anywhere'}}>
           <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{feature==='realtime-prices'&&item.security?`${item.security.name}(${String(item.symbol).split(':')[0]})`:item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{label}</Typography>{item.status==='FAILED'&&item.security?.id&&featureLabels[feature]&&<CollectionSettingToggle security={item.security as ManagedSecurity} feature={feature}/>}</Stack>
           <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
@@ -317,26 +317,26 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
   </Box>;
 }
 
-function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, universeOver90Days, priorityPending, universePending, dailyApiCalls, dailyApiLimit, companyChecks, collectionState }: {
-  phase: string; status: string; collectionState?: string; priorityCheckedWithinDay: number | null; universeOver90Days: number | null; priorityPending: number | null; universePending: number | null; dailyApiCalls: number | null; dailyApiLimit: number | null; companyChecks: number | null;
+function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, universeOver90Days, priorityPending, universePending, dailyApiCalls, dailyApiLimit, companyChecks, collectionState, temporaryHistory=false }: {
+  temporaryHistory?:boolean; phase: string; status: string; collectionState?: string; priorityCheckedWithinDay: number | null; universeOver90Days: number | null; priorityPending: number | null; universePending: number | null; dailyApiCalls: number | null; dailyApiLimit: number | null; companyChecks: number | null;
 }) {
   const disabled = phase !== 'CURRENT';
   const statusInfo = statusStyle[status] ?? unknownStatus;
-  const label = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
+  const label = temporaryHistory?'보류':!['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo.label
     : disabled ? '1단계 후 대기' : collectionState==='DAILY_LIMIT'?'호출 한도 대기':status==='WAITING'?'실행 대기':status === 'RUNNING' ? '진행 중' : '상시 수집';
-  const badge = !['OK','SUCCESS','RUNNING','WAITING'].includes(status)
+  const badge = temporaryHistory?statusStyle.WAITING:!['OK','SUCCESS','RUNNING','WAITING'].includes(status)
     ? statusInfo : disabled||status==='WAITING' ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
   return <Box data-testid="monitor-dart-current" sx={{ ...cardSx, p: '12px', minHeight: 55, opacity: disabled ? 0.86 : 1 }}>
     <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>2단계 · 현재 사업연도 상시 수집</Typography>
+      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{temporaryHistory?'2단계 · 보류':'2단계 · 현재 사업연도 상시 수집'}</Typography>
       <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, justifyContent: 'center', alignItems: 'center', fontSize: 12, fontWeight: 600 }}><DataValue width={65}>{label}</DataValue></Box>
     </Stack>
     <Typography sx={{ color: disabled ? '#7A8CA8' : '#3D8CF5', fontSize: 10, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}><DataValue width={240}>
-      {disabled ? status === 'NOT_CONFIGURED' ? '설정 후 1단계 완료 시 시작' : status === 'NOT_IMPLEMENTED' ? '수집기 배포 후 1단계 완료 시 시작' : '1단계 완료 후 자동 시작' : collectionState==='DAILY_LIMIT'?'2단계 전환 완료 · 오늘 호출 한도 도달로 대기':'2단계 전환 완료 · 우선종목 하루 1회 · 전체종목 약 3개월 순환'}
+      {temporaryHistory?'우선종목 보류 · 전체종목 과거 자료 보완 후 별도 설계':disabled ? status === 'NOT_CONFIGURED' ? '설정 후 1단계 완료 시 시작' : status === 'NOT_IMPLEMENTED' ? '수집기 배포 후 1단계 완료 시 시작' : '1단계 완료 후 자동 시작' : collectionState==='DAILY_LIMIT'?'2단계 전환 완료 · 오늘 호출 한도 도달로 대기':'2단계 전환 완료 · 우선종목 하루 1회 · 전체종목 약 3개월 순환'}
     </DataValue></Typography>
     <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 10, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><DataValue width={240}>
-      {disabled ? '현행 공시 확인은 과거 자료 구축 완료 후 시작합니다.' : `우선 확인 ${numberText(priorityCheckedWithinDay)} · 전체 지연 ${numberText(universeOver90Days)}`}
+      {temporaryHistory?'2단계는 별도 설계 후 재개합니다.':disabled ? '현행 공시 확인은 과거 자료 구축 완료 후 시작합니다.' : `우선 확인 ${numberText(priorityCheckedWithinDay)} · 전체 지연 ${numberText(universeOver90Days)}`}
     </DataValue></Typography>
     <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 10, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>API <DataValue width={42}>{numberText(dailyApiCalls)}/{numberText(dailyApiLimit)}</DataValue> · 종목 확인 <DataValue width={20}>{numberText(companyChecks)}</DataValue> · 우선 대기 <DataValue width={20}>{numberText(priorityPending)}</DataValue> · 전체 대기 <DataValue width={20}>{numberText(universePending)}</DataValue></Typography>
   </Box>;
@@ -410,10 +410,10 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const isRealtime = feature === 'realtime-prices';
   const stageOneComplete = Boolean(current.backfillCompletedAt) && current.phase === 'CURRENT';
   const stageOneBadge = stageOneComplete ? statusStyle.OK : statusStyle[current.status] ?? unknownStatus;
-  const stageOneLabel = stageOneComplete ? (Number(dart.reviewRequired??0)>0?'검토 보류 있음':Number(backfill.supplementPending??0)>0?'원문 보완 필요':Number(byStatus.NOT_DUE??0)>0?'미도래 재확인 예정':Number(backfill.currentTarget??0)===0?'수집 대상 없음':'현재 대상 처리 완료')
+  const stageOneLabel = asRecord(current).collectionState==='HISTORY_REVIEW_COMPLETE'?'임시 검토 완료':asRecord(current).collectionState==='HISTORY_PAUSED'?'실행 보류':stageOneComplete ? (Number(dart.reviewRequired??0)>0?'검토 보류 있음':Number(backfill.supplementPending??0)>0?'원문 보완 필요':Number(byStatus.NOT_DUE??0)>0?'미도래 재확인 예정':Number(backfill.currentTarget??0)===0?'수집 대상 없음':'현재 대상 처리 완료')
     : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
 
-  const dartCurrentStage = <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard collectionState={asRecord(current).collectionState} phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>;
+  const dartCurrentStage = <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard temporaryHistory={Boolean(asRecord(current).temporaryHistory)} collectionState={asRecord(current).collectionState} phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>;
 
   return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box data-testid="collection-feature-overview" sx={{ px: 0, pt: 0, pb: '80px' }}>
     <QueryNotice error={summary.isError || detail.isError} retry={refreshStats} />

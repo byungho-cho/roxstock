@@ -17,10 +17,13 @@ export function dartAutomaticWork(now=new Date()):Prisma.DartBackfillTaskWhereIn
   return {...dartTaskPeriodScope(now),OR:[{status:{in:['PENDING','PROCESSING']}},{status:'FAILED',OR:[{errorCode:null},{errorCode:{not:'REVIEW_REQUIRED'}}]}]};
 }
 
-export function dartWorkerStatus(input:{now:Date;configured:boolean;stateExists:boolean;quotaBlocked:boolean;automaticWindow:boolean;runStatus?:string;workerDates:Array<Date|null|undefined>}) {
+export const temporaryDartHistory=(state:{phase?:string;backfillCompletedAt?:Date|string|null}|null|undefined)=>Boolean(state?.backfillCompletedAt&&state.phase==='BACKFILL');
+export function dartWorkerStatus(input:{now:Date;configured:boolean;stateExists:boolean;quotaBlocked:boolean;automaticWindow:boolean;runStatus?:string;nextBatchAt?:Date;paused?:boolean;workerDates:Array<Date|null|undefined>}) {
   if(!input.configured)return 'NOT_CONFIGURED';
   if(!input.stateExists)return 'NOT_IMPLEMENTED';
   if(input.quotaBlocked||!input.automaticWindow)return 'WAITING';
+  if(input.paused&&input.runStatus!=='RUNNING')return input.runStatus==='FAILED'||input.runStatus==='PARTIAL'?input.runStatus:'WAITING';
+  if(input.nextBatchAt&&input.now<input.nextBatchAt&&input.runStatus!=='RUNNING')return ['FAILED','PARTIAL'].includes(input.runStatus??'')?input.runStatus!:'WAITING';
   const dates=input.workerDates.filter((date):date is Date=>!!date);
   if(!dates.length)return 'WAITING';
   const heartbeat=Math.max(...dates.map(date=>date.getTime()));

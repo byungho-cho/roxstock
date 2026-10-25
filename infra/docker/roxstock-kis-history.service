@@ -1,0 +1,12 @@
+[Unit]
+Description=RoxStock temporary universe historical supplement batch
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/roxstock/.deploy/kis-history-campaign/run.sh
+TimeoutStartSec=20min
+TimeoutStopSec=90
+KillMode=control-group
+UMask=0077

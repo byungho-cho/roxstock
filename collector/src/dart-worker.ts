@@ -8,6 +8,7 @@ import { processManualRefresh } from './dart-manual-refresh.js';
 import { runDartCollectorCycle } from './dart-collector.js';
 import { publicHolidayDates } from '@roxstock/shared/collection/dart-policy';
 import { collectorLog as log } from '@roxstock/shared/collection/logger';
+import {temporaryDartHistory} from '@roxstock/shared/collection/dart-backfill';
 
 const config = loadCollectorConfig();
 let running = false;
@@ -19,6 +20,9 @@ const tick = async (manualOnly=false) => {
   running = true;
   try {
     const state = await prisma.dartCollectorState.findUnique({where:{id:1}});
+    // A completed historical plan deliberately returned to BACKFILL is a paused
+    // current-stage worker while the temporary universe-only campaign owns it.
+    if(temporaryDartHistory(state))return;
     const backfill = !state?.backfillCompletedAt;
     const dartConfig = {
       enabled: config.dartEnabled, apiKey: process.env.DART_API_KEY?.trim() ?? '', dailyCallLimit: backfill ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit,
