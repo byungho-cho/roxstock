@@ -25,4 +25,4 @@ export function quarterExclusion({year,period,annualVerified=false,cfsEmpty=fals
   return year<=2022?'HISTORICAL_QUARTER_UNAVAILABLE':annualVerified?'QUARTER_SOURCE_NOT_PROVIDED':null;
 }
 export function safeCode(error){const c=error?.code;return typeof c==='string'&&/^[A-Z0-9_]{1,64}$/.test(c)?c:'INTERNAL_OR_DB_ERROR';}
-export function stopCode(code){return /^KIS_TOKEN_/.test(code)||['010','011','012','020','800','901','API_KEY_MISSING','DAILY_CALL_LIMIT','KIS_RATE_LIMIT','KIS_AUTH_OR_PERMISSION_FAILED','KIS_CREDENTIALS_MISSING','FINANCIAL_LEASE_LOST','HISTORY_STOPPED'].includes(code);}
+export function stopCode(code){return /^KIS_TOKEN_/.test(code)||['010','011','012','020','800','901','API_KEY_MISSING','DAILY_CALL_LIMIT','KIS_RATE_LIMIT','KIS_AUTH_OR_PERMISSION_FAILED','KIS_CREDENTIALS_MISSING','KIS_INVALID_TOKEN_RESPONSE','FINANCIAL_LEASE_LOST','HISTORY_STOPPED','SCHEDULE_WINDOW_ENDED'].includes(code);}

@@ -29,6 +29,6 @@ test('all five anchors required; conflicting and missing sources cannot verify',
   assert.equal(anchorCheck({...values,totalAssets:'150000000'},tables,'2025-06-30','Q2').verified,true);
 });
 test('quota, authentication and fencing failures halt campaign batch',()=>{
-  for(const code of ['020','DAILY_CALL_LIMIT','KIS_RATE_LIMIT','KIS_AUTH_OR_PERMISSION_FAILED','FINANCIAL_LEASE_LOST','HISTORY_STOPPED'])assert.equal(stopCode(code),true);
+  for(const code of ['020','DAILY_CALL_LIMIT','KIS_RATE_LIMIT','KIS_AUTH_OR_PERMISSION_FAILED','KIS_INVALID_TOKEN_RESPONSE','FINANCIAL_LEASE_LOST','HISTORY_STOPPED','SCHEDULE_WINDOW_ENDED'])assert.equal(stopCode(code),true);
   assert.equal(stopCode('DART_SOURCE_REVIEW'),false);
 });
