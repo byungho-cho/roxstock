@@ -12,7 +12,8 @@ import {OpenDartProvider,normalizeDartFinancialRows} from '../collector/dist/dar
 import {validateDartFiling,requireDartReportPeriod} from '../collector/dist/dart-filing-validation.js';
 import {getCfsThenOfs} from '../collector/dist/dart-collector.js';
 import {KisInvestorProvider} from '../investor-crawler/src/kis-provider.mjs';
-import {anchorCheck,historyStatuses,safeCode,stopCode} from './kis-history-policy.mjs';
+import {anchorCheck,historyStatuses,safeCode,stopCode,quarterExclusion} from './kis-history-policy.mjs';
+import {safeDartContext} from '../shared/dist/collection/dart-diagnostics.js';
 import {parse} from 'dotenv';
 
 // docker --env-file retains dotenv quotes whereas Compose removes them.
@@ -35,7 +36,7 @@ let state,run,locked=false;const counts={success:0,failed:0,skipped:0},start=Dat
 const emit=async(task,security,outcome,code,extra={})=>{
   await appendFile(directory+'/results.jsonl',json({at:new Date(),taskId:task.id,securityId:security.id,symbol:security.symbol,year:task.fiscalYear,period:task.periodType,outcome,code,...extra})+'\n',{mode:0o600});
   counts[outcome==='SUCCESS'?'success':outcome==='FAILED'?'failed':'skipped']++;
-  await repo.addRunItem(run.id,security,task,outcome,code);
+  await repo.addRunItem(run.id,security,task,outcome,code,{taskFiscalYear:task.fiscalYear,validationResult:code,...extra});
 };
 try {
   await mkdir(directory+'/cache',{recursive:true,mode:0o700});
@@ -50,6 +51,12 @@ try {
       await save(stateFile,state);
     }
     if(state.version!==1)throw Error('CHECKPOINT_VERSION');
+    if(!state.annualFirstApplied){
+      const remaining=await db.dartBackfillTask.findMany({where:{id:{in:state.taskIds.slice(state.cursor).map(BigInt)}},select:{id:true,fiscalYear:true,periodType:true}});
+      const annuals=new Set(remaining.filter(t=>t.fiscalYear<=2022&&t.periodType==='ANNUAL').map(t=>String(t.id)));
+      const tail=state.taskIds.slice(state.cursor);state.taskIds=[...state.taskIds.slice(0,state.cursor),...tail.filter(id=>annuals.has(id)),...tail.filter(id=>!annuals.has(id))];
+      state.annualFirstApplied=true;await save(stateFile,state);
+    }
     if(state.done){console.log(json({status:'CAMPAIGN_COMPLETE',...state.totals,total:state.total}));return;}
     await repo.setState({phase:'BACKFILL'});
     run=await repo.createRun('dart-financial-statements','KIS_DART',{phase:'BACKFILL',temporary:true,priorityExcluded:true,cursor:state.cursor,total:state.total});
@@ -93,15 +100,22 @@ try {
             const kisHasYear=cached.tables.some(t=>t.mode===mode&&t.endpoint!=='financial-ratio'&&t.rows.some(r=>String(r.stac_yymm).startsWith(String(task.fiscalYear))));
             if(decision.status!=='NOT_DUE'&&!kisHasYear)decision={status:'DATA_UNAVAILABLE',needsSupplement:false,errorCode:'API_ROWS_UNAVAILABLE',errorMessage:'한투 과거 재무자료 및 DART 대상 공시 미제공 · 해당 조회 범위에서 확인',nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,availability:'PROVIDERS_NO_HISTORICAL_SOURCE',kisCheckedAt:cached.at,taskFiscalYear:task.fiscalYear,reportCode:task.reportCode,notALegalNonFilingDetermination:true}};
             await preserve();await repo.updateTask(task.id,{...decision,processedAt:decision.status==='NO_FILING'?new Date():null});
-            await emit(task,security,decision.status==='FAILED'?'FAILED':'NO_DATA',decision.errorCode??'NO_PERIODIC_FILING');return;
+            await emit(task,security,decision.status==='FAILED'?'FAILED':'NO_DATA',decision.errorCode??'NO_PERIODIC_FILING',decision.diagnostics);return;
           }
           requireDartReportPeriod(report,corpCode,task.fiscalYear);
           const existing=await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:task.fiscalYear,periodType:task.periodType,isWithdrawn:false}});
           const metric=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:task.fiscalYear,periodType:task.periodType}}});
           if(existing||metric){await emit(task,security,'SKIPPED','EXISTING_FINANCIAL_DATA_PRESERVED');return;}
-          if(task.selectedReceiptNo&&task.selectedReceiptNo!==report.receiptNo){await emit(task,security,'FAILED','RECEIPT_SELECTION_CHANGED_REVIEW_REQUIRED');return;}
+          // A changed receipt is not itself an error: the existing source validator
+          // must prove the selected correction chain against the actual response.
           const fetched=await getCfsThenOfs(dart,corpCode,task.fiscalYear,task.reportCode,report);
           if(!fetched.rows.length){
+            const annual=task.periodType!=='ANNUAL'&&await db.dartFinancialFiling.findFirst({where:{securityId:security.id,fiscalYear:task.fiscalYear,periodType:'ANNUAL',isWithdrawn:false,normalizationVersion:{gte:3},sourceValidation:{path:'$.version',equals:2}}});
+            const excluded=quarterExclusion({year:task.fiscalYear,period:task.periodType,annualVerified:!!annual,cfsEmpty:true,ofsEmpty:true});
+            if(excluded){
+              await preserve();await repo.updateTask(task.id,{status:'EXCLUDED',needsSupplement:false,errorCode:excluded,errorMessage:'분기 재무 API 미제공 · 한투 출처 식별 근거 미확인으로 해당 기간 보완 제외',processedAt:new Date(),nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,validationResult:excluded,taskFiscalYear:task.fiscalYear,reportPeriod:report.selection?.periodEndDate.slice(0,7),annualVerified:!!annual,cfsEmpty:true,ofsEmpty:true,kisCheckedAt:cached.at,manualOriginalReviewPossible:true}});
+              await emit(task,security,'NOT_APPLICABLE',excluded);return;
+            }
             await preserve();await repo.updateTask(task.id,{status:'DATA_UNAVAILABLE',needsSupplement:false,errorCode:'API_ROWS_UNAVAILABLE',errorMessage:'한투 과거 자료 조회 및 DART 대조 후 저장 가능한 기간·연결/별도 근거 미제공',processedAt:new Date(),nextAttemptAt:null,diagnostics:{availability:'API_DATA_UNAVAILABLE',historyCampaign:state.startedAt,kisCheckedAt:cached.at,selectedReceiptNo:report.receiptNo}});
             await emit(task,security,'NO_DATA','HISTORICAL_SOURCE_UNAVAILABLE');return;
           }
@@ -111,7 +125,7 @@ try {
           // Precise official filing values take precedence over rounded KIS amounts.
           // No KIS field is written unless its source identity can be verified independently.
           if(['totalAssets','totalLiabilities','totalEquity','operatingProfitYtd','netIncomeYtd'].some(k=>values[k]==null)){
-            throw Object.assign(Error('Incomplete core accounts'),{code:'HISTORICAL_CORE_ACCOUNTS_INCOMPLETE'});
+            throw Object.assign(Error('Incomplete core accounts'),{code:'HISTORICAL_CORE_ACCOUNTS_INCOMPLETE',diagnostics:{validationResult:'HISTORICAL_CORE_ACCOUNTS_INCOMPLETE',reportPeriod:source.sourceValidation.reportPeriod,missingFields:['totalAssets','totalLiabilities','totalEquity','operatingProfitYtd','netIncomeYtd'].filter(k=>values[k]==null)}});
           }
           source.sourceValidation.historyCampaign={temporary:true,kisCheckedAt:cached.at,kisVerification:check,source:'DART_VALIDATED_PRECISE_VALUES'};
           await preserve();
@@ -126,13 +140,14 @@ try {
         if(stopCode(code))throw error;
         if(code==='COLLECTION_EXCLUDED'){await emit(task,security,'SKIPPED',code);}
         else{
+          const detail={...safeDartContext(error.diagnostics),taskFiscalYear:task.fiscalYear,validationResult:error.diagnostics?.validationResult??code,...(Array.isArray(error.diagnostics?.missingFields)?{missingFields:error.diagnostics.missingFields.filter(k=>['totalAssets','totalLiabilities','totalEquity','operatingProfitYtd','netIncomeYtd'].includes(k))}:{})};
           const attempts=(state.retries[task.id]??0)+1;state.retries[task.id]=attempts;
           if(attempts<3&&['KIS_CONNECTION_FAILED','KIS_REQUEST_FAILED','KIS_INVALID_JSON','NETWORK_ERROR','HTTP_ERROR','INVALID_JSON','INTERNAL_OR_DB_ERROR'].includes(code)){await save(stateFile,state);throw error;}
           await withCollection(db,security.id,'dart-financial-statements',async()=>{
             await appendFile(directory+'/preimages.jsonl',json({at:new Date(),task})+'\n',{mode:0o600});
-            await repo.updateTask(task.id,{status:'FAILED',errorCode:'REVIEW_REQUIRED',errorMessage:'과거 자료 보완 실패 · '+code,processedAt:null,nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,validationResult:code}});
+            await repo.updateTask(task.id,{status:'FAILED',errorCode:'REVIEW_REQUIRED',errorMessage:'과거 자료 보완 실패 · '+code,processedAt:null,nextAttemptAt:null,diagnostics:{historyCampaign:state.startedAt,...detail}});
           },security);
-          await emit(task,security,'FAILED',code);
+          await emit(task,security,'FAILED',code,detail);
         }
       }
       state.cursor++;completed++;for(const key of Object.keys(counts))state.totals[key]=(state.totals[key]??0)+counts[key]-before[key];

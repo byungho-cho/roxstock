@@ -197,8 +197,8 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
   const rules: Array<{ key: keyof Omit<DartFinancialValues, 'accountSources'>; field: string; statement: string[]; accountIds: string[]; accountNames: string[]; amount: 'currentAmount' | 'currentYtdAmount' }> = [
     { key: 'revenueQuarter', field: 'revenue', statement: ['IS', 'CIS'], accountIds: ['ifrs-full_Revenue'], accountNames: ['매출액', '수익(매출액)'], amount: 'currentAmount' },
     { key: 'revenueYtd', field: 'revenue', statement: ['IS', 'CIS'], accountIds: ['ifrs-full_Revenue'], accountNames: ['매출액', '수익(매출액)'], amount: 'currentYtdAmount' },
-    { key: 'operatingProfitQuarter', field: 'operatingProfit', statement: ['IS', 'CIS'], accountIds: ['dart_OperatingIncomeLoss'], accountNames: ['영업이익'], amount: 'currentAmount' },
-    { key: 'operatingProfitYtd', field: 'operatingProfit', statement: ['IS', 'CIS'], accountIds: ['dart_OperatingIncomeLoss'], accountNames: ['영업이익'], amount: 'currentYtdAmount' },
+    { key: 'operatingProfitQuarter', field: 'operatingProfit', statement: ['IS', 'CIS'], accountIds: ['dart_OperatingIncomeLoss', 'ifrs-full_ProfitLossFromOperatingActivities'], accountNames: ['영업이익'], amount: 'currentAmount' },
+    { key: 'operatingProfitYtd', field: 'operatingProfit', statement: ['IS', 'CIS'], accountIds: ['dart_OperatingIncomeLoss', 'ifrs-full_ProfitLossFromOperatingActivities'], accountNames: ['영업이익'], amount: 'currentYtdAmount' },
     { key: 'netIncomeQuarter', field: 'netIncome', statement: ['IS', 'CIS'], accountIds: ['ifrs-full_ProfitLoss'], accountNames: ['당기순이익'], amount: 'currentAmount' },
     { key: 'netIncomeYtd', field: 'netIncome', statement: ['IS', 'CIS'], accountIds: ['ifrs-full_ProfitLoss'], accountNames: ['당기순이익'], amount: 'currentYtdAmount' },
     { key: 'totalAssets', field: 'totalAssets', statement: ['BS'], accountIds: ['ifrs-full_Assets'], accountNames: ['자산총계'], amount: 'currentAmount' },

@@ -19,6 +19,9 @@ const tick = async (manualOnly=false) => {
   running = true;
   try {
     const state = await prisma.dartCollectorState.findUnique({where:{id:1}});
+    // A completed historical plan deliberately returned to BACKFILL is a paused
+    // current-stage worker while the temporary universe-only campaign owns it.
+    if(state?.backfillCompletedAt&&state.phase==='BACKFILL')return;
     const backfill = !state?.backfillCompletedAt;
     const dartConfig = {
       enabled: config.dartEnabled, apiKey: process.env.DART_API_KEY?.trim() ?? '', dailyCallLimit: backfill ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit,

@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {won,anchorCheck,stopCode} from './kis-history-policy.mjs';
+import {won,anchorCheck,stopCode,quarterExclusion} from './kis-history-policy.mjs';
+test('old quarters require confirmed API unavailability; annuals and transport errors never auto-exclude',()=>{
+ assert.equal(quarterExclusion({year:2022,period:'Q1',cfsEmpty:true,ofsEmpty:true}),'HISTORICAL_QUARTER_UNAVAILABLE');
+ assert.equal(quarterExclusion({year:2023,period:'Q1',cfsEmpty:true,ofsEmpty:true}),null);
+ assert.equal(quarterExclusion({year:2023,period:'Q1',annualVerified:true,cfsEmpty:true,ofsEmpty:true}),'QUARTER_SOURCE_NOT_PROVIDED');
+ assert.equal(quarterExclusion({year:2020,period:'ANNUAL',cfsEmpty:true,ofsEmpty:true}),null);
+ assert.equal(quarterExclusion({year:2020,period:'Q2',cfsEmpty:true,ofsEmpty:false}),null);
+});
 test('rounded source units convert exactly without floating point',()=>{
   assert.equal(won('-1,234.5678'),'-123456780000');assert.equal(won('0'),'0');
   for(const x of ['',null,'NaN','1e5','1.12345'])assert.equal(won(x),null);

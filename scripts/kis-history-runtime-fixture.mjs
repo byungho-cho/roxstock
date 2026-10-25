@@ -13,7 +13,7 @@ export const readFile=async p=>{if(!memory.has(p))throw missing();return memory.
 export const writeFile=async(p,v)=>memory.set(p,v);export const rename=async(a,b)=>{memory.set(b,memory.get(a));memory.delete(a)};
 export const appendFile=async(p,v)=>memory.set(p,(memory.get(p)??'')+v);export const mkdir=async()=>{};export const access=async()=>{throw missing()};
 export class PrismaClient{constructor(){return {dartBackfillTask:{findMany:async()=>[task],findUnique:async()=>task},security:{findUnique:async()=>security},dartFinancialFiling:{findFirst:async()=>scenario==='existing'?{}:null},periodValuation:{findUnique:async()=>null},$disconnect:async()=>console.log(JSON.stringify({testWrites:writes,checkpoint:JSON.parse(memory.get('/var/lib/roxstock/kis-history/state.json')??'null')}))}}}
-export const collectionClient=x=>x;export const dartTaskScope=()=>({});export const withCollection=async(db,id,feature,work)=>work();export const withFinancialLease=async(o,work)=>work();
+export const collectionClient=x=>x;export const dartTaskScope=()=>({});export const withCollection=async(db,id,feature,work)=>work();export const withFinancialLease=async(o,work)=>work();export const safeDartContext=()=>({});
 export class PrismaDartRepository{
 async acquireLock(){return true}async releaseLock(){}async prioritySecurityIds(){return scenario==='priority'?[2n]:[]}
 async getState(){return {phase:'CURRENT',backfillCompletedAt:'preserved'}}async setState(v){writes.push({state:v})}

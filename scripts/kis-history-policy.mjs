@@ -20,5 +20,9 @@ export function anchorCheck(values,tables,periodEnd,periodType) {
   return {verified:true,reason:'KIS_DART_FIVE_ANCHORS_MATCH',ym,mode};
 }
 export const historyStatuses=['PENDING','FAILED','NO_FILING','DATA_UNAVAILABLE'];
+export function quarterExclusion({year,period,annualVerified=false,cfsEmpty=false,ofsEmpty=false}){
+  if(period==='ANNUAL'||!['Q1','Q2','Q3'].includes(period)||!Number.isInteger(year)||!cfsEmpty||!ofsEmpty)return null;
+  return year<=2022?'HISTORICAL_QUARTER_UNAVAILABLE':annualVerified?'QUARTER_SOURCE_NOT_PROVIDED':null;
+}
 export function safeCode(error){const c=error?.code;return typeof c==='string'&&/^[A-Z0-9_]{1,64}$/.test(c)?c:'INTERNAL_OR_DB_ERROR';}
 export function stopCode(code){return /^KIS_TOKEN_/.test(code)||['010','011','012','020','800','901','API_KEY_MISSING','DAILY_CALL_LIMIT','KIS_RATE_LIMIT','KIS_AUTH_OR_PERMISSION_FAILED','KIS_CREDENTIALS_MISSING','FINANCIAL_LEASE_LOST','HISTORY_STOPPED'].includes(code);}
