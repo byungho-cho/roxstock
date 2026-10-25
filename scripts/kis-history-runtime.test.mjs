@@ -20,5 +20,8 @@ test('confirmed absent report and missing rows are not false successes',()=>{
  for(const [scenario,status]of [['missing','NO_FILING'],['unavailable','DATA_UNAVAILABLE']]){const r=execute(scenario);assert.equal(r.exit,0);assert.equal(r.testWrites.find(x=>x.task).task.status,status);assert.equal(r.testWrites.filter(x=>x.filing||x.complete).length,0);assert.equal(r.checkpoint.totals.success,0);}
 });
 test('quota stops without advancing task or marking source unavailable',()=>{
- const r=execute('quota');assert.equal(r.exit,1);assert.equal(r.checkpoint.cursor,0);assert.equal(r.testWrites.filter(x=>x.task||x.filing).length,0);assert.equal(r.checkpoint.lastStop.code,'DAILY_CALL_LIMIT');
+ const r=execute('quota');assert.equal(r.exit,0);assert.equal(r.checkpoint.cursor,0);assert.equal(r.testWrites.filter(x=>x.task||x.filing).length,0);assert.equal(r.checkpoint.lastStop.code,'DAILY_CALL_LIMIT');assert.equal(r.testWrites.find(x=>x.finish).finish,'SKIPPED');
+});
+test('deliberate shutdown records a pause without false task or run failure',()=>{
+ const r=execute('pause');assert.equal(r.exit,0);assert.equal(r.checkpoint.cursor,0);assert.equal(r.testWrites.filter(x=>x.task||x.filing).length,0);assert.equal(r.testWrites.find(x=>x.finish).finish,'SKIPPED');
 });

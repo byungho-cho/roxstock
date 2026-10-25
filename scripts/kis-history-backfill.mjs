@@ -12,7 +12,7 @@ import {OpenDartProvider,normalizeDartFinancialRows} from '../collector/dist/dar
 import {validateDartFiling,requireDartReportPeriod} from '../collector/dist/dart-filing-validation.js';
 import {getCfsThenOfs} from '../collector/dist/dart-collector.js';
 import {KisInvestorProvider} from '../investor-crawler/src/kis-provider.mjs';
-import {anchorCheck,historyStatuses,safeCode,stopCode,quarterExclusion} from './kis-history-policy.mjs';
+import {anchorCheck,historyStatuses,safeCode,stopCode,quarterExclusion,expectedPause} from './kis-history-policy.mjs';
 import {safeDartContext} from '../shared/dist/collection/dart-diagnostics.js';
 import {parse} from 'dotenv';
 
@@ -167,7 +167,8 @@ try {
     console.log(json({status:state.done?'CAMPAIGN_COMPLETE':'BATCH_COMPLETE',cursor:state.cursor,total:state.total,...counts}));
   });
 }catch(error){
-  const code=safeCode(error);if(run)await repo.finishRun(run.id,'FAILED',counts,code);
+  const code=safeCode(error),pause=expectedPause(code);
+  if(run)await repo.finishRun(run.id,pause&&!counts.failed?'SKIPPED':counts.failed&&counts.success?'PARTIAL':'FAILED',counts,code,{phase:'BACKFILL',temporary:true,priorityExcluded:true,cursor:state?.cursor??0,total:state?.total??0,executionState:pause?'PAUSED':'ERROR',pauseReason:code});
   if(state){delete state.batchCounts;state.lastStop={at:new Date().toISOString(),code};await save(stateFile,state);}
-  console.error(json({status:'BATCH_STOPPED',code}));process.exitCode=1;
+  console.error(json({status:pause?'BATCH_PAUSED':'BATCH_STOPPED',code}));process.exitCode=pause?0:1;
 }finally{if(locked)await repo.releaseLock(owner);await db.$disconnect();}

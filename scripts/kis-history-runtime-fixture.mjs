@@ -24,7 +24,7 @@ async updateTask(id,v){writes.push({task:v})}async saveFiling(v){writes.push({fi
 async reserveApiCall(){return true}async recordApiResult(){}
 }
 export class KisInvestorProvider{appKey='mock';appSecret='mock';async authenticate(){return'mock'}async json(){return{output:[{stac_yymm:'202506',total_aset:'1',total_lblt:'2',total_cptl:'3',bsop_prti:'4',thtr_ntin:'5'}]}}}
-export class OpenDartProvider{async listPeriodicReports(){if(scenario==='quota')throw Object.assign(Error('quota'),{code:'DAILY_CALL_LIMIT'});return scenario==='missing'?[]:[report]}}
+export class OpenDartProvider{async listPeriodicReports(){if(scenario==='quota'||scenario==='pause')throw Object.assign(Error('paused'),{code:scenario==='quota'?'DAILY_CALL_LIMIT':'HISTORY_STOPPED'});return scenario==='missing'?[]:[report]}}
 export const normalizeDartFinancialRows=()=>({...values});export const requireDartReportPeriod=()=>{};
 export const validateDartFiling=()=>({receiptNo:report.receiptNo,periodEndDate:new Date('2025-06-30'),sourceValidation:{currency:'KRW',selectedReceiptNo:report.receiptNo}});
 export const getCfsThenOfs=async()=>({rows:scenario==='unavailable'?[]:[{}],division:'CFS'});
