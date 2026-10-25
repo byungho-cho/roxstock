@@ -42,7 +42,9 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
   }
   return [...keys].map(key => {
     const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), candidate = manualMap.get(key), f = filingMap.get(key);
-    const manualCurrency=financialCurrency(periodType==='Q4'?filingMap.get(year+':ANNUAL'):f)==='KRW'?candidate:undefined;
+    // KIS history is a rounded reference fallback, never an override of a DART filing.
+    const reference=candidate?.source==='KIS_API_REFERENCE';
+    const manualCurrency=financialCurrency(periodType==='Q4'?filingMap.get(year+':ANNUAL'):f)==='KRW'&&!(reference&&f)?candidate:undefined;
     const m=fiscalPeriodReview(f)&&candidate?.periodEndDate.getTime()!==f?.periodEndDate.getTime()?undefined:manualCurrency;
     const annual = filingMap.get(year + ':ANNUAL'), q3 = filingMap.get(year + ':Q3');
     const derived = periodType === 'Q4' && !f && !!annual && !!q3 && sameFinancialCurrency(annual,q3) && annual.fsDivision === q3.fsDivision&&!fiscalPeriodReview(annual)&&!fiscalPeriodReview(q3);
@@ -62,7 +64,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
     return { currency:financialCurrency(derived?annual:f),amountMultiplier:'1',periodReview:fiscalPeriodReview(f),fiscalYear, periodType, periodEndDate: (m?.periodEndDate ?? f?.periodEndDate ?? (derived ? annual?.periodEndDate : undefined))?.toISOString().slice(0, 10) ?? fiscalYear + '-12-31',
       revenue: flow('revenue'), operatingProfit: flow('operatingProfit'), netIncome: flow('netIncome'),
       totalAssets: balance('totalAssets'), totalLiabilities: balance('totalLiabilities'), totalEquity: balance('totalEquity'),
-      basis: (m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
+      basis: m&&reference?'KIS_API:REFERENCE_UNVERIFIED_DIVISION':(m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
       collectedAt: (f?.collectedAt ?? (derived ? annual?.collectedAt : undefined) ?? m?.updatedAt)?.toISOString() ?? null, isDerived: derived };
   });
 }
