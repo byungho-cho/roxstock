@@ -20,7 +20,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
   const filingMap = new Map<string,DartFinancialFiling>();
   for (const f of filings) { const key=f.fiscalYear+':'+f.periodType; if(!filingMap.has(key))filingMap.set(key,f); }
   return mergeStatements(manual,filings).map(row => {
-    const key=row.fiscalYear+':'+row.periodType,m=manual.find(m=>m.fiscalYear+':'+m.periodType===key&&(!row.periodReview||m.periodEndDate.toISOString().slice(0,10)===row.periodEndDate)),f=filingMap.get(key);
+    const key=row.fiscalYear+':'+row.periodType,m=manual.find(m=>m.fiscalYear+':'+m.periodType===key&&!(m.source==='KIS_API_REFERENCE'&&filingMap.has(key))&&(!row.periodReview||m.periodEndDate.toISOString().slice(0,10)===row.periodEndDate)),f=filingMap.get(key);
     const annual=filingMap.get(row.fiscalYear+':ANNUAL'),q3=filingMap.get(row.fiscalYear+':Q3');
     const snapshot = row.isDerived ? annual : f;
     const extraFlow = (field:string):string|null => {

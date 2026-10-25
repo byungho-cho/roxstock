@@ -3,6 +3,13 @@ import test from 'node:test';
 import { Prisma,type ValuationMetric,type FinancialStatement,type DartFinancialFiling } from '../generated/prisma/index.js';
 import { fairPrice,weight,orderByWeight,periods,mergeStatements,financialRows,growth,type Statement } from './value-analysis.js';
 const metric={metricDate:'2026-10-05',bps:'10000',roe:'10',per:'12',pbr:'1.2',eps:'1000'};
+test('KIS historical reference is labelled, superseded by DART, and never changes manual precedence',()=>{
+ const m={source:'KIS_API_REFERENCE',fiscalYear:2024,periodType:'ANNUAL',periodEndDate:new Date('2024-12-31'),revenue:new Prisma.Decimal('12345000000'),updatedAt:new Date('2026-10-25')} as FinancialStatement;
+ const f={fiscalYear:2024,periodType:'ANNUAL',fsDivision:'CFS',periodEndDate:new Date('2024-12-31'),revenueYtd:new Prisma.Decimal('12345678900'),collectedAt:new Date('2026-10-25')} as DartFinancialFiling;
+ assert.equal(mergeStatements([m],[])[0]!.basis,'KIS_API:REFERENCE_UNVERIFIED_DIVISION');
+ assert.equal(mergeStatements([m],[f])[0]!.revenue,'12345678900');assert.equal(mergeStatements([m],[f])[0]!.basis,'CFS');
+ assert.equal(mergeStatements([{...m,source:'MANUAL'}],[f])[0]!.revenue,'12345000000');
+});
 test('existing RIM 8% rule and W0.8 denominator',()=>{assert.equal(fairPrice(metric,'0.8'),'12000');assert.equal(weight(metric,'10000'),'1.2');assert.equal(weight(metric,'0'),null);assert.equal(weight(metric,'-1'),null);assert.equal(fairPrice({...metric,roe:null},'0.8'),null);assert.equal(fairPrice({...metric,bps:'0'},'0.8'),'0');});
 test('descending exact Decimal W, zero before missing, deterministic code tie',()=>{const rows=[{id:'1',symbol:'002',w:null},{id:'2',symbol:'003',w:'1.000000000000000002'},{id:'3',symbol:'002',w:'1.000000000000000001'},{id:'4',symbol:'001',w:'1.000000000000000001'},{id:'5',symbol:'004',w:'0'}];assert.deepEqual(orderByWeight(rows).map(r=>r.id),['2','4','3','5','1']);});
 test('three and ten consecutive periods, Q4 year rollover',()=>{assert.deepEqual(periods(2025,4,3).map(r=>r.key),['2025:Q4','2026:Q1','2026:Q2']);assert.equal(periods(2017,null,10).at(-1)?.key,'2026:ANNUAL');});
