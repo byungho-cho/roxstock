@@ -31,6 +31,47 @@
 - 실행 도구와 복구 절차는 [이전 보고서](2026-10-26-financial-partial-fill-development.md)를 따른다. CSV는 PR #329에 고정된 원본, evidence는 오늘 확보한 실제 기간 증명이 추가된 별도 비공개 사본이다.
 - 실제 실행 직전 새 전체 DB 백업, 압축·체크섬 검사와 별도 비공개 복제를 수행한다. 운영 이미지에서 기본 read-only 계획을 다시 검토하고, 056730 1종목부터 시작해 검증 후 작은 배치로 진행한다.
 - 기존 813종목·범위 밖 자료·원본 filing·수동값·개인 자산과 오류 사건 이력은 보호한다. before/after·행별 journal과 복구 자료는 Git 밖에 보관한다.
-- 실제 저장 후 누락량·출처·revision·API·캐시·범위 외 불변 검증과 배포 결과를 추가 기록한다. 이 문서 작성 시점의 실제 신규 보완 저장은 0건이다.
+- 위 계획은 실행 전 기록이다. 이후 수행한 실제 운영 결과는 아래에 구분해 기록한다.
 
 DB migration·Android 변경 없음. 현재 작업의 실제 선별 보완은 사용자 후속 지시에 따라 개발 담당이 직접 수행한다.
+
+## 실제 운영 반영 완료 — 2026-10-27
+
+- 개발 담당이 직접 수행했다. [PR #331](https://github.com/byungho-cho/roxstock/pull/331) / `31eccb07eef80e6d17c88c7e23d186074b1ca2c2`의 검증 도구로 310종목 634필드를 반영하고, [PR #332](https://github.com/byungho-cho/roxstock/pull/332) / `84a15b45b8deac36a039522970d485e8a09764a1` 배포 후 033310의 참고 지표 2필드를 추가했다.
+- **총 311종목·311기간, 636필드 신규 저장**: EPS 72, BPS 249, ROE 11, PBR 302, 보험수익 2. 지표는 기존 `PeriodValuation.values`, 보험수익은 기존 `supplemental.accounts`와 `supplementedFilings` 투영 경로에 저장했다. 원본 filing을 재작성하지 않았다.
+- CSV의 745개 지정 필드 중 값이 비어 있던 필드는 **741 → 105**로 감소했다. 남은 105개는 정상 미적용 77개와 근거·정책 확인이 필요한 28개다. 실제 수치가 있는 필드는 기존 4개를 포함해 640개다. 정상 미적용을 숫자 0으로 채우거나 저장 성공 필드로 계산하지 않았다.
+- 반영은 056730 1종목부터 시작해 실제 저장·출처·기존 값·원본 불변을 확인한 후 5종목 단위로 진행했다. 실행 중 외부 API 호출은 0회이며, 별도 기간 증명 확인 45회만 공통 일일 예산을 사용했다.
+- 마지막 319개 전체 재계획에서 **추가 저장 예상 0건**을 확인했다. 같은 행·같은 입력의 실제 apply 재실행도 0건이었다.
+
+### 보존·검증 결과
+
+- 반영된 311개 행에 이미 있던 비어 있지 않은 지표 **598개와 해당 필드별 출처**를 그대로 보존했다. 2025년 전체 6,121개 기간 행을 전후 대조해 대상 밖 5,810개 행도 불변임을 확인했다.
+- `dart_financial_filings`, `financial_statements`, `valuation_metrics`, `dart_share_snapshots`의 전후 테이블 checksum이 동일했다. 계좌·매수 Lot·분할매도·예수금·배당·개인 자산 관련 모델은 이 도구가 변경하지 않았다.
+- 금융 revision은 `962397 → 962709`로 갱신됐다. 2026년 기존 캐시는 `REFRESHED` 후 새 인스턴스에서도 `PERSISTED_HIT`였다. 영속 일별 캐시가 원래 없던 2025년은 정상 `FALLBACK` 직접 조회 모드에서 최신 revision 기준 재조회가 일치했다.
+- 실제 운영 이미지의 상세 API 핸들러를 네트워크 listener 없이 내부 주입으로 검증했다. 056730의 PER 미적용/PBR 저장값, 보험사 2곳의 보험수익과 안내, 033310의 `bpsReferenceOnly`가 응답에 반영됐다. 목록 직렬화도 통과했다. 이는 실제 사용자 브라우저 로그인·모바일 실기기 검증과 구분한다.
+- 외부 확인: 홈페이지 200, 계좌·종목·재무 목록 API의 비인증 요청은 모두 401. 운영 `/api/version`은 **1.2.28**이다.
+- [배포 실행 40403089087](https://github.com/byungho-cho/roxstock/actions/runs/40403089087) 성공. 변경이 필요한 수집기만 새 이미지로 교체됐고 백엔드는 #331 이미지, 프런트는 기존 이미지를 유지했다. Android APK 변경 없음. PR #332의 필수 검사 21개 성공, 비대상 4개 skip.
+- 로컬 DB에서는 실제 CLI `plan → apply → 중복 0건 → rollback`을 추가 검증했고 기존 금융 내용이 정확히 복원됐다. 관리용 수정 시각·수집 namespace는 write fence 정책대로 갱신될 수 있다. 별도 강제 롤백 트랜잭션 검사에서는 원래 행과 revision 복구도 확인했다.
+
+### 남은 범위와 정책 판단
+
+[실제 반영 후 잔여 목록](assets/2026-10-27-financial-fill-remaining.csv)의 28필드는 보완 불가 확정이 아니다. 공통 원본이 없거나 자본·주식수·EPS·가격 근거가 부족한 항목은 검토 대상으로 유지했다. 원래 사건·발생 시각·메모·반복 이력은 수정하지 않았으며 오류 카드 감소를 저장 성과로 계산하지 않았다.
+
+금융업 3개 매출 대응은 아래와 같이 별도 정책 검토로 유지했다.
+
+| 종목·실제 공시 | 확인한 표준 계정 | 보류 이유 |
+|---|---|---|
+| [유화증권 003460](https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260311004334) | 이자수익 `ifrs-full_RevenueFromInterest`, 순이자손익 `ifrs-full_InterestRevenueExpense`, 수수료수익·순수수료손익, 기타영업수익 `dart_OtherOperatingIncome` | 기타영업수익은 전체 영업수익이 아니며, 총액·순액 항목을 합산하면 중복될 수 있음 |
+| [푸른저축은행 007330](https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260407003063) | 같은 이자·수수료 계정과 기타영업손익 `ifrs-full_OtherOperatingIncomeExpense` | 순손익을 일반기업 매출로 대체할 근거가 부족함 |
+| [케이뱅크 279570](https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001560) | 같은 이자·수수료 계정과 기타영업손익 | 동일, 검증된 비교 가능 최상위 매출 대응 계정 미확정 |
+
+대안은 ① 이자·수수료·순손익을 원문 명칭대로 별도 항목으로 제공하고 일반 매출은 구조적 미적용으로 둘지 정책을 확정하거나, ② 원문에서 동등한 총계가 명시된 경우만 해당 단일 계정에 대응하는 것이다. 현재는 둘 중 하나를 임의 채택하거나 구성 금액을 합산하지 않았다.
+
+SOURCE_REVIEW의 추가 4개 원문 사례는 #331에서 로직 수정·실제 응답 재현을 완료했으며 이번 DEVELOPMENT_WAIT 선별 실행에 섞지 않았다. SOURCE_REVIEW·INVESTIGATION_PENDING 전체를 재수집하거나 해결 처리한 작업은 아니다.
+
+### 백업·복구·운영 일정
+
+- 실제 실행 직전 최신 전체 DB 백업의 gzip 검사 및 별도 비공개 복제본 SHA-256 일치를 확인했다. checksum: `2a3651b658549d8f5ba44a45f0c19657b4a824e407ce1d3c5825451cdae52973`. 이전 백업은 보존했다.
+- 서버 비공개 작업 폴더: `/root/roxstock-investigations/financial-fill-devfix-20261027`. 승인 계획·입력 증거·행별 before/after·COMMITTED journal·실제 기간 응답 사본을 보관하고 별도로 복제했다. 복구 archive SHA-256: `4393dd9f01cfdc43fc99298773c2b68d9064fe71124a8d9e46dd0813bbfdd434`. 원본·사본·비밀 설정은 Git에 게시하지 않았다.
+- 필요한 배치의 `out/apply-one/journal.jsonl`, `out/apply-all/journal.jsonl`, `out/apply-followup/journal.jsonl`을 기존 `--rollback` 절차로 선별 복구할 수 있다. 현재 행 hash가 다르면 중단한다. 서로 겹치는 배치를 되돌릴 때는 최신 배치부터 적용한다. 전체 운영 DB 복원으로 개인 자산이나 다른 보완 결과를 덮어쓰지 않는다.
+- 기존 과거 자료 보완 타이머를 새 수집기 이미지로 복원했다. DART 전용 worker는 기존 false / stopped / restart=no 상태이며 2단계·우선종목 보류를 유지한다. 임시 금융 잠금은 해제됐다.
