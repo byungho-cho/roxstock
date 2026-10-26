@@ -4,6 +4,7 @@ import {fiscalDurationMatches,metricKeys,type Supplemental} from '@roxstock/shar
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {valueCompletion} from '@roxstock/shared/domain/collection-status';
+import {bookValueShares,periodEndBookShares} from '@roxstock/shared/domain/share-counts';
 import {supplementStoredPeriod,supplementIdentityConflict} from './valuation-supplement.js';
 import {financialRevenueReview} from './financial-revenue.js';
 import {validateStoredDartRows} from './dart-filing-validation.js';
@@ -64,7 +65,11 @@ export async function planFinancialFill(target:FillTarget,state:FillState,eviden
  if(!reason&&old?.supplemental){
   const saved=old.supplemental as Supplemental;
   if(supplementIdentityConflict(filing,saved))reason='EXISTING_SUPPLEMENT_SOURCE_CONFLICT';
-  else supplemental={...supplemental,...saved,accounts:{...supplemental.accounts!,...saved.accounts,sources:{...supplemental.accounts!.sources,...saved.accounts?.sources}}};
+  else {
+   const incoming=supplemental.shares,stored=saved.shares;
+   const enrichShares=!bookValueShares(stored,filing.receiptNo)&&periodEndBookShares(incoming,filing)&&(!stored?.outstanding||stored.outstanding===incoming?.outstanding)&&(!stored?.collectedAt||Date.parse(incoming?.collectedAt??'')>=Date.parse(stored.collectedAt));
+   supplemental={...supplemental,...saved,...(enrichShares?{shares:incoming}:{}),accounts:{...supplemental.accounts!,...saved.accounts,sources:{...supplemental.accounts!.sources,...saved.accounts?.sources}}};
+  }
  }
  const noWrite=()=>{throw Error('DRY_RUN_WRITE_ATTEMPT');};
  const db:any={security:{findMany:async()=>[],findUnique:async()=>reviveModel('Security',security)},dartFinancialFiling:{findFirst:async(q:any)=>filings.find(f=>q.where.id?String(f.id)===String(q.where.id):f.fiscalYear===q.where.fiscalYear&&f.periodType===(q.where.periodType??target.period))??null},periodValuation:{findUnique:async(q:any)=>valuations.find(v=>v.fiscalYear===q.where.securityId_fiscalYear_periodType.fiscalYear)??null,upsert:noWrite,update:noWrite},dartShareSnapshot:{upsert:noWrite,create:noWrite},$executeRaw:noWrite};
@@ -91,7 +96,7 @@ export async function planFinancialFill(target:FillTarget,state:FillState,eviden
  const needed=new Set<string>(added.flatMap(k=>k==='revenue'?['revenue']:k==='eps'||k==='per'?['basicEps','parentNetIncome']:k==='bps'||k==='pbr'?['parentEquity','totalEquity']:['netIncome','parentNetIncome','totalEquity','parentEquity','openingTotalEquity','openingParentEquity']));
  const storedSupplement=old?.supplemental??{};
  const sources={...Object.fromEntries(Object.entries(supplemental.accounts?.sources??{}).filter(([key])=>needed.has(key))),...(storedSupplement.accounts?.sources??{})};
- const proposedSupplement=added.some(k=>k!=='revenue')?{...supplemental,...storedSupplement}:{...storedSupplement};
+ const proposedSupplement=added.some(k=>k!=='revenue')?{...storedSupplement,...supplemental}:{...storedSupplement};
  proposedSupplement.accounts={...supplemental.accounts,...storedSupplement.accounts,sources};
  const data=added.length?{values,status:completion.complete?'SUCCESS':'PARTIAL',provenance:{...(old?.provenance??candidate?.provenance??{}),perMetric},reasons:{...(old?.reasons??{}),...completion.notApplicable},supplemental:proposedSupplement}:null;
  if(data){for(const f of fields.filter(f=>f.disposition==='SAVE'))delete data.reasons[f.field];}
