@@ -21,7 +21,7 @@ test('analysis shares chart, neutral dates and bottom controls and left ticks; b
   await page.getByRole('button',{name:'자산추이 상세보기'}).click();await page.getByRole('button',{name:'자산 차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBe(saved);
   await page.getByRole('button',{name:'1개월',exact:true}).click();await expect(chart.getByTestId('asset-trend-date').first()).toHaveText('09/07');
   await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
-  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('다른 · 1년');
+  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('다른 · 올해');
 });
 
 
@@ -30,7 +30,7 @@ test('home header navigates to analysis without changing account; chart does not
   await expect(card).toContainText('자산추이 (상세보기)');
   await selectLast(page,card.getByTestId('asset-trend-chart'));await expect(page).toHaveURL(/\/$/);
   await card.getByRole('button',{name:'자산추이 (상세보기)'}).click();await expect(page).toHaveURL(/\/assets$/);
-  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('기본 · 1년');
+  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('기본 · 올해');
 });
 
 test('pull indicator descends, cancels, spins once and cleans up success/failure',async({page},info)=>{
