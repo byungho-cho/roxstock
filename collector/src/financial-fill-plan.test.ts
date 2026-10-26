@@ -57,3 +57,17 @@ test('unordered old and corrected filing rows always calculate against the lates
  const result=await planFinancialFill(f.target,f.state,f.evidence);assert.equal(result.fields.find(f=>f.field==='eps')!.candidate,'2');assert.equal(result.fields.find(f=>f.field==='eps')!.source.receiptNo,f.target.receiptNo);
  f.state.filings.reverse();const reversed=await planFinancialFill(f.target,f.state,f.evidence);assert.deepEqual(result.data!.values,reversed.data!.values);
 });
+test('incomplete preferred-share evidence can be enriched only by matching dated reconciled rows',async()=>{
+ const f=fixture();f.target.fields=['bps','pbr'];const receiptNo=f.target.receiptNo;
+ f.state.valuations=[{securityId:'1',fiscalYear:2025,periodType:'ANNUAL',status:'PARTIAL',values:{eps:'-2'},provenance:{},reasons:{},supplemental:{shares:{receiptNo,outstanding:'10',preferred:true}}}];
+ const row=(shareClass:string,n:string)=>({stockKind:shareClass,shareClass,outstandingShares:n,issuedShares:n,treasuryShares:'0',periodEndDate:'2025-12-31'});
+ f.evidence.supplemental.shares={receiptNo,outstanding:'10',preferred:true,collectedAt:'2026-03-19T00:00:00Z',rows:[row('COMMON','10'),row('PREFERRED','2'),row('TOTAL','12')]};
+ const result=await planFinancialFill(f.target,f.state,f.evidence);assert.equal(result.expectedSaves,2);assert.equal(result.data!.provenance.perMetric.bps.bpsReferenceOnly,true);assert.equal(result.data!.supplemental.shares.rows.length,3);
+ for(const change of ['different-count','different-period','older']){
+  const altered=structuredClone(f);
+  if(change==='different-count')altered.state.valuations[0].supplemental.shares.outstanding='9';
+  if(change==='different-period')altered.evidence.supplemental.shares!.rows![0]!.periodEndDate='2024-12-31';
+  if(change==='older')altered.state.valuations[0].supplemental.shares.collectedAt='2026-03-20T00:00:00Z';
+  assert.equal((await planFinancialFill(altered.target,altered.state,altered.evidence)).expectedSaves,0);
+ }
+});
