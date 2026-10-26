@@ -1,5 +1,6 @@
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {DartApiError, type DartFinancialRow, type DartReport} from './dart-provider.js';
+import {attachmentChainMatches} from './dart-attachment-chain.js';
 
 const receiptResolvablePeriods=new Set(['CLOSING_MONTH_CHANGED','CLOSING_MONTH_UNAVAILABLE','MULTIPLE_ANNUAL_PERIODS']);
 /** An ambiguous calendar is resolved only by the exact receipt returned for this API year/code. */
@@ -23,6 +24,7 @@ export interface DartSourceValidation {
   annualPeriods: string[]; fiscalYearEndMonth: number|null; currency: string;
   periodResolution?:{method:string;originalReason:string;returnedReceiptNo:string};
   amountMultiplier?:'1'; amountUnit: 'CURRENCY_UNITS'; financialValuesAssumedEqual: false;
+  attachmentChain?:NonNullable<DartReport['selection']>['attachmentChain'];
 }
 
 /** No network/DB mutations. A financial response remains the source of its own receipt.
@@ -57,9 +59,11 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
   if(chosen.receiptNo!==disclosure.receiptNo){
     const ordered=[...group].sort((a,b)=>a.receiptDate.localeCompare(b.receiptDate)||a.receiptNo.localeCompare(b.receiptNo));
     const bases=ordered.filter(d=>d.correctionType==='ORIGINAL');
-    if(bases.length!==1||!bases[0]!.remarks.includes('정'))fail('CORRECTION_RELATION_UNVERIFIED');
+    const publicChain=attachmentChainMatches(report,corpCode,disclosure.receiptNo);
+    if(!publicChain&&(bases.length!==1||!bases[0]!.remarks.includes('정')))fail('CORRECTION_RELATION_UNVERIFIED');
+    if(bases.length>1)fail('CORRECTION_RELATION_UNVERIFIED');
     const index=ordered.findIndex(d=>d.receiptNo===disclosure.receiptNo);
-    if(index<0||!['ORIGINAL','CONTENT'].includes(disclosure.correctionType))fail('CORRECTION_SOURCE_UNVERIFIED');
+    if(index<0||!['ORIGINAL','CONTENT',...(publicChain?['ADDITION']:[])].includes(disclosure.correctionType))fail('CORRECTION_SOURCE_UNVERIFIED');
     const later=ordered.slice(index+1);
     if(!later.length||later.some(d=>!['ATTACHMENT','ADDITION'].includes(d.correctionType))||later.at(-1)?.receiptNo!==chosen.receiptNo)fail('CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION');
     relationship='SAME_PERIOD_ATTACHMENT_CHAIN';
@@ -74,7 +78,7 @@ export function validateDartFiling(input: {corpCode:string; taskFiscalYear:numbe
     selectedReceiptNo:chosen.receiptNo,returnedReceiptNo:disclosure.receiptNo,
     selectedCorrectionType:chosen.correctionType,sourceCorrectionType:disclosure.correctionType,
     relationship,annualPeriods:selection.annualPeriods,fiscalYearEndMonth:selection.fiscalYearEndMonth,
-    ...(selection.periodResolution?{periodResolution:selection.periodResolution}:{}),currency:currencies[0]!,amountMultiplier:'1',amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
+    ...(selection.periodResolution?{periodResolution:selection.periodResolution}:{}),...(selection.attachmentChain?{attachmentChain:selection.attachmentChain}:{}),currency:currencies[0]!,amountMultiplier:'1',amountUnit:'CURRENCY_UNITS',financialValuesAssumedEqual:false};
   return {receiptNo:disclosure.receiptNo,reportName:disclosure.reportName,
     receiptDate:new Date(`${disclosure.receiptDate.slice(0,4)}-${disclosure.receiptDate.slice(4,6)}-${disclosure.receiptDate.slice(6,8)}T00:00:00Z`),
     periodEndDate,sourceValidation};

@@ -21,7 +21,8 @@
     "test": "npm --workspace @roxstock/shared run build && node --import tsx --test src/*.test.ts src/tests/*.test.ts",
     "verify:krx:samsung": "tsx src/scripts/verify-krx-samsung.ts",
     "supplement:valuations": "tsx src/scripts/supplement-valuations.ts",
-    "supplement:shares": "tsx src/scripts/supplement-shares.ts"
+    "supplement:shares": "tsx src/scripts/supplement-shares.ts",
+    "supplement:financial-fill": "tsx src/scripts/reprocess-financial-fill.ts"
   },
   "dependencies": {
     "@roxstock/shared": "0.1.0",

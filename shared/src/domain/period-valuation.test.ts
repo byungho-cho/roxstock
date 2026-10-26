@@ -29,10 +29,10 @@ test('preferred companies have an explicitly combined-class reference BPS only w
  const broken=structuredClone(sources);broken.shares.rows[2].outstandingShares='21';assert.equal(calculatePeriod(current,undefined,broken).values.bps,null);
 });
 
-test('negative EPS and negative equity yield signed ratios; zero denominators remain unavailable',()=>{
+test('negative EPS and equity stay signed while PER/PBR are normally inapplicable',()=>{
  const sources={shares:{outstanding:'10',preferred:false,receiptNo:'20260301000001'},price:{value:'100',date:'2025-12-30',source:'FSC'}};
  const f=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'-10'},parentEquity:{amount:'-200'}}});
- const result=calculatePeriod(f,undefined,sources);assert.equal(result.values.per,'-10');assert.equal(result.values.pbr,'-5');
+ const result=calculatePeriod(f,undefined,sources);assert.equal(result.values.eps,'-10');assert.equal(result.values.bps,'-20');assert.equal(result.values.per,null);assert.equal(result.values.pbr,null);assert.equal(result.reasons.per,'EPS_NON_POSITIVE');assert.equal(result.reasons.pbr,'BPS_NON_POSITIVE');
  const zero=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'0'},parentEquity:{amount:'0'}}});
  assert.equal(calculatePeriod(zero,undefined,sources).values.per,null);assert.equal(calculatePeriod(zero,undefined,sources).values.pbr,null);
 });
