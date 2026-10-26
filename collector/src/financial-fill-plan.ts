@@ -53,7 +53,7 @@ function evidenceConflict(f:any,s:Supplemental){
 }
 /** Replays the production calculator without network or writes. Evidence files stay private. */
 export async function planFinancialFill(target:FillTarget,state:FillState,evidence:FillEvidence|undefined){
- const security=state.security,filings=state.filings.map(f=>reviveModel('DartFinancialFiling',f)),valuations=state.valuations.map(v=>reviveModel('PeriodValuation',v));
+ const security=state.security,filings=state.filings.map(f=>reviveModel('DartFinancialFiling',f)).sort((a,b)=>b.receiptDate-a.receiptDate||b.collectedAt-a.collectedAt||b.receiptNo.localeCompare(a.receiptNo)),valuations=state.valuations.map(v=>reviveModel('PeriodValuation',v));
  const filing=filings.filter(f=>f.fiscalYear===target.year&&f.periodType===target.period&&!f.isWithdrawn).sort((a,b)=>b.receiptDate-a.receiptDate||b.collectedAt-a.collectedAt||b.receiptNo.localeCompare(a.receiptNo))[0];
  const old=valuations.find(v=>v.fiscalYear===target.year&&v.periodType===target.period)??null;
  const before=fingerprint(state),projected=filing?supplementedFilings([filing],old?[old]:[])[0]:null;
@@ -76,6 +76,8 @@ export async function planFinancialFill(target:FillTarget,state:FillState,eviden
   let hold=reason??candidate?.reasons?.[field]??'SOURCE_EVIDENCE_INSUFFICIENT';
   if(!reason&&!['EPS_NON_POSITIVE','BPS_NON_POSITIVE'].includes(hold)&&['eps','roe','per'].includes(field)&&!fiscalDurationMatches(filing,supplemental.fiscalDuration)){value=null;hold='FISCAL_DURATION_UNVERIFIED';}
   if(!reason&&(field==='per'||field==='pbr')&&value!=null){const base=field==='per'?'eps':'bps',baseEvidence=old?.provenance?.perMetric?.[base]??old?.provenance;if(old?.values?.[base]!=null&&(baseEvidence?.receiptNo!==filing.receiptNo||baseEvidence?.fsDivision!==filing.fsDivision||baseEvidence?.periodEnd!==filing.periodEndDate.toISOString().slice(0,10))){value=null;hold='EXISTING_DENOMINATOR_SOURCE_UNVERIFIED';}}
+  const metricSource=candidate?.provenance?.perMetric?.[field]??candidate?.provenance;
+  if(field!=='revenue'&&!reason&&current==null&&value!=null&&(metricSource?.receiptNo!==filing.receiptNo||metricSource?.fsDivision!==filing.fsDivision||metricSource?.periodEnd!==filing.periodEndDate.toISOString().slice(0,10))){value=null;hold='CANDIDATE_SOURCE_IDENTITY_MISMATCH';}
   if(field==='revenue'&&!reason&&(!evidence?.financialRows?.length||financialRevenueReview(evidence.financialRows).state!=='MAPPED')){value=null;hold='FINANCIAL_REVENUE_POLICY_REVIEW';}
   const disposition=current!=null?'PRESERVE_EXISTING':reason?'HOLD':['EPS_NON_POSITIVE','BPS_NON_POSITIVE'].includes(hold)?'NOT_APPLICABLE':value!=null?'SAVE':'HOLD';
   return {field,current,candidate:value,disposition,reason:disposition==='PRESERVE_EXISTING'?'EXISTING_VALUE_PROTECTED':disposition==='SAVE'?'VERIFIED_SAME_PERIOD':hold,source:field==='revenue'?supplemental.accounts?.sources.revenue:candidate?.provenance?.perMetric?.[field]??null};

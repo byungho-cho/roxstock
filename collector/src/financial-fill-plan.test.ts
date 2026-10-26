@@ -51,3 +51,9 @@ test('CSV scope and fields are explicit; calculated timestamps alone do not stal
  assert.equal(fieldPlanFingerprint({value:'3',source:{receiptNo:'a',calculatedAt:'before'}}),fieldPlanFingerprint({value:'3',source:{receiptNo:'a',calculatedAt:'after'}}));
  assert.notEqual(fieldPlanFingerprint({value:'3'}),fieldPlanFingerprint({value:'4'}));
 });
+test('unordered old and corrected filing rows always calculate against the latest exact receipt',async()=>{
+ const f=fixture('2'),older=structuredClone(f.state.filings[0]);older.receiptNo='20260317000001';older.receiptDate='2026-03-17T00:00:00.000Z';older.accountSources.basicEps.amount='999';
+ f.state.filings.unshift(older);
+ const result=await planFinancialFill(f.target,f.state,f.evidence);assert.equal(result.fields.find(f=>f.field==='eps')!.candidate,'2');assert.equal(result.fields.find(f=>f.field==='eps')!.source.receiptNo,f.target.receiptNo);
+ f.state.filings.reverse();const reversed=await planFinancialFill(f.target,f.state,f.evidence);assert.deepEqual(result.data!.values,reversed.data!.values);
+});
