@@ -5,6 +5,9 @@ import { inflateRawSync } from 'node:zlib';
 import {shareClassOf} from '@roxstock/shared/domain/share-counts';
 
 import type {DartReportCode,DartPeriodType,DartCorporation,DartReport,DartCorrectionType,DartDisclosure,DartReportSelection,DartFinancialRow,DartFinancialValues} from '@roxstock/shared/collection/dart-types';
+import {financialRevenueReview} from './financial-revenue.js';
+import {publicAttachmentChain} from './dart-attachment-chain.js';
+import {validateDartFiling} from './dart-filing-validation.js';
 export type {DartReportCode,DartPeriodType,DartCorporation,DartReport,DartCorrectionType,DartDisclosure,DartReportSelection,DartFinancialRow,DartFinancialValues} from '@roxstock/shared/collection/dart-types';
 import {DartApiError} from '@roxstock/shared/collection/dart-types';
 export {DartApiError} from '@roxstock/shared/collection/dart-types';
@@ -237,6 +240,13 @@ export const normalizeDartFinancialRows = (rows: DartFinancialRow[]): DartFinanc
    const unique=new Set(epsRows.map(r=>JSON.stringify([numericText(r.currentAmount),numericText(r.currentYtdAmount)])));
    result.accountSources.basicEps.ordinaryEpsVerified=epsRows.length>0&&unique.size===1&&!epsRows.some(r=>/우선|preferred/i.test(r.accountName));
   }
+  if(result.revenueQuarter===null&&result.revenueYtd===null){
+   const financial=financialRevenueReview(rows);
+   if(financial.state==='MAPPED'){
+    result.revenueQuarter=financial.amount;result.revenueYtd=financial.ytdAmount;
+    result.accountSources.revenue=financial.source;
+   }
+  }
   return result;
 };
 
@@ -386,6 +396,26 @@ export class OpenDartProvider {
     }
     if (all.some(row => row.corp_code !== corpCode)) throw new DartApiError('DISCLOSURE_COMPANY_MISMATCH', 'Disclosure company identity failed validation.', false, false, {corpCode, taskFiscalYear:fiscalYear, apiFiscalYear:fiscalYear});
     return mapPeriodicReports(all, fiscalYear);
+  }
+
+  async validateFinancialSource(report:DartReport,corpCode:string,year:number,rows:DartFinancialRow[],fsDivision:'CFS'|'OFS') {
+    try{return validateDartFiling({report,corpCode,taskFiscalYear:year,rows,fsDivision});}
+    catch(error){
+      if(!(error instanceof DartApiError)||error.diagnostics.validationResult!=='CORRECTION_RELATION_UNVERIFIED'||!rows.length)throw error;
+      const receipts=[...new Set(rows.map(row=>row.receiptNo))];if(receipts.length!==1)throw error;
+      const sourceUrl='https://dart.fss.or.kr/dsaf001/main.do?rcpNo='+report.receiptNo;
+      // Uses the same request budget, delay and size bounds as all other document reads.
+      const response=await this.request(new URL(sourceUrl));
+      let html='';try{
+        const reader=response.body?.getReader();if(!reader)throw error;
+        const chunks:Uint8Array[]=[];let size=0;
+        try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>2_000_000){await reader.cancel();throw error;}chunks.push(value);}}
+        finally{reader.releaseLock();}
+        html=new TextDecoder().decode(Buffer.concat(chunks));
+      }finally{this.lastResponseAt=Date.now();}
+      const proof=publicAttachmentChain(report,corpCode,receipts[0]!,sourceUrl,html);if(!proof)throw error;
+      return validateDartFiling({report:{...report,selection:{...report.selection!,attachmentChain:proof}},corpCode,taskFiscalYear:year,rows,fsDivision});
+    }
   }
 
   async fetchPublicAnnual(report:DartReport,corpCode:string,year:number,verifyEmptyApi=false){

@@ -32,7 +32,7 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  const resolution=(f.sourceValidation as {periodResolution?:{originalReason?:string}}|null)?.periodResolution;
  const duration=supplemental.fiscalDuration;
  const verified=fiscalDurationMatches(f,duration);
- const durationReview=!!resolution&&!verified;
+ const durationReview=(!!resolution||!!duration)&&!verified;
  const accounts=supplemental.accounts?.receiptNo===f.receiptNo&&supplemental.accounts.fsDivision===f.fsDivision&&(supplemental.accounts.currency??'KRW')===currency?supplemental.accounts:undefined;
  const periodSource=(key:string,ytd=false)=>source(f,key,ytd)??dec(ytd?accounts?.sources[key]?.ytdAmount:accounts?.sources[key]?.amount);
  const annual=f.periodType==='ANNUAL',months=verified?duration.months:annual?12:f.periodType==='Q1'?3:f.periodType==='Q2'?6:9;
@@ -61,19 +61,20 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  const strict=priceInfo?.source==='KRX_UNADJUSTED_CLOSE'||priceInfo?.source==='KIS_KRX_UNADJUSTED_CLOSE';
  const sameReceipt=supplemental.basis?.receiptNo===f.receiptNo;
  const epsCompatible=!strict||(sameReceipt&&supplemental.basis?.epsPriceCompatible===true),bpsCompatible=!strict||(sameReceipt&&supplemental.basis?.bpsPriceCompatible===true);
- const per=!foreign&&epsCompatible&&price?.gt(0)&&eps&&!eps.isZero()?price.div(eps):null,pbr=!foreign&&bpsCompatible&&price?.gt(0)&&bps&&!bps.isZero()?price.div(bps):null;
+ const per=!foreign&&epsCompatible&&price?.gt(0)&&eps?.gt(0)?price.div(eps):null,pbr=!foreign&&bpsCompatible&&price?.gt(0)&&bps?.gt(0)?price.div(bps):null;
  const values:MetricValues={eps:text(eps),bps:text(bps),per:text(per),pbr:text(pbr),roe:text(roe)};
  const reasons:Record<string,string>={};
  if(!eps)reasons.eps='공시 기본 EPS/가중평균 보통주 근거 부족';
  if(!bps)reasons.bps=supplemental.shares?.preferred?'우선주 자본 배분 근거 부족':'동일 공시의 유통주식수 또는 소유주 자본 부족';
- if(!per)reasons.per=!price?'재무기간 말 7일 이내 과거 종가 미확보':!eps?'EPS 근거 부족':'EPS가 0이어서 PER 계산 대상 아님';
- if(!pbr)reasons.pbr=!price?'재무기간 말 7일 이내 과거 종가 미확보':!bps?'BPS 근거 부족':'BPS가 0이어서 PBR 계산 대상 아님';
- if(supplemental.errors?.price&&!price){reasons.per=supplemental.errors.price;reasons.pbr=supplemental.errors.price;}
- if(strict&&price&&eps&&!epsCompatible)reasons.per='연말 비수정 종가와 공시 EPS의 액면분할·보통주 기준 일치 미확인';
- if(strict&&price&&bps&&!bpsCompatible)reasons.pbr='연말 비수정 종가와 BPS의 보통주·우선주 자본 배분 기준 일치 미확인';
+ const nonPositiveEps=eps?.lte(0)??false,nonPositiveBps=bps?.lte(0)??false;
+ if(!per)reasons.per=nonPositiveEps?'EPS_NON_POSITIVE':!price?'재무기간 말 7일 이내 과거 종가 미확보':!eps?'EPS 근거 부족':'EPS 근거 검증 필요';
+ if(!pbr)reasons.pbr=nonPositiveBps?'BPS_NON_POSITIVE':!price?'재무기간 말 7일 이내 과거 종가 미확보':!bps?'BPS 근거 부족':'BPS 근거 검증 필요';
+ if(supplemental.errors?.price&&!price){if(!nonPositiveEps)reasons.per=supplemental.errors.price;if(!nonPositiveBps)reasons.pbr=supplemental.errors.price;}
+ if(strict&&price&&eps?.gt(0)&&!epsCompatible)reasons.per='연말 비수정 종가와 공시 EPS의 액면분할·보통주 기준 일치 미확인';
+ if(strict&&price&&bps?.gt(0)&&!bpsCompatible)reasons.pbr='연말 비수정 종가와 BPS의 보통주·우선주 자본 배분 기준 일치 미확인';
  if(!roe)reasons.roe='동일 연결/별도 기초·기말 자본 또는 누적순이익 부족';
  if(durationReview){reasons.eps='실제 회계기간 길이 검증 전 연환산 지표 계산 보류';reasons.roe=reasons.eps;}
- if(foreign){reasons.per=FX_REQUIRED;reasons.pbr=FX_REQUIRED;}
+ if(foreign){if(!nonPositiveEps)reasons.per=FX_REQUIRED;if(!nonPositiveBps)reasons.pbr=FX_REQUIRED;}
  return {values,reasons,provenance:{version:2,currency,amountMultiplier:'1',priceCurrency:'KRW',conversionRequired:foreign,calculationState:durationReview?'FISCAL_DURATION_REVIEW_REQUIRED':'CALCULATED',fiscalDuration:verified?duration:null,financialCollectedAt:f.collectedAt?.toISOString()??null,supplementalAccountsCollectedAt:accounts?.collectedAt??null,calculatedAt:new Date().toISOString(),source:'OPEN_DART',receiptNo:f.receiptNo,disclosedAt:f.receiptDate.toISOString().slice(0,10),periodEnd:end,fsDivision:f.fsDivision,roeBasis:useParent?'OWNERS_OF_PARENT':'TOTAL_SAME_DIVISION',roeDenominator:verified?'AVERAGE_FISCAL_OPENING_AND_CLOSING':'AVERAGE_PREVIOUS_YEAR_END_AND_PERIOD_END',roeOpeningSource:verified&&opening?'EXACT_FISCAL_OPENING_BALANCE':comparable?'PREVIOUS_ANNUAL_FILING':opening?'SAME_FILING_COMPARATIVE_BALANCE':null,flow:verified?'VERIFIED_FISCAL_PERIOD_ANNUALIZED_NOT_TTM':annual?'ANNUAL':'YTD_ANNUALIZED_NOT_TTM',months,epsBasis:(f.accountSources as Record<string,{calculatedFromWeightedShares?:boolean}>|null)?.basicEps?.calculatedFromWeightedShares||accounts?.sources.basicEps?.calculatedFromWeightedShares?'CALCULATED_FROM_DISCLOSED_COMMON_PROFIT_AND_WEIGHTED_SHARES':'DISCLOSED_BASIC_EPS_WEIGHTED_AVERAGE_ORDINARY_SHARES',bpsReferenceOnly:bookShares?.referenceOnly??false,bookShares:bookShares?.count??null,bpsBasis:bookShares?.referenceOnly?'OWNERS_EQUITY_DIV_ALL_OUTSTANDING_REFERENCE':f.fsDivision==='CFS'?'OWNERS_EQUITY_DIV_PERIOD_END_OUTSTANDING_NO_PREFERRED':'OFS_TOTAL_EQUITY_DIV_PERIOD_END_OUTSTANDING_NO_PREFERRED',sharesReceiptNo:supplemental.shares?.receiptNo??null,sharesCollectedAt:supplemental.shares?.collectedAt??null,priceValue:priceInfo?.value??null,priceDate:priceInfo?.date??null,priceSource:priceInfo?.source??null,priceCollectedAt:priceInfo?.collectedAt??null,priceShareBasis:priceInfo?.shareBasis??null,shareBasisEvidence:supplemental.basis??null,retrospective:true}};
 }
 export function preserveValues(existing:unknown,incoming:MetricValues):MetricValues {

@@ -23,6 +23,15 @@ test('restated source keeps its own receipt and corrected CMG balance/flow rathe
  assert.equal(result.source.sourceValidation.relationship,'EXACT');
  assert.equal(result.source.sourceValidation.publicDocument.fiscalDuration.months,12);
 });
+
+test('an empty optional ownership heading does not invalidate current financial columns or invent capital',()=>{
+ const ss=sections();ss[1]!.html=ss[1]!.html.replace(row('자본총계','97944019403'),'<tr><td>지배기업소유주지분</td><td></td><td></td></tr>'+row('자본총계','97944019403'));
+ const result=parsePublicAnnual(report(),corp,2017,ss);
+ assert.equal(result.rows.find(row=>row.accountId==='ifrs-full_Assets')?.currentAmount,'109568153346');
+ assert.equal(result.rows.find(row=>row.accountId==='ifrs-full_EquityAttributableToOwnersOfParent'),undefined);
+ ss[1]!.html=ss[1]!.html.replace(row('자본총계','97944019403'),'<tr><td>자본총계</td><td></td><td>97944019403</td></tr>');
+ assert.throws(()=>parsePublicAnnual(report(),corp,2017,ss),/source review/);
+});
 test('transition picks final calendar closing but preserves a three-month fiscal duration',()=>{
  const annual=mapPeriodicReports([raw('20151228000179','사업보고서','2015.09'),raw('20160328000548','사업보고서','2015.12')],2015)[0]!;
  const target=publicAnnualTarget(annual,corp,2015)!;assert.equal(target.receiptNo,'20160328000548');

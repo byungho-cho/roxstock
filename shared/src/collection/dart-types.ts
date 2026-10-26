@@ -23,6 +23,7 @@ export interface DartDisclosure {
   reportPeriod: string; correctionType: DartCorrectionType; remarks: string;
 }
 export interface DartReportSelection {
+  attachmentChain?: {method:'DART_PUBLIC_REPORT_FAMILY';sourceUrl:string;contentSha256:string;corpCode:string;reportPeriod:string;selectedReceiptNo:string;returnedReceiptNo:string;sourceIsReport:true};
   periodResolution?:{method:string;originalReason:string;returnedReceiptNo:string};
   version: 2; yearMapping: 'CALENDAR_REPORT_YEAR'; taskFiscalYear: number; apiFiscalYear: number; periodEndDate: string;
   fiscalYearEndMonth: number | null; annualPeriods: string[]; periodError?: string;

@@ -26,6 +26,9 @@ function verifiedPublicDuration(f:StoredFiling){
  const proof=(f.sourceValidation as {publicDocument?:{method?:string;fiscalDuration?:Supplemental['fiscalDuration']}}|null)?.publicDocument;
  return proof?.method==='DART_PUBLIC_STATEMENT_BALANCE_RECONCILED'&&fiscalDurationMatches(f,proof.fiscalDuration)?proof.fiscalDuration:undefined;
 }
+export function supplementIdentityConflict(f:StoredFiling,s:Supplemental){
+ return !!s.accounts&&(s.accounts.receiptNo!==f.receiptNo||s.accounts.fsDivision!==f.fsDivision||(s.accounts.currency??'KRW')!==financialCurrency(f));
+}
 export function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient['dartFinancialFiling']['findFirst']>>>,saved:Supplemental){
  if(verifiedPublicDuration(f))return false;
  if(saved.accounts?.receiptNo===f.receiptNo&&saved.accounts.fsDivision===f.fsDivision){
@@ -37,7 +40,7 @@ export function needsDartAccounts(f:NonNullable<Awaited<ReturnType<PrismaClient[
  const required=['basicEps','investingCashFlow','financingCashFlow','cashEquivalents',...(f.fsDivision==='CFS'?['parentNetIncome','parentEquity']:[])];
  return required.some(key=>sources?.[key]?.amount==null&&sources?.[key]?.ytdAmount==null);
 }
-export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,fiscalYear:number,periodType:string,options:{dryRun?:boolean;load?:(f:Awaited<ReturnType<typeof db.dartFinancialFiling.findFirst>>,stored:Supplemental,sharesOnly?:boolean,accountsOnly?:boolean)=>Promise<Supplemental>}={}) {
+export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,fiscalYear:number,periodType:string,options:{dryRun?:boolean;fillOnly?:boolean;fields?:readonly (typeof metricKeys[number])[];load?:(f:Awaited<ReturnType<typeof db.dartFinancialFiling.findFirst>>,stored:Supplemental,sharesOnly?:boolean,accountsOnly?:boolean)=>Promise<Supplemental>}={}) {
  db=collectionClient(db);
  return withCollection(db,securityId,'valuation',async()=>{
  if(fiscalYear<2015||fiscalYear>Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Asia/Seoul'}).format(new Date())))return null;
@@ -56,12 +59,14 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  if(!currencyConversionRequired(financialCurrency(filing))&&existing?.status==='SUCCESS'&&!publicSourceChanged&&!pendingPrimaryEps&&(!((filing.sourceValidation as {periodResolution?:unknown}|null)?.periodResolution)||fiscalDurationMatches(filing,supplemental.fiscalDuration))){
   if(options.load&&(!sufficientPeriodShares(supplemental.shares,filing)||needsDartAccounts(filing,supplemental))){
    supplemental=await options.load(filing,supplemental,!needsDartAccounts(filing,supplemental));
+   if(supplementIdentityConflict(filing,supplemental))return {...existing,candidateReview:{code:'COMMON_SOURCE_IDENTITY_MISMATCH'}};
    if(!options.dryRun){await storeShareCounts(db,filing,supplemental.shares);await db.periodValuation.update({where,data:{supplemental:supplemental as Prisma.InputJsonValue}});}
    return {...existing,supplemental};
   }
   return existing;
  }
  if(options.load){supplemental=await options.load(filing,supplemental);supplemental={...supplemental,collectionAttempt:{at:new Date().toISOString(),source:'DART_KIS_KRX'}};if(filing.normalizationVersion<3)filing=await db.dartFinancialFiling.findFirst({where:{id:filing.id}})??filing;}
+ if(supplementIdentityConflict(filing,supplemental))return {...(existing??{values:{},provenance:{},status:'INSUFFICIENT'}),supplemental,candidateReview:{code:'COMMON_SOURCE_IDENTITY_MISMATCH'}};
  // Exact-filing supplements participate in calculations as well as API display.
  filing=supplementedFilings([filing],[{securityId,fiscalYear,periodType,supplemental:supplemental as Prisma.JsonObject}])[0]!;
  if(previous){
@@ -71,21 +76,27 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
   previous=supplementedFilings([previous],[{securityId,fiscalYear:previous.fiscalYear,periodType:'ANNUAL',supplemental:priorSupplement as Prisma.JsonObject}])[0]!;
   if(options.load&&previous.fsDivision===filing.fsDivision&&previous.totalEquity==null){
    priorSupplement=await options.load(previous,priorSupplement,false,true);
+   if(supplementIdentityConflict(previous,priorSupplement))return {...(existing??{values:{},provenance:{},status:'INSUFFICIENT'}),supplemental,candidateReview:{code:'PREVIOUS_SOURCE_IDENTITY_MISMATCH'}};
    if(!options.dryRun&&priorSupplement.accounts?.receiptNo===previous.receiptNo)await db.periodValuation.upsert({where:priorWhere,create:{securityId,fiscalYear:previous.fiscalYear,periodType:'ANNUAL',status:'PARTIAL',values:{},provenance:{},reasons:{},supplemental:priorSupplement as Prisma.InputJsonValue},update:{supplemental:priorSupplement as Prisma.InputJsonValue}});
    previous=supplementedFilings([previous],[{securityId,fiscalYear:previous.fiscalYear,periodType:'ANNUAL',supplemental:priorSupplement as Prisma.JsonObject}])[0]!;
   }
  }
  const result=calculatePeriod(filing,previous??undefined,supplemental);
+ // Common source conflicts cannot be repaired by saving a few unrelated numbers.
+ // Keep the stored row intact; the returned diagnostic is a plan, not a failed write.
+ if(supplemental.accounts&&(supplemental.accounts.receiptNo!==filing.receiptNo||supplemental.accounts.fsDivision!==filing.fsDivision||(supplemental.accounts.currency??'KRW')!==financialCurrency(filing))){
+  return {...(existing??{values:{},provenance:{},status:'INSUFFICIENT'}),securityId:String(securityId),fiscalYear,periodType,candidateReview:{code:'COMMON_SOURCE_IDENTITY_MISMATCH'},supplemental};
+ }
  const oldProvenance=existing?.provenance as Record<string,unknown>|undefined;
  const foreign=currencyConversionRequired(financialCurrency(filing));
- const oldValues=(publicSourceChanged||foreign?undefined:existing?.values) as Record<string,string|null>|undefined;
+ const oldValues=(!options.fillOnly&&(publicSourceChanged||foreign)?undefined:existing?.values) as Record<string,string|null>|undefined;
  const priorEps=(oldProvenance?.perMetric as Record<string,Record<string,unknown>>|undefined)?.eps??oldProvenance;
  const rawEps=(filing.accountSources as Record<string,{ordinaryEpsVerified?:boolean}>|null)?.basicEps;
- const primaryEps=oldValues?.eps!=null&&oldValues.per==null&&result.values.eps!=null&&filing.periodType==='ANNUAL'&&filing.periodEndDate.toISOString().slice(0,10)===`${fiscalYear}-12-31`&&priorEps?.source==='KIS_API'&&priorEps.validation==='DART_BALANCE_AND_FLOW_RECONCILED'&&priorEps.fiscalYear===fiscalYear&&priorEps.receiptNo===filing.receiptNo&&priorEps.fsDivision===filing.fsDivision&&priorEps.periodEnd===filing.periodEndDate.toISOString().slice(0,10)&&(commonEpsReviewMatches(filing,supplemental)||rawEps?.ordinaryEpsVerified===true);
+ const primaryEps=!options.fillOnly&&oldValues?.eps!=null&&oldValues.per==null&&result.values.eps!=null&&filing.periodType==='ANNUAL'&&filing.periodEndDate.toISOString().slice(0,10)===`${fiscalYear}-12-31`&&priorEps?.source==='KIS_API'&&priorEps.validation==='DART_BALANCE_AND_FLOW_RECONCILED'&&priorEps.fiscalYear===fiscalYear&&priorEps.receiptNo===filing.receiptNo&&priorEps.fsDivision===filing.fsDivision&&priorEps.periodEnd===filing.periodEndDate.toISOString().slice(0,10)&&(commonEpsReviewMatches(filing,supplemental)||rawEps?.ordinaryEpsVerified===true);
  for(const [ratio,base]of [['per','eps'],['pbr','bps']] as const){
   if(ratio==='per'&&primaryEps)continue;
   const evidence=(oldProvenance?.perMetric as Record<string,Record<string,unknown>>|undefined)?.[base]??oldProvenance;
-  if(oldValues?.[base]!=null&&oldValues[ratio]==null&&result.values[ratio]!==null&&(oldValues[base]!==result.values[base]||evidence?.fsDivision&&evidence.fsDivision!==filing.fsDivision||evidence?.receiptNo&&evidence.receiptNo!==filing.receiptNo)){
+  if(oldValues?.[base]!=null&&oldValues[ratio]==null&&result.values[ratio]!==null&&(oldValues[base]!==result.values[base]||evidence?.fsDivision!==filing.fsDivision||evidence?.receiptNo!==filing.receiptNo||evidence?.periodEnd!==filing.periodEndDate.toISOString().slice(0,10))){
    result.values[ratio]=null;result.reasons[ratio]=`기존 정상 ${base.toUpperCase()}와 새 보충 자료의 공시·귀속 기준 불일치`;
   }
  }
@@ -98,14 +109,18 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
   const verified=linked&&(evidence?.source==='OPEN_DART'||evidence?.source==='KIS_API'&&evidence.validation==='DART_BALANCE_AND_FLOW_RECONCILED'&&evidence.fiscalYear===fiscalYear&&evidence.periodType==='ANNUAL'&&annual?.matchedReceiptNo===filing.receiptNo&&annual.matchedDivision===filing.fsDivision&&annual.fiscalYear===fiscalYear&&annual.periodEnd===evidence.periodEnd&&typeof annual[base]==='string'&&oldValues?.[base]!=null&&new Prisma.Decimal(annual[base] as string).eq(oldValues[base]));
   const price=supplemental.price,basis=supplemental.basis,age=price?(filing.periodEndDate.getTime()-Date.parse(price.date))/86400000:NaN;
   const compatible=basis?.receiptNo===filing.receiptNo&&(base==='eps'?basis.epsPriceCompatible:basis.bpsPriceCompatible);
-  if(periodType==='ANNUAL'&&result.values[base]===null&&oldValues?.[base]!=null&&oldValues[ratio]==null&&verified&&price?.source==='KIS_KRX_UNADJUSTED_CLOSE'&&compatible&&age>=0&&age<=7&&!new Prisma.Decimal(oldValues[base]).isZero()&&new Prisma.Decimal(price.value).gt(0)){
+  if(periodType==='ANNUAL'&&result.values[base]===null&&oldValues?.[base]!=null&&oldValues[ratio]==null&&verified&&price?.source==='KIS_KRX_UNADJUSTED_CLOSE'&&compatible&&age>=0&&age<=7&&new Prisma.Decimal(oldValues[base]).gt(0)&&new Prisma.Decimal(price.value).gt(0)){
    result.values[ratio]=new Prisma.Decimal(price.value).div(oldValues[base]).toDecimalPlaces(4).toString();
    ratioEvidence[ratio]={...result.provenance,denominatorEvidence:evidence,denominatorValue:oldValues[base]};
   }
  }
- const values={...preserveValues(publicSourceChanged||foreign?null:existing?.values,result.values),...(primaryEps?{eps:result.values.eps}:{})},reasons=Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null));
- const status=valueCompletion(values,financialCurrency(filing)).complete?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
- const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,k==='eps'&&primaryEps?result.provenance:!publicSourceChanged&&!foreign&&(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:ratioEvidence[k]??result.provenance]));
+ if(options.fields)for(const key of metricKeys)if(!options.fields.includes(key))result.values[key]=null;
+ const values={...preserveValues(!options.fillOnly&&(publicSourceChanged||foreign)?null:existing?.values,result.values),...(primaryEps?{eps:result.values.eps}:{})};
+ for(const [ratio,base]of [['per','eps'],['pbr','bps']] as const)if(oldValues?.[ratio]==null&&(values[base]==null||new Prisma.Decimal(values[base]).lte(0)))values[ratio]=null;
+ const completion=valueCompletion(values,financialCurrency(filing));
+ const reasons={...Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null)),...completion.notApplicable};
+ const status=completion.complete?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';
+ const perMetric=Object.fromEntries(metricKeys.filter(k=>values[k]!==null).map(k=>[k,k==='eps'&&primaryEps?result.provenance:(options.fillOnly||!publicSourceChanged&&!foreign)&&(existing?.values as Record<string,string|null>|undefined)?.[k]!=null?(oldProvenance?.perMetric as Record<string,unknown>|undefined)?.[k]??oldProvenance:ratioEvidence[k]??result.provenance]));
  const corrections=Array.isArray(oldProvenance?.primarySourceCorrections)?oldProvenance.primarySourceCorrections.slice(-4):[];
  if(primaryEps&&oldValues!.eps!==values.eps)corrections.push({metric:'eps',previousValue:oldValues!.eps,value:values.eps,previousSource:priorEps,reason:'AUTHORITATIVE_DART_ORDINARY_EPS',at:new Date().toISOString()});
  const publicSourceCorrections=Array.isArray(oldProvenance?.publicSourceCorrections)?oldProvenance.publicSourceCorrections.slice(-3):[];

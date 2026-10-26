@@ -279,7 +279,7 @@ export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string
   if(publicSource){if(financialCompany)throw new DartApiError('DART_SOURCE_REVIEW','금융업 원문 계정과목 대응 검증 필요',false,false,{validationResult:'FINANCIAL_ACCOUNT_SCHEMA_UNVERIFIED'});return {...publicSource,diagnostics:[]};}
   if(provider.financialDiagnostics)provider.financialDiagnostics.length=0;
   const cfs = await provider.fetchFinancials(corpCode, year, reportCode, 'CFS');
-  if (cfs.length) return { division: 'CFS' as const, rows: cfs,source:undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
+  if (cfs.length) return { division: 'CFS' as const, rows: cfs,source:report&&provider.validateFinancialSource?await provider.validateFinancialSource(report,corpCode,year,cfs,'CFS'):undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
   const ofs = await provider.fetchFinancials(corpCode, year, reportCode, 'OFS');
   if(!ofs.length&&financialCompany&&report){
     try{
@@ -287,7 +287,7 @@ export async function getCfsThenOfs(provider: OpenDartProvider, corpCode: string
       if(supplement)throw new DartApiError('DART_SOURCE_REVIEW','원문 추출 가능 · 금융업 계정과목 대응 검증 필요',false,false,{validationResult:'FINANCIAL_ACCOUNT_SCHEMA_UNVERIFIED'});
     }catch(error){if(error instanceof DartApiError)throw new DartApiError(error.code,error.message,error.noData,error.quotaExceeded,{...error.diagnostics,availability:'API_DATA_UNAVAILABLE',supplementRequired:true,financialResponses:(provider.financialDiagnostics??[]).slice(),selectedReceiptNo:report.receiptNo});throw error;}
   }
-  return { division: 'OFS' as const, rows: ofs,source:undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
+  return { division: 'OFS' as const, rows: ofs,source:report&&ofs.length&&provider.validateFinancialSource?await provider.validateFinancialSource(report,corpCode,year,ofs,'OFS'):undefined,diagnostics:(provider.financialDiagnostics??[]).slice() };
 }
 
 export function parseDartDate(value: string): Date {
