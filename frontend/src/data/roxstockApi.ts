@@ -151,7 +151,7 @@ export const getAccountDashboard = (accountId: string,signal?:AbortSignal) => ap
 export const getAccountHoldings = (accountId: string) => apiRequest<HoldingDto[]>(`/accounts/${encodeURIComponent(accountId)}/holdings`);
 
 export const getDashboardTrend = (accountId: string, range: { from: string; to: string }, signal?: AbortSignal) =>
-  apiEnvelope<{ data: { date: string; totalAssetValue: string }[] }>(
+  apiEnvelope<{ data: { date: string; totalAssetValue: string; investmentAmount?: string | null }[] }>(
     `/accounts/${encodeURIComponent(accountId)}/asset-history?${new URLSearchParams({ ...range, view: 'trend' })}`, { signal });
 
 export interface AssetHistoryDto {

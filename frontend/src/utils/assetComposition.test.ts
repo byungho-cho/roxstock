@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {groupedComposition,compositionAmount} from './assetComposition';
+test('purchase weights and grouped Other cost remain independent of valuation',()=>{
+ const items=groupedComposition(Array.from({length:9},(_,i)=>({id:String(i),name:String(i),percent:9-i,purchasePercent:10,purchaseAmount:20000})));
+ assert.equal(items.at(-1)!.purchaseAmount,40000);
+ assert.equal(items.at(-1)!.purchasePercent,20);
+});
 for(const n of [0,1,5,6,7,8,20])test(`composition ${n}: shared ordered set, conserved sum, eighth palette and final Other`,()=>{
  const rows=Array.from({length:n},(_,i)=>({id:String(i),name:'종목'+i,percent:n-i})).reverse(),items=groupedComposition(rows);
  assert.equal(items.length,Math.min(n,n>7?8:7));assert.equal(items.some(i=>i.id==='other'),n>7);

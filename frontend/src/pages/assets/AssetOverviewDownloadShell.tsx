@@ -12,7 +12,7 @@ import {colors} from '../../styles/tokens';
 export function AssetOverviewDownloadShell(){const tablet=useMediaQuery('(min-width:600px)'),navigate=useListNavigation();
  const [mode,setMode]=usePageMemory<'ranked'|'cumulative'>('asset-weight-mode','ranked',{adoptInitialAccount:true});
  const supplied=new URLSearchParams(useLocation().search).get('period');
- const [period,setPeriod]=usePageMemory<AnalysisPeriod>('dashboard-analysis-period',analysisPeriods.some(item=>item.value===supplied)?supplied as AnalysisPeriod:'1y',{adoptInitialAccount:true});
+ const [period,setPeriod]=usePageMemory<AnalysisPeriod>('dashboard-analysis-period-ytd',analysisPeriods.some(item=>item.value===supplied)?supplied as AnalysisPeriod:'ytd',{adoptInitialAccount:true});
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
  return <><PageHeader title="대시보드" variant="detail" backPath="/" showBackTablet showAdd={false} assetOverview embedded backIcon={<Box component="span" sx={{fontSize:30,lineHeight:'30px'}}>‹</Box>} action={<Box sx={{width:44,flexShrink:0}}/>}/>
  <Box data-testid="asset-overview" data-code-loading className="rox-home" sx={{display:'grid',gridTemplateColumns:{xs:'minmax(0,1fr)',sm:'repeat(2,minmax(0,1fr))'},gap:'8px',alignItems:'stretch'}}>

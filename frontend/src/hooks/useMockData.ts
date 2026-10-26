@@ -1,7 +1,7 @@
 import { mapDashboardResponse, mapHolding, mapSecurity } from '../data/liveData';
 import { deriveAccountStocksFromSummary } from '../pages/stocks/stockMath';
 import { storedQueryOptions } from '../data/storedQueryOptions';
-import { getDashboardTrend, getStockTradeSummary } from '../data/roxstockApi';
+import { getAssetHistory, getDashboardTrend, getStockTradeSummary } from '../data/roxstockApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchBuyLots, fetchDashboard, fetchStocks } from '../data/mockApi';
 import { fetchLiveBuyLots, fetchLiveDashboard, fetchLiveStocks, liveApiEnabled } from '../data/liveData';
@@ -10,7 +10,7 @@ import { useActiveAccount } from './useActiveAccount';
 
 const PRICE_REFRESH_INTERVAL_MS = 5 * 60_000;
 
-export function useDashboard({ pollPrices = false, includeTrend = true, deferTrend = false }: { pollPrices?: boolean; includeTrend?: boolean; deferTrend?: boolean } = {}) {
+export function useDashboard({ pollPrices = false, includeTrend = true, deferTrend = false, investmentHistory = false }: { pollPrices?: boolean; includeTrend?: boolean; deferTrend?: boolean; investmentHistory?: boolean } = {}) {
   const { accountId, page, pageMode, screen } = useActiveAccount();
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
   const monthAgo = new Date(`${today}T00:00:00Z`);
@@ -26,8 +26,8 @@ export function useDashboard({ pollPrices = false, includeTrend = true, deferTre
   });
   const history = useQuery({
     ...storedQueryOptions,
-    queryKey: ['assetHistory', accountId, 'dashboard', from, today],
-    queryFn: ({ signal }) => getDashboardTrend(accountId!, { from, to: today }, signal), enabled: includeTrend && (!deferTrend || !summary.isPending) && liveApiEnabled && !!accountId && !pageMode,
+    queryKey: ['assetHistory', accountId, 'dashboard', from, today, investmentHistory?'investment':'valuation'],
+    queryFn: ({ signal }) => investmentHistory ? getAssetHistory(accountId!,{from,to:today},signal) : getDashboardTrend(accountId!, { from, to: today }, signal), enabled: includeTrend && (!deferTrend || !summary.isPending) && liveApiEnabled && !!accountId && !pageMode,
     staleTime: 30_000, refetchInterval: pollPrices ? PRICE_REFRESH_INTERVAL_MS : false,
   });
   if (pageMode && screen === 'home') {

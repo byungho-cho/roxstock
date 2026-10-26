@@ -63,6 +63,13 @@ export type InvestmentData = {
   currentYearProfit?: bigint | null;
 };
 
+export function investmentProfitBase(data: InvestmentData | undefined, year: number, currentYear: number): bigint | null {
+  if (!data) return null;
+  if (year !== currentYear) return data.investment;
+  // Never substitute a later first snapshot for the January 1 opening principal.
+  return data.initialAsOf && data.initialAsOf <= `${year}-01-01` ? data.initialInvestment : null;
+}
+
 export function calculateInvestment(snapshots: Snapshot[], transactions: Transaction[], year: number, opening: Pick<Snapshot,'date'|'investmentAmount'|'updatedAt'> | null = null): InvestmentData {
   const ordered = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
   const formatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' });

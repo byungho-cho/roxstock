@@ -7,9 +7,9 @@ export type SnapshotChartPoint = { date: string; values: Record<string, number |
 export type SnapshotChartSeries = { key: string; label: string; color: string; lineTestId?: string; strokeDasharray?: string };
 /** Numeric values are geometry only; tooltip text retains source precision. Stored dates only. */
 export function SnapshotChart({ points, series, from, to, height = 164, rightAxis = false, legend = false, fill = false,
-  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false, emptyFrame = false, formatAxisLabel, leftAxisWidth = 0, topGap = 8, tooltipUnit }: {
+  dateLabels, dateColor = colors.textMuted, testId, ariaLabel, dottedTooltipDate = false, emptyFrame = false, formatAxisLabel, leftAxisWidth = 0, topGap = 8, tooltipUnit, showKeyAmounts = false }: {
   points: SnapshotChartPoint[]; series: SnapshotChartSeries[]; from: string; to: string;
-  height?: number | string; fill?: boolean; rightAxis?: boolean; legend?: boolean; testId: string; ariaLabel: string;
+  height?: number | string; fill?: boolean; rightAxis?: boolean; legend?: boolean; testId: string; ariaLabel: string; showKeyAmounts?: boolean;
   dateLabels?: { date: string; label: string }[]; dateColor?: string; dottedTooltipDate?: boolean; emptyFrame?: boolean; formatAxisLabel?: (value:number)=>string; leftAxisWidth?: number; topGap?: number; tooltipUnit?: string;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -39,6 +39,11 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
     setSelected(nearest?.date ?? null);
   };
   const point = points.find(item => item.date === selected);
+  const primaryKey = series[0]?.key;
+  const validPoints = primaryKey ? points.filter(item => finite(item.values[primaryKey])) : [];
+  const firstAmount = validPoints[0], lastAmount = validPoints.at(-1);
+  const peakAmount = validPoints.reduce<SnapshotChartPoint | undefined>((best,item)=>!best || item.values[primaryKey!]! > best.values[primaryKey!]! ? item : best,undefined);
+  const keyAmountText = (item: SnapshotChartPoint) => `${Math.round(item.values[primaryKey!]! / 10000).toLocaleString('ko-KR')}만원`;
   const amounts = [0, 1, 2, 3].map(i => emptyFrame && !values.length ? '—' : formatAxisLabel ? formatAxisLabel(max-i/3*(max-min)) : `${Math.round((max - i / 3 * (max - min)) / 10000).toLocaleString('ko-KR')}만`);
   const gutter = fill && !rightAxis ? Math.max(...amounts.map(label => label.length * 6)) + 4 : leftAxisWidth;
   const tooltipLeft = rightAxis ? 4 : Math.max(...amounts.map(label => label.length * 6)) + 8;
@@ -49,6 +54,11 @@ export function SnapshotChart({ points, series, from, to, height = 164, rightAxi
   return <Box data-no-detail-swipe data-no-pull-refresh data-testid={testId} data-dates={points.map(item => item.date).join(',')} sx={{ position: 'relative', mt: topGap+'px', minWidth: 0, ...(fill ? {display:'flex',flexDirection:'column',flex:1,minHeight:0} : {}) }}>
     <Box ref={boundary} sx={{ position: 'relative', height:fill?undefined:height, ...(fill?{flex:1,minHeight:0}:{}) }}>
       {[0, 1, 2, 3].map(i => <Box data-testid={`${testId}-amount`} key={i} sx={{ position: 'absolute', ...(rightAxis ? { right: 0 } : { left: 2 }), pointerEvents: 'none', zIndex: 1, bgcolor: '#111927bb', top: `${(12 + i * 46) / 164 * 100}%`, transform: 'translateY(-50%)', color: colors.textMuted, fontSize: 9 }}>{amounts[i]}</Box>)}
+      {showKeyAmounts && primaryKey && firstAmount && lastAmount && peakAmount && <Box data-testid={`${testId}-key-amounts`} sx={{position:'absolute',inset:0,ml:gutter+'px',mr:rightAxis?'64px':0,pointerEvents:'none',zIndex:1,fontSize:9,color:colors.textSecondary,fontVariantNumeric:'tabular-nums','& > span':{position:'absolute',whiteSpace:'nowrap',bgcolor:'#111927dd',px:'3px',borderRadius:'3px',lineHeight:'14px'}}}>
+        <Box component="span" sx={{left:2,top:`${y(firstAmount.values[primaryKey]!) / 164 * 100}%`,transform:'translateY(-50%)'}}>{keyAmountText(firstAmount)}</Box>
+        <Box component="span" sx={{left:`${Math.max(30,Math.min(70,x(peakAmount.date)/260*100))}%`,top:0,transform:'translateX(-50%)',textAlign:'center'}}>{peakAmount.date.slice(2).replaceAll('-','.')}<br/>{keyAmountText(peakAmount)}</Box>
+        <Box component="span" sx={{right:2,top:`${y(lastAmount.values[primaryKey]!) / 164 * 100}%`,transform:'translateY(-50%)'}}>{keyAmountText(lastAmount)}</Box>
+      </Box>}
       <Box component="svg" role="img" aria-label={ariaLabel} viewBox="0 0 260 164" preserveAspectRatio="none"
         onPointerDown={event => { gesture.current = { x: event.clientX, y: event.clientY, vertical: false }; selectAt(event); event.currentTarget.setPointerCapture(event.pointerId); }}
         onPointerMove={event => { const g = gesture.current; if (!g) { if (event.pointerType === 'mouse') selectAt(event); return; } if (Math.abs(event.clientY - g.y) > Math.abs(event.clientX - g.x) && Math.abs(event.clientY - g.y) > 8) g.vertical = true; if (!g.vertical) selectAt(event); }}
