@@ -25,9 +25,11 @@ export async function reconcileHeldProductReportsPage(db:PrismaClient,after?:str
 }
 let heldProductCursor:string|undefined;
 export function financialItemPeriod(symbol:string){
- const match=/^([A-Z0-9]{6}):(\d{4}):(ANNUAL|Q[123])$/.exec(symbol);
+ const match=/^([A-Z0-9]{6}):(\d{4}):(ANNUAL|Q[123]|11011|11013|11012|11014)$/.exec(symbol);
  if(!match||Number(match[2])<2015||Number(match[2])>2200)return;
- return {symbol:match[1]!,fiscalYear:Number(match[2]),periodType:match[3]!};
+ // Legacy repository labels encode task.fiscalYear and task.reportCode. Restore
+ // that task identity only; never infer a December closing or relabel API years.
+ return {symbol:match[1]!,fiscalYear:Number(match[2]),periodType:({'11011':'ANNUAL','11013':'Q1','11012':'Q2','11014':'Q3'} as Record<string,string>)[match[3]!]??match[3]!};
 }
 /** Recover only the exact source occurrence; do not infer periods from nearby failures. */
 export async function repairFinancialOccurrencePeriodsPage(db:PrismaClient,after?:string){
@@ -51,6 +53,7 @@ export function collectionFailureDetails(item:{diagnostics:unknown;message:strin
  const d=object(item.diagnostics),fromMessage=(item.message??'').split(/[:·\s]+/).map(v=>safeBugCode(v,'')).find(Boolean);
  if(item.message==='NO_FUNDAMENTAL_DATA')return {code:'KIS_FUNDAMENTAL_NO_DATA',severity:'WARNING' as const,summary:'추가 재무지표 원천 미제공 · 자료 확인 대기'};
  const code=safeBugCode(d.originalCode??d.code??d.errorCode??fromMessage);
+ if(code==='COLLECTION_FAILED'&&item.message==='REVIEW_REQUIRED')return {code:'SOURCE_REVIEW_REQUIRED',severity:'WARNING' as const,summary:'원천 검증 보류 · 상세 근거 확인 필요'};
  if(code==='DART_SOURCE_REVIEW'){
   const reason=typeof d.validationResult==='string'&&/^[A-Z][A-Z0-9_]{1,60}$/.test(d.validationResult)?d.validationResult:null;
   return {code:reason?'DART_REVIEW_'+reason:code,severity:'WARNING' as const,summary:reason?reviewReasons[reason]??'공시 원천 검증 보류':'공시 원천 검증 보류 · 기간·정정 관계 확인 필요'};
@@ -70,7 +73,7 @@ export function periodIssueAttempted(row:{status:string;supplemental:unknown;val
 const durationIssueAttempted=(supplemental:unknown)=>{const s=object(supplemental);return Boolean(s.collectionAttempt||s.manualAttempt||s.automaticAttempt||s.fiscalDuration||object(s.errors).durationCode);};
 /** Recheck current evidence, bounded by occurrence key. History and replay identity are retained. */
 export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
- const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,report:{code:{in:['PERIOD_EPS_MISSING','PERIOD_BPS_MISSING','PERIOD_PER_MISSING','PERIOD_PBR_MISSING','PERIOD_ROE_MISSING','PERIOD_PRICE_BASIS_UNCONFIRMED','KIS_PRICE_NO_DATA','PERIOD_PRICE_BEFORE_LISTING','DART_REVIEW_FISCAL_DURATION_UNVERIFIED','DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS','DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION']}},...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});
+ const rows=await db.collectionBugOccurrence.findMany({where:{resolvedAt:null,OR:[{report:{code:{in:['PERIOD_EPS_MISSING','PERIOD_BPS_MISSING','PERIOD_PER_MISSING','PERIOD_PBR_MISSING','PERIOD_ROE_MISSING','PERIOD_PRICE_BASIS_UNCONFIRMED','KIS_PRICE_NO_DATA','PERIOD_PRICE_BEFORE_LISTING','DART_REVIEW_FISCAL_DURATION_UNVERIFIED','DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS','DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION']}}},{report:{feature:'dart-financial-statements'},metric:{in:['eps','bps','per','pbr','roe']}}],...(after?{eventKey:{gt:after}}:{})},include:{report:true},orderBy:{eventKey:'asc'},take:50});
  let resolved=0;
  for(const e of rows){
   const closingReview=['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS','DART_REVIEW_CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION'].includes(e.report!.code);
@@ -93,6 +96,8 @@ export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
   const periodWhere={securityId:e.securityId,fiscalYear:receiptPeriod?.fiscalYear??e.fiscalYear!,periodType:receiptPeriod?.periodType??e.periodType!};
   const current=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:periodWhere}});
   if(!current||current.updatedAt<e.observedAt)continue;
+  const security=await db.security.findUnique({where:{id:e.securityId},select:{symbol:true,codeRevision:true}});
+  if(!security||e.symbol&&e.symbol!==security.symbol||current.collectionSymbol!=null&&current.collectionSymbol!==security.symbol||security.codeRevision>0&&(e.symbol!==security.symbol||current.collectionSymbol!==security.symbol))continue;
   const values=object(current.values),provenance=object(current.provenance),code=e.report!.code;
   let resolution:string|undefined;
   let publicSourceVerified=false;
@@ -107,8 +112,8 @@ export async function reconcileBugReportsPage(db:PrismaClient,after?:string){
   else if(e.metric&&values[e.metric]!=null)resolution='METRIC_FILLED';
   else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&!durationIssueAttempted(current.supplemental))resolution='SUPPLEMENT_NOT_ATTEMPTED';
   else if(e.metric&&!periodIssueAttempted(current,e.metric))resolution=['per','pbr'].includes(e.metric)&&values[e.metric==='per'?'eps':'bps']==null?'UPSTREAM_METRIC_REVIEW':'SUPPLEMENT_NOT_ATTEMPTED';
-  else if(e.metric==='per'&&values.eps!=null&&Number(values.eps)===0)resolution='ZERO_DENOMINATOR_NOT_APPLICABLE';
-  else if(e.metric==='pbr'&&values.bps!=null&&Number(values.bps)===0)resolution='ZERO_DENOMINATOR_NOT_APPLICABLE';
+  else if(e.metric==='per'&&values.eps!=null&&Number(values.eps)<=0)resolution=Number(values.eps)===0?'ZERO_DENOMINATOR_NOT_APPLICABLE':'NON_POSITIVE_DENOMINATOR_NOT_APPLICABLE';
+  else if(e.metric==='pbr'&&values.bps!=null&&Number(values.bps)<=0)resolution=Number(values.bps)===0?'ZERO_DENOMINATOR_NOT_APPLICABLE':'NON_POSITIVE_DENOMINATOR_NOT_APPLICABLE';
   else if(code==='DART_REVIEW_FISCAL_DURATION_UNVERIFIED'&&['DART_MAJOR_ACCOUNTS_MATCH','DART_PUBLIC_FILING_ACCOUNTS_MATCH'].includes(provenance.fiscalDuration?.method)&&provenance.calculationState!=='FISCAL_DURATION_REVIEW_REQUIRED')resolution='FISCAL_DURATION_VERIFIED';
   else if(e.metric&&['eps','per','roe'].includes(e.metric)&&provenance.calculationState==='FISCAL_DURATION_REVIEW_REQUIRED'){for(const event of periodBugEvents(current))await saveBugEvent(db,event);resolution='SUPERSEDED_BY_FISCAL_DURATION_REVIEW';}
   else if(['DART_REVIEW_CLOSING_MONTH_CHANGED','DART_REVIEW_CLOSING_MONTH_UNAVAILABLE','DART_REVIEW_MULTIPLE_ANNUAL_PERIODS'].includes(code)&&provenance.receiptNo&&provenance.periodEnd)resolution='RECEIPT_PERIOD_VERIFIED';

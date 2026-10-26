@@ -168,6 +168,7 @@ test('exact source context coalesces legacy duplicates; reviewed pre-listing clo
   const {repairFinancialOccurrencePeriodsPage,periodBugEvents}=await import('../src/domain/collection-bug-reports.js');
   await repairFinancialOccurrencePeriodsPage(db);const old=await db.collectionBugOccurrence.findUniqueOrThrow({where:{eventKey:createHash('sha256').update(sourceKey).digest('hex')}});assert.equal(old.fiscalYear,2020);assert.equal(old.periodType,'ANNUAL');assert.equal(old.resolvedAt,null,'context repair must not claim an error fixed');assert.equal((await repairFinancialOccurrencePeriodsPage(db)).changed,0);
   const receipt='20990203000002',symbol='387690',periodEnd='2026-06-30';
+  await db.security.update({where:{id},data:{symbol}});
   const row=await db.periodValuation.create({data:{securityId:id,fiscalYear:2026,periodType:'Q2',collectionSymbol:symbol,status:'PARTIAL',values:{eps:'100',bps:'200',roe:'10',per:null,pbr:null},reasons:{},provenance:{receiptNo:receipt,periodEnd},supplemental:{collectionAttempt:{at:new Date().toISOString()},errors:{priceCode:'KIS_PRICE_NO_DATA'}}}});
   for(const event of periodBugEvents(row))await saveBugEvent(db,{...event,sourceKey:prefix+event.metric});
   assert.equal(await db.collectionBugOccurrence.count({where:{securityId:id,metric:{in:['per','pbr']},resolvedAt:null}}),2);
