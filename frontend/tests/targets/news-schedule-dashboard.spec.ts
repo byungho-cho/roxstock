@@ -26,10 +26,10 @@ for(const count of [0,1,5,6,7,8,14])test(`dashboard ${count} securities: matchin
  await page.goto('/detail/assets');const legends=page.getByTestId('asset-legend-row'),rows=page.getByTestId('asset-weight-row'),expected=count>7?8:count;await expect(legends).toHaveCount(expected);await expect(rows).toHaveCount(expected);
  if(count>7){await expect(legends.last()).toContainText('기타');await expect(rows.last()).toContainText('기타');}else{await expect(page.getByTestId('asset-composition-card')).not.toContainText('기타');}
  if(count>=6)await expect(legends.nth(5)).toContainText('현대모비스');
- expect(await legends.allTextContents()).toEqual(await rows.allTextContents());
+ expect(await legends.evaluateAll(nodes=>nodes.map(node=>node.children[1]!.textContent!.replace(/\(([\d.]+%)\)$/,'$1')))).toEqual(await rows.allTextContents());
  const colors=await legends.evaluateAll(ns=>ns.map(n=>getComputedStyle(n.firstElementChild!).backgroundColor));expect(new Set(colors).size).toBe(expected);
  for(let i=0;i<expected;i++)expect(await rows.nth(i).getByTestId('asset-weight-fill').evaluate(n=>getComputedStyle(n).backgroundColor)).toBe(colors[i]);
- await page.getByRole('button',{name:'종목별 비중 차트 방식 변경'}).click();await expect(rows).toHaveCount(expected);expect(await legends.allTextContents()).toEqual(await rows.allTextContents());
+ await page.getByRole('button',{name:'종목별 비중 차트 방식 변경'}).click();await expect(rows).toHaveCount(expected);expect(await legends.evaluateAll(nodes=>nodes.map(node=>node.children[1]!.textContent!.replace(/\(([\d.]+%)\)$/,'$1')))).toEqual(await rows.allTextContents());
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);if(count===8||count===6)await page.screenshot({path:info.outputPath(`dashboard-${count}.png`),fullPage:true});
 });
 
