@@ -33,7 +33,7 @@ test('stored chart/table, pointer selection, detail return and quarter boundarie
  await page.touchscreen.tap(d.x+10,d.y+40);await expect(page.getByRole('dialog').getByTestId('investment-tooltip')).toBeVisible();
  await page.screenshot({path:info.outputPath('detail.png')});
  
- await expect(page.getByRole('dialog').getByTestId('investment-chart')).toHaveAttribute('data-dates','2026-01-01,2026-03-31,2026-04-01,2026-04-03');
+ await expect(page.getByRole('dialog').getByTestId('investment-chart')).toHaveAttribute('data-dates','2025-12-31,2026-01-01,2026-03-31,2026-04-01,2026-04-03');
  await page.getByRole('button',{name:'차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.locator('main').evaluate(e=>e.scrollTop)).toBe(before);
  await expect(page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'})).toHaveAttribute('aria-pressed','true');
