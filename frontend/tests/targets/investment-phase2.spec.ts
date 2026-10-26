@@ -8,8 +8,8 @@ test('stored chart/table, pointer selection, detail return and quarter boundarie
   const url=new URL(route.request().url()),p=url.pathname;
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'기본',isActive:true,isDefault:true}]}});
   if(p.endsWith('/asset-history')){
-   expect(url.searchParams.get('storedOnly')).toBe('true');expect(url.searchParams.get('from')).toBe('2025-12-31');
-   return route.fulfill({json:{data:[['2025-12-31','100000000'],['2026-01-01','150000000'],['2026-03-31','150000000'],['2026-04-01','150010000'],['2026-04-03','150020000']].map(([date,totalAssetValue])=>({date,totalAssetValue,investmentAmount:'100000000',updatedAt:`${date}T14:00:00Z`})),summary:{}}});
+   expect(url.searchParams.get('storedOnly')).toBe('true');expect(url.searchParams.get('from')).toMatch(/^20(20|21|22|23|24|25)-12-31$/);
+   return route.fulfill({json:{data:[['2025-12-31','100000000'],['2026-01-01','150000000'],['2026-03-31','150000000'],['2026-04-01','150010000'],['2026-04-03','150020000']].filter(([date])=>date!>=url.searchParams.get('from')!&&date!<=url.searchParams.get('to')!).map(([date,totalAssetValue])=>({date,totalAssetValue,investmentAmount:'100000000',updatedAt:`${date}T14:00:00Z`})),summary:{}}});
   }
   if(p.endsWith('/investment-baseline'))return route.fulfill({json:{data:null}});
   if(p.endsWith('/trades'))return route.fulfill({json:{data:[],summary:{realizedProfitLoss:'20000'}}});
@@ -33,7 +33,7 @@ test('stored chart/table, pointer selection, detail return and quarter boundarie
  await page.touchscreen.tap(d.x+10,d.y+40);await expect(page.getByRole('dialog').getByTestId('investment-tooltip')).toBeVisible();
  await page.screenshot({path:info.outputPath('detail.png')});
  
- await expect(page.getByRole('dialog').getByTestId('investment-chart')).toHaveAttribute('data-dates','2026-01-01,2026-03-31,2026-04-01,2026-04-03');
+ await expect(page.getByRole('dialog').getByTestId('investment-chart')).toHaveAttribute('data-dates','2025-12-31,2026-01-01,2026-03-31,2026-04-01,2026-04-03');
  await page.getByRole('button',{name:'차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.locator('main').evaluate(e=>e.scrollTop)).toBe(before);
  await expect(page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'})).toHaveAttribute('aria-pressed','true');

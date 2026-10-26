@@ -25,7 +25,7 @@ import {AssetAnalysisChart} from '../../pages/assets/AssetAnalysisChart';
 /** Small code-download shell; page memory shares the existing account query. */
 export function PriorityRouteShell(){
  const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search),tablet=useMediaQuery('(min-width:600px)');
- const [assetPeriod,setAssetPeriod]=usePageMemory<AnalysisPeriod>('analysis-period',analysisPeriods.some(p=>p.value===params.get('period'))?params.get('period') as AnalysisPeriod:'1y',{adoptInitialAccount:true});
+ const [assetPeriod,setAssetPeriod]=usePageMemory<AnalysisPeriod>('analysis-period-ytd',analysisPeriods.some(p=>p.value===params.get('period'))?params.get('period') as AnalysisPeriod:'ytd',{adoptInitialAccount:true});
  const [query,setQuery]=usePageMemory('stockQuery','',{adoptInitialAccount:true}),[sorting,setSorting]=usePageMemory<Partial<Record<StockListType,{key:StockSort;descending:boolean}>>>('stockSorting',{},{adoptInitialAccount:true});
  if(location.pathname==='/')return <HomeDownloadShell/>;
  if(location.pathname==='/detail/assets')return <AssetOverviewDownloadShell/>;

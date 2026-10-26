@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateInvestment, money } from '../../src/pages/investment/investmentData.ts';
+import { calculateInvestment, investmentProfitBase, money } from '../../src/pages/investment/investmentData.ts';
 const snapshot = (date: string, investmentAmount: string | null) => ({date, investmentAmount, totalAssetValue:'83304732', cashBalance:'20167232', stockValue:'63137500', change:null, changeRate:null, updatedAt:'2026-10-06T13:05:33Z'});
+
+test('current year return uses opening principal despite later deposits, with no future snapshot fallback', () => {
+ const opening={date:'2025-12-31',investmentAmount:'62663340'};
+ const result=calculateInvestment([snapshot('2026-10-25','105471177')],[],2026,opening);
+ assert.equal(investmentProfitBase(result,2026,2026),money('62663340'));
+ assert.equal(investmentProfitBase(result,2026,2027),money('105471177'));
+ assert.equal(investmentProfitBase({...result,initialAsOf:'2026-02-01'},2026,2026),null);
+ assert.equal(investmentProfitBase({...result,initialAsOf:null},2026,2026),null);
+ assert.equal(investmentProfitBase({...result,initialInvestment:0n},2026,2026),0n);
+});
 test('restored daily cost basis is independent of valuation and migration timestamps', () => {
  const result=calculateInvestment([snapshot('2026-09-29','107199527'),snapshot('2026-09-30','107317732')],[],2026,{date:'2025-12-31',investmentAmount:'62663340',updatedAt:'2026-10-06T13:05:33Z'});
  assert.equal(result.initialInvestment,money('62663340'));

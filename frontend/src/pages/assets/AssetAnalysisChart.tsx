@@ -15,7 +15,7 @@ export function AssetAnalysisChart({ points, period, expanded = false, range }: 
       return result;
     }, []);
   return <SnapshotChart testId="asset-trend-chart" ariaLabel="자산추이 · 날짜별 금액 조회" from={from} to={to}
-    height={200} fill={expanded} emptyFrame dateLabels={labels} dateColor={colors.textMuted}
+    height={200} fill={expanded} showKeyAmounts emptyFrame dateLabels={labels} dateColor={colors.textMuted}
     series={[{ key: 'asset', label: '자산금액', color: colors.marketRise, lineTestId: 'asset-trend-line' }]}
     points={points.map(point => { const value = money(point.totalAssetValue); return { date: point.date, values: { asset: moneyNumber(value) }, text: { asset: moneyText(value) } }; })} />;
 }

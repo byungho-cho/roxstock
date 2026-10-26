@@ -90,9 +90,9 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  expect(f.requests.filter(r=>r.endsWith('/investment-profit'))).toHaveLength(1);
 });
 test('annual realized summary is independent of evaluation and quarterly chart filter',async({page},info)=>{
- await fixture(page);await page.goto('/detail/investment');await expect(page.getByTestId('investment-value')).toHaveText('81,845,732원');
+ await fixture(page);await page.route('**/api/accounts/*/investment-baseline*',route=>route.fulfill({json:{data:{date:'2025-12-31',investmentAmount:'62663340',updatedAt:'2025-12-31T14:00:00Z'}}}));await page.goto('/detail/investment');await expect(page.getByTestId('investment-value')).toHaveText('81,845,732원');
  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+39,720,500원');
- await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익 +37.0%');
+ await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익(1/1일 기준) +63.4%');
  await page.getByRole('button',{name:'1분기',exact:true}).click();await expect(page.getByTestId('investment-row')).toHaveCount(0);
  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+39,720,500원');
  await page.screenshot({path:info.outputPath('investment.png')});

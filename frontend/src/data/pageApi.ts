@@ -7,7 +7,7 @@ export interface PageBootstrap {
   accountId: string | null;
   dashboard?: AccountDashboardDto;
   stocks?: { catalog: SecurityDto[]; holdings: HoldingDto[]; trades: StockTradeSummaryDto[] };
-  trend?: { data: { date: string; totalAssetValue: string }[] } | null;
+  trend?: { data: { date: string; totalAssetValue: string; investmentAmount?: string | null }[] } | null;
   targets?: TargetReport | null;
   recent?: RecentBuysDto | null;
 }

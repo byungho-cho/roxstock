@@ -3,16 +3,17 @@ import {fixture as base} from './phase28-fixture';
 const user={id:'1',email:'fixture@example.invalid',role:'USER',mustChangePassword:false,settings:{}};
 async function setup(page:any){const f=await base(page);await page.route('**/api/auth/me',(r:any)=>r.fulfill({json:{data:user}}));return f;}
 const resume=async(page:any)=>page.evaluate(()=>{document.dispatchEvent(new Event('visibilitychange'));});
-test('legend toggle changes only numbers; grouped amounts, layout and refresh persistence',async({page},info)=>{
+test('header basis toggle updates weights and donut; grouped principal, layout and refresh persistence',async({page},info)=>{
  await page.clock.install();const f=await setup(page);let reads=0;
- const read=async(path:string)=>{const r=await f.read(path);if(path.includes('/dashboard')){reads++;const amounts=[23070000,15000,10000,9000,8000,7000,6000,5000,4000];r.body.data={...r.body.data,stockValue:String(amounts.reduce((a,b)=>a+b)),totalAssetValue:String(amounts.reduce((a,b)=>a+b)+1000),holdings:amounts.map((v,i)=>({securityId:String(i+1),symbol:String(i+1),name:'아주 긴 종목명 '+i,quantity:'100000',averagePurchasePrice:'23070',purchaseAmount:'23070000',currentPrice:'23070',marketValue:String(v),unrealizedProfitLoss:i%2?'500':'-500',unrealizedReturnRate:i%2?'50':'-50'}))};}return r;};
+ const read=async(path:string)=>{const r=await f.read(path);if(path.includes('/dashboard')){reads++;const amounts=[23070000,15000,10000,9000,8000,7000,6000,5000,4000];r.body.data={...r.body.data,purchaseAmount:String(amounts.length*23070000),stockValue:String(amounts.reduce((a,b)=>a+b)),totalAssetValue:String(amounts.reduce((a,b)=>a+b)+1000),holdings:amounts.map((v,i)=>({securityId:String(i+1),symbol:String(i+1),name:'아주 긴 종목명 '+i,quantity:'100000',averagePurchasePrice:'23070',purchaseAmount:'23070000',currentPrice:'23070',marketValue:String(v),unrealizedProfitLoss:i%2?'500':'-500',unrealizedReturnRate:i%2?'50':'-50'}))};}return r;};
  await page.route('**/api/pages/read',async r=>r.fulfill({json:{data:await Promise.all(r.request().postDataJSON().paths.map(read))}}));
  await page.route('**/api/accounts/*/dashboard**',async r=>{const u=new URL(r.request().url());return r.fulfill({json:(await read(u.pathname.slice(4)+u.search)).body});});
- await page.goto('/detail/assets');const legends=page.getByTestId('asset-legend-row');await expect(legends).toHaveCount(8);const toggle=page.getByRole('button',{name:'자산구성 범례 표시 변경'});await expect(toggle).toHaveText('비율');
+ await page.goto('/detail/assets');const legends=page.getByTestId('asset-legend-row');await expect(legends).toHaveCount(8);const toggle=page.getByRole('button',{name:'대시보드 금액 기준 변경'});await expect(toggle).toHaveText('평가금');
+ await expect(legends.nth(3)).toContainText('1만원 미만');
  const donut=await page.getByTestId('asset-donut').innerHTML(),count=reads,names=await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents();
- await toggle.click();await expect(toggle).toHaveText('금액');await expect(legends.first()).toContainText('2,307만원');await expect(legends.nth(3)).toContainText('1만원 미만');await expect(legends.last()).toContainText('기타1만원 미만');expect(reads).toBe(count);expect(await page.getByTestId('asset-donut').innerHTML()).toBe(donut);
- expect(await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents()).toEqual(names);
- await page.clock.fastForward(300000);await expect.poll(()=>reads).toBeGreaterThan(count);await expect(toggle).toHaveText('금액');
+ await toggle.click();await expect(toggle).toHaveText('투자금');await expect(legends.first()).toContainText('2,307만원');await expect(legends.nth(3)).toContainText('2,307만원');await expect(legends.last()).toContainText('4,614만원');expect(reads).toBe(count);expect(await page.getByTestId('asset-donut').innerHTML()).not.toBe(donut);
+ expect((await legends.locator('p').filter({hasText:'아주 긴'}).allTextContents()).map(name=>name.split('(')[0])).toEqual(names.map(name=>name.split('(')[0]));
+ await page.clock.fastForward(300000);await expect.poll(()=>reads).toBeGreaterThan(count);await expect(toggle).toHaveText('투자금');
  for(const row of await legends.all()){const boxes=await row.locator('p').evaluateAll(ns=>ns.map(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right})));expect(boxes[0].right).toBeLessThanOrEqual(boxes[1].left);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('legend-amount.png'),fullPage:true});await legends.last().scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('legend-other.png')});
 });

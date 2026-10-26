@@ -74,7 +74,7 @@ test('analysis shares chart, neutral dates and left ticks; both back paths resto
   await page.getByRole('button',{name:'자산추이 상세보기'}).click();await page.getByRole('button',{name:'자산 차트 상세 뒤로가기'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect.poll(()=>region.evaluate(e=>e.scrollTop)).toBe(saved);
   await page.getByRole('button',{name:'1개월',exact:true}).click();await expect(chart.getByTestId('asset-trend-date').first()).toHaveText('09/07');
   await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});
-  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('다른 · 1년');
+  await page.getByRole('button',{name:'자산추이 상세보기'}).click();await expect(page.getByRole('dialog')).toContainText('다른 · 올해');
 });
 
 test('missing snapshot is selectable as unavailable and breaks the line',async({page})=>{

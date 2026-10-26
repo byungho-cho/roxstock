@@ -4,13 +4,13 @@ import {useNavigate} from 'react-router-dom';
 import {AssetTrendChart, type AssetTrendPoint} from '../../components/common/AssetTrendChart';
 import {colors} from '../../styles/tokens';
 
-export function DashboardTrend({points, pending, failed, retry}: {
-  points: AssetTrendPoint[]; pending: boolean; failed: boolean; retry: () => void;
+export function DashboardTrend({points, pending, failed, retry,basis='valuation'}: {
+  basis?:'valuation'|'investment'; points: AssetTrendPoint[]; pending: boolean; failed: boolean; retry: () => void;
 }) {
   const navigate = useNavigate();
   return <Box data-testid="dashboard-trend" sx={{minWidth: 0, borderTop: '1px solid #25344D', borderBottom: '1px solid #25344D', px: 0, py: '8px'}}>
     <CardActionArea aria-label="자산추이 (상세보기)" onClick={() => navigate('/assets')} sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', minHeight: 24}}>
-      <Typography component="h2" sx={{fontSize: 16, fontWeight: 600, lineHeight: '24px'}}>자산추이 <Box component="span" sx={{fontSize: 11, color: colors.textMuted, fontWeight: 400}}>(상세보기)</Box></Typography>
+      <Typography component="h2" sx={{fontSize: 16, fontWeight: 600, lineHeight: '24px'}}>{basis==='investment'?'투자금추이':'자산추이'} <Box component="span" sx={{fontSize: 11, color: colors.textMuted, fontWeight: 400}}>(상세보기)</Box></Typography>
       <Typography sx={{fontSize: 10, lineHeight: '14px', fontWeight: 500, color: colors.focus}}>{pending ? '' : points.length > 1 ? '1개월' : '—'}</Typography>
     </CardActionArea>
     <Box data-testid="dashboard-trend-region" aria-busy={pending} sx={{mt: '10px', height: {xs: 48, sm: 90}, position: 'relative', display: 'flex', alignItems: 'center', '& > *': {width: '100%'}, '& [data-testid="asset-trend-chart"]': {mt: 0}}}>

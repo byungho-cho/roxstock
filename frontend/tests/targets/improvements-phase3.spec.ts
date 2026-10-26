@@ -76,8 +76,8 @@ test('asset chart touch drag stays on screen and vertical touch scroll remains n
 });
 
 test('current-year remaining lot profit, historical year, browser/detail return and native scroll',async({page},info)=>{
-  const f=await fixture(page);await page.goto('/assets');await page.getByTestId('analysis-total').click();
-  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+1,300원');await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익 +1.3%');
+  const f=await fixture(page,{read:url=>url.pathname.endsWith('/investment-baseline')?{json:{data:{date:'2025-12-31',investmentAmount:'50000',updatedAt:'2025-12-31T14:00:00Z'}}}:undefined});await page.goto('/assets');await page.getByTestId('analysis-total').click();
+  await expect(page.getByTestId('investment-trading-profit')).toHaveText('+1,300원');await expect(page.getByTestId('investment-current')).toContainText('올해 평가손익(1/1일 기준) +2.6%');
   await page.getByTestId('investment-quarters').getByRole('button',{name:'2분기'}).click();
   const chart=page.getByTestId('investment-chart');await chart.scrollIntoViewIfNeeded();await expect(chart.getByTestId('investment-legend')).toBeVisible();
   await page.screenshot({path:info.outputPath('investment-summary.png')});

@@ -1,0 +1,25 @@
+RoxStock 1.2.26: investment and asset display
+
+Scope
+- Current-year profit percentage uses January 1 opening principal (existing previous-year-end baseline), without changing profit amounts. Missing opening baseline yields an unavailable percentage rather than substituting a later snapshot.
+- Dashboard and asset analysis headers select valuation or purchase-principal display. Principal totals include cash; donut, holdings weights and trend follow the selected basis. Actual period performance retains its original financial calculations.
+- Asset analysis defaults to year-to-date. Chart annotations show starting, maximum and latest values in ten-thousand KRW units; maximum includes its date.
+- Investment detail has start/end year selectors, initially current year minus five through current year. Pinch adjusts date span, zoomed one-finger drag pans, and reset restores selected years. No new financial calculations or database writes.
+
+Verification
+- Frontend production build and type checking passed.
+- 17 focused calculation/grouping/viewport unit tests passed.
+- 6 browser checks passed at 370x465 and 725x396: display toggle, unchanged actual performance, year-opening percentage, year selection and Chrome-emulated pinch/pan/reset.
+- Physical Android touch verification remains to be performed after deployment; browser emulation is not a substitute for device validation.
+
+Concurrent production correction protection
+- User reports another operator is correcting production data.
+- Deployment deliberately limited to frontend plus runtime release metadata. Backend route modification was removed; purchase history uses the existing authenticated asset-history API.
+- No production SQL, import, data patch, migration, collection trigger, financial lease acquisition, collector pause, or backend/database restart is part of this deployment.
+- Record and compare backend, collector, realtime collector, dedicated DART collector and database container identities/start times before/after. Only frontend should change.
+- Do not compare or restore database checksums during concurrent correction: the other operator's legitimate updates must remain intact.
+
+Rollback
+- Redeploy the previously running frontend immutable image sha-087cdfc09222f8b9f4cea8c2a28476dc9614f87f using the existing frontend deployment procedure; restore matching runtime release metadata if rolling back the release.
+- No database restoration is needed or authorized for this UI release.
+- Deployment result and immutable merge SHA are recorded on the linked PR after rollout.

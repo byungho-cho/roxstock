@@ -1,6 +1,7 @@
-export const analysisPeriods = [{ value: '1m', label: '1개월', months: 1 }, { value: '3m', label: '3개월', months: 3 }, { value: '6m', label: '6개월', months: 6 }, { value: '1y', label: '1년', months: 12 }, { value: 'all', label: '전체', months: 0 }] as const;
+export const analysisPeriods = [{ value: '1m', label: '1개월', months: 1 }, { value: '3m', label: '3개월', months: 3 }, { value: '6m', label: '6개월', months: 6 }, { value: '1y', label: '1년', months: 12 }, { value: 'ytd', label: '올해', months: 0 }, { value: 'all', label: '전체', months: 0 }] as const;
 export type AnalysisPeriod = typeof analysisPeriods[number]['value'];
 export function analysisRange(period: AnalysisPeriod, today: string) {
+  if (period === 'ytd') return { from: `${today.slice(0,4)}-01-01`, to: today };
   const months = analysisPeriods.find(item => item.value === period)!.months;
   if (!months) return { to: today };
   const date = new Date(today + 'T00:00:00Z'), day = date.getUTCDate();
