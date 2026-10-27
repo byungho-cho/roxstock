@@ -2,6 +2,43 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {Prisma} from '../generated/prisma/index.js';import {selectValueListAnalysis,orderValueGroups,shareholderTotals} from './value-list-analysis.js';
 const p=(year:number,periodType='ANNUAL',extra:any={})=>({fiscalYear:year,periodType,status:'SUCCESS',values:{eps:'10',bps:'100',roe:'10',per:null,pbr:null},provenance:{source:'OPEN_DART',fsDivision:'OFS',roeBasis:'TOTAL_SAME_DIVISION',periodEnd:`${year}-12-31`},supplemental:{},...extra}) as any;
 const input=(periods:any[]=[],filings:any[]=[],manual:any[]=[])=>({year:2026,price:'100',metrics:[],periods,filings,manual});
+function verifiedAnnual(end='2025-12-31',start='2025-01-01'){
+ const f={securityId:1n,fiscalYear:2025,periodType:'ANNUAL',receiptNo:'20260312001236',fsDivision:'OFS',periodEndDate:new Date(end),isWithdrawn:false,totalEquity:new Prisma.Decimal(1000),accountSources:{}} as any;
+ const d={method:'DART_MAJOR_ACCOUNTS_MATCH',receiptNo:f.receiptNo,fsDivision:'OFS',start,end,months:12,verifiedAt:'2026-10-27T00:00:00Z'};
+ const evidence={source:'OPEN_DART',currency:'KRW',receiptNo:f.receiptNo,periodEnd:end,fsDivision:'OFS',flow:'VERIFIED_FISCAL_PERIOD_ANNUALIZED_NOT_TTM',fiscalDuration:d};
+ const row=p(2025,'ANNUAL',{securityId:1n,provenance:{...evidence,perMetric:{bps:evidence,eps:{...evidence}}},supplemental:{fiscalDuration:d}});
+ return {row,f};
+}
+test('verified annual fiscal flows remain visible without rewriting stored metrics or their evidence',()=>{
+ const {row,f}=verifiedAnnual(),before=JSON.stringify(row,(_,v)=>typeof v==='bigint'?String(v):v),r=selectValueListAnalysis(input([row],[f]));
+ assert.equal(r.metric?.bps,'100');assert.equal(r.metric?.eps,'10');assert.equal(r.metric?.roe,'10');
+ assert.equal(JSON.stringify(row,(_,v)=>typeof v==='bigint'?String(v):v),before);
+});
+test('fiscal flow evidence cannot cross receipt, company, division, currency, year or quarterly boundaries',()=>{
+ for(const edit of [(b:any)=>b.f.receiptNo='20260312001237',(b:any)=>b.f.securityId=2n,(b:any)=>b.f.fsDivision='CFS',(b:any)=>b.f.fiscalYear=2024,(b:any)=>b.f.periodType='Q4',(b:any)=>b.row.provenance.perMetric.eps.currency='USD',(b:any)=>b.row.provenance.perMetric.eps.fiscalDuration=undefined]){
+  const b=verifiedAnnual();edit(b);assert.equal(selectValueListAnalysis(input([b.row],[b.f])).metric?.eps,null);
+ }
+});
+test('non-December annual periods use the proven fiscal end, not a fabricated December date',()=>{
+ const {row,f}=verifiedAnnual('2025-06-30','2024-07-01');assert.equal(selectValueListAnalysis(input([row],[f])).metric?.bps,'100');
+ row.provenance.perMetric.bps={...row.provenance.perMetric.bps,flow:'ANNUAL',periodEnd:'2025-12-31'};
+ assert.equal(selectValueListAnalysis(input([row],[f])).metric?.bps,null);
+ const repaired={...row.provenance,flow:'ANNUAL',fiscalDuration:undefined,periodMetadataCorrection:{duration:row.supplemental.fiscalDuration}};row.provenance.perMetric.bps=repaired;
+ assert.equal(selectValueListAnalysis(input([row],[f])).metric?.bps,'100');
+});
+test('unproven fiscal lengths never become displayable by naming their flow verified',()=>{
+ for(const edit of [(d:any)=>d.start='2025-02-01',(d:any)=>d.end='2025-11-30',(d:any)=>d.method='UNKNOWN']){
+  const b=verifiedAnnual();edit(b.row.provenance.perMetric.eps.fiscalDuration);assert.equal(selectValueListAnalysis(input([b.row],[b.f])).metric?.eps,null);
+ }
+});
+test('point-in-time BPS does not depend on a flow duration, but still requires its own filing identity and date',()=>{
+ const b=verifiedAnnual('2025-06-30','2024-07-01');
+ b.row.provenance.perMetric.bps.fiscalDuration=undefined;b.row.provenance.perMetric.eps.fiscalDuration=undefined;
+ const r=selectValueListAnalysis(input([b.row],[b.f]));assert.equal(r.metric?.bps,'100');assert.equal(r.metric?.eps,null);
+ for(const edit of [(x:any)=>x.f.securityId=2n,(x:any)=>x.f.receiptNo='other',(x:any)=>x.row.provenance.perMetric.bps.currency='USD',(x:any)=>x.row.provenance.perMetric.bps.flow='YTD']){
+  const x=verifiedAnnual('2025-06-30','2024-07-01');edit(x);assert.equal(selectValueListAnalysis(input([x.row],[x.f])).metric?.bps,null);
+ }
+});
 test('selected annual estimate then previous final, quarter/older excluded; failed retained values remain usable',()=>{
  const estimate=p(2026,'ESTIMATE',{provenance:{kind:'ANNUAL_ESTIMATE',fsDivision:'CFS',roeBasis:'OWNERS_OF_PARENT'},supplemental:{manualSource:{kind:'ANNUAL_ESTIMATE',fiscalYear:2026}}});
  assert.equal(selectValueListAnalysis(input([estimate,p(2025)])).dataPriority,1);

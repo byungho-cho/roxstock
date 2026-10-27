@@ -3,10 +3,23 @@ import {Prisma,type PeriodValuation,type DartFinancialFiling} from '../generated
 import {fairPrice,weight,type StoredValuation,mergeStatements} from './value-analysis.js';
 import {sortAnalysisRows} from './analysis-sort.js';
 import {selectStoredAnalysis} from './stored-analysis.js';
+import {fiscalDurationMatches} from './period-valuation.js';
 const ExactDecimal=Prisma.Decimal.clone({precision:60});
 const obj=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
 const dec=(v:unknown)=>typeof v==='string'&&/^-?\d+(\.\d+)?$/.test(v)?new Prisma.Decimal(v):null;
 type Input=Parameters<typeof selectStoredAnalysis>[0];
+/** A verified fiscal annual period can end outside December and retain its explicit annualization basis. */
+function annualMetricPeriod(key:string,e:Record<string,any>,row:PeriodValuation|undefined,filings:Input['filings'],year:number){
+ const filing=row?.periodType==='ANNUAL'&&typeof e.receiptNo==='string'?filings.find(f=>!f.isWithdrawn&&f.securityId===row.securityId&&f.fiscalYear===year&&f.periodType==='ANNUAL'&&f.receiptNo===e.receiptNo&&f.fsDivision===e.fsDivision):undefined;
+ const end=filing?.periodEndDate.toISOString().slice(0,10);
+ const duration=e.fiscalDuration??obj(e.periodMetadataCorrection).duration;
+ const sameEnd=!!filing&&e.periodEnd===end&&(!e.currency||e.currency===financialCurrency(filing));
+ const verified=sameEnd&&fiscalDurationMatches(filing!,duration),pointInTime=['bps','pbr'].includes(key)&&sameEnd;
+ return {
+  flow:!e.flow||['ANNUAL','FULL_YEAR','FULL_YEAR_ESTIMATE'].includes(e.flow)||e.flow==='VERIFIED_FISCAL_PERIOD_ANNUALIZED_NOT_TTM'&&(verified||pointInTime),
+  end:!e.periodEnd||e.periodEnd===`${year}-12-31`&&(!end||end===e.periodEnd)||verified||pointInTime,
+ };
+}
 export function shareholderTotals(metric:StoredValuation|null,row:PeriodValuation|undefined,filings:DartFinancialFiling[]){
  const unavailable=(reason:string)=>({excessEarnings:null,shareholderValue:null,rimReason:reason,rimBasis:null,rimComparison:null});
  if(currencyConversionRequired(metric?.currency))return unavailable('통화 환산 필요: 외화 자본을 원화 주주가치로 표시하지 않습니다.');
@@ -63,7 +76,7 @@ export function selectValueListAnalysis(input:Input){
  let metric:StoredValuation|null=null;
  if(priority!==3){
   const rawValues=obj(chosen?.values),p=obj(chosen?.provenance),source=obj(obj(chosen?.supplemental).manualSource);
-  const values=Object.fromEntries(['eps','bps','roe','per','pbr'].map(key=>{const v=dec(rawValues[key]),e=obj(obj(p.perMetric)[key]??p);const valid=v!==null&&(!source.division||p.fsDivision===source.division)&&(!e.fsDivision||e.fsDivision===(source.division??p.fsDivision))&&(!e.division||e.division===(source.division??p.fsDivision))&&(!e.kind||e.kind===(priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL'))&&(!e.periodType||e.periodType===(priority===1?'ESTIMATE':'ANNUAL')||(priority===1&&e.periodType==='ANNUAL'&&e.kind==='ANNUAL_ESTIMATE'))&&(!e.flow||['ANNUAL','FULL_YEAR','FULL_YEAR_ESTIMATE'].includes(e.flow))&&(!e.periodEnd||e.periodEnd===`${basisYear}-12-31`)&&(!e.fiscalYear||e.fiscalYear===basisYear)&&(!source.values||obj(source.values)[key]==null||v.eq(obj(source.values)[key]));return [key,valid?v.toString():null];}));
+  const values=Object.fromEntries(['eps','bps','roe','per','pbr'].map(key=>{const v=dec(rawValues[key]),e=obj(obj(p.perMetric)[key]??p),period=annualMetricPeriod(key,e,chosen,filings,basisYear);const valid=v!==null&&(!source.division||p.fsDivision===source.division)&&(!e.fsDivision||e.fsDivision===(source.division??p.fsDivision))&&(!e.division||e.division===(source.division??p.fsDivision))&&(!e.kind||e.kind===(priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL'))&&(!e.periodType||e.periodType===(priority===1?'ESTIMATE':'ANNUAL')||(priority===1&&e.periodType==='ANNUAL'&&e.kind==='ANNUAL_ESTIMATE'))&&period.flow&&period.end&&(!e.fiscalYear||e.fiscalYear===basisYear)&&(!source.values||obj(source.values)[key]==null||v.eq(obj(source.values)[key]));return [key,valid?v.toString():null];}));
   metric=chosen?{...selected.metric,kind:priority===1?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',fiscalYear:basisYear,periodType:priority===1?'ESTIMATE':'ANNUAL',provenance:chosen.provenance,metricDate:p.periodEnd??`${basisYear}-12-31`,eps:values.eps??null,bps:values.bps??null,per:values.per??null,pbr:values.pbr??null,roe:values.roe??null,rimCompatible:obj(obj(p.perMetric).bps).bpsReferenceOnly===true||p.bpsReferenceOnly===true?false:p.fsDivision==='OFS'?(!obj(obj(p.perMetric).roe).roeBasis||obj(obj(p.perMetric).roe).roeBasis==='TOTAL_SAME_DIVISION'):(obj(obj(p.perMetric).roe).roeBasis??p.roeBasis)==='OWNERS_OF_PARENT'}:selected.metric;
  }
  const sourceCurrency=chosen?obj(chosen.provenance).currency??annual?.currency??'KRW':annual?.currency??'KRW';
