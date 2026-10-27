@@ -24,6 +24,10 @@ for attempt in $(seq 1 36); do
   state="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-investor-crawler)"
   if [[ "$state" == healthy ]]; then
     if [[ "$previous" =~ ^newrox/roxstock-investor-crawler:sha-[0-9a-f]{40}$ ]]; then printf '%s\n' "$previous" > "$ROOT/.deploy/investor-last-good-image"; fi
+    if [[ -f "$ROOT/.deploy/security-data-investor-was-running" ]]; then
+      docker exec roxstock-investor-crawler node -e 'if(process.env.SECURITY_DATA_COLLECTION_ENABLED!=="true"||process.env.KIS_SUPPLEMENT_ENABLED!=="false")process.exit(1)'
+      date -u +%FT%TZ > "$ROOT/.deploy/security-data-investor-transitioned"
+    fi
     echo "Dedicated investor crawler healthy: $SHA"
     exit 0
   fi

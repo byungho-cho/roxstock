@@ -1,5 +1,13 @@
 name: Dedicated Investor Crawler
 on:
+  workflow_call:
+    inputs:
+      target_sha:
+        required: true
+        type: string
+      deploy:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       target_sha:

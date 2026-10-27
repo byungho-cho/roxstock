@@ -107,6 +107,9 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
     install -m 600 "$SOURCE_TREE/backend/.env.production" "$baseline/env.production"
     install -m 600 "$SOURCE_TREE/backend/.env.auth" "$baseline/env.auth"
     docker inspect roxstock-backend roxstock-collector roxstock-dart-collector > "$baseline/containers.json"
+    if docker container inspect roxstock-investor-crawler >/dev/null 2>&1; then
+      docker inspect roxstock-investor-crawler > "$baseline/investor-container.json"
+    fi
     for unit in roxstock-kis-history.timer roxstock-kis-history.service; do
       systemctl show "$unit" > "$baseline/$unit.state" 2>/dev/null || true
       systemctl cat "$unit" > "$baseline/$unit.unit" 2>/dev/null || true
@@ -122,8 +125,28 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
     if systemctl cat roxstock-kis-history.timer >/dev/null 2>&1; then systemctl disable --now roxstock-kis-history.timer; fi
     if systemctl is-active --quiet roxstock-kis-history.service; then systemctl stop roxstock-kis-history.service; fi
     if docker container inspect roxstock-kis-history-batch >/dev/null 2>&1; then docker stop --time 120 roxstock-kis-history-batch; fi
+    if docker container inspect roxstock-investor-crawler >/dev/null 2>&1; then
+      investor_image="$(docker inspect --format '{{.Config.Image}}' roxstock-investor-crawler)"
+      [[ "$investor_image" =~ ^newrox/roxstock-investor-crawler:sha-[0-9a-f]{40}$ ]] || { echo 'Immutable investor image required'; exit 1; }
+      if [[ ! -f "$SOURCE_TREE/.deploy/security-data-investor-image" ]]; then
+        printf '%s\n' "$investor_image" > "$SOURCE_TREE/.deploy/security-data-investor-image"
+        docker inspect --format '{{.State.Running}}' roxstock-investor-crawler > "$SOURCE_TREE/.deploy/security-data-investor-was-running"
+      fi
+      docker stop --time 120 roxstock-investor-crawler
+    fi
     # General collector still contains the old supplement timer until its image is replaced.
     docker stop --time 120 roxstock-dart-collector roxstock-collector
+    # Persist only the two authorized switch changes, after their preimage was backed up.
+    python3 - "$SOURCE_TREE/backend/.env.production" <<'PYENV'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]); values=dict(line.split('=',1) for line in p.read_text().splitlines() if '=' in line and not line.lstrip().startswith('#'))
+current=values.get('KIS_CURRENT_FUNDAMENTALS_ENABLED', 'false' if values.get('KIS_SUPPLEMENT_ENABLED','').strip("\"'").lower()=='false' else 'true')
+keys={'SECURITY_DATA_COLLECTION_ENABLED':'true','KIS_SUPPLEMENT_ENABLED':'false','KIS_CURRENT_FUNDAMENTALS_ENABLED':current}
+lines=[line for line in p.read_text().splitlines() if line.split('=',1)[0].strip() not in keys]
+p.write_text('\n'.join(lines)+'\n'+'\n'.join(key+'='+value for key,value in keys.items())+'\n')
+PYENV
+    install -m 600 "$SOURCE_TREE/backend/.env.production" "$DEPLOY_TREE/backend/.env.production"
     date -u +%FT%TZ > "$SOURCE_TREE/.deploy/security-data-history-retired"
     printf '%s\n' "$baseline" > "$SOURCE_TREE/.deploy/security-data-settings-baseline"
   fi
@@ -138,6 +161,7 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"
   install -d -m 755 "$SOURCE_TREE/.deploy/runtime"
   bash "$DEPLOY_TREE/scripts/deploy-$COMPONENT.sh" "$IMAGE_TAG"
+
 else
   actual="$(docker inspect --format '{{.Config.Image}} {{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-frontend 2>/dev/null || true)"
   if [[ "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG running" || "$actual" == "newrox/roxstock-frontend:$IMAGE_TAG healthy" ]]; then

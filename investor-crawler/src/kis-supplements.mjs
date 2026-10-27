@@ -51,9 +51,11 @@ export function mergeStoredSnapshot(existing,incoming,permissions){
 }
 /** Bounded daily scan; snapshots and attempts persist across restarts. No historical rewrites. */
 export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols,requestDelayMs=2000,log=()=>{},now=()=>new Date(),sleep=delay}){
+ const currentOnly=process.env.SECURITY_DATA_COLLECTION_ENABLED==='true';
+ if(currentOnly?process.env.KIS_CURRENT_FUNDAMENTALS_ENABLED==='false':process.env.KIS_SUPPLEMENT_ENABLED==='false')return {status:'DISABLED'};
  if(!Number.isInteger(limit)||limit<1||limit>3000||!Number.isFinite(requestDelayMs)||requestDelayMs<2000)throw new ProviderError('INVALID_SUPPLEMENT_OPTIONS');
  const owner=randomUUID(),observedDate=new Date(dateKey(now())+'T00:00:00Z');
- const financialRepo=new CollectionJobRepository(db);let annualRemaining=10;
+ const financialRepo=new CollectionJobRepository(db);let annualRemaining=currentOnly?0:10;
  const acquired=await db.collectorLock.updateMany({where:{jobName:job,lockedUntil:{lt:now()}},data:{ownerToken:owner,lockedUntil:new Date(now().getTime()+120000)}});
  if(!acquired.count){try{await db.collectorLock.create({data:{jobName:job,ownerToken:owner,lockedUntil:new Date(now().getTime()+120000)}});}catch(e){if(e.code==='P2002')return {stored:0,failed:0,locked:true};throw e;}}
  let lost=false,run;let stored=0,failed=0,skipped=0,annualFailures=0,annualDeferred=0,referenceFailures=0,annualFilledTotal=0;
@@ -67,7 +69,7 @@ export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols
   },orderBy:{id:'asc'},take:Math.min(10,limit)});
   const targets=candidates.filter(s=>{const p=supplementPermissions(s);return p.valuation||p.shares;}).slice(0,limit);
   if(!targets.length)return {stored,failed,skipped};
-  run=await db.collectorRun.create({data:{jobType:job,provider:'KIS_KRX',metadata:{ownerId:createHash('sha256').update(owner).digest('hex').slice(0,16),primary:'KIS_API',fallback:'KRX',observedDate:dateKey(now()),referenceOnly:false,annualMissingOnly:true,targets:targets.length}}});
+  run=await db.collectorRun.create({data:{jobType:job,provider:'KIS_KRX',metadata:{ownerId:createHash('sha256').update(owner).digest('hex').slice(0,16),primary:'KIS_API',fallback:'KRX',observedDate:dateKey(now()),referenceOnly:currentOnly,currentReferenceOnly:currentOnly,annualMissingOnly:!currentOnly,targets:targets.length}}});
   for(const target of targets){
    if(signal?.aborted||lost)throw new ProviderError(lost?'LOCK_OWNERSHIP_LOST':'WORKER_STOPPED');
    try{
@@ -125,7 +127,7 @@ export async function runKisSupplements({db,kis,krx=null,signal,limit=10,symbols
    }
    await sleep(requestDelayMs,undefined,{signal});
   }
-  await db.collectorRun.update({where:{id:run.id},data:{status:failed||annualFailures||referenceFailures?(stored?'PARTIAL':'FAILED'):stored?'SUCCESS':'SKIPPED',finishedAt:now(),successCount:stored,failureCount:failed+annualFailures+referenceFailures,skippedCount:skipped,metadata:{observedDate:dateKey(now()),referenceOnly:false,annualMissingOnly:true,targets:targets.length,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures}}});
+  await db.collectorRun.update({where:{id:run.id},data:{status:failed||annualFailures||referenceFailures?(stored?'PARTIAL':'FAILED'):stored?'SUCCESS':'SKIPPED',finishedAt:now(),successCount:stored,failureCount:failed+annualFailures+referenceFailures,skippedCount:skipped,metadata:{observedDate:dateKey(now()),referenceOnly:currentOnly,currentReferenceOnly:currentOnly,annualMissingOnly:!currentOnly,targets:targets.length,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures}}});
   log('KIS_SUPPLEMENT_FINISHED',{runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures});return {runId:String(run.id),stored,failed,skipped,annualFilled:annualFilledTotal,annualFailures,annualDeferred,referenceFailures};
  }catch(error){
   if(run)await db.collectorRun.update({where:{id:run.id},data:{status:'FAILED',finishedAt:now(),successCount:stored,failureCount:failed,failureReason:error instanceof ProviderError?error.code:'INTERRUPTED_OR_INTERNAL_ERROR'}});

@@ -10,6 +10,10 @@ for component in backend collector dart-collector frontend; do
 done
 test -s /opt/roxstock/.deploy/security-data-history-retired
 test -s /opt/roxstock/.deploy/security-data-settings-baseline
+if [[ -f /opt/roxstock/.deploy/security-data-investor-was-running && "$(cat /opt/roxstock/.deploy/security-data-investor-was-running)" == true ]]; then
+  [[ "$(docker inspect --format '{{.Config.Image}}' roxstock-investor-crawler)" == "newrox/roxstock-investor-crawler:sha-$SHA" ]] || exit 1
+  docker exec roxstock-investor-crawler node -e 'if(process.env.KIS_SUPPLEMENT_ENABLED!=="false"||process.env.SECURITY_DATA_COLLECTION_ENABLED!=="true")process.exit(1)'
+fi
 if systemctl is-active --quiet roxstock-kis-history.timer; then echo 'Historical timer remains active'; exit 1; fi
 # Run only the installed scheduled engine; do not initiate an ad hoc backfill.
 deadline=$((SECONDS+660))

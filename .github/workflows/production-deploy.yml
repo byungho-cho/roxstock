@@ -21,6 +21,8 @@ jobs:
       collector: ${{ steps.scope.outputs.collector }}
       frontend: ${{ steps.scope.outputs.frontend }}
       android: ${{ steps.native.outputs.android }}
+      investor_running: ${{ steps.deployed.outputs.investor_running }}
+      security_data: ${{ steps.native.outputs.security_data }}
     steps:
       - uses: actions/github-script@v7
         id: revision
@@ -38,6 +40,7 @@ jobs:
           ref: ${{ inputs.target_sha || github.sha }}
           fetch-depth: 0
       - name: Read deployed component image identities
+        id: deployed
         if: steps.revision.outputs.current == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -54,10 +57,14 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "docker inspect --format '{{.Name}}|{{.Config.Image}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector roxstock-frontend" > "$RUNNER_TEMP/roxstock-deployed-images.txt"
           cat "$RUNNER_TEMP/roxstock-deployed-images.txt" >> "$GITHUB_STEP_SUMMARY"
+          investor_running="$(ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "if test -f /opt/roxstock/.deploy/security-data-investor-was-running && test ! -f /opt/roxstock/.deploy/security-data-investor-transitioned; then cat /opt/roxstock/.deploy/security-data-investor-was-running; else docker inspect --format '{{.State.Running}}' roxstock-investor-crawler 2>/dev/null || echo false; fi")"
+          [[ "$investor_running" == true || "$investor_running" == false ]] || exit 1
+          echo "investor_running=$investor_running" >> "$GITHUB_OUTPUT"
       - id: native
         env:
           TARGET_SHA: ${{ inputs.target_sha || github.sha }}
         run: |
+          echo "security_data=$(node -p 'require("./backend/src/release.json").version==="1.2.31"')" >> "$GITHUB_OUTPUT"
           apk_version="$(node -e 'const s=require("fs").readFileSync("android-app/app/build.gradle","utf8"); const m=s.match(/\bversionName\s+[\x27]([^\x27]+)[\x27]/); if(!m)throw Error("Android version missing"); process.stdout.write(m[1]);')"
           # Recover a previously built but unpublished APK after a partial deployment.
           if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app &&
@@ -87,9 +94,17 @@ jobs:
     with:
       target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
-  frontend:
+  investor:
     needs: [revision, backend, collector]
-    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
+    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.security_data == 'true' && needs.revision.outputs.investor_running == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
+    uses: ./.github/workflows/investor-crawler-image.yml
+    with:
+      target_sha: ${{ inputs.target_sha || github.sha }}
+      deploy: true
+    secrets: inherit
+  frontend:
+    needs: [revision, backend, collector, investor]
+    if: always() && (needs.investor.result == 'success' || needs.investor.result == 'skipped') && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
     uses: ./.github/workflows/frontend-image.yml
     with:
       target_sha: ${{ inputs.target_sha || github.sha }}
