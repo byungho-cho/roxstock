@@ -95,6 +95,38 @@ jobs:
       target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
 
+  security_data_verification:
+    needs: [revision, backend, collector, frontend]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+      - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
+        env:
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.31 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- $TARGET_SHA" < scripts/verify-security-data-production.sh | tee "$RUNNER_TEMP/security-data-production.txt"
+          grep -q SECURITY_DATA_PRODUCTION_HTTP_VERIFIED "$RUNNER_TEMP/security-data-production.txt"
+          cat "$RUNNER_TEMP/security-data-production.txt" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-data-production-evidence
+          path: ${{ runner.temp }}/security-data-production.txt
+
   foreign_recovery:
     needs: [revision, backend, collector, frontend]
     if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'

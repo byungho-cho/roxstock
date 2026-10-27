@@ -29,6 +29,7 @@ const activeWindow = (now: Date, config: DartCollectorConfig) => dartWindowOpen(
 const priorityWindow = (now: Date, config: DartCollectorConfig) => dartPriorityWindowOpen(now, config.priorityWindowStartHour, config.priorityWindowEndHour);
 
 export async function runDartCollectorCycle(prisma: PrismaClient, config: DartCollectorConfig, now = new Date(), serviceManual?:()=>Promise<boolean>) {
+ if(process.env.SECURITY_DATA_COLLECTION_ENABLED==='true')return {status:'RETIRED' as const};
   prisma=collectionClient(prisma);
   const repo = new PrismaDartRepository(prisma);
   const owner = randomUUID();

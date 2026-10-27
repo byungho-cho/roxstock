@@ -9,6 +9,13 @@ const numeric=(value:unknown)=>typeof value==='string'&&/^-?\d+(\.\d+)?$/.test(v
 export function supplementedFilings(filings:DartFinancialFiling[],periods:Pick<PeriodValuation,'securityId'|'fiscalYear'|'periodType'|'supplemental'>[]):DartFinancialFiling[]{
  return filings.map(f=>{
   const p=periods.find(p=>p.securityId===f.securityId&&p.fiscalYear===f.fiscalYear&&p.periodType===f.periodType);
+  const manual=object(object(p?.supplemental).manualFields);
+  if(Object.keys(manual).length)f={...f,accountSources:{...object(f.accountSources)} as Prisma.JsonObject};
+  for(const [key,raw] of Object.entries(manual)){
+   const entry=object(raw);if(entry.currency!==financialCurrency(f)||entry.fsDivision!==f.fsDivision||entry.periodEnd!==f.periodEndDate.toISOString().slice(0,10)||numeric(entry.value)===null)continue;
+   if(['revenueQuarter','revenueYtd','operatingProfitQuarter','operatingProfitYtd','netIncomeQuarter','netIncomeYtd','totalAssets','totalLiabilities','totalEquity','operatingCashFlowQuarter','operatingCashFlowYtd','capitalExpenditureQuarter','capitalExpenditureYtd'].includes(key))(f as any)[key]=new Prisma.Decimal(entry.value as string);
+   if(key==='parentNetIncome')(f.accountSources as Prisma.JsonObject).parentNetIncome={amount:String(entry.value),ytdAmount:String(entry.value),source:'MANUAL'};
+  }
   const accounts=object(object(p?.supplemental).accounts);
   if((accounts.currency??'KRW')!==financialCurrency(f)||f.isWithdrawn||accounts.receiptNo!==f.receiptNo||accounts.fsDivision!==f.fsDivision)return f;
   const sources={...object(f.accountSources)};

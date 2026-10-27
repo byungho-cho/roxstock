@@ -80,7 +80,7 @@ export async function manualWait(db:PrismaClient,run:CollectorRun,reason:NonNull
 
 export const leaseOwnerId=(owner:string)=>createHash('sha256').update(owner).digest('hex').slice(0,16);
 /** Public trace deliberately excludes raw lease credentials. RUNNING alone is not evidence. */
-export async function manualTrace(db:PrismaClient,run:CollectorRun){
+export async function manualTrace(db:PrismaClient,run:CollectorRun,readOnly=false){
  const m=run.metadata as unknown as ManualRefreshMetadata;
  let waitReason:ManualRefreshMetadata['waitReason']=m.manualState==='QUEUED'?'CHECKING':undefined;
  let relatedRunId:string|undefined;
@@ -92,7 +92,7 @@ export async function manualTrace(db:PrismaClient,run:CollectorRun){
    relatedRunId=ownerRun?.id.toString();
    waitReason=active&&ownerRun?( (ownerRun.metadata as {phase?:string}).phase==='MANUAL'?'PREVIOUS_REQUEST':'AUTOMATIC'):'LOCK';
  }
- if(m.manualState==='QUEUED')await manualWait(db,run,waitReason??'CHECKING',relatedRunId);
+ if(!readOnly&&m.manualState==='QUEUED')await manualWait(db,run,waitReason??'CHECKING',relatedRunId);
  const activityState=m.manualState==='FINISHED'?'FINISHED':m.manualState==='QUEUED'?'QUEUED':active&&lease.ownerToken===m.lockOwner?'ACTIVE':'CHECKING';
  return {activityState,leaseState:lease&&lease.lockedUntil.getTime()>Date.now()?active?'ALIVE':'CHECK_REQUIRED':null,acceptedAt:m.acceptedAt??run.startedAt.toISOString(),executionStartedAt:m.executionStartedAt??null,lastProgressAt:m.lastProgressAt??null,
    waitReason:activityState==='CHECKING'?'CHECKING':waitReason??null,waitReasonChangedAt:m.waitReason===waitReason?m.waitReasonChangedAt??null:new Date().toISOString(),relatedRunId:relatedRunId??m.relatedRunId??null,

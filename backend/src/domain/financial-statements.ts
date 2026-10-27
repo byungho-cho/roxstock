@@ -1,3 +1,5 @@
+import {manualFinancialView} from '@roxstock/shared/domain/manual-financial-view';
+import type {PeriodValuation} from '@roxstock/shared/prisma';
 import {sameFinancialCurrency} from '@roxstock/shared/domain/financial-currency';
 import { Prisma, type FinancialStatement, type DartFinancialFiling } from '@roxstock/shared/prisma';
 import { mergeStatements, type Period } from '@roxstock/shared/domain/value-analysis';
@@ -17,10 +19,10 @@ function source(row: DartFinancialFiling | undefined, key: string, ytd: boolean)
   const amount = ytd ? item.ytdAmount ?? (row?.periodType === 'ANNUAL' || item.statementDivision === 'CF' ? item.amount : null) : item.amount;
   return typeof amount === 'string' && /^-?\d+(\.\d+)?$/.test(amount) ? amount : null;
 }
-export function storedFinancials(manual: FinancialStatement[], filings: DartFinancialFiling[]): StoredFinancial[] {
+export function storedFinancials(manual: FinancialStatement[], filings: DartFinancialFiling[],manualPeriods:PeriodValuation[]=[]): StoredFinancial[] {
   const filingMap = new Map<string,DartFinancialFiling>();
   for (const f of filings) { const key=f.fiscalYear+':'+f.periodType; if(!filingMap.has(key))filingMap.set(key,f); }
-  return mergeStatements(manual,filings).map(row => {
+  const result=mergeStatements(manual,filings,manualPeriods).map(row => {
     const key=row.fiscalYear+':'+row.periodType,m=manual.find(m=>m.fiscalYear+':'+m.periodType===key&&!(isFinancialReference(m)&&filingMap.has(key))&&(!row.periodReview||m.periodEndDate.toISOString().slice(0,10)===row.periodEndDate)),f=filingMap.get(key);
     const annual=filingMap.get(row.fiscalYear+':ANNUAL'),q3=filingMap.get(row.fiscalYear+':Q3');
     const snapshot = row.isDerived ? annual : f;
@@ -57,6 +59,7 @@ export function storedFinancials(manual: FinancialStatement[], filings: DartFina
     };
     return {...row,parentNetIncome:extraFlow('parentNetIncome'),parentEquity:source(snapshot,'parentEquity',false),operatingCashFlow:cashFlow(),investingCashFlow:extraFlow('investingCashFlow'),financingCashFlow:extraFlow('financingCashFlow'),cashEquivalents:source(snapshot,'cashEquivalents',false)};
   });
+  return manualFinancialView(result,manualPeriods);
 }
 export function yearGrowth(current: StoredFinancial | undefined, previous: StoredFinancial | undefined, field: FinancialField): string | null {
   if(!current||!previous||current.periodReview||previous.periodReview||current.basis.includes('UNVERIFIED_STANDARD')||previous.basis.includes('UNVERIFIED_STANDARD')||current.periodType!==previous.periodType||current.periodEndDate?.slice(5)!==previous.periodEndDate?.slice(5)||current.basis!==previous.basis||(current.currency??'KRW')!==(previous.currency??'KRW')||current[field]===null||previous[field]===null)return null;

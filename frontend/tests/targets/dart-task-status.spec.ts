@@ -1,40 +1,13 @@
 import {test,expect} from './authenticated-test';
 import {fixture} from './phase3-fixture';
-for(const scenario of ['mixed','empty','future'] as const)test(`DART ${scenario}: distinct statuses, correct denominator and bounded detail`,async({page},info)=>{
- await fixture(page);
- const counts=scenario==='mixed'?{SUCCESS:990,NOT_DUE:70,REVIEW_REQUIRED:71}:scenario==='future'?{NOT_DUE:70}:{};
- const progress={planned:scenario==='mixed'?1131:scenario==='future'?70:0,currentTarget:scenario==='mixed'?1061:0,completed:scenario==='mixed'?990:0,byStatus:counts,reviewRequired:scenario==='mixed'?71:0};
- const at='2026-10-21T00:00:00Z';
- await page.route('**/api/collection/monitoring**',route=>{
-  const path=new URL(route.request().url()).pathname;
-  return route.fulfill({json:{data:path.endsWith('/monitoring')?{generatedAt:at,features:[{id:'dart-financial-statements',name:'DART',status:'OK',phase:'CURRENT',backfillCompletedAt:at,backfill:progress,recent:{target:0,success:0,failed:0,skipped:0}}]}:/\/(runs|items)$/.test(path)?{rows:[],hasNext:false,nextCursor:null}:{dart:{backfill:progress,priority:{...progress,securities:35},reviewRequired:progress.reviewRequired,holidayCalendar:'AVAILABLE'},runs:[],items:[]}}});
- });
- const requested:string[]=[];
- await page.route('**/api/collection/dart/tasks?**',route=>{requested.push(route.request().url());return route.fulfill({json:{data:{total:1,nextOffset:null,items:[{id:'1',symbol:'060310',name:'3S',year:2026,period:'Q2',status:'NOT_DUE',reason:'3월 결산 · 대상기간 2026-09-30',checkedAt:at,nextCheckAt:'2026-10-22T00:00:00Z'}]}}});});
- await page.goto('/detail/collection-monitoring/dart-financial-statements');
- await expect(page.getByTestId('monitor-dart-active-phase')).toHaveText('현재 단계: 2단계 · 현행 수집');
- await expect(page.getByTestId('monitor-dart-current')).toContainText('2단계 전환 완료');
- const currentCard=await page.getByTestId('monitor-dart-current').boundingBox(),historyCard=await page.getByTestId('monitor-dart-backfill').boundingBox();expect(currentCard!.y).toBeLessThan(historyCard!.y);
- const frame=page.getByTestId('monitor-dart-backfill');
- if(scenario==='mixed'){
-  await expect(frame).toContainText('93.3%');await expect(frame).toContainText('990 / 1,061');await expect(frame).toContainText('미도래 70');await expect(frame).toContainText('검토 보류 71');
-  await expect(frame).not.toContainText('미공시·대상 아님');await expect(frame).not.toContainText('전체 수집 완료');
- }else{await expect(frame).toContainText(scenario==='empty'?'수집 대상 없음':'전부 미도래');await expect(frame).not.toContainText('100.0%');}
- expect(requested.length).toBe(0);
- await page.getByRole('button',{name:'상태별 작업 상세 보기'}).click();await expect(page.getByText('3S (060310) · 2026 Q2')).toBeVisible();await expect(page.getByText('3월 결산 · 대상기간 2026-09-30',{exact:false})).toBeVisible();
- expect(new URL(requested[0]!).searchParams.get('scope')).toBe('priority');
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:info.outputPath(`${scenario}.png`),fullPage:true});
-});
-
-
-test('DART current stage remains visible when the 10000-call budget is exhausted',async({page})=>{
- await fixture(page);const at='2026-10-23T01:00:00Z';
- await page.route('**/api/collection/monitoring**',route=>{const path=new URL(route.request().url()).pathname;return route.fulfill({json:{data:path.endsWith('/monitoring')?{generatedAt:at,features:[{id:'dart-financial-statements',name:'DART',status:'WAITING',phase:'CURRENT',backfillCompletedAt:at,collectionState:'DAILY_LIMIT',dailyApiCalls:10000,dailyApiLimit:10000,recent:{target:0,success:0,failed:0,skipped:0}}]}:/\/(runs|items)$/.test(path)?{rows:[],hasNext:false,nextCursor:null}:{dart:{backfill:{planned:10,currentTarget:10,completed:9,byStatus:{SUCCESS:9,REVIEW_REQUIRED:1}},priority:{},reviewRequired:1},runs:[],items:[]}}});});
- await page.goto('/detail/collection-monitoring/dart-financial-statements');
- await expect(page.getByTestId('monitor-dart-active-phase')).toHaveText('현재 단계: 2단계 · 현행 수집');
- await expect(page.getByTestId('monitor-dart-current')).toContainText('2단계 전환 완료 · 오늘 호출 한도 도달로 대기');
- await expect(page.getByTestId('monitor-dart-backfill')).toContainText('1단계 · 과거 자료 수집 결과');
- await expect(page.getByTestId('monitor-dart-backfill')).toContainText('10,000 / 10,000회');
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+for(const scenario of ['mixed','empty','running'] as const)test(`종목 데이터 수집 ${scenario}: unique outcomes, preserved monitor sections and management navigation`,async({page},info)=>{
+ await fixture(page);const at='2026-10-27T00:00:00Z',counts=scenario==='empty'?{target:0,success:0,failed:0,skipped:0,unresolved:0,pending:0,processing:0}:{target:10,success:5,failed:1,skipped:1,unresolved:1,pending:scenario==='running'?1:2,processing:scenario==='running'?1:0};
+ await page.route('**/api/security-data/status',r=>r.fulfill({json:{data:{enabled:true,run:{status:'PARTIAL',counts}}}}));
+ await page.route('**/api/collection/monitoring**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill({json:{data:p.endsWith('/monitoring')?{generatedAt:at,features:[{id:'dart-financial-statements',name:'종목 데이터 수집',status:'WAITING',phase:'SECURITY_DATA',recent:counts,unresolved:counts.unresolved}]}:/\/(runs|items)$/.test(p)?{rows:[],hasNext:false,nextCursor:null}:{runs:[],items:[]}}});});
+ await page.goto('/detail/collection-monitoring/dart-financial-statements');const card=page.getByTestId('security-collection-card');await expect(card).toBeVisible();
+ await expect(card).toContainText(`대상 ${counts.target}`);await expect(card).toContainText(`실패 ${counts.failed}`);await expect(card).toContainText(`미해결 ${counts.unresolved}`);
+ await expect(page.getByTestId('monitor-history-data')).toBeAttached();await expect(page.getByTestId('monitor-results-data')).toBeAttached();await expect(page.getByTestId('monitor-counts').locator('>button')).toHaveCount(5);
+ await expect(page.locator('main')).not.toContainText('1단계');await expect(page.locator('main')).not.toContainText('2단계');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath(`${scenario}.png`),fullPage:true});
+ await card.click();await expect(page).toHaveURL(/detail\/security-data$/);
 });

@@ -22,7 +22,7 @@ const jobs: CollectionJob[] = [
   { id: 'account-snapshots', name: '일별 계좌 스냅샷', jobType: 'daily-account-snapshots', schedule: '매일 23:00', hour: 23 },
   {id:'stock-news',name:'종목소식',jobType:'stock-news',schedule:'최초 배포 당일 1회 · 다음 날부터 매일 06:00 KST',hour:6},
   { id: 'investor-trends', name: '투자동향', jobType: 'investor-trends', schedule: '시험 수집 KST 18·21시 · 10/16부터, 3년 보충 보류' },
-  { id: 'dart-financial-statements', name: 'DART 재무제표', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
+  { id: 'dart-financial-statements', name: '종목 데이터 수집', jobType: 'dart-financial-statements', schedule: '우선종목 매일 16–06시 · 일반종목 평일 18–06시, 주말·공휴일 종일' },
 ];
 
 type Run = Awaited<ReturnType<typeof prisma.collectorRun.findFirst>>;
@@ -117,34 +117,10 @@ async function summary() {
         investor:{...counts,backfill,dataScope:'현재 연결 DB의 기록',scheduleEnabled:scheduled,notice:'원격 격리 시험 DB 기록은 포함하지 않습니다. 수량 또는 금액을 검증해 저장한 대상은 수집 성공으로 집계합니다. 미제공 항목은 수집 실패와 구분합니다. 한국투자증권 금액 원본은 백만원 단위입니다. 네이버 신규 수집은 중지했습니다. 시장별 순매수 금액을 별도 범위로 저장합니다. 시장 수량 단위와 공급자 확정 여부는 미확인입니다.'}};
     }
     if (job.id === 'dart-financial-statements') {
-      const [state, usage, progress, priorityBehind, universeBehind,reviewRequired] = await Promise.all([
-        prisma.dartCollectorState.findUnique({ where: { id: 1 } }),
-        prisma.dartApiDailyUsage.findUnique({ where: { usageDate: new Date(`${getSeoulClock(now).dateKey}T00:00:00.000Z`) } }),
-        prisma.dartBackfillTask.groupBy({ by: ['status','errorCode','needsSupplement'],where:dartTaskScope(now), _count: { _all: true } }),
-        priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
-        prisma.dartSecurityState.count({ where: { security: { ...eligibleWhere('dart-financial-statements'),isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
-        prisma.dartBackfillTask.count({where:{...dartTaskScope(now),status:'FAILED',errorCode:'REVIEW_REQUIRED'}}),
-      ]);
-      const taskProgress=dartProgress(progress),counts=taskProgress.byStatus;
-      const temporaryHistory=temporaryDartHistory(state);
-      const phase = temporaryHistory?'BACKFILL':state?.backfillCompletedAt ? 'CURRENT' : 'BACKFILL';
-      const historyMetadata=run?.metadata&&typeof run.metadata==='object'&&!Array.isArray(run.metadata)?run.metadata as Record<string,unknown>:{};
-      const historyDone=temporaryHistory&&historyMetadata.done===true;
-      const historyPaused=temporaryHistory&&historyMetadata.executionState==='PAUSED'&&historyMetadata.pauseReason==='HISTORY_STOPPED';
-      const nextBatchAt=temporaryHistory&&!historyDone&&!historyPaused&&run?.finishedAt?new Date(run.finishedAt.getTime()+300000):undefined;
-      const config = loadCollectorConfig();
-      const limit = phase === 'BACKFILL' ? config.dartBackfillDailyCallLimit : config.dartDailyCallLimit;
-      const night = dartWindowOpen(now,config.dartWindowStartHour,config.dartWindowEndHour,await publicHolidayDates(now),config.dartRestDayAllDay);
-      const automaticWindow = night || dartPriorityWindowOpen(now, config.dartPriorityWindowStartHour, config.dartPriorityWindowEndHour);
-      const nextAutomaticAt = new Date(Math.min(localSchedule(config.dartPriorityWindowStartHour, now).getTime(), localSchedule(config.dartWindowStartHour, now).getTime()));
-      const quotaBlocked = (usage?.apiCallCount ?? 0) >= limit || Boolean(state?.lastRunAt && getSeoulClock(state.lastRunAt).dateKey===getSeoulClock(now).dateKey && state.lastError?.startsWith('020:'));
-      const dartStatus=dartWorkerStatus({now,configured:process.env.DART_COLLECTOR_ENABLED!=='false'&&!!process.env.DART_API_KEY?.trim(),stateExists:!!state,quotaBlocked,automaticWindow,runStatus:run?.status,nextBatchAt,paused:historyDone||historyPaused,workerDates:[run?.startedAt,run?.finishedAt,state?.updatedAt]});
-      return { id: job.id, name: job.name, schedule: job.schedule, status: dartStatus,
-        lastAttemptAt: iso(run?.startedAt), lastSuccessAt: iso(successfulRuns[index]?.finishedAt),
-        lastDataAt: iso(latestDartFiling?.periodEndDate), lastCollectedAt: iso(latestDartFiling?.collectedAt), latestReceiptDate: iso(latestDartFiling?.receiptDate), statsGeneratedAt: now.toISOString(), nextAt: nextBatchAt?iso(nextBatchAt):!automaticWindow ? iso(nextAutomaticAt) : null,
-        recent,resultScope,
-        phase, temporaryHistory, backfillCompletedAt: iso(state?.backfillCompletedAt), backfill: { ...taskProgress,planned: Object.values(counts).reduce((sum, n) => sum + Number(n), 0), success: Number(counts.SUCCESS ?? 0), noFiling: Number(counts.NO_FILING ?? 0), notApplicable: Number(counts.NOT_APPLICABLE ?? 0), failed: Number(counts.FAILED ?? 0), pending: Number(counts.PENDING ?? 0) + Number(counts.PROCESSING ?? 0),reviewRequired:taskProgress.reviewRequired,automaticPending:Number(counts.PENDING??0)+Number(counts.PROCESSING??0)+Number(counts.FAILED??0) },
-        priorityPending: priorityBehind, universePending: universeBehind, dailyApiCalls: usage?.apiCallCount ?? 0, dailyApiLimit: limit, collectionState: historyDone?'HISTORY_REVIEW_COMPLETE':historyPaused?'HISTORY_PAUSED':quotaBlocked ? 'DAILY_LIMIT' : !automaticWindow ? 'NIGHT_WAIT' : 'ELIGIBLE', companyChecks: usage?.companyCheckCount ?? 0, failureReason: safeReason(run?.failureReason ?? state?.lastError) };
+      const run=await prisma.collectorRun.findFirst({where:{jobType:job.jobType,metadata:{path:'$.phase',equals:'SECURITY_DATA'}},orderBy:{id:'desc'}});
+      const lastSuccess=await prisma.collectorRun.findFirst({where:{jobType:job.jobType,status:'SUCCESS',metadata:{path:'$.phase',equals:'SECURITY_DATA'}},orderBy:{id:'desc'}});
+      const cursor=await prisma.securityDataCursor.findUnique({where:{id:1}}),m=run?.metadata as Record<string,any>|null,c=m?.phase==='SECURITY_DATA'?m.counts??{}:{};
+      return {id:job.id,name:'종목 데이터 수집',schedule:'1시간 간격 · 신규·정정 공시 추적',status:run?.status==='RUNNING'?'RUNNING':process.env.SECURITY_DATA_COLLECTION_ENABLED!=='true'?'NOT_CONFIGURED':run?.status==='FAILED'?'ERROR':run?.status==='PARTIAL'?'WARNING':'WAITING',lastAttemptAt:iso(run?.startedAt),lastSuccessAt:iso(lastSuccess?.finishedAt),lastCollectedAt:iso(run?.finishedAt),lastDataAt:iso(latestDartFiling?.collectedAt),statsGeneratedAt:now.toISOString(),nextAt:iso(cursor?.nextCheckAt),recent:{...recent,target:c.target??0,success:c.success??0,failed:c.failed??0,skipped:c.skipped??0},unresolved:c.unresolved??0,resultScope,phase:'SECURITY_DATA',collectionState:'SECURITY_DATA',lastExecution:run?{id:String(run.id),status:run.status,startedAt:iso(run.startedAt),finishedAt:iso(run.finishedAt)}:null};
     }
     const config = loadCollectorConfig();
     const hours = job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];

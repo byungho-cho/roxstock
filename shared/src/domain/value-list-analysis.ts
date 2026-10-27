@@ -68,7 +68,7 @@ export function selectValueListAnalysis(input:Input){
  const hasValues=(r:PeriodValuation)=>Object.values(obj(r.values)).some(v=>dec(v)!==null)||Object.values(obj(obj(r.supplemental).estimateFinancials)).some(v=>dec(v)!==null);
  const estimates=periods.filter(r=>r.fiscalYear===year&&r.periodType==='ESTIMATE'&&hasValues(r)&&obj(obj(r.supplemental).manualSource).kind==='ANNUAL_ESTIMATE'&&obj(obj(r.supplemental).manualSource).fiscalYear===year);
  const estimate=estimates[0],final=periods.find(r=>r.fiscalYear===year-1&&r.periodType==='ANNUAL'&&hasValues(r));
- const annual=mergeStatements(manual,filings.filter(f=>f.periodType==='ANNUAL')).find(r=>r.periodType==='ANNUAL'&&r.fiscalYear===year-1&&[r.revenue,r.netIncome,r.totalEquity].some(v=>v!==null));
+ const annual=mergeStatements(manual,filings.filter(f=>f.periodType==='ANNUAL'),periods).find(r=>r.periodType==='ANNUAL'&&r.fiscalYear===year-1&&[r.revenue,r.netIncome,r.totalEquity].some(v=>v!==null));
  // A December 31 date alone does not prove annual rather than Q4 data.
  const legacy=annual?metrics.find(r=>r.metricDate.toISOString().slice(0,10)===`${year-1}-12-31`&&[r.eps,r.bps,r.roe].some(v=>v!==null)):undefined;
  const priority=estimate?1:final||annual||legacy?2:3,chosen=estimate??final,basisYear=priority===1?year:year-1;

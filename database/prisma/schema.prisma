@@ -1261,3 +1261,43 @@ model AdminUserReadAudit {
   @@index([createdAt])
   @@map("admin_user_read_audits")
 }
+
+// Discovery checkpoint is committed only with the receipt inbox, independently of processing.
+model SecurityDataCursor {
+ id Int @id
+ failures Int @default(0)
+ fromDate String @db.Char(8)
+ throughDate String @db.Char(8)
+ page Int @default(1)
+ nextCheckAt DateTime @map("next_check_at") @db.DateTime(3)
+ lastCompletedAt DateTime? @map("last_completed_at") @db.DateTime(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+ @@map("security_data_cursor")
+}
+model SecurityDataReceipt {
+ receiptNo String @id @map("receipt_no") @db.Char(14)
+ corpCode String @map("corp_code") @db.Char(8)
+ disclosedDate String @map("disclosed_date") @db.Char(8)
+ report Json
+ status String @default("PENDING") @db.VarChar(20)
+ attempts Int @default(0)
+ nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.DateTime(3)
+ result Json?
+ createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+ @@index([status,nextAttemptAt])
+ @@map("security_data_receipts")
+}
+model SecurityDataEdit {
+ id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+ securityId BigInt @map("security_id") @db.UnsignedBigInt
+ fiscalYear Int @map("fiscal_year") @db.UnsignedSmallInt
+ periodType String @map("period_type") @db.VarChar(10)
+ field String @db.VarChar(40)
+ before Json
+ after Json
+ userId BigInt @map("user_id") @db.UnsignedBigInt
+ createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+ @@index([securityId,fiscalYear,periodType])
+ @@map("security_data_edits")
+}

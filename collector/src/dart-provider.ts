@@ -377,6 +377,15 @@ export class OpenDartProvider {
     throw new DartApiError('NEWS_PAGE_BOUND','News disclosure page bound reached.');
   }
 
+  /** One durable discovery page, ordered by disclosure time, not fiscal year. */
+  async listPeriodicPage(from:string,to:string,page:number){
+    const body=await this.json<RawReport>('list.json',{bgn_de:from,end_de:to,pblntf_ty:'A',last_reprt_at:'N',sort:'date',sort_mth:'asc',page_no:String(page),page_count:'100'});
+    if(body.status==='013')return {rows:[] as RawReport[],totalPages:1};
+    const totalPages=Number(body.total_page??1);
+    if(!Number.isSafeInteger(totalPages)||totalPages<1||!Array.isArray(body.list)||body.list.some(r=>!/^\d{14}$/.test(r.rcept_no??'')||!/^\d{8}$/.test(r.corp_code??'')||!/^\d{8}$/.test(r.rcept_dt??'')||r.rcept_dt!<from||r.rcept_dt!>to))throw new DartApiError('INVALID_DISCLOSURE_PAGE','Disclosure checkpoint was not advanced.');
+    return {rows:body.list,totalPages};
+  }
+
   async listPeriodicReports(corpCode: string, fiscalYear: number): Promise<DartReport[]> {
     const start = `${fiscalYear - 1}0101`;
     const end = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-', '');

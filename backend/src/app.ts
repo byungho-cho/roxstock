@@ -1,3 +1,4 @@
+import {securityDataRoutes} from './routes/security-data.js';
 import {notificationRoutes} from './notifications/routes.js';
 import {adminUserRoutes} from './routes/admin-users.js';
 import {stockNewsRoutes} from './routes/stock-news.js';
@@ -103,6 +104,7 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
   void app.register(investmentProfitRoutes, {prefix:'/api'});
   void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });
+  void app.register(securityDataRoutes,{prefix:'/api'});
   void app.register(securityManagementRoutes, {prefix:'/api'});
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });

@@ -1,3 +1,4 @@
+import {useNavigate} from 'react-router-dom';
 import {useAuth} from '../../auth/AuthGate';
 import {publicDartReview} from '../../../../shared/src/domain/dart-review';
 import {refreshOutcome} from './refreshOutcome';
@@ -28,7 +29,7 @@ const errorText = (code?: string) => {
   return '업데이트에 실패했습니다. 잠시 후 다시 시도해 주세요.';
 };
 type Props = { stockId: string; collectedAt: string|null; startYear?:number; endYear?:number; initialPeriod?:RefreshPeriod; onComplete?:()=>void; onSelection?:(year:number,period:RefreshPeriod)=>void; fixedYear?:number; allReports?:boolean; visible?:boolean;hasExistingData?:boolean };
-export function FinancialRefreshControls({stockId,collectedAt,startYear:initialStart,endYear:initialEnd,initialPeriod='ALL',onComplete,fixedYear,allReports,visible=true}:Props) {
+function ArchivedFinancialRefreshControls({stockId,collectedAt,startYear:initialStart,endYear:initialEnd,initialPeriod='ALL',onComplete,fixedYear,allReports,visible=true}:Props) {
   const {user}=useAuth();
   const refreshStorageKey=`financialRefresh:${user?.id??'anonymous'}:${stockId}`;
   const currentYear = Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()));
@@ -127,13 +128,14 @@ export function FinancialRefreshControls({stockId,collectedAt,startYear:initialS
     <Snackbar open={Boolean(toast)} autoHideDuration={6000} onClose={()=>setToast('')} message={toast}/>
   </Stack>;
 }
+/** Historical queues remain readable; no screen can resume historical external requests. */
+export function FinancialRefreshControls(_props:Props){const {user}=useAuth(),navigate=useNavigate();return user?.role==='ADMIN'?<Box><Typography sx={{fontSize:12}}>과거 보완 수집은 종료되었습니다.</Typography><ActionButton size="small" onClick={()=>navigate('/detail/security-data')}>종목 관리</ActionButton></Box>:null;}
 export function FinancialRefreshDialog({open,onClose,...props}:Props&{open:boolean;onClose:()=>void}) {
  return <HistoryDialog keepMounted open={open} onClose={onClose} fullWidth maxWidth="sm" slotProps={{paper:{sx:{m:'16px 24px',width:'calc(100% - 48px)',boxSizing:'border-box',maxHeight:'calc(100dvh - 32px)',bgcolor:colors.surface,border:`1px solid ${colors.border}`,backgroundImage:'none',borderRadius:`${radius.lg}px`}}}}><DialogTitle sx={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:15,p:2,pb:0,flexShrink:0}}>재무제표 갱신<IconButton onClick={onClose} aria-label="재무제표 갱신 닫기"><CloseIcon/></IconButton></DialogTitle><DialogContent sx={{p:2,pt:0,overflowY:'auto',minHeight:0}}><FinancialRefreshControls key={props.stockId} {...props} visible={open}/></DialogContent></HistoryDialog>;
 }
 
 /** Shared by both entry screens; status comes from the durable server job, not session state. */
-export function FinancialRefreshButton({stockId,onClick,compact=false}:{stockId:string;onClick:()=>void;compact?:boolean}) {
- const active=useQuery({queryKey:['financialRefreshActive',stockId],queryFn:({signal})=>apiRequest<RefreshStatus|null>(`/securities/${encodeURIComponent(stockId)}/financial-refresh/active`,{signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])}),staleTime:0,retry:1,refetchInterval:q=>q.state.data?3000:false});
- const running=!!active.data&&active.data.state!=='FINISHED';
- return <ActionButton tone="muted" aria-label="재무제표 갱신" size="small" startIcon={running?<CircularProgress size={12}/>:<RefreshRoundedIcon sx={{fontSize:16}}/>} onClick={onClick} >{running?'갱신 중':compact?'갱신':'재무제표 갱신'}</ActionButton>;
+export function FinancialRefreshButton(_props:{stockId:string;onClick:()=>void;compact?:boolean}) {
+ const {user}=useAuth(),navigate=useNavigate();
+ return user?.role==='ADMIN'?<ActionButton tone="muted" aria-label="종목 관리" size="small" onClick={()=>navigate('/detail/security-data')}>종목 관리</ActionButton>:null;
 }

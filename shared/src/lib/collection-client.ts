@@ -1,3 +1,4 @@
+import {protectManualWrite} from '../domain/security-data.js';
 import {normalizeSecuritySymbol} from '../domain/security-symbol.js';
 import {Prisma,type PrismaClient} from '../generated/prisma/index.js';
 import {collectionContext,inCollectionTransaction,lockCollection} from '../collection/collection-policy.js';
@@ -94,6 +95,11 @@ export function collectionClient<T extends object>(db:T,root:PrismaClient=db as 
      if(changed.length)query.where={AND:[query.where??{},{OR:[{securityId:{notIn:changed.map((s:any)=>s.id)}},...changed.map((s:any)=>({securityId:s.id,collectionSymbol:s.symbol}))]}]};
     }
     if(collected.has(model)&&writes.has(op))query=await resetNamespace(model,delegate,query,op,root);
+    if(model==='periodValuation'&&['update','upsert'].includes(op)){
+     const previous=await (delegate as Obj).findUnique({where:query.where});
+     const branch=op==='upsert'?'update':'data',incomingSymbol=query[branch]?.collectionSymbol??query.create?.collectionSymbol;
+     if(!incomingSymbol||previous?.collectionSymbol==null||normalizeSecuritySymbol(previous.collectionSymbol)===normalizeSecuritySymbol(incomingSymbol))query={...query,[branch]:protectManualWrite(previous,query[branch]??{})};
+    }
     const result=await method.call(delegate,query);
     if(collected.has(model)&&['findUnique','findUniqueOrThrow'].includes(op)&&result){
      const sid=result.securityId??args.where?.securityId??args.where?.securityId_fiscalYear_periodType?.securityId;

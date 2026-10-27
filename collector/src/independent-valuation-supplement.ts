@@ -23,6 +23,7 @@ type Config={windowStartHour:number;windowEndHour:number;apiKey?:string;dailyCal
 type Options={serviceManual?:()=>Promise<boolean>;load?:NonNullable<Parameters<typeof supplementStoredPeriod>[4]>['load'];clock?:()=>Date;sleep?:(ms:number)=>Promise<void>};
 /** Durable, bounded discovery is outside the common financial execution lease. */
 export async function runIndependentSupplement(db:PrismaClient,config:Config,now=new Date(),options:Options={}){
+ if(process.env.SECURITY_DATA_COLLECTION_ENABLED==='true')return {status:'RETIRED' as const};
  db=collectionClient(db);
  if(process.env.VALUATION_SUPPLEMENT_ENABLED==='false')return {status:'DISABLED'};
  const clock=options.clock??(()=>new Date()),open=(date:Date)=>dartWindowOpen(date,config.windowStartHour,config.windowEndHour,[],true);

@@ -38,6 +38,8 @@ jobs:
       - name: Collector DB storage, leases and durable manual queue compatibility
         run: |
           node --import tsx --test --test-concurrency=1 collector/tests/realtime-lifecycle.integration.ts collector/tests/independent-supplement.integration.ts backend/tests/manual-collector.integration.ts backend/tests/manual-independent.integration.ts
+      - name: New security data inbox recovery and retired queue isolation
+        run: node --import tsx --test collector/tests/security-data.integration.ts
       - name: DART receipt storage and recovery in a separate fixture database
         env:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/roxstock_dart_recovery_test

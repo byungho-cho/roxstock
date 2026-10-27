@@ -99,6 +99,31 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   touch "$SOURCE_TREE/.deploy/backed-up-$IMAGE_TAG"
   echo "Verified server-local pre-migration backup: $backup_file"
   fi
+  # Retire the explicitly identified historical campaign before the first new engine starts.
+  if [[ "$COMPONENT" == backend && -f "$DEPLOY_TREE/scripts/security-data-production-check.mjs" && ! -f "$SOURCE_TREE/.deploy/security-data-history-retired" ]]; then
+    baseline="$(cat "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG")/collection-settings"
+    install -d -m 700 "$baseline"
+    install -m 600 "$SOURCE_TREE/backend/.env.production" "$baseline/env.production"
+    install -m 600 "$SOURCE_TREE/backend/.env.auth" "$baseline/env.auth"
+    docker inspect roxstock-backend roxstock-collector roxstock-dart-collector > "$baseline/containers.json"
+    for unit in roxstock-kis-history.timer roxstock-kis-history.service; do
+      systemctl show "$unit" > "$baseline/$unit.state" 2>/dev/null || true
+      systemctl cat "$unit" > "$baseline/$unit.unit" 2>/dev/null || true
+    done
+    campaign="$SOURCE_TREE/.deploy/kis-history-campaign"
+    if [[ -d "$campaign" ]]; then
+      cp -a "$campaign" "$baseline/kis-history-campaign"
+      install -d -m 700 "$campaign/state"
+      touch "$campaign/state/STOP"
+    fi
+    if systemctl cat roxstock-kis-history.timer >/dev/null 2>&1; then systemctl disable --now roxstock-kis-history.timer; fi
+    if systemctl is-active --quiet roxstock-kis-history.service; then systemctl stop roxstock-kis-history.service; fi
+    if docker container inspect roxstock-kis-history-batch >/dev/null 2>&1; then docker stop --time 120 roxstock-kis-history-batch; fi
+    # General collector still contains the old supplement timer until its image is replaced.
+    docker stop --time 120 roxstock-dart-collector roxstock-collector
+    date -u +%FT%TZ > "$SOURCE_TREE/.deploy/security-data-history-retired"
+    printf '%s\n' "$baseline" > "$SOURCE_TREE/.deploy/security-data-settings-baseline"
+  fi
   export AUTH_CUTOVER_BACKUP_DIRECTORY="$(cat "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG")"
   export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"
   install -d -m 755 "$SOURCE_TREE/.deploy/runtime"

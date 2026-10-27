@@ -157,6 +157,8 @@ jobs:
           cd frontend && npx playwright test -c playwright.phase35.config.ts
       - name: DART statuses, progress and task detail (cover and tablet)
         run: cd frontend && npx playwright test -c playwright.dart-task-status.config.ts
+      - name: Security data management and editor (Figma cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.security-data.config.ts
       - name: App notifications and administrator separation (cover and tablet)
         run: cd frontend && npx playwright test -c playwright.app-notifications.config.ts
       - name: Unified notification flows (cover and tablet)
@@ -180,3 +182,4 @@ jobs:
             frontend/test-results/cash-dashboard-session
             frontend/test-results/unified-notifications
             frontend/test-results/dart-task-status
+            frontend/test-results/security-data

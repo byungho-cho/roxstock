@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Installed privately on the production host. systemd prevents overlapping batches.
+test ! -e /opt/roxstock/.deploy/security-data-history-retired || exit 0
 root=/opt/roxstock/.deploy/kis-history-campaign
 test -f "$root/APPROVED"
 test ! -e "$root/state/STOP" || exit 0
