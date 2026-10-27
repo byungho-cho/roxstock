@@ -14,9 +14,7 @@ test('new inbox discovery rollback, receipt deduplication, restart recovery and 
  PrismaDartRepository.prototype.corpCodeMappingsSyncedAt=async()=>new Date();
  try{
   await prisma.securityDataCursor.deleteMany({});
-  PrismaDartRepository.prototype.corpCodeMappingsSyncedAt=async()=>new Date();
   OpenDartProvider.prototype.listPeriodicPage=async()=>{calls++;if(fail)throw Error('injected discovery failure');return {rows:[{corp_code:'99330002',rcept_no:receipt,rcept_dt:ymd,report_nm:'반기보고서 (2026.06)'}],totalPages:1};};
-  PrismaDartRepository.prototype.corpCodeMappingsSyncedAt=async()=>new Date();
   const first=await runSecurityDataCollection(prisma,config,at);assert.equal(first.status,'FINISHED');assert.equal('skipped' in first&&first.skipped,1);assert.equal(await prisma.securityDataReceipt.count({where:{receiptNo:receipt}}),1);
   await prisma.securityDataCursor.update({where:{id:1},data:{nextCheckAt:at}});await runSecurityDataCollection(prisma,config,at);assert.equal(await prisma.securityDataReceipt.count({where:{receiptNo:receipt}}),1);
   await prisma.securityDataReceipt.update({where:{receiptNo:receipt},data:{status:'PROCESSING',attempts:3}});await prisma.securityDataCursor.update({where:{id:1},data:{nextCheckAt:new Date(+at+3600000)}});await runSecurityDataCollection(prisma,config,at);assert.equal((await prisma.securityDataReceipt.findUniqueOrThrow({where:{receiptNo:receipt}})).status,'UNRESOLVED');assert.equal((await prisma.securityDataReceipt.findUniqueOrThrow({where:{receiptNo:receipt}})).attempts,3);

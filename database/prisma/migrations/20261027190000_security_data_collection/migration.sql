@@ -11,7 +11,7 @@ CREATE TABLE security_data_receipts (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE TABLE security_data_edits (
  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, security_id BIGINT UNSIGNED NOT NULL, fiscal_year SMALLINT UNSIGNED NOT NULL,
- period_type VARCHAR(10) NOT NULL, field VARCHAR(40) NOT NULL, before JSON NOT NULL, after JSON NOT NULL,
+ period_type VARCHAR(10) NOT NULL, field VARCHAR(40) NOT NULL, `before` JSON NOT NULL, `after` JSON NOT NULL,
  user_id BIGINT UNSIGNED NOT NULL, created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY(id),
  INDEX security_data_edits_security_id_fiscal_year_period_type_idx(security_id,fiscal_year,period_type)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

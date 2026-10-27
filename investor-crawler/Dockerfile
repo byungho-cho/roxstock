@@ -9,7 +9,7 @@ COPY shared/package.json shared/package.json
 RUN npm ci --workspace shared --include-workspace-root
 COPY shared shared
 COPY database database
-RUN npm run prisma:generate
+RUN npm run prisma:generate && npm run build:shared
 
 FROM node:20-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
