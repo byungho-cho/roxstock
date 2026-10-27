@@ -16,6 +16,19 @@ test('security data: real sessions, optimistic single-field edits, manual protec
   assert.equal((await app.inject(path)).statusCode,401);const admin=await login(users[0]!),user=await login(users[1]!);
   assert.equal((await app.inject({url:path,headers:user})).statusCode,403);
   assert.equal((await app.inject({method:'POST',url:'/api/pages/read',headers:user,payload:{paths:['/security-data/quarters']}})).statusCode,400);
+  const statePath=`/api/security-data/quarters/${q.year}/${q.quarter}`;
+  const enabled=process.env.SECURITY_DATA_COLLECTION_ENABLED;
+  const receiptCount=await raw.securityDataReceipt.count();
+  try{
+   process.env.SECURITY_DATA_COLLECTION_ENABLED='false';
+   const stopped=(await app.inject({url:statePath,headers:admin})).json().data;
+   process.env.SECURITY_DATA_COLLECTION_ENABLED='true';
+   const running=(await app.inject({url:statePath,headers:admin})).json().data;
+   assert.deepEqual(stopped,running);
+   const missing=stopped.items.find((r:any)=>r.id===String(security.id));
+   assert.equal(missing.state,'DISCLOSURE_UNVERIFIED');assert.ok(missing.missingFinancial.includes('revenueYtd'));
+   assert.equal(await raw.securityDataReceipt.count(),receiptCount);
+  }finally{if(enabled===undefined)delete process.env.SECURITY_DATA_COLLECTION_ENABLED;else process.env.SECURITY_DATA_COLLECTION_ENABLED=enabled;}
   let detail=(await app.inject({url:path,headers:admin})).json().data;assert.equal(detail.fields.length,26);assert.equal(detail.basis,null);
   const basis={receiptNo:null,fsDivision:'CFS',periodEnd:end.toISOString().slice(0,10),currency:'KRW',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'};
   const patch=(field:string,value:string,expectedValue:unknown,b=detail.basis??basis)=>app.inject({method:'PATCH',url:path,headers:admin,payload:{field,value,expectedValue,basis:b}});

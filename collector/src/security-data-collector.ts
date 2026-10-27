@@ -19,7 +19,8 @@ export const securityDataConfig=()=>({enabled:process.env.SECURITY_DATA_COLLECTI
 const day=(d:Date)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(d).replaceAll('-','');
 const dateOf=(v:string)=>new Date(v.slice(0,4)+'-'+v.slice(4,6)+'-'+v.slice(6,8)+'T00:00:00+09:00');
 export const discoveryWindowEnd=(from:string,today:string)=>day(new Date(Math.min(dateOf(today).getTime(),dateOf(from).getTime()+89*86400000)));
-export function nextDiscoveryWindow(through:string,today:string){const caughtUp=through>=today,fromDate=day(new Date(dateOf(through).getTime()+(caughtUp?-2:1)*86400000));return {fromDate,throughDate:discoveryWindowEnd(fromDate,today),caughtUp};}
+export function nextDiscoveryWindow(through:string,today:string,coverageFrom='00000000'){const caughtUp=through>=today,overlap=day(new Date(dateOf(through).getTime()+(caughtUp?-2:1)*86400000)),fromDate=overlap<coverageFrom?coverageFrom:overlap;return {fromDate,throughDate:discoveryWindowEnd(fromDate,today),caughtUp};}
+export const receiptWithinCoverage=(date:unknown,from:string,today:string):date is string=>typeof date==='string'&&/^\d{8}$/.test(date)&&date>=from&&date<=today;
 export const latestPeriodicReport=(report:DartReport,reports:DartReport[])=>reports.filter(r=>!r.withdrawn&&(r.periodType==='ANNUAL')===(report.periodType==='ANNUAL')&&r.selection?.periodEndDate&&!r.selection.periodError).sort((a,b)=>b.selection!.periodEndDate.localeCompare(a.selection!.periodEndDate)||b.receiptNo.localeCompare(a.receiptNo))[0]??report;
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 /** Discovery and processing have separate durable state. Lease fences every financial write. */
@@ -32,25 +33,27 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
  let runId:bigint|undefined,discovering=false;
  try{return await withFinancialLease(owner,async()=>{
   const provider=new OpenDartProvider({apiKey:config.apiKey,dailyCallLimit:config.dailyCallLimit,minDelayMs:config.minDelayMs,reserveCall:async limit=>{await db.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 900 SECOND) WHERE job_name='dart-financial-statements' AND owner_token=${owner} AND locked_until>UTC_TIMESTAMP(3)`;return repo.reserveApiCall(limit,new Date(),owner);},onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')});
-  const initial=day(now).slice(0,4)+'0101';
+  const initial=day(now);
   await db.securityDataCursor.upsert({where:{id:1},create:{id:1,coverageFrom:initial,fromDate:initial,throughDate:discoveryWindowEnd(initial,day(now)),page:1,nextCheckAt:now},update:{}});
   let cursor=await db.securityDataCursor.findUniqueOrThrow({where:{id:1}});
-  const due=await db.securityDataReceipt.count({where:{status:{in:['PENDING','RETRY','PROCESSING']},nextAttemptAt:{lte:now}}});
+  const coverageFrom=cursor.coverageFrom??initial;
+  if(!cursor.coverageFrom||cursor.fromDate<coverageFrom)cursor=await db.securityDataCursor.update({where:{id:1},data:{coverageFrom,fromDate:coverageFrom,throughDate:discoveryWindowEnd(coverageFrom,day(now)),page:1,failures:0,nextCheckAt:now}});
+  const due=await db.securityDataReceipt.count({where:{status:{in:['PENDING','RETRY','PROCESSING']},disclosedDate:{gte:coverageFrom,lte:day(now)},nextAttemptAt:{lte:now}}});
   if(cursor.failures>=policy.maxAttempts&&!due)return {status:'REVIEW_REQUIRED'};
   if(cursor.nextCheckAt>now&&!due)return {status:'IDLE'};
   await db.collectorRun.updateMany({where:{jobType:'dart-financial-statements',status:'RUNNING',metadata:{path:'$.phase',equals:'SECURITY_DATA'}},data:{status:'PARTIAL',finishedAt:now,failureReason:'중간 종료 후 대기열에서 복구됨'}});
   runId=(await repo.createRun('dart-financial-statements','OPEN_DART_KRX_KIS',{phase:'SECURITY_DATA',historicalBackfill:false})).id;
   // Recover only this inbox. Never reset/reopen historical tasks or supplement queues.
-  await db.securityDataReceipt.updateMany({where:{status:'PROCESSING',attempts:{gte:policy.maxAttempts}},data:{status:'UNRESOLVED',result:json({outcome:'UNRESOLVED',reason:'재시도 한도에서 중간 종료 · 저장 근거 검토 필요'})}});
-  await db.securityDataReceipt.updateMany({where:{status:'PROCESSING',attempts:{lt:policy.maxAttempts}},data:{status:'RETRY'}});
+  await db.securityDataReceipt.updateMany({where:{status:'PROCESSING',disclosedDate:{gte:coverageFrom,lte:day(now)},attempts:{gte:policy.maxAttempts}},data:{status:'UNRESOLVED',result:json({outcome:'UNRESOLVED',reason:'재시도 한도에서 중간 종료 · 저장 근거 검토 필요'})}});
+  await db.securityDataReceipt.updateMany({where:{status:'PROCESSING',disclosedDate:{gte:coverageFrom,lte:day(now)},attempts:{lt:policy.maxAttempts}},data:{status:'RETRY'}});
   const mapAt=await repo.corpCodeMappingsSyncedAt();
   if(!mapAt||now.getTime()-mapAt.getTime()>config.corpRefreshHours*3600000)await repo.syncCorporations(await provider.fetchCorporations(),now);
   if(cursor.nextCheckAt<=now&&cursor.failures<policy.maxAttempts){
    discovering=true;
    for(let pageCount=0;pageCount<10;pageCount++){
-    const response=await provider.listPeriodicPage(cursor.fromDate,cursor.throughDate,cursor.page),finished=cursor.page>=response.totalPages,advance=nextDiscoveryWindow(cursor.throughDate,day(now));
+    const response=await provider.listPeriodicPage(cursor.fromDate,cursor.throughDate,cursor.page),finished=cursor.page>=response.totalPages,advance=nextDiscoveryWindow(cursor.throughDate,day(now),coverageFrom);
     const mapped=new Set((await db.dartCorpMapping.findMany({where:{corpCode:{in:response.rows.map(r=>r.corp_code!)}},select:{corpCode:true}})).map(r=>r.corpCode));
-    const relevant=response.rows.filter(r=>mapped.has(r.corp_code!)&&/(사업|반기|분기)보고서/.test(r.report_nm??''));
+    const relevant=response.rows.filter(r=>receiptWithinCoverage(r.rcept_dt,coverageFrom,day(now))&&mapped.has(r.corp_code!)&&/(사업|반기|분기)보고서/.test(r.report_nm??''));
     // Receipt inserts and page/checkpoint advance are one transaction. Failure replays the page.
     cursor=await db.$transaction(async tx=>{
      await tx.securityDataReceipt.createMany({data:relevant.map(raw=>({receiptNo:raw.rcept_no!,corpCode:raw.corp_code!,disclosedDate:raw.rcept_dt!,report:json(raw),nextAttemptAt:now})),skipDuplicates:true});
@@ -59,14 +62,14 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
    }
   }
   discovering=false;
-  const fetchedTasks=await db.securityDataReceipt.findMany({where:{status:{in:['PENDING','RETRY']},nextAttemptAt:{lte:now}},orderBy:[{disclosedDate:'desc'},{receiptNo:'desc'}],take:policy.batch});
+  const fetchedTasks=await db.securityDataReceipt.findMany({where:{status:{in:['PENDING','RETRY']},disclosedDate:{gte:coverageFrom,lte:day(now)},nextAttemptAt:{lte:now}},orderBy:[{disclosedDate:'desc'},{receiptNo:'desc'}],take:policy.batch});
   const unique=new Map<string,typeof fetchedTasks[number]>();
   for(const task of fetchedTasks){const name=String(objectValue(task.report).report_nm??''),key=task.corpCode+':'+name.replace(/\[.*?\]/g,'').replace(/\s+/g,'');
    if(unique.has(key))await db.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:'SKIPPED',result:json({outcome:'SKIPPED',reason:'동일 실행의 고유 보고기간 중복',duplicateOf:unique.get(key)!.receiptNo})}});else unique.set(key,task);
   }
   const tasks=[...unique.values()];
   const counts={target:tasks.length,success:0,failed:0,skipped:0,unresolved:0,pending:tasks.length,processing:0};
-  const metadata=()=>json({phase:'SECURITY_DATA',historicalBackfill:false,counts,discoveryCompletedAt:cursor.lastCompletedAt?.toISOString()??null});
+  const metadata=()=>json({phase:'SECURITY_DATA',historicalBackfill:false,counts,coverageFrom,discoveryCompletedAt:cursor.lastCompletedAt?.toISOString()??null});
   const naver=new NaverAnnualProvider();
   for(const task of tasks){
    if(Date.now()-now.getTime()>600000)break;
@@ -88,14 +91,14 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
        if(original&&year!<currentYear-1){outcome='SKIPPED';reason='최신 대상보다 이전인 일반 공시 · 과거 보완 미실행';return;}
        const reports=await provider.listPeriodicReports(task.corpCode,year!);
        const report=reports.find(r=>r.receiptNo===task.receiptNo);
-       if(!report){const newer=reports.find(r=>r.reportName.replace(/\[.*?\]/g,'').trim()===name.replace(/\[.*?\]/g,'').trim()&&r.receiptNo>task.receiptNo);if(newer&&newer.receiptDate>=String(currentYear)+'0101'&&newer.receiptDate<=day(now)){requireDartReportPeriod(newer,task.corpCode,year!);await db.securityDataReceipt.createMany({data:[{receiptNo:newer.receiptNo,corpCode:task.corpCode,disclosedDate:newer.receiptDate,report:json({rcept_no:newer.receiptNo,rcept_dt:newer.receiptDate,corp_code:task.corpCode,report_nm:newer.reportName}),nextAttemptAt:now}],skipDuplicates:true});outcome='SKIPPED';reason='동일 기간 후속 공시가 대기열에 보존됨';return;}reason='접수번호·정정 관계 검토 필요';return;}
+       if(!report){const newer=reports.find(r=>r.reportName.replace(/\[.*?\]/g,'').trim()===name.replace(/\[.*?\]/g,'').trim()&&r.receiptNo>task.receiptNo);if(newer&&receiptWithinCoverage(newer.receiptDate,coverageFrom,day(now))){requireDartReportPeriod(newer,task.corpCode,year!);await db.securityDataReceipt.createMany({data:[{receiptNo:newer.receiptNo,corpCode:task.corpCode,disclosedDate:newer.receiptDate,report:json({rcept_no:newer.receiptNo,rcept_dt:newer.receiptDate,corp_code:task.corpCode,report_nm:newer.reportName}),nextAttemptAt:now}],skipDuplicates:true});outcome='SKIPPED';reason='동일 기간 후속 공시가 대기열에 보존됨';return;}reason='접수번호·정정 관계 검토 필요';return;}
        if(report.withdrawn){outcome='SKIPPED';reason='철회 공시';return;}
        period=report.periodType;requireDartReportPeriod(report,task.corpCode,year!);
        if(original){
         const latest=latestPeriodicReport(report,year!<currentYear?[...reports,...await provider.listPeriodicReports(task.corpCode,currentYear)]:reports);
         if(latest.receiptNo!==report.receiptNo&&latest.selection!.periodEndDate>report.selection!.periodEndDate){
          requireDartReportPeriod(latest,task.corpCode,latest.selection!.taskFiscalYear);
-         if(latest.receiptDate>=String(currentYear)+'0101'&&latest.receiptDate<=day(now))await db.securityDataReceipt.createMany({data:[{receiptNo:latest.receiptNo,corpCode:task.corpCode,disclosedDate:latest.receiptDate,report:json({rcept_no:latest.receiptNo,rcept_dt:latest.receiptDate,corp_code:task.corpCode,report_nm:latest.reportName}),nextAttemptAt:now}],skipDuplicates:true});
+         if(receiptWithinCoverage(latest.receiptDate,coverageFrom,day(now)))await db.securityDataReceipt.createMany({data:[{receiptNo:latest.receiptNo,corpCode:task.corpCode,disclosedDate:latest.receiptDate,report:json({rcept_no:latest.receiptNo,rcept_dt:latest.receiptDate,corp_code:task.corpCode,report_nm:latest.reportName}),nextAttemptAt:now}],skipDuplicates:true});
          outcome='SKIPPED';reason='최신 보고자료를 대기열에 보존 · 이전 일반 기간 보완 미실행';return;
         }
        }

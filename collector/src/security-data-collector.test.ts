@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {discoveryWindowEnd,nextDiscoveryWindow,latestPeriodicReport} from './security-data-collector.js';
+import {discoveryWindowEnd,nextDiscoveryWindow,latestPeriodicReport,receiptWithinCoverage} from './security-data-collector.js';
 import type {DartReport} from './dart-provider.js';
 test('announcement-year discovery includes prior-year annual filings, respects ninety-day query bounds and overlaps only after catch-up',()=>{
  assert.equal(discoveryWindowEnd('20260101','20261027'),'20260331');
@@ -7,6 +7,15 @@ test('announcement-year discovery includes prior-year annual filings, respects n
  while(through<'20261027'){const next=nextDiscoveryWindow(through,'20261027');assert.equal(next.caughtUp,false);assert.ok(next.fromDate>through);from=next.fromDate;through=next.throughDate;assert.ok(++loops<5);}
  assert.equal(nextDiscoveryWindow(through,'20261027').fromDate,'20261025');assert.equal(nextDiscoveryWindow(through,'20261027').caughtUp,true);
  assert.equal(discoveryWindowEnd('20240101','20241027'),'20240330');
+});
+test('current-only discovery clamps overlap to its persistent start and filters by announcement date, not fiscal year',()=>{
+ assert.equal(nextDiscoveryWindow('20261028','20261028','20261028').fromDate,'20261028');
+ assert.equal(nextDiscoveryWindow('20261029','20261029','20261028').fromDate,'20261028');
+ assert.equal(nextDiscoveryWindow('20270101','20270101','20261028').fromDate,'20261230');
+ assert.equal(receiptWithinCoverage('20261027','20261028','20261028'),false);
+ assert.equal(receiptWithinCoverage('20261028','20261028','20261028'),true);
+ assert.equal(receiptWithinCoverage('20261029','20261028','20261028'),false);
+ assert.equal(receiptWithinCoverage(undefined,'20261028','20261028'),false);
 });
 test('bootstrap selects the latest annual separately from interim reports, rather than collecting every missing quarter',()=>{
  const report=(receiptNo:string,periodType:string,end:string)=>({receiptNo,periodType,selection:{periodEndDate:end},withdrawn:false}) as DartReport;
