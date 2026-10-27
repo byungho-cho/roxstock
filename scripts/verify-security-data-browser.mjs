@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const identities=JSON.parse(readFileSync(process.env.SECURITY_DATA_BROWSER_SESSIONS,'utf8')),browser=await chromium.launch(),origin='https://newrox.cafe24.com',checks=[];
 try{
  for(const viewport of [{width:370,height:465},{width:725,height:396}])for(const identity of identities){
-  const context=await browser.newContext({viewport,locale:'ko-KR',timezoneId:'Asia/Seoul'});await context.addCookies(identity.cookies);const page=await context.newPage(),errors=[];let detailChecked=false;page.on('pageerror',e=>errors.push(e.message));
+  const context=await browser.newContext({viewport,locale:'ko-KR',timezoneId:'Asia/Seoul'});await context.addCookies(identity.cookies);const page=await context.newPage(),errors=[];let detailChecked=false;const requests=[];page.on('response',async r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/security-data')||path==='/api/auth/me'){try{const b=await r.json();requests.push({path,status:r.status(),code:b.error?.code,quarters:b.data?.quarters?.length,role:path==='/api/auth/me'?b.data?.role:undefined});}catch{requests.push({path,status:r.status()});}}});page.on('pageerror',e=>errors.push(e.message));
   try{
    await page.goto(origin+'/detail/security-data');
    if(identity.role==='USER'){
@@ -24,7 +24,7 @@ try{
     await page.goto(origin+'/more');await expect(page.getByTestId('more-menu').getByRole('button')).toHaveCount(16);
    }
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);checks.push({role:identity.role,viewport,detailChecked,passed:true});
-  }finally{await context.close();}
+  }catch(error){console.error(JSON.stringify({marker:'SECURITY_DATA_BROWSER_FAILURE',role:identity.role,viewport,path:new URL(page.url()).pathname,requests,errors,alerts:await page.getByRole('alert').allTextContents().then(a=>a.map(t=>t.slice(0,240)))}));throw error;}finally{await context.close();}
  }
  console.log(JSON.stringify({marker:'SECURITY_DATA_PRODUCTION_BROWSER_VERIFIED',checkedAt:new Date().toISOString(),checks}));
 }finally{await browser.close();}

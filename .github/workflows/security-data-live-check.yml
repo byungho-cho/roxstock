@@ -1,0 +1,72 @@
+name: Security Data Live Verification
+on:
+  push:
+    branches: [ops/security-data-live-check-20261027, main]
+    paths: [scripts/verify-security-data-browser.mjs, .github/workflows/security-data-live-check.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: security-data-live-verification
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - id: release
+        run: echo "active=$(node -p 'require("./backend/src/release.json").version==="1.2.31"')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.release.outputs.active == 'true'
+        with:
+          node-version: '20'
+      - if: steps.release.outputs.active == 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.release.outputs.active == 'true'
+        run: npx --workspace frontend playwright install --with-deps chromium
+      - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
+        if: steps.release.outputs.active == 'true'
+        env:
+          TARGET_SHA: 643baffbede3e81044c3c73c59dac4acf9c57919
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.31 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- $TARGET_SHA" < scripts/verify-security-data-production.sh | tee "$RUNNER_TEMP/security-data-production.txt"
+          grep -q SECURITY_DATA_PRODUCTION_HTTP_VERIFIED "$RUNNER_TEMP/security-data-production.txt"
+          cat "$RUNNER_TEMP/security-data-production.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify real production cover and tablet with administrator and ordinary-user sessions
+        if: steps.release.outputs.active == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          SECURITY_DATA_BROWSER_SESSIONS: ${{ runner.temp }}/security-data-browser-sessions.json
+        run: |
+          umask 077
+          cleanup() {
+            ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/cleanup-security-data-browser.mjs
+            rm -f "$SECURITY_DATA_BROWSER_SESSIONS"
+          }
+          trap cleanup EXIT
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/prepare-security-data-browser.mjs > "$SECURITY_DATA_BROWSER_SESSIONS"
+          node scripts/verify-security-data-browser.mjs | tee -a "$RUNNER_TEMP/security-data-production.txt"
+          grep -q SECURITY_DATA_PRODUCTION_BROWSER_VERIFIED "$RUNNER_TEMP/security-data-production.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-data-production-evidence
+          path: ${{ runner.temp }}/security-data-production.txt
