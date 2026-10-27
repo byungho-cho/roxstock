@@ -24,7 +24,7 @@ test('summary slow first load keeps all cards, labels and geometry',async({page}
  await expect(page.getByTestId('monitor-summary')).not.toContainText('완료 7건');await expect(page.locator('main')).not.toContainText('0건');await expect(page.getByTestId('monitor-summary').getByRole('button')).toHaveCount(0);
  await expect(page.locator('[data-loading-indicator="visible"]').first()).toBeVisible();const before=await boxes(page);await capture(page,'loading',info.project.name);
  f.release();await expect(page.getByTestId('monitor-summary')).toContainText('완료 7건');await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);expect(await boxes(page)).toEqual(before);
- expect(await page.locator('[data-testid^="monitor-feature-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')))).toEqual(['realtime-prices','account-snapshots','market-prices','investor-trends','dart-financial-statements','security-master','stock-news'].map(id=>'monitor-feature-'+id));
+ expect(await page.locator('[data-testid^="monitor-feature-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')))).toEqual(['dart-financial-statements','realtime-prices','account-snapshots','market-prices','investor-trends','security-master','stock-news'].map(id=>'monitor-feature-'+id));
  await capture(page,'ready',info.project.name);
 });
 for(const id of ids)test(`${id}: independent slow data preserves detail card sizes`,async({page},info)=>{
