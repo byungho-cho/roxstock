@@ -1,7 +1,7 @@
 // Uses real production HTTP and server-issued short-lived sessions; no API fixtures or writes.
 import {chromium,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
-const identities=JSON.parse(readFileSync(process.env.SECURITY_DATA_BROWSER_SESSIONS,'utf8')),browser=await chromium.launch(),origin='https://newrox.cafe24.com',checks=[];
+const identities=JSON.parse(readFileSync(process.env.SECURITY_DATA_BROWSER_SESSIONS,'utf8')),browser=await chromium.launch(process.env.SECURITY_DATA_BROWSER_CHANNEL?{channel:process.env.SECURITY_DATA_BROWSER_CHANNEL}:{}),origin='https://newrox.cafe24.com',checks=[];
 try{
  for(const viewport of [{width:370,height:465},{width:725,height:396}])for(const identity of identities){
   const context=await browser.newContext({viewport,locale:'ko-KR',timezoneId:'Asia/Seoul'});await context.addCookies(identity.cookies);const page=await context.newPage(),errors=[];let detailChecked=false;const requests=[];page.on('response',async r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/security-data')||path==='/api/auth/me'){try{const b=await r.json();requests.push({path,status:r.status(),code:b.error?.code,quarters:b.data?.quarters?.length,role:path==='/api/auth/me'?b.data?.role:undefined});}catch{requests.push({path,status:r.status()});}}});page.on('pageerror',e=>errors.push(e.message));

@@ -33,7 +33,13 @@ jobs:
       - if: steps.release.outputs.active == 'true'
         run: npm ci --workspace frontend --include-workspace-root=false
       - if: steps.release.outputs.active == 'true'
-        run: npx --workspace frontend playwright install --with-deps chromium
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            google-chrome --version
+            echo 'SECURITY_DATA_BROWSER_CHANNEL=chrome' >> "$GITHUB_ENV"
+          else
+            npx --workspace frontend playwright install --with-deps chromium
+          fi
       - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
         if: steps.release.outputs.active == 'true'
         env:
