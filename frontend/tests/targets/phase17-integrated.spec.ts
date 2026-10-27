@@ -1,3 +1,4 @@
+import {assertRetiredEntry} from './security-data-retired';
 import {test,expect,type Page} from './authenticated-test';
 import {setup as financialFixture} from './financial-ui-fixture';
 import {fixture as stockFixture} from './stock-input-fixture';
@@ -15,17 +16,7 @@ for(const mode of ['annual','quarter'])test(`common dismiss: all financial ${mod
  const tooltip=dialog.getByTestId('financial-chart-tooltip');await expect(tooltip).toBeVisible();await tooltip.click();await expect(tooltip).toBeVisible();await page.screenshot({path:info.outputPath('phase17-financial-'+mode+'.png')});
  await dialog.getByRole('button',{name:'차트 상세보기 뒤로가기'}).tap();await expect(dialog).toBeHidden();await expect(page.getByTestId('financial-chart-tooltip')).toHaveCount(0);await overflow(page);
 });
-for(const refreshMode of ['SUPPLEMENT','FULL'])test(`manual ${refreshMode}: independent progress, partial result, retry and reload`,async({page},info)=>{
- const state=await financialFixture(page,{allMetrics:true});let finished=false;
- const status=()=>({requestId:'99',state:finished?'FINISHED':'PROCESSING',status:finished?'PARTIAL':'RUNNING',startYear:2024,endYear:2026,fiscalYear:2024,period:'ANNUAL',finishedAt:finished?'2026-10-10T10:00:00Z':null,progress:{currentYear:2025,currentPeriod:'ANNUAL',stage:'VALUATION',completed:0,total:3,tasks:{dart:{state:refreshMode==='SUPPLEMENT'?'SKIPPED':'FAILED',code:'DART_TIMEOUT'},valuation:{state:finished?'SUCCESS':'RUNNING'}}},results:finished?[{fiscalYear:2025,period:'ANNUAL',status:'FAILED',valuationStatus:'SUCCESS',tasks:{dart:{state:refreshMode==='SUPPLEMENT'?'SKIPPED':'FAILED'},valuation:{state:'SUCCESS'}}}]:[],counts:finished?{processed:1,disclosureCompleted:0,valuationCompleted:1,noDisclosure:0,disclosureFailed:refreshMode==='FULL'?1:0,supplementFailed:0}:undefined});
- await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:state.posts&&!finished?status():null}}));
- await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:status()}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();
- expect(state.posts).toBe(0);await page.getByRole('button',{name:refreshMode==='FULL'?'전체 갱신':'보완자료만 갱신',exact:true}).tap();
- await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect((state.body as any).refreshMode).toBe(refreshMode);expect((state.body as any).period).toBe('ANNUAL');expect((state.body as any).clientRequestId).toMatch(/^[\w-]{16,80}$/);expect(state.posts).toBe(1);
- await page.reload();await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();expect(state.posts).toBe(1);
- finished=true;await expect(page.getByText(refreshMode==='FULL'?'완료 0건 · 일부 자료 부족 0건 · 오류 1건':'완료 1건 · 일부 자료 부족 0건 · 오류 0건')).toBeVisible({timeout:12000});await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled();await page.getByText('상세 내용', {exact:true}).click();await expect(page.getByText(/가치지표 보완 완료/)).toBeVisible();await page.screenshot({path:info.outputPath('phase17-refresh-'+refreshMode+'.png')});await overflow(page);
-});
+for(const refreshMode of ['SUPPLEMENT','FULL'])test(`manual ${refreshMode}: independent progress, partial result, retry and reload`,async({page},info)=>{const state=await financialFixture(page);await assertRetiredEntry(page);expect(state.posts).toBe(0);});
 test('compound selection is one line, compact tooltip stays inside, first outside tap navigates',async({page},info)=>{
  await stockFixture(page);
  await page.route('**/api/accounts/*/compound-plans*',route=>route.fulfill({json:{data:{accountId:'a',currentAssets:'123456789012345',currentYear:2026,pricingComplete:true,plans:[{id:'p',planName:'계획',startYear:2025,endYear:2029,duration:5,initialAssetValue:'100',annualContributionAmount:'10',status:'ACTIVE',goals:[{id:'g',goalName:'목표',isDefault:true,isVisible:true,displayColor:'#60A5FA',annualTargetRate:'10',yearTarget:'120000000000000',finalTarget:'200000000000000',progress:'61.72',rows:[2025,2026,2027,2028,2029].map(year=>({year,asset:'200000000000000',contributed:'100000000000000',realizedAsset:null}))}]}]}}}));

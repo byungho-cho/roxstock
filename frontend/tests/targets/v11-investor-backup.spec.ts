@@ -61,8 +61,8 @@ test('backup login, latest automatic confirmation and failure preserve the list'
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('backups.png')});
 });
 test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
- await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(15);
- const names=await menu.getByRole('button').allTextContents();expect(names.slice(-2)).toEqual(['모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(9);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
+ await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(16);
+ const names=await menu.getByRole('button').allTextContents();expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(9);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
  const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeCloseTo(monitor!.y,1);
 });
 
@@ -72,7 +72,7 @@ test('investor monitoring links summaries and details without turning limited da
  const items=[{id:'1',symbol:'KOSPI',status:'STALE',reason:'RAW_OBSERVATION_ONLY: 단위 검증 대기'},{id:'2',symbol:'005930',status:'STALE',reason:'PARTIAL_FIELDS: KRX 수량 저장'},{id:'3',symbol:'000660',status:'SKIPPED',reason:'NO_CURRENT_DATA: 미제공'}];
  await page.route('**/api/collection/monitoring**',route=>{const path=new URL(route.request().url()).pathname;return route.fulfill({json:{data:path==='/api/collection/monitoring'?{features:[feature,{...feature,id:'dart-financial-statements',name:'DART 재무제표',status:'WAITING',investor:undefined}],generatedAt:'2026-10-16T03:01:00Z'}:path.endsWith('/items')?{rows:items,hasNext:false,nextCursor:null}:path.endsWith('/runs')?{rows:[{id:'99',status:'PARTIAL',target:3,success:0,failed:0,skipped:3,excluded:0}],hasNext:false,nextCursor:null}:{id:'investor-trends',name:'투자동향'}}});});
  await page.goto('/detail/collection-monitoring');
- await expect(page.getByRole('link',{name:'투자동향 상세 보기'})).toBeVisible();await expect(page.getByRole('link',{name:'DART 재무제표 상세 보기'})).toBeVisible();
+ await expect(page.getByRole('link',{name:'투자동향 상세 보기'})).toBeVisible();await expect(page.getByRole('link',{name:'종목 데이터 수집 상세 보기'})).toBeVisible();
  const ids=await page.locator('[data-testid^="monitor-feature-"]').evaluateAll(ns=>ns.map(n=>n.getAttribute('data-testid')));expect(ids.indexOf('monitor-feature-investor-trends')).toBeLessThan(ids.indexOf('monitor-feature-dart-financial-statements'));
  const card=page.getByRole('link',{name:'투자동향 상세 보기'});await expect(card).toContainText('자료 제한');await expect(card).toContainText('수집 성공 1/3건');await card.click();
  await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('원문만 저장');await expect(page.getByTestId('monitor-investor-diagnostics')).toContainText('전체 수집 성공이 아닙니다');

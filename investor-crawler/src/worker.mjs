@@ -109,7 +109,7 @@ try{
     if(!recent)await run();
    }
    let backfillRequests=0;
-   if(hour>=18&&process.env.KIS_SUPPLEMENT_ENABLED!=='false'&&((process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim())||process.env.KRX_API_KEY?.trim())){
+   if(hour>=18&&(process.env.SECURITY_DATA_COLLECTION_ENABLED==='true'?process.env.KIS_CURRENT_FUNDAMENTALS_ENABLED!=='false':process.env.KIS_SUPPLEMENT_ENABLED!=='false')&&((process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim())||process.env.KRX_API_KEY?.trim())){
     try{await runKisSupplements({db,kis,krx,signal:stop.signal,limit:10,log:safeLog});}catch(error){safeLog('KIS_SUPPLEMENT_PAUSED',{code:error instanceof ProviderError?error.code:'INTERNAL_OR_DB_ERROR'});}
    }
    if(process.env.INVESTOR_BACKFILL_ENABLED!=='false'&&process.env.KIS_APP_KEY?.trim()&&process.env.KIS_APP_SECRET?.trim()){

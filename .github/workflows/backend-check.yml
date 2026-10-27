@@ -114,6 +114,9 @@ jobs:
       - name: Asset analysis stored-data integration
         run: node --import tsx --test backend/tests/asset-analysis.integration.ts
 
+      - name: Security data collection, edit preservation and admin API integration
+        run: node --import tsx --test backend/tests/security-data.integration.ts
+
       - name: Manual collector source and period API integration
         run: node --import tsx --test backend/tests/manual-collector.integration.ts backend/tests/manual-independent.integration.ts
 

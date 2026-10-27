@@ -5,9 +5,9 @@ import type {Supplemental} from '@roxstock/shared/domain/period-valuation';
 import {HistoricalPriceError} from './historical-price-error.js';
 const origin='https://openapi.koreainvestment.com:9443';
 let lastRequest=0;
-async function request(path:string,init:RequestInit,fetcher:typeof fetch):Promise<any>{
+export async function request(path:string,init:RequestInit,fetcher:typeof fetch,feature:'market-prices'|'valuation'='market-prices'):Promise<any>{
  const at=Math.max(Date.now(),lastRequest+2000);lastRequest=at;const wait=at-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));
- let response:Response;try{response=await collectionFetch(fetcher,'market-prices')(origin+path,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});}catch(error){if(error instanceof CollectionExcluded)throw error;throw new HistoricalPriceError('KIS_PRICE_COMMUNICATION','COMMUNICATION');}
+ let response:Response;try{response=await collectionFetch(fetcher,feature)(origin+path,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});}catch(error){if(error instanceof CollectionExcluded)throw error;throw new HistoricalPriceError('KIS_PRICE_COMMUNICATION','COMMUNICATION');}
  let body:any;try{body=await response.json();}catch{throw new HistoricalPriceError('KIS_PRICE_PARSE','PARSE');}
  if(!response.ok||body.error_code||body.rt_cd!=null&&body.rt_cd!=='0')throw new HistoricalPriceError(response.status===429?'KIS_PRICE_RATE_LIMIT':'KIS_PRICE_PROVIDER',response.status===429?'RATE_LIMIT':response.status===401||response.status===403?'AUTH':'PROVIDER');
  return body;

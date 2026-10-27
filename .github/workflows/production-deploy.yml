@@ -21,6 +21,8 @@ jobs:
       collector: ${{ steps.scope.outputs.collector }}
       frontend: ${{ steps.scope.outputs.frontend }}
       android: ${{ steps.native.outputs.android }}
+      investor_running: ${{ steps.deployed.outputs.investor_running }}
+      security_data: ${{ steps.native.outputs.security_data }}
     steps:
       - uses: actions/github-script@v7
         id: revision
@@ -38,6 +40,7 @@ jobs:
           ref: ${{ inputs.target_sha || github.sha }}
           fetch-depth: 0
       - name: Read deployed component image identities
+        id: deployed
         if: steps.revision.outputs.current == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -54,10 +57,14 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
             "docker inspect --format '{{.Name}}|{{.Config.Image}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' roxstock-backend roxstock-collector roxstock-realtime-collector roxstock-dart-collector roxstock-frontend" > "$RUNNER_TEMP/roxstock-deployed-images.txt"
           cat "$RUNNER_TEMP/roxstock-deployed-images.txt" >> "$GITHUB_STEP_SUMMARY"
+          investor_running="$(ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "if test -f /opt/roxstock/.deploy/security-data-investor-was-running && test ! -f /opt/roxstock/.deploy/security-data-investor-transitioned; then cat /opt/roxstock/.deploy/security-data-investor-was-running; else docker inspect --format '{{.State.Running}}' roxstock-investor-crawler 2>/dev/null || echo false; fi")"
+          [[ "$investor_running" == true || "$investor_running" == false ]] || exit 1
+          echo "investor_running=$investor_running" >> "$GITHUB_OUTPUT"
       - id: native
         env:
           TARGET_SHA: ${{ inputs.target_sha || github.sha }}
         run: |
+          echo "security_data=$(node -p 'require("./backend/src/release.json").version==="1.2.31"')" >> "$GITHUB_OUTPUT"
           apk_version="$(node -e 'const s=require("fs").readFileSync("android-app/app/build.gradle","utf8"); const m=s.match(/\bversionName\s+[\x27]([^\x27]+)[\x27]/); if(!m)throw Error("Android version missing"); process.stdout.write(m[1]);')"
           # Recover a previously built but unpublished APK after a partial deployment.
           if git diff --quiet "$TARGET_SHA^1" "$TARGET_SHA" -- android-app &&
@@ -87,13 +94,80 @@ jobs:
     with:
       target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
-  frontend:
+  investor:
     needs: [revision, backend, collector]
-    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
+    if: always() && needs.revision.outputs.current == 'true' && needs.revision.outputs.security_data == 'true' && needs.revision.outputs.investor_running == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
+    uses: ./.github/workflows/investor-crawler-image.yml
+    with:
+      target_sha: ${{ inputs.target_sha || github.sha }}
+      deploy: true
+    secrets: inherit
+  frontend:
+    needs: [revision, backend, collector, investor]
+    if: always() && (needs.investor.result == 'success' || needs.investor.result == 'skipped') && needs.revision.outputs.current == 'true' && needs.revision.outputs.frontend == 'true' && (needs.backend.result == 'success' || needs.backend.result == 'skipped') && (needs.collector.result == 'success' || needs.collector.result == 'skipped')
     uses: ./.github/workflows/frontend-image.yml
     with:
       target_sha: ${{ inputs.target_sha || github.sha }}
     secrets: inherit
+
+  security_data_verification:
+    needs: [revision, backend, collector, frontend]
+    if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha || github.sha }}
+      - id: release
+        run: echo "active=$(node -p 'require("./backend/src/release.json").version==="1.2.31"')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.release.outputs.active == 'true'
+        with:
+          node-version: '20'
+      - if: steps.release.outputs.active == 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.release.outputs.active == 'true'
+        run: npx --workspace frontend playwright install --with-deps chromium
+      - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
+        if: steps.release.outputs.active == 'true'
+        env:
+          TARGET_SHA: ${{ inputs.target_sha || github.sha }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test "$(node -p 'require("./backend/src/release.json").version')" = 1.2.31 || exit 0
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- $TARGET_SHA" < scripts/verify-security-data-production.sh | tee "$RUNNER_TEMP/security-data-production.txt"
+          grep -q SECURITY_DATA_PRODUCTION_HTTP_VERIFIED "$RUNNER_TEMP/security-data-production.txt"
+          cat "$RUNNER_TEMP/security-data-production.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify real production cover and tablet with administrator and ordinary-user sessions
+        if: steps.release.outputs.active == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          SECURITY_DATA_BROWSER_SESSIONS: ${{ runner.temp }}/security-data-browser-sessions.json
+        run: |
+          umask 077
+          cleanup() {
+            ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/cleanup-security-data-browser.mjs
+            rm -f "$SECURITY_DATA_BROWSER_SESSIONS"
+          }
+          trap cleanup EXIT
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/prepare-security-data-browser.mjs > "$SECURITY_DATA_BROWSER_SESSIONS"
+          node scripts/verify-security-data-browser.mjs | tee -a "$RUNNER_TEMP/security-data-production.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-data-production-evidence
+          path: ${{ runner.temp }}/security-data-production.txt
 
   foreign_recovery:
     needs: [revision, backend, collector, frontend]

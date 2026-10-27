@@ -1,3 +1,4 @@
+const SecurityDataPage=lazy(()=>import('./pages/more/SecurityDataPage').then(m=>({default:m.SecurityDataPage})));
 import {AdminPage,AdminUsers,AdminUserDetail,AdminToolPage} from './pages/admin/AdminPage';
 import {PushLifecycle} from './notifications/PushLifecycle';
 import {useAuth} from './auth/AuthGate';
@@ -72,7 +73,7 @@ export function App() {
         <Route path="journal/trade/:type/:tradeId" element={<TradeDetailPage/>}/><Route path="journal" element={<JournalPage />} />
         <Route path="assets" element={<AssetAnalysisPage />} />
         <Route path="detail/target-arrivals" element={<TargetArrivalPage />} />
-        <Route element={<AdminAccess/>}><Route path="detail/admin" element={<AdminPage/>}/><Route path="detail/admin/backup" element={<AdminToolPage tool="backup"/>}/><Route path="detail/admin/collection" element={<AdminToolPage tool="collection"/>}/><Route path="detail/admin/users" element={<AdminUsers/>}/><Route path="detail/admin/users/:subjectId" element={<AdminUserDetail/>}/><Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/security-management" element={<SecurityManagementPage/>}/></Route><Route path="detail/stock-news" element={<StockNewsPage/>}/>
+        <Route element={<AdminAccess/>}><Route path="detail/security-data" element={<SecurityDataPage/>}/><Route path="detail/admin" element={<AdminPage/>}/><Route path="detail/admin/backup" element={<AdminToolPage tool="backup"/>}/><Route path="detail/admin/collection" element={<AdminToolPage tool="collection"/>}/><Route path="detail/admin/users" element={<AdminUsers/>}/><Route path="detail/admin/users/:subjectId" element={<AdminUserDetail/>}/><Route path="detail/news-collection-settings" element={<NewsCollectionSettings/>}/><Route path="detail/security-management" element={<SecurityManagementPage/>}/></Route><Route path="detail/stock-news" element={<StockNewsPage/>}/>
         <Route path="detail/stock-news/:newsId" element={<StockNewsDetailPage/>}/>
         <Route path="detail/investor-trends" element={<InvestorTrendsPage/>} />
         <Route path="detail/assets" element={<AssetOverviewPage />} />

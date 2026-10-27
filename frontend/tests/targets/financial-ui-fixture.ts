@@ -7,6 +7,7 @@ export async function setup(page:Page,options:{allMetrics?:boolean;longName?:boo
     if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
 
   const u=new URL(route.request().url()),p=u.pathname;
+  if(p==='/api/security-data/quarters')return route.fulfill({json:{data:{asOf:'2026-10-27T00:00:00Z',quarters:[]}}});
   if(p==='/api/accounts')return route.fulfill({json:{data:[{id:'1',name:'계좌',isActive:true,isDefault:true}]}});
   if(p.endsWith('/financial-refresh/material-times'))return route.fulfill({json:{data:{financialCollectedAt:null,supplementUpdatedAt:null}}});
   if(p.endsWith('/financial-refresh/active'))return route.fulfill({json:{data:null}});

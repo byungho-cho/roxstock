@@ -1,4 +1,3 @@
-import {DartTaskList} from './DartTaskList';
 import {CollectionBugReportSummary} from './CollectionBugReports';
 import {summarizeMonitorStatuses} from './monitorStatusSummary';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
@@ -30,6 +29,7 @@ const statusStyle: Record<string, { label: string; background: string; foregroun
   WAITING: { label: '실행 전', background: '#111825', foreground: '#F2F7FC' },
   NOT_CONFIGURED: { label: '설정 누락', background: '#7A8CA8', foreground: '#050A12' },
   NOT_IMPLEMENTED: { label: '미구현', background: '#7A8CA8', foreground: '#050A12' },
+  UNRESOLVED: {label:'미해결',background:colors.warning,foreground:'#050A12'},
   NO_DATA: { label: '데이터 없음', background: '#7A8CA8', foreground: '#050A12' },
   NO_FILING: { label: '미공시', background: '#3D8CF5', foreground: '#050A12' },
   NOT_APPLICABLE: { label: '수집 제외 여부 검토', background: '#7A8CA8', foreground: '#050A12' },
@@ -41,7 +41,7 @@ const featureNames: Record<string, string> = {
   'account-snapshots': '일별 계좌 스냅샷',
   'market-prices': '전체 종목 주가',
   'investor-trends': '투자동향',
-  'dart-financial-statements': 'DART 재무제표',
+  'dart-financial-statements': '종목 데이터 수집',
   'security-master': '종목 마스터',
   'stock-news': '종목소식',
 };
@@ -84,8 +84,7 @@ function StatusPill({ feature }: { feature: Feature; compact?: boolean }) {
   const pending = useContext(PendingData);
   const base = statusStyle[feature.status] ?? unknownStatus;
   const outOfSession = feature.id === 'realtime-prices' && feature.realtime?.session === 'OUT_OF_SESSION' && ['OK', 'WAITING', 'RUNNING'].includes(feature.status);
-  const phaseOne = feature.id === 'dart-financial-statements' && feature.phase === 'BACKFILL' && feature.status === 'RUNNING';
-  const label = feature.id==='investor-trends'&&feature.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':outOfSession ? '장 외 대기' : phaseOne ? '1단계 진행' : base.label;
+  const label = feature.id==='dart-financial-statements'&&feature.phase==='SECURITY_DATA'&&feature.status==='PARTIAL'&&!feature.recent.failed?'미해결·대기':feature.id==='investor-trends'&&feature.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':outOfSession ? '장 외 대기' : base.label;
   const style = outOfSession ? statusStyle.WAITING : base;
   return <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minWidth: 82, width: 82, boxSizing: 'border-box', height: 19, px: 1, borderRadius: '999px', bgcolor: pending ? 'transparent' : style.background, color: style.foreground, fontSize: 10, lineHeight: 1, fontWeight: 600, whiteSpace: 'nowrap' }}><DataValue width={60}>{label}</DataValue></Box>;
 }
@@ -145,7 +144,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
       <StatusPill feature={item} compact/>
     </Stack>
     <ScheduleNotice feature={item}/>
-    {dart&&<Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>1단계 <DataValue width={65}>{numberText((item.backfill?.success??0)+(item.backfill?.noFiling??0)+(item.backfill?.notApplicable??0))}/{numberText(item.backfill?.currentTarget)}</DataValue> · 2단계 <DataValue width={35}>{item.phase==='CURRENT'?'확인 중':'대기'}</DataValue></Typography>}
+    {dart&&<Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>종목 데이터 수집 · 최신 공시 추적</Typography>}
     {item.id==='investor-trends'&&<Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>원문만 <DataValue width={25}>{numberText(item.investor?.rawOnly)}</DataValue>건 · 자료 대기 <DataValue width={25}>{numberText(item.investor?.waiting)}</DataValue>건</Typography>}
     <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',mt:'1px',fontSize:10,lineHeight:'14px'}}>
       <Typography data-testid="feature-result-count" sx={{color:'#F2F7FC',fontSize:'inherit',lineHeight:'inherit',minWidth:0,whiteSpace:'nowrap'}}>
@@ -170,7 +169,7 @@ function ScheduleNotice({feature}:{feature:Feature}) {
   </Box>;
 }
 
-function CountStrip({ target, success, failed, skipped,feature,runId,scopeLabel }: { target?: number|null; success?: number|null; failed?: number|null; skipped?: number|null;feature:string;runId?:string;scopeLabel?:string }) {
+function CountStrip({ target, success, failed, skipped,unresolved,feature,runId,scopeLabel }: { target?: number|null; success?: number|null; failed?: number|null; skipped?: number|null;unresolved?:number;feature:string;runId?:string;scopeLabel?:string }) {
   const navigate=useListNavigation();const pending=useContext(PendingData);
   const open=(result:string)=>navigate(`/detail/collection-monitoring/${feature}/items?${new URLSearchParams({result,...(runId?{runId}:{})})}`);
   const values = [
@@ -178,8 +177,9 @@ function CountStrip({ target, success, failed, skipped,feature,runId,scopeLabel 
     ['성공', success, colors.positive],
     ['실패', failed, colors.error],
     ['건너뜀', skipped, '#F2F7FC'],
+    ...(unresolved==null?[]:[['미해결',unresolved,colors.warning] as const]),
   ] as const;
-  return <><Typography sx={{fontSize:10,color:colors.textMuted,mb:0.5}}>{scopeLabel??'최근 실행 대상 결과'}</Typography><Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
+  return <><Typography sx={{fontSize:10,color:colors.textMuted,mb:0.5}}>{scopeLabel??'최근 실행 대상 결과'}</Typography><Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: `repeat(${unresolved==null?4:5},minmax(0,1fr))`, minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
     {values.map(([label, value, color]) => <ButtonBase key={label} disabled={pending||!['성공','실패'].includes(label)} aria-label={['성공','실패'].includes(label)?`${label} 대상 목록`:undefined} onClick={()=>open(label==='성공'?'SUCCESS':'FAILED')} sx={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0.15,'&.Mui-disabled':{color}}}>
       <Typography sx={{ color, fontSize: 10, lineHeight: '11px' }}>{feature==='investor-trends'&&label==='건너뜀'?'미완료':label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
@@ -194,7 +194,7 @@ function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Featur
       <StatusPill feature={feature} />
 
     </Stack>
-    {feature.id==='dart-financial-statements'&&<Typography data-testid="monitor-dart-active-phase" sx={{fontSize:12,fontWeight:700,color:'#3D8CF5',mt:'4px'}}>현재 단계: {feature.phase==='CURRENT'?'2단계 · 현행 수집':'1단계 · 과거 자료 수집'}</Typography>}
+    {feature.id==='dart-financial-statements'&&<Typography sx={{fontSize:12,color:'#3D8CF5'}}>종목 데이터 수집</Typography>}
     <ScheduleNotice feature={feature} />
     {feature.lastExecution && <Typography sx={{fontSize:10,color:colors.textMuted,overflowWrap:'anywhere'}}>{feature.id==='investor-trends'?'최근 저장 기준':'원천 기준'} {feature.id==='investor-trends'?(feature.lastDataAt?.slice(0,10)??'기록 없음'):dateText(feature.lastDataAt)} · 수집 완료 {dateText(feature.lastCollectedAt)}</Typography>}
     {feature.id === 'realtime-prices' ? <><Box sx={{ position: 'absolute', right: 10, bottom: 0 }}><ManualRefresh refreshing={refreshing} onClick={onRefresh} /></Box>
@@ -245,8 +245,8 @@ function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
         const style=statusStyle[String(run.status)]??unknownStatus;
         const metadata=asRecord(run.metadata);
         return <Box key={run.id} data-testid="monitor-run-row" data-scroll-item={`run-${run.id}`} sx={{py:0.5,minWidth:0,overflowWrap:'anywhere'}}>
-          <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {feature==='investor-trends'&&run.status==='PARTIAL'&&!run.failed?'자료 제한':style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='BACKFILL'?'1단계 과거 수집':metadata.phase==='MANUAL'?'수동 갱신':'2단계 현행 수집'}`:''}</Typography>
-          <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 정상 제외 {numberText(run.excluded)} · {feature==='investor-trends'?'미완료':'건너뜀'} {numberText(run.skipped)}</Typography>
+          <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {feature==='investor-trends'&&run.status==='PARTIAL'&&!run.failed?'자료 제한':style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='SECURITY_DATA'?'종목 데이터 수집':metadata.phase==='MANUAL'?'수동 갱신 이력':'이전 수집 이력'}`:''}</Typography>
+          <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 정상 제외 {numberText(run.excluded)} · {feature==='investor-trends'?'미완료':'건너뜀'} {numberText(run.skipped)}{metadata.phase==='SECURITY_DATA'&&<> · 미해결 {numberText(asRecord(metadata.counts).unresolved)} · 대기 {numberText(asRecord(metadata.counts).pending)} · 처리 중 {numberText(asRecord(metadata.counts).processing)}</>}</Typography>
           {run.failureReason && <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.error,fontSize:10,lineHeight:'14px',whiteSpace:'normal',overflowWrap:'anywhere'}}>{run.failureReason}</Typography>}
         </Box>;
       })}</Stack> : <Typography sx={{...mutedText,fontSize:10}}>실행 이력이 없습니다.</Typography>}
@@ -259,9 +259,9 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
     <Stack direction="row" sx={{alignItems:'center',mb:0.5}}><Typography sx={{color:colors.textPrimary,fontSize:12,fontWeight:600,flex:1}}>대상별 상태</Typography><Typography sx={{...mutedText,fontSize:10}}>확인 <DataValue width={24}>{numberText(items.length)}</DataValue></Typography></Stack>
     <Box data-testid="monitor-results-data" sx={{minHeight:pending?42:0}}>
       {pending ? <Stack spacing={1}><DataValue width={180}/><DataValue width={220}/></Stack> : items.length ? items.map(item=>{
-        const style=statusStyle[String(item.status)]??unknownStatus;
+        const style=statusStyle[String(item.securityData?.outcome??item.status)]??unknownStatus;
         const emptyAccountExcluded=feature==='account-snapshots'&&item.status==='SKIPPED'&&item.reason?.startsWith('빈 계좌 수집 제외:');
-        const label=emptyAccountExcluded||item.status==='NOT_APPLICABLE'&&item.sourceReview?.resolutionStatus==='EXCLUDED'?'수집 제외':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?(item.reason.includes('시장 순매수')?'시장 순매수 금액 저장':item.reason.includes('수량·금액')?'KRX 수량·금액 저장':'KRX 수량 저장'):feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':feature==='investor-trends'&&item.reason?.startsWith('API_MARKET_NOT_READY:')?'시장 API 검증 대기':style.label;
+        const label=item.securityData?.outcome==='UNRESOLVED'?'미해결':emptyAccountExcluded||item.status==='NOT_APPLICABLE'&&item.sourceReview?.resolutionStatus==='EXCLUDED'?'수집 제외':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('RAW_OBSERVATION_ONLY:')?'원문만 저장':feature==='investor-trends'&&item.status==='STALE'&&item.reason?.startsWith('PARTIAL_FIELDS:')?(item.reason.includes('시장 순매수')?'시장 순매수 금액 저장':item.reason.includes('수량·금액')?'KRX 수량·금액 저장':'KRX 수량 저장'):feature==='investor-trends'&&item.status==='SKIPPED'&&item.reason?.startsWith('NO_CURRENT_DATA:')?'자료 미제공 대기':feature==='investor-trends'&&item.reason?.startsWith('API_MARKET_NOT_READY:')?'시장 API 검증 대기':style.label;
         return <Box key={item.id} data-testid="monitor-target-row" data-scroll-item={`item-${item.id}`} sx={{py:0.5,borderBottom:'1px solid #26334A',minWidth:0,overflowWrap:'anywhere'}}>
           <Stack direction="row" sx={{alignItems:'baseline',gap:0.5}}><Typography sx={{color:style.background,fontSize:10,flex:1,minWidth:0}}>{feature==='realtime-prices'&&item.security?`${item.security.name}(${String(item.symbol).split(':')[0]})`:item.security?.name??item.symbol??'대상'} <Box component="span" sx={mutedText}>{collectionTaskLabel(item)}</Box></Typography><Typography sx={{color:style.background,fontSize:10,flexShrink:0}}>{label}</Typography>{item.status==='FAILED'&&item.security?.id&&featureLabels[feature]&&<CollectionSettingToggle security={item.security as ManagedSecurity} feature={feature}/>}</Stack>
           <Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>실행시각 {dateText(item.occurredAt)}</Typography>
@@ -269,7 +269,7 @@ function TargetResults({items,feature}: {items: DataRecord[];feature:string}) {
           {item.security?.exclusionReason&&<Typography sx={{fontSize:10,color:colors.warning,overflowWrap:'anywhere'}}>{item.security.exclusionReason}</Typography>}
           {item.security&&item.recordedSymbol&&item.recordedSymbol!==item.security.symbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이전 코드 {item.recordedSymbol}의 기록 · 현재 코드 {item.security.symbol}</Typography>}
           {/^\d+:\d{4}:(ANNUAL|Q[1-4])$/.test(item.symbol)&&!item.recordedSymbol&&<Typography sx={{fontSize:10,color:colors.textMuted}}>이력의 종목코드 미기록 · 현재 코드의 수집 결과로 대체하지 않습니다.</Typography>}
-          <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.sourceReview?.validationResult?item.sourceReview.message:item.reason??style.label}{feature==='dart-financial-statements'&&<div>{item.sourceReview?.validationResult?`${item.sourceReview.requestedYear?'요청 '+item.sourceReview.requestedYear+'년 · ':''}${item.sourceReview.candidatePeriod?'검토 후보 '+item.sourceReview.candidatePeriod+' (대상 확정 아님)':''}`:'상세 사유 미기록'}</div>}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
+          <Box component="details" sx={{fontSize:10,lineHeight:'14px',color:colors.textMuted,whiteSpace:'normal',overflowWrap:'anywhere'}}><Box component="summary" sx={{cursor:'pointer',color:colors.focus}}>상세내용</Box>{item.sourceReview?.validationResult?item.sourceReview.message:item.reason??style.label}{feature==='dart-financial-statements'&&<div>{item.sourceReview?.validationResult?`${item.sourceReview.requestedYear?'요청 '+item.sourceReview.requestedYear+'년 · ':''}${item.sourceReview.candidatePeriod?'검토 후보 '+item.sourceReview.candidatePeriod+' (대상 확정 아님)':''}`:'상세 사유 미기록'}</div>}{item.securityData&&<><div>보고기간 {item.securityData.fiscalYear??'—'}년 · {item.securityData.periodType??'확인 필요'}</div><div>{item.securityData.partial?'부분수집 · ':''}{item.securityData.financialStored?'재무제표 저장 완료':'필요한 값·근거 확인 필요'}</div></>}{item.observedAt && <div>관측시각 {dateText(item.observedAt)}</div>}</Box>
         </Box>;
       }) : <Typography sx={{...mutedText,fontSize:10}}>대상 내역이 없습니다.</Typography>}
     </Box>
@@ -317,31 +317,6 @@ function MonitorListDetail({feature,stream}: {feature:string;stream:'runs'|'item
   </Box>;
 }
 
-function DartCurrentStageCard({ phase, status, priorityCheckedWithinDay, universeOver90Days, priorityPending, universePending, dailyApiCalls, dailyApiLimit, companyChecks, collectionState, temporaryHistory=false }: {
-  temporaryHistory?:boolean; phase: string; status: string; collectionState?: string; priorityCheckedWithinDay: number | null; universeOver90Days: number | null; priorityPending: number | null; universePending: number | null; dailyApiCalls: number | null; dailyApiLimit: number | null; companyChecks: number | null;
-}) {
-  const disabled = phase !== 'CURRENT';
-  const statusInfo = statusStyle[status] ?? unknownStatus;
-  const label = temporaryHistory?'보류':!['OK','SUCCESS','RUNNING','WAITING'].includes(status)
-    ? statusInfo.label
-    : disabled ? '1단계 후 대기' : collectionState==='DAILY_LIMIT'?'호출 한도 대기':status==='WAITING'?'실행 대기':status === 'RUNNING' ? '진행 중' : '상시 수집';
-  const badge = temporaryHistory?statusStyle.WAITING:!['OK','SUCCESS','RUNNING','WAITING'].includes(status)
-    ? statusInfo : disabled||status==='WAITING' ? statusStyle.WAITING : status === 'RUNNING' ? statusStyle.RUNNING : statusStyle.OK;
-  return <Box data-testid="monitor-dart-current" sx={{ ...cardSx, p: '12px', minHeight: 55, opacity: disabled ? 0.86 : 1 }}>
-    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-      <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{temporaryHistory?'2단계 · 보류':'2단계 · 현재 사업연도 상시 수집'}</Typography>
-      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: badge.background, color: badge.foreground, borderRadius: '999px', minWidth: 76, px: 1, height: 19, justifyContent: 'center', alignItems: 'center', fontSize: 12, fontWeight: 600 }}><DataValue width={65}>{label}</DataValue></Box>
-    </Stack>
-    <Typography sx={{ color: disabled ? '#7A8CA8' : '#3D8CF5', fontSize: 10, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}><DataValue width={240}>
-      {temporaryHistory?'우선종목 보류 · 전체종목 과거 자료 보완 후 별도 설계':disabled ? status === 'NOT_CONFIGURED' ? '설정 후 1단계 완료 시 시작' : status === 'NOT_IMPLEMENTED' ? '수집기 배포 후 1단계 완료 시 시작' : '1단계 완료 후 자동 시작' : collectionState==='DAILY_LIMIT'?'2단계 전환 완료 · 오늘 호출 한도 도달로 대기':'2단계 전환 완료 · 우선종목 하루 1회 · 전체종목 약 3개월 순환'}
-    </DataValue></Typography>
-    <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 10, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><DataValue width={240}>
-      {temporaryHistory?'2단계는 별도 설계 후 재개합니다.':disabled ? '현행 공시 확인은 과거 자료 구축 완료 후 시작합니다.' : `우선 확인 ${numberText(priorityCheckedWithinDay)} · 전체 지연 ${numberText(universeOver90Days)}`}
-    </DataValue></Typography>
-    <Typography sx={{ display: { xs: 'none', sm: 'block' }, ...mutedText, fontSize: 10, lineHeight: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>API <DataValue width={42}>{numberText(dailyApiCalls)}/{numberText(dailyApiLimit)}</DataValue> · 종목 확인 <DataValue width={20}>{numberText(companyChecks)}</DataValue> · 우선 대기 <DataValue width={20}>{numberText(priorityPending)}</DataValue> · 전체 대기 <DataValue width={20}>{numberText(universePending)}</DataValue></Typography>
-  </Box>;
-}
-
 function CollectionFilters({ itemStream=false, feature, resultFilter, setResultFilter, phaseFilter, setPhaseFilter, symbolFilter, setSymbolFilter, marketFilter, setMarketFilter, accountFilter, setAccountFilter, from, setFrom, to, setTo }: {
   itemStream?:boolean; feature: string; resultFilter: string; setResultFilter: (value: string) => void; phaseFilter: string; setPhaseFilter: (value: string) => void;
   symbolFilter: string; setSymbolFilter: (value: string) => void; marketFilter: string; setMarketFilter: (value: string) => void;
@@ -350,8 +325,8 @@ function CollectionFilters({ itemStream=false, feature, resultFilter, setResultF
   const selectSx = { height: 30, color: '#CBD5E1', fontSize: 10, bgcolor: '#0B1220', borderRadius: '6px', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#26334A' }, '& .MuiSelect-select': { py: '5px', pl: '8px' }, minWidth: 0 };
   const inputSx = { width: '100%', minWidth: 0, height: 30, boxSizing: 'border-box', bgcolor: '#0B1220', color: '#E8EDF7', border: '1px solid #26334A', borderRadius: '6px', px: '7px', fontSize: 10, outline: 'none', colorScheme: 'dark' };
   return <>
-    <FormControl size="small"><Select<string> value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터" sx={selectSx}><MenuItem value="">전체 결과</MenuItem>{(itemStream?['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']:['SUCCESS','PARTIAL','FAILED','SKIPPED']).map((value) => <MenuItem key={value} value={value}>{statusStyle[value]?.label ?? value}</MenuItem>)}</Select></FormControl>
-    {feature === 'dart-financial-statements' && <FormControl size="small"><Select<string> value={phaseFilter} displayEmpty onChange={(event) => setPhaseFilter(event.target.value)} aria-label="수집 단계 필터" sx={selectSx}><MenuItem value="">전체 단계</MenuItem><MenuItem value="BACKFILL">1단계 과거 구축</MenuItem><MenuItem value="CURRENT">2단계 상시</MenuItem></Select></FormControl>}
+    <FormControl size="small"><Select<string> value={resultFilter} displayEmpty onChange={(event) => setResultFilter(event.target.value)} aria-label="결과 필터" sx={selectSx}><MenuItem value="">전체 결과</MenuItem>{(itemStream?['SUCCESS','FAILED','STALE','SKIPPED','NO_DATA','NOT_APPLICABLE']:['SUCCESS','PARTIAL','FAILED','SKIPPED']).map((value) => <MenuItem key={value} value={value}>{feature==='dart-financial-statements'&&value==='NO_DATA'?'미해결·자료 미제공':statusStyle[value]?.label ?? value}</MenuItem>)}</Select></FormControl>
+    {feature === 'dart-financial-statements' && <FormControl size="small"><Select<string> value={phaseFilter} displayEmpty onChange={(event) => setPhaseFilter(event.target.value)} aria-label="수집 단계 필터" sx={selectSx}><MenuItem value="">전체 이력</MenuItem><MenuItem value="SECURITY_DATA">종목 데이터 수집</MenuItem><MenuItem value="BACKFILL">이전 과거 수집 이력</MenuItem><MenuItem value="CURRENT">이전 상시 수집 이력</MenuItem></Select></FormControl>}
     <Box component="input" aria-label="종목 필터" placeholder="종목코드" value={symbolFilter} onChange={(event: ChangeEvent<HTMLInputElement>) => setSymbolFilter(event.target.value)} sx={inputSx} />
     {feature !== 'account-snapshots' && <FormControl size="small"><Select<string> value={marketFilter} displayEmpty onChange={(event) => setMarketFilter(event.target.value)} aria-label="시장 필터" sx={selectSx}><MenuItem value="">전체 시장</MenuItem>{['KOSPI','KOSDAQ','KONEX','OTHER'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>}
     {feature === 'account-snapshots' && <Box component="input" aria-label="계좌 필터" placeholder="계좌 ID" value={accountFilter} onChange={(event: ChangeEvent<HTMLInputElement>) => setAccountFilter(event.target.value)} sx={inputSx} />}
@@ -375,7 +350,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
   const current = summary.data?.features.find((item) => item.id === feature) ?? featureShell(feature ?? '');
 
   const body = asRecord(detail.data);
-  const dart = asRecord(body.dart);
+
   const refreshStats = () => {
     void summary.refetch();
     if (feature) {void detail.refetch();void queryClient.refetchQueries({predicate:q=>q.queryKey[0]==='collection-monitor-pages' && q.queryKey[1]===feature && q.queryKey[4]===3,type:'active'});}
@@ -400,42 +375,16 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     </Box></PendingData.Provider></FailedData.Provider>;
   }
 
-  const backfill = asRecord(dart.backfill);
-  const dartCurrent = asRecord(dart.current);
-  const byStatus = asRecord(backfill.byStatus);
-  const planned = backfill.planned == null ? null : Number(backfill.planned);
-  const hasBackfill = backfill.planned != null;
-  const completed = hasBackfill ? Number(backfill.completed??0) : null;
-  const isDart = feature === 'dart-financial-statements';
-  const isRealtime = feature === 'realtime-prices';
-  const stageOneComplete = Boolean(current.backfillCompletedAt) && current.phase === 'CURRENT';
-  const stageOneBadge = stageOneComplete ? statusStyle.OK : statusStyle[current.status] ?? unknownStatus;
-  const stageOneLabel = asRecord(current).collectionState==='HISTORY_REVIEW_COMPLETE'?'임시 검토 완료':asRecord(current).collectionState==='HISTORY_PAUSED'?'실행 보류':stageOneComplete ? (Number(dart.reviewRequired??0)>0?'검토 보류 있음':Number(backfill.supplementPending??0)>0?'원문 보완 필요':Number(byStatus.NOT_DUE??0)>0?'미도래 재확인 예정':Number(backfill.currentTarget??0)===0?'수집 대상 없음':'현재 대상 처리 완료')
-    : current.status === 'WAITING' ? (asRecord(current).collectionState === 'DAILY_LIMIT' ? '호출 한도 대기' : '실행 대기') : (statusStyle[current.status]?.label ?? '실행 전');
-
-  const dartCurrentStage = <FailedData.Provider value={summary.isError || detail.isError}><PendingData.Provider value={!summary.data || !detail.data}><DartCurrentStageCard temporaryHistory={Boolean(asRecord(current).temporaryHistory)} collectionState={asRecord(current).collectionState} phase={current.phase ?? 'BACKFILL'} status={current.status} priorityCheckedWithinDay={dartCurrent.priorityCheckedWithinDay == null ? null : Number(dartCurrent.priorityCheckedWithinDay)} universeOver90Days={dartCurrent.universeOver90Days == null ? null : Number(dartCurrent.universeOver90Days)} priorityPending={current.priorityPending == null ? null : Number(current.priorityPending)} universePending={current.universePending == null ? null : Number(current.universePending)} dailyApiCalls={current.dailyApiCalls == null ? null : Number(current.dailyApiCalls)} dailyApiLimit={current.dailyApiLimit == null ? null : Number(current.dailyApiLimit)} companyChecks={current.companyChecks == null ? null : Number(current.companyChecks)} /></PendingData.Provider></FailedData.Provider>;
+  const isDart=feature==='dart-financial-statements';
+  const isRealtime=feature==='realtime-prices';
 
   return <FailedData.Provider value={summary.isError}><PendingData.Provider value={!summary.data}><Box data-testid="collection-feature-overview" sx={{ px: 0, pt: 0, pb: '80px' }}>
     <QueryNotice error={summary.isError || detail.isError} retry={refreshStats} />
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <Box sx={{ display: 'block' }}><CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} /></Box>
-        {stageOneComplete && dartCurrentStage}
-        <Box data-testid="monitor-dart-backfill" sx={{ ...cardSx, p: { xs: '4px 8px', sm: '8px 10px' }, minHeight: { xs: 39, sm: 85 } }}>
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-            <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>{stageOneComplete?'1단계 · 과거 자료 수집 결과':'1단계 · 과거 자료 최초 수집'}</Typography>
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: stageOneBadge.background, color: stageOneBadge.foreground, minWidth: 78, height: 19, borderRadius: '999px', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}><DataValue width={60}>{stageOneLabel}</DataValue></Box>
-            <Box sx={{ display: { xs: 'none', sm: 'block' } }}><ManualRefresh refreshing={summary.isFetching || detail.isFetching} onClick={refreshStats} /></Box>
-          </Stack>
-          <Typography sx={{ color: '#34D399', fontSize: 10, lineHeight: { xs: '12px', sm: '15px' }, mt: { xs: 0, sm: 0.5 } }}><FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><DataValue>{numberText(completed)} / {numberText(backfill.currentTarget)}</DataValue></PendingData.Provider></FailedData.Provider>개 현재 대상 처리 완료</Typography>
-          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={planned} counts={byStatus} supplementPending={Number(backfill.supplementPending??0)} label="전체 과거 자료 진행률" review={Number(dart.reviewRequired??0)}/></PendingData.Provider></FailedData.Provider>
-          <FailedData.Provider value={detail.isError}><PendingData.Provider value={!detail.data}><CollectionProgress planned={dart.priority?.planned??null} counts={asRecord(dart.priority?.byStatus)} supplementPending={Number(dart.priority?.supplementPending??0)} label="우선종목 진행률" review={Number(dart.priority?.reviewRequired??0)} securities={dart.priority?.securities}/></PendingData.Provider></FailedData.Provider>
-          <Typography sx={{...mutedText,fontSize:10,mt:'8px'}}>오늘 호출 <DataValue>{numberText(current.dailyApiCalls)} / {numberText(current.dailyApiLimit)}회</DataValue> · <DataValue>{asRecord(current).collectionState==='DAILY_LIMIT'?'일일 한도 도달':'호출 예산 사용 중'}</DataValue></Typography>
-        </Box>
-        <Typography sx={{...mutedText,fontSize:10,height:28}}>{dart.holidayCalendar && dart.holidayCalendar !== 'AVAILABLE' ? '공휴일 자동 확인 불가 · 주말·야간 및 설정된 휴일 일정 적용' : ''}</Typography>
-        {!stageOneComplete && dartCurrentStage}
-        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} /></Box>
-        <DartTaskList/>
+        <SecurityCollectionCard/>
+        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} unresolved={asRecord(current).unresolved} /></Box>
         <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
       <SummaryRecords feature={feature} stream="items"/>
@@ -457,23 +406,6 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     </Box></PendingData.Provider></FailedData.Provider>;
 }
 
-function CollectionProgress({planned,counts,label,review=0,securities,supplementPending=0}:{planned:number|null;counts:DataRecord;label:string;review?:number;securities?:number;supplementPending?:number}) {
-  const pendingData=useContext(PendingData), queryFailed=useContext(FailedData);
-  const plan=Math.max(0,planned??0),notDue=Number(counts.NOT_DUE??0),total=plan-notDue;
-  const success=Number(counts.SUCCESS??0),noFiling=Number(counts.NO_FILING??0),unavailable=Number(counts.DATA_UNAVAILABLE??0),held=Number(counts.REVIEW_REQUIRED??review),failed=Number(counts.FAILED??0),processing=Number(counts.PROCESSING??0),pending=Number(counts.PENDING??0);
-  const done=success+noFiling+unavailable-supplementPending,percent=total?Math.min(100,done*100/total):0;
-  const segments=[{name:'수집 성공',count:success,color:'#34D399'},{name:'미공시 확인',count:noFiling,color:'#7A8CA8'},{name:'자료 미제공 (확인 완료)',count:unavailable-supplementPending,color:'#3D8CF5'},{name:'자료 미제공 (보완 필요)',count:supplementPending,color:colors.warning},{name:'실패',count:failed,color:'#F26A6F'},{name:'처리 중',count:processing,color:'#FAB83B'},{name:'검토 보류',count:held,color:colors.warning}];
-  const rate=planned==null?'—':!plan?'수집 대상 없음':!total?'전부 미도래':percent.toFixed(1)+'%';
-  return <Box sx={{mt:'8px'}}><Box sx={{display:'flex',justifyContent:'space-between',gap:'8px',fontSize:11,fontWeight:700,mb:'4px'}}><span>{label}{securities != null && !pendingData ? ` (${numberText(securities)}개)` : ''}</span><span><DataValue width={35}>{rate}</DataValue></span></Box>
-    <Box role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pendingData||!total?undefined:Number(percent.toFixed(1))} aria-valuetext={pendingData?(queryFailed?'조회 실패':'조회 중'):`현재 대상 ${done} / ${total}개 처리 완료`} sx={{display:'flex',height:8,bgcolor:'#26334A',borderRadius:'8px',overflow:'hidden'}}>{segments.map(item=><Box key={item.name} sx={{width:total?`${item.count/total*100}%`:0,bgcolor:item.color}}/>)}</Box>
-    <Typography sx={{fontSize:10,color:'#7A8CA8',mt:'4px'}}>정책 제외를 뺀 전체 계획 {plan.toLocaleString()} · 미도래 {notDue.toLocaleString()}개</Typography>
-    <Typography sx={{fontSize:10,color:'#7A8CA8',mt:'4px'}}>현재 처리 대상 기준 {done.toLocaleString()} / {total.toLocaleString()}개 · 대기 {pending.toLocaleString()}개</Typography>
-    <Typography sx={{fontSize:10,color:'#34D399',mt:'4px'}}>실제 자료 수집 성공률 {total?(success/total*100).toFixed(1)+'%':'—'}</Typography>
-    <Box sx={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'4px 10px',mt:'4px'}}>{segments.map(item=><Typography key={item.name} sx={{fontSize:10,color:item.color,whiteSpace:'nowrap'}}>{item.name} <DataValue width={20}>{item.count.toLocaleString()}</DataValue></Typography>)}</Box>
-    {held>0&&<Typography sx={{fontSize:10,color:colors.warning,mt:'4px',overflowWrap:'anywhere'}}>검토 보류 {held.toLocaleString()}건 · 미해결 유지</Typography>}
-  </Box>;
-}
-
 export function CollectionMonitoringPage() {
   const tablet=useMediaQuery('(min-width:600px)');
   const {feature,stream}=useParams();
@@ -485,4 +417,10 @@ export function CollectionMonitoringPage() {
     <Box sx={{minWidth:0}}><MonitoringContent selected={selected} onOpen={id=>navigate(`/detail/collection-monitoring/${id}`)}/></Box>
     <Box sx={{minWidth:0}}><MonitoringContent key={selected} feature={selected}/></Box>
   </Box>;
+}
+
+function SecurityCollectionCard(){
+ const navigate=useNavigate(),query=useQuery({queryKey:['security-data-status'],queryFn:()=>apiRequest<{enabled:boolean;cursor:{lastCompletedAt:string|null;nextCheckAt:string}|null;run:{id:string;status:string;counts?:{target:number;success:number;failed:number;skipped:number;unresolved:number;pending:number;processing:number}}|null}>('/security-data/status'),refetchInterval:60000});
+ const c=query.data?.run?.counts,rate=c?.target?c.success/c.target*100:0;
+ return <ButtonBase data-testid="security-collection-card" aria-label="종목 데이터 수집 · 종목 관리로 이동" onClick={()=>navigate('/detail/security-data')} sx={{...cardSx,p:'8px',display:'grid',gap:'4px',width:'100%',textAlign:'left',justifyContent:'stretch'}}><Typography sx={{fontSize:12,lineHeight:'18px',fontWeight:600}}>종목 데이터 수집</Typography><Typography sx={{fontSize:10,color:'#34D399'}}>대상 {c?.target??'—'} · 성공 {c?.success??'—'} · 미해결 {c?.unresolved??'—'}</Typography><Typography sx={{fontSize:11}}>수집 성공률 {c?rate.toFixed(1)+'%':'—'}</Typography><Box role="progressbar" aria-label="종목 데이터 수집 성공률" aria-valuenow={rate} aria-valuemin={0} aria-valuemax={100} sx={{height:8,bgcolor:'#26334A',borderRadius:1,overflow:'hidden'}}><Box sx={{width:`${rate}%`,height:'100%',bgcolor:'#34D399'}}/></Box><Typography sx={{fontSize:10,color:'#34D399'}}>성공 {c?.success??'—'} · 건너뜀 {c?.skipped??'—'}</Typography><Typography sx={{fontSize:10,color:'#F87171'}}>실패 {c?.failed??'—'} · 미해결 {c?.unresolved??'—'}</Typography>{!!c&&(c.pending>0||c.processing>0)&&<Typography sx={{fontSize:10,color:'#94A3B8'}}>대기 {c.pending} · 처리 중 {c.processing}</Typography>}{query.isError&&<Typography sx={{fontSize:10,color:'#FBBF24'}}>상태 조회 실패 · 기존 결과 유지</Typography>}</ButtonBase>;
 }

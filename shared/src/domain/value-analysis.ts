@@ -1,3 +1,4 @@
+import {manualFinancialView} from './manual-financial-view.js';
 import {financialCurrency,sameFinancialCurrency,currencyConversionRequired,FX_REQUIRED} from './financial-currency.js';
 import { Prisma, type FinancialStatement, type DartFinancialFiling, type ValuationMetric, type PeriodValuation } from '../generated/prisma/index.js';
 import { periodCollectionState } from './collection-status.js';
@@ -33,7 +34,7 @@ export type Statement = {
   totalAssets: string | null; totalLiabilities: string | null; totalEquity: string | null; basis: string; collectedAt: string | null; isDerived: boolean;
 };
 // Reuse existing analysis precedence: manual non-null values, latest non-withdrawn DART, same-basis Q4 = annual YTD - Q3 YTD.
-export function mergeStatements(manual: FinancialStatement[], filings: Omit<DartFinancialFiling, 'accountSources'>[]): Statement[] {
+export function mergeStatements(manual: FinancialStatement[], filings: Omit<DartFinancialFiling, 'accountSources'>[],manualPeriods:PeriodValuation[]=[]): Statement[] {
   const manualMap = new Map(manual.map(row => [row.fiscalYear + ':' + row.periodType, row]));
   const filingMap = new Map<string, Omit<DartFinancialFiling, 'accountSources'>>();
   for (const row of filings) { const key = row.fiscalYear + ':' + row.periodType; if (!filingMap.has(key)) filingMap.set(key, row); }
@@ -41,7 +42,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
   for (const row of filings.filter(row => row.periodType === 'ANNUAL')) {
     if (sameFinancialCurrency(row,filingMap.get(row.fiscalYear+':Q3'))&&!fiscalPeriodReview(row)&&!fiscalPeriodReview(filingMap.get(row.fiscalYear + ':Q3'))&&filingMap.get(row.fiscalYear + ':Q3')?.fsDivision === row.fsDivision) keys.add(row.fiscalYear + ':Q4');
   }
-  return [...keys].map(key => {
+  const result=[...keys].map(key => {
     const [year = '', periodType = 'ANNUAL'] = key.split(':'), fiscalYear = Number(year), candidate = manualMap.get(key), f = filingMap.get(key);
     // Historical references never override a validated DART financial filing.
     const reference=isFinancialReference(candidate);
@@ -68,6 +69,7 @@ export function mergeStatements(manual: FinancialStatement[], filings: Omit<Dart
       basis: m&&reference?financialReferenceBasis(m):(m ? 'MANUAL:' : '') + (f?.fsDivision ?? (derived ? annual?.fsDivision : undefined) ?? 'MANUAL'),
       collectedAt: (f?.collectedAt ?? (derived ? annual?.collectedAt : undefined) ?? m?.updatedAt)?.toISOString() ?? null, isDerived: derived };
   });
+  return manualFinancialView(result,manualPeriods);
 }
 export type Period = { year: number; quarter: number | null; key: string; label: string };
 export function periods(year: number, quarter: number | null, count: number): Period[] {

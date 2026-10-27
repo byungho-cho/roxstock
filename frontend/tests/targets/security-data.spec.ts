@@ -1,0 +1,20 @@
+import {test,expect} from './authenticated-test';
+import {fixture} from './phase3-fixture';
+import {securityDataFields} from '../../../shared/src/domain/security-data';
+test('last four quarters, waiting distinction, 26 fields, confirm-only editor and four-column menu',async({page},info)=>{
+ await fixture(page);let writes=0;const at='2026-10-27T00:00:00Z';
+ const fields=securityDataFields.map(([key,label,group,mode])=>({key,label,group,mode,value:key==='bps'?'100':null,source:key==='bps'?'KRX':null,editable:mode==='direct'}));
+ const detail={security:{id:'1',name:'삼성전자',symbol:'005930'},year:2026,quarter:2,period:'Q2',periodStart:'2026-01-01',basis:{receiptNo:'20260814000001',fsDivision:'CFS',periodEnd:'2026-06-30',currency:'KRW',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'},fields,lastEditAt:null,collectedAt:at,reasons:{},manualConflict:null};
+ await page.route('**/api/security-data/**',r=>{const p=new URL(r.request().url()).pathname;
+ if(r.request().method()==='PATCH'){writes++;const body=r.request().postDataJSON();expect(Object.keys(body).sort()).toEqual(['basis','expectedValue','field','value']);expect(body.field).toBe('eps');fields[0].value=body.value;detail.lastEditAt=at as any;return r.fulfill({json:{data:detail}});}
+ if(p.endsWith('/quarters'))return r.fulfill({json:{data:{asOf:at,quarters:[[2025,4],[2026,1],[2026,2],[2026,3]].map(([year,quarter])=>({year,quarter,label:`${year}년 ${quarter}분기`,target:10,complete:7,waiting:2,missing:1}))}}});
+ if(p.endsWith('/1'))return r.fulfill({json:{data:detail}});
+ return r.fulfill({json:{data:{items:[{id:'1',name:'삼성전자',symbol:'005930',state:'PARTIAL',missingFinancial:['revenueYtd'],missingValue:['eps']},{id:'2',name:'대기종목',symbol:'000002',state:'AWAITING_DISCLOSURE',missingFinancial:[],missingValue:['eps']}],total:2,hasNext:false}}});});
+ await page.goto('/detail/security-data');const progress=page.getByRole('progressbar');await expect(progress).toHaveCount(4);const card=progress.first().locator('..'),bar=await progress.first().boundingBox(),outer=await card.boundingBox();expect(bar!.width).toBeCloseTo(outer!.width-24,0);expect(bar!.x-outer!.x).toBeCloseTo(12,0);expect(await page.locator('main').evaluate(n=>getComputedStyle(n).paddingTop)).toBe('0px');expect(await progress.first().locator('..').evaluate(n=>getComputedStyle(n.parentElement!).gap)).toBe('4px');await page.screenshot({path:info.outputPath('quarters.png'),fullPage:true});
+ await page.getByRole('button',{name:/2026년 2분기/}).click();await expect(page.getByText('공시 대기 · 발표 확인 전')).toBeVisible();await page.getByRole('button',{name:/삼성전자/}).click();
+ await expect(page.getByText('2026년 2분기(반기). 연결. 보통주. 26.01~26.06')).toBeVisible();await expect(page.getByRole('button',{name:/계산/})).toHaveCount(3);
+ await page.getByRole('button',{name:'EPS —',exact:true}).click();await page.getByPlaceholder('편집 값').fill('12');await page.screenshot({path:info.outputPath('editor.png'),fullPage:true});await page.keyboard.press('Escape');expect(writes).toBe(0);
+ await page.getByRole('button',{name:'EPS —',exact:true}).click();await expect(page.getByPlaceholder('편집 값')).toHaveValue('');await page.getByPlaceholder('편집 값').fill('0');await page.getByRole('button',{name:'확인',exact:true}).click();await expect.poll(()=>writes).toBe(1);await expect(page.getByRole('button',{name:'EPS 0',exact:true})).toBeVisible();await expect(page.getByPlaceholder('편집 값')).toBeHidden();
+ await page.screenshot({path:info.outputPath('detail.png'),fullPage:true});await page.getByTestId('security-data-financial-card').scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('detail-financial.png'),fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu).toBeVisible();expect((await menu.evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length))).toBe(4);await page.screenshot({path:info.outputPath('more.png'),fullPage:true});
+});

@@ -66,7 +66,7 @@ export async function valueAnalysisRoutes(app: FastifyInstance) {
       const filings=supplementedFilings(rawFilings,calculated);
       const shareRows=await tx.dartShareSnapshot.findMany({where:{securityId,fiscalYear:{lte:year},shareClass,OR:[{issuedShares:{not:null}},{treasuryShares:{not:null}},{outstandingShares:{not:null}}]},orderBy:[{periodEndDate:'desc'},{receiptNo:'desc'}],take:2});
       const tasks=await tx.dartBackfillTask.findMany({where:{securityId,fiscalYear:{gte:fromYear,lte:toYear}},select:{fiscalYear:true,periodType:true,status:true,errorCode:true,diagnostics:true}});
-      const statements = mergeStatements(manual, filings), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
+      const statements = mergeStatements(manual, filings,calculated), annual = statements.filter(row => row.periodType === 'ANNUAL' && row.fiscalYear <= year).sort((a, b) => b.fiscalYear - a.fiscalYear)[0];
       const price=cachedRow?cachedRow.currentPrice:security.marketPrice?.currentPrice.toString()??null;
       const analysis=selectValueListAnalysis({year,price,metrics,periods:calculated,manual,filings});
       const metric=cachedRow?detailedCachedValuation(cachedRow.valuation,analysis.metric):analysis.metric,rimRow=calculated.find(row=>row.fiscalYear===analysis.metricBasis.year&&row.periodType===(analysis.dataPriority===1?'ESTIMATE':'ANNUAL'));

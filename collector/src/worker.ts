@@ -4,9 +4,9 @@ import {collectStockNews} from './news-collector.js';
 import {collectProductClassifications} from './product-classification.js';
 import {loadKisProductTypes} from './providers/kis-product-master.js';
 import {priceScheduleDecision} from './price-schedule.js';
-import {processManualRefresh} from './dart-manual-refresh.js';
+
 import {warmValueCaches} from '@roxstock/shared/read-model/value-cache';
-import {runIndependentSupplement} from './independent-valuation-supplement.js';
+
 import 'dotenv/config';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { loadCollectorConfig } from '@roxstock/shared/collection/config';
@@ -139,13 +139,11 @@ const daemon = async (): Promise<void> => {
   // A long initial price sweep must not postpone the independent supplement timer.
   void tick();
   const timer = setInterval(() => void tick(), config.schedulerTickSeconds * 1000);
-  let supplementRunning=false;
-  const supplementTick=async()=>{if(supplementRunning)return;supplementRunning=true;try{const result=await runIndependentSupplement(prisma,{windowStartHour:config.dartWindowStartHour,windowEndHour:config.dartWindowEndHour,apiKey:process.env.DART_API_KEY,dailyCallLimit:config.dartDailyCallLimit,minDelayMs:config.dartMinDelayMs},new Date(),{serviceManual:async()=>{const state=await prisma.dartCollectorState.findUnique({where:{id:1}});return processManualRefresh(prisma,{enabled:config.dartEnabled,apiKey:process.env.DART_API_KEY??'',dailyCallLimit:state?.backfillCompletedAt?config.dartDailyCallLimit:config.dartBackfillDailyCallLimit,minDelayMs:state?.backfillCompletedAt?config.dartMinDelayMs:config.dartBackfillMinDelayMs});}});if(!['IDLE','LOCKED','OUTSIDE_WINDOW','DISABLED','QUOTA_BLOCKED'].includes(result.status))log('info','independent valuation supplement finished',result);}catch{log('error','independent valuation supplement failed',{code:'SUPPLEMENT_INTERNAL_ERROR'});}finally{supplementRunning=false;}};
-  void supplementTick();const supplementTimer=setInterval(()=>void supplementTick(),60000);
+  // Legacy period scanning is retired. Only the receipt inbox can initiate financial work.
   let newsRunning=false;
   const newsTick=async()=>{if(newsRunning||shutdown.signal.aborted)return;newsRunning=true;try{const result=await collectStockNews(prisma,{signal:shutdown.signal});if(!['IDLE','LOCKED','DISABLED'].includes(result.status))log('info','stock news collection',result);}catch{log('error','stock news collection interrupted',{code:'NEWS_COLLECTION_INTERRUPTED'});}finally{newsRunning=false;}};
   void newsTick();const newsTimer=setInterval(()=>void newsTick(),60000);
-  const stop = async () => { shutdown.abort(); clearInterval(timer); clearInterval(supplementTimer);clearInterval(newsTimer); while(ticking || supplementRunning || newsRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
+  const stop = async () => { shutdown.abort(); clearInterval(timer); clearInterval(newsTimer); while(ticking || newsRunning)await new Promise(r=>setTimeout(r,100)); await prisma.$disconnect(); process.exit(0); };
   process.on('SIGTERM', () => void stop());
   process.on('SIGINT', () => void stop());
 };
