@@ -66,7 +66,7 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
   const naver=new NaverAnnualProvider();
   for(const task of tasks){
    if(Date.now()-now.getTime()>600000)break;
-   let financialSaved=false;
+   let financialSaved=false;const sourceErrors:Record<string,string>={};
    let outcome:'SUCCESS'|'FAILED'|'SKIPPED'|'UNRESOLVED'='UNRESOLVED',reason='',sid:bigint|undefined,symbol=task.corpCode,year:number|undefined,period:string|undefined;
    await db.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:'PROCESSING',attempts:{increment:1}}});
    counts.pending--;counts.processing=1;await db.collectorRun.update({where:{id:runId},data:{metadata:metadata()}});
@@ -98,9 +98,11 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
         const provenance={...oldProvenance,receiptNo:filing.receiptNo,fsDivision:filing.fsDivision,periodEnd:filing.periodEndDate.toISOString().slice(0,10),perMetric:{...Object.fromEntries(Object.keys(oldValues).filter(k=>oldValues[k]!=null).map(k=>[k,objectValue(oldProvenance.perMetric)[k]??oldProvenance]))}};
         const base={values:oldValues,provenance,reasons:stored?.reasons??{},supplemental:supplement};
         await db.periodValuation.upsert({where,create:{securityId:security.id,fiscalYear:year!,periodType:period!,status:'PARTIAL',...base},update:base});
-        if(period==='ANNUAL'&&!valueCompletion(oldValues).complete){
+        if(period==='ANNUAL'&&!valueCompletion(oldValues).complete&&objectValue(supplement.shares).preferred===false){
+         try{
          const direct=annualSupplement({...base,fiscalYear:year!,periodType:period},await kisAnnualFundamentals(symbol),await db.dartFinancialFiling.findMany({where:{securityId:security.id,fiscalYear:{in:[year!,year!-1]},isWithdrawn:false},orderBy:{receiptDate:'desc'}}));
          if(direct.changed&&'data' in direct)await db.periodValuation.update({where,data:json(direct.data) as any});
+         }catch(error){sourceErrors.KIS_ANNUAL=error instanceof Error&&'code' in error?String(error.code):'KIS_ANNUAL_REQUEST_FAILED';await db.periodValuation.update({where,data:{supplemental:json({...supplement,errors:{...objectValue(supplement.errors),kisAnnual:sourceErrors.KIS_ANNUAL}})}});}
         }
         const metric=await supplementStoredPeriod(db,security.id,year!,period!,{fillOnly:true});
         // Crawl only final annual, exact fiscal year/division, and only still-empty fields.
@@ -115,9 +117,9 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
        const result=await db.periodValuation.findUnique({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year!,periodType:period!}}});
        const financialReady=['revenueYtd','operatingProfitYtd','netIncomeYtd','totalAssets','totalLiabilities','totalEquity'].every(k=>objectValue(normalizeDartFinancialRows(fetched.rows))[k]!=null);
        const proof=objectValue(result?.provenance),manual=objectValue(objectValue(result?.supplemental).manualFields),end=fetched.source!.periodEndDate.toISOString().slice(0,10);
-       const conflicts=['eps','bps','roe','per','pbr'].filter(k=>{if(objectValue(result?.values)[k]==null)return false;const e=objectValue(manual[k]??objectValue(proof.perMetric)[k]??proof);return e.fsDivision!==fetched.division||e.periodEnd!==end||e.receiptNo!==fetched.source!.receiptNo||e.kind==='ANNUAL_ESTIMATE'||e.isEstimated===true;});
+       const conflicts=['eps','bps','roe','per','pbr'].filter(k=>{if(objectValue(result?.values)[k]==null)return false;const e=objectValue(manual[k]??objectValue(proof.perMetric)[k]??proof);return e.fsDivision!==fetched.division||e.periodEnd!==end||e.receiptNo!==fetched.source!.receiptNo||(e.currency??(e.source==='KIS_API'?'KRW':null))!==financialCurrency({sourceValidation:fetched.source!.sourceValidation} as any)||e.kind==='ANNUAL_ESTIMATE'||e.isEstimated===true;});
        if(conflicts.length&&result)await db.periodValuation.update({where:{securityId_fiscalYear_periodType:{securityId:security.id,fiscalYear:year!,periodType:period!}},data:{reasons:json({...objectValue(result.reasons),basisConflict:conflicts.join(',')+' · 정상 값 보존, 최신 공시 근거 검토 필요'})}});
-       outcome=financialReady&&!conflicts.length&&valueCompletion(objectValue(result?.values),financialCurrency({sourceValidation:fetched.source!.sourceValidation} as any)).complete?'SUCCESS':'UNRESOLVED';reason=outcome==='SUCCESS'?'검증·저장 완료':'부분수집 · 필요한 값 또는 근거 부족';
+       outcome=financialReady&&!conflicts.length&&valueCompletion(objectValue(result?.values),financialCurrency({sourceValidation:fetched.source!.sourceValidation} as any)).complete?'SUCCESS':'UNRESOLVED';reason=outcome==='SUCCESS'?'검증·저장 완료':'부분수집 · 필요한 값 또는 근거 부족';if(outcome==='UNRESOLVED'&&Object.keys(sourceErrors).length){outcome='FAILED';reason=Object.values(sourceErrors).join(',');}
       },security);
      }
     }
@@ -126,8 +128,8 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
    const terminal=outcome==='SUCCESS'||outcome==='SKIPPED'||task.attempts+1>=policy.maxAttempts;
    counts[outcome==='SUCCESS'?'success':outcome==='FAILED'?'failed':outcome==='SKIPPED'?'skipped':'unresolved']++;counts.processing=0;
    await db.$transaction(async tx=>{
-   await tx.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:terminal?outcome:'RETRY',nextAttemptAt:new Date(Date.now()+policy.retryMs),result:json({outcome,reason,securityId:sid?.toString(),symbol,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved})}});
-   await tx.collectorRunItem.create({data:{runId:runId!,securityId:sid,symbol,status:outcome==='UNRESOLVED'?'NO_DATA':outcome,message:reason,diagnostics:json({phase:'SECURITY_DATA',receiptNo:task.receiptNo,outcome,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved}),observedAt:new Date()}});
+   await tx.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:terminal?outcome:'RETRY',nextAttemptAt:new Date(Date.now()+policy.retryMs),result:json({outcome,reason,securityId:sid?.toString(),symbol,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved,sourceErrors})}});
+   await tx.collectorRunItem.create({data:{runId:runId!,securityId:sid,symbol,status:outcome==='UNRESOLVED'?'NO_DATA':outcome,message:reason,diagnostics:json({phase:'SECURITY_DATA',receiptNo:task.receiptNo,outcome,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved,sourceErrors}),observedAt:new Date()}});
     await tx.collectorRun.update({where:{id:runId!},data:{metadata:metadata()}});
    });
   }

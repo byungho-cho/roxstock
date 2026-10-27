@@ -10,7 +10,7 @@ import {authContext} from '../auth/context.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {id} from '../lib/input.js';
 const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
-function metricMatches(v:unknown,f:any,k:string){if(!f)return true;const p=objectValue(objectValue(v).provenance),e=objectValue(objectValue(objectValue(v).supplemental).manualFields)[k]??objectValue(p.perMetric)[k]??p;return e.fsDivision===f.fsDivision&&e.periodEnd===f.periodEndDate.toISOString().slice(0,10)&&e.receiptNo===f.receiptNo&&e.kind!=='ANNUAL_ESTIMATE'&&e.isEstimated!==true;}
+function metricMatches(v:unknown,f:any,k:string){if(!f)return true;const p=objectValue(objectValue(v).provenance),e=objectValue(objectValue(objectValue(v).supplemental).manualFields)[k]??objectValue(p.perMetric)[k]??p;return e.fsDivision===f.fsDivision&&e.periodEnd===f.periodEndDate.toISOString().slice(0,10)&&e.receiptNo===f.receiptNo&&(e.currency??(e.source==='KIS_API'?'KRW':null))===financialCurrency(f)&&e.kind!=='ANNUAL_ESTIMATE'&&e.isEstimated!==true;}
 function spec(year:string,quarter:string){const y=Number(year),q=Number(quarter);if(!Number.isInteger(y)||y<2015||!Number.isInteger(q)||q<1||q>4)throw new ApiError(400,'INVALID_PERIOD','보고기간을 확인하세요.');return {year:y,quarter:q,period:q===4?'ANNUAL':`Q${q}`};}
 async function quarterData(year:number,quarter:number){
  const period=quarter===4?'ANNUAL':`Q${quarter}`;
@@ -75,5 +75,6 @@ async function detail(securityId:bigint,p:{year:number;quarter:number;period:str
  const exact=(v:string|null)=>v===null?null:new Prisma.Decimal(v).toFixed();
  const fields=securityDataFields.map(([key,label,group,mode])=>({key,label,group,mode,value:exact(mode==='calculated'?calculated[key]??null:read(key)),source:manual[key]?'MANUAL':mode==='calculated'?'CALCULATED':group==='financial'?'DART':objectValue(provenance.perMetric)[key]?.source??provenance.source??null,editable:mode==='direct'&&editableCurrentPeriod(p.year,p.period)}));
  const duration=objectValue(objectValue(f?.sourceValidation).publicDocument).fiscalDuration??sup.fiscalDuration;
- return {periodStart:objectValue(duration).start??null,security:{...security,id:String(security.id)},year:p.year,quarter:p.quarter,period:p.period,basis,fields,lastEditAt:sup.lastManualEditAt??null,collectedAt:f?.collectedAt.toISOString()??null,reasons:valuation?.reasons??{},manualConflict:sup.manualConflict??null};
+ const basisReview=['eps','bps','roe','per','pbr'].some(k=>values[k]!=null&&!metricMatches(valuation,f,k));
+ return {periodStart:objectValue(duration).start??null,security:{...security,id:String(security.id)},year:p.year,quarter:p.quarter,period:p.period,basis,fields,lastEditAt:sup.lastManualEditAt??null,collectedAt:f?.collectedAt.toISOString()??null,reasons:{...objectValue(valuation?.reasons),...(basisReview?{basis:'기존 저장값의 보고기간·연결/별도·통화 근거 확인 필요 · 원본 값 보존'}:{})},manualConflict:sup.manualConflict??null};
 }
