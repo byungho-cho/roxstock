@@ -56,7 +56,7 @@ jobs:
       - run: npm --workspace shared test && npm --workspace collector test
       - run: node --test scripts/tests/service-boundaries.test.mjs scripts/tests/deployment-scope.test.mjs
       - name: Temporary historical KIS campaign policy and isolated runtime
-        run: node --test scripts/kis-history-policy.test.mjs scripts/kis-history-runtime.test.mjs scripts/kis-reference-policy.test.mjs scripts/kis-quarter-reference-policy.test.mjs
+        run: node --test scripts/kis-history-policy.test.mjs scripts/kis-history-runtime.test.mjs scripts/kis-reference-policy.test.mjs scripts/kis-quarter-reference-policy.test.mjs scripts/final-valuation-fallback.test.mjs scripts/current-shares-yearend-reference.test.mjs scripts/bug-report-current-data-policy.test.mjs
       - name: API image contains no collector execution engine
         if: inputs.verify_api_image
         run: |
