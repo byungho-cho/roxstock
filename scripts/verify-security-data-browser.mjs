@@ -12,10 +12,11 @@ try{
     await page.goto(origin+'/detail/collection-monitoring');await expect(page).toHaveURL(/\/more$/);
    }else{
     await expect(page.getByRole('progressbar')).toHaveCount(4,{timeout:60000});
-    const cards=page.getByTestId('security-data-page').getByRole('button');await cards.first().click();await expect(page).toHaveURL(/year=\d{4}/);
+    const overview=await (await page.request.get(origin+'/api/security-data/quarters')).json(),index=Math.max(0,overview.data.quarters.findIndex(q=>q.missing>0));
+    const listResponse=page.waitForResponse(r=>/\/api\/security-data\/quarters\/\d+\/\d+$/.test(new URL(r.url()).pathname)&&r.ok());const cards=page.getByTestId('security-data-page').getByRole('button');await cards.nth(index).click();await expect(page).toHaveURL(/year=\d{4}/);const list=(await (await listResponse).json()).data;
     await expect(page.getByText(/미수집 .*종목 · 공시 후 미수집/)).toBeVisible({timeout:60000});
     const stocks=page.getByTestId('security-data-page').getByRole('button').filter({has:page.locator('strong')});
-    if(await stocks.count()){
+    await expect(stocks).toHaveCount(list.items.length);if(list.items.length){
      const response=page.waitForResponse(r=>/\/api\/security-data\/quarters\/\d+\/\d+\/\d+$/.test(new URL(r.url()).pathname)&&r.ok());await stocks.first().click();const detail=(await (await response).json()).data;expect(detail.fields).toHaveLength(26);await expect(page.locator('[data-testid^="security-data-field-"]')).toHaveCount(26);
      for(const field of detail.fields){const value=field.value===null?'—':field.value.split('.').map((s,i)=>i===0?s.replace(/\B(?=(\d{3})+(?!\d))/g,','):s).join('.');await expect(page.getByTestId('security-data-field-'+field.key)).toContainText(value);}detailChecked=true;
     }
