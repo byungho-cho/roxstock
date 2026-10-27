@@ -1,5 +1,5 @@
 CREATE TABLE security_data_cursor (
- id INTEGER NOT NULL, failures INTEGER NOT NULL DEFAULT 0, fromDate CHAR(8) NOT NULL, throughDate CHAR(8) NOT NULL, page INTEGER NOT NULL DEFAULT 1,
+ id INTEGER NOT NULL, coverage_from CHAR(8) NULL, failures INTEGER NOT NULL DEFAULT 0, fromDate CHAR(8) NOT NULL, throughDate CHAR(8) NOT NULL, page INTEGER NOT NULL DEFAULT 1,
  next_check_at DATETIME(3) NOT NULL, last_completed_at DATETIME(3) NULL, updated_at DATETIME(3) NOT NULL,
  PRIMARY KEY(id)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

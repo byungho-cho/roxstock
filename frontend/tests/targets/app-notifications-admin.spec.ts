@@ -10,7 +10,7 @@ test('administrator version link, separated settings, bounded user lists and mas
 });
 test('ordinary user has no admin version action or monitoring; direct URLs rejected',async({page})=>{
  await identity(page,'USER');await page.goto('/more');await expect(page.getByRole('button',{name:/^시세 수집|^종목 관리/})).toHaveCount(0);await expect(page.getByRole('button',{name:'관리자 화면',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'모니터링',exact:true})).toHaveCount(0);await expect(page.getByRole('navigation',{name:'하단 메뉴'}).getByText('모니터링',{exact:true})).toHaveCount(0);
- for(const path of ['/detail/admin','/detail/admin/backup','/detail/admin/collection','/detail/admin/users/a','/detail/collection-monitoring','/detail/security-management','/detail/news-collection-settings','/detail/settings?view=backup']){await page.goto(path);await expect(page).toHaveURL(/\/more$/);}
+ for(const path of ['/detail/admin','/detail/admin/backup','/detail/admin/collection','/detail/admin/users/a','/detail/collection-monitoring','/detail/security-management','/detail/security-data','/detail/news-collection-settings','/detail/settings?view=backup']){await page.goto(path);await expect(page).toHaveURL(/\/more$/);}
 });
 test('account notification defaults, master retention and failed save rollback',async({page},info)=>{
  await identity(page,'USER');const account={id:'1',name:'메인',brokerName:'미래에셋',accountNumber:'1234-12-5678',isDefault:true,enabled:false,buyEnabled:false,sellEnabled:false,dividendEnabled:false,newsEnabled:false,targetEnabled:false};let fail=false;

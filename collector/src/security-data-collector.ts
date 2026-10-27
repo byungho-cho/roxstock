@@ -29,7 +29,7 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
  try{return await withFinancialLease(owner,async()=>{
   const provider=new OpenDartProvider({apiKey:config.apiKey,dailyCallLimit:config.dailyCallLimit,minDelayMs:config.minDelayMs,reserveCall:async limit=>{await db.$executeRaw`UPDATE collector_locks SET locked_until=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 900 SECOND) WHERE job_name='dart-financial-statements' AND owner_token=${owner} AND locked_until>UTC_TIMESTAMP(3)`;return repo.reserveApiCall(limit,new Date(),owner);},onApiStatus:code=>repo.recordApiResult(code==='013'?'NO_DATA':'ERROR')});
   const initial=day(new Date(now.getTime()-89*86400000));
-  await db.securityDataCursor.upsert({where:{id:1},create:{id:1,fromDate:initial,throughDate:day(now),page:1,nextCheckAt:now},update:{}});
+  await db.securityDataCursor.upsert({where:{id:1},create:{id:1,coverageFrom:initial,fromDate:initial,throughDate:day(now),page:1,nextCheckAt:now},update:{}});
   let cursor=await db.securityDataCursor.findUniqueOrThrow({where:{id:1}});
   const due=await db.securityDataReceipt.count({where:{status:{in:['PENDING','RETRY','PROCESSING']},nextAttemptAt:{lte:now}}});
   if(cursor.failures>=policy.maxAttempts&&!due)return {status:'REVIEW_REQUIRED'};
@@ -50,7 +50,7 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
     // Receipt inserts and page/checkpoint advance are one transaction. Failure replays the page.
     cursor=await db.$transaction(async tx=>{
      await tx.securityDataReceipt.createMany({data:relevant.map(raw=>({receiptNo:raw.rcept_no!,corpCode:raw.corp_code!,disclosedDate:raw.rcept_dt!,report:json(raw),nextAttemptAt:now})),skipDuplicates:true});
-     return tx.securityDataCursor.update({where:{id:1},data:finished?{fromDate:day(new Date(Date.parse(cursor.throughDate.slice(0,4)+'-'+cursor.throughDate.slice(4,6)+'-'+cursor.throughDate.slice(6,8)+'T00:00:00+09:00')-2*86400000)),throughDate:day(now),page:1,failures:0,lastCompletedAt:now,nextCheckAt:new Date(now.getTime()+policy.intervalMs)}:{page:{increment:1},nextCheckAt:now}});
+     return tx.securityDataCursor.update({where:{id:1},data:finished?{fromDate:day(new Date(Date.parse(cursor.throughDate.slice(0,4)+'-'+cursor.throughDate.slice(4,6)+'-'+cursor.throughDate.slice(6,8)+'T00:00:00+09:00')-2*86400000)),throughDate:day(now),page:1,failures:0,lastCompletedAt:now,nextCheckAt:new Date(now.getTime()+policy.intervalMs)}:{page:{increment:1},failures:0,nextCheckAt:now}});
     });if(finished)break;
    }
   }
@@ -66,6 +66,7 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
   const naver=new NaverAnnualProvider();
   for(const task of tasks){
    if(Date.now()-now.getTime()>600000)break;
+   let financialSaved=false;
    let outcome:'SUCCESS'|'FAILED'|'SKIPPED'|'UNRESOLVED'='UNRESOLVED',reason='',sid:bigint|undefined,symbol=task.corpCode,year:number|undefined,period:string|undefined;
    await db.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:'PROCESSING',attempts:{increment:1}}});
    counts.pending--;counts.processing=1;await db.collectorRun.update({where:{id:runId},data:{metadata:metadata()}});
@@ -87,7 +88,7 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
        const fetched=await getCfsThenOfs(provider,task.corpCode,year!,report.reportCode,report);
        if(!fetched.rows.length){reason='정상적인 재무 원천 자료 미제공';return;}
        if(!fetched.source)throw new DartApiError('DART_SOURCE_REVIEW','검증된 공시 원천 필요');
-       await repo.saveFiling({securityId:security.id,fiscalYear:year!,periodType:report.periodType,reportCode:report.reportCode,fsDivision:fetched.division,...fetched.source,collectedAt:new Date(),values:normalizeDartFinancialRows(fetched.rows)});
+       await repo.saveFiling({securityId:security.id,fiscalYear:year!,periodType:report.periodType,reportCode:report.reportCode,fsDivision:fetched.division,...fetched.source,collectedAt:new Date(),values:normalizeDartFinancialRows(fetched.rows)});financialSaved=true;
        if(exclusionReason(security,'valuation')){outcome='SKIPPED';reason='재무 저장 완료 · 가치지표 수집 제외';return;}
        await withCollection(db,security.id,'valuation',async()=>{
         const load=loadPeriodSupplement(provider,symbol,task.corpCode,undefined,security.marketType);
@@ -125,8 +126,8 @@ export async function runSecurityDataCollection(db:PrismaClient,config:{apiKey:s
    const terminal=outcome==='SUCCESS'||outcome==='SKIPPED'||task.attempts+1>=policy.maxAttempts;
    counts[outcome==='SUCCESS'?'success':outcome==='FAILED'?'failed':outcome==='SKIPPED'?'skipped':'unresolved']++;counts.processing=0;
    await db.$transaction(async tx=>{
-   await tx.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:terminal?outcome:'RETRY',nextAttemptAt:new Date(Date.now()+policy.retryMs),result:json({outcome,reason,securityId:sid?.toString(),symbol,fiscalYear:year,periodType:period,partial:outcome==='UNRESOLVED'})}});
-   await tx.collectorRunItem.create({data:{runId:runId!,securityId:sid,symbol,status:outcome==='UNRESOLVED'?'NO_DATA':outcome,message:reason,diagnostics:json({phase:'SECURITY_DATA',receiptNo:task.receiptNo,outcome,fiscalYear:year,periodType:period,partial:outcome==='UNRESOLVED'}),observedAt:new Date()}});
+   await tx.securityDataReceipt.update({where:{receiptNo:task.receiptNo},data:{status:terminal?outcome:'RETRY',nextAttemptAt:new Date(Date.now()+policy.retryMs),result:json({outcome,reason,securityId:sid?.toString(),symbol,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved})}});
+   await tx.collectorRunItem.create({data:{runId:runId!,securityId:sid,symbol,status:outcome==='UNRESOLVED'?'NO_DATA':outcome,message:reason,diagnostics:json({phase:'SECURITY_DATA',receiptNo:task.receiptNo,outcome,fiscalYear:year,periodType:period,partial:financialSaved&&outcome!=='SUCCESS',financialStored:financialSaved}),observedAt:new Date()}});
     await tx.collectorRun.update({where:{id:runId!},data:{metadata:metadata()}});
    });
   }

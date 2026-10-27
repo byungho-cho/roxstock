@@ -103,6 +103,7 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
   if [[ "$COMPONENT" == backend && -f "$DEPLOY_TREE/scripts/security-data-production-check.mjs" && ! -f "$SOURCE_TREE/.deploy/security-data-history-retired" ]]; then
     baseline="$(cat "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG")/collection-settings"
     install -d -m 700 "$baseline"
+    if [[ ! -f "$baseline/env.production" ]]; then
     install -m 600 "$SOURCE_TREE/backend/.env.production" "$baseline/env.production"
     install -m 600 "$SOURCE_TREE/backend/.env.auth" "$baseline/env.auth"
     docker inspect roxstock-backend roxstock-collector roxstock-dart-collector > "$baseline/containers.json"
@@ -111,8 +112,10 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
       systemctl cat "$unit" > "$baseline/$unit.unit" 2>/dev/null || true
     done
     campaign="$SOURCE_TREE/.deploy/kis-history-campaign"
+    if [[ -d "$campaign" ]]; then cp -a "$campaign" "$baseline/kis-history-campaign"; fi
+    fi
+    campaign="$SOURCE_TREE/.deploy/kis-history-campaign"
     if [[ -d "$campaign" ]]; then
-      cp -a "$campaign" "$baseline/kis-history-campaign"
       install -d -m 700 "$campaign/state"
       touch "$campaign/state/STOP"
     fi
@@ -123,6 +126,13 @@ if [[ "$COMPONENT" == backend || "$COMPONENT" == collector ]]; then
     docker stop --time 120 roxstock-dart-collector roxstock-collector
     date -u +%FT%TZ > "$SOURCE_TREE/.deploy/security-data-history-retired"
     printf '%s\n' "$baseline" > "$SOURCE_TREE/.deploy/security-data-settings-baseline"
+  fi
+  # env_file is the authoritative source; Compose must not override private settings.
+  if [[ -f "$DEPLOY_TREE/scripts/security-data-production-check.mjs" ]]; then
+    for setting in SECURITY_DATA_COLLECTION_ENABLED=true SECURITY_DATA_INTERVAL_MINUTES=60 SECURITY_DATA_RETRY_MINUTES=60 SECURITY_DATA_MAX_ATTEMPTS=3 SECURITY_DATA_BATCH_SIZE=20; do
+      key="${setting%%=*}"
+      if ! grep -q "^$key=" "$DEPLOY_TREE/backend/.env.production"; then printf '\n%s\n' "$setting" >> "$DEPLOY_TREE/backend/.env.production"; fi
+    done
   fi
   export AUTH_CUTOVER_BACKUP_DIRECTORY="$(cat "$SOURCE_TREE/.deploy/backup-directory-$IMAGE_TAG")"
   export ROXSTOCK_STATE_DIR="$SOURCE_TREE/.deploy"

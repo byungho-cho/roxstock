@@ -99,12 +99,23 @@ jobs:
     needs: [revision, backend, collector, frontend]
     if: always() && needs.revision.outputs.current == 'true' && needs.backend.result == 'success' && needs.collector.result == 'success' && needs.frontend.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_sha || github.sha }}
+      - id: release
+        run: echo "active=$(node -p 'require("./backend/src/release.json").version==="1.2.31"')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.release.outputs.active == 'true'
+        with:
+          node-version: '20'
+      - if: steps.release.outputs.active == 'true'
+        run: npm ci --workspace frontend --include-workspace-root=false
+      - if: steps.release.outputs.active == 'true'
+        run: npx --workspace frontend playwright install --with-deps chromium
       - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
+        if: steps.release.outputs.active == 'true'
         env:
           TARGET_SHA: ${{ inputs.target_sha || github.sha }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -121,6 +132,22 @@ jobs:
           ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- $TARGET_SHA" < scripts/verify-security-data-production.sh | tee "$RUNNER_TEMP/security-data-production.txt"
           grep -q SECURITY_DATA_PRODUCTION_HTTP_VERIFIED "$RUNNER_TEMP/security-data-production.txt"
           cat "$RUNNER_TEMP/security-data-production.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify real production cover and tablet with administrator and ordinary-user sessions
+        if: steps.release.outputs.active == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          SECURITY_DATA_BROWSER_SESSIONS: ${{ runner.temp }}/security-data-browser-sessions.json
+        run: |
+          umask 077
+          cleanup() {
+            ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/cleanup-security-data-browser.mjs
+            rm -f "$SECURITY_DATA_BROWSER_SESSIONS"
+          }
+          trap cleanup EXIT
+          ssh -i "$HOME/.ssh/deploy_key" -p "${DEPLOY_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "docker exec -i roxstock-backend node --input-type=module" < scripts/prepare-security-data-browser.mjs > "$SECURITY_DATA_BROWSER_SESSIONS"
+          node scripts/verify-security-data-browser.mjs | tee -a "$RUNNER_TEMP/security-data-production.txt"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

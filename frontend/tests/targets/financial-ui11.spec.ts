@@ -6,7 +6,7 @@ async function top(page:Page){return page.locator('main').evaluate(e=>e.scrollTo
 async function scroll(page:Page,bottom=false){await page.locator('main').evaluate((e,bottom)=>{e.scrollTop=bottom?e.scrollHeight:e.scrollHeight/2;},bottom);await expect.poll(()=>top(page)).toBeGreaterThan(100);}
 async function sticky(page:Page){const main=await page.locator('main').boundingBox(),header=await page.getByTestId('financial-sticky-header').boundingBox();expect(Math.abs(main!.y-header!.y)).toBeLessThan(1);}
 test('common Small buttons and year column centers match, sticky has opaque background',async({page},info)=>{
- await ready(page);const buttons=[page.getByRole('button',{name:'재무제표 갱신',exact:true}),page.getByRole('button',{name:'연간',exact:true}),page.getByRole('button',{name:'분기',exact:true})];
+ await ready(page);const buttons=[page.locator('main').getByRole('button',{name:'종목 관리',exact:true}),page.getByRole('button',{name:'연간',exact:true}),page.getByRole('button',{name:'분기',exact:true})];
  for(const b of buttons){await expect(b).toHaveCSS('height','28px');await expect(b).toHaveCSS('border-radius','8px');await expect(b).toHaveCSS('padding','0px 8px');}
  await expect(buttons[0]).toHaveCSS('background-color','rgb(30, 41, 59)');await expect(buttons[2]).toHaveCSS('background-color','rgb(30, 41, 59)');await expect(buttons[1]).toHaveCSS('background-color','rgb(59, 130, 246)');
  const years=page.getByTestId('financial-period-header').locator(':scope > button');
@@ -19,7 +19,7 @@ test('year picker supports touch, keyboard, Escape, outside click, viewport and 
  const box=await list.locator('..').boundingBox(),viewport=page.viewportSize()!;expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.y).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(viewport.width);expect(box!.y+box!.height).toBeLessThanOrEqual(viewport.height);
  await page.screenshot({path:info.outputPath('year-options.png')});await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');await expect(center(page)).toHaveText('2023');await expect(list).toHaveCount(0);await expect(center(page)).toBeFocused();
  await center(page).press('ArrowDown');await expect(list).toBeVisible();await page.keyboard.press('Escape');await expect(list).toHaveCount(0);await center(page).tap();await page.mouse.click(4,150);await expect(list).toHaveCount(0);
- await page.getByRole('button',{name:'재무제표 갱신',exact:true}).tap();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByRole('dialog').locator('..')).toHaveCSS('opacity','1');await expect(list).toHaveCount(0);await page.screenshot({path:info.outputPath('refresh-over-sticky.png')});await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await sticky(page);
+ await expect(page.locator('main').getByRole('button',{name:'종목 관리',exact:true})).toBeEnabled();await expect(list).toHaveCount(0);await sticky(page);
 });
 for(const bottom of [false,true])test(`year moves and picker preserve ${bottom?'bottom':'middle'} position during delayed data replacement`,async({page})=>{
  await ready(page);await scroll(page,bottom);const before=await top(page);await sticky(page);let release!:()=>void;const hold=new Promise<void>(resolve=>{release=resolve;});

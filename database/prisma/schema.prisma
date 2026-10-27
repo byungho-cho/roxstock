@@ -1265,6 +1265,7 @@ model AdminUserReadAudit {
 // Discovery checkpoint is committed only with the receipt inbox, independently of processing.
 model SecurityDataCursor {
  id Int @id
+ coverageFrom String? @map("coverage_from") @db.Char(8)
  failures Int @default(0)
  fromDate String @db.Char(8)
  throughDate String @db.Char(8)

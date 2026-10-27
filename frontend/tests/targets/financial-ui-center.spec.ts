@@ -1,3 +1,4 @@
+import {assertRetiredEntry} from './security-data-retired';
 import {test,expect} from './authenticated-test';
 import {setup} from './financial-ui-fixture';
 import {swipeStock} from './financial-chart-gestures';
@@ -13,13 +14,7 @@ for(const mode of ['annual','quarter'])test(`full ${mode} chart reads all period
  const svg=dialog.getByRole('img'),b=await svg.boundingBox();await page.mouse.click(b!.x+38,b!.y+50);await expect(dialog.getByTestId('financial-chart-tooltip')).toContainText('2015');await expect(dialog.getByTestId('financial-drag-guide')).toHaveAttribute('stroke','#FBBF24');await page.screenshot({path:info.outputPath(`full-${mode}.png`)});
  await dialog.getByRole('button',{name:'차트 상세보기 뒤로가기'}).click();await expect(dialog).toBeHidden();await page.getByRole('button',{name:'상세보기',exact:true}).first().click();await expect(dialog).toBeVisible();await page.goBack();await expect(dialog).toBeHidden();expect(Math.abs(await page.locator('main').evaluate(e=>e.scrollTop)-before)).toBeLessThan(3);expect(s.posts).toBe(0);
 });
-test('server discovers running job with cleared session and enables after completion',async({page},info)=>{
- const s=await setup(page);let finished=false;
- await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:finished?null:{requestId:'99',state:'PROCESSING'}}}));
- await page.goto('/detail/value?view=chart&selected=1');await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await page.evaluate(()=>sessionStorage.clear());await page.reload();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();
- finished=true;s.finished=true;await expect(dialog.getByRole('button',{name:'전체 갱신',exact:true})).toBeEnabled({timeout:12000});expect(s.posts).toBe(0);await page.screenshot({path:info.outputPath('discovered-job.png')});
-});
+test('retired running job cannot restart through report view',async({page},info)=>{const state=await setup(page);await assertRetiredEntry(page);expect(state.posts).toBe(0);});
 test('full chart keeps leading missing and real zero distinct, does not fill internal gaps',async({page})=>{
  await setup(page);await page.route('**/api/value-analysis/1?**',route=>{
   const u=new URL(route.request().url()),start=Number(u.searchParams.get('startYear')),count=Number(u.searchParams.get('count'));
@@ -40,13 +35,6 @@ test('API forecast marker uses server blue state and bold and touch guide select
  await page.getByRole('button',{name:'상세보기',exact:true}).first().click();const dialog=page.getByRole('dialog',{name:'재무지표 차트 상세보기'}),svg=dialog.getByRole('img');await expect(svg).toBeVisible();let box:Awaited<ReturnType<typeof svg.boundingBox>>;await expect.poll(async()=>{box=await svg.boundingBox();return box;}).not.toBeNull();const cdp=await page.context().newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box!.x+40,y:box!.y+50}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box!.x+box!.width-40,y:box!.y+50}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect(dialog.getByTestId('financial-chart-tooltip')).toContainText('2026E');
 });
 
-test('new refresh remains visible in header after popup closes without duplicate POST',async({page})=>{
- const s=await setup(page);
- await page.route('**/api/securities/1/financial-refresh/active',route=>route.fulfill({json:{data:s.posts&&!s.finished?{requestId:'99',state:'QUEUED'}:null}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByRole('button',{name:'전체 갱신',exact:true})).toBeDisabled();await page.getByRole('button',{name:'재무제표 갱신 닫기'}).click();await expect(page.getByRole('button',{name:'재무제표 갱신',exact:true})).toContainText('갱신 중');expect(s.posts).toBe(1);
-});
+test('retired refresh entry navigates to management without a POST',async({page})=>{const state=await setup(page);await assertRetiredEntry(page);expect(state.posts).toBe(0);});
 
-test('collector provided report counts take precedence over the compatibility fallback',async({page})=>{
- await setup(page);await page.route('**/api/securities/1/financial-refresh/99',route=>route.fulfill({json:{data:{requestId:'99',state:'FINISHED',status:'PARTIAL',fiscalYear:2024,startYear:2024,endYear:2026,period:'ALL',finishedAt:'2026-10-08T00:00:00Z',results:[],counts:{processed:12,disclosureCompleted:10,valuationCompleted:8,noDisclosure:1,disclosureFailed:1,supplementFailed:2}}}}));
- await page.goto('/detail/value?view=chart&selected=1');await page.getByRole('button',{name:'재무제표 갱신',exact:true}).click();await page.getByRole('button',{name:'전체 갱신',exact:true}).click();await expect(page.getByText('보고서 기준: 공시 확인 완료 10 · 미공시 1 · 수집 실패 1')).toBeVisible();await expect(page.getByText('완료 8건 · 일부 자료 부족 1건 · 오류 3건')).toBeVisible();
-});
+test('retired report queue stays untouched while opening management',async({page})=>{const state=await setup(page);await assertRetiredEntry(page);expect(state.posts).toBe(0);});

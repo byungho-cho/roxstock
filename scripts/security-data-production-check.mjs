@@ -15,4 +15,5 @@ try{
  if(legacyRuns)throw Error('UNEXPECTED_LEGACY_COLLECTION_RUN');
  console.log(json({checkedAt:new Date().toISOString(),cursor,run:{id:run.id,status:run.status,startedAt:run.startedAt,finishedAt:run.finishedAt,counts},receipts,stored}));
  if(run.status==='FAILED')throw Error('NEW_COLLECTION_FAILED');
+ if(run.status==='RUNNING')throw Error('NEW_COLLECTION_STILL_RUNNING');
 }finally{await db.$disconnect();}
