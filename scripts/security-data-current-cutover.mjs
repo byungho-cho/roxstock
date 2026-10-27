@@ -4,6 +4,8 @@ import {withFinancialLease,assertFinancialLease} from '../shared/dist/collection
 import {randomUUID} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {parse} from 'dotenv';
+if(process.env.DATABASE_URL)process.env.DATABASE_URL=parse('V='+process.env.DATABASE_URL).V;
 const option=k=>process.argv.find(a=>a.startsWith(k+'='))?.slice(k.length+1);
 const from=option('--from'),directory=option('--directory'),apply=process.argv.includes('--apply');
 const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date()).replaceAll('-','');
