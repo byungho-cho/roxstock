@@ -4,6 +4,9 @@ on:
     branches: [ops/security-data-live-check-20261027, main]
     paths: [scripts/verify-security-data-browser.mjs, .github/workflows/security-data-live-check.yml]
   workflow_dispatch:
+  workflow_run:
+    workflows: [Production Deploy]
+    types: [completed]
 permissions:
   contents: read
 concurrency:
@@ -14,6 +17,7 @@ defaults:
     shell: bash
 jobs:
   verify:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -33,7 +37,7 @@ jobs:
       - name: Verify new collector, saved data, production HTTP permissions and preserved history settings
         if: steps.release.outputs.active == 'true'
         env:
-          TARGET_SHA: 643baffbede3e81044c3c73c59dac4acf9c57919
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha || '643baffbede3e81044c3c73c59dac4acf9c57919' }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
