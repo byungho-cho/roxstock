@@ -24,3 +24,10 @@ test('only a new explicit manual revision permits a second edit; a stale automat
  assert.equal(protectManualWrite(previous,{values:{eps:'7'},supplemental:{manualEditRevision:1}}).values.eps,'4');
  assert.equal(protectManualWrite(previous,{values:{eps:'8'},supplemental:{manualEditRevision:2,manualFields:{eps:{value:'8'}}}}).values.eps,'8');
 });
+
+test('new result projection preserves partial collection and unresolved separately from provider errors',async()=>{
+ const {publicSecurityDataResult}=await import('./security-data.js');
+ assert.deepEqual(publicSecurityDataResult({phase:'SECURITY_DATA',outcome:'UNRESOLVED',partial:true,financialStored:true,fiscalYear:2026,periodType:'Q2',receiptNo:'20260814000001',secret:'must-not-leak',raw:{}}),{outcome:'UNRESOLVED',partial:true,financialStored:true,fiscalYear:2026,periodType:'Q2',receiptNo:'20260814000001'});
+ assert.equal(publicSecurityDataResult({phase:'MANUAL',outcome:'FAILED'}),null);
+ assert.equal(publicSecurityDataResult({phase:'SECURITY_DATA',outcome:'invalid'}),null);
+});

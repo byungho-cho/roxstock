@@ -28,3 +28,8 @@ export function protectManualWrite(previous:unknown,incoming:Record<string,any>)
  if(incoming.values&&Object.entries(manual).some(([key,v])=>incoming.values[key]!=null&&incoming.values[key]!==objectValue(v).value))next.supplemental.manualConflict={at:new Date().toISOString(),reason:'AUTOMATIC_VALUE_CONFLICT_MANUAL_PRESERVED'};
  return next;
 }
+/** Public, bounded projection of the new run's result; provider payloads and credentials stay private. */
+export function publicSecurityDataResult(value:unknown){
+ const d=objectValue(value);if(d.phase!=='SECURITY_DATA'||!['SUCCESS','FAILED','SKIPPED','UNRESOLVED'].includes(d.outcome))return null;
+ return {outcome:String(d.outcome),partial:d.partial===true,financialStored:d.financialStored===true,fiscalYear:Number.isInteger(d.fiscalYear)&&d.fiscalYear>=2015&&d.fiscalYear<=9999?d.fiscalYear:null,periodType:['ANNUAL','Q1','Q2','Q3'].includes(d.periodType)?String(d.periodType):null,receiptNo:typeof d.receiptNo==='string'&&/^\d{14}$/.test(d.receiptNo)?d.receiptNo:null};
+}
