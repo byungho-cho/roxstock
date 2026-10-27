@@ -358,7 +358,7 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
 
   if (!feature) {
     const sourceFeatures = summary.data?.features ?? Object.keys(featureNames).map(featureShell);
-    const featureOrder = Object.keys(featureNames);
+    const featureOrder = ['dart-financial-statements', ...Object.keys(featureNames).filter(id => id !== 'dart-financial-statements')];
     const features = [...sourceFeatures].sort((a, b) => {
       const rank = (id: string) => featureOrder.includes(id) ? featureOrder.indexOf(id) : featureOrder.length;
       return rank(a.id) - rank(b.id);
