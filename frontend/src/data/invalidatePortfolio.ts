@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 // Keep cached values visible while refreshing active screens; inactive screens refresh after invalidation on their next visit.
 const portfolioQueryKeys = [
   'homePage', 'stocksPage', 'account-data-state', 'accounts', 'dashboard', 'analysis-dashboard', 'analysis-history', 'assetHistory',
-  'investment', 'investment-profit', 'investment-profit-summary', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
+  'profitEntries','profitStatistics','investment', 'investment-profit', 'investment-profit-summary', 'cashBalance', 'cashOverview', 'cashTransactions', 'cashTransaction', 'cashTrend',
   'accountTradesSummary', 'stocks', 'accountTrades', 'buyLots', 'allBuyLots', 'stockTrades', 'journalTrades', 'tradeDetail',
   'stockNews', 'stockNewsDetail', 'targetArrivals', 'recentBuys', 'compound-plans', 'compound-assets', 'securityAnalysis',
 ] as const;

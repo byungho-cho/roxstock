@@ -1,4 +1,4 @@
-import {profitFixture} from './profit-aggregate-fixture';
+import {profitFixture,profitStatisticsFixture} from './profit-aggregate-fixture';
 import {tradeFixtureData} from './trade-summary-fixture';
 import { test, expect, type Page, type Locator } from './authenticated-test';
 import { fixture } from './phase3-fixture';
@@ -8,9 +8,10 @@ async function setup(page:Page) {
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
     if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
 
-  const u=new URL(route.request().url());if(!/\/(trades|investment-profit)$/.test(u.pathname))return route.fallback();
+  const u=new URL(route.request().url());if(!/\/(trades|investment-profit|statistics)$/.test(u.pathname))return route.fallback();
   const rows=[1,2,3,4,5,6].flatMap(id=>[2025,2026].flatMap(year=>['BUY','SELL'].map((type,i)=>({id:`${id}${year}${i}`,type,security:{id:String(id),name:`종목${id}`,symbol:String(id).padStart(6,'0')},tradedAt:`${year}-07-01T03:00:00Z`,quantity:'10',unitPrice:i?'150':'100',amount:i?'1500':'1000',realizedProfitLoss:i?'500':null,buyTradeId:'1'}))));
   const data=u.pathname.includes('/2/')?[]:rows.filter(r=>!u.searchParams.has('securityId')||r.security.id===u.searchParams.get('securityId'));
+  if(u.pathname.endsWith('/statistics')){const account=u.pathname.includes('/2/')?'2':'1',security=u.searchParams.get('securityId')!;return route.fulfill({json:profitStatisticsFixture(account,security,profitFixture(account,data,[],[],undefined,security))});}
   if(u.pathname.endsWith('/investment-profit'))return route.fulfill({json:profitFixture(u.pathname.includes('/2/')?'2':'1',data,[],[],undefined,u.searchParams.get('securityId')??undefined)});
   return route.fulfill({json:{data:tradeFixtureData(u,data),summary:{realizedProfitLoss:'1000',buyAmount:'2000',sellAmount:'3000'},daily:[]}});
  });return control;
@@ -28,8 +29,8 @@ test('summary metrics, distinct links and both back paths restore scroll',async(
  for(const [selector,destination] of [['stock-profit-summary','stock'],['stock-annual-heading','list'],['stock-annual-row','year']]){
   const link=page.getByTestId(selector).first();await link.scrollIntoViewIfNeeded();const saved=await region(page).evaluate(e=>e.scrollTop);await link.click();await expect(page).toHaveURL(/investment-profit/);
   if(destination==='stock'){await expect(page.getByTestId('profit-selected')).toHaveText('종목1');await expect(page.getByTestId('profit-detail-summary')).toContainText('2,000원');}
-  if(destination==='list')await expect(page.getByTestId('profit-tabs').getByRole('button',{name:'연도별',exact:true})).toHaveAttribute('aria-pressed','true');
-  if(destination==='year'){await expect(page.getByTestId('profit-selected')).toHaveText('2026년');await expect(page.getByTestId('profit-detail-summary')).toContainText('+500원');}
+  if(destination==='list'){await expect(page.getByTestId('profit-stock-years')).toBeVisible();await expect(page.getByTestId('profit-year-card')).toHaveCount(2);}
+  if(destination==='year'){await expect(page.getByRole('heading',{name:'2026년',exact:true})).toBeInViewport();await expect(page.getByTestId('profit-year-card').first()).toContainText('+500원');}
   await page.goBack();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
   await link.click();await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(summary).toBeAttached();await expect.poll(()=>region(page).evaluate(e=>e.scrollTop)).toBeCloseTo(saved,0);
  }

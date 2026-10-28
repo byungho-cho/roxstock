@@ -153,6 +153,8 @@ jobs:
         run: cd frontend && npx playwright test -c playwright.phase33.config.ts
       - name: Phase34 toast and stock news layout
         run: cd frontend && npx playwright test -c playwright.phase34-stock-news.config.ts
+      - name: News scraps and stock profit details (cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.news-profit.config.ts
       - name: Phase35 news schedule and dashboard v1.2
         run: |
           node --import tsx --test frontend/src/utils/assetComposition.test.ts
@@ -167,6 +169,7 @@ jobs:
           name: security-data-figma-${{ github.run_id }}
           path: |
             frontend/test-results/security-data
+            frontend/test-results/news-profit
             frontend/test-results/dart-task-status
       - name: App notifications and administrator separation (cover and tablet)
         run: cd frontend && npx playwright test -c playwright.app-notifications.config.ts
@@ -192,3 +195,4 @@ jobs:
             frontend/test-results/unified-notifications
             frontend/test-results/dart-task-status
             frontend/test-results/security-data
+            frontend/test-results/news-profit

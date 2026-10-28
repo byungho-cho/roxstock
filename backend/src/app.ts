@@ -14,6 +14,7 @@ import { installPageBootstrap } from './routes/page-bootstrap.js';
 import { installReadBatch } from './routes/read-batch.js';
 import {securityManagementRoutes} from './routes/security-management.js';
 import {investmentProfitRoutes} from './routes/investment-profit.js';
+import {investmentProfitDetailRoutes} from './routes/investment-profit-details.js';
 import {recentBuysRoutes} from './routes/recent-buys.js';
 import { annualConsensusRoutes } from './routes/annual-consensus.js';
 import { compoundGrowthRoutes } from './routes/compound-growth.js';
@@ -107,6 +108,7 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
   void app.register(stockNewsRoutes,{prefix:'/api'});
   void app.register(investorTrendRoutes, {prefix:'/api'});
   void app.register(investmentProfitRoutes, {prefix:'/api'});
+  void app.register(investmentProfitDetailRoutes, {prefix:'/api'});
   void app.register(recentBuysRoutes, {prefix:'/api'});
   void app.register(accountRoutes, { prefix: '/api' });
   void app.register(securityDataRoutes,{prefix:'/api'});

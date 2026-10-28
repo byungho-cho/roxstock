@@ -47,7 +47,7 @@ export function AppLayout() {
   const isFinancial = location.pathname === '/detail/financials' || /^\/stocks\/[^/]+\/financials$/.test(location.pathname);
   const isValue = location.pathname === '/detail/value' || /^\/stocks\/[^/]+\/value$/.test(location.pathname);
   const isValueChart = isValue && new URLSearchParams(location.search).get('view') === 'chart';
-  const isInvestment = location.pathname === '/detail/investment' || location.pathname === '/detail/investment-profit';
+  const isInvestment = location.pathname === '/detail/investment' || location.pathname.startsWith('/detail/investment-profit');
   const isCompound = location.pathname === '/detail/compound';
   const isNews=location.pathname.startsWith('/detail/stock-news');
   const isInvestor = location.pathname === '/detail/investor-trends';

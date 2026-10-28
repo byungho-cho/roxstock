@@ -3,10 +3,10 @@ import {prisma as unscoped} from '@roxstock/shared/lib/prisma';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {authContext} from './context.js';
 type Obj=Record<string,any>;
-const personal=new Set(['Account','BuyTrade','SellTrade','CashTransaction','Dividend','AccountWatchlistItem','TradeRequest','DailyAccountSnapshot','DailyPositionSnapshot','CompoundGrowthPlan','CompoundGrowthGoal','AccountProfitRevision','InvestmentYearAggregate']);
+const personal=new Set(['StockNewsScrap','Account','BuyTrade','SellTrade','CashTransaction','Dividend','AccountWatchlistItem','TradeRequest','DailyAccountSnapshot','DailyPositionSnapshot','CompoundGrowthPlan','CompoundGrowthGoal','AccountProfitRevision','InvestmentYearAggregate']);
 const metadata=new Map(Prisma.dmmf.datamodel.models.map(m=>[m.name,m]));
 function owner(model:string,userId:bigint):Obj {
-  if(model==='Account')return {userId};
+  if(model==='Account'||model==='StockNewsScrap')return {userId};
   if(model==='SellTrade')return {buyTrade:{account:{userId}}};
   if(model==='CompoundGrowthGoal')return {plan:{account:{userId}}};
   return {account:{userId}};
@@ -53,7 +53,7 @@ export function scopedClient<T extends object>(db:T):T {
           for(const branch of ['data','create','update'])if(query[branch]){
             const rows=Array.isArray(query[branch])?query[branch]:[query[branch]];
             for(const row of rows){
-              if(model==='Account'){
+              if(model==='Account'||model==='StockNewsScrap'){
                 if(row.user!==undefined)throw new ApiError(403,'OWNER_CHANGE_FORBIDDEN','소유자를 변경할 수 없습니다.');
                 if(row.userId!==undefined&&row.userId!==uid)throw new ApiError(403,'OWNER_CHANGE_FORBIDDEN','소유자를 변경할 수 없습니다.');
                 if(['create','createMany','createManyAndReturn'].includes(op)||branch==='create')row.userId=uid;

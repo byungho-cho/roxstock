@@ -150,7 +150,11 @@ export function periodBugEvents(row:{securityId:bigint;fiscalYear:number;periodT
 export async function saveBugEvent(db:PrismaClient,event:BugEvent){
  // News collection diagnostics remain in collector runs, outside the bug-report backlog.
  if(event.feature==='stock-news'||event.feature==='stock-news-summary')return false;
- const eventKey=hash(event.sourceKey),fingerprint=reportFingerprint(event.feature,event.code,event.metric);
+ const window=await db.collectionBugReportingWindow.findUnique({where:{id:1}});
+ // Retired reporting history is immutable; only genuinely new observations enter this window.
+ if(window&&event.observedAt<window.reportingFrom)return false;
+ const eventKey=hash(event.sourceKey),baseFingerprint=reportFingerprint(event.feature,event.code,event.metric);
+ const fingerprint=window&&event.observedAt>=window.reportingFrom?hash(baseFingerprint+':window:'+window.reportingFrom.toISOString()):baseFingerprint;
  return db.$transaction(async tx=>{
   if(event.securityId!=null&&heldFinancialWarning(event)){
    const security=await tx.security.findUnique({where:{id:event.securityId},select:{securityType:true}});
@@ -221,15 +225,21 @@ export async function reclassifyBugReportsPage(db:PrismaClient,after?:string){
 let legacyRepairCursor:string|undefined;
 /** Replay a small overlap; durable occurrence keys prevent duplicate counts and deleted reports resurfacing. */
 export async function scanCollectionBugs(db:PrismaClient,now=new Date()){
- const foreign=await reconcileForeignSourceReports(db,foreignSourceCursor);foreignSourceCursor=foreign.hasNext?foreign.cursor:undefined;
- const periods=await repairFinancialOccurrencePeriodsPage(db,financialPeriodCursor);financialPeriodCursor=periods.hasNext?periods.cursor:undefined;
- const held=await reconcileHeldProductReportsPage(db,heldProductCursor);heldProductCursor=held.hasNext?held.cursor:undefined;
+ const reportingWindow=await db.collectionBugReportingWindow.findUnique({where:{id:1}});
+ let repairedCount=0;
+ // Retire only synthetic historical completeness/repair sweeps. The actual failed
+ // item/run and realtime loops below remain unchanged, including CURRENT runs.
+ if(!reportingWindow){
+  const foreign=await reconcileForeignSourceReports(db,foreignSourceCursor);foreignSourceCursor=foreign.hasNext?foreign.cursor:undefined;
+  const periods=await repairFinancialOccurrencePeriodsPage(db,financialPeriodCursor);financialPeriodCursor=periods.hasNext?periods.cursor:undefined;
+  const held=await reconcileHeldProductReportsPage(db,heldProductCursor);heldProductCursor=held.hasNext?held.cursor:undefined;
+  const repaired=await reclassifyBugReportsPage(db,legacyRepairCursor);legacyRepairCursor=repaired.hasNext?repaired.cursor:undefined;repairedCount=repaired.changed;
+  const consolidated=await consolidateBugReportsPage(db,consolidationCursor);consolidationCursor=consolidated.hasNext?consolidated.cursor:undefined;
+ }
  const state=await db.collectionBugScanState.upsert({where:{key:'collection-errors'},create:{key:'collection-errors',scannedAt:now},update:{}});
- const repaired=await reclassifyBugReportsPage(db,legacyRepairCursor);legacyRepairCursor=repaired.hasNext?repaired.cursor:undefined;
- const consolidated=await consolidateBugReportsPage(db,consolidationCursor);consolidationCursor=consolidated.hasNext?consolidated.cursor:undefined;
- const since=new Date(state.scannedAt.getTime()-300000);let count=repaired.changed;
+ const since=new Date(state.scannedAt.getTime()-300000);let count=repairedCount;
  let after:{updatedAt:Date;securityId:bigint;fiscalYear:number;periodType:string}|undefined;
- for(;;){
+ if(!reportingWindow)for(;;){
   const seek=after?{OR:[{updatedAt:{gt:after.updatedAt}},{updatedAt:after.updatedAt,securityId:{gt:after.securityId}},{updatedAt:after.updatedAt,securityId:after.securityId,fiscalYear:{gt:after.fiscalYear}},{updatedAt:after.updatedAt,securityId:after.securityId,fiscalYear:after.fiscalYear,periodType:{gt:after.periodType}}]}:{};
   const rows=await db.periodValuation.findMany({where:{AND:[{updatedAt:{gte:since,lte:now},status:{not:'SUCCESS'}},seek]},orderBy:[{updatedAt:'asc'},{securityId:'asc'},{fiscalYear:'asc'},{periodType:'asc'}],take:100});
   for(const row of rows)for(const event of periodBugEvents(row))if(await saveBugEvent(db,event))count++;
@@ -253,7 +263,7 @@ export async function scanCollectionBugs(db:PrismaClient,now=new Date()){
   for(const issue of rows)if(await saveBugEvent(db,{sourceKey:'realtime:'+issue.id,feature:'realtime-prices',code:'PRICE_REALTIME_'+(/^[A-Z_]{1,20}$/.test(issue.stage)?issue.stage:'REQUEST')+'_FAILED',severity:'ERROR',summary:'실시간 주가 수집·저장 처리 오류',observedAt:issue.occurredAt,symbol:issue.symbol??undefined}))count++;
   if(rows.length<100)break;
  }
- const reconciled=await reconcileBugReportsPage(db,reconcileCursor);reconcileCursor=reconciled.hasNext?reconciled.cursor:undefined;
+ if(!reportingWindow){const reconciled=await reconcileBugReportsPage(db,reconcileCursor);reconcileCursor=reconciled.hasNext?reconciled.cursor:undefined;}
  await db.collectionBugScanState.updateMany({where:{key:'collection-errors',scannedAt:{lt:now}},data:{scannedAt:now}});return count;
 }
 export function startCollectionBugReporter(db:PrismaClient,onError:()=>void){

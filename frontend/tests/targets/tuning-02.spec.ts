@@ -43,6 +43,7 @@ test('phase26 stock profit scope survives batching, linked detail and account sw
   await fixture(page,{batch:true,onBatch:paths=>batches.push(paths),read:url=>{
     if(url.pathname==='/api/notifications/settings')return {json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}};
     if(url.pathname==='/api/notifications/inbox')return {json:{data:{rows:[],total:0}}};
+    if(url.pathname.endsWith('/investment-profit/statistics')){const accountId=url.pathname.split('/')[3],securityId=url.searchParams.get('securityId')!,profit=accountId==='2'?'505':securityId==='1'?'120':'-30';return {json:{data:{accountId,security:{id:securityId,name:'종목'+securityId,symbol:securityId.padStart(6,'0')},years:[{year:2025,totals:{buy:'0',sell:'1000',cost:'500',trading:profit,dividend:'0',total:profit},months:[]}]},meta:{completeHistory:true}}};}
     if(!url.pathname.endsWith('/investment-profit'))return undefined;
     const accountId=url.pathname.split('/')[3],securityId=url.searchParams.get('securityId');
     const profit=accountId==='2'?'505':securityId==='1'?'120':'-30';
@@ -52,7 +53,7 @@ test('phase26 stock profit scope survives batching, linked detail and account sw
   await expect(page.getByTestId('stock-annual-row')).toContainText('+120원');
   await page.getByTestId('stock-annual-row').click();
   await expect(page).toHaveURL(/securityId=1/);
-  await expect(page.getByTestId('profit-detail-summary')).toContainText('120원');
+  await expect(page.getByTestId('profit-year-card')).toContainText('120원');
   await page.goto('/stocks/4?detailTab=summary');
   await expect(page.getByTestId('stock-annual-row')).toContainText('-30원');
   await page.evaluate(()=>{localStorage.setItem('roxstock:user:fixture-user:selected-account-id','2');window.dispatchEvent(new Event('roxstock-selected-account'));});

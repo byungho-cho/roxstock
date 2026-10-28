@@ -102,6 +102,9 @@ jobs:
           node --import tsx --test backend/tests/stock-news.integration.ts
           node --import tsx --test backend/tests/news-schedule.integration.ts
 
+      - name: User scraps, profit details and reporting cutover (real MariaDB)
+        run: node --import tsx --test backend/tests/news-profit-details.integration.ts
+
       - name: Phase32 remaining recent buy Lots (real MariaDB API)
         run: node --import tsx --test backend/tests/home-phase32.integration.ts
 

@@ -34,6 +34,8 @@ const LiveStockEditPage = lazy(() => import('./pages/stocks/LiveStockEditPage').
 const StockAddPage = lazy(() => import('./pages/stocks/StockAddPage').then(module => ({ default: module.StockAddPage })));
 const StockEditPage = lazy(() => import('./pages/stocks/StockEditPage').then(module => ({ default: module.StockEditPage })));
 const TradePage = lazy(() => import('./pages/trade/TradePage').then(module => ({ default: module.TradePage })));
+const ProfitEntriesPage=lazy(()=>import('./pages/investment-profit/ProfitDetailPages').then(m=>({default:m.ProfitEntriesPage})));
+const StockProfitYearsPage=lazy(()=>import('./pages/investment-profit/ProfitDetailPages').then(m=>({default:m.StockProfitYearsPage})));
 const InvestmentProfitPage = lazy(() => import('./pages/investment-profit/InvestmentProfitPage').then(module => ({ default: module.InvestmentProfitPage })));
 const InvestmentPage = lazy(() => import('./pages/investment/InvestmentPage').then(module => ({ default: module.InvestmentPage })));
 const AssetAnalysisPage = lazy(() => import('./pages/assets/AssetAnalysisPage').then(module => ({ default: module.AssetAnalysisPage })));
@@ -92,7 +94,7 @@ export function App() {
         <Route path="detail/financials" element={<FinancialPage />} />
         <Route path="detail/value" element={<ValueAnalysisPage />} />
         <Route path="detail/investment" element={<InvestmentPage />} />
-        <Route path="detail/investment-profit" element={<InvestmentProfitPage />} />
+        <Route path="detail/investment-profit/entries" element={<ProfitEntriesPage/>}/><Route path="detail/investment-profit/stock-years" element={<StockProfitYearsPage/>}/><Route path="detail/investment-profit" element={<InvestmentProfitPage />} />
         <Route path="detail/:detailType" element={<PlaceholderPage title="상세정보" description="선택한 홈 카드의 상세 화면은 다음 구현 단계에서 연결합니다." />} />
         <Route path="trade" element={<TradePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
