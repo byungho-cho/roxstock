@@ -41,6 +41,21 @@ export async function readProfitYears(accountId:bigint,today:string,revision:big
  for(const year of result.missing)if(!await publishProfitYear(accountId,revision,year))return null;
  return result.years;
 }
+/** The new detail screens receive summaries, not the calculator's source events. */
+export async function currentProfitSource(accountId:bigint){
+ const account=await prisma.account.findUnique({where:{id:accountId},select:{isActive:true}});if(!account?.isActive)throw new ApiError(404,'ACCOUNT_NOT_FOUND','계좌를 찾을 수 없습니다.');
+ const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
+ for(let attempt=0;attempt<3;attempt++){
+  const revision=(await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision;if(revision===undefined)throw new ApiError(503,'PROFIT_REVISION_MISSING','집계 기준을 확인할 수 없습니다.');
+  const key=`${authContext.getStore()?.userId??'system'}:${accountId}:${revision}:${today}:${PROFIT_VERSION}`,saved=cache.get(key);
+  let years=saved&&saved.until>Date.now()?saved.years:undefined;
+  if(!years){let work=pending.get(key);if(!work){work=readProfitYears(accountId,today,revision).then(value=>value??[]);pending.set(key,work);}try{years=await work;}finally{if(pending.get(key)===work)pending.delete(key);}}
+  if(!years.length||(await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision!==revision)continue;
+  const bytes=Buffer.byteLength(JSON.stringify(years));if(bytes<=8*1024*1024){for(const [k,v]of cache)if(v.until<=Date.now())cache.delete(k);while(cache.size>=128||[...cache.values()].reduce((s,v)=>s+v.bytes,0)-(cache.get(key)?.bytes??0)+bytes>8*1024*1024)cache.delete(cache.keys().next().value!);cache.set(key,{until:Date.now()+5000,years,calculatedAt:new Date().toISOString(),bytes});}
+  return {years,revision,today};
+ }
+ throw new ApiError(409,'PROFIT_SOURCE_CHANGED','조회 중 내역이 변경되었습니다. 다시 조회해 주세요.');
+}
 export async function investmentProfitRoutes(app:FastifyInstance){
  app.get<{Params:{accountId:string};Querystring:{securityId?:string}}>('/accounts/:accountId/investment-profit',async request=>{
   const accountId=id(request.params.accountId,'accountId'),securityId=request.query.securityId===undefined?null:id(request.query.securityId,'securityId');

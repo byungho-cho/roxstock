@@ -55,7 +55,7 @@ test('financial task periods reject ambiguous or malformed item labels',async()=
 
 
 test('news collection diagnostics do not write bug reports while other collectors remain reportable',async()=>{
- const db={$transaction:async()=>{throw new Error('TRANSACTION_SENTINEL');}} as unknown as Parameters<typeof saveBugEvent>[0];
+ const db={collectionBugReportingWindow:{findUnique:async()=>null},$transaction:async()=>{throw new Error('TRANSACTION_SENTINEL');}} as unknown as Parameters<typeof saveBugEvent>[0];
  const base={sourceKey:'news-policy-test',code:'COLLECTION_FAILED',severity:'ERROR' as const,summary:'fixture',observedAt:new Date()};
  for(const feature of ['stock-news','stock-news-summary'])assert.equal(await saveBugEvent(db,{...base,feature}),false);
  await assert.rejects(saveBugEvent(db,{...base,feature:'market-prices'}),/TRANSACTION_SENTINEL/);

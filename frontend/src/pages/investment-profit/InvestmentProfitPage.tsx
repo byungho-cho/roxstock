@@ -1,3 +1,5 @@
+import {StockProfitYearsPage} from './ProfitDetailPages';
+import {profitEntriesPath} from './profitDetailApi';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {ProfitEmptyList,ProfitEmptyDetail} from './ProfitEmptyFrame';
 import { stockProfitPath, yearProfitPath } from './profitNavigation';
@@ -29,11 +31,11 @@ type CompactRow = { id: string; label: string; value: bigint | null; cost?: bigi
 function Value({ value, signed = true }: { value: bigint | null; signed?: boolean }) {
   return <Typography sx={{ fontSize: 13, fontWeight: 600, lineHeight: '20px', textAlign: 'right', color: signed ? color(value) : colors.textPrimary, overflowWrap: 'anywhere', fontVariantNumeric: 'tabular-nums' }}>{won(value, signed)}</Typography>;
 }
-function Compact({ heading, rows, toggle, onHeading, onRow }: { heading: string; rows: CompactRow[]; toggle?: React.ReactNode; onHeading?:()=>void; onRow?:(id:string)=>void }) {
+function Compact({ heading, rows, toggle, onHeading, onRow, onDetails }: { heading: string; rows: CompactRow[]; toggle?: React.ReactNode; onHeading?:()=>void; onDetails?:()=>void; onRow?:(id:string)=>void }) {
   const headingText=<Typography sx={title}>{heading}{toggle && <Box component="span" sx={muted}> · 총 {rows.length}개</Box>}</Typography>;
   return <AppCard data-testid="profit-compact" sx={card}>
     <Stack direction="row" sx={{alignItems:'center',justifyContent:'space-between'}}>
-      {onHeading?<ButtonBase data-testid="profit-annual-heading" onClick={onHeading} sx={{flex:1,display:'flex',justifyContent:'space-between',minHeight:28,textAlign:'left'}}>{headingText}<Typography sx={{fontSize:10,fontWeight:400,color:'#9CA3AF'}}>(상세보기)</Typography></ButtonBase>:headingText}{toggle}
+      {onHeading?<ButtonBase data-testid="profit-annual-heading" onClick={onHeading} sx={{flex:1,display:'flex',justifyContent:'space-between',minHeight:28,textAlign:'left'}}>{headingText}<Typography sx={{fontSize:10,fontWeight:400,color:'#9CA3AF'}}>(상세보기)</Typography></ButtonBase>:headingText}{onDetails&&<Button onClick={onDetails} sx={{p:0,minWidth:0,fontSize:12}}>상세보기</Button>}{toggle}
     </Stack>
     <Box sx={{minHeight:72}}>
     {rows.map(row=>{
@@ -57,7 +59,10 @@ function NeighborName({name}: {name: string}) {
   }, [name]);
   return <><Box component="span" ref={measure} aria-hidden sx={{position:'absolute',visibility:'hidden',width:'max-content',pointerEvents:'none'}}>{name}</Box>{short && Array.from(name).length > 5 ? Array.from(name).slice(0,5).join('') + '…' : name}</>;
 }
-export function InvestmentProfitPage() {
+export function InvestmentProfitPage(){
+ const location=useLocation();return new URLSearchParams(location.search).has('securityId')?<StockProfitYearsPage/>:<LegacyInvestmentProfitPage/>;
+}
+function LegacyInvestmentProfitPage() {
   const client = useQueryClient(), { accountId, accounts } = useActiveAccount(), tablet = useMediaQuery('(min-width:600px)');
   const navigate = useNavigate(), location = useLocation(), outerBack = useReturnNavigation('/assets');
   const go=useListNavigation();
@@ -136,7 +141,7 @@ export function InvestmentProfitPage() {
   const nav = <Box data-testid="profit-navigation" sx={{ display: 'grid', gridTemplateColumns: '74px minmax(0, 1fr) 74px', alignItems: 'center', minHeight: 32, flexShrink: 0 }}><ButtonBase aria-label={`이전 상세 ${neighbor(-1)}`} disabled={tab === 'stock' && !neighbor(-1)} onClick={() => step(-1)} sx={{ ...muted, fontSize: 12, minHeight: 32, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><NeighborName name={neighbor(-1)}/></ButtonBase><Typography data-testid="profit-selected" sx={{ textAlign: 'center', fontSize: 18, fontWeight: 700, lineHeight: '24px', overflowWrap: 'anywhere' }}>{tab === 'year' ? `${selected}년` : group?.label ?? '—'}</Typography><ButtonBase aria-label={`다음 상세 ${neighbor(1)}`} disabled={tab === 'stock' && !neighbor(1)} onClick={() => step(1)} sx={{ ...muted, fontSize: 12, minHeight: 32, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><NeighborName name={neighbor(1)}/></ButtonBase></Box>;
   const summary = (t: Totals) => <AppCard data-testid="profit-detail-summary" sx={{ ...card, py: '8px' }}>{tab === 'stock' && <Typography sx={title}>전체 거래 요약</Typography>}{tab === 'year'&&!securityScope ? <><Metric label="투자금" value={capital} /><Typography data-testid="profit-capital-asof" sx={muted}>기준일: {capitalFor(selected)?.date ?? '미수집'}{capital === null ? ' · 연말/유효 투자금 스냅샷 미수집' : ''}</Typography><Metric label="손익총액" value={t.trading} denominator={tab === 'year' ? capital : t.buy} /><Metric label="배당" value={t.dividend} denominator={tab === 'year' ? capital : t.buy} /><Metric label="배당포함" value={t.total} denominator={tab === 'year' ? capital : t.buy} /></> : <StockProfitMetrics totals={t}/>}</AppCard>;
   const detailContent = pending && !data ? loadingDetail : !data && failed ? <>{loadingDetail}{error}</> : !group?.events.length && tablet ? <>{loadingDetail}{empty(true)}</> : <>{!tablet && error}{nav}{!group?.events.length ? empty() : <>{summary(group.totals)}{tab === 'year' ? <Compact heading="종목별 손익" onRow={id=>openLinked(stockProfitPath(id))} toggle={toggle} rows={sortProfit(groups(group.events, 'stock'), ascending).map(row => ({ id: row.id, label: row.label, value: row.totals.total }))} /> : <Compact heading="연도별 손익" onHeading={()=>openLinked(yearProfitPath(undefined,group?.id))} onRow={year=>openLinked(yearProfitPath(year,group?.id))} rows={groups(group.events, 'year').map(row => ({ id: row.id, label: row.label, value: row.totals.total, cost: row.totals.cost }))} />}
-    <Compact heading={tab === 'year' ? '월별 손익' : '월별 손익 · 배당 내역'} rows={groups(group.events, 'month').flatMap<CompactRow>(row => tab === 'year' ? [{ id: row.id, label: `${Number(row.id.slice(5))}월`, value: row.totals.total, cost: row.totals.cost }] : [
+    <Compact heading={tab === 'year' ? '월별 손익' : '월별 손익 · 배당 내역'} onDetails={()=>openLinked(profitEntriesPath(tab==='stock'?{securityId:group.id}:{year:selected}))} onRow={month=>openLinked(profitEntriesPath({...(tab==='stock'?{securityId:group.id}:{}),year:month.slice(0,4),month:String(Number(month.slice(5,7)))}))} rows={groups(group.events, 'month').flatMap<CompactRow>(row => tab === 'year' ? [{ id: row.id, label: `${Number(row.id.slice(5))}월`, value: row.totals.total, cost: row.totals.cost }] : [
       ...(row.events.some(event => event.kind === 'SELL') ? [{ id: row.id + '-trade', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'SELL')).trading, middle: '매매' }] : []),
       ...(row.events.some(event => event.kind === 'DIVIDEND') ? [{ id: row.id + '-dividend', label: `${row.id.slice(0, 4)}.${row.id.slice(5)}`, value: totals(row.events.filter(event => event.kind === 'DIVIDEND')).dividend, middle: '배당' }] : []),
     ])} /></>}</>;

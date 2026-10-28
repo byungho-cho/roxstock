@@ -5,6 +5,11 @@ import {buildApp} from '../src/auth/route-test-app.js';
 import {saveBugEvent,scanCollectionBugs,reclassifyBugReportsPage,reconcileBugReportsPage,consolidateBugReportsPage} from '../src/domain/collection-bug-reports.js';
 import {PrismaDartRepository} from '../../collector/src/dart-repository.js';
 const url=new URL(process.env.DATABASE_URL??'');if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/roxstock_bugreports_test'&&process.env.CI!=='true')throw Error('Isolated local/CI DB required');
+// Legacy review/reconciliation fixtures intentionally exercise old dates. The new
+// cutover/archive contract is tested separately with production auth and a fresh window.
+let originalReportingFrom:Date;
+test.before(async()=>{originalReportingFrom=(await db.collectionBugReportingWindow.findUniqueOrThrow({where:{id:1}})).reportingFrom;await db.collectionBugReportingWindow.update({where:{id:1},data:{reportingFrom:new Date('2000-01-01T00:00:00Z')}});});
+test.after(async()=>{await db.collectionBugReportingWindow.update({where:{id:1},data:{reportingFrom:originalReportingFrom}});await db.$disconnect();});
 test('report persistence, concurrency, replay, review, recurrence and resolved deletion through real MariaDB/API',async()=>{
  const suffix=String(Date.now()),feature='bug-test-'+suffix,app=buildApp(),event={sourceKey:'test:'+suffix,feature,code:'DART_TEST_FAILURE',severity:'ERROR' as const,summary:'테스트 오류',observedAt:new Date(),symbol:'005930',metric:'per'};
  let runId:bigint|undefined;
