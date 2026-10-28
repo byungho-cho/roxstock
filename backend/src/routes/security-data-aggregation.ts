@@ -35,9 +35,13 @@ function taskEvidence(task:any,year:number,quarter:number,now:Date):Evidence|nul
 }
 async function loadQuarter(year:number,quarter:number){
  const filter='all' as const,period=quarter===4?'ANNUAL':`Q${quarter}`,now=new Date();
- return securityDataReadSnapshot(async tx=>{
+ const {rows,receipts}=await securityDataReadSnapshot(async tx=>{
  const rows=await tx.security.findMany({where:{isActive:true},include:{dartCorpMapping:{select:{corpCode:true}},dartFinancialFilings:{where:{fiscalYear:year,periodType:period as any,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},periodValuations:{where:{fiscalYear:year,periodType:period}},dartBackfillTasks:{where:{fiscalYear:year,periodType:period as any},include:{decisions:{orderBy:{id:'desc'},take:1}},orderBy:{updatedAt:'desc'},take:1},collectorRunItems:{where:{diagnostics:{path:'$.phase',equals:'SECURITY_DATA'},AND:[{diagnostics:{path:'$.fiscalYear',equals:year}},{diagnostics:{path:'$.periodType',equals:period}}]},orderBy:{id:'desc'},take:1,select:{status:true,message:true,observedAt:true}}},orderBy:[{name:'asc'},{id:'asc'}]});
  const receipts=await tx.securityDataReceipt.findMany({select:{corpCode:true,receiptNo:true,report:true,status:true,updatedAt:true},orderBy:{receiptNo:'asc'}});
+ return {rows,receipts};
+ });
+ // End the MVCC transaction before proof normalization, grouping and hashing.
+ // CPU work must not extend database transaction lifetime under concurrent cache rebuilds.
  const evidenceReceipts=receipts.filter(r=>{const raw=objectValue(r.report),result=String(raw.report_nm??'');return result.includes(`(${year}.${String(quarter*3).padStart(2,'0')})`)||raw.fiscalYear===year&&raw.periodType===period;});
  const published=new Set(evidenceReceipts.map(r=>r.corpCode));
  const items=rows.map(s=>{
@@ -60,7 +64,6 @@ async function loadQuarter(year:number,quarter:number){
  const summary=summarizeGroups(items,filter);
  const snapshotId=createHash('sha256').update(JSON.stringify({version:securityAggregationVersion,year,quarter,items:items.map(({state,exclusion,...r})=>r),versions:rows.map(s=>[String(s.id),s.updatedAt,s.dartFinancialFilings[0]?.collectedAt,s.periodValuations[0]?.updatedAt,s.dartBackfillTasks[0]?.updatedAt]),receipts:evidenceReceipts.map(r=>[r.receiptNo,r.status,r.updatedAt])})).digest('hex');
  return {year,quarter,label:`${year}년 ${quarter}분기`,...summary,items,policyVersion:securityAggregationVersion,asOf:now.toISOString(),aggregatedAt:now.toISOString(),snapshotId,required:{financial:financialRequired,value:valueRequired},groupPolicy:'ALL_REQUIRES_BOTH_APPLICABLE_GROUPS'};
- });
 }
 
 // Coalesce concurrent shared-data reads only. No persistent cache or historical work is created.

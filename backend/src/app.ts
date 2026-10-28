@@ -84,7 +84,12 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
       return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message } });
     }
     if(typeof error==='object'&&error&&'code' in error&&error.code==='P2002'&&'meta' in error&&(error.meta as {modelName?:string}|undefined)?.modelName==='Security')return reply.code(409).send({error:{code:'DUPLICATE_SECURITY_CODE',message:'이미 등록된 종목코드입니다.'}});
-    app.log.error({code:'UNEXPECTED_REQUEST_FAILURE'});
+    // Never log exception messages/SQL/parameters. Keep only bounded diagnostic categories.
+    const cause=error as {code?:unknown;meta?:{error?:unknown};message?:unknown};
+    const causeCode=typeof cause.code==='string'&&/^P\d{4}$/.test(cause.code)?cause.code:'UNCLASSIFIED';
+    const diagnostic=String(cause.meta?.error??cause.message??'');
+    const category=/Unable to start a transaction/i.test(diagnostic)?'TRANSACTION_START_TIMEOUT':/transaction.*(expired|closed|timeout)/i.test(diagnostic)?'TRANSACTION_EXPIRED':/connection pool/i.test(diagnostic)?'CONNECTION_POOL_TIMEOUT':'OTHER';
+    app.log.error({code:'UNEXPECTED_REQUEST_FAILURE',causeCode,category});
     return reply.code(500).send({
       error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' },
     });
