@@ -29,9 +29,11 @@ for(const count of [1,2])test(`${count} stock list never refetches itself; two r
 test('filtered sorted entry and favorites keep the same cycle after navigation',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('roxstock:user:fixture-user:favorite-stocks','["4"]'));
  await fixture(page);await page.goto('/stocks?tab=holding');await page.getByRole('textbox',{name:'목록 종목 검색'}).fill('순환');
- await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();
  const wide=page.viewportSize()!.width>=600;
- // Search is debounced. Enter the detail only after the filtered list is displayed.
+ // Commit the debounced search before changing another URL-backed condition.
+ await expect(wide?page.getByRole('row',{name:'제외3 상세보기'}):page.getByRole('button',{name:'제외3 상세보기',exact:true})).toHaveCount(0);
+ await page.getByRole('combobox',{name:'정렬 기준'}).click();await page.getByRole('option',{name:'종목명',exact:true}).click();
+ // The filtered list must remain filtered after sorting.
  await expect(wide?page.getByRole('row',{name:'제외3 상세보기'}):page.getByRole('button',{name:'제외3 상세보기',exact:true})).toHaveCount(0);
  await (wide?page.getByRole('row',{name:'순환4 상세보기'}):page.getByRole('button',{name:'순환4 상세보기',exact:true})).click();
  await code(page,'4');const previous=await nav(page).getByRole('button').first().getAttribute('aria-label');

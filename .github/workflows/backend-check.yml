@@ -120,6 +120,9 @@ jobs:
       - name: Security data collection, edit preservation and admin API integration
         run: node --import tsx --test backend/tests/security-data.integration.ts
 
+      - name: Annual W readiness and shared card-list policy
+        run: node --import tsx --test backend/tests/security-w-readiness.integration.ts
+
       - name: Manual collector source and period API integration
         run: node --import tsx --test backend/tests/manual-collector.integration.ts backend/tests/manual-independent.integration.ts
 

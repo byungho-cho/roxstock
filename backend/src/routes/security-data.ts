@@ -1,3 +1,4 @@
+import {securityAnnualRoutes} from './security-data-annual.js';
 import type {FastifyInstance} from 'fastify';
 import {createHash} from 'node:crypto';
 import {Prisma} from '@roxstock/shared/prisma';
@@ -16,6 +17,7 @@ const json=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Prisma.InputJsonValue;
 function metricMatches(v:unknown,f:any,k:string){if(!f)return true;const p=objectValue(objectValue(v).provenance),e=objectValue(objectValue(objectValue(v).supplemental).manualFields)[k]??objectValue(p.perMetric)[k]??p;return e.fsDivision===f.fsDivision&&e.periodEnd===f.periodEndDate.toISOString().slice(0,10)&&e.receiptNo===f.receiptNo&&(e.currency??(e.source==='KIS_API'?'KRW':null))===financialCurrency(f)&&e.kind!=='ANNUAL_ESTIMATE'&&e.isEstimated!==true;}
 function spec(year:string,quarter:string){const y=Number(year),q=Number(quarter);if(!Number.isInteger(y)||y<2015||!Number.isInteger(q)||q<1||q>4)throw new ApiError(400,'INVALID_PERIOD','보고기간을 확인하세요.');return {year:y,quarter:q,period:q===4?'ANNUAL':`Q${q}`};}
 export async function securityDataRoutes(app:FastifyInstance){
+ await securityAnnualRoutes(app);
  app.get('/security-data/status',async()=>({data:await securityProcessingStatus()}));
  app.get<{Querystring:{filter?:string}}>('/security-data/quarters',async req=>{const quarters=await Promise.all(completedQuarters().map(async q=>{const {items,...summary}=await storedQuarter(q.year,q.quarter,req.query.filter);return summary;}));return {data:{asOf:new Date().toISOString(),aggregatedAt:new Date().toISOString(),snapshotId:createHash('sha256').update(quarters.map(q=>q.snapshotId).join(':')).digest('hex'),policyVersion:quarters[0]?.policyVersion,quarters}};});
  app.get<{Params:{year:string;quarter:string};Querystring:{offset?:string;filter?:string;snapshot?:string}}>('/security-data/quarters/:year/:quarter',async req=>{

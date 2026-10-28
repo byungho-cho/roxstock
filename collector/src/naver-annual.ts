@@ -7,7 +7,7 @@ export class NaverAnnualError extends Error {
  constructor(public readonly code:string) { super(code); }
 }
 export type NaverAnnual = {
- fiscalYear:number; kind:'FINAL_ANNUAL'|'ANNUAL_ESTIMATE'; division:'CFS'|'OFS'; values:MetricValues;
+ fiscalYear:number; fiscalMonth?:number; kind:'FINAL_ANNUAL'|'ANNUAL_ESTIMATE'; division:'CFS'|'OFS'; values:MetricValues;
  financials:Record<string,string|null>; source:'NAVER_FNGUIDE_ANNUAL'; sourceUrl:string; collectedAt:string;
  pricePolicy:'ADJUSTED_ORDINARY_YEAR_END'|'PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY'; priceDate:string|null;
  sharePolicy:'PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR'; formulas:Record<string,string>;
@@ -20,12 +20,14 @@ const numeric=(cell:RegExpMatchArray)=>{
  return /^-?\d+(?:\.\d+)?$/.test(value)?new Prisma.Decimal(value).toString():null;
 };
 /** Parse only a real annual table. Hidden decoy tables and the top-level TTM panel are never accepted. */
-export function parseNaverAnnual(html:string,symbol:string,sourcePage:string,now=new Date()):NaverAnnual[] {
+export function parseNaverAnnual(html:string,symbol:string,sourcePage:string,now=new Date(),fiscalMonth=12):NaverAnnual[] {
+ if(!Number.isInteger(fiscalMonth)||fiscalMonth<1||fiscalMonth>12)throw new NaverAnnualError('NAVER_ANNUAL_PERIOD_INVALID');
+ const month=String(fiscalMonth).padStart(2,'0'),periodPattern=new RegExp('^([0-9]{4})/'+month+'(\\(E\\))?');
  const tables=Array.from(html.matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi));
- const table=tables.find(t=>/연간/.test(t[1]??'')&&/\d{4}\/12/.test(t[1]??''));
+ const table=tables.find(t=>/연간/.test(t[1]??'')&&new RegExp('[0-9]{4}/'+month).test(t[1]??''));
  if(!table)throw new NaverAnnualError('NAVER_ANNUAL_TABLE_MISSING');
  const head=(table[1]??'').match(/<thead\b[^>]*>([\s\S]*?)<\/thead>/i)?.[1]??'';
- const columns=cells(head,'th').flatMap(c=>{const text=plain(c[2]??''),m=text.match(/^(\d{4})\/12(\(E\))?/);return m?[{year:Number(m[1]),estimate:!!m[2],division:/IFRS연결/.test(text)?'CFS' as const:/IFRS별도/.test(text)?'OFS' as const:null}]:[];});
+ const columns=cells(head,'th').flatMap(c=>{const text=plain(c[2]??''),m=text.match(periodPattern);return m?[{year:Number(m[1]),estimate:!!m[2],division:/IFRS연결/.test(text)?'CFS' as const:/IFRS별도/.test(text)?'OFS' as const:null}]:[];});
  if(!columns.length||columns.some(c=>!c.division))throw new NaverAnnualError('NAVER_ANNUAL_BASIS_MISSING');
  const body=(table[1]??'').match(/<tbody\b[^>]*>([\s\S]*?)(?:<\/tbody>|$)/i)?.[1]??'';
  const rows=new Map<string,(string|null)[]>();
@@ -43,7 +45,7 @@ export function parseNaverAnnual(html:string,symbol:string,sourcePage:string,now
  return columns.map((column,i)=>{
   const value=(labels:string[])=>labels.map(label=>rows.get(label)?.[i]).find(v=>v!=null)??null;
   const financial=(labels:string[])=>{const v=value(labels);return v===null?null:new Prisma.Decimal(v).mul(100000000).toString();};
-  return {fiscalYear:column.year,kind:column.estimate?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',division:column.division!,values:Object.fromEntries(metricKeys.map(k=>[k,value([k.toUpperCase(),`${k.toUpperCase()}(원)`,`${k.toUpperCase()}(배)`,`${k.toUpperCase()}(%)`])])) as MetricValues,
+  return {fiscalYear:column.year,fiscalMonth,kind:column.estimate?'ANNUAL_ESTIMATE':'FINAL_ANNUAL',division:column.division!,values:Object.fromEntries(metricKeys.map(k=>[k,value([k.toUpperCase(),`${k.toUpperCase()}(원)`,`${k.toUpperCase()}(배)`,`${k.toUpperCase()}(%)`])])) as MetricValues,
    financials:{revenue:financial(['매출액']),operatingProfit:financial(['영업이익','영업이익(발표기준)']),netIncome:financial(['당기순이익']),parentNetIncome:financial(['당기순이익(지배)']),totalAssets:financial(['자산총계']),totalLiabilities:financial(['부채총계']),totalEquity:financial(['자본총계']),parentEquity:financial(['자본총계(지배)'])},
    source:'NAVER_FNGUIDE_ANNUAL',sourceUrl:`https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=${symbol}`,collectedAt:now.toISOString(),pricePolicy:column.estimate?'PREVIOUS_BUSINESS_DAY_ADJUSTED_ORDINARY':'ADJUSTED_ORDINARY_YEAR_END',priceDate:column.estimate?asOf:null,sharePolicy:'PROVIDER_ADJUSTED_ORDINARY_AND_PREFERRED_DENOMINATOR',
    formulas:{eps:'지배순이익 / 수정평균발행주식수(보통주+우선주)',bps:'지배자본 / 수정기말발행주식수(보통주+우선주, 자사주차감)',per:'보통주 수정주가(기말) / 동일 원천 EPS',pbr:'보통주 수정주가(기말) / 동일 원천 BPS',roe:'지배순이익 / 평균 지배자본 * 100'}};
@@ -53,11 +55,11 @@ export function parseNaverAnnual(html:string,symbol:string,sourcePage:string,now
 export class NaverAnnualProvider {
  private pending=new Map<string,Promise<NaverAnnual[]>>();
  constructor(private fetcher:typeof fetch=fetch) {}
- annual(symbol:string){
+ annual(symbol:string,fiscalMonth=12){
   symbol=normalizeProviderSymbol(symbol);
   if(!isSecuritySymbol(symbol))throw new NaverAnnualError('NAVER_SYMBOL_INVALID');
-  let result=this.pending.get(symbol);
-  if(!result){result=this.load(symbol);this.pending.set(symbol,result);}
+  const key=symbol+':'+fiscalMonth;let result=this.pending.get(key);
+  if(!result){result=this.load(symbol,fiscalMonth);this.pending.set(key,result);}
   return result;
  }
  private async text(url:string,referer?:string){
@@ -70,11 +72,11 @@ export class NaverAnnualProvider {
   }
   throw new NaverAnnualError('NAVER_COMMUNICATION');
  }
- private async load(symbol:string){
+ private async load(symbol:string,fiscalMonth:number){
   const url=`https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx?cmp_cd=${symbol}`;
   const page=await this.text(url),enc=page.match(/encparam:\s*'([^']+)'/)?.[1],id=page.match(/,\s*id:\s*'([^']+)'/)?.[1];
   if(!enc||!id)throw new NaverAnnualError('NAVER_ANNUAL_ADAPTER_CHANGED');
   const query=new URLSearchParams({cmp_cd:symbol,fin_typ:'4',freq_typ:'Y',extY:'1',extQ:'0',encparam:enc,id});
-  return parseNaverAnnual(await this.text('https://navercomp.wisereport.co.kr/v3/company/ajax/cF1001.aspx?'+query,url),symbol,page);
+  return parseNaverAnnual(await this.text('https://navercomp.wisereport.co.kr/v3/company/ajax/cF1001.aspx?'+query,url),symbol,page,new Date(),fiscalMonth);
  }
 }

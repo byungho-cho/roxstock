@@ -61,7 +61,7 @@ test('signed sorting, total-buy denominator, zero and mutation-invalidated cache
 test('profit capital, signed order toggle, neighbors and body swipe stop at ends; static cache survives focus/re-entry',async({page},info)=>{
  const f=await fixture(page);await page.goto('/detail/investment-profit');await expect(page.getByTestId('profit-total')).toHaveText('-650원');
  if(info.project.name.startsWith('cover'))await page.getByTestId('profit-list-row').filter({hasText:'2026'}).click();
- await expect(page.getByTestId('profit-capital-asof')).toContainText('2026-10-01');
+ await expect(page.getByTestId('profit-capital-asof')).toHaveText('(기준일: 10-01)');
  await expect(page.getByTestId('profit-detail-summary')).toContainText('107,317,732원');
  if(info.project.name.startsWith('cover'))await page.goBack();
  await page.getByRole('button',{name:'종목별',exact:true}).click();

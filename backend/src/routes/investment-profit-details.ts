@@ -4,7 +4,7 @@ import {prisma} from '../auth/scoped-db.js';
 import {authContext} from '../auth/context.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {id} from '../lib/input.js';
-import {profitTotals,type ProfitEvent} from '../domain/investment-profit.js';
+import {exactAdd,profitTotals,type ProfitEvent} from '../domain/investment-profit.js';
 import {currentProfitSource} from './investment-profit.js';
 type Query={securityId?:string;year?:string;month?:string;snapshot?:string;cursor?:string};
 const invalid=()=>new ApiError(400,'INVALID_PROFIT_SCOPE','손익 조회 조건을 확인해 주세요.');
@@ -41,12 +41,15 @@ export async function investmentProfitDetailRoutes(app:FastifyInstance){
     tx.cashTransaction.findMany({where:{AND:[dividendWhere,seek('transactionDate','DIVIDEND')]},orderBy:[{transactionDate:'desc'},{id:'desc'}],take:51,select:{id:true,transactionDate:true,dividend:{select:{netAmount:true,security:{select:{id:true,name:true,symbol:true}}}}}}),
     tx.sellTrade.count({where:sellWhere}),tx.cashTransaction.count({where:dividendWhere})]);
    const format=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'});
-   const rows=sells.map(r=>({id:String(r.id),key:'SELL:'+r.id,at:r.soldAt.toISOString(),date:format.format(r.soldAt),kind:'SELL' as 'SELL'|'DIVIDEND',security:{...r.buyTrade.security,id:String(r.buyTrade.security.id)},amount:r.quantity.mul(r.unitPrice.minus(r.buyTrade.unitPrice)).toString()}));
-   for(const r of dividends){if(!r.dividend)throw new ApiError(409,'DIVIDEND_LINK_MISSING','배당의 종목 연결 정보를 확인해 주세요.');rows.push({id:String(r.id),key:'DIVIDEND:'+r.id,at:r.transactionDate.toISOString(),date:format.format(r.transactionDate),kind:'DIVIDEND',security:{...r.dividend.security,id:String(r.dividend.security.id)},amount:r.dividend.netAmount.toString()});}
+   const rows=sells.map(r=>({id:String(r.id),key:'SELL:'+r.id,at:r.soldAt.toISOString(),date:format.format(r.soldAt),kind:'SELL' as 'SELL'|'DIVIDEND',security:{...r.buyTrade.security,id:String(r.buyTrade.security.id)},amount:r.quantity.mul(r.unitPrice.minus(r.buyTrade.unitPrice)).toString(),rateDenominator:r.quantity.mul(r.buyTrade.unitPrice).toString() as string|null}));
+   for(const r of dividends){if(!r.dividend)throw new ApiError(409,'DIVIDEND_LINK_MISSING','배당의 종목 연결 정보를 확인해 주세요.');rows.push({id:String(r.id),key:'DIVIDEND:'+r.id,at:r.transactionDate.toISOString(),date:format.format(r.transactionDate),kind:'DIVIDEND',security:{...r.dividend.security,id:String(r.dividend.security.id)},amount:r.dividend.netAmount.toString(),rateDenominator:null});}
    rows.sort((a,b)=>b.at.localeCompare(a.at)||b.kind.localeCompare(a.kind)||(BigInt(a.id)>BigInt(b.id)?-1:1));
    return {rows:rows.slice(0,50),hasNext:rows.length>50,total:sellCount+dividendCount};
   },{isolationLevel:'RepeatableRead',timeout:30000});
   if((await prisma.accountProfitRevision.findUnique({where:{accountId}}))?.revision!==source.revision)throw new ApiError(409,'PROFIT_SOURCE_CHANGED','조회 중 내역이 변경되었습니다. 다시 조회해 주세요.');
+  const annualBuys=new Map<string,string|null>();
+  for(const y of source.years)for(const event of y.events){const key=event.securityId+':'+event.date.slice(0,4);annualBuys.set(key,exactAdd(annualBuys.has(key)?annualBuys.get(key)!:'0',event.buy));}
+  for(const row of result.rows)if(row.kind==='DIVIDEND')row.rateDenominator=annualBuys.get(row.security.id+':'+row.date.slice(0,4))??null;
   const events=filtered(source.years.flatMap(y=>y.events),scope),last=result.rows.at(-1),stock=scope.securityId?await prisma.security.findUnique({where:{id:scope.securityId},select:{name:true,symbol:true}}):null;
   return {data:{...result,accountId:String(accountId),security:stock,scope:{securityId:scope.securityId?String(scope.securityId):null,year:scope.year??null,month:scope.month??null},months:months(events),totals:profitTotals(events),snapshot:encode(snapshot),nextCursor:result.hasNext&&last?encode({at:last.at,kind:last.kind,id:last.id}):null}};
  });
