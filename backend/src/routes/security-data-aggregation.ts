@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {Prisma} from '@roxstock/shared/prisma';
+import {securityDataReadSnapshot} from '@roxstock/shared/lib/prisma';
 import {objectValue} from '@roxstock/shared/domain/security-data';
 import {assessGroup,combineGroups,dataFilter,financialRequired,valueRequired,securityAggregationVersion,summarizeGroups,validDataNumber,type Evidence} from '@roxstock/shared/domain/security-data-aggregation';
 import {dartPolicyExclusions} from '@roxstock/shared/collection/dart-task-status';
@@ -7,7 +7,6 @@ import {exclusionReason} from '@roxstock/shared/collection/collection-policy';
 import {supplementedFilings} from '@roxstock/shared/domain/financial-evidence';
 import {financialCurrency} from '@roxstock/shared/domain/financial-currency';
 import {collectionPublicMessage} from '../domain/collection-public-message.js';
-import {prisma} from '../auth/scoped-db.js';
 const date=(v:any)=>v instanceof Date?v.toISOString().slice(0,10):typeof v==='string'?v.slice(0,10):null;
 const periodOf=(year:number,quarter:number)=>`${year}:${quarter===4?'ANNUAL':'Q'+quarter}`;
 const supportedCurrency=(v:unknown)=>typeof v==='string'&&/^[A-Z]{3}$/.test(v);
@@ -34,9 +33,9 @@ function taskEvidence(task:any,year:number,quarter:number,now:Date):Evidence|nul
  if(task.status==='NOT_DUE'&&reason==='FILING_NOT_DUE'&&Number.isInteger(d.closingMonth)&&d.monthEvidence&&d.periodEnd){const end=Date.parse(String(d.periodEnd)+'T23:59:59+09:00'),until=d.deadlineConfirmed&&d.deadline&&d.deadlineSource?Date.parse(String(d.deadline)+'T23:59:59+09:00'):end+Number(d.minimumSubmissionDays??0)*86400000;if(Number.isFinite(until)&&until>=now.getTime())return {reason:'FILING_NOT_DUE',source:String(d.monthEvidence),period:periodOf(year,quarter),policyVersion:securityAggregationVersion,until:new Date(until).toISOString(),checkedAt:d.checkedAt};}
  return null;
 }
-export async function storedQuarter(year:number,quarter:number,filterInput:unknown='all'){
- const filter=dataFilter(filterInput),period=quarter===4?'ANNUAL':`Q${quarter}`,now=new Date();
- return prisma.$transaction(async tx=>{
+async function loadQuarter(year:number,quarter:number){
+ const filter='all' as const,period=quarter===4?'ANNUAL':`Q${quarter}`,now=new Date();
+ return securityDataReadSnapshot(async tx=>{
  const rows=await tx.security.findMany({where:{isActive:true},include:{dartCorpMapping:{select:{corpCode:true}},dartFinancialFilings:{where:{fiscalYear:year,periodType:period as any,isWithdrawn:false},orderBy:[{receiptDate:'desc'},{collectedAt:'desc'},{receiptNo:'desc'}],take:1},periodValuations:{where:{fiscalYear:year,periodType:period}},dartBackfillTasks:{where:{fiscalYear:year,periodType:period as any},include:{decisions:{orderBy:{id:'desc'},take:1}},orderBy:{updatedAt:'desc'},take:1},collectorRunItems:{where:{diagnostics:{path:'$.phase',equals:'SECURITY_DATA'},AND:[{diagnostics:{path:'$.fiscalYear',equals:year}},{diagnostics:{path:'$.periodType',equals:period}}]},orderBy:{id:'desc'},take:1,select:{status:true,message:true,observedAt:true}}},orderBy:[{name:'asc'},{id:'asc'}]});
  const receipts=await tx.securityDataReceipt.findMany({select:{corpCode:true,receiptNo:true,report:true,status:true,updatedAt:true},orderBy:{receiptNo:'asc'}});
  const evidenceReceipts=receipts.filter(r=>{const raw=objectValue(r.report),result=String(raw.report_nm??'');return result.includes(`(${year}.${String(quarter*3).padStart(2,'0')})`)||raw.fiscalYear===year&&raw.periodType===period;});
@@ -61,5 +60,21 @@ export async function storedQuarter(year:number,quarter:number,filterInput:unkno
  const summary=summarizeGroups(items,filter);
  const snapshotId=createHash('sha256').update(JSON.stringify({version:securityAggregationVersion,year,quarter,items:items.map(({state,exclusion,...r})=>r),versions:rows.map(s=>[String(s.id),s.updatedAt,s.dartFinancialFilings[0]?.collectedAt,s.periodValuations[0]?.updatedAt,s.dartBackfillTasks[0]?.updatedAt]),receipts:evidenceReceipts.map(r=>[r.receiptNo,r.status,r.updatedAt])})).digest('hex');
  return {year,quarter,label:`${year}년 ${quarter}분기`,...summary,items,policyVersion:securityAggregationVersion,asOf:now.toISOString(),aggregatedAt:now.toISOString(),snapshotId,required:{financial:financialRequired,value:valueRequired},groupPolicy:'ALL_REQUIRES_BOTH_APPLICABLE_GROUPS'};
- },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead,timeout:30000});
+ });
+}
+
+// Coalesce concurrent shared-data reads only. No persistent cache or historical work is created.
+let activeReads=0;const readWaiters:Array<()=>void>=[];
+const inFlight=new Map<string,Promise<Awaited<ReturnType<typeof loadQuarter>>>>();
+async function boundedRead(year:number,quarter:number){
+ if(activeReads>=2)await new Promise<void>(resolve=>readWaiters.push(resolve));else activeReads++;
+ try{return await loadQuarter(year,quarter);}finally{const next=readWaiters.shift();if(next)next();else activeReads--;}
+}
+export async function storedQuarter(year:number,quarter:number,filterInput:unknown='all'){
+ const key=year+':'+quarter;let pending=inFlight.get(key);
+ if(!pending){pending=boundedRead(year,quarter);inFlight.set(key,pending);void pending.finally(()=>{if(inFlight.get(key)===pending)inFlight.delete(key);}).catch(()=>{});}
+ const data=await pending,filter=dataFilter(filterInput);
+ if(filter==='all')return data;
+ const items=data.items.map(item=>({...item,state:item.groups[filter].state,exclusion:item.groups[filter].exclusion}));
+ return {...data,...summarizeGroups(items,filter),items};
 }
