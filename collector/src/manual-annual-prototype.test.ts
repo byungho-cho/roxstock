@@ -94,3 +94,12 @@ for(const fiscalYear of [2021,2022])test('manual Naver historical annual '+fisca
  await refreshManualAnnual(f.db,f.security,fiscalYear,f.provider,naver([]),f.repo,22n);
  assert.equal(f.record().values.per,'10');assert.equal(f.record().values.pbr,'1');
 });
+
+
+test('NAVER annual parser uses the verified non-December fiscal month without borrowing December columns',()=>{
+ const june=table().replaceAll('/12','/06');
+ const rows=parseNaverAnnual(june,'900120',definitions,new Date('2026-10-28'),6);
+ assert.equal(rows[0]?.fiscalMonth,6);assert.equal(rows[0]?.values.eps,'100.25');assert.equal(rows[1]?.kind,'ANNUAL_ESTIMATE');
+ assert.throws(()=>parseNaverAnnual(june,'900120',definitions),{code:'NAVER_ANNUAL_TABLE_MISSING'});
+ assert.throws(()=>parseNaverAnnual(table(),'900120',definitions,new Date(),6),{code:'NAVER_ANNUAL_TABLE_MISSING'});
+});

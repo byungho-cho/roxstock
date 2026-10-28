@@ -1,0 +1,38 @@
+name: Security W and profit details UI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - frontend/src/pages/more/Security*.tsx
+      - frontend/src/pages/investment-profit/**
+      - frontend/tests/targets/security-w-readiness.spec.ts
+      - frontend/tests/targets/news-profit-details.spec.ts
+      - frontend/playwright.security-w.config.ts
+      - .github/workflows/security-w-profit-ui.yml
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --workspace frontend --include-workspace-root=false
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test --config playwright.security-w.config.ts
+        working-directory: frontend
+      - run: npx playwright test --config playwright.news-profit.config.ts
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-w-profit-ui
+          path: |
+            frontend/test-results/security-w-readiness/
+            frontend/test-results/news-profit/
+          retention-days: 7
