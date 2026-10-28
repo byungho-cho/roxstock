@@ -151,6 +151,8 @@ export async function saveBugEvent(db:PrismaClient,event:BugEvent){
  // News collection diagnostics remain in collector runs, outside the bug-report backlog.
  if(event.feature==='stock-news'||event.feature==='stock-news-summary')return false;
  const window=await db.collectionBugReportingWindow.findUnique({where:{id:1}});
+ // Retired reporting history is immutable; only genuinely new observations enter this window.
+ if(window&&event.observedAt<window.reportingFrom)return false;
  const eventKey=hash(event.sourceKey),baseFingerprint=reportFingerprint(event.feature,event.code,event.metric);
  const fingerprint=window&&event.observedAt>=window.reportingFrom?hash(baseFingerprint+':window:'+window.reportingFrom.toISOString()):baseFingerprint;
  return db.$transaction(async tx=>{

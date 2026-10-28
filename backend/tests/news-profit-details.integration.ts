@@ -53,8 +53,8 @@ test('real auth: user scraps, original profit totals, 50-row stable paging and r
   await raw.cashTransaction.create({data:{accountId,transactionType:'DEPOSIT',transactionDate:new Date(),amount:1,balanceAfter:1}});
   await get(prefix+'/investment-profit/entries?'+new URLSearchParams({securityId:String(securityId),snapshot}),a,409);
   console.log('NP_STATISTICS_MEASUREMENT',JSON.stringify({ms:Date.now()-measured,years:stats.data.years.length,statisticsBytes:Buffer.byteLength(JSON.stringify(stats)),rows:all.length}));
-  const cut=new Date(Date.now()-2000);await raw.collectionBugReportingWindow.update({where:{id:1},data:{reportingFrom:cut}});
-  const old={sourceKey:'np-old-'+suffix,feature,code:'DATABASE_WRITE_FAILED',severity:'ERROR' as const,summary:'보존 검증',observedAt:new Date(+cut-1)};await saveBugEvent(raw,old);const archived=await raw.collectionBugReport.findFirstOrThrow({where:{feature}});
+  const cut=new Date(Date.now()-2000);
+  const old={sourceKey:'np-old-'+suffix,feature,code:'DATABASE_WRITE_FAILED',severity:'ERROR' as const,summary:'보존 검증',observedAt:new Date(+cut-1)};await saveBugEvent(raw,old);const archived=await raw.collectionBugReport.findFirstOrThrow({where:{feature}});await raw.collectionBugReportingWindow.update({where:{id:1},data:{reportingFrom:cut}});assert.equal(await saveBugEvent(raw,{...old,code:'COLLECTION_FAILED'}),false);
   assert.equal((await get('/api/collection/bug-reports?state=ALL')).data.rows.some((r:any)=>r.feature===feature),false);
   await saveBugEvent(raw,{...old,sourceKey:'np-new-'+suffix,observedAt:new Date(+cut+1)});const visible=(await get('/api/collection/bug-reports?state=ALL')).data.rows.find((r:any)=>r.feature===feature);assert.equal(visible.occurrences,1);assert.notEqual(visible.id,String(archived.id));assert.deepEqual(await raw.collectionBugReport.findUnique({where:{id:archived.id}}),archived);
   assert.equal((await get('/api/collection/bug-reports/'+visible.id)).data.events.length,1);await get('/api/collection/bug-reports/'+archived.id,a,404);
