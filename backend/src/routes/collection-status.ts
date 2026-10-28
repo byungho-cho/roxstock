@@ -1,7 +1,7 @@
 import {processingView} from '@roxstock/shared/domain/security-data-aggregation';
 import {securityProcessingStatus} from './security-data-processing.js';
 import {publicSecurityDataResult} from '@roxstock/shared/domain/security-data';
-import {dartProgress,dartDisplayStatus,dartStatusWhere,type DartDisplayStatus} from '@roxstock/shared/collection/dart-task-status';
+import {dartDisplayStatus,dartStatusWhere,type DartDisplayStatus} from '@roxstock/shared/collection/dart-task-status';
 import {eligibleWhere} from '@roxstock/shared/collection/collection-policy';
 import {dartTaskScope,dartTaskPeriodScope,dartWorkerStatus,temporaryDartHistory} from '@roxstock/shared/collection/dart-backfill';
 import {newsCollectionState} from '@roxstock/shared/news/state';
@@ -44,11 +44,6 @@ async function currentRun(jobType: string) {
 async function lastSuccessfulRun(jobType: string) {
   return prisma.collectorRun.findFirst({ where: { jobType, status: { in: ['investor-trends','stock-news'].includes(jobType)?['SUCCESS']:['SUCCESS', 'PARTIAL'] } }, orderBy: [{startedAt:'desc'},{id:'desc'}] });
 }
-async function priorityOverdueCount(cutoff: Date): Promise<number> {
-  const ids = await new PrismaDartRepository(prisma).prioritySecurityIds();
-  return prisma.dartSecurityState.count({where:{securityId:{in:ids},security:{...eligibleWhere('dart-financial-statements'),securityType:'STOCK',dartCorpMapping:{isNot:null}},OR:[{priorityCheckedAt:null},{priorityCheckedAt:{lt:cutoff}}]}});
-}
-
 async function statusFor(job: CollectionJob, run: NonNullable<Run>, now: Date, realtime?: Awaited<ReturnType<typeof prisma.realtimeWorkerState.findUnique>>) {
   if (job.id === 'security-master' && !process.env.DATA_GO_KR_SERVICE_KEY?.trim()) return 'NOT_CONFIGURED';
   if (job.id === 'realtime-prices') {
@@ -209,23 +204,10 @@ export async function collectionStatusRoutes(app: FastifyInstance) {
       detail.realtime = { state: realtime, aggregates, issues: issues.map((issue) => ({ at: iso(issue.occurredAt), stage: issue.stage, symbol: issue.symbol, reason: safeReason(issue.message) })) };
     }
     if (feature.id === 'dart-financial-statements') {
-      const [state, usage, priorityDelayed, universeDelayed] = await Promise.all([
-        prisma.dartCollectorState.findUnique({ where: { id: 1 } }),
-        prisma.dartApiDailyUsage.findMany({ where: { usageDate: { gte: dateFilter(q.from) ?? new Date(now.getTime() - 30 * 86_400_000) } }, orderBy: { usageDate: 'desc' }, take: 90 }),
-        priorityOverdueCount(new Date(now.getTime() - 86_400_000)),
-        prisma.dartSecurityState.count({ where: { security: { ...eligibleWhere('dart-financial-statements'),isActive: true, securityType: 'STOCK', dartCorpMapping: { isNot: null } }, OR: [{ universeCheckedAt: null }, { universeCheckedAt: { lt: new Date(now.getTime() - 90 * 86_400_000) } }] } }),
-      ]);
-      const repo = new PrismaDartRepository(prisma);
-      const priorityIds=await repo.prioritySecurityIds();
-      const ids=(await prisma.security.findMany({where:{...eligibleWhere('dart-financial-statements'),id:{in:priorityIds},securityType:'STOCK',dartCorpMapping:{isNot:null}},select:{id:true}})).map(stock=>stock.id);
-      const [taskCounts,priorityCounts,errorGroups] = await prisma.$transaction(async tx=>Promise.all([
-        tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:dartTaskScope(now),_count:{_all:true}}),
-        tx.dartBackfillTask.groupBy({by:['status','errorCode','needsSupplement'],where:{...dartTaskScope(now),securityId:{in:ids}},_count:{_all:true}}),
-        tx.dartBackfillTask.groupBy({by:['errorCode'],where:{...dartTaskScope(now),status:'FAILED'},_count:{_all:true}}),
-      ]),{isolationLevel:'RepeatableRead'});
-      const allProgress=dartProgress(taskCounts),priorityProgress=dartProgress(priorityCounts);
-      detail.dart = { holidayCalendar: holidayCalendarStatus(now), priority: {...priorityProgress,securities:ids.length}, reviewRequired:allProgress.reviewRequired, errors:errorGroups.map(row=>({code:row.errorCode??'UNKNOWN',count:row._count._all})), phase: state?.phase ?? 'NOT_INITIALIZED', backfill: { ...allProgress,completedAt: iso(state?.backfillCompletedAt) },
-        current: { priorityCheckedWithinDay: priorityDelayed, universeOver90Days: universeDelayed }, usage: usage.map((row) => ({ date: iso(row.usageDate), apiCalls: row.apiCallCount, companyChecks: row.companyCheckCount, noData: row.noDataCount, failures: row.errorCount })) };
+      // This is the incremental inbox monitor. Retired backfill statistics are not
+      // part of this view and must not acquire the financial writer fence.
+      detail.securityData = (await securityProcessingStatus()).aggregation;
+      detail.dart = {phase:'SECURITY_DATA',historicalCollectionRetired:true};
     }
     return { data: detail };
   });
