@@ -3,7 +3,7 @@ import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {Box,Button,ButtonBase,Dialog,DialogContent,DialogTitle,Popover,Tooltip,Typography} from '@mui/material';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useSearchParams} from 'react-router-dom';
-import {securityDataUnit,validateManualNumber,validateSecurityDataBasis} from '@roxstock/shared/domain/security-data';
+import {securityDataUnit,validateManualNumber,validateSecurityDataBasis} from '../../../../shared/src/domain/security-data';
 import {apiRequest} from '../../data/apiClient';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {DateField,FormSelect,FormTextField} from '../../components/forms/Fields';
