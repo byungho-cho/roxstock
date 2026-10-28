@@ -30,10 +30,17 @@ test('security data: real sessions, optimistic single-field edits, manual protec
    assert.equal(await raw.securityDataReceipt.count(),receiptCount);
   }finally{if(enabled===undefined)delete process.env.SECURITY_DATA_COLLECTION_ENABLED;else process.env.SECURITY_DATA_COLLECTION_ENABLED=enabled;}
   let detail=(await app.inject({url:path,headers:admin})).json().data;assert.equal(detail.fields.length,26);assert.equal(detail.basis,null);
-  const basis={receiptNo:null,fsDivision:'CFS',periodEnd:end.toISOString().slice(0,10),currency:'KRW',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'};
+  const basis={receiptNo:null,fsDivision:'CFS',periodStart:`${q.year}-01-01`,periodEnd:end.toISOString().slice(0,10),currency:'KRW',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'};
   const patch=(field:string,value:string,expectedValue:unknown,b=detail.basis??basis)=>app.inject({method:'PATCH',url:path,headers:admin,payload:{field,value,expectedValue,basis:b}});
+  assert.equal((await patch('eps','1',null)).statusCode,409);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:user,payload:basis})).statusCode,403);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{...basis,periodStart:'invalid'}})).statusCode,400);
+  const setup=await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:basis});assert.equal(setup.statusCode,200,setup.body);detail=setup.json().data;
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:basis})).statusCode,200);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{...basis,currency:'USD'}})).statusCode,409);
+  assert.equal((await app.inject({url:path.replace('/'+q.quarter+'/', '/'+(q.quarter===1?2:1)+'/'),headers:admin})).json().data.basis,null);
   const edit=await patch('revenueQuarter','0',null);assert.equal(edit.statusCode,200,edit.body);detail=edit.json().data;assert.equal(detail.fields.find((f:any)=>f.key==='revenueQuarter').value,'0');
-  assert.equal((await raw.securityDataEdit.count({where:{securityId:security.id}})),1);
+  assert.equal((await raw.securityDataEdit.count({where:{securityId:security.id}})),2);
   assert.equal((await patch('marketCap','12',null)).statusCode,400);
   assert.equal((await patch('revenueQuarter','100',null)).statusCode,409);
   const second=await patch('revenueQuarter','12','0');assert.equal(second.statusCode,200,second.body);

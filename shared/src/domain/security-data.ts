@@ -15,11 +15,28 @@ export function validateManualNumber(field:string,value:unknown){
  const spec=securityDataFields.find(f=>f[0]===field);if(!spec||spec[3]!=='direct')throw Error('FIELD_NOT_EDITABLE');
  if(typeof value!=='string'||! /^-?\d{1,24}(?:\.\d{1,4})?$/.test(value))throw Error('INVALID_NUMBER');
  if(['issuedShares','treasuryShares'].includes(field)&&(!/^\d+$/.test(value)||value.length>20))throw Error('INVALID_SHARE_COUNT');
+ if(['per','pbr','dividendPerShare','totalAssets','totalLiabilities'].includes(field)&&value.startsWith('-'))throw Error('NEGATIVE_NOT_ALLOWED');
  return value;
+}
+export function securityDataUnit(field:string,currency:string|null|undefined){
+ if(['roe','dividendYield'].includes(field))return '%';
+ if(['per','pbr'].includes(field))return '배';
+ if(['issuedShares','treasuryShares','outstandingShares'].includes(field))return '주';
+ return currency==='KRW'?'원':currency??'';
+}
+/** Explicit, period-local manual basis. Never infer a fiscal period from the calendar quarter. */
+export function validateSecurityDataBasis(value:unknown,year:number,quarter:number){
+ const b=objectValue(value),start=String(b.periodStart??''),end=String(b.periodEnd??'');
+ const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s;
+ if(!validDate(start)||!validDate(end))throw Error('INVALID_BASIS_DATES');
+ const days=(Date.parse(end)-Date.parse(start))/86400000+1,months=quarter*3;
+ if(days<months*28-7||days>months*31+7||Number(start.slice(0,4))<year-1||Number(end.slice(0,4))>year+1||Number(start.slice(0,4))>year||Number(end.slice(0,4))<year||start>end)throw Error('INVALID_FISCAL_DURATION');
+ if(!['CFS','OFS'].includes(b.fsDivision)||!['KRW','USD','CNY','JPY','EUR'].includes(b.currency)||b.shareClass!=='COMMON'||b.kind!=='ACTUAL'||b.amountMultiplier!=='1'||b.receiptNo!==null)throw Error('INVALID_BASIS');
+ return {receiptNo:null,fsDivision:String(b.fsDivision),periodStart:start,periodEnd:end,currency:String(b.currency),amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'};
 }
 export function protectManualWrite(previous:unknown,incoming:Record<string,any>){
  const before=objectValue(previous),saved=objectValue(before.supplemental),manual=objectValue(saved.manualFields);
- if(!Object.keys(manual).length)return incoming;
+ if(!Object.keys(manual).length&&!saved.manualBasis)return incoming;
  if(objectValue(incoming.supplemental).manualEditRevision===(saved.manualEditRevision??0)+1)return incoming;
  const next:Record<string,any>={...incoming,supplemental:{...objectValue(incoming.supplemental),manualFields:manual,manualBasis:saved.manualBasis,manualEditRevision:saved.manualEditRevision,lastManualEditAt:saved.lastManualEditAt}};
  if(incoming.supplemental===undefined)next.supplemental={...saved,manualFields:manual};
