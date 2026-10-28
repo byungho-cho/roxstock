@@ -30,5 +30,7 @@ test('zero targets distinguish completed empty/duplicate queries, failed/partial
  assert.equal(processingView(run('SKIPPED',{status:'COMPLETE',found:5,created:0}),cursor).message,'조회 완료 · 추가 반영 대상 없음');
  assert.equal(processingView(run('FAILED',{status:'FAILED',found:0}),cursor).message,'공시 조회 실패');assert.equal(processingView(run('PARTIAL',{status:'PARTIAL',found:2}),cursor).state,'QUERY_PARTIAL');
  assert.equal(processingView({id:'1',status:'SKIPPED',metadata:{counts:{target:0}}},cursor).state,'UNKNOWN');
+ const failed=processingView(run('FAILED',{status:'FAILED',found:0,resumePoint:{fromDate:'20261028',throughDate:'20261028',page:2}}),cursor);assert.equal(failed.discovery.checkpoint,null);assert.equal(failed.discovery.resumePoint.page,2);
+ const checked=processingView(run('SKIPPED',{status:'COMPLETE',found:0,checkpoint:{fromDate:'20261028',throughDate:'20261028',page:3},resumePoint:{fromDate:'20261028',throughDate:'20261028',page:1}}),cursor);assert.equal(checked.discovery.checkpoint.page,3);assert.equal(checked.discovery.resumePoint.page,1);
  const p=processingView(run('PARTIAL',{status:'COMPLETE',found:1},[work('1','1','PARTIAL'),work('1','2','SUCCESS')]),cursor);assert.equal(p.discoveredReceipts,1);assert.equal(p.counts.target,2);assert.equal(p.counts.partial,1);assert.equal(p.counts.rate,50);
 });
