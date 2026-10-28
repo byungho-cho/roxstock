@@ -6,7 +6,7 @@ export function selectServices(paths,{before={},after={}}={}) {
   for(const p of paths) {
     if(p.endsWith('.md')||p==='backend/src/release.json')continue;
     if(/^(shared\/|database\/)/.test(p)) {selected.add('backend');selected.add('collector');}
-    if(/^shared\/src\/domain\/(korean-holidays|market-calendar|dart-review|security-data)\.ts$/.test(p))selected.add('frontend');
+    if(/^shared\/src\/domain\/(korean-holidays|market-calendar|dart-review|security-data|security-data-aggregation)\.ts$/.test(p))selected.add('frontend');
     for(const s of services)if(p.startsWith(s+'/'))selected.add(s);
     if(/^(infra\/|compose[^/]*\.ya?ml$|\.dockerignore$|scripts\/deploy[^/]*\.(sh|mjs)$|\.github\/workflows\/(production-deploy|backend-deploy|collector-deploy|frontend-image)\.yml$)/.test(p))for(const s of services)selected.add(s);
     if(p==='package.json')for(const s of services)selected.add(s);

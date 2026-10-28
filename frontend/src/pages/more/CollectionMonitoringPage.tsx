@@ -1,3 +1,4 @@
+import type {SecurityProcessingView} from '../../../../shared/src/domain/security-data-aggregation';
 import {CollectionBugReportSummary} from './CollectionBugReports';
 import {summarizeMonitorStatuses} from './monitorStatusSummary';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
@@ -17,7 +18,7 @@ import { getCollectionMonitorDetail, getCollectionMonitorSummary, type Collectio
 import { DelayedSkeleton, useDelayedIndicator } from '../../components/common/DelayedSkeleton';
 
 type ApiFeature = CollectionMonitorSummary['features'][number];
-type Feature = Pick<ApiFeature, 'id' | 'status'> & Partial<Omit<ApiFeature, 'id' | 'status' | 'recent'>> & { recent: Partial<ApiFeature['recent']> };
+type Feature = Pick<ApiFeature, 'id' | 'status'> & Partial<Omit<ApiFeature, 'id' | 'status' | 'recent'>> & { recent: Partial<ApiFeature['recent']>;securityData?:SecurityProcessingView };
 type DataRecord = Record<string, any>;
 
 const statusStyle: Record<string, { label: string; background: string; foreground: string }> = {
@@ -84,7 +85,7 @@ function StatusPill({ feature }: { feature: Feature; compact?: boolean }) {
   const pending = useContext(PendingData);
   const base = statusStyle[feature.status] ?? unknownStatus;
   const outOfSession = feature.id === 'realtime-prices' && feature.realtime?.session === 'OUT_OF_SESSION' && ['OK', 'WAITING', 'RUNNING'].includes(feature.status);
-  const label = feature.id==='dart-financial-statements'&&feature.phase==='SECURITY_DATA'&&feature.status==='PARTIAL'&&!feature.recent.failed?'미해결·대기':feature.id==='investor-trends'&&feature.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':outOfSession ? '장 외 대기' : base.label;
+  const label = feature.securityData?({COMPLETE:'조회 완료',PARTIAL:'부분 완료',QUERY_FAILED:'조회 실패',QUERY_PARTIAL:'조회 불완전',NO_HISTORY:'이력 없음'}[feature.securityData.state]??base.label):feature.id==='dart-financial-statements'&&feature.phase==='SECURITY_DATA'&&feature.status==='PARTIAL'&&!feature.recent.failed?'미해결·대기':feature.id==='investor-trends'&&feature.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':outOfSession ? '장 외 대기' : base.label;
   const style = outOfSession ? statusStyle.WAITING : base;
   return <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, minWidth: 82, width: 82, boxSizing: 'border-box', height: 19, px: 1, borderRadius: '999px', bgcolor: pending ? 'transparent' : style.background, color: style.foreground, fontSize: 10, lineHeight: 1, fontWeight: 600, whiteSpace: 'nowrap' }}><DataValue width={60}>{label}</DataValue></Box>;
 }
@@ -108,6 +109,7 @@ function SummaryStatus({ features, generatedAt }: { features: Feature[]; generat
 }
 
 function FeatureTiming({feature}:{feature:Feature}) {
+  if(feature.securityData){const a=feature.securityData;const color=a.state==='QUERY_FAILED'||a.state==='FAILED'?'#F26A6F':a.state==='PARTIAL'||a.state==='QUERY_PARTIAL'?colors.warning:a.state==='COMPLETE'?'#3D8CF5':'#34D399';return <Typography component="span" data-testid="feature-timing" sx={{...mutedText,fontSize:10,lineHeight:'14px',whiteSpace:'nowrap'}}><Box component="span" data-testid="feature-result-status" sx={{color}}>{a.state==='COMPLETE'?'조회 완료':a.state==='NO_HISTORY'?'실행 없음':a.state==='QUERYING'?'조회 중':a.state==='PROCESSING'?'처리 중':a.state==='WAITING'?'대기':a.state==='PARTIAL'?'부분 완료':'확인 필요'} {clockText(a.lastQueryCompletedAt??a.runEndedAt)}</Box>(시도 {clockText(feature.lastAttemptAt)})</Typography>;}
   const state=feature.lastExecution?.status??feature.status;
   const tones:Record<string,{label:string;color:string}>={
     OK:{label:'성공',color:'#3D8CF5'},SUCCESS:{label:'성공',color:'#3D8CF5'},
@@ -159,6 +161,7 @@ function FeatureSummaryCard({ item, onOpen, selected = false }: { item: Feature;
 }
 
 function ScheduleNotice({feature}:{feature:Feature}) {
+  if(feature.securityData)return <Typography sx={{fontSize:10,lineHeight:'15px',color:feature.securityData.lastError?colors.warning:colors.textMuted}}>{feature.securityData.message}</Typography>;
   if(!feature.scheduleState&&!feature.lastExecution)return null;
   return <Box sx={{fontSize:10,lineHeight:'15px',color:colors.textMuted,overflowWrap:'anywhere'}}>
     {feature.lastExecution && <Typography sx={{fontSize:'inherit'}}>실행 #{feature.lastExecution.id} · 마지막 실행: {feature.id==='investor-trends'&&feature.lastExecution.status==='PARTIAL'&&!feature.recent.failed?'자료 제한':feature.lastExecution.status==='SUCCESS'&&feature.recent.success===0&&feature.recent.excluded? '정상 · 전체 수집 제외':statusStyle[feature.lastExecution.status]?.label??feature.lastExecution.status}</Typography>}
@@ -169,17 +172,17 @@ function ScheduleNotice({feature}:{feature:Feature}) {
   </Box>;
 }
 
-function CountStrip({ target, success, failed, skipped,unresolved,feature,runId,scopeLabel }: { target?: number|null; success?: number|null; failed?: number|null; skipped?: number|null;unresolved?:number;feature:string;runId?:string;scopeLabel?:string }) {
+function CountStrip({ target, success, failed, skipped,unresolved,partial,feature,runId,scopeLabel }: { target?: number|null; success?: number|null; failed?: number|null; skipped?: number|null;unresolved?:number;partial?:number;feature:string;runId?:string;scopeLabel?:string }) {
   const navigate=useListNavigation();const pending=useContext(PendingData);
   const open=(result:string)=>navigate(`/detail/collection-monitoring/${feature}/items?${new URLSearchParams({result,...(runId?{runId}:{})})}`);
   const values = [
     ['대상', target, colors.textPrimary],
     ['성공', success, colors.positive],
     ['실패', failed, colors.error],
-    ['건너뜀', skipped, '#F2F7FC'],
-    ...(unresolved==null?[]:[['미해결',unresolved,colors.warning] as const]),
+    [partial==null?'건너뜀':'정상 제외', skipped, '#F2F7FC'],
+    ...(partial!=null?[['부분 완료',partial,colors.warning] as const]:unresolved==null?[]:[['미해결',unresolved,colors.warning] as const]),
   ] as const;
-  return <><Typography sx={{fontSize:10,color:colors.textMuted,mb:0.5}}>{scopeLabel??'최근 실행 대상 결과'}</Typography><Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: `repeat(${unresolved==null?4:5},minmax(0,1fr))`, minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
+  return <><Typography sx={{fontSize:10,color:colors.textMuted,mb:0.5}}>{scopeLabel??'최근 실행 대상 결과'}</Typography><Box data-testid="monitor-counts" sx={{ ...cardSx, display: 'grid', gridTemplateColumns: `repeat(${partial==null&&unresolved==null?4:5},minmax(0,1fr))`, minHeight: 44, bgcolor: '#0E131F', borderRadius: '8px', px: '4px', py: '3px' }}>
     {values.map(([label, value, color]) => <ButtonBase key={label} disabled={pending||!['성공','실패'].includes(label)} aria-label={['성공','실패'].includes(label)?`${label} 대상 목록`:undefined} onClick={()=>open(label==='성공'?'SUCCESS':'FAILED')} sx={{minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0.15,'&.Mui-disabled':{color}}}>
       <Typography sx={{ color, fontSize: 10, lineHeight: '11px' }}>{feature==='investor-trends'&&label==='건너뜀'?'미완료':label}</Typography>
       <Typography sx={{ color, fontSize: 11, lineHeight: '15px', fontWeight: 600 }}><DataValue width={30}>{numberText(value)}</DataValue></Typography>
@@ -188,6 +191,7 @@ function CountStrip({ target, success, failed, skipped,unresolved,feature,runId,
 }
 
 function CurrentStatusCard({ feature, onRefresh, refreshing }: { feature: Feature; onRefresh: () => void; refreshing: boolean }) {
+ if(feature.securityData){const a=feature.securityData;return <Box data-testid="monitor-current" sx={{...cardSx,p:'12px',position:'relative'}}><Typography sx={{fontSize:12,fontWeight:600,mb:'2px'}}>현재 상태</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>마지막 조회 완료 {dateText(a.lastQueryCompletedAt)}</Typography><Typography sx={{fontSize:10,color:'#3D8CF5'}}>마지막 자료 반영 성공 {dateText(a.lastStoredAt)}</Typography><Typography sx={{fontSize:11,fontWeight:600,color:a.lastError||a.state==='FAILED'?colors.error:a.state.includes('PARTIAL')?colors.warning:'#34D399'}}>{a.message}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>확인 범위 {a.discovery.from??a.discovery.coverageFrom??'미확인'} ~ {a.discovery.through??'미확인'} · {a.discovery.complete?'확인 완료':'완료 지점 확인 필요'}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>완료 지점 {a.discovery.checkpoint?.throughDate&&a.discovery.checkpoint?.page?`${a.discovery.checkpoint.throughDate} · ${a.discovery.checkpoint.page}페이지`:'미확인'} · 실행 종료 {dateText(a.runEndedAt)}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>다음 예정 {clockText(feature.nextAt)}</Typography><Box sx={{position:'absolute',right:10,bottom:0}}><ManualRefresh refreshing={refreshing} onClick={onRefresh}/></Box></Box>;}
   return <Box data-testid="monitor-current" sx={{ ...cardSx, px: '12px', py: '12px', minHeight: feature.id === 'realtime-prices' ? 70 : 55, position: 'relative' }}>
     <Stack direction="row" spacing={0.5} sx={{ height: 20, alignItems: 'center' }}>
       <Typography sx={{ color: '#F2F7FC', fontSize: 12, fontWeight: 600, flex: 1 }}>현재 상태</Typography>
@@ -244,6 +248,8 @@ function RunHistory({runs,feature}: {runs: DataRecord[]; feature: string}) {
       {pending ? <Stack spacing={1}><DataValue width={200}/><DataValue width={240}/></Stack> : runs.length ? <Stack spacing={0.5}>{runs.map(run=>{
         const style=statusStyle[String(run.status)]??unknownStatus;
         const metadata=asRecord(run.metadata);
+        const a=run.securityProcessing as SecurityProcessingView|undefined;
+        if(a){const c=a.counts;return <Box key={run.id} data-testid="monitor-run-row" sx={{py:.5,minWidth:0}}><Typography sx={{color:a.state.includes('FAILED')?colors.error:a.state.includes('PARTIAL')?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {a.message}</Typography><Typography sx={{...mutedText,fontSize:10,lineHeight:'14px'}}>대상 {c.target} · 성공 {c.success} · 부분 완료 {c.partial} · 실패 {c.failed} · 정상 제외 {c.excluded} · 대기 {c.pending} · 처리 중 {c.processing}</Typography></Box>;}
         return <Box key={run.id} data-testid="monitor-run-row" data-scroll-item={`run-${run.id}`} sx={{py:0.5,minWidth:0,overflowWrap:'anywhere'}}>
           <Typography sx={{color:style.background,fontSize:10,lineHeight:'14px'}}>{dateText(run.startedAt)} · {feature==='investor-trends'&&run.status==='PARTIAL'&&!run.failed?'자료 제한':style.label}{feature==='dart-financial-statements' ? ` · ${metadata.phase==='SECURITY_DATA'?'종목 데이터 수집':metadata.phase==='MANUAL'?'수동 갱신 이력':'이전 수집 이력'}`:''}</Typography>
           <Typography sx={{color:run.status==='PARTIAL'?colors.warning:colors.textMuted,fontSize:10,lineHeight:'14px'}}>대상 {numberText(run.target)} · 성공 {numberText(run.success)} · 실패 {numberText(run.failed)} · 정상 제외 {numberText(run.excluded)} · {feature==='investor-trends'?'미완료':'건너뜀'} {numberText(run.skipped)}{metadata.phase==='SECURITY_DATA'&&<> · 미해결 {numberText(asRecord(metadata.counts).unresolved)} · 대기 {numberText(asRecord(metadata.counts).pending)} · 처리 중 {numberText(asRecord(metadata.counts).processing)}</>}</Typography>
@@ -383,8 +389,8 @@ function MonitoringContent({ feature, selected, onOpen }: { feature?: string; se
     {isDart ? <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', columnGap: '8px', rowGap: '8px', alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ minWidth: 0 }}>
         <Box sx={{ display: 'block' }}><CurrentStatusCard feature={current} refreshing={summary.isFetching || detail.isFetching} onRefresh={refreshStats} /></Box>
-        <SecurityCollectionCard/>
-        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} unresolved={asRecord(current).unresolved} /></Box>
+        <SecurityCollectionCard value={current.securityData}/>
+        <Box sx={{ display: 'block' }}><CountStrip feature={current.id} runId={current.resultScope?.runId} scopeLabel={current.resultScope?.label} target={current.recent.target} success={current.recent.success} failed={current.recent.failed} skipped={current.recent.skipped} unresolved={current.securityData?undefined:asRecord(current).unresolved} partial={current.securityData?.counts.partial} /></Box>
         <SummaryRecords feature={feature} stream="runs"/>
       </Stack>
       <SummaryRecords feature={feature} stream="items"/>
@@ -419,8 +425,9 @@ export function CollectionMonitoringPage() {
   </Box>;
 }
 
-function SecurityCollectionCard(){
- const navigate=useNavigate(),query=useQuery({queryKey:['security-data-status'],queryFn:()=>apiRequest<{enabled:boolean;cursor:{lastCompletedAt:string|null;nextCheckAt:string}|null;run:{id:string;status:string;counts?:{target:number;success:number;failed:number;skipped:number;unresolved:number;pending:number;processing:number}}|null}>('/security-data/status'),refetchInterval:60000});
- const c=query.data?.run?.counts,rate=c?.target?c.success/c.target*100:0;
- return <ButtonBase data-testid="security-collection-card" aria-label="종목 데이터 수집 · 종목 관리로 이동" onClick={()=>navigate('/detail/security-data')} sx={{...cardSx,p:'8px',display:'grid',gap:'4px',width:'100%',textAlign:'left',justifyContent:'stretch'}}><Typography sx={{fontSize:12,lineHeight:'18px',fontWeight:600}}>종목 데이터 수집</Typography><Typography sx={{fontSize:10,color:'#34D399'}}>대상 {c?.target??'—'} · 성공 {c?.success??'—'} · 미해결 {c?.unresolved??'—'}</Typography><Typography sx={{fontSize:11}}>수집 성공률 {c?rate.toFixed(1)+'%':'—'}</Typography><Box role="progressbar" aria-label="종목 데이터 수집 성공률" aria-valuenow={rate} aria-valuemin={0} aria-valuemax={100} sx={{height:8,bgcolor:'#26334A',borderRadius:1,overflow:'hidden'}}><Box sx={{width:`${rate}%`,height:'100%',bgcolor:'#34D399'}}/></Box><Typography sx={{fontSize:10,color:'#34D399'}}>성공 {c?.success??'—'} · 건너뜀 {c?.skipped??'—'}</Typography><Typography sx={{fontSize:10,color:'#F87171'}}>실패 {c?.failed??'—'} · 미해결 {c?.unresolved??'—'}</Typography>{!!c&&(c.pending>0||c.processing>0)&&<Typography sx={{fontSize:10,color:'#94A3B8'}}>대기 {c.pending} · 처리 중 {c.processing}</Typography>}{query.isError&&<Typography sx={{fontSize:10,color:'#FBBF24'}}>상태 조회 실패 · 기존 결과 유지</Typography>}</ButtonBase>;
+function SecurityCollectionCard({value}:{value?:SecurityProcessingView}){
+ const navigate=useNavigate(),query=useQuery({queryKey:['security-data-status'],queryFn:()=>apiRequest<{aggregation:SecurityProcessingView}>('/security-data/status'),refetchInterval:60000,enabled:!value});
+ const a=value??query.data?.aggregation,c=a?.counts,rate=c?.rate??null;
+ const colorsByState=['#34D399','#FBBF24','#F87171','#CBD5E1','#60A5FA','#34D399'];
+ return <ButtonBase data-testid="security-collection-card" aria-label="이번 조회·처리 결과 · 종목 관리로 이동" onClick={()=>navigate('/detail/security-data')} sx={{...cardSx,p:'8px',display:'grid',gap:'4px',width:'100%',textAlign:'left',justifyContent:'stretch'}}><Typography sx={{fontSize:12,lineHeight:'18px',fontWeight:600}}>이번 조회·처리 결과</Typography><Typography sx={{fontSize:10,color:'#34D399'}}>발견 공시 {numberText(a?.discoveredReceipts)}건 · 처리 대상 {numberText(c?.target)}건</Typography><Typography sx={{fontSize:11}}>처리 성공률 {rate===null?'—':rate.toFixed(1)+'%'} · {a?.running?'현재 판정 ':''}{c?.rateDenominator?`${a?.running?'':'최종 '}판정 ${c.rateDenominator}건 기준`:c?.rateReason==='DISCOVERY_FAILED'?'조회 실패로 대상 미확정':c?.rateReason==='DISCOVERY_INCOMPLETE'?'확인 범위 불완전':c?.rateReason==='NO_HISTORY'?'실행 이력 없음':c?.target?'완료 판정 대기':'산정 대상 없음'}</Typography><Box role="progressbar" aria-label="종목 데이터 처리 성공률" aria-valuenow={rate??undefined} aria-valuetext={rate===null?'산정 대상 없음':undefined} aria-valuemin={0} aria-valuemax={100} sx={{height:8,bgcolor:'#26334A',borderRadius:1,overflow:'hidden'}}><Box sx={{width:rate===null?'0%':rate+'%',height:'100%',bgcolor:'#34D399'}}/></Box><Box data-testid="security-work-counts" sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'2px',flexWrap:'nowrap',whiteSpace:'nowrap',fontSize:{xs:8,sm:9},lineHeight:'14px'}}>{[['성공',c?.success],['부분 완료',c?.partial],['실패',c?.failed],['정상 제외',c?.excluded],['대기',c?.pending],['처리 중',c?.processing]].map(([label,n],i)=><Box component="span" key={label} sx={{color:colorsByState[i]}}>{i?' · ':''}{label} {numberText(n as number|undefined)}</Box>)}</Box>{query.isError&&<Typography sx={{fontSize:10,color:'#FBBF24'}}>상태 조회 실패 · 기존 결과 유지</Typography>}</ButtonBase>;
 }
