@@ -53,8 +53,9 @@ function MissingList({endpoint,year,quarter,filter,navigate,back,snapshot,recove
 }
 function basisText(data:Detail){const b=data.basis;return b?`${b.fsDivision==='CFS'?'연결':'별도'} · ${b.shareClass==='COMMON'?'보통주':b.shareClass} · ${data.periodStart??b.periodStart??'시작일 확인 필요'} ~ ${b.periodEnd??'종료일 확인 필요'} · ${b.currency} · 금액 배수 ${b.amountMultiplier} · ${b.kind==='ACTUAL'?'실제 보고자료':b.kind==='MANUAL_PERIOD'?'수기 보고기간 기준':b.kind}`:'자료 기준 확인 필요 · 별도 자료 기준 설정을 완료하세요.';}
 function DetailPage({endpoint,back}:{endpoint:string;back:()=>void}){
- const query=useQuery({queryKey:['security-data-detail',endpoint],queryFn:()=>apiRequest<Detail>(endpoint)}),data=query.data;
- return <><Header title={data?`${data.security.name}(${data.security.symbol})`:'종목 데이터 상세'} info={data?basisText(data):undefined} action={data?`${String(data.year).slice(-2)}년 ${data.quarter}분기${data.quarter===2?'(반기)':data.quarter===4?'(연간)':''}`:undefined} back={back}/><QueryErrorNotice active={query.isError} message="종목 데이터 조회 실패" onRetry={()=>void query.refetch()}/>{data&&<DataDetail data={data} endpoint={endpoint}/>}</>;
+ const query=useQuery({queryKey:['security-data-detail',endpoint],queryFn:()=>apiRequest<Detail>(endpoint),refetchOnMount:'always'}),data=query.data;
+ const [verified,setVerified]=useState(false);useEffect(()=>{if(query.isFetchedAfterMount&&!query.isError)setVerified(true);},[query.isFetchedAfterMount,query.isError]);
+ return <><Header title={data?`${data.security.name}(${data.security.symbol})`:'종목 데이터 상세'} info={data?basisText(data):undefined} action={data?`${String(data.year).slice(-2)}년 ${data.quarter}분기${data.quarter===2?'(반기)':data.quarter===4?'(연간)':''}`:undefined} back={back}/><QueryErrorNotice active={query.isError} message="종목 데이터 조회 실패" onRetry={()=>void query.refetch()}/>{data&&verified&&<DataDetail data={data} endpoint={endpoint}/>}</>;
 }
 function DataDetail({data,endpoint}:{data:Detail;endpoint:string}){
  const client=useQueryClient(),[editing,setEditing]=useState<{field:Field;anchor:HTMLElement}|null>(null),[open,setOpen]=useState(false),[value,setValue]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[basisOpen,setBasisOpen]=useState(data.basisSetup?.needed??!data.basis);
