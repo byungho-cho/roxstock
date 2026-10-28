@@ -1,4 +1,4 @@
-// Uses real production HTTP and server-issued short-lived sessions; no API fixtures or writes.
+// Real production HTTP; optional isolated inactive fixture is the only manual-write target.
 import {chromium,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 const identities=JSON.parse(readFileSync(process.env.SECURITY_DATA_BROWSER_SESSIONS,'utf8')),browser=await chromium.launch(process.env.SECURITY_DATA_BROWSER_CHANNEL?{channel:process.env.SECURITY_DATA_BROWSER_CHANNEL}:{}),origin='https://newrox.cafe24.com',checks=[];
@@ -27,12 +27,12 @@ try{
      await page.goto(origin+'/detail/security-data?year='+fixture.year+'&quarter='+q+'&selected='+fixture.id);
      await expect(page.getByRole('heading',{name:'UI 검증용 임시 종목('+fixture.symbol+')',exact:true})).toBeVisible();
      if(viewport.width===370){
-      await page.getByRole('button',{name:'자료 기준 설정',exact:true}).click();
+      await expect(page.getByRole('dialog',{name:'자료 기준 설정'})).toBeVisible();
+      await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toBeHidden();
+      await page.reload();await expect(page.getByRole('dialog',{name:'자료 기준 설정'})).toBeVisible();
       await page.getByRole('combobox',{name:'연결/별도'}).click();await page.getByRole('option',{name:'연결',exact:true}).click();
-      await page.getByRole('combobox',{name:'통화'}).click();await page.getByRole('option',{name:'KRW',exact:true}).click();
-      await page.getByRole('textbox',{name:'실제 시작일'}).fill(fixture.year+'-01-01');
-      await page.getByRole('textbox',{name:'실제 종료일'}).fill(new Date(Date.UTC(fixture.year,q*3,0)).toISOString().slice(0,10));
-      await page.getByRole('button',{name:'기준 확인 및 저장'}).click();await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(page.getByRole('combobox')).toHaveCount(1);await page.getByRole('button',{name:'저장',exact:true}).click();await expect(page.getByRole('dialog')).toBeHidden();
+      await page.reload();await expect(page.getByRole('dialog')).toHaveCount(0);
       await page.getByTestId('security-data-field-eps').click();await page.getByPlaceholder('편집 값').fill('-12.5');await page.getByPlaceholder('편집 값').press('Enter');await expect(page.getByTestId('security-data-field-eps')).toContainText('-12.5원');
       await page.getByTestId('security-data-field-pbr').click();await page.getByPlaceholder('편집 값').fill('1.25');await page.getByPlaceholder('편집 값').press('Enter');await expect(page.getByTestId('security-data-field-pbr')).toContainText('1.25배');
      }else {await expect(page.getByRole('button',{name:'자료 기준 설정',exact:true})).toHaveCount(0);await expect(page.getByTestId('security-data-field-pbr')).toContainText('1.25배');}
@@ -40,6 +40,7 @@ try{
      expect(actual.fields.find(f=>f.key==='eps').value).toBe('-12.5');expect(actual.fields.find(f=>f.key==='eps').source).toBe('MANUAL');expect(actual.basis.currency).toBe('KRW');
     }
     await page.goto(origin+'/detail/collection-monitoring/dart-financial-statements');await expect(page.getByTestId('security-collection-card')).toBeVisible({timeout:60000});
+    const processing=(await (await page.request.get(origin+'/api/security-data/status')).json()).data.aggregation;const cc=processing.counts;expect(cc.target).toBe(cc.pending+cc.processing+cc.success+cc.partial+cc.failed+cc.excluded);await expect(page.getByTestId('security-collection-card')).toContainText('처리 대상 '+cc.target+'건');await expect(page.getByTestId('security-collection-card')).toContainText('처리 성공률 '+(cc.rate===null?'—':cc.rate.toFixed(1)+'%'));
     await expect(page.getByTestId('monitor-history-data')).toBeAttached();await expect(page.getByTestId('monitor-results-data')).toBeAttached();await page.getByTestId('security-collection-card').click();await expect(page).toHaveURL(/\/detail\/security-data$/);
     await page.goto(origin+'/more');await expect(page.getByTestId('more-menu').getByRole('button')).toHaveCount(16);
    }

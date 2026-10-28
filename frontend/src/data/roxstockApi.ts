@@ -1,3 +1,4 @@
+import type {SecurityProcessingView} from '../../../shared/src/domain/security-data-aggregation';
 import { apiEnvelope, apiRequest } from './apiClient';
 
 export type ServerListType = 'WATCHLIST' | 'HOLDING' | 'RECOMMENDED';
@@ -257,7 +258,8 @@ export const getCollectionStatus = () => apiRequest<CollectionStatusDto>('/colle
 export interface CollectionMonitorSummary {
   generatedAt: string; timezone: string;
   features: Array<{ id: string; name: string; schedule: string; status: string; lastAttemptAt: string | null; lastSuccessAt: string | null; lastDataAt: string | null; statsGeneratedAt: string; nextAt: string | null;
-    investor?:{rawOnly:number;quantityStored:number;waiting:number;failed:number;other:number;dataScope:string;scheduleEnabled:boolean;notice:string;backfill?:{id:string;status:string;from:string|null;total:number|null;complete:number;failed:number;pages:number;exhausted:number;updatedAt:string|null}|null};
+    securityData?:SecurityProcessingView;
+      investor?:{rawOnly:number;quantityStored:number;waiting:number;failed:number;other:number;dataScope:string;scheduleEnabled:boolean;notice:string;backfill?:{id:string;status:string;from:string|null;total:number|null;complete:number;failed:number;pages:number;exhausted:number;updatedAt:string|null}|null};
     scheduleState?:{status:string;reason:string|null;dueAt:string;nextAt:string;graceMinutes:number;maxMinutes:number}|null;
     lastExecution?:{id:string;status:string;originalStatus?:string;startedAt:string|null;finishedAt:string|null}|null;
     duplicateRequest?:{id:string;startedAt:string|null;reason:string}|null;

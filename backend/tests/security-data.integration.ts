@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {PrismaClient} from '@roxstock/shared/prisma';
 import {prisma} from '@roxstock/shared/lib/prisma';
+import {securityWorkKey,securityAggregationVersion} from '@roxstock/shared/domain/security-data-aggregation';
 import {completedQuarters} from '@roxstock/shared/domain/security-data';
 import {buildApp} from '../src/app.js';
 import {passwordHash,randomToken} from '../src/auth/crypto.js';
@@ -24,7 +25,7 @@ test('security data: real sessions, optimistic single-field edits, manual protec
    const stopped=(await app.inject({url:statePath,headers:admin})).json().data;
    process.env.SECURITY_DATA_COLLECTION_ENABLED='true';
    const running=(await app.inject({url:statePath,headers:admin})).json().data;
-   assert.deepEqual(stopped,running);
+   const {asOf:offAt,aggregatedAt:offAggregate,...offState}=stopped,{asOf:onAt,aggregatedAt:onAggregate,...onState}=running;assert.deepEqual(offState,onState);
    const missing=stopped.items.find((r:any)=>r.id===String(security.id));
    assert.equal(missing.state,'DISCLOSURE_UNVERIFIED');assert.ok(missing.missingFinancial.includes('revenueYtd'));
    assert.equal(await raw.securityDataReceipt.count(),receiptCount);
@@ -33,11 +34,11 @@ test('security data: real sessions, optimistic single-field edits, manual protec
   const basis={receiptNo:null,fsDivision:'CFS',periodStart:`${q.year}-01-01`,periodEnd:end.toISOString().slice(0,10),currency:'KRW',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'};
   const patch=(field:string,value:string,expectedValue:unknown,b=detail.basis??basis)=>app.inject({method:'PATCH',url:path,headers:admin,payload:{field,value,expectedValue,basis:b}});
   assert.equal((await patch('eps','1',null)).statusCode,409);
-  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:user,payload:basis})).statusCode,403);
-  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{...basis,periodStart:'invalid'}})).statusCode,400);
-  const setup=await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:basis});assert.equal(setup.statusCode,200,setup.body);detail=setup.json().data;
-  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:basis})).statusCode,200);
-  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{...basis,currency:'USD'}})).statusCode,409);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:user,payload:{fsDivision:'CFS'}})).statusCode,403);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{fsDivision:'INVALID'}})).statusCode,400);
+  const setup=await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{fsDivision:'CFS'}});assert.equal(setup.statusCode,200,setup.body);detail=setup.json().data;
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{fsDivision:'CFS'}})).statusCode,200);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{fsDivision:'OFS'}})).statusCode,409);
   assert.equal((await app.inject({url:path.replace('/'+q.quarter+'/', '/'+(q.quarter===1?2:1)+'/'),headers:admin})).json().data.basis,null);
   const edit=await patch('revenueQuarter','0',null);assert.equal(edit.statusCode,200,edit.body);detail=edit.json().data;assert.equal(detail.fields.find((f:any)=>f.key==='revenueQuarter').value,'0');
   assert.equal((await raw.securityDataEdit.count({where:{securityId:security.id}})),2);
@@ -49,10 +50,35 @@ test('security data: real sessions, optimistic single-field edits, manual protec
   detail=(await app.inject({url:path,headers:admin})).json().data;assert.equal(detail.fields.find((f:any)=>f.key==='revenueQuarter').value,'12');
   const publicRead=await app.inject({url:`/api/financial-statements/${security.id}?startYear=${q.year}&endYear=${q.year}&period=${period}`,headers:admin});assert.equal(publicRead.statusCode,200,publicRead.body);
   assert.equal(publicRead.json().data.rows[0].values.revenue,period==='ANNUAL'?null:'12');
+  const baseline=(await app.inject({url:statePath,headers:admin})).json().data;
+  for(const [field,value]of Object.entries({revenueYtd:'10',operatingProfitYtd:'2',netIncomeYtd:'1',totalAssets:'40',totalLiabilities:'20',totalEquity:'20',eps:'-1',bps:'100',roe:'1',pbr:'1'})){
+   detail=(await app.inject({url:path,headers:admin})).json().data;const prior=detail.fields.find((f:any)=>f.key===field).value;
+   const saved=await patch(field,value,prior);assert.equal(saved.statusCode,200,saved.body);
+  }
+  const full=(await app.inject({url:statePath,headers:admin})).json().data;assert.equal(full.items.some((i:any)=>i.id===String(security.id)),false);assert.equal(full.complete,baseline.complete+1);
+  assert.equal((await app.inject({url:statePath+'?offset=50&snapshot='+baseline.snapshotId,headers:admin})).statusCode,409);
+  for(const filter of ['','financial','value']){const card=(await app.inject({url:'/api/security-data/quarters?filter='+filter,headers:admin})).json().data.quarters.find((r:any)=>r.year===q.year&&r.quarter===q.quarter),list=(await app.inject({url:statePath+'?filter='+filter,headers:admin})).json().data;assert.equal(card.missing,list.total);assert.equal(card.snapshotId,list.snapshotId);}
+  const originalValues=await raw.periodValuation.findUniqueOrThrow({where:key});
+  const held=await raw.dartBackfillTask.create({data:{securityId:security.id,fiscalYear:q.year,periodType:period,reportCode:q.quarter===4?'11011':q.quarter===1?'11013':q.quarter===2?'11012':'11014',status:'NOT_APPLICABLE',errorCode:'REVIEW_REQUIRED',diagnostics:{reason:'Unknown eligibility'}}});
+  const unknown=(await app.inject({url:statePath,headers:admin})).json().data;assert.equal(unknown.target,full.target);
+  await raw.dartBackfillTask.update({where:{id:held.id},data:{status:'EXCLUDED',errorCode:'USER_PERIOD_EXCLUDED',diagnostics:{policyEvidence:{decision:'ISOLATED_APPROVED_PERIOD_EXCLUSION'},policyVersion:'TEST_V1'}}});
+  const excluded=(await app.inject({url:statePath,headers:admin})).json().data;assert.equal(excluded.target,full.target-1);assert.equal(excluded.excluded,full.excluded+1);assert.equal(excluded.complete,full.complete-1);
+  assert.deepEqual((await raw.periodValuation.findUniqueOrThrow({where:key})).values,originalValues.values);
+  await raw.dartBackfillTask.update({where:{id:held.id},data:{status:'NOT_DUE',errorCode:'FILING_NOT_DUE',diagnostics:{periodEnd:(new Date(Date.now()+86400000*100)).toISOString().slice(0,10),closingMonth:3,monthEvidence:'OFFICIAL_FISCAL_END',minimumSubmissionDays:45}}});
+  const waiting=(await app.inject({url:statePath,headers:admin})).json().data;assert.equal(waiting.waiting,full.waiting+1);assert.equal(waiting.target,full.target-1);
+  const beforeForeign=(await raw.periodValuation.findUniqueOrThrow({where:key})).supplemental;
+  await raw.dartFinancialFiling.create({data:{securityId:security.id,fiscalYear:q.year,periodType:period,reportCode:held.reportCode,fsDivision:'CFS',receiptNo:'20991231999997',reportName:'Isolated USD report',periodEndDate:end,receiptDate:new Date(),collectedAt:new Date(),sourceValidation:{currency:'USD'}}});
+  const foreign=(await app.inject({url:path,headers:admin})).json().data;assert.ok(foreign.basisSetup.blockedReason);assert.equal(foreign.basisSetup.needed,false);assert.equal(foreign.fields.some((f:any)=>f.editable),false);
+  assert.equal((await app.inject({method:'PUT',url:path+'/basis',headers:admin,payload:{fsDivision:'CFS'}})).statusCode,409);assert.deepEqual((await raw.periodValuation.findUniqueOrThrow({where:key})).supplemental,beforeForeign);
+  await raw.dartFinancialFiling.deleteMany({where:{securityId:security.id,receiptNo:'20991231999997'}});
   const historyBefore=await raw.securityDataEdit.count({where:{securityId:security.id}});
   assert.equal((await app.inject({method:'PATCH',url:path,headers:{...admin,'x-csrf-token':'wrong'},payload:{field:'eps',value:'5',expectedValue:null,basis}})).statusCode,403);
   assert.equal(await raw.securityDataEdit.count({where:{securityId:security.id}}),historyBefore);
-  monitorRun=(await raw.collectorRun.create({data:{jobType:'dart-financial-statements',provider:'ISOLATED_FIXTURE',status:'PARTIAL',metadata:{phase:'SECURITY_DATA',counts:{target:1,unresolved:1}}}})).id;
+  const workItems=['SUCCESS','PARTIAL'].map((state,i)=>{const w={receiptNo:'20991231999999',securityId:String(i+1),reportPeriod:'2026.06',divisionPolicy:'CFS_THEN_OFS',state};return {...w,key:securityWorkKey(w)};});
+  monitorRun=(await raw.collectorRun.create({data:{jobType:'dart-financial-statements',provider:'ISOLATED_FIXTURE',status:'PARTIAL',finishedAt:new Date(),metadata:{phase:'SECURITY_DATA',aggregationVersion:securityAggregationVersion,workItems,discovery:{status:'COMPLETE',found:1,created:1,completedAt:new Date().toISOString()}}}})).id;
+  const projection=(await app.inject({url:'/api/security-data/status',headers:admin})).json().data.aggregation;assert.equal(projection.discoveredReceipts,1);assert.equal(projection.counts.target,2);assert.equal(projection.counts.partial,1);assert.equal(projection.counts.rate,50);
+  const summary=(await app.inject({url:'/api/collection/monitoring',headers:admin})).json().data.features.find((f:any)=>f.id==='dart-financial-statements');assert.deepEqual(summary.securityData.counts,projection.counts);
+  const runs=(await app.inject({url:'/api/collection/monitoring/dart-financial-statements/runs?phase=SECURITY_DATA',headers:admin})).json().data.rows;assert.equal(runs.find((r:any)=>r.id===String(monitorRun)).securityProcessing.counts.target,2);
   await raw.collectorRunItem.create({data:{runId:monitorRun,securityId:security.id,symbol:security.symbol,status:'NO_DATA',message:'부분수집',diagnostics:{phase:'SECURITY_DATA',outcome:'UNRESOLVED',partial:true,financialStored:true,fiscalYear:q.year,periodType:period,receiptNo:'20991231999999',secret:'must-not-leak'}}});
   const monitor=await app.inject({url:`/api/collection/monitoring/dart-financial-statements/items?phase=SECURITY_DATA&runId=${monitorRun}`,headers:admin});assert.equal(monitor.statusCode,200,monitor.body);assert.equal(monitor.json().data.rows.length,1);assert.equal(monitor.json().data.rows[0].securityData.outcome,'UNRESOLVED');assert.equal(monitor.json().data.rows[0].securityData.partial,true);assert.equal(monitor.body.includes('must-not-leak'),false);
   // A failed receipt transaction cannot advance the discovery checkpoint or leave half the inbox.
@@ -63,7 +89,7 @@ test('security data: real sessions, optimistic single-field edits, manual protec
   const restarted=buildApp();try{assert.equal((await restarted.inject({url:path,headers:admin})).json().data.fields.find((f:any)=>f.key==='revenueQuarter').value,'12');}finally{await restarted.close();}
  }finally{
   if(monitorRun){await raw.collectorRunItem.deleteMany({where:{runId:monitorRun}});await raw.collectorRun.delete({where:{id:monitorRun}});}
-  await raw.securityDataReceipt.deleteMany({where:{receiptNo:'20991231999999'}});await raw.securityDataEdit.deleteMany({where:{securityId:security.id}});await raw.periodValuation.deleteMany({where:{securityId:security.id}});await raw.analysisRevision.deleteMany({where:{key:'security:'+security.id}});await raw.security.delete({where:{id:security.id}});
+  await raw.securityDataReceipt.deleteMany({where:{receiptNo:'20991231999999'}});await raw.dartFinancialFiling.deleteMany({where:{securityId:security.id}});await raw.dartTaskDecision.deleteMany({where:{task:{securityId:security.id}}});await raw.dartBackfillTask.deleteMany({where:{securityId:security.id}});await raw.securityDataEdit.deleteMany({where:{securityId:security.id}});await raw.periodValuation.deleteMany({where:{securityId:security.id}});await raw.analysisRevision.deleteMany({where:{key:'security:'+security.id}});await raw.security.delete({where:{id:security.id}});
   await raw.authSession.deleteMany({where:{userId:{in:users.map(u=>u.id)}}});await raw.authUser.deleteMany({where:{id:{in:users.map(u=>u.id)}}});await app.close();await raw.$disconnect();await prisma.$disconnect();
  }
 });
