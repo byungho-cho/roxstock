@@ -1,9 +1,11 @@
+import './security-read-pool-env.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {PrismaClient} from '@roxstock/shared/prisma';
 import {prisma,securityDataReadSnapshot} from '@roxstock/shared/lib/prisma';
 import {securityWorkKey,securityAggregationVersion} from '@roxstock/shared/domain/security-data-aggregation';
 import {completedQuarters} from '@roxstock/shared/domain/security-data';
 import {buildApp} from '../src/app.js';
+import {storedQuarter} from '../src/routes/security-data-aggregation.js';
 import {passwordHash,randomToken} from '../src/auth/crypto.js';
 test('security data: real sessions, optimistic single-field edits, manual protection, audit, public/cache consistency, rollback and durable receipt checkpoint',async()=>{
  const url=new URL(process.env.DATABASE_URL!);assert.ok(['127.0.0.1','localhost'].includes(url.hostname),'Isolated DB only');
@@ -21,11 +23,13 @@ test('security data: real sessions, optimistic single-field edits, manual protec
   await raw.dartFinancialFiling.create({data:{securityId:security.id,collectionSymbol:'999999',fiscalYear:q.year,periodType:period,reportCode:q.quarter===4?'11011':q.quarter===1?'11013':q.quarter===2?'11012':'11014',fsDivision:'CFS',receiptNo:'20991231999996',reportName:'Isolated namespace mismatch',periodEndDate:end,receiptDate:new Date(),collectedAt:new Date()}});
   const namespace=await securityDataReadSnapshot(view=>view.security.findMany({where:{id:security.id},include:{dartFinancialFilings:true}}));assert.equal(namespace[0]!.dartFinancialFilings.length,0);
   await raw.dartFinancialFiling.deleteMany({where:{securityId:security.id,receiptNo:'20991231999996'}});
-  // Read-only snapshots must not queue behind the financial writer fence.
+  // A writer and a slow query occupy both API connections, including its financial fence.
+  // Read-only snapshots must use their bounded reader pool, not time out waiting for it.
   let acquired!:()=>void,release!:()=>void;const ready=new Promise<void>(r=>{acquired=r;}),writerHold=new Promise<void>(r=>{release=r;});
-  const writer=raw.$transaction(async tx=>{await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;acquired();await writerHold;},{timeout:15000});
+  const writer=prisma.$transaction(async tx=>{await tx.$queryRaw`SELECT revision FROM analysis_revisions WHERE \`key\`='financial' FOR UPDATE`;acquired();await writerHold;},{timeout:15000});
   await ready;let readTimer:ReturnType<typeof setTimeout>|undefined;
-  try{const overview=await Promise.race([app.inject({url:'/api/security-data/quarters',headers:admin}),new Promise<never>((_,reject)=>{readTimer=setTimeout(()=>reject(Error('READ_BLOCKED_BY_WRITER')),5000);})]);assert.equal(overview.statusCode,200,overview.body);assert.equal(overview.json().data.quarters.length,4);}finally{if(readTimer)clearTimeout(readTimer);release();await writer;}
+  const slowRead=prisma.$queryRaw`SELECT SLEEP(4) AS held`.then(()=>undefined);await new Promise(resolve=>setTimeout(resolve,100));
+  try{const overview=await Promise.race([Promise.all(completedQuarters().map(q=>storedQuarter(q.year,q.quarter))),new Promise<never>((_,reject)=>{readTimer=setTimeout(()=>reject(Error('READ_BLOCKED_BY_WRITER')),2000);})]);assert.equal(overview.length,4);}finally{if(readTimer)clearTimeout(readTimer);release();await Promise.all([writer,slowRead]);}
   await assert.rejects(securityDataReadSnapshot(async view=>{assert.deepEqual(Object.keys(view).sort(),['security','securityDataReceipt']);await (view.security as any).update({where:{id:security.id},data:{name:'MUST_NOT_WRITE'}});}),TypeError);
   assert.notEqual((await raw.security.findUniqueOrThrow({where:{id:security.id}})).name,'MUST_NOT_WRITE');
   const concurrent=await Promise.all(Array.from({length:6},()=>app.inject({url:'/api/security-data/quarters',headers:admin})));assert.ok(concurrent.every(r=>r.statusCode===200));assert.equal(new Set(concurrent.map(r=>r.json().data.snapshotId)).size,1);
