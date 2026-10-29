@@ -10,6 +10,10 @@ export function financialNumber(value:string|null|undefined,digits=2):string {
  return (negative&&rounded!==0n?'-':'')+integer+(decimals?'.'+decimals:'');
 }
 export const currencyLabel=(currency='KRW')=>currency==='KRW'?'KRW':'외화 · '+currency;
-export function originalAmount(value:string|null|undefined,currency='KRW',digits=2) {
- return value==null?'—':financialNumber(value,digits)+' '+currency;
+/** Original foreign source figures retain precision unless a metric explicitly requests rounding. */
+export function originalAmount(value:string|null|undefined,currency='KRW',digits?:number) {
+ if(value==null)return '—';
+ if(digits!==undefined)return financialNumber(value,digits)+' '+currency;
+ const [integer,fraction]=value.split('.');
+ return integer!.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(fraction?'.'+fraction:'')+' '+currency;
 }
