@@ -1,3 +1,5 @@
+import {annualSecurityDetail} from './security-data-annual-detail.js';
+import {id} from '../lib/input.js';
 import {createHash} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
 import {securityDataReadSnapshot} from '@roxstock/shared/lib/prisma';
@@ -18,6 +20,7 @@ async function loadAnnual(){
 let inFlight:ReturnType<typeof loadAnnual>|undefined;
 async function annualSnapshot(){if(!inFlight){const job=loadAnnual();inFlight=job;void job.finally(()=>{if(inFlight===job)inFlight=undefined;}).catch(()=>{});}return inFlight;}
 export async function securityAnnualRoutes(app:FastifyInstance){
+ app.get<{Params:{year:string;kind:string;id:string}}>('/security-data/annual/:year/:kind/:id/detail',async req=>({data:await annualSecurityDetail(id(req.params.id,'id'),Number(req.params.year),req.params.kind)}));
  app.get('/security-data/annual',async()=>{const data=await annualSnapshot();return {data:{...data,buckets:data.buckets.map(({items,...summary})=>summary)}};});
  app.get<{Params:{year:string;kind:string;id:string}}>('/security-data/annual/:year/:kind/:id',async req=>{
   if(!/^[1-9]\d*$/.test(req.params.id))throw new ApiError(400,'INVALID_INPUT','종목을 확인하세요.');
@@ -27,10 +30,10 @@ export async function securityAnnualRoutes(app:FastifyInstance){
  });
  app.get<{Params:{year:string;kind:string};Querystring:{stage?:string;offset?:string;snapshot?:string}}>('/security-data/annual/:year/:kind',async req=>{
   const year=Number(req.params.year),kind=req.params.kind as AnnualKind,stage=req.query.stage??'w',offset=Number(req.query.offset??0);
-  if(!['final','estimate'].includes(kind)||!['w','indicators','complete','all'].includes(stage)||!Number.isSafeInteger(offset)||offset<0||offset%50!==0)throw new ApiError(400,'INVALID_INPUT','조회 조건을 확인하세요.');
+  if(!['final','estimate'].includes(kind)||!['w','indicators','complete','all','value-missing','value-complete','value-all'].includes(stage)||!Number.isSafeInteger(offset)||offset<0||offset%50!==0)throw new ApiError(400,'INVALID_INPUT','조회 조건을 확인하세요.');
   const snapshot=await annualSnapshot(),bucket=snapshot.buckets.find(b=>b.year===year&&b.kind===kind);if(!bucket)throw new ApiError(400,'INVALID_PERIOD','현재 연간 결산·추정 기간만 조회할 수 있습니다.');
   if(req.query.snapshot&&req.query.snapshot!==bucket.snapshotId||offset>0&&!req.query.snapshot)throw new ApiError(409,'SNAPSHOT_CHANGED','자료가 변경됐습니다. 첫 목록부터 다시 조회하세요.');
-  const items=bucket.items.filter(r=>!r.excludedReason&&(stage==='all'?true:stage==='w'?!r.assessment.wReady:stage==='indicators'?r.assessment.wReady&&!r.assessment.indicatorReady:r.assessment.wReady&&r.assessment.indicatorReady));
+  const items=bucket.items.filter(r=>!r.excludedReason&&(stage==='value-all'?true:stage==='value-complete'?r.assessment.indicatorReady:stage==='value-missing'?!r.assessment.indicatorReady:stage==='all'?true:stage==='w'?!r.assessment.wReady:stage==='indicators'?r.assessment.wReady&&!r.assessment.indicatorReady:r.assessment.wReady&&r.assessment.indicatorReady));
   // Explicit all stage retains W-ready and missing rows alike.
   const selected=stage==='all'?bucket.items.filter(r=>!r.excludedReason):items;
   return {data:{...bucket,items:selected.slice(offset,offset+50),stage,total:selected.length,hasNext:offset+50<selected.length}};

@@ -5,7 +5,7 @@ const money=(v:string)=>({buy:'1000',sell:'1200',cost:'1000',trading:v,dividend:
 async function fixture(page:Page){
  await baseFixture(page);const saved=new Set<string>(),reads:string[]=[],fail={scrap:false,entry:false},gate={hold:false,release:()=>{}};
  const news=Array.from({length:3},(_,i)=>({id:String(3-i),isHeld:false,isScrapped:false,title:'저장 검증 소식 '+(3-i),originalUrl:'https://www.hankyung.com/article/uitest'+i,originalAvailable:true,sourceName:'공개 검증 출처',publishedAt:'2026-10-28T03:00:00Z',publishedPrecision:'TIME',type:'ARTICLE',importance:'MAJOR',access:'FREE',summary:'서버에 저장한 공개 요약을 확인하는 합성 검증 자료입니다.',summaryMethod:'PUBLIC_DESCRIPTION_EXTRACT',collectedAt:'2026-10-28T03:00:00Z',securities:[{id:'1',symbol:'987451',name:'검증 종목',isHeld:false}]}));
- const entries=Array.from({length:137},(_,i)=>({key:(i%3?'SELL':'DIVIDEND')+':'+(1000-i),id:String(1000-i),at:'2026-'+(i<118?'10-23':'09-23')+'T06:00:00Z',date:'2026-'+(i<118?'10-23':'09-23'),kind:i%3?'SELL':'DIVIDEND',security:{id:'1',symbol:'987451',name:'말줄임 확인을 위한 아주 긴 검증용 종목명'},rateDenominator:i%3?'100':'1000',amount:i===0?'123456789012345':i%3?i%2?'-10':'10':'3'}));
+ const entries=Array.from({length:137},(_,i)=>({key:(i%3?'SELL':'DIVIDEND')+':'+(1000-i),id:String(1000-i),at:'2026-'+(i<118?'10-23':'09-23')+'T06:00:00Z',date:'2026-'+(i<118?'10-23':'09-23'),kind:i%3?'SELL':'DIVIDEND',security:{id:'1',symbol:'987451',name:'말줄임 확인을 위한 아주 긴 검증용 종목명'},rateDenominator:i%3?'100':'1000',trade:i%3?{quantity:'1',buyUnitPrice:'100',sellUnitPrice:i%2?'90':'110',boughtAt:'2026-10-19T06:00:00Z',buyAmount:'100',sellAmount:i%2?'90':'110'}:null,dividend:i%3?null:{grossAmount:'4'},amount:i===0?'123456789012345':i%3?i%2?'-10':'10':'3'}));
  const months=['2026-10','2026-09'].map(month=>({month,totals:{...money('0'),total:String(entries.filter(r=>r.date.startsWith(month)).reduce((s,r)=>s+BigInt(r.amount),0n))},hasTrading:true,hasDividend:true}));
  await page.route('**/api/**',async route=>{
   const u=new URL(route.request().url()),path=u.pathname,q=u.searchParams;reads.push(path+u.search);
@@ -70,4 +70,30 @@ test('condition switch ignores old pending prefetch and empty differs from load 
  await page.goto('/detail/investment-profit/entries?securityId=1&year=2025');await expect(page.getByTestId('profit-visible-count')).toHaveText('50/137건');await expect(page.getByTestId('profit-entries')).toContainText('검증 종목');f.gate.hold=false;f.gate.release();await expect(page.getByTestId('profit-entry')).toHaveCount(50);
  await page.route('**/api/accounts/1/investment-profit/entries**',route=>route.fulfill({status:503,json:{error:{code:'TEST_FAILURE'}}}));await page.goto('/detail/investment-profit/entries?year=2024');await expect(page.getByRole('alert')).toContainText('조회하지 못했습니다');await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(0);
  await page.route('**/api/accounts/1/investment-profit/entries**',route=>route.fulfill({json:{data:{accountId:'1',security:null,scope:{securityId:null,year:2024,month:null},rows:[],total:0,months:[],totals:money('0'),snapshot:'empty',nextCursor:null,hasNext:false}}}));await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByText('내용이 없습니다.',{exact:true})).toBeVisible();await expect(page.getByTestId('profit-more')).toHaveCount(0);
+});
+
+
+test('month card view loads the whole year across pages and focuses the selected month without filtering',async({page})=>{
+ const f=await fixture(page);await page.goto('/detail/investment-profit/entries?securityId=1&year=2026&view=cards&focusMonth=9&focusKind=SELL');
+ await expect(page.getByTestId('profit-entry-card')).toHaveCount(137);await expect(page.getByTestId('profit-visible-count')).toHaveText('137/137건');
+ await expect(page.locator('[data-testid="profit-entry-card"][data-focus-month="2026-09"][data-entry-kind="SELL"]').first()).toBeInViewport();
+ expect(f.reads.filter(r=>r.includes('/investment-profit/entries')).every(r=>!new URL('http://fixture'+r).searchParams.has('month'))).toBe(true);
+ await expect(page.getByTestId('profit-entry')).toHaveCount(0);await expect(page.getByTestId('profit-entry-card').nth(1)).toContainText('매수');await expect(page.getByTestId('profit-entry-card').nth(1)).toContainText('매도');
+ await expect(page.getByTestId('profit-entry-card').first()).toContainText('입금 배당');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('monthly rows open year-wide detail cards and failed later pages preserve cards and retry',async({page})=>{
+ const f=await fixture(page);await page.goto('/detail/investment-profit/stock-years?securityId=1&year=2026');await page.getByTestId('profit-year-month-row').first().click();
+ await expect(page).toHaveURL(/view=cards.*focusMonth=10.*focusKind=SELL/);await expect(page.getByTestId('profit-entry-card')).toHaveCount(137);
+ await page.goBack();await expect(page.getByTestId('profit-year-card')).toHaveCount(3);f.fail.entry=true;
+ await page.goto('/detail/investment-profit/entries?securityId=1&year=2025&view=cards&focusMonth=9');await expect(page.getByTestId('profit-entry-card')).toHaveCount(50);await expect(page.getByRole('alert')).toContainText('기존');
+ f.fail.entry=false;await page.getByRole('button',{name:'재시도',exact:true}).click();await expect(page.getByTestId('profit-entry-card')).toHaveCount(137);
+});
+
+
+test('one card per transaction keeps two sells and one dividend in separate month groups',async({page})=>{
+ const f=await fixture(page),rows=[{...f.entries[1],date:'2026-10-23'},{...f.entries[2],date:'2026-10-22'},{...f.entries[3],date:'2026-09-20'}];
+ await page.route('**/api/accounts/1/investment-profit/entries**',r=>r.fulfill({json:{data:{accountId:'1',security:{name:'검증 종목',symbol:'987451'},scope:{securityId:'1',year:2026,month:null},rows,total:3,months:f.months,totals:money('0'),snapshot:'three',nextCursor:null,hasNext:false}}}));
+ await page.goto('/detail/investment-profit/entries?securityId=1&year=2026&view=cards&focusMonth=10');await expect(page.getByTestId('profit-entry-card')).toHaveCount(3);
+ const groups=page.getByTestId('profit-month-group');await expect(groups).toHaveCount(2);await expect(groups.first().getByTestId('profit-entry-card')).toHaveCount(2);await expect(groups.nth(1).getByTestId('profit-entry-card')).toHaveCount(1);await expect(page.getByTestId('profit-entry-card').first()).toBeInViewport();
 });

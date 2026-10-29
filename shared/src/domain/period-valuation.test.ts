@@ -36,13 +36,13 @@ test('negative EPS and equity stay signed while PER/PBR are normally inapplicabl
  const zero=filing(2025,'ANNUAL',{accountSources:{basicEps:{amount:'0'},parentEquity:{amount:'0'}}});
  assert.equal(calculatePeriod(zero,undefined,sources).values.per,null);assert.equal(calculatePeriod(zero,undefined,sources).values.pbr,null);
 });
-test('annual comparative capital from the exact filing fills ROE without inventing a previous filing',()=>{
+test('annual closing-parent ROE no longer needs opening capital and ignores unrelated supplements',()=>{
  const f=filing(2015,'ANNUAL',{accountSources:{parentNetIncome:{amount:'20'},parentEquity:{amount:'220'}}});
  const supplemental={accounts:{receiptNo:f.receiptNo,fsDivision:'CFS',collectedAt:'2026-10-17',sources:{openingParentEquity:{amount:'180',periodEnd:'2014-12-31'}}}};
- const result=calculatePeriod(f,undefined,supplemental);assert.equal(result.values.roe,'10');assert.equal(result.provenance.roeOpeningSource,'SAME_FILING_COMPARATIVE_BALANCE');
- supplemental.accounts.sources.openingParentEquity.periodEnd='2013-12-31';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
- supplemental.accounts.sources.openingParentEquity.periodEnd='2014-12-31';supplemental.accounts.receiptNo='wrong';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
- supplemental.accounts.receiptNo=f.receiptNo;supplemental.accounts.fsDivision='OFS';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,null);
+ const result=calculatePeriod(f,undefined,supplemental);assert.equal(result.values.roe,'9.0909');assert.equal(result.provenance.roeDenominator,'CLOSING_PARENT_EQUITY');
+ supplemental.accounts.sources.openingParentEquity.periodEnd='2013-12-31';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,'9.0909');
+ supplemental.accounts.sources.openingParentEquity.periodEnd='2014-12-31';supplemental.accounts.receiptNo='wrong';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,'9.0909');
+ supplemental.accounts.receiptNo=f.receiptNo;supplemental.accounts.fsDivision='OFS';assert.equal(calculatePeriod(f,undefined,supplemental).values.roe,'9.0909');
 });
 test('unverified multiple fiscal durations never invent twelve-month valuation ratios',()=>{
  const f=filing(2025,'ANNUAL',{sourceValidation:{periodResolution:{originalReason:'MULTIPLE_ANNUAL_PERIODS'}}});const result=calculatePeriod(f,undefined,{price:{value:'100',date:'2025-12-30',source:'TEST'}});assert.ok(Object.values(result.values).every(v=>v===null));assert.match(result.reasons.roe!,/회계기간/);assert.equal(result.provenance.calculationState,'FISCAL_DURATION_REVIEW_REQUIRED');

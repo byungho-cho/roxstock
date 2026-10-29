@@ -1,3 +1,4 @@
+import {closingRoeReview,closingParentRoePolicy} from '@roxstock/shared/domain/closing-parent-roe';
 import {financialCurrency,currencyConversionRequired} from '@roxstock/shared/domain/financial-currency';
 import {preListingPriceReviewMatches} from '@roxstock/shared/domain/listing-period';
 import {kisHistoricalClose} from './kis-historical-close.js';
@@ -117,6 +118,7 @@ export async function supplementStoredPeriod(db:PrismaClient,securityId:bigint,f
  if(options.fields)for(const key of metricKeys)if(!options.fields.includes(key))result.values[key]=null;
  const values={...preserveValues(!options.fillOnly&&(publicSourceChanged||foreign)?null:existing?.values,result.values),...(primaryEps?{eps:result.values.eps}:{})};
  for(const [ratio,base]of [['per','eps'],['pbr','bps']] as const)if(oldValues?.[ratio]==null&&(values[base]==null||new Prisma.Decimal(values[base]).lte(0)))values[ratio]=null;
+ if(result.provenance.roePolicy===closingParentRoePolicy&&result.values.roe!==null&&values.roe===result.values.roe){const review=closingRoeReview((existing?.values as Record<string,string|null>|undefined)?.roe,values.roe,filing.receiptNo);if(review){result.provenance.roeReview=review;supplemental.roePolicyReview=review;}}
  const completion=valueCompletion(values,financialCurrency(filing));
  const reasons={...Object.fromEntries(Object.entries(result.reasons).filter(([key])=>values[key as keyof typeof values]===null)),...completion.notApplicable};
  const status=completion.complete?'SUCCESS':metricKeys.some(k=>values[k]!==null)?'PARTIAL':'INSUFFICIENT';

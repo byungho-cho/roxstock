@@ -1,3 +1,4 @@
+import {closingRoeNotices} from '../domain/closing-parent-roe.js';
 import {publicDartReview} from '../domain/dart-review.js';
 import {productPolicy} from '../domain/product-policy.js';
 import {hasInitialQuery} from '../domain/stock-search.js';
@@ -42,7 +43,7 @@ export function projectValueRows(securities:Awaited<ReturnType<typeof loadSecuri
    statementBasis:selected.netIncomeBasis?.source??null,statementYear:selected.netIncomeBasis?.year??null,
    fundamentalsUpdatedAt:s.fundamentals?.updatedAt.toISOString()??null,
    fairPrices:['0.7','0.8','0.9','1.0'].map(persistence=>({persistence,price:fairPrice(metric,persistence)})),
-   notices:[...selected.notices,'발행주식수와 EPS 가중평균 분모 및 RIM 수정 주식수는 다른 기준입니다. 표시 주식수로 임의 대체하지 않습니다.'],
+   notices:[...closingRoeNotices(metric?.provenance),...selected.notices,'발행주식수와 EPS 가중평균 분모 및 RIM 수정 주식수는 다른 기준입니다. 표시 주식수로 임의 대체하지 않습니다.'],
   };
  });
 }
