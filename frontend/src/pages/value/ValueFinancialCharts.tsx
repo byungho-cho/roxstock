@@ -1,3 +1,5 @@
+import {ScreenLoading} from '../../components/common/ScreenLoading';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import {currencyLabel} from '../../utils/financialCurrency';
 import {ClickInfo} from '../../components/common/ClickInfo';
 import {negativeRatioWarning} from './negativeRatioWarning';
@@ -93,14 +95,14 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
 }
 export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',currentYear=new Date().getFullYear()}:{rows:FinancialRow[];notes?:string[];stockId?:string;mode?:'annual'|'quarter';currentYear?:number}) {
  const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search),selected=params.get('chartDetail'),group=groups.find(g=>g.title===selected);
- const all=useQuery({queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
+ const all=useQuery({...storedQueryOptions,queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
  const open=(title:string)=>{const search=new URLSearchParams(location.search);search.set('chartDetail',title);navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,financialChartOrigin:true}});};
  const close=()=>{if(location.state?.financialChartOrigin&&Number(window.history.state?.idx)>0)navigate(-1);else {const search=new URLSearchParams(location.search);search.delete('chartDetail');navigate(location.pathname+'?'+search,{replace:true,state:location.state});}};
  return <Box sx={{display:'grid',gap:1}}>
   {groups.map(g=><Box key={g.title} sx={{bgcolor:'#111927',borderRadius:1,p:'8px 16px'}}><Box data-testid="financial-card-titlebar" sx={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',minHeight:24}}><Box sx={{display:'flex',alignItems:'center',minWidth:0}}><Typography sx={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{g.title}</Typography>{g.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}</Box><ChartLegend group={g} compact/><Button size="small" disabled={!stockId} onClick={()=>open(g.title)} sx={{justifySelf:'end',p:0,minWidth:0,fontSize:10,color:'#94A3B8'}}>상세보기</Button></Box><Chart rows={rows} group={currencyGroup(g,rows)}/></Box>)}
   <Dialog fullScreen transitionDuration={0} open={!!group} onClose={close} aria-label="재무지표 차트 상세보기" slotProps={{paper:{'aria-label':'재무지표 차트 상세보기',sx:{bgcolor:'#080F1C',backgroundImage:'none',p:1,overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
    <Box sx={{display:'flex',alignItems:'center',gap:1,minHeight:36,flexShrink:0}}><IconButton aria-label="차트 상세보기 뒤로가기" onClick={close} size="small"><ArrowBackRoundedIcon/></IconButton><Typography sx={{fontSize:14,fontWeight:600}}>{group?.title}</Typography><Typography sx={{ml:'auto',fontSize:11,color:'#94A3B8'}}>2015–{currentYear} · {mode==='annual'?'연간':'분기'}</Typography></Box>
-   {all.isPending?<Box aria-busy="true" sx={{flex:1,minHeight:0}}/>:all.isError?<Box sx={{p:2}}><QueryErrorNotice message="전체 기간 조회에 실패했습니다." onRetry={()=>void all.refetch()}/></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
+   {all.isPending?<ScreenLoading/>:all.isError?<Box sx={{p:2}}><QueryErrorNotice message="전체 기간 조회에 실패했습니다." onRetry={()=>void all.refetch()}/></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
   </Dialog>
  </Box>;
 }

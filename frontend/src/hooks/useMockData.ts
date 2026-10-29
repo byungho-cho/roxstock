@@ -39,13 +39,15 @@ export function useDashboard({ pollPrices = false, includeTrend = true, deferTre
   return { ...summary, historyData: history.data, historyRefetch: history.refetch, historyPending: history.isPending, historyError: history.isError, historySettled: !history.isPending, data: summary.data ? { ...summary.data, trend: liveApiEnabled ? (history.data?.data ?? []).map(point => ({label: point.date, value: point.totalAssetValue == null ? Number.NaN : Number(point.totalAssetValue)})) : summary.data.trend } : undefined };
 }
 
-export function useStocks(listType?: StockListType, options: { enabled?: boolean; forceFetch?: boolean } = {}) {
+export function useStocks(listType?: StockListType, options: { enabled?: boolean; forceFetch?: boolean; pollPrices?: boolean } = {}) {
   const { accountId, page, pageMode, screen } = useActiveAccount(), client = useQueryClient();
   const query = useQuery({
+    refetchOnWindowFocus: options.pollPrices === false ? false : undefined,
+    refetchOnReconnect: options.pollPrices === false ? false : undefined,
     queryKey: ['stocks', listType ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId],
     queryFn: () => liveApiEnabled ? fetchLiveStocks(listType, accountId, client.fetchQuery({ ...storedQueryOptions, queryKey: ['accountTradesSummary', accountId], queryFn: ({signal}) => getStockTradeSummary(accountId!, signal) })) : fetchStocks(listType),
     enabled: (!pageMode || options.forceFetch === true) && options.enabled !== false && (!liveApiEnabled || !!accountId),
-    refetchInterval: liveApiEnabled ? PRICE_REFRESH_INTERVAL_MS : false,
+    refetchInterval: liveApiEnabled && options.pollPrices !== false ? PRICE_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
   if (pageMode && screen === 'stocks' && !options.forceFetch) {

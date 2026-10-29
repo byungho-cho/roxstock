@@ -1,3 +1,5 @@
+import {ScreenLoading} from '../../components/common/ScreenLoading';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import {useHeldSecurityIds} from '../../hooks/useHeldSecurityIds';
 import {AnalysisScopeToggle,type AnalysisScope} from '../../components/common/AnalysisScopeToggle';
 import {negativeRatioWarning} from './negativeRatioWarning';
@@ -36,11 +38,11 @@ import { detailValues,listValues,format,movement,number,seoulYear,type ValueDeta
 const muted='#94A3B8',cardStyle={bgcolor:'#111827',borderRadius:'8px',p:'8px 16px'},controlStyle={font:'inherit',fontSize:12,color:'#F1F5F9',background:'#111927',border:'1px solid #273244',borderRadius:8,height:28,padding:'0 8px',minWidth:0};
 function useStoredQuery<T>(key:string,request:(signal:AbortSignal)=>Promise<T>,enabled=true,accountScoped=true) {
  const {accountId,accounts}=useActiveAccount(),latest=useRef(request);latest.current=request;
- const query=useQuery({queryKey:['valueStored',accountScoped?accountId:'global',key],queryFn:({signal})=>latest.current(signal),enabled:enabled&&(!accountScoped||!accounts.isLoading),staleTime:30_000,gcTime:30*60_000,refetchOnMount:true});
+ const query=useQuery({...storedQueryOptions,queryKey:['valueStored',accountScoped?accountId:'global',key],queryFn:({signal})=>latest.current(signal),enabled:enabled&&(!accountScoped||!accounts.isLoading),staleTime:30_000,gcTime:30*60_000,refetchOnMount:true});
  return {data:query.data,pending:enabled&&(query.isFetching||(accountScoped&&accounts.isLoading)),error:query.error?.message,retry:()=>void query.refetch()};
 }
 function Status({pending,error,retry,hasData}:{pending:boolean;error?:string;retry:()=>void;hasData:boolean}) {
- return <>{error&&<Box sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}><QueryErrorNotice message="조회에 실패했습니다." onRetry={retry}/></Box>}</>;
+ return <><ScreenLoading active={pending&&!hasData&&!error}/>{error&&<Box sx={{fontSize:10,p:'8px',bgcolor:'#111927',borderRadius:'8px',mb:'8px'}}><QueryErrorNotice message="조회에 실패했습니다." onRetry={retry}/></Box>}</>;
 }
 function Empty(){return <Box data-testid="value-empty" sx={{height:'100%',minHeight:160,flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:muted,fontSize:12}}>내용이 없습니다.</Box>;}
 function Line({label,children,color}:{label:ReactNode;children:ReactNode;color?:string}){return <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',minHeight:20,fontSize:12}}><span style={{color:muted}}>{label}</span><Box sx={{textAlign:'right',overflowWrap:'anywhere',fontWeight:600,color}}>{children}</Box></Box>;}
@@ -82,7 +84,7 @@ function Detail({data,openCharts,openFinancials,refresh}:{data:ValueDetail;openC
 export function ValueAnalysisPage(){
  const tablet=useMediaQuery('(min-width:600px)'),location=useLocation(),navigate=useNavigate(),{stockId}=useParams(),params=new URLSearchParams(location.search),currentYear=seoulYear();
  const goFinancials=useListNavigation(),heldIds=useHeldSecurityIds();
- const returnToSource=useReturnNavigation('/more'),client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation});
+ const returnToSource=useReturnNavigation('/more'),client=useQueryClient(),{accountId}=useActiveAccount(),{data:accountStocks}=useStocks(undefined,{enabled:!!location.state?.stockNavigation,pollPrices:false});
  const source=location.state?.stockNavigation as StockNavigation|undefined,fromStockList=!!source;
  const sourceItems=source&&source.accountId===accountId?source.ids.flatMap(id=>{const item=accountStocks?.find(s=>s.id===id);return item?[item]:[];}):null;
  const [year,setYear]=useFinancialCondition('year',currentYear,currentYear),[draft,setDraft]=usePageMemory('value-draft',''),[query,setQuery]=usePageMemory('value-query','');

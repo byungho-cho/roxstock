@@ -13,7 +13,7 @@ export function useIncrementalAnalysisList<T extends ListRow,P extends ListPage<
  const query=useInfiniteQuery({queryKey,initialPageParam:0,
   queryFn:async({pageParam,signal})=>{const page=await load(pageParam,pageParam===0?20:pageParam===20?30:50,signal);if(!Array.isArray(page?.rows)||!Number.isFinite(page.total))throw new Error("목록 응답 형식이 올바르지 않습니다.");return page;},
   getNextPageParam:(last,_pages,offset)=>last.rows.length&&offset+last.rows.length<last.total?offset+last.rows.length:undefined,
-  enabled,staleTime:30_000,gcTime:30*60_000,refetchOnWindowFocus:false,
+  enabled,staleTime:30_000,gcTime:30*60_000,refetchOnWindowFocus:false,refetchOnReconnect:false,refetchInterval:false,
  });
  const pageCount=query.data?.pages.length??0;
  useEffect(()=>{
