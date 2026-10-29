@@ -1,3 +1,5 @@
+import {ScreenLoading} from '../../components/common/ScreenLoading';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
 import {currencyLabel} from '../../utils/financialCurrency';
 import {ClickInfo} from '../../components/common/ClickInfo';
 import {negativeRatioWarning} from './negativeRatioWarning';
@@ -77,7 +79,7 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
   const reasons=[...new Set(Object.values(row.metricReasons??{}))].map(reason=>reason==='CURRENCY_CONVERSION_REQUIRED'?'통화 환산 필요: 원화 주가와 외화 재무값을 환산 없이 계산하지 않습니다.':reason);
   const availability=row.availability==='NO_FILING'?'미공시':row.availability==='PRE_LISTING'?'상장 전':row.availability==='FAILED'?'재무자료 수집 실패':!row.source?'미수집':row.metricStatus==='NOT_COLLECTED'?'가치지표 미수집':null;
   if(availability)reasons.unshift(availability);
-  if(row.metricProvenance?.bpsReferenceOnly)reasons.push('BPS·PBR: 공시된 전체 유통주식수 기준 참고 계산입니다. 보통주 전용 자본 배분값이 아니며 적정주가·RIM에는 사용하지 않습니다.');
+  if(row.metricProvenance?.bpsReferenceOnly)reasons.push('BPS·PBR: 공시된 전체 유통주식수 기준 참고 계산입니다. 보통주 전용 자본 배분값이 아닙니다. 근거가 확인된 경우 우선주 포함 참고 W로 계산하며 주의 표시를 제공합니다.');
   if(row.metricProvenance?.roeBasis==='TOTAL_SAME_DIVISION')reasons.push('ROE: 전체 연결/별도 자본 기준');
   if(row.metricProvenance?.fiscalDuration){const d=row.metricProvenance.fiscalDuration;reasons.push(`실제 회계기간: ${d.start} ~ ${d.end} (${d.annualization==='ACT_365'?d.days+'일':d.months+'개월'}). EPS·PER·ROE는 ${d.annualization==='ACT_365'?'365일 기준으로 ':''}이 기간 실적을 연환산한 참고 지표이며 TTM이 아닙니다.`);}
   if(row.metricProvenance?.flow==='YTD_ANNUALIZED_NOT_TTM')reasons.push('누적 실적 연환산(TTM 아님)');
@@ -93,14 +95,14 @@ function MetricNotice({rows,notes=[]}:{rows:FinancialRow[];notes?:string[]}) {
 }
 export function ValueFinancialCharts({rows,notes=[],stockId,mode='annual',currentYear=new Date().getFullYear()}:{rows:FinancialRow[];notes?:string[];stockId?:string;mode?:'annual'|'quarter';currentYear?:number}) {
  const location=useLocation(),navigate=useNavigate(),params=new URLSearchParams(location.search),selected=params.get('chartDetail'),group=groups.find(g=>g.title===selected);
- const all=useQuery({queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
+ const all=useQuery({...storedQueryOptions,queryKey:['financialChartAll',stockId,mode,currentYear],queryFn:({signal})=>allFinancialRows(stockId!,currentYear,mode,signal),enabled:!!group&&!!stockId,staleTime:30000});
  const open=(title:string)=>{const search=new URLSearchParams(location.search);search.set('chartDetail',title);navigate(location.pathname+'?'+search,{state:{...location.state,listEntryKey:location.state?.listEntryKey??location.key,financialChartOrigin:true}});};
  const close=()=>{if(location.state?.financialChartOrigin&&Number(window.history.state?.idx)>0)navigate(-1);else {const search=new URLSearchParams(location.search);search.delete('chartDetail');navigate(location.pathname+'?'+search,{replace:true,state:location.state});}};
  return <Box sx={{display:'grid',gap:1}}>
   {groups.map(g=><Box key={g.title} sx={{bgcolor:'#111927',borderRadius:1,p:'8px 16px'}}><Box data-testid="financial-card-titlebar" sx={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',minHeight:24}}><Box sx={{display:'flex',alignItems:'center',minWidth:0}}><Typography sx={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{g.title}</Typography>{g.title==='가치지표'&&<MetricNotice rows={rows} notes={notes}/>}</Box><ChartLegend group={g} compact/><Button size="small" disabled={!stockId} onClick={()=>open(g.title)} sx={{justifySelf:'end',p:0,minWidth:0,fontSize:10,color:'#94A3B8'}}>상세보기</Button></Box><Chart rows={rows} group={currencyGroup(g,rows)}/></Box>)}
   <Dialog fullScreen transitionDuration={0} open={!!group} onClose={close} aria-label="재무지표 차트 상세보기" slotProps={{paper:{'aria-label':'재무지표 차트 상세보기',sx:{bgcolor:'#080F1C',backgroundImage:'none',p:1,overflow:'hidden',display:'flex',flexDirection:'column'}}}}>
    <Box sx={{display:'flex',alignItems:'center',gap:1,minHeight:36,flexShrink:0}}><IconButton aria-label="차트 상세보기 뒤로가기" onClick={close} size="small"><ArrowBackRoundedIcon/></IconButton><Typography sx={{fontSize:14,fontWeight:600}}>{group?.title}</Typography><Typography sx={{ml:'auto',fontSize:11,color:'#94A3B8'}}>2015–{currentYear} · {mode==='annual'?'연간':'분기'}</Typography></Box>
-   {all.isPending?<Box aria-busy="true" sx={{flex:1,minHeight:0}}/>:all.isError?<Box sx={{p:2}}><QueryErrorNotice message="전체 기간 조회에 실패했습니다." onRetry={()=>void all.refetch()}/></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
+   {all.isPending?<ScreenLoading/>:all.isError?<Box sx={{p:2}}><QueryErrorNotice message="전체 기간 조회에 실패했습니다." onRetry={()=>void all.refetch()}/></Box>:group&&<Chart key={group.title+mode+stockId} rows={all.data??[]} group={currencyGroup(group,all.data??[])} expanded/>}
   </Dialog>
  </Box>;
 }

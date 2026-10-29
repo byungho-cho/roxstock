@@ -1,4 +1,5 @@
 import {financialCurrency} from './financial-currency.js';
+import {externalParentAccount} from './external-parent-annual.js';
 import {Prisma,type DartFinancialFiling,type PeriodValuation} from '../generated/prisma/index.js';
 import {commonEpsReviewMatches} from './common-eps-review.js';
 import type {Supplemental} from './period-valuation.js';
@@ -21,6 +22,7 @@ export function supplementedFilings(filings:DartFinancialFiling[],periods:Pick<P
   const sources={...object(f.accountSources)};
   for(const [key,value]of Object.entries(object(accounts.sources))){
    const incoming=object(value),old=object(sources[key]);
+   if(incoming.source==='NAVER_FNGUIDE_ANNUAL'&&!externalParentAccount(f,key,incoming))continue;
    sources[key]=key==='basicEps'&&commonEpsReviewMatches(f,p?.supplemental as Supplemental)?{...old,...incoming}:{...incoming,...old,amount:old.amount??numeric(incoming.amount),ytdAmount:old.ytdAmount??numeric(incoming.ytdAmount)};
   }
   const result={...f,accountSources:sources as Prisma.JsonObject};

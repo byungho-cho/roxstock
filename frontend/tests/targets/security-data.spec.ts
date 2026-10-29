@@ -24,7 +24,7 @@ test('50-row reveal is separate from prefetch, retries preserve rows, double cli
  await page.route('**/api/security-data/**',async r=>{const u=new URL(r.request().url()),offset=Number(u.searchParams.get('offset')??0);calls.push(offset);if(offset===50&&fail){fail=false;await gate;return r.fulfill({status:503,json:{error:{message:'temporary'}}});}const count=Math.min(50,173-offset);return r.fulfill({json:{data:{snapshotId:'fixture-snapshot',total:173,hasNext:offset+count<173,items:Array.from({length:count},(_,i)=>({id:String(offset+i+1),name:offset+i===0?'아주 긴 종목명으로 잘림과 코드 표시를 확인하는 종목':'종목'+(offset+i+1),symbol:String(offset+i+1).padStart(6,'0'),state:'DISCLOSURE_UNVERIFIED',missingFinancial:['revenueYtd'],missingValue:['eps']}))}}});});
  await page.goto('/detail/security-data?year=2026&quarter=2');const rows=page.getByTestId('security-data-missing-list').getByRole('button');await expect(rows).toHaveCount(50);await expect(page.getByText('50/173건',{exact:true})).toBeVisible();await expect.poll(()=>calls.filter(n=>n===50).length).toBe(1);
  // A pending prefetch must not add visible rows or a second request on consecutive clicks.
- await page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByRole('button',{name:'불러오는 중…'})).toBeDisabled();await expect(rows).toHaveCount(50);release!();await expect(page.getByRole('alert').filter({hasText:'다음 목록'})).toBeVisible();expect(calls.filter(n=>n===50)).toHaveLength(1);await expect(rows).toHaveCount(50);
+ await page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true}).click();await expect(page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true})).toBeDisabled();await expect(rows).toHaveCount(50);release!();await expect(page.getByRole('alert').filter({hasText:'다음 목록'})).toBeVisible();expect(calls.filter(n=>n===50)).toHaveLength(1);await expect(rows).toHaveCount(50);
  await page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true}).click();await expect(rows).toHaveCount(100);await expect(page.getByText('100/173건',{exact:true})).toBeVisible();await expect.poll(()=>calls.filter(n=>n===100).length).toBe(1);
  // Prefetched final 23 are still hidden. Reveal is immediate and requests no page beyond the end.
  await expect(rows).toHaveCount(100);await page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true}).evaluate((b:HTMLButtonElement)=>{b.click();b.click();});await expect(rows).toHaveCount(150);await expect.poll(()=>calls.filter(n=>n===150).length).toBe(1);await page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true}).click();await expect(rows).toHaveCount(173);await expect(page.getByText('173/173건',{exact:true})).toBeVisible();await expect(page.getByTestId('security-data-page').getByRole('button',{name:'더보기',exact:true})).toHaveCount(0);expect(calls).toEqual([0,50,50,100,150]);expect(new Set(await rows.allTextContents()).size).toBe(173);
@@ -60,4 +60,27 @@ test('re-entry waits for current server basis instead of auto-opening from cache
  await fixture(page);let reads=0,pending=false,release:()=>void=()=>{};const gate=new Promise<void>(r=>{release=r;});const fields=securityDataFields.map(([key,label,group,mode])=>({key,label,group,mode,value:null,source:null,editable:mode==='direct'}));
  await page.route('**/api/security-data/**',async r=>{const p=new URL(r.request().url()).pathname;if(p.endsWith('/10')){reads++;if(reads>1){pending=true;await gate;}return r.fulfill({json:{data:{security:{id:'10',name:'서버 기준 확인',symbol:'123456'},year:2026,quarter:2,period:'Q2',basis:reads===1?null:{fsDivision:'CFS',currency:'KRW',periodKey:'2026:Q2',kind:'MANUAL_PERIOD',shareClass:'COMMON',amountMultiplier:'1',periodEnd:null},basisSetup:{needed:reads===1},fields,reasons:{}}}});}return r.fulfill({json:{data:{snapshotId:'cached-list',total:1,hasNext:false,items:[{id:'10',name:'서버 기준 확인',symbol:'123456',state:'PARTIAL',missingFinancial:[],missingValue:['eps']}]}}});});
  await page.goto('/detail/security-data?year=2026&quarter=2&selected=10');await expect(page.getByRole('dialog',{name:'자료 기준 설정'})).toBeVisible();await page.keyboard.press('Escape');await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await page.getByTestId('security-data-missing-list').getByRole('button',{name:/서버 기준 확인/}).click();await expect.poll(()=>pending).toBe(true);await expect(page.getByRole('dialog')).toHaveCount(0);release();await expect(page.getByTestId('security-data-field-eps')).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('security screens show a centered spinner and never poll or refresh on focus/reconnect',async({page},info)=>{
+ await fixture(page);await page.clock.install();
+ const seen:Record<string,number>={},releases:Array<()=>void>=[];
+ const fields=securityDataFields.map(([key,label,group,mode])=>({key,label,group,mode,value:key==='bps'?'100':null,source:null,editable:mode==='direct'}));
+ const detail={security:{id:'1',name:'로딩검증',symbol:'005930'},year:2025,quarter:4,period:'ANNUAL',basis:{fsDivision:'CFS',currency:'KRW',periodEnd:'2025-12-31',amountMultiplier:'1',shareClass:'COMMON',kind:'ACTUAL'},fields,reasons:{},currentPrice:{value:'10000',previousClose:'9000'}};
+ await page.route('**/api/security-data/**',async r=>{
+  const path=new URL(r.request().url()).pathname;seen[path]=(seen[path]??0)+1;
+  await new Promise<void>(resolve=>releases.push(resolve));
+  const data=path.endsWith('/detail')||path.endsWith('/1')?detail:path.endsWith('/quarters')?{asOf:'2026-10-29T00:00:00Z',quarters:[]}:path.endsWith('/annual')?{asOf:'2026-10-29T00:00:00Z',buckets:[]}:{total:0,items:[],hasNext:false,snapshotId:'loading-test'};
+  await r.fulfill({json:{data}});
+ });
+ for(const url of ['/detail/security-data','/detail/security-data?filter=financial','/detail/security-data?annualYear=2025&annualKind=final&stage=w','/detail/security-data?year=2025&quarter=4','/detail/security-data?annualYear=2025&annualKind=final&annualSelected=1','/detail/security-data?year=2025&quarter=4&selected=1']){
+  await page.goto(url);await expect.poll(()=>releases.length).toBeGreaterThan(0);const loader=page.getByTestId('screen-loading');await expect(loader.locator('svg')).toBeVisible();
+  const circle=await loader.locator('svg').boundingBox(),size=page.viewportSize()!;expect(circle!.x+circle!.width/2).toBeCloseTo(size.width/2,0);expect(circle!.y+circle!.height/2).toBeCloseTo(size.height/2,0);
+  await expect(page.getByText(/연간 자료 현황을 조회하고|목록을 조회하고/)).toHaveCount(0);
+  if(url==='/detail/security-data')await page.screenshot({path:info.outputPath('centered-loading.png')});
+  await expect.poll(()=>releases.length).toBeGreaterThan(0);while(releases.length)releases.shift()!();await expect(loader).toHaveCount(0);
+  const before={...seen};await page.clock.fastForward(121000);
+  await page.evaluate(()=>{document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('online'));});
+  await page.waitForTimeout(150);expect(seen).toEqual(before);
+ }
 });

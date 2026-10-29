@@ -1,3 +1,4 @@
+import {ScreenLoading} from './ScreenLoading';
 import {QueryErrorNotice} from './QueryErrorNotice';
 import {useDelayedIndicator} from './DelayedSkeleton';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
@@ -8,6 +9,7 @@ import {PriorityRouteShell} from './PriorityRouteShell';
 export function RouteLoading() {
   const visible=useDelayedIndicator();
   const {pathname,search}=useLocation();
+  if(pathname==='/detail/security-data')return <ScreenLoading/>;
   if(pathname==='/detail/financials'||/^\/stocks\/[^/]+\/financials$/.test(pathname)||pathname==='/detail/value'||/^\/stocks\/[^/]+\/value$/.test(pathname)||/^\/stocks\/[^/]+$/.test(pathname)||pathname==='/'||pathname==='/detail/assets'||pathname==='/assets'||pathname==='/stocks'||pathname==='/detail/compound'||pathname==='/detail/investment'||pathname==='/detail/investment-profit'||pathname==='/detail/cash'&&!new URLSearchParams(search).has('cashInput')&&!new URLSearchParams(search).has('editCash'))return <PriorityRouteShell/>;
   return <><PriorityRouteShell/><Box role={visible?'status':undefined} aria-label={visible?'화면 불러오는 중':undefined} sx={{height:24,display:'flex',justifyContent:'center',visibility:visible?'visible':'hidden'}}><CircularProgress size={16}/></Box></>;
 }
