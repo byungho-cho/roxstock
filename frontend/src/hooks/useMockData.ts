@@ -42,8 +42,7 @@ export function useDashboard({ pollPrices = false, includeTrend = true, deferTre
 export function useStocks(listType?: StockListType, options: { enabled?: boolean; forceFetch?: boolean; pollPrices?: boolean } = {}) {
   const { accountId, page, pageMode, screen } = useActiveAccount(), client = useQueryClient();
   const query = useQuery({
-    refetchOnWindowFocus: options.pollPrices === false ? false : undefined,
-    refetchOnReconnect: options.pollPrices === false ? false : undefined,
+    ...(options.pollPrices === false ? {refetchOnWindowFocus:false,refetchOnReconnect:false} : {}),
     queryKey: ['stocks', listType ?? 'all', liveApiEnabled ? 'api' : 'mock', accountId],
     queryFn: () => liveApiEnabled ? fetchLiveStocks(listType, accountId, client.fetchQuery({ ...storedQueryOptions, queryKey: ['accountTradesSummary', accountId], queryFn: ({signal}) => getStockTradeSummary(accountId!, signal) })) : fetchStocks(listType),
     enabled: (!pageMode || options.forceFetch === true) && options.enabled !== false && (!liveApiEnabled || !!accountId),
