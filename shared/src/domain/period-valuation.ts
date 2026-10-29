@@ -1,4 +1,5 @@
 import {closingParentRoe,closingParentRoePolicy} from './closing-parent-roe.js';
+import {externalParentAccount} from './external-parent-annual.js';
 import {financialCurrency,sameFinancialCurrency,currencyConversionRequired,FX_REQUIRED} from './financial-currency.js';
 import {bookValueShares} from './share-counts.js';
 import {commonEpsReviewMatches} from './common-eps-review.js';
@@ -35,7 +36,7 @@ export function calculatePeriod(f:DartFinancialFiling,previous:DartFinancialFili
  const verified=fiscalDurationMatches(f,duration);
  const durationReview=(!!resolution||!!duration)&&!verified;
  const accounts=supplemental.accounts?.receiptNo===f.receiptNo&&supplemental.accounts.fsDivision===f.fsDivision&&(supplemental.accounts.currency??'KRW')===currency?supplemental.accounts:undefined;
- const periodSource=(key:string,ytd=false)=>source(f,key,ytd)??dec(ytd?accounts?.sources[key]?.ytdAmount:accounts?.sources[key]?.amount);
+ const periodSource=(key:string,ytd=false)=>{const entry=accounts?.sources[key] as Record<string,any>|undefined;return source(f,key,ytd)??(entry?.source==='NAVER_FNGUIDE_ANNUAL'&&!externalParentAccount(f,key,entry)?null:dec(ytd?entry?.ytdAmount:entry?.amount));};
  const annual=f.periodType==='ANNUAL',months=verified?duration.months:annual?12:f.periodType==='Q1'?3:f.periodType==='Q2'?6:9;
  const annualFactor=verified&&duration.annualization==='ACT_365'?new ExactDecimal(365).div(duration.days!):new ExactDecimal(12).div(months);
  const comparable=!resolution&&!verified&&sameFinancialCurrency(f,previous)&&previous?.fsDivision===f.fsDivision&&previous.fiscalYear===f.fiscalYear-1&&previous.periodType==='ANNUAL';

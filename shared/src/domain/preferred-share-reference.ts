@@ -20,12 +20,12 @@ export function preferredShareReference(metric:StoredValuation|null,row:PeriodVa
  if(common.length!==1||!preferred.length||total.length!==1||[...common,...preferred,...total].some(r=>r.periodEndDate!==end||!n(r.outstandingShares)?.gte(0)))return null;
  const commonCount=n(common[0].outstandingShares)!,preferredCount=preferred.reduce((sum:Prisma.Decimal,r:any)=>sum.plus(r.outstandingShares),new D(0)),count=n(total[0].outstandingShares)!;
  if(!commonCount.gt(0)||!preferredCount.gt(0)||!commonCount.plus(preferredCount).eq(count)||shares.outstanding!=null&&!commonCount.eq(String(shares.outstanding))||bps.bookShares!=null&&!count.eq(String(bps.bookShares)))return null;
- let equity:Prisma.Decimal|null=null,roe:string|null=null;
- if(f.fsDivision==='CFS'){const candidate=closingParentRoe(f,sup);if(candidate){equity=new D(candidate.equity);roe=candidate.value;}}
+ let equity:Prisma.Decimal|null=null,roe:string|null=null,source='OPEN_DART';
+ if(f.fsDivision==='CFS'){const candidate=closingParentRoe(f,sup);if(candidate){equity=new D(candidate.equity);roe=candidate.value;if(candidate.inputEvidence?.source==='MATCHED_NAVER_ANNUAL_AND_DART_TOTALS')source='DART_NAVER_RECONCILED';}}
  else if(f.fsDivision==='OFS'&&f.totalEquity?.gt(0)&&f.netIncomeYtd!=null){equity=new D(f.totalEquity.toString());roe=new D(f.netIncomeYtd.toString()).div(equity).mul(100).toDecimalPlaces(4).toString();}
  const book=n(metric.bps);if(!equity?.gt(0)||roe===null||!book?.gt(0)||!equity.div(count).toDecimalPlaces(4).eq(book.toDecimalPlaces(4)))return null;
  const roeEvidence=obj(obj(p.perMetric).roe??p);
  if(obj(sup.manualFields).roe||/MANUAL/i.test(String(roeEvidence.source??''))){if(roeEvidence.roeDenominator!==(f.fsDivision==='CFS'?'CLOSING_PARENT_EQUITY':'CLOSING_EQUITY')||!n(metric.roe)?.eq(roe))return null;}
  const roeNote=`참고 W용 ROE ${new D(roe).toFixed(2)}% · 동일 연간 순손익 / 연말 ${f.fsDivision==='CFS'?'지배주주':'별도'} 자본 기준. 저장된 제공처 ROE와 다를 수 있습니다.`;
- return {policy:preferredReferencePolicy,warning:preferredReferenceWarning,roeNote,roe,equity:equity.toString(),shares:count.toString(),commonShares:commonCount.toString(),preferredShares:preferredCount.toString(),receiptNo:f.receiptNo,periodEnd:end,division:f.fsDivision,year:f.fiscalYear};
+ return {policy:preferredReferencePolicy,warning:preferredReferenceWarning,roeNote,roe,source,equity:equity.toString(),shares:count.toString(),commonShares:commonCount.toString(),preferredShares:preferredCount.toString(),receiptNo:f.receiptNo,periodEnd:end,division:f.fsDivision,year:f.fiscalYear};
 }
