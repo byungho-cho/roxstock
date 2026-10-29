@@ -8,6 +8,7 @@ import {id} from '../lib/input.js';
 import {normalizeSecuritySymbol,isSecuritySymbol} from '@roxstock/shared/domain/security-symbol';
 import {collectionFeatures,exclusionReason,type CollectionFeature} from '@roxstock/shared/collection/collection-policy';
 import {realtimePriceCache} from '../realtime/price-cache.js';
+import {securityUsageReasons as usageReasons} from '../domain/security-usage.js';
 type Query={query?:string;cursor?:string};
 const publicSecurity=(s:any)=>({id:String(s.id),symbol:s.symbol,name:s.name,marketType:s.marketType,listingYear:s.listingYear,isActive:s.isActive,registrationSource:s.registrationSource,canCorrectCode:s.registrationSource==='MANUAL',collectionExcluded:s.collectionExcluded,excludedFeatures:Array.isArray(s.excludedFeatures)?s.excludedFeatures:[],automaticExclusion:s.symbol.startsWith('Z99'),exclusionReason:exclusionReason(s),collectionRevision:s.collectionRevision});
 const missing=()=>new ApiError(404,'SECURITY_NOT_FOUND','종목을 찾을 수 없습니다.');
@@ -85,9 +86,4 @@ export async function securityManagementRoutes(app:FastifyInstance){
    await tx.security.update({where:{id:securityId},data:{isActive:false,collectionExcluded:true,collectionRevision:{increment:1}}});
   });invalidateSecurityCaches();realtimePriceCache.removeSecurity(String(securityId));return {data:{deleted:true}};
  });
-}
-async function usageReasons(db:Prisma.TransactionClient,securityId:bigint){
- const sources=[['보유·거래내역',db.buyTrade],['관심·추천 목록',db.accountWatchlistItem],['기존 관심 목록',db.watchlistItem],['배당',db.dividend],['과거 보유 스냅샷',db.dailyPositionSnapshot]] as const;
- const counts=await Promise.all(sources.map(async([label,delegate])=>({label,count:await (delegate as typeof db.buyTrade).count({where:{securityId}})})));
- return counts.filter(r=>r.count>0).map(r=>r.label);
 }

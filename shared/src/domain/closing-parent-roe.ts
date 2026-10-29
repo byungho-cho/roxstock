@@ -1,6 +1,7 @@
 import {Prisma,type DartFinancialFiling} from '../generated/prisma/index.js';
 import {financialCurrency} from './financial-currency.js';
 import {externalParentAccount} from './external-parent-annual.js';
+import {publicNativeParentAccount} from './public-native-parent.js';
 const D=Prisma.Decimal.clone({precision:60});
 const object=(v:unknown):Record<string,any>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,any>:{};
 const decimal=(v:unknown)=>typeof v==='string'&&/^-?\d+(?:\.\d+)?$/.test(v)?new D(v):null;
@@ -12,8 +13,16 @@ export function closingParentRoe(f:DartFinancialFiling,supplemental?:unknown){
  const linked=extra.receiptNo===f.receiptNo&&extra.fsDivision===f.fsDivision&&extra.currency==='KRW'&&(extra.amountMultiplier==null||String(extra.amountMultiplier)==='1');
  const fallback=(key:string)=>{const entry=object(sources[key]);if(!linked||entry.periodEnd&&entry.periodEnd!==end||entry.currency&&entry.currency!=='KRW'||entry.amountMultiplier!=null&&String(entry.amountMultiplier)!=='1')return {};
   if(entry.source==='NAVER_FNGUIDE_ANNUAL'&&!externalParentAccount(f,key,entry))return {};
+  if(entry.source==='DART_PUBLIC_NATIVE_PARENT_ACCOUNT'&&!publicNativeParentAccount(f,key,entry))return {};
   const derivation=object(entry.derivation);
   if(entry.derivation){
+   if(key==='parentEquity'&&derivation.method==='DART_PUBLIC_OWNER_CAPITAL_COMPONENTS_RECONCILED'){
+    const proof=derivation,parts=Array.isArray(proof.components)?proof.components:[],result=decimal(entry.amount),total=decimal(proof.totalEquity),nci=decimal(proof.nonControlling);
+    let url:URL;try{url=new URL(proof.sourceUrl);}catch{return {};}
+    const labels=parts.map((v:any)=>v.label),retainedLabels=labels.filter((label:unknown)=>typeof label==='string'&&/^(?:이익잉여금(?:\(결손금\))?|결손금)$/.test(label)),values=parts.map((v:any)=>decimal(v.current));
+    if(proof.calculation!=='DECLARED_OWNER_COMPONENTS_SUM'||proof.receiptNo!==f.receiptNo||proof.end!==end||proof.unit!=='원'||url.origin!=='https://dart.fss.or.kr'||url.pathname!=='/report/viewer.do'||url.searchParams.get('rcpNo')!==f.receiptNo||!/^[a-f0-9]{64}$/.test(proof.contentSha256??'')||parts.length<3||new Set(labels).size!==labels.length||values.some((v:any)=>v===null)||!labels.includes('자본금')||retainedLabels.length!==1||!result||!total||!nci||f.totalEquity==null||!total.eq(f.totalEquity.toString())||!values.reduce((sum:any,v:any)=>sum.plus(v),new D(0)).eq(result)||!total.minus(nci).eq(result))return {};
+    return entry;
+   }
    if(key!=='parentEquity'||derivation.method!=='EXACT_SAME_STATEMENT_EQUITY_MINUS_NCI'||derivation.receiptNo!==f.receiptNo||derivation.currency!=='KRW'||!Array.isArray(derivation.operands)||derivation.operands.length!==2)return {};
    const equity=derivation.operands.find((v:any)=>v.accountId==='ifrs-full_Equity'),nci=derivation.operands.find((v:any)=>v.accountId==='ifrs-full_NoncontrollingInterests');
    const total=decimal(equity?.amount),minority=decimal(nci?.amount),result=decimal(entry.amount),reported=f.totalEquity==null?null:new D(f.totalEquity.toString());
@@ -37,6 +46,6 @@ export function closingRoeReview(oldValue:unknown,newValue:string,receiptNo:stri
 }
 export function closingRoeNotices(provenance:unknown):string[]{
  const p=object(provenance),roe=object(object(p.perMetric).roe??p),review=object(roe.roeReview);
- if(roe.roePolicy!==closingParentRoePolicy||review.policy!==closingParentRoePolicy||review.receiptNo!==roe.receiptNo||!decimal(review.differencePP)?.abs().gte(1))return [];
- return [`투자 주의 · ROE 계산 기준 변경: ${review.previousRoe}% → ${review.newRoe}% (차이 ${new D(review.differencePP).toDecimalPlaces(2).toString()}%p). 연말 지배주주 자본 기준이며 항상 보수적인 값은 아닙니다.`];
+ if(![closingParentRoePolicy,'CLOSING_STANDALONE_EQUITY_REFERENCE_V1'].includes(roe.roePolicy)||review.policy!==closingParentRoePolicy||review.receiptNo!==roe.receiptNo||!decimal(review.differencePP)?.abs().gte(1))return [];
+ return [`투자 주의 · ROE 계산 기준 변경: ${review.previousRoe}% → ${review.newRoe}% (차이 ${new D(review.differencePP).toDecimalPlaces(2).toString()}%p). 연말 ${roe.fsDivision==='OFS'?'별도':'지배주주'} 자본 기준이며 항상 보수적인 값은 아닙니다.`];
 }

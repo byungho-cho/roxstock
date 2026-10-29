@@ -9,14 +9,14 @@ const seoulCurrentYear=()=>Number(new Intl.DateTimeFormat('en',{year:'numeric',t
 export const requiredReturn = new ExactDecimal('0.08');
 const decimal = (value: string | null | undefined) => value == null ? null : new ExactDecimal(value);
 const text = (value: { toString(): string } | null | undefined) => value==null?null:new ExactDecimal(value.toString()).toString();
-export type StoredValuation = { currency?:string; rimCompatible?:boolean; kind?:string; fiscalYear?:number; periodType?:string; collectionState?:string; provenance?:unknown; metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
+export type StoredValuation = { currency?:string; rimCompatible?:boolean; rimBps?:string; kind?:string; fiscalYear?:number; periodType?:string; collectionState?:string; provenance?:unknown; metricDate: string; eps: string | null; bps: string | null; per: string | null; pbr: string | null; roe: string | null };
 export function valuation(row: ValuationMetric | null | undefined): StoredValuation | null {
   return row ? { metricDate: row.metricDate.toISOString().slice(0, 10), eps: text(row.eps), bps: text(row.bps), per: text(row.per), pbr: text(row.pbr), roe: text(row.roe) } : null;
 }
 // Same RIM formula as LiveStockInsightPage; Decimal keeps ordering/display input precision.
 export function fairPrice(metric: StoredValuation | null, weight: string): string | null {
   if(currencyConversionRequired(metric?.currency)||metric?.rimCompatible===false)return null;
-  const bps = decimal(metric?.bps), roe = decimal(metric?.roe);
+  const bps = decimal(metric?.rimBps??metric?.bps), roe = decimal(metric?.roe);
   return bps && roe ? bps.mul(new ExactDecimal(1).plus(roe.div(100).minus(requiredReturn).mul(weight).div(requiredReturn))).toString() : null;
 }
 export function weight(metric: StoredValuation | null, price: string | null): string | null {

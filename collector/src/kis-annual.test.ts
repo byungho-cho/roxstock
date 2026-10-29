@@ -1,0 +1,2 @@
+import test from'node:test';import assert from'node:assert/strict';import{kisAnnualPeriodEnd}from'./kis-annual.js';
+test('annual KIS dates respect the explicitly selected fiscal closing month',()=>{assert.equal(kisAnnualPeriodEnd('202512'),'2025-12-31');assert.equal(kisAnnualPeriodEnd('202504',4),'2025-04-30');assert.equal(kisAnnualPeriodEnd('202402',2),'2024-02-29');assert.equal(kisAnnualPeriodEnd('202504'),null);assert.equal(kisAnnualPeriodEnd('202503',4),null);assert.equal(kisAnnualPeriodEnd('202513',13),null);assert.equal(kisAnnualPeriodEnd('20254',4),null);});

@@ -57,9 +57,18 @@ test('backup login, latest automatic confirmation and failure preserve the list'
  await expect(page.getByTestId('backup-item')).toHaveCount(2);
  await page.getByRole('button',{name:'auto.sql.gz 삭제',exact:true}).click();const dialog=page.getByRole('dialog');await expect(dialog.getByRole('button',{name:'삭제',exact:true})).toBeDisabled();await dialog.getByRole('textbox',{name:'삭제 확인',exact:true}).fill('삭제 확인 ');await expect(dialog.getByRole('button',{name:'삭제',exact:true})).toBeDisabled();await dialog.getByRole('button',{name:'취소',exact:true}).click();expect(f.writes).toHaveLength(0);
  await page.getByRole('button',{name:'manual.sql 삭제',exact:true}).click();await expect(dialog.getByRole('textbox')).toHaveCount(0);await dialog.getByRole('button',{name:'취소',exact:true}).click();
- f.fail();await page.getByRole('button',{name:'지금 백업',exact:true}).click();await expect(page.locator('.MuiSnackbar-root')).toContainText('백업 생성 실패');await expect(page.getByTestId('backup-item')).toHaveCount(2);
+ f.fail();await page.getByRole('button',{name:'전체 백업',exact:true}).click();await expect(page.locator('.MuiSnackbar-root')).toContainText('백업 생성 실패');await expect(page.getByTestId('backup-item')).toHaveCount(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('backups.png')});
 });
+test('full and personal backup buttons send separate scopes and block overlapping requests',async({page},info)=>{
+ await fixture(page);await page.goto('/detail/admin/backup');await page.getByLabel('관리자 비밀번호').fill('test-password');await page.getByRole('button',{name:'로그인',exact:true}).click();
+ const full=page.getByRole('button',{name:'전체 백업',exact:true}),personal=page.getByRole('button',{name:'사용자 데이터 백업',exact:true});
+ await expect(full).toBeEnabled();await expect(personal).toBeEnabled();const a=await full.boundingBox(),b=await personal.boundingBox();expect(a!.x).toBeLessThan(b!.x);expect(a!.width).toBeCloseTo(b!.width,0);expect(a!.y).toBeCloseTo(b!.y,0);
+ const writes:any[]=[];let release!:()=>void;const gate=new Promise<void>(r=>release=r);await page.route('**/api/backups',async route=>{if(route.request().method()!=='POST')return route.fallback();writes.push(route.request().postDataJSON());if(writes.length===1)await gate;return route.fulfill({status:202,json:{data:{id:'created'}}});});
+ await personal.click();await expect.poll(()=>writes.length).toBe(1);await expect(full).toBeDisabled();await expect(personal).toBeDisabled();await full.dispatchEvent('click');expect(writes).toEqual([{scope:'USER'}]);release();await expect(full).toBeEnabled();await full.click();await expect.poll(()=>writes.length).toBe(2);expect(writes[1]).toEqual({scope:'FULL'});await expect(personal).toBeEnabled();
+ await expect(page.getByTestId('backup-item')).toHaveCount(2);await expect(page.getByTestId('backup-item').filter({hasText:'수동 · 전체'})).toContainText('SQL');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('backup-scopes.png')});
+});
+
 test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
  await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(16);
  const names=await menu.getByRole('button').allTextContents();expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(9);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
