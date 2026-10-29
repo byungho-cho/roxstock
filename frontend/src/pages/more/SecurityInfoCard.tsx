@@ -1,0 +1,2 @@
+import {Box,Typography} from '@mui/material';
+export function SecurityInfoCard({children}:{children:React.ReactNode}){return <Box data-testid="security-info-card" sx={{p:'12px',borderRadius:'12px',bgcolor:'#111827',minWidth:0,mt:'12px'}}><Typography sx={{fontSize:12,fontWeight:600,mb:'4px'}}>집계 안내</Typography><Typography sx={{fontSize:11,lineHeight:'19px',color:'#CBD5E1',whiteSpace:'pre-line'}}>{children}</Typography></Box>;}

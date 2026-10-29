@@ -1,6 +1,6 @@
 import {selectValueListAnalysis} from './value-list-analysis.js';
 import {validFieldNumber,valueRequired} from './security-data-aggregation.js';
-export const annualReadinessVersion='SECURITY_W_ANNUAL_V1';
+export const annualReadinessVersion='SECURITY_W_ANNUAL_V2';
 export type AnnualKind='final'|'estimate';
 type Input=Parameters<typeof selectValueListAnalysis>[0];
 /** Exact annual bucket. In particular, an estimate never falls back to last year's final. */
@@ -23,5 +23,6 @@ export function annualWAssessment(input:Input,year:number,kind:AnnualKind){
 export type AnnualReadiness=ReturnType<typeof annualWAssessment>;
 export function summarizeAnnual(rows:ReadonlyArray<{excludedReason:string|null;assessment:AnnualReadiness}>){
  const included=rows.filter(r=>!r.excludedReason),wReady=included.filter(r=>r.assessment.wReady).length,indicatorMissing=included.filter(r=>r.assessment.wReady&&!r.assessment.indicatorReady).length;
- return {target:included.length,excluded:rows.length-included.length,wReady,wMissing:included.length-wReady,indicatorMissing,fullyReady:wReady-indicatorMissing,wRate:included.length?wReady/included.length*100:null,indicatorOverlayRate:included.length?indicatorMissing/included.length*100:null};
+ const valueReady=included.filter(r=>r.assessment.indicatorReady).length;
+ return {valueReady,valueMissing:included.length-valueReady,valueRate:included.length?valueReady/included.length*100:null,target:included.length,excluded:rows.length-included.length,wReady,wMissing:included.length-wReady,indicatorMissing,fullyReady:wReady-indicatorMissing,wRate:included.length?wReady/included.length*100:null,indicatorOverlayRate:included.length?indicatorMissing/included.length*100:null};
 }

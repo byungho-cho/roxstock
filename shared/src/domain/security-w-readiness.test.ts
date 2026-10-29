@@ -16,3 +16,6 @@ test('blue includes yellow; both annual buckets use unchanged targets; zero nume
  const s=summarizeAnnual([{excludedReason:null,assessment:complete},{excludedReason:null,assessment:partial},{excludedReason:null,assessment:missing},{excludedReason:'ETF',assessment:complete}]);assert.deepEqual({target:s.target,wReady:s.wReady,wMissing:s.wMissing,indicatorMissing:s.indicatorMissing,fullyReady:s.fullyReady},{target:3,wReady:2,wMissing:1,indicatorMissing:1,fullyReady:1});assert.equal(s.wReady,s.fullyReady+s.indicatorMissing);assert.equal(summarizeAnnual([{excludedReason:null,assessment:missing}]).wRate,0);assert.equal(summarizeAnnual([]).wRate,null);
  const zero=row(2025);zero.values.bps='0';assert.equal(annualWAssessment(input([zero]),2025,'final').w,'0');
 });
+
+
+test('indicator completion includes all five metrics even when price or RIM prevents W',()=>{const full=annualWAssessment(input([row(2025)],null),2025,'final'),missing=annualWAssessment(input([]),2025,'final'),summary=summarizeAnnual([{excludedReason:null,assessment:full},{excludedReason:null,assessment:missing}]);assert.equal(full.wReady,false);assert.equal(full.indicatorReady,true);assert.equal(summary.wReady,0);assert.equal(summary.valueReady,1);assert.equal(summary.valueMissing,1);assert.equal(summary.valueRate,50);assert.equal(summarizeAnnual([]).valueRate,null);});
