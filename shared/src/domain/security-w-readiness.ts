@@ -1,6 +1,6 @@
 import {selectValueListAnalysis} from './value-list-analysis.js';
 import {validFieldNumber,valueRequired} from './security-data-aggregation.js';
-export const annualReadinessVersion='SECURITY_W_ANNUAL_V2';
+export const annualReadinessVersion='SECURITY_W_ANNUAL_V3';
 export type AnnualKind='final'|'estimate';
 type Input=Parameters<typeof selectValueListAnalysis>[0];
 /** Exact annual bucket. In particular, an estimate never falls back to last year's final. */
