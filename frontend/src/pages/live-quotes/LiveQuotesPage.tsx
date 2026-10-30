@@ -39,6 +39,7 @@ export function LiveQuotesPage() {
         version: string;
     } | null>(null), busy = useRef(false), gesture = useRef<{
         id: string;
+        pointerId: number;
         x: number;
         y: number;
         timer: ReturnType<typeof setTimeout>;
@@ -85,12 +86,36 @@ export function LiveQuotesPage() {
     } }, [accountId, dirty, base]);
     useEffect(() => { const move = (e: TouchEvent) => { if (gesture.current?.armed)
         e.preventDefault(); }; document.addEventListener('touchmove', move, { passive: false }); return () => document.removeEventListener('touchmove', move); }, []);
-    useEffect(() => { if (!dragId)
-        return; const timer = setInterval(() => { const g = gesture.current, main = document.querySelector('main'); if (!g || !main)
-        return; const box = main.getBoundingClientRect(); if (g.y < box.top + 35)
-        main.scrollBy(0, -8);
-    else if (g.y > box.bottom - 35)
-        main.scrollBy(0, 8); if(g.armed)updateTarget(g.x,Math.max(box.top+2,Math.min(box.bottom-2,g.y))); }, 16); return () => clearInterval(timer); }, [dragId]);
+    useEffect(() => {
+      if(!dragId)return;
+      const main=document.querySelector<HTMLElement>('[data-live-root]')?.closest('main');
+      if(!main)return;
+      let frame=0,previous=performance.now();
+      const tick=(now:number)=>{
+        const g=gesture.current,v=visualRef.current;if(!g?.armed||!v||v.settling)return;
+        const elapsed=Math.min(32,Math.max(0,now-previous));previous=now;
+        const box=main.getBoundingClientRect(),top=Math.max(0,box.top),bottom=Math.min(window.innerHeight,box.bottom);
+        const edge=Math.min(56,(bottom-top)/3),middle=(top+bottom)/2;
+        // The lifted card can touch an edge before the finger does. Keep scrolling while held still.
+        const pressure=g.y<middle?(top+edge-Math.min(g.y,v.y))/edge:(Math.max(g.y,v.y+v.height)-(bottom-edge))/edge;
+        if(pressure>0){const speed=120+600*Math.min(1,pressure),direction=g.y<middle?-1:1;
+          main.scrollTop=Math.max(0,Math.min(main.scrollHeight-main.clientHeight,main.scrollTop+direction*speed*elapsed/1000));
+        }
+        const grid=document.querySelector('[data-testid=live-grid]')?.getBoundingClientRect();
+        if(grid&&visibleIds.current.length){
+          // Clamp to actual cards as well as the viewport: footer padding is not another row.
+          const y=Math.max(grid.top+1,Math.min(grid.bottom-1,Math.max(top+1,Math.min(bottom-1,g.y))));
+          updateTarget(g.x,y);
+        }
+        frame=requestAnimationFrame(tick);
+      };
+      // Scrolling/reordering can release native pointer capture. End the drag even over header/footer padding.
+      const finish=(event:PointerEvent)=>{if(gesture.current?.armed&&gesture.current.pointerId===event.pointerId)end();};
+      const outsideMove=(event:PointerEvent)=>{if(gesture.current?.armed&&!(event.target instanceof Element&&event.target.closest('[data-quote-id]')))move(event);};
+      window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',finish);
+      window.addEventListener('pointermove',outsideMove,{passive:false});
+      frame=requestAnimationFrame(tick);return()=>{cancelAnimationFrame(frame);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',finish);window.removeEventListener('pointermove',outsideMove);};
+    },[dragId]);
     useEffect(() => () => {clearTimeout(releaseHold.current);clearTimeout(landingTimer.current);if (gesture.current)
         clearTimeout(gesture.current.timer); }, []);
     const save = async (next = order, version = base?.version ?? list?.version) => { if (busy.current || !version)
@@ -123,7 +148,7 @@ export function LiveQuotesPage() {
       clearTimeout(releaseHold.current);frozen.current=sorted;setPointerHold(true);
       if(sort!=='manual'||saving||e.button!==0)return;
       const el=e.currentTarget as HTMLElement,rect=el.getBoundingClientRect(),offsetX=e.clientX-rect.left,offsetY=e.clientY-rect.top;
-      const g={id,x:e.clientX,y:e.clientY,armed:false,last:undefined as string|undefined,timer:setTimeout(()=>{
+      const g={id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,armed:false,last:undefined as string|undefined,timer:setTimeout(()=>{
         g.armed=true;frozen.current=sorted;setDragId(id);el.setPointerCapture(e.pointerId);
         const v={id,x:g.x-offsetX,y:g.y-offsetY,width:rect.width,height:rect.height,offsetX,offsetY,settling:false};visualRef.current=v;setDragVisual(v);
       },500)};gesture.current=g;
@@ -133,13 +158,14 @@ export function LiveQuotesPage() {
       // Hit-test logical grid cells, not neighbours currently moving under a FLIP transform.
       const grid=document.querySelector('[data-testid=live-grid]')?.getBoundingClientRect();
       if(!grid||x<grid.left||x>=grid.right||y<grid.top||y>=grid.bottom)return;
-      const target=visibleIds.current[Math.floor((y-grid.top)/quoteCardHeight)*2+Math.floor((x-grid.left)/(grid.width/2))];
+      const index=Math.floor((y-grid.top)/quoteCardHeight)*2+Math.floor((x-grid.left)/(grid.width/2));
+      const target=visibleIds.current[Math.min(visibleIds.current.length-1,index)];
       if(!target||target===g.id)return;
       if(!base){setBase({ids:list!.ids,version:list!.version});localOrder.current={accountId,ids:list!.ids,version:list!.version};}
       const next=reorderVisible(orderRef.current,visibleIds.current,g.id,target);orderRef.current=next;setDraft(next);
     };
-    const move=(e:React.PointerEvent)=>{
-      const g=gesture.current;if(!g)return;
+    const move=(e:Pick<React.PointerEvent,'clientX'|'clientY'|'pointerId'|'preventDefault'>)=>{
+      const g=gesture.current;if(!g||g.pointerId!==e.pointerId)return;
       if(!g.armed){if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>8)end();return;}
       g.x=e.clientX;g.y=e.clientY;e.preventDefault();
       const v=visualRef.current;if(v){const next={...v,x:e.clientX-v.offsetX,y:e.clientY-v.offsetY};visualRef.current=next;setDragVisual(next);}
