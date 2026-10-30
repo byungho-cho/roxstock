@@ -193,57 +193,56 @@ export function LiveQuotesPage() {
 export function LiveQuoteAddPage() {
     const navigate = useNavigate(), { user } = useAuth(), { accountId } = useActiveAccount(), client = useQueryClient();
     const [tab, setTab] = useState('search'), [search, setSearch] = useState(''), [term, setTerm] = useState(''), [selected, setSelected] = useState<string[]>([]), [saving, setSaving] = useState(false), [error, setError] = useState('');
-    const busy = useRef(false);
+    const busy = useRef(false),allowLeave=useRef(false);
+    const [baseline,setBaseline]=useState<{owner:string|undefined;ids:string[];version:string}|null>(null);
     useEffect(() => { const timer = setTimeout(() => setTerm(search), 250); return () => clearTimeout(timer); }, [search]);
     const query = useInfiniteQuery({ initialPageParam:null as string|null, getNextPageParam:(page:List)=>page.hasMore&&page.nextCursor?page.nextCursor:undefined, queryKey: ['live-quote-candidates', 'paged', user?.id, accountId, tab, term], queryFn: ({ pageParam, signal }) => apiRequest<List>(`/live-quotes/candidates?tab=${tab}&q=${encodeURIComponent(term)}${accountId ? '&accountId=' + accountId : ''}${pageParam?'&cursor='+encodeURIComponent(pageParam):''}`, { signal }), staleTime: 30000, refetchOnWindowFocus: false, refetchOnReconnect:false });
-    const data=query.data?.pages[0],registered=new Set(data?.ids??[]),rows=[...new Map((query.data?.pages.flatMap(page=>page.stocks)??[]).map(stock=>[stock.id,stock])).values()],available=rows.filter(s=>!registered.has(s.id));
+    const data=query.data?.pages[0],ready=!!baseline&&baseline.owner===user?.id;
+    const saved=ready?baseline!:data?{owner:user?.id,ids:data.ids,version:data.version}:null;
+    const ids=ready?selected:(data?.ids??[]),registered=new Set(saved?.ids??[]),checked=new Set(ids);
+    const rows=[...new Map((query.data?.pages.flatMap(page=>page.stocks)??[]).map(stock=>[stock.id,stock])).values()],available=rows.filter(s=>!registered.has(s.id));
+    const draftRef=useRef(ids);draftRef.current=ids;
+    useEffect(()=>{if(data&&!ready){setBaseline({owner:user?.id,ids:[...data.ids],version:data.version});setSelected([...data.ids]);setError('');}},[data,ready,user?.id]);
+    const dirty=!!saved&&!same(ids,saved.ids),selectionCount=ids.length;
+    const blocker=useBlocker(({currentLocation,nextLocation})=>dirty&&!allowLeave.current&&currentLocation.key!==nextLocation.key);
+    useEffect(()=>{const warn=(event:BeforeUnloadEvent)=>{if(dirty){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty]);
     const moreBusy=useRef(false);
     const more=async()=>{if(moreBusy.current||!query.hasNextPage)return;moreBusy.current=true;try{await query.fetchNextPage({cancelRefetch:false});}finally{moreBusy.current=false;}};
-    const remaining=Math.max(0,maxDisplayStocks-registered.size);
-    const toggle=(id:string)=>setSelected(old=>old.includes(id)?old.filter(x=>x!==id):old.filter(x=>!registered.has(x)).length<remaining?[...old,id]:old);
-    const selectAll=(checked:boolean)=>{
-      const next=checked?[...new Set([...selected,...available.map(s=>s.id)])]:selected.filter(id=>!available.some(s=>s.id===id));
-      if(next.filter(id=>!registered.has(id)).length>remaining){setError('표시 종목은 최대 50개까지 추가할 수 있습니다. 남은 '+remaining+'개를 선택해 주세요.');return;}
-      setSelected(next);
-    };
-    const add = async (ids = selected) => { if (busy.current || !data || !ids.length)
-        return; busy.current = true; setSaving(true); setError(''); try {
-        const fresh = await apiRequest<List>('/live-quotes/list');
-        if (fresh.version !== data.version)
-            throw Error('다른 화면에서 목록이 변경됐습니다. 최신 목록 확인 후 다시 추가해 주세요.');
-        const next=[...new Set([...fresh.ids,...ids])];
-        if(!displayListWithinLimit(next,fresh.ids))throw Error('표시 종목은 최대 50개까지 추가할 수 있습니다.');
-        await apiRequest('/live-quotes/list', { method: 'PUT', body: JSON.stringify({ version: data.version, ids: next }) });
-        await client.invalidateQueries({ queryKey: ['live-quote-list'] });
-        await client.invalidateQueries({ queryKey: ['live-quote-candidates'] });
-        navigate('/live-quotes');
-    }
-    catch (e) {
-        setError((e as Error).message);
-    }
-    finally {
-        busy.current = false;
-        setSaving(false);
-    } };
-    const selectionCount=selected.filter(id=>!registered.has(id)).length;
+    const ordered=(next:string[])=>{const members=new Set(next),old=new Set(saved?.ids??[]);return [...(saved?.ids??[]).filter(id=>members.has(id)),...next.filter(id=>!old.has(id))];};
+    const apply=(next:string[])=>{if(!saved||!displayListWithinLimit(next,saved.ids)){setError('표시 종목은 최대 50개까지 저장할 수 있습니다.');return;}const value=ordered(next);draftRef.current=value;setSelected(value);setError('');};
+    const toggle=(id:string)=>apply(checked.has(id)?draftRef.current.filter(x=>x!==id):[...draftRef.current,id]);
+    const selectAll=(value:boolean)=>{const shown=new Set(rows.map(s=>s.id));apply(value?[...new Set([...draftRef.current,...shown])]:draftRef.current.filter(id=>!shown.has(id)));};
+    const selectUnregistered=()=>apply([...new Set([...draftRef.current,...available.map(s=>s.id)])]);
+    const cancel=()=>{if(!saved)return;draftRef.current=[...saved.ids];setSelected([...saved.ids]);setError('');};
+    const reloadSaved=async()=>{if(busy.current)return;busy.current=true;try{const fresh=await apiRequest<List>('/live-quotes/list');setBaseline({owner:user?.id,ids:[...fresh.ids],version:fresh.version});draftRef.current=[...fresh.ids];setSelected([...fresh.ids]);setError('');}catch(e){setError((e as Error).message);}finally{busy.current=false;}};
+    const save=async()=>{if(busy.current||!saved||!dirty)return;busy.current=true;setSaving(true);setError('');const next=[...draftRef.current];try{
+      const fresh=await apiRequest<List>('/live-quotes/list');
+      if(fresh.version!==saved.version)throw Error('다른 화면에서 목록이 변경됐습니다. 변경 취소 후 최신 목록을 확인해 주세요.');
+      if(!displayListWithinLimit(next,fresh.ids))throw Error('표시 종목은 최대 50개까지 저장할 수 있습니다.');
+      const result=await apiRequest<List>('/live-quotes/list',{method:'PUT',body:JSON.stringify({version:saved.version,ids:next})});
+      setBaseline({owner:user?.id,ids:[...result.ids],version:result.version});draftRef.current=[...result.ids];setSelected([...result.ids]);allowLeave.current=true;
+      await client.invalidateQueries({queryKey:['live-quote-list']});await client.invalidateQueries({queryKey:['live-quote-candidates']});
+      await navigate('/live-quotes');showSuccessToast('저장했습니다.');
+    }catch(e){setError((e as Error).message);}finally{busy.current=false;setSaving(false);}};
     return <Box sx={{bgcolor:colors.canvas,p:'0 8px 80px',minHeight:'100%'}}>
-      <PageHeader title="표시 종목 추가" embedded showAdd={false} showBack showBackTablet backPath="/live-quotes" action={<Box data-testid="live-add-header-actions" sx={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0}}><ActionButton size="small" tone="muted" aria-label="선택 취소" disabled={saving||!selectionCount} onClick={()=>{setSelected([]);setError('');}}>취소</ActionButton><ActionButton size="small" sx={{width:112,minWidth:112,maxWidth:112,flex:'0 0 112px'}} disabled={saving||!selectionCount||query.isFetching||search!==term} onClick={()=>void add()}>{saving?'추가 중':`선택한 ${selectionCount}개 추가`}</ActionButton></Box>}/>
+      <PageHeader title="표시 종목 관리" embedded showAdd={false} showBack showBackTablet backPath="/live-quotes" action={<Box data-testid="live-add-header-actions" sx={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0}}><ActionButton size="small" tone="muted" aria-label="선택 취소" disabled={saving||!dirty} onClick={cancel}>취소</ActionButton><ActionButton size="small" sx={{width:64,minWidth:64,maxWidth:64,flex:'0 0 64px'}} disabled={saving||!dirty||query.isFetching||search!==term} onClick={()=>void save()}>{saving?'저장 중':'저장'}</ActionButton></Box>}/>
       <Box sx={{pt:'8px'}}><SegmentedTabs value={tab} onChange={setTab} items={[{value:'search',label:'검색'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}].map(t=>({...t,disabled:saving}))}/></Box>
       <Box component="form" onSubmit={e=>{e.preventDefault();setTerm(search);}} sx={{pt:'8px',mb:'8px'}}><StockSearchFrame>
         <SearchRounded sx={{fontSize:18,color:colors.textMuted}}/><InputBase value={search} disabled={saving} onChange={e=>setSearch(e.target.value)} placeholder="종목명 또는 종목코드 검색" inputProps={{'aria-label':'표시 종목 검색',enterKeyHint:'search'}} sx={{flex:1,minWidth:0,fontSize:12}}/>
         {!!search&&<IconButton aria-label="검색어 지우기" disabled={saving} onClick={()=>setSearch('')} sx={{width:24,height:28,p:0}}><CloseRounded sx={{fontSize:16}}/></IconButton>}
       </StockSearchFrame></Box>
-      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}>{tab!=='search'&&<Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!available.length||saving||query.isFetching||search!==term} checked={!!available.length&&available.every(s=>selected.includes(s.id))} onChange={(_,checked)=>selectAll(checked)} sx={{p:'4px'}}/>전체 선택</Box>}
-        <ActionButton sx={{ml:'auto'}} size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.length||registered.size+available.length>maxDisplayStocks} onClick={()=>void add(available.map(s=>s.id))}>미등록 전체 추가</ActionButton></Box>
+      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}>{tab!=='search'&&<Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!rows.length||saving||query.isFetching||search!==term} checked={!!rows.length&&rows.every(s=>checked.has(s.id))} onChange={(_,checked)=>selectAll(checked)} sx={{p:'4px'}}/>전체 선택</Box>}
+        <ActionButton sx={{ml:'auto'}} size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.some(s=>!checked.has(s.id))||!displayListWithinLimit([...new Set([...ids,...available.map(s=>s.id)])],saved?.ids??[])} onClick={selectUnregistered}>미등록 전체 선택</ActionButton></Box>
       {query.isPending?<Box sx={{textAlign:'center',py:3}}><CircularProgress size={24}/></Box>:query.isError&&!data?<Box role="alert">조회에 실패했습니다.<Button onClick={()=>void query.refetch()}>재시도</Button></Box>:<Box sx={{borderTop:`1px solid ${colors.border}`}}>{rows.map(s=><Box key={s.id} component="label" sx={{display:'flex',alignItems:'center',minHeight:40,gap:'8px',px:'4px',borderBottom:`1px solid ${colors.border}`}}>
-        <Checkbox size="small" checked={registered.has(s.id)||selected.includes(s.id)} disabled={registered.has(s.id)||saving||(!selected.includes(s.id)&&selectionCount>=remaining)} onChange={()=>toggle(s.id)} slotProps={{input:{'aria-label':`${s.name}(${s.symbol}) 선택`}}} sx={{p:'4px'}}/>
+        <Checkbox size="small" checked={checked.has(s.id)} disabled={saving||(!checked.has(s.id)&&selectionCount>=maxDisplayStocks)} onChange={()=>toggle(s.id)} slotProps={{input:{'aria-label':`${s.name}(${s.symbol}) 선택`}}} sx={{p:'4px'}}/>
         <Box title={`${s.name}(${s.symbol})`} sx={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',whiteSpace:'nowrap'}}><Typography noWrap component="span" sx={{minWidth:0,fontSize:12,fontWeight:600}}>{s.name}</Typography><Typography component="span" sx={{flexShrink:0,fontSize:12,color:colors.textMuted}}>({s.symbol})</Typography></Box>
-        <Typography sx={{fontSize:10,color:colors.textMuted,flexShrink:0,whiteSpace:'nowrap'}}>{registered.has(s.id)?'추가됨':[s.held?'보유':'',s.watched?'관심':'',s.traded?'거래':''].filter(Boolean).join(' · ')}</Typography>
+        <Typography sx={{fontSize:10,color:colors.textMuted,flexShrink:0,whiteSpace:'nowrap'}}>{registered.has(s.id)?checked.has(s.id)?'등록됨':'삭제 예정':checked.has(s.id)?'추가 예정':[s.held?'보유':'',s.watched?'관심':'',s.traded?'거래':''].filter(Boolean).join(' · ')}</Typography>
       </Box>)}</Box>}
       {query.hasNextPage&&<Box sx={{display:'flex',justifyContent:'center',mt:'16px'}}><ActionButton aria-label={query.isFetchNextPageError?'검색 결과 더보기 다시 시도':'검색 결과 더보기'} size="small" tone="muted" disabled={query.isFetchingNextPage||query.isRefetching||saving} onClick={()=>void more()}>{query.isFetchingNextPage?'불러오는 중':query.isFetchNextPageError?'더보기 다시 시도':'더보기'}</ActionButton></Box>}
       {!query.isPending&&!query.isError&&!rows.length&&<Typography sx={{textAlign:'center',py:4,fontSize:12}}>검색 결과가 없습니다.</Typography>}
 
-      {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void query.refetch()}>최신 목록 확인</Button></Box>}
+      {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void reloadSaved()}>변경 취소 후 최신 목록</Button></Box>}
+      <Dialog open={blocker.state==='blocked'}><DialogTitle>저장하지 않은 표시 종목 변경이 있습니다.</DialogTitle><DialogActions><Button onClick={()=>blocker.state==='blocked'&&blocker.reset()}>계속 편집</Button><Button onClick={()=>{allowLeave.current=true;if(blocker.state==='blocked')blocker.proceed();}}>변경 취소 후 이동</Button></DialogActions></Dialog>
       <Box data-testid="live-add-selection-summary" role="status" aria-live="polite" sx={{position:'fixed',left:12,bottom:'calc(57px + env(safe-area-inset-bottom, 0px))',zIndex:4,p:'8px 12px',maxWidth:'calc(100vw - 24px)',borderRadius:'8px',bgcolor:'rgba(8,13,24,.78)',border:'1px solid rgba(148,163,184,.22)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',pointerEvents:'none'}}><Typography sx={{fontSize:11,color:colors.textPrimary,whiteSpace:'nowrap'}}>{selectionCount}개 선택 · {registered.size}/50개 등록</Typography></Box>
 
     </Box>;
