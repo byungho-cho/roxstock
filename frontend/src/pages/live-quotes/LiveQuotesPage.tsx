@@ -30,14 +30,14 @@ const sorts: {
     value: QuoteSort;
     label: string;
 }[] = [{ value: 'manual', label: '직접설정순' }, { value: 'name', label: '종목명순' }, { value: 'price', label: '주가금액순' }, { value: 'rate', label: '등락률순' }, { value: 'holding', label: '보유금액순' }, { value: 'profit', label: '보유손익순' }];
-const statusText: Record<string, string> = { QUOTE_DELAYED: '지연 시세', CONNECTED: '연결됨', LIVE: '실시간', CACHE: '저장 시세', WAITING_TRADE: '체결 수신 대기', NO_RECENT_TRADE: '최근 체결 없음', RECONNECTING: '재연결 중', CONNECTING: '연결 중', DISCONNECTED: '연결 끊김', MARKET_CLOSED: '장 운영시간 외', TRADING_HALTED: '거래정지', MARKET_UNSUPPORTED: '시장 미지원', SUBSCRIPTION_REJECTED: '구독 거절 · 제공처 확인 필요', LIMIT_EXCEEDED: '구독 한도 초과', NOT_CONFIGURED: '연결 설정 확인 필요', DISABLED: '실시간 수신 중지', SESSION_IN_USE: '다른 서버 연결 사용 중' };
+const statusText: Record<string, string> = { IDLE: '표시 종목 추가 후 연결', QUOTE_DELAYED: '지연 시세', CONNECTED: '연결됨', LIVE: '실시간', CACHE: '저장 시세', WAITING_TRADE: '체결 수신 대기', NO_RECENT_TRADE: '최근 체결 없음', RECONNECTING: '재연결 중', CONNECTING: '연결 중', DISCONNECTED: '연결 끊김', MARKET_CLOSED: '장 운영시간 외', TRADING_HALTED: '거래정지', MARKET_UNSUPPORTED: '시장 미지원', SUBSCRIPTION_REJECTED: '구독 거절 · 제공처 확인 필요', LIMIT_EXCEEDED: '구독 한도 초과', NOT_CONFIGURED: '연결 설정 확인 필요', DISABLED: '실시간 수신 중지', SESSION_IN_USE: '다른 서버 연결 사용 중' };
 const color = (n: number) => n > 0 ? colors.marketRise : n < 0 ? colors.marketFall : colors.marketFlat;
 const number = (n: number | undefined) => n === undefined ? '—' : n.toLocaleString('ko-KR');
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
 const selectStyle = { background: 'transparent', border: 0, color: colors.textMuted, fontSize: 12, padding: 0, maxWidth: '100%' };
 function useQuoteStream(market: QuoteMarket, symbols: string[], identity: string) {
     const key = symbols.join(','), scope = market + ':' + identity + ':' + key;
-    const empty = { connection: 'CONNECTING', active: 0, limit: 41, quotes: [] };
+    const empty = { connection: key ? 'CONNECTING' : 'IDLE', active: 0, limit: 41, quotes: [] };
     const [packet, setPacket] = useState<Packet & {
         scope: string;
     }>({ ...empty, scope });
@@ -113,7 +113,8 @@ export function LiveQuotesPage() {
     const allRows = list?.stocks ?? [];
     const candidates = allRows.filter(s => filter === 'all' || filter === 'holding' && s.held || filter === 'watch' && s.watched || filter === 'trade' && s.traded);
     const frozen = useRef<DisplayStock[] | null>(null), [pointerHold,setPointerHold]=useState(false),releaseHold=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
-    const sorted = orderStocks(candidates, order, sort, live);
+    // A KRX cache must not determine TOTAL/NXT price or holding-value sorting.
+    const sorted = orderStocks(candidates.map(s => market === 'KRX' ? s : { ...s, initial: null, marketValue: null, profit: null }), order, sort, live);
     const rows = dragId && frozen.current ? frozen.current.map(s => allRows.find(r => r.id === s.id) ?? s).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)) : pointerHold&&frozen.current?frozen.current:sorted;
     const visibleIds = useRef<string[]>([]);
     visibleIds.current = rows.map(r => r.id);
