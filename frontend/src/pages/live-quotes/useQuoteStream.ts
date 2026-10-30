@@ -3,7 +3,7 @@ import {skipToken,useQuery,useQueryClient} from '@tanstack/react-query';
 import type {LiveQuote, QuoteMarket} from '../../../../shared/src/domain/live-quotes';
 
 export type QuoteRow = {symbol:string; status:string; quote:LiveQuote|null; retained?:boolean};
-type Packet = {connection:string; active:number; limit:number; quotes:QuoteRow[]};
+type Packet = {marketOpen?:boolean;connection:string; active:number; limit:number; quotes:QuoteRow[]};
 type Cached = Record<string,LiveQuote>;
 const prefix = ['live-last-quotes'];
 // The existing auth clear removes this user-scoped memory. No disk, DB or extra REST.

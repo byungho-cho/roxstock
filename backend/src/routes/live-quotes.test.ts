@@ -47,3 +47,5 @@ test('API identity isolation and optimistic list writes preserve settings and re
         t.mock.restoreAll();
     }
 });
+
+test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('TOTAL:005930',quote);const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,quote);assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});

@@ -7,11 +7,12 @@ export const statusText:Record<string,string>={LAST_QUOTE:'마지막 시세',IDL
 const number=(n:number|undefined)=>n===undefined?'—':n.toLocaleString('ko-KR');
 const color=(n:number)=>n>0?colors.marketRise:n<0?colors.marketFall:colors.marketFlat;
 export const quoteCardHeight=96;
-type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
-export const QuoteCard=memo(function QuoteCard({stock,market,row,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
+type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
+export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
   const q=row.quote,previous=useRef<{market:string;price:number}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const [flash,setFlash]=useState<'up'|'down'|null>(null),tone=useRef<'up'|'down'>('up'),flashMarket=useRef<QuoteMarket|null>(null);
-  const visibleFlash=flashMarket.current===market?flash:null;
+  const marketClosed=closed||row.status==='MARKET_CLOSED';
+  const visibleFlash=!marketClosed&&flashMarket.current===market?flash:null;
   useEffect(()=>{previous.current=null;clearTimeout(timer.current);setFlash(null);},[market]);
   useEffect(()=>{
     if(!q)return;
@@ -22,7 +23,11 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,dragged=false,g
     previous.current={market:q.market,price:q.price};
   },[q?.price,q?.market,row.status,row.retained,ghost]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
-  const asOf=q?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(q.observedAt)):'';
+  const stamp=q?(marketClosed?q.receivedAt:Date.parse(q.observedAt)):NaN;
+  const parts=Number.isFinite(stamp)?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(stamp)):[];
+  const part=(name:string)=>parts.find(p=>p.type===name)?.value??'';
+  const asOf=parts.length?(marketClosed?part('month')+'.'+part('day')+' ':'')+part('hour')+':'+part('minute')+':'+part('second'):'';
+  const caption=marketClosed?(q?'종가 · 최종 수신 '+asOf:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(asOf?' '+asOf:'');
   return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'button'} tabIndex={ghost?undefined:0}
     aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
     onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onClick={onOpen}
@@ -36,6 +41,6 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,dragged=false,g
       <Box data-testid={ghost?undefined:'live-rate'} sx={{flex:'0 0 auto',fontSize:11,textAlign:'right',whiteSpace:'nowrap'}}>{q?`${q.change>0?'▲':q.change<0?'▼':'—'} ${Math.abs(q.rate).toFixed(2)}%`:'—'}</Box>
     </Box>
     <Box sx={{height:18,fontSize:12,lineHeight:'18px',textAlign:'right',color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>{q?number(Math.abs(q.change)):'—'}</Box>
-    <Box title={`${statusText[row.status]??row.status} · ${asOf}`} sx={{fontSize:8,lineHeight:'10px',color:row.status==='LIVE'?colors.textMuted:colors.warning,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.status==='LIVE'?'체결 ':statusText[row.status]??row.status}{row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':''}{asOf&&` ${asOf}`}</Box>
+    <Box title={`${caption} · ${statusText[row.status]??row.status}`} sx={{fontSize:8,lineHeight:'10px',color:row.status==='LIVE'||marketClosed?colors.textMuted:colors.warning,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{caption}</Box>
   </Box>;
 });
