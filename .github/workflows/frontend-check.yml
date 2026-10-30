@@ -142,6 +142,8 @@ jobs:
           node-version: '20'
       - run: npm ci --workspace frontend --include-workspace-root=false
       - run: npx --workspace frontend playwright install --with-deps chromium
+      - name: Live quotes, offline recovery and touch reordering (cover and tablet)
+        run: cd frontend && npx playwright test -c playwright.live-quotes.config.ts
       - name: KRW costs, dashboard display and resilient sessions
         run: |
           node --import tsx --test frontend/src/pages/cash/cashCost.test.ts
@@ -184,6 +186,7 @@ jobs:
         with:
           name: native-currency-ui-${{ github.run_id }}
           path: |
+            frontend/test-results/live-quotes
             frontend/test-results/native-currency
             frontend/test-results/home-phase32
             frontend/test-results/stock-news-phase33

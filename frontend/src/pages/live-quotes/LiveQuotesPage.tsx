@@ -46,19 +46,28 @@ function useQuoteStream(market: QuoteMarket, symbols: string[], identity: string
         setPacket({ ...empty, scope });
         if (!key)
             return;
-        const stream = new EventSource(`/api/live-quotes/stream?market=${market}`, { withCredentials: true });
-        stream.addEventListener('quotes', event => { if (!alive)
-            return; try {
-            const next = JSON.parse((event as MessageEvent).data) as Packet;
-            if (next.quotes.every(r => !r.quote || r.quote.market === market))
-                setPacket({ ...next, scope });
-        }
-        catch {
-            setPacket(p => ({ ...p, connection: 'DISCONNECTED' }));
-        } });
-        stream.onerror = () => { if (alive)
+        let stream: EventSource | null = null;
+        const reconnecting = () => { if (alive)
             setPacket(p => ({ ...p, connection: 'RECONNECTING', quotes: p.quotes.map(r => ({ ...r, status: 'RECONNECTING' })) })); };
-        return () => { alive = false; stream.close(); };
+        const offline = () => { stream?.close(); stream = null; reconnecting(); };
+        const connect = () => {
+            if (!alive || !navigator.onLine) { offline(); return; }
+            if (stream) return;
+            const current = new EventSource(`/api/live-quotes/stream?market=${market}`, { withCredentials: true });
+            stream = current;
+            current.addEventListener('quotes', event => {
+                if (!alive || stream !== current || !navigator.onLine) return;
+                try {
+                    const next = JSON.parse((event as MessageEvent).data) as Packet;
+                    if (next.quotes.every(r => !r.quote || r.quote.market === market)) setPacket({ ...next, scope });
+                } catch { setPacket(p => ({ ...p, connection: 'DISCONNECTED' })); }
+            });
+            current.onerror = () => { if (stream === current) reconnecting(); };
+        };
+        window.addEventListener('offline', offline);
+        window.addEventListener('online', connect);
+        connect();
+        return () => { alive = false; window.removeEventListener('offline', offline); window.removeEventListener('online', connect); stream?.close(); stream = null; };
     }, [market, key, identity]);
     return packet.scope === scope ? packet : empty;
 }
