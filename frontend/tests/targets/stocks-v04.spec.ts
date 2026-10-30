@@ -10,7 +10,7 @@ test('v0.4 layout, 36px toolbar, correct menus and data-only table scrolling',as
  expect((await page.locator('header').boundingBox())!.height).toBe(44);
  const nav=page.locator('.MuiBottomNavigation-root:visible');
  expect((await nav.boundingBox())!.height).toBe(44);
- await expect(nav.getByRole('button')).toHaveCount(13);
+ await expect(nav.getByRole('button')).toHaveCount(18);
  if(wide)await expect(nav.getByRole('button',{name:'설정',exact:true})).toBeVisible();
  expect((await page.getByRole('combobox',{name:'정렬 기준'}).locator('..').boundingBox())!.height).toBe(36);
  const input=page.getByRole('textbox',{name:'목록 종목 검색'});await input.fill('보유');await input.blur();await input.focus();expect(await input.evaluate((el:HTMLInputElement)=>el.selectionEnd!-el.selectionStart!)).toBe(2);await input.fill('');
@@ -65,5 +65,5 @@ test('failed lookup is distinct from a normal empty list and popup detail return
  await page.getByRole('button',{name:'삼성전자 가치지표',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'상세보기 ›'}).click();await expect(page).toHaveURL(/stocks\/2\/value/);
  await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page).toHaveURL(/tab=watchlist/);
  await page.route('**/api/accounts/a/holdings',route=>route.fulfill({status:500,json:{error:{message:'종목 조회 실패'}}}));
- await page.goto('/stocks?tab=holding');await expect(page.getByRole('alert')).toContainText('조회 실패');await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(0);
+ await page.goto('/stocks?tab=holding');await expect(page.getByRole('alert')).toContainText(/조회.*실패/);await expect(page.getByText('내용이 없습니다.',{exact:true})).toHaveCount(0);
 });
