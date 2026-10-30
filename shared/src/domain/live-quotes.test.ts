@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { orderStocks, reorderVisible, parseKisTrades, quoteMarkets, type DisplayStock } from './live-quotes.js';
+import { displayListWithinLimit, orderStocks, reorderVisible, parseKisTrades, quoteMarkets, type DisplayStock } from './live-quotes.js';
 const stock = (id: string, held = false): DisplayStock => ({ id, symbol: id.padStart(6, '0'), name: id, held, watched: false, traded: false, quantity: held ? 10 : 0, purchaseAmount: held ? 100 : 0, marketValue: held ? 200 : null, profit: held ? 100 : null, initial: null });
 test('six stable sorts keep non-held rows in manual order and never mutate input', () => {
     const rows = [stock('1'), stock('2', true), stock('3', true), stock('4')], order = ['4', '3', '2', '1'], q = { ...Object.fromEntries(rows.map(s => [s.symbol, { symbol: s.symbol, market: 'TOTAL' as const, price: 20, change: 1, rate: 2, observedAt: new Date().toISOString(), receivedAt: Date.now(), source: 'KIS' as const }])) };
@@ -23,3 +23,5 @@ test('real trade parsing keeps market separate, handles batched 47-field rows an
     assert.equal(rows[0]!.rate, -9.09);
 } for (const frame of ['1|H0STCNT0|001|x', '0|PRIVATE|001|x', '0|H0STCNT0|001|x'])
     assert.throws(() => parseKisTrades(frame)); });
+
+test('display limit allows 50, blocks 51, and preserves legacy reorder/removal without adding members',()=>{const ids=Array.from({length:51},(_,i)=>String(i+1));assert.equal(displayListWithinLimit(ids.slice(0,50)),true);assert.equal(displayListWithinLimit(ids),false);assert.equal(displayListWithinLimit([...ids].reverse(),ids),true);assert.equal(displayListWithinLimit(ids.slice(1),ids),true);assert.equal(displayListWithinLimit([...ids.slice(1),'999'],ids),false);});

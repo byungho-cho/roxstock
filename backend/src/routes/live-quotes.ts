@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@roxstock/shared/prisma';
 import { ApiError } from '@roxstock/shared/lib/api-error';
-import { quoteMarkets, type DisplayStock, type LiveQuote, type QuoteMarket } from '@roxstock/shared/domain/live-quotes';
+import { displayListWithinLimit, quoteMarkets, type DisplayStock, type LiveQuote, type QuoteMarket } from '@roxstock/shared/domain/live-quotes';
 import { prisma } from '../auth/scoped-db.js';
 import { loadPortfolio } from './portfolio.js';
 import { KisLiveService } from '../realtime/kis-live.js';
@@ -21,6 +21,7 @@ type Query = {
     accountId?: string;
     q?: string;
     tab?: string;
+    cursor?: string;
 };
 export async function liveQuoteRoutes(app: FastifyInstance) {
     const live = new KisLiveService(), streams = new Set<() => void>();
@@ -32,16 +33,21 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
             throw new ApiError(400, 'INVALID_ACCOUNT', '계좌를 확인해 주세요.');
         const user = await prisma.authUser.findUniqueOrThrow({ where: { id: userId }, select: { settings: true } }), list = readDisplayList(user.settings);
         const portfolio = accountId ? await loadPortfolio(BigInt(accountId)) : null;
-        const watch = await prisma.accountWatchlistItem.findMany({ where: accountId ? { accountId: BigInt(accountId) } : {}, select: { securityId: true } });
-        const watched = new Set(watch.map(w => String(w.securityId))), traded = new Set(portfolio?.account.buyTrades.map(t => String(t.securityId)) ?? []), holdings = new Map(portfolio?.holdings.map(h => [String(h.securityId), h]) ?? []);
+        const watch = accountId ? await prisma.accountWatchlistItem.findMany({ where: { accountId: BigInt(accountId), listType: {in:['WATCHLIST','RECOMMENDED']} }, select: { securityId: true } }) : [];
+        const traded = new Set(portfolio?.account.buyTrades.map(t => String(t.securityId)) ?? []), holdings = new Map(portfolio?.holdings.map(h => [String(h.securityId), h]) ?? []);
+        // Match the stock list: actual trade/holding records override manual classifications.
+        const watched = new Set(watch.map(w => String(w.securityId)).filter(id=>!traded.has(id)&&!holdings.has(id)));
         return { list, watched, traded, holdings };
     }
     async function stocks(ids: string[] | null, ctx: Awaited<ReturnType<typeof context>>, query: Query = {}) {
         const q = query.q?.trim() ?? '';
         if (q.length > 100)
             throw new ApiError(400, 'INVALID_SEARCH', '검색어를 확인해 주세요.');
+        if(query.cursor&&!/^\d{1,20}$/.test(query.cursor))throw new ApiError(400,'INVALID_CURSOR','검색 목록을 다시 조회해 주세요.');
+        if(query.tab&&!['search','holding','watch','trade'].includes(query.tab))throw new ApiError(400,'INVALID_TAB','검색 구분을 확인해 주세요.');
+        const paged=ids===null&&(!query.tab||query.tab==='search');
         const candidates = query.tab === 'holding' ? [...ctx.holdings.keys()] : query.tab === 'watch' ? [...ctx.watched] : query.tab === 'trade' ? [...ctx.traded] : null;
-        const securities = await prisma.security.findMany({ where: { isActive: true, ...(ids ? { id: { in: ids.map(BigInt) } } : candidates ? { id: { in: candidates.map(BigInt) } } : {}), ...(q ? { OR: [{ name: { contains: q } }, { symbol: { contains: q } }] } : {}) }, select: { id: true, name: true, symbol: true, marketPrice: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
+        const securities = await prisma.security.findMany({ where: { isActive: true, ...(ids ? { id: { in: ids.map(BigInt) } } : candidates ? { id: { in: candidates.map(BigInt) } } : {}), ...(q ? { OR: [{ name: { contains: q } }, { symbol: { contains: q } }] } : {}) }, select: { id: true, name: true, symbol: true, marketPrice: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }], ...(paged?{take:101,...(query.cursor?{cursor:{id:BigInt(query.cursor)},skip:1}:{})}:{}) });
         return securities.map(s => { const id = String(s.id), h = ctx.holdings.get(id), p = s.marketPrice, price = p ? Number(p.currentPrice) : null, previous = p?.previousClosePrice ? Number(p.previousClosePrice) : null; const initial: LiveQuote | null = price !== null && previous ? { symbol: s.symbol, market: 'KRX', price, change: price - previous, rate: (price - previous) / previous * 100, observedAt: p!.priceUpdatedAt.toISOString(), receivedAt: p!.priceUpdatedAt.getTime(), source: 'CACHE' } : null; return { id, symbol: s.symbol, name: s.name, held: !!h, watched: ctx.watched.has(id), traded: ctx.traded.has(id), quantity: h ? Number(h.quantity) : 0, purchaseAmount: h ? Number(h.purchaseAmount) : 0, marketValue: h?.marketValue ? Number(h.marketValue) : null, profit: h?.unrealizedProfitLoss ? Number(h.unrealizedProfitLoss) : null, initial } satisfies DisplayStock; });
     }
     app.get<{
@@ -49,7 +55,7 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
     }>('/live-quotes/list', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId); return { data: { ...ctx.list, stocks: await stocks(ctx.list.ids, ctx) } }; });
     app.get<{
         Querystring: Query;
-    }>('/live-quotes/candidates', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId); return { data: { ...ctx.list, stocks: await stocks(null, ctx, req.query) } }; });
+    }>('/live-quotes/candidates', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId), found=await stocks(null,ctx,req.query), paged=!req.query.tab||req.query.tab==='search', hasMore=paged&&found.length>100, items=paged?found.slice(0,100):found; return {data:{...ctx.list,stocks:items,hasMore,nextCursor:hasMore?items.at(-1)!.id:null}}; });
     app.put<{
         Body: {
             ids?: unknown;
@@ -66,6 +72,7 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
         const list = readDisplayList(user.settings);
         if (list.version !== req.body.version)
             return reply.code(409).send({ error: { code: 'LIST_CONFLICT', message: '다른 화면에서 목록이 변경됐습니다. 편집을 유지한 채 최신 목록을 확인해 주세요.' } });
+        if(!displayListWithinLimit(ids,list.ids))throw new ApiError(400,'DISPLAY_LIMIT','표시 종목은 최대 50개까지 추가할 수 있습니다.');
         const next = { ids, version: randomUUID() }, settings = { ...(user.settings as Record<string, Prisma.InputJsonValue> ?? {}), liveQuotes: next };
         const result = await prisma.authUser.updateMany({ where: { id: req.auth!.userId, updatedAt: user.updatedAt, settings: { equals: user.settings ?? Prisma.DbNull } }, data: { settings } });
         if (!result.count)

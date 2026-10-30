@@ -7,35 +7,44 @@ export const statusText:Record<string,string>={LAST_QUOTE:'마지막 시세',IDL
 const number=(n:number|undefined)=>n===undefined?'—':n.toLocaleString('ko-KR');
 const color=(n:number)=>n>0?colors.marketRise:n<0?colors.marketFall:colors.marketFlat;
 export const quoteCardHeight=96;
-type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
-export const QuoteCard=memo(function QuoteCard({stock,market,row,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
+type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
+export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
   const q=row.quote,previous=useRef<{market:string;price:number}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
-  const [flash,setFlash]=useState<'up'|'down'|null>(null),tone=useRef<'up'|'down'>('up'),flashMarket=useRef<QuoteMarket|null>(null);
-  const visibleFlash=flashMarket.current===market?flash:null;
+  const [flash,setFlash]=useState<'up'|'down'|'flat'|null>(null),flashMarket=useRef<QuoteMarket|null>(null);
+  const marketClosed=closed||row.status==='MARKET_CLOSED';
+  const dayDirection=(q?.change??0)>0?'up':(q?.change??0)<0?'down':'flat';
+  const visibleFlash=!marketClosed&&flashMarket.current===market&&flash?dayDirection:null;
   useEffect(()=>{previous.current=null;clearTimeout(timer.current);setFlash(null);},[market]);
   useEffect(()=>{
     if(!q)return;
     const old=previous.current;
     if(!ghost&&row.status==='LIVE'&&!row.retained&&old&&old.market===q.market&&old.price!==q.price){
-      tone.current=q.price>old.price?'up':'down';flashMarket.current=market;setFlash(tone.current);clearTimeout(timer.current);timer.current=setTimeout(()=>setFlash(null),1000);
+      flashMarket.current=market;setFlash(q.change>0?'up':q.change<0?'down':'flat');clearTimeout(timer.current);timer.current=setTimeout(()=>setFlash(null),1000);
     }
     previous.current={market:q.market,price:q.price};
   },[q?.price,q?.market,row.status,row.retained,ghost]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
-  const asOf=q?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(q.observedAt)):'';
-  return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'button'} tabIndex={ghost?undefined:0}
+  const stamp=q?(marketClosed?q.receivedAt:Date.parse(q.observedAt)):NaN;
+  const parts=Number.isFinite(stamp)?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(stamp)):[];
+  const part=(name:string)=>parts.find(p=>p.type===name)?.value??'';
+  const asOf=parts.length?part('hour')+':'+part('minute')+':'+part('second'):'';
+  const fullStamp=parts.length?part('month')+'.'+part('day')+' '+asOf:'';
+  const lag=q?Math.max(0,q.receivedAt-Date.parse(q.observedAt)):0;
+  const delayed=lag>=3000||row.status==='QUOTE_DELAYED';
+  const timeColor=!marketClosed&&!row.retained&&row.status==='LIVE'&&!delayed?colors.focus:colors.textMuted;
+  const caption=marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':'');
+  return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}
     aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
-    onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onClick={onOpen}
-    onKeyDown={e=>{if(e.key==='Enter')onOpen?.();}}
+    onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
     sx={{position:'relative',minWidth:0,height:quoteCardHeight,boxSizing:'border-box',px:'12px',py:'10px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
-    <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',height:20,gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px'}}><Typography noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><img src="/live-quotes/bell.svg" alt="알림 기능 준비 중" width={16} height={16}/></Box>
+    <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',height:20,gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px'}}><Typography component="button" type="button" tabIndex={ghost?-1:0} aria-label={`${stock.name} ${stock.held||stock.traded?'종목 요약':'가치분석 상세'} 보기`} onClick={onOpen} noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600,p:0,m:0,border:0,bgcolor:'transparent',color:'inherit',textAlign:'left',cursor:'pointer',lineHeight:'inherit','&:focus-visible':{outline:`2px solid ${colors.focus}`,outlineOffset:2}}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><img src="/live-quotes/bell.svg" alt="알림 기능 준비 중" width={16} height={16}/></Box>
     <Box sx={{display:'flex',alignItems:'center',gap:'4px',height:28,color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>
-      <Box sx={{flex:'1 1 auto',minWidth:0}}><Box data-testid={ghost?undefined:'live-price-area'} data-flash={visibleFlash??''} sx={{display:'inline-flex',maxWidth:'100%',minWidth:0,position:'relative',borderRadius:'4px','&:after':{content:'""',pointerEvents:'none',position:'absolute',inset:'-1px',borderRadius:'4px',border:`1px solid ${tone.current==='up'?colors.marketRise:colors.marketFall}`,opacity:visibleFlash?1:0,transition:visibleFlash||flashMarket.current!==market?'none':'opacity 220ms ease'}}}>
+      <Box sx={{flex:'1 1 auto',minWidth:0}}><Box data-testid={ghost?undefined:'live-price-area'} data-flash={visibleFlash??''} sx={{display:'inline-flex',maxWidth:'100%',minWidth:0,position:'relative',borderRadius:'4px','&:after':{content:'""',pointerEvents:'none',position:'absolute',inset:'-1px',borderRadius:'4px',border:`1px solid ${color(q?.change??0)}`,opacity:visibleFlash?1:0,transition:visibleFlash||flashMarket.current!==market?'none':'opacity 220ms ease'}}}>
         <Typography data-testid={ghost?undefined:'live-price'} title={number(q?.price)} sx={{fontSize:17.6,fontWeight:500,lineHeight:'26px',fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{number(q?.price)}</Typography>
       </Box></Box>
       <Box data-testid={ghost?undefined:'live-rate'} sx={{flex:'0 0 auto',fontSize:11,textAlign:'right',whiteSpace:'nowrap'}}>{q?`${q.change>0?'▲':q.change<0?'▼':'—'} ${Math.abs(q.rate).toFixed(2)}%`:'—'}</Box>
     </Box>
     <Box sx={{height:18,fontSize:12,lineHeight:'18px',textAlign:'right',color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>{q?number(Math.abs(q.change)):'—'}</Box>
-    <Box title={`${statusText[row.status]??row.status} · ${asOf}`} sx={{fontSize:8,lineHeight:'10px',color:row.status==='LIVE'?colors.textMuted:colors.warning,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.status==='LIVE'?'체결 ':statusText[row.status]??row.status}{row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':''}{asOf&&` ${asOf}`}</Box>
+    <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{fontSize:8,lineHeight:'10px',color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{asOf||'—'}</Box>
   </Box>;
 });

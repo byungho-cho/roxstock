@@ -68,3 +68,11 @@ export function parseKisTrades(text: string): LiveQuote[] {
         return { symbol, market, price, change: Math.abs(change) * sign, rate: Math.abs(rate) * sign, observedAt, receivedAt: Date.now(), source: 'KIS' };
     });
 }
+
+export const maxDisplayStocks=50;
+// Preserve existing oversized lists for reorder/removal, without permitting any new member.
+export function displayListWithinLimit(ids:readonly string[],previous:readonly string[]=[]):boolean {
+  if(ids.length<=maxDisplayStocks)return true;
+  const existing=new Set(previous);
+  return previous.length>maxDisplayStocks&&ids.length<=previous.length&&ids.every(id=>existing.has(id));
+}
