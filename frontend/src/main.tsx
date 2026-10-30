@@ -17,5 +17,5 @@ window.addEventListener('roxstock-data-mutated', () => {
 
 const router=createBrowserRouter([{path:'*',element:liveApiEnabled?<AuthGate><App /></AuthGate>:<App/>}]);
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><RouterProvider router={router}/></ThemeProvider></QueryClientProvider></StrictMode>,
+  <StrictMode><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><RouterProvider router={router} useTransitions={false}/></ThemeProvider></QueryClientProvider></StrictMode>,
 );

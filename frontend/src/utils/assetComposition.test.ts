@@ -22,3 +22,4 @@ test('amount display never changes values and Other aggregates underlying amount
  const rows=Array.from({length:10},(_,i)=>({id:String(i),name:String(i),percent:10-i,amount:(10-i)*10000}));
  const copy=structuredClone(rows),items=groupedComposition(rows);assert.equal(items.at(-1)!.amount,150000);assert.deepEqual(rows,copy);
 });
+test('investment grouping chooses its own top five and preserves all remainder totals',()=>{const rows=Array.from({length:7},(_,i)=>({id:String(i),name:'stock'+i,percent:7-i,purchasePercent:i+1,purchaseAmount:(i+1)*100}));const items=groupedComposition(rows,'investment');assert.deepEqual(items.slice(0,5).map(s=>s.id),['6','5','4','3','2']);assert.equal(items.at(-1)!.purchaseAmount,300);assert.equal(items.at(-1)!.purchasePercent,3);assert.equal(items.at(-1)!.percent,13);});

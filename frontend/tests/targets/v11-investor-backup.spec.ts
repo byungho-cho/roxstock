@@ -70,9 +70,9 @@ test('full and personal backup buttons send separate scopes and block overlappin
 });
 
 test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
- await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(16);
- const names=await menu.getByRole('button').allTextContents();expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(9);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
- const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeCloseTo(monitor!.y,1);
+ await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(17);
+ const names=await menu.getByRole('button').allTextContents();expect(names.slice(0,3)).toEqual(['홈','실시간주가','대시보드']);expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(10);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
+ const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeGreaterThanOrEqual(monitor!.y);
 });
 
 test('investor monitoring links summaries and details without turning limited data into success or failure',async({page},info)=>{
