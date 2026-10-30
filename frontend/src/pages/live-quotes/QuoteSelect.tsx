@@ -12,7 +12,7 @@ export function QuoteSelect({label,value,options,onChange,disabled=false,plain=f
   return <Select size="small" open={open} onOpen={()=>setOpen(true)} onClose={close} value={value} disabled={disabled}
     inputProps={{'aria-label':label}} IconComponent={KeyboardArrowDownRounded}
     onChange={e=>{close();onChange(e.target.value);}}
-    sx={{height:28,minWidth:0,width:'100%',fontSize:12,bgcolor:plain?'transparent':colors.raised,borderRadius:'8px','& fieldset':plain?{border:0}:{},'& .MuiSelect-select':{py:0,pl:plain?0:'8px',pr:'22px !important'},'& .MuiSelect-icon':{right:3,fontSize:16}}}
+    sx={{height:28,minWidth:0,width:'100%',fontSize:12,bgcolor:plain?'transparent':colors.raised,borderRadius:'8px','& fieldset':plain?{border:0}:{},'& .MuiSelect-select':{py:0,pl:'8px',pr:'22px !important'},'& .MuiSelect-icon':{right:3,fontSize:16}}}
     MenuProps={{variant:'menu',anchorOrigin:{vertical:'bottom',horizontal:'right'},transformOrigin:{vertical:'top',horizontal:'right'},marginThreshold:8,disableScrollLock:true,
       slotProps:{paper:{sx:{mt:'4px',maxHeight:'min(240px, calc(100dvh - 130px))',maxWidth:'calc(100vw - 16px)',border:`1px solid ${colors.border}`,bgcolor:colors.raised,'& li':{minHeight:36,fontSize:12,px:'12px'}}}}}}>
     {options.map(o=><MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
