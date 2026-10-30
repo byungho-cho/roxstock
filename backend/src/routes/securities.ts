@@ -14,7 +14,7 @@ import { serializable } from '../lib/transaction.js';
 import { manualClassification, requireActiveAccount } from '../domain/classification.js';
 import { calculateRemainingQuantity } from '../domain/trade.js';
 
-type SecurityQuery = { includeInactive?: string; accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
+type SecurityQuery = { securityId?: string; includeInactive?: string; accountId?: string; registeredOnly?: string; query?: string; marketType?: string; listType?: string; excludeRegistered?: string; limit?: string; offset?: string };
 type WatchlistBody = { reactivate?: unknown; accountId?: unknown; securityId?: unknown; listType?: unknown; targetBuyPrice?: unknown; priority?: unknown; memo?: unknown };
 type WatchlistParams = { id: string };
 type SecurityParams = { id: string };
@@ -325,6 +325,7 @@ export async function securityRoutes(app: FastifyInstance) {
 }
 
 export async function loadSecurities(query: SecurityQuery, portfolio?: Awaited<ReturnType<typeof loadPortfolio>>) {
+    const securityId = query.securityId === undefined ? undefined : id(query.securityId, 'securityId');
     const search = queryText(query.query);
     const selectedMarket = marketType(query.marketType);
     const accountId = query.accountId ? id(query.accountId, 'accountId') : undefined;
@@ -346,6 +347,7 @@ export async function loadSecurities(query: SecurityQuery, portfolio?: Awaited<R
       remainingById.set(key, (remainingById.get(key) ?? new Prisma.Decimal(0)).plus(calculateRemainingQuantity(lot.quantity, lot.sellTrades.map(s => s.quantity))));
     }
     const where: Prisma.SecurityWhereInput = {
+      ...(securityId !== undefined && {id: securityId}),
       ...(query.includeInactive !== 'true' && { isActive: true }),
       ...(selectedMarket && { marketType: selectedMarket }),
       ...(registeredOnly && { OR: [{ accountWatchlistItems: { some: { accountId } } }, { buyTrades: { some: { accountId } } }] }),

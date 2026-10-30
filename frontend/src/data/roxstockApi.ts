@@ -113,7 +113,7 @@ export interface AccountDashboardDto {
   holdings: HoldingDto[];
 }
 
-export interface SecuritySearch { includeInactive?: boolean;
+export interface SecuritySearch { securityId?: string; includeInactive?: boolean;
   accountId?: string;
   registeredOnly?: boolean;
   query?: string;

@@ -50,3 +50,13 @@ test('API identity isolation and optimistic list writes preserve settings and re
 });
 
 test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('TOTAL:005930',quote);const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,quote);assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});
+
+import {loadSecurities} from './securities.js';
+test('a display-only stock can be looked up by exact security ID without classifying or writing it',async(t)=>{
+ const patch=(object:any,name:string,fn:any)=>{const original=object[name];object[name]=fn;t.after(()=>{object[name]=original;});};let lookups=0;
+ patch(raw.security,'findMany',async({where}:any)=>{if(where.codeRevision)return [];lookups++;assert.equal(where.id,4n);return [{id:4n,symbol:'000004',name:'display only',marketType:'KOSPI',securityType:'COMMON',isActive:true,marketPrice:null,accountWatchlistItems:[]}];});
+ patch(raw.valuationMetric,'findMany',async()=>[]);patch(raw.financialStatement,'findMany',async()=>[]);
+ for(const model of [raw.security,raw.accountWatchlistItem,raw.buyTrade])for(const method of ['create','update','updateMany','delete'])patch(model,method,()=>{throw Error('READ_MUST_NOT_WRITE');});
+ const result=await loadSecurities({securityId:'4'});assert.equal(result.data.length,1);assert.equal(result.data[0]!.id,'4');assert.equal(result.data[0]!.listType,null);assert.equal(result.data[0]!.hasTradeHistory,false);assert.equal(result.data[0]!.watchlistItemId,null);
+ await assert.rejects(()=>loadSecurities({securityId:'invalid'}));assert.equal(lookups,1);
+});
