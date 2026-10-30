@@ -39,7 +39,7 @@ export function useStockFormNavigation(){const navigate=useListNavigation(),loca
 export function LiveStockDetailPage(){
  const {stockId=''}=useParams(),[params]=useSearchParams(),location=useLocation(),navigate=useNavigate(),back=useReturnNavigation(),tablet=useMediaQuery('(min-width:600px)');
  const {accountId}=useActiveAccount();
- const {data:stocks,isPending,isError,refetch}=useStocks(undefined,{pollPrices:false});const {favoriteIds,toggleFavorite}=useFavoriteStocks();const accountStock=stocks?.find(s=>s.id===stockId);
+ const {data:stocks,isPending,isError,refetch}=useStocks();const {favoriteIds,toggleFavorite}=useFavoriteStocks();const accountStock=stocks?.find(s=>s.id===stockId);
  const catalog=useQuery({...storedQueryOptions,queryKey:['stockDetailCatalog',accountId,stockId],enabled:!accountStock&&(!accountId||!isPending)&&/^\d{1,20}$/.test(stockId),queryFn:async({signal})=>{const rows=await listSecurities({securityId:stockId,accountId:accountId??undefined,includeInactive:true},signal);return rows.find(row=>row.id===stockId)??null;}});
  const stock=accountStock??(catalog.data?mapSecurity(catalog.data):undefined),loading=!stock&&(!!accountId&&isPending||catalog.isFetching);
  const {previous,next}=useStockNeighbors(stockId,stocks??[]);
