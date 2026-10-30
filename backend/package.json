@@ -7,9 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --experimental-websocket --import tsx --watch src/server.ts",
     "build": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.build.json",
-    "start": "node dist/server.js",
+    "start": "node --experimental-websocket dist/server.js",
     "typecheck": "npm --workspace @roxstock/shared run build && tsc -p tsconfig.json --noEmit",
     "test": "npm --workspace @roxstock/shared run build && node --import tsx --test src/domain/*.test.ts src/routes/*.test.ts src/auth/*.test.ts",
     "prisma:format": "prisma format --schema ../database/prisma/schema.prisma",

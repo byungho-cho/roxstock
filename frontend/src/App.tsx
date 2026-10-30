@@ -1,3 +1,5 @@
+const LiveQuotesPage=lazy(()=>import('./pages/live-quotes/LiveQuotesPage').then(m=>({default:m.LiveQuotesPage})));
+const LiveQuoteAddPage=lazy(()=>import('./pages/live-quotes/LiveQuotesPage').then(m=>({default:m.LiveQuoteAddPage})));
 const SecurityDataPage=lazy(()=>import('./pages/more/SecurityDataPage').then(m=>({default:m.SecurityDataPage})));
 import {AdminPage,AdminUsers,AdminUserDetail,AdminToolPage} from './pages/admin/AdminPage';
 import {PushLifecycle} from './notifications/PushLifecycle';
@@ -64,7 +66,7 @@ export function App() {
   return (<><PushLifecycle/>
     <Routes location={modal?background:location}>
       <Route element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
+        <Route index element={<DashboardPage />} /><Route path="live-quotes" element={<LiveQuotesPage/>}/><Route path="live-quotes/add" element={<LiveQuoteAddPage/>}/>
         <Route path="stocks" element={<StockListPage />} />
         <Route path="stocks/add" element={<StockAddPage />} />
         <Route path="stocks/:stockId/price" element={<StockPricePage />} />

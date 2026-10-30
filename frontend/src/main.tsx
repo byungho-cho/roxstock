@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import { BrowserRouter } from 'react-router-dom';
+import {createBrowserRouter,RouterProvider} from 'react-router-dom';
 import { App } from './App';
 import {AuthGate} from './auth/AuthGate';
 import { liveApiEnabled } from './data/liveData';
@@ -15,6 +15,7 @@ window.addEventListener('roxstock-data-mutated', () => {
   void queryClient.invalidateQueries({ queryKey: ['stocksPage'] });
 });
 
+const router=createBrowserRouter([{path:'*',element:liveApiEnabled?<AuthGate><App /></AuthGate>:<App/>}]);
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><BrowserRouter useTransitions={false}>{liveApiEnabled?<AuthGate><App /></AuthGate>:<App/>}</BrowserRouter></ThemeProvider></QueryClientProvider></StrictMode>,
+  <StrictMode><QueryClientProvider client={queryClient}><ThemeProvider theme={theme}><CssBaseline /><RouterProvider router={router} useTransitions={false}/></ThemeProvider></QueryClientProvider></StrictMode>,
 );

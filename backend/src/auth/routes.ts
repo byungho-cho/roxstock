@@ -1,3 +1,4 @@
+import {Prisma} from '@roxstock/shared/prisma';
 import type {FastifyInstance} from 'fastify';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {ApiError} from '@roxstock/shared/lib/api-error';
@@ -59,7 +60,7 @@ export async function authRoutes(app:FastifyInstance){
     if(body.favorites!==undefined){if(!Array.isArray(body.favorites)||body.favorites.length>3000||body.favorites.some(v=>typeof v!=='string'||v.length>64))throw new ApiError(400,'INVALID_INPUT','관심 표시를 확인해 주세요.');settings.favorites=body.favorites;}
     if(body.selectedAccountId!==undefined){if(typeof body.selectedAccountId!=='string'||!/^\d{1,20}$/.test(body.selectedAccountId)||!await prisma.account.findFirst({where:{id:BigInt(body.selectedAccountId),userId:user.id},select:{id:true}}))throw new ApiError(404,'NOT_FOUND','계좌를 찾을 수 없습니다.');settings.selectedAccountId=body.selectedAccountId;}
     if(body.legacyImported===true&&user.legacyKey==='legacy')settings.legacyImported=true;
-    await prisma.authUser.update({where:{id:user.id},data:{settings}});return {data:settings};
+    const updated=await prisma.authUser.updateMany({where:{id:user.id,updatedAt:user.updatedAt,settings:{equals:user.settings??Prisma.DbNull}},data:{settings}});if(!updated.count)throw new ApiError(409,'SETTINGS_CONFLICT','다른 화면에서 설정이 변경됐습니다. 다시 시도해 주세요.');return {data:settings};
   });
   app.post('/refresh',async(req,reply)=>{await refreshSession(req,reply,req.auth!);return {data:{refreshed:true}};});
   app.post('/logout',async(req,reply)=>{await prisma.authSession.updateMany({where:{id:req.auth!.sessionId,revokedAt:null},data:{revokedAt:new Date()}});authCookies(reply,'','',false,true);return {data:{loggedOut:true}};});

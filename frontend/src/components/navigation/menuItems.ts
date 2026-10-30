@@ -1,5 +1,6 @@
 export const appMenuItems=[
  {label:'홈',path:'/',icon:'home'},
+ {screen:'3400',label:'실시간주가',path:'/live-quotes',icon:'live-quotes'},
  {label:'대시보드',path:'/detail/assets',icon:'assets'},
  {label:'종목목록',path:'/stocks',icon:'stocks'},
  {label:'매매일지',path:'/journal',icon:'journal'},
@@ -16,6 +17,6 @@ export const appMenuItems=[
  {label:'모니터링',path:'/detail/collection-monitoring',icon:'monitoring'},
  {label:'설정',path:'/detail/settings',icon:'settings'},
 ];
-export const menuIconSource=(icon:string)=>icon==='security-data'?'/security-data/sliders.svg':icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;
+export const menuIconSource=(icon:string)=>icon==='live-quotes'?'/live-quotes/menu.svg':icon==='security-data'?'/security-data/sliders.svg':icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;
 
 export const getAppMenuItems=(isAdmin:boolean)=>appMenuItems.filter(item=>isAdmin||!['monitoring','security-data'].includes(item.icon));

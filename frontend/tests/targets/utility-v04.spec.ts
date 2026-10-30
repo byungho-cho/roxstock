@@ -49,7 +49,7 @@ async function geometry(page:Page){
 async function capture(page:Page,name:string,project:string){if(project==='cover-370'||project==='tablet-725'){await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:'test-results/utility/'+name+'-'+project+'.png'});}}
 test('menu order, equal theme widths and fixed geometry',async({page},info)=>{
  await fixture(page);await page.goto('/more');await expect(page.getByRole('heading',{name:'메뉴',exact:true})).toBeVisible();await geometry(page);
- const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveText(['홈','대시보드','종목목록','매매일지','예수금','자산분석','투자금','투자손익','가치분석','종목소식','재무제표','복리계획','투자동향','종목 관리','모니터링','설정']);
+ const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveText(['홈','실시간주가','대시보드','종목목록','매매일지','예수금','자산분석','투자금','투자손익','가치분석','종목소식','재무제표','복리계획','투자동향','종목 관리','모니터링','설정']);
  const rects=await menu.locator('button').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().toJSON()));for(const r of rects)expect(r.height).toBeCloseTo(rects[0].height,1);
  if(info.project.name.startsWith('tablet')){
   const panel=page.getByTestId('more-settings-panel'),buttons=page.getByTestId('theme-buttons').getByRole('button');const p=await panel.boundingBox(),m=await menu.boundingBox();expect(p!.x-m!.x-m!.width).toBeCloseTo(8,1);
