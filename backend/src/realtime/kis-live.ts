@@ -33,6 +33,7 @@ export class KisLiveService {
     private nextAttempt = 0;
     private attempts = 0;
     private lastMessage = 0;
+    private connectedAt = 0;
     private timer?: ReturnType<typeof setInterval>;
     private pending?: {
         key: string;
@@ -51,7 +52,7 @@ export class KisLiveService {
         this.timer.unref();
     } void this.cycle(); return () => { this.clients.delete(id); void this.cycle(); }; }
     private desired() { return [...new Set([...this.clients.values()].flatMap(c => c.symbols.map(s => `${c.market}:${s}`)))]; }
-    snapshot(market: QuoteMarket, symbols: string[]) { const desired = this.desired(), allowed = new Set(desired.filter(key => /^\w+:\d{6}$/.test(key)).slice(0, quoteLimit)); return { connection: this.state, limit: quoteLimit, active: this.subscribed.size, quotes: symbols.map(symbol => { const key = `${market}:${symbol}`, quote = this.quotes.get(key) ?? null; let status = !/^\d{6}$/.test(symbol) ? 'MARKET_UNSUPPORTED' : !allowed.has(key) ? 'LIMIT_EXCEEDED' : this.rejected.has(key) ? 'SUBSCRIPTION_REJECTED' : !marketOpen(market) ? 'MARKET_CLOSED' : quote?.halted ? 'TRADING_HALTED' : this.state !== 'CONNECTED' ? this.state : !this.subscribed.has(key) || quote?.source !== 'KIS' ? 'WAITING_TRADE' : Date.now() - quote.receivedAt > 30000 ? 'NO_RECENT_TRADE' : Date.now() - Date.parse(quote.observedAt) > 30000 ? 'QUOTE_DELAYED' : 'LIVE'; return { symbol, status, quote }; }) }; }
+    snapshot(market: QuoteMarket, symbols: string[]) { const desired = this.desired(), allowed = new Set(desired.filter(key => /^\w+:\d{6}$/.test(key)).slice(0, quoteLimit)); return { connection: this.state, limit: quoteLimit, active: this.subscribed.size, quotes: symbols.map(symbol => { const key = `${market}:${symbol}`, quote = this.quotes.get(key) ?? null; let status = !/^\d{6}$/.test(symbol) ? 'MARKET_UNSUPPORTED' : !allowed.has(key) ? 'LIMIT_EXCEEDED' : this.rejected.has(key) ? 'SUBSCRIPTION_REJECTED' : !marketOpen(market) ? 'MARKET_CLOSED' : quote?.halted ? 'TRADING_HALTED' : this.state !== 'CONNECTED' ? this.state : !this.subscribed.has(key) || quote?.source !== 'KIS' || quote.receivedAt < this.connectedAt ? 'WAITING_TRADE' : Date.now() - quote.receivedAt > 30000 ? 'NO_RECENT_TRADE' : Date.now() - Date.parse(quote.observedAt) > 30000 ? 'QUOTE_DELAYED' : 'LIVE'; return { symbol, status, quote }; }) }; }
     private async lease() {
         const now = new Date();
         if (Date.now() - this.renewed < 20000 && this.leaseUntil > Date.now())
@@ -151,7 +152,7 @@ export class KisLiveService {
             this.nextAttempt = Date.now() + Math.min(60000, 2000 * 2 ** Math.min(this.attempts++, 5));
         } });
         await new Promise<void>((resolve, reject) => { const timer = setTimeout(() => reject(Error('CONNECT_TIMEOUT')), 10000); socket.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true }); socket.addEventListener('error', () => { clearTimeout(timer); reject(Error('CONNECT_FAILED')); }, { once: true }); });
-        this.lastMessage = Date.now();
+        this.connectedAt = this.lastMessage = Date.now();
         this.state = 'CONNECTED';
         this.attempts = 0;
         this.rejected.clear();

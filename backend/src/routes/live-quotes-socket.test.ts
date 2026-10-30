@@ -52,9 +52,13 @@ test('one socket shares duplicate clients, swaps market subscriptions, retains l
         await settle(() => commands.some(m => m.body.input.tr_id === 'H0STCNT0' && m.header.tr_type === '1'));
         assert.ok(commands.some(m => m.body.input.tr_id === 'H0UNCNT0' && m.header.tr_type === '2'));
         assert.equal(sockets.length, 1);
+        (service as any).quotes.set('KRX:005930', {symbol:'005930',market:'KRX',price:100,change:1,rate:1,observedAt:new Date().toISOString(),receivedAt:Date.now(),source:'KIS'});
         sockets[0]!.close();
         await settle(() => sockets.length === 2 && service.state === 'CONNECTED');
+        await settle(() => service.snapshot('KRX', ['005930']).active === 1);
         assert.ok(commands.filter(m => m.body.input.tr_id === 'H0STCNT0' && m.header.tr_type === '1').length >= 2);
+        assert.equal(service.snapshot('KRX', ['005930']).quotes[0]!.quote?.price, 100);
+        assert.notEqual(service.snapshot('KRX', ['005930']).quotes[0]!.status, 'LIVE', 'reconnection ACK alone cannot make the previous session quote live');
         c();
     }
     finally {
