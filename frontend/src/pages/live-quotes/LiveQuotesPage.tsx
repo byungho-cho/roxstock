@@ -115,7 +115,7 @@ export function LiveQuotesPage() {
     const end=()=>{
       const g=gesture.current;if(g){clearTimeout(g.timer);if(g.armed){suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},400);}gesture.current=null;}
       const v=visualRef.current;
-      if(v){const target=document.querySelector<HTMLElement>(`[data-live-root] [data-quote-id="${v.id}"]`)?.getBoundingClientRect();const landing={...v,x:target?.left??v.x,y:target?.top??v.y,settling:true};visualRef.current=landing;setDragVisual(landing);clearTimeout(landingTimer.current);landingTimer.current=setTimeout(()=>{setDragId(null);setDragVisual(null);visualRef.current=null;},180);}else setDragId(null);
+      if(v){const target=document.querySelector<HTMLElement>(`[data-live-root] [data-quote-id="${v.id}"]`)?.getBoundingClientRect();const landing={...v,x:target?.left??v.x,y:target?.top??v.y,settling:true};visualRef.current=landing;setDragVisual(landing);clearTimeout(landingTimer.current);landingTimer.current=setTimeout(()=>{setDragId(null);setDragVisual(null);visualRef.current=null;setPointerHold(false);frozen.current=null;clearTimeout(releaseHold.current);},180);}else setDragId(null);
       clearTimeout(releaseHold.current);releaseHold.current=setTimeout(()=>{setPointerHold(false);frozen.current=null;},220);
     };
     const down=(id:string,e:React.PointerEvent)=>{

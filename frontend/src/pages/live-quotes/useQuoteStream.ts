@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {skipToken,useQuery,useQueryClient} from '@tanstack/react-query';
 import type {LiveQuote, QuoteMarket} from '../../../../shared/src/domain/live-quotes';
 
 export type QuoteRow = {symbol:string; status:string; quote:LiveQuote|null; retained?:boolean};
@@ -10,6 +10,8 @@ const prefix = ['live-last-quotes'];
 export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:string) {
   const client=useQueryClient(), key=symbols.join(','), scope=market+':'+identity+':'+key;
   const cacheKey=[...prefix,identity,market];
+  // Keep the memory entry while this screen is mounted, without fetching or subscribing to data renders.
+  useQuery<Cached>({queryKey:cacheKey,queryFn:skipToken,enabled:false,gcTime:30*60_000,notifyOnChangeProps:[]});
   const restored=()=>{
     const cached=client.getQueryData<Cached>(cacheKey)??{};
     return symbols.filter(s=>cached[s]?.market===market).map(symbol=>({symbol,status:'LAST_QUOTE',retained:true,quote:cached[symbol]!}));
@@ -17,7 +19,6 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
   const initial=():Packet=>({connection:key?'CONNECTING':'IDLE',active:0,limit:41,quotes:restored()});
   const [packet,setPacket]=useState<Packet&{scope:string}>(()=>({...initial(),scope}));
   useEffect(()=>{
-    client.setQueryDefaults(prefix,{gcTime:30*60_000});
     let alive=true,stream:EventSource|null=null;
     setPacket({...initial(),scope});
     if(!key||!identity)return;
