@@ -8,6 +8,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {gunzipSync} from 'node:zlib';
 import type {PrismaClient} from '@roxstock/shared/prisma';
 import {BackupService} from './backup-service.js';
+import {userBackupTables} from './backup-scope.js';
 
 function fakeDb(){let lock:{jobName:string;ownerToken:string;lockedUntil:Date}|null=null;return {collectorLock:{async updateMany({where,data}:any){if(!lock||where.ownerToken&&where.ownerToken!==lock.ownerToken||where.lockedUntil&&!(lock.lockedUntil<where.lockedUntil.lt))return {count:0};lock={...lock,...data};return {count:1};},async create({data}:any){if(lock)throw {code:'P2002'};lock=data;return lock;},async findUnique(){return lock;},async deleteMany({where}:any){if(lock?.ownerToken!==where.ownerToken)return {count:0};lock=null;return {count:1};}}} as unknown as PrismaClient;}
 const sql='-- MariaDB dump\nCREATE TABLE proof (id INT);\nINSERT INTO proof VALUES (1);\n-- Dump completed on 2026-10-16\n';
@@ -15,14 +16,14 @@ async function temporary(work:(root:string)=>Promise<void>){const parent=tmpdir(
 async function settle(service:BackupService,id:string){await service.waitForIdle();return (await service.list()).items.find(r=>r.id===id);}
 async function contents(stream:NodeJS.ReadableStream){const chunks:Buffer[]=[];for await(const chunk of stream)chunks.push(Buffer.from(chunk));return Buffer.concat(chunks);}
 
-test('manual SQL and automatic gzip stream correctly; newest automatic requires exact confirmation',()=>temporary(async root=>{
+test('manual and automatic gzip stream correctly; newest automatic requires exact confirmation',()=>temporary(async root=>{
  const service=new BackupService(fakeDb(),root,()=>Readable.from([sql]));
  const old=await service.start('AUTO','2026-09');assert.ok(old);assert.equal((await settle(service,old.id))?.status,'COMPLETE');
  const latest=await service.start('AUTO','2026-10');assert.ok(latest);assert.equal((await settle(service,latest.id))?.status,'COMPLETE');
  const manual=await service.start('MANUAL');assert.ok(manual);assert.equal((await settle(service,manual.id))?.status,'COMPLETE');
  assert.equal((await service.list()).items.find(r=>r.latestAutomatic)?.id,latest.id);
  const zipped=await service.download(latest.id);assert.equal(gunzipSync(await contents(zipped.stream)).toString(),sql);
- const plain=await service.download(manual.id);assert.equal((await contents(plain.stream)).toString(),sql);
+ const manualArchive=await service.download(manual.id);assert.match(manualArchive.record.filename,/\.sql\.gz$/);assert.equal(manualArchive.record.scope,'FULL');assert.equal(gunzipSync(await contents(manualArchive.stream)).toString(),sql);
  await assert.rejects(service.remove(latest.id),{code:'BACKUP_CONFIRM_LATEST'});
  await assert.rejects(service.remove(latest.id,'삭제 확인 '),{code:'BACKUP_CONFIRM_LATEST'});
  await service.remove(manual.id);await service.remove(latest.id,'삭제 확인');
@@ -35,6 +36,28 @@ test('cross-instance locking prevents duplicate create/delete and failed dumps a
  const record=await a.start('MANUAL');assert.ok(record);await assert.rejects(b.start('MANUAL'),{code:'BACKUP_BUSY'});await assert.rejects(b.remove(record.id),{code:'BACKUP_BUSY'});await assert.rejects(a.download(record.id),{code:'BACKUP_NOT_COMPLETE'});
  source.end('invalid SQL');assert.equal((await settle(a,record.id))?.status,'FAILED');await assert.rejects(a.download(record.id),{code:'BACKUP_NOT_COMPLETE'});
  assert.ok(!(await readdir(root)).some(f=>f.endsWith('.sql')||f.endsWith('.partial')));await a.close();await b.close();
+}));
+
+test('personal archive persists its exact scope and shares the full-backup lock',()=>temporary(async root=>{
+ let argumentsUsed:readonly string[]=[];const db=fakeDb(),source=new PassThrough();
+ const a=new BackupService(db,root,args=>{argumentsUsed=args;return source;}),b=new BackupService(db,root,()=>Readable.from([sql]));
+ const record=await a.start('MANUAL',null,'USER');assert.ok(record);
+ await assert.rejects(b.start('MANUAL'),{code:'BACKUP_BUSY'});
+ source.end(sql);const completed=await settle(a,record.id);assert.equal(completed?.status,'COMPLETE');assert.equal(completed.scope,'USER');assert.deepEqual(completed.tables,userBackupTables);
+ assert.match(completed.filename,/^manual-user-.*\.sql\.gz$/);
+ assert.deepEqual(argumentsUsed.slice(-userBackupTables.length),userBackupTables);assert.ok(!argumentsUsed.includes('--databases'));
+ const download=await b.download(record.id);assert.equal(gunzipSync(await contents(download.stream)).toString(),sql);
+ await assert.rejects(a.start('AUTO','2026-10','USER'),{code:'BACKUP_SCOPE'});
+ await a.close();await b.close();
+}));
+
+test('legacy uncompressed manual backups remain listed and downloadable without rewriting',()=>temporary(async root=>{
+ const id='12345678-1234-4234-8234-123456789abc',filename=`manual-20261016T030000Z-${id}.sql`;
+ await writeFile(join(root,filename),sql);
+ await writeFile(join(root,id+'.json'),JSON.stringify({id,kind:'MANUAL',status:'COMPLETE',filename,createdAt:'2026-10-16T03:00:00Z',completedAt:'2026-10-16T03:00:01Z',bytes:Buffer.byteLength(sql),sha256:null,reason:null,month:null}));
+ const service=new BackupService(fakeDb(),root);assert.equal((await service.list()).items[0]?.scope,'FULL');
+ const download=await service.download(id);assert.equal((await contents(download.stream)).toString(),sql);assert.equal(await readFile(join(root,filename),'utf8'),sql);
+ await service.close();
 }));
 test('only ID-owned regular files are exposed and pagination retains all records',()=>temporary(async root=>{
  const service=new BackupService(fakeDb(),root,()=>Readable.from([sql]));

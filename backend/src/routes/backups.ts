@@ -4,6 +4,7 @@ import {prisma} from '../auth/scoped-db.js';
 import {ApiError} from '@roxstock/shared/lib/api-error';
 import {installBackupAuth} from '../domain/backup-auth.js';
 import {BackupService} from '../domain/backup-service.js';
+import {backupContentType,requestedBackupScope} from '../domain/backup-scope.js';
 
 export async function backupRoutes(app:FastifyInstance){
  const requireAdmin=installBackupAuth(app);
@@ -14,11 +15,11 @@ export async function backupRoutes(app:FastifyInstance){
  }
  app.addHook('onSend',async(request,reply,payload)=>{if(request.url.startsWith('/api/backups'))reply.header('Cache-Control','no-store');return payload;});
  app.get<{Querystring:{cursor?:string}}>('/api/backups',async request=>{requireAdmin(request);await manager().recover();return {data:await manager().list(request.query.cursor)};});
- app.post('/api/backups',async(request,reply)=>{requireAdmin(request,true);const result=await manager().start('MANUAL');reply.code(202);return {data:result};});
+ app.post('/api/backups',async(request,reply)=>{requireAdmin(request,true);const scope=requestedBackupScope(request.body);const result=await manager().start('MANUAL',null,scope);reply.code(202);return {data:result};});
  app.get<{Params:{id:string}}>('/api/backups/:id/check',async request=>{requireAdmin(request);const result=await manager().download(request.params.id);result.stream.destroy();return {data:{available:true}};});
  app.get<{Params:{id:string}}>('/api/backups/:id/download',async(request,reply)=>{
   requireAdmin(request);const result=await manager().download(request.params.id);
-  reply.header('Content-Type',result.record.kind==='AUTO'?'application/gzip':'application/sql');
+  reply.header('Content-Type',backupContentType(result.record.filename));
   reply.header('Content-Disposition',`attachment; filename="${result.record.filename}"`);
   reply.header('Content-Length',result.bytes);reply.header('X-Content-Type-Options','nosniff');
   let recorded=false;

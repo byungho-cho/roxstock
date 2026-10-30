@@ -1,3 +1,4 @@
+import {authContext} from '../src/auth/context.js';
 import {collectPrices} from '../../collector/src/price-collector.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {PrismaClient} from '@roxstock/shared/prisma';
@@ -10,6 +11,7 @@ import {realtimePriceCache} from '../src/realtime/price-cache.js';
 test('phase23 real MariaDB: master pages, provenance, code/history preservation, exclusion fencing, concurrency and deletion',async()=>{
  assert.match(process.env.DATABASE_URL??'',/@(?:127\.0\.0\.1|localhost):/,'Isolated CI DB only');
  const raw=new PrismaClient(),app=buildApp(),ids:bigint[]=[],runs:bigint[]=[];
+ const admin={userId:1n,role:'ADMIN',sessionId:'phase23-isolated-admin',mustChangePassword:false};
  const account=await prisma.account.create({data:{name:'Phase23 isolated',brokerName:'CI',accountNumber:'phase23-isolated'}});
  const make=async(symbol:string,source='MANUAL')=>{const row=await prisma.security.create({data:{symbol,name:'Phase23 '+symbol,marketType:'OTHER',registrationSource:source}});ids.push(row.id);return row;};
  const patch=async(id:bigint,body:unknown,path='')=>{const r=await app.inject({method:'PATCH',url:`/api/security-management/${id}${path}`,payload:body as any});return r;};
@@ -95,7 +97,7 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   if(priorToken===undefined)delete process.env.COLLECTOR_INTERNAL_TOKEN;else process.env.COLLECTOR_INTERNAL_TOKEN=priorToken;
   // Manual price input remains permitted for Z99; old observed values are preserved in the archive.
   await prisma.buyTrade.create({data:{accountId:account.id,securityId:manual.id,boughtAt:new Date(),quantity:'1',unitPrice:'100'}});
-  const blockedHeld=await app.inject({method:'DELETE',url:`/api/security-management/${manual.id}`,payload:{confirmed:true}});assert.equal(blockedHeld.statusCode,409);assert.match(blockedHeld.json().error.message,/보유/);
+  const blockedHeld=await authContext.run(admin,async()=>await app.inject({method:'DELETE',url:`/api/security-management/${manual.id}`,payload:{confirmed:true}}));assert.equal(blockedHeld.statusCode,409);assert.match(blockedHeld.json().error.message,/보유/);
   const manualPrice=await app.inject({method:'PATCH',url:`/api/securities/${manual.id}/price`,payload:{currentPrice:'456'}});assert.equal(manualPrice.statusCode,200,manualPrice.body);assert.equal((await prisma.marketPrice.findUnique({where:{securityId:manual.id}}))!.currentPrice.toString(),'456');assert.equal(manualPrice.json().data.previousClosePrice,null);
   const analysis=await app.inject({method:'PATCH',url:`/api/securities/${manual.id}/analysis`,payload:{assets:'1000',dividend:'3',issuedShares:'1000'}});assert.equal(analysis.statusCode,200,analysis.body);
   const statement=(await raw.financialStatement.findFirst({where:{securityId:manual.id}}))!;assert.equal(statement.totalAssets!.toString(),'1000');assert.equal(statement.netIncome,null);assert.equal(statement.operatingProfit,null);assert.equal(statement.totalEquity,null);
@@ -109,8 +111,8 @@ test('phase23 real MariaDB: master pages, provenance, code/history preservation,
   // Two actual DB transactions competing for the same normalized code cannot both commit.
   const other=await make('X23995');const simultaneous=await Promise.all([patch(manual.id,{symbol:'x23996',confirmCodeChange:true}),patch(other.id,{symbol:' X23996 ',confirmCodeChange:true})]);assert.deepEqual(simultaneous.map(r=>r.statusCode).sort(),[200,409]);assert.equal(simultaneous.find(r=>r.statusCode===409)!.json().error.message,'이미 등록된 종목코드입니다.');assert.equal(await raw.security.count({where:{symbol:'X23996'}}),1);
   await prisma.accountWatchlistItem.create({data:{accountId:account.id,securityId:other.id,listType:'WATCHLIST'}});
-  const denied=await app.inject({method:'DELETE',url:`/api/security-management/${other.id}`,payload:{confirmed:true}});assert.equal(denied.statusCode,409);assert.match(denied.json().error.message,/관심/);assert.equal((await patch(other.id,{name:'Phase23 editable used stock'})).statusCode,200);
-  const deleted=await app.inject({method:'DELETE',url:`/api/security-management/${unused.id}`,payload:{confirmed:true}});assert.equal(deleted.statusCode,200);assert.equal((await raw.security.findUnique({where:{id:unused.id}}))!.isActive,false);assert.equal(await raw.collectorRunItem.count({where:{runId:run.id}}),2);
+  const denied=await authContext.run(admin,async()=>await app.inject({method:'DELETE',url:`/api/security-management/${other.id}`,payload:{confirmed:true}}));assert.equal(denied.statusCode,409);assert.match(denied.json().error.message,/관심/);assert.equal((await patch(other.id,{name:'Phase23 editable used stock'})).statusCode,200);
+  const deleted=await authContext.run(admin,async()=>await app.inject({method:'DELETE',url:`/api/security-management/${unused.id}`,payload:{confirmed:true}}));assert.equal(deleted.statusCode,200);assert.equal((await raw.security.findUnique({where:{id:unused.id}}))!.isActive,false);assert.equal(await raw.collectorRunItem.count({where:{runId:run.id}}),2);
   console.log(JSON.stringify({phase:23,pages:pageCounts,featuresChecked:collectionFeatures,excludedExternalCalls:0,delayedRequests:1,lateWrites:0,oldBrokerDeliveries:0,historyRetained:true,concurrentCodeStatuses:simultaneous.map(r=>r.statusCode),actualDB:true,phase24:{wholeFeatureFlags:true,individualRestore:true,rollback:true,concurrentSnapshot:true,legacyAllPreservesFeatures:true}}));
  }finally{
   await raw.collectorRun.deleteMany({where:{id:{in:runs}}});await raw.buyTrade.deleteMany({where:{accountId:account.id}});await raw.accountWatchlistItem.deleteMany({where:{accountId:account.id}});await raw.financialStatement.deleteMany({where:{securityId:{in:ids}}});await raw.valuationMetric.deleteMany({where:{securityId:{in:ids}}});await raw.securityFundamentals.deleteMany({where:{securityId:{in:ids}}});await raw.marketPrice.deleteMany({where:{securityId:{in:ids}}});await raw.securityCodeHistory.deleteMany({where:{securityId:{in:ids}}});await raw.security.deleteMany({where:{id:{in:ids}}});await raw.account.delete({where:{id:account.id}});await app.close();await raw.$disconnect();await prisma.$disconnect();

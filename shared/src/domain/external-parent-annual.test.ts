@@ -19,3 +19,10 @@ test('W accepts the labelled reconciled ROE only with original parent proof and 
  assert.notEqual(shareholderTotals({...metric,roe:'10'},row,[f]).rimReason,null);
  const bad={...f,totalAssets:new Prisma.Decimal('1')};assert.notEqual(shareholderTotals(metric,row,[bad]).rimReason,null);
 });
+
+test('resolved content correction requires its exact independently verified annual duration plus all four totals',()=>{
+ const filing={...f,sourceValidation:{periodResolution:{method:'PUBLIC_DOCUMENT_LAST_CALENDAR_CLOSING',originalReason:'CONTENT_CORRECTION_REQUIRES_ORIGINAL_VALIDATION',returnedReceiptNo:'r'}}};const e:any=make();assert.equal(externalParentAccount(filing,'parentNetIncome',e),null);
+ e.externalAnnual.fiscalDuration={method:'DART_PUBLIC_FILING_ACCOUNTS_MATCH',receiptNo:'r',fsDivision:'CFS',start:'2025-01-01',end:'2025-12-31',months:12,sourceUrl:'https://dart.fss.or.kr/report/viewer.do?rcpNo=r',contentSha256:'a'.repeat(64)};assert.ok(externalParentAccount(filing,'parentNetIncome',e));
+ for(const edit of[(x:any)=>x.fiscalDuration.receiptNo='other',(x:any)=>x.fiscalDuration.contentSha256='bad',(x:any)=>x.annual.financials.totalAssets='1',(x:any)=>{x.fiscalDuration.start='2025-07-01';x.fiscalDuration.months=6;}]){const bad=structuredClone(e);edit(bad.externalAnnual);assert.equal(externalParentAccount(filing,'parentNetIncome',bad),null);}
+ assert.equal(externalParentAccount({...filing,sourceValidation:{periodResolution:{...filing.sourceValidation.periodResolution,returnedReceiptNo:'other'}}},'parentNetIncome',e),null);
+});
