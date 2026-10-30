@@ -1,5 +1,7 @@
 API 실행 코드는 이 디렉터리, 수집 실행·설정·테스트는 [`collector/`](../collector/README.md), 공통 DB·계산은 [`shared/`](../shared/README.md)에 있습니다. 최신 빌드·배포·롤백 절차는 [서비스 분리 운영 문서](../docs/collector-service-split.md)를 따릅니다. 아래 수집 정책 설명은 기존 정책을 보존한 참고입니다.
 
+> **2026.10.30 현행 정본:** [기획·설계·개발 상태](../docs/current-state-20261030.md). 이 파일의 날짜별 버전·수치는 당시 기록이며, 충돌 시 현행 정본과 주제별 최신 근거를 우선합니다.
+
 # Backend API
 
 Fastify API와 별도 프로세스로 실행되는 가격·계좌 스냅샷 수집기입니다. 두 프로세스는 Prisma 연결과 타입만 공유하며 운영 Compose에서는 \`backend\`, \`collector\` 서비스로 분리됩니다. 수집기 장애나 재시작은 API 컨테이너에 영향을 주지 않습니다.
