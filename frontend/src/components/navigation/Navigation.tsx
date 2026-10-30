@@ -31,6 +31,7 @@ type PageHeaderProps = {
   showAddMobile?: boolean;
   action?: ReactNode;
   center?: ReactNode;
+  centerMobile?: boolean;
   embedded?: boolean;
   scope?: 'cover' | 'tablet';
   maxWidth?: number;
@@ -41,7 +42,7 @@ type PageHeaderProps = {
 export const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
 // A page can supply its actions, while the header always renders in AppLayout's fixed slot.
-export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, titleAriaLabel, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBack, showBackTablet = false, showAddMobile, action, center, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
+export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, title, titleAriaLabel, variant = 'standard', showAdd = true, compact = false, addPath = '/trade', addLabel = '거래등록', onAdd, backPath, onBack, showBack, showBackTablet = false, showAddMobile, action, center, centerMobile=false, embedded = false, scope, maxWidth = 816, homeDashboard = false, assetOverview = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const slot = useContext(HeaderSlotContext);
   const tablet = useMediaQuery('(min-width:600px)');
@@ -57,7 +58,7 @@ export function PageHeader({ valueAnalysis = false, backIcon, stockNavigation, t
         <Typography component="h1" aria-label={titleAriaLabel} noWrap sx={{m:0,fontSize:stockNavigation?14:hasBack?18:22,lineHeight:stockNavigation?'22px':'30px',height:stockNavigation?22:30,fontWeight:700,letterSpacing:'-0.11px',textAlign:stockNavigation?'center':'left'}}>{title}</Typography>
       </Box>
       {stockNavigation && <Box sx={{ position: 'absolute', ...(valueAnalysis ? {height:14,lineHeight:'14px','& .MuiButton-root':{minHeight:14,height:14,lineHeight:'14px'}} : {}), bottom: 2, left: valueAnalysis ? 8 : 48, right: valueAnalysis ? 8 : 48 }}>{stockNavigation}</Box>}
-      {center && <Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: '50%', transform: 'translateX(-50%)', alignItems: 'center', justifyContent: 'center', maxWidth: 'calc(100% - 240px)' }}>{center}</Box>}
+      {center && <Box sx={{ display: { xs: centerMobile?'flex':'none', sm: 'flex' }, position: 'absolute', left: '50%', transform: 'translateX(-50%)', alignItems: 'center', justifyContent: 'center', maxWidth: 'calc(100% - 240px)' }}>{center}</Box>}
       {action ?? (showAdd && <HeaderAddButton label={addLabel} onClick={onAdd ?? (() => navigateToForm(navigate, addPath))} mobileVisible={mobileAddVisible} />)}
       {hasBack && stockNavigation && !action && <Box sx={{ display:'block', width:28, flexShrink: 0 }} />}
     </Toolbar>
@@ -77,7 +78,7 @@ export function BottomNav() {
     : [...menuItems].sort((a,b)=>b.path.length-a.path.length).find(item=>path.startsWith(item.path))?.path
     ?? (path === '/more' ? '/more' : '/');
   useEffect(() => { scroll.current?.querySelector('[aria-current="page"]')?.scrollIntoView({block:'nearest',inline:'nearest'}); }, [active]);
-  const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(${asset})`,maskSize:asset.includes('investor-trends')?'16px 16px':'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={asset} alt="" sx={{width:asset.includes('investor-trends')?16:18,height:asset.includes('investor-trends')?16:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
+  const item = (label:string, destination:string, asset:string, fixed=false) => <BottomNavigationAction key={destination} className={active===destination?'Mui-selected':undefined} value={destination} label={label} aria-label={label} aria-current={active===destination?'page':undefined} onClick={()=>navigate(destination)} icon={asset==='/live-quotes/menu.svg'?<Box component="img" src={asset} alt="" sx={{width:20,height:21,mt:'-3px'}}/>:<Box component="span" sx={{width:18,height:18,bgcolor:'currentColor',maskImage:`url(${asset})`,maskSize:asset.includes('investor-trends')?'16px 16px':'contain',maskRepeat:'no-repeat',maskPosition:'center'}}><Box component="img" src={asset} alt="" sx={{width:asset.includes('investor-trends')?16:18,height:asset.includes('investor-trends')?16:18,opacity:0}} /></Box>} sx={{minWidth:0,maxWidth:'none',width:fixed?44:{xs:'calc((100vw - 90px) / 5.5)',sm:52},flex:'0 0 auto',height:44,p:0,pt:'8px',gap:'2px',justifyContent:'flex-start',color:active===destination?colors.navActive:colors.textMuted,'&.Mui-selected':{color:colors.navActive},'& .MuiBottomNavigationAction-label':{fontSize:'9px !important',lineHeight:'11px',whiteSpace:'nowrap',opacity:1,transform:'none'}}} showLabel />;
   const divider = <Box sx={{width:'1px',height:28,my:'8px',bgcolor:'#334155',flexShrink:0}}/>;
   return <Box component="nav" className="MuiBottomNavigation-root" aria-label="하단 메뉴" sx={{position:'relative',flexShrink:0,width:'100%',height:'calc(44px + env(safe-area-inset-bottom, 0px))',pb:'env(safe-area-inset-bottom, 0px)',zIndex:10,display:'flex',bgcolor:'#0B1220',borderTop:`1px solid ${colors.border}`}}>
     {item('홈','/',menuIconSource('home'),true)}{divider}

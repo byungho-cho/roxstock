@@ -1,3 +1,4 @@
+import {backupTimestamp as stamp} from '../../utils/backupTimestamp';
 import {csrfToken} from '../../auth/client';
 import {useRef,useState} from 'react';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
@@ -10,7 +11,7 @@ type Record={id:string;kind:'AUTO'|'MANUAL';scope?:'FULL'|'USER';status:'RUNNING
 type Listing={items:Record[];nextCursor:string|null;automatic:{enabled:boolean;schedule:string;catchUp:string;retention:string}};
 async function api<T>(path:string,init:RequestInit={}){const response=await fetch('/api/backups'+path,{...init,credentials:'same-origin',headers:{...(init.body?{'Content-Type':'application/json','X-CSRF-Token':csrfToken()}:{}),...init.headers}});const body=await response.json();if(!response.ok)throw new Error(body.error?.message??'백업 요청에 실패했습니다.');return body.data as T;}
 const panel={p:'12px',borderRadius:'8px',bgcolor:colors.surface,boxShadow:'none'};
-function stamp(value:string){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)).replace('-','.');}
+
 function size(bytes:number|null){return bytes==null?'—':bytes>=1024*1024?`${(bytes/1024/1024).toFixed(1)} MB`:`${Math.ceil(bytes/1024)} KB`;}
 export function DatabaseBackup(){
  const working=useRef(false);

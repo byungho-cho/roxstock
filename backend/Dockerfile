@@ -28,4 +28,4 @@ COPY --from=build /app/shared/dist shared/dist
 COPY database database
 USER node
 EXPOSE 3300
-CMD ["node", "backend/dist/server.js"]
+CMD ["node", "--experimental-websocket", "backend/dist/server.js"]

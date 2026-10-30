@@ -10,6 +10,7 @@ services:
     environment:
       NODE_ENV: production
       ROXSTOCK_RELEASE_FILE: /run/roxstock/release.json
+      KIS_TOKEN_CACHE_DIR: /var/lib/roxstock/kis-tokens
       HOST: 0.0.0.0
       PORT: 3300
       # Enable flags and the admin hash come only from the private env_file.
@@ -26,6 +27,7 @@ services:
       ENABLE_ACCOUNT_DATA_RESET: ${ENABLE_ACCOUNT_DATA_RESET:-true}
     volumes:
       - ${ROXSTOCK_RUNTIME_DIR:-/opt/roxstock/.deploy/runtime}:/run/roxstock:ro
+      - kis-token-cache:/var/lib/roxstock/kis-tokens
       - ${ROXSTOCK_MANAGED_BACKUP_DIR:-/opt/roxstock/backups/managed}:/var/lib/roxstock/backups
     expose:
       - "3300"

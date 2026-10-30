@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/targets',testMatch:'live-quotes.spec.ts',workers:2,reporter:'list',outputDir:'test-results/live-quotes',use:{baseURL:'http://127.0.0.1:3000',locale:'ko-KR',timezoneId:'Asia/Seoul',hasTouch:true},projects:[{name:'cover',use:{viewport:{width:370,height:465}}},{name:'tablet',use:{viewport:{width:725,height:396}}}],webServer:{command:'npm run dev',url:'http://127.0.0.1:3000',reuseExistingServer:!process.env.CI,env:{VITE_DATA_SOURCE:'api'}}});

@@ -1,0 +1,35 @@
+name: Live Quotes Check
+on:
+  pull_request:
+    paths:
+      - 'backend/src/realtime/**'
+      - 'backend/src/routes/live-quotes*'
+      - 'shared/src/domain/live-quotes*'
+      - 'frontend/src/pages/live-quotes/**'
+      - 'frontend/tests/targets/live-quotes.spec.ts'
+      - 'frontend/playwright.live-quotes.config.ts'
+      - '.github/workflows/live-quotes-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: mysql://fixture:fixture@localhost:3306/fixture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: node --import tsx --test shared/src/domain/live-quotes.test.ts backend/src/routes/live-quotes.test.ts backend/src/routes/live-quotes-socket.test.ts frontend/src/utils/assetComposition.test.ts frontend/src/utils/backupTimestamp.test.ts
+      - run: npx --workspace frontend playwright install --with-deps chromium
+      - run: npx --workspace frontend playwright test -c playwright.live-quotes.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-quotes-cover-tablet
+          path: frontend/test-results/live-quotes

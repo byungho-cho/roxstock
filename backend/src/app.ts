@@ -1,3 +1,4 @@
+import {liveQuoteRoutes} from './routes/live-quotes.js';
 import {securityDataRoutes} from './routes/security-data.js';
 import {notificationRoutes} from './notifications/routes.js';
 import {adminUserRoutes} from './routes/admin-users.js';
@@ -116,6 +117,7 @@ export function buildApplication(boundary:(app:ReturnType<typeof Fastify>)=>void
   void app.register(securityRoutes, { prefix: '/api' });
   void app.register(tradeRoutes, { prefix: '/api' });
   void app.register(priceRoutes, { prefix: '/api' });
+  void app.register(liveQuoteRoutes,{prefix:'/api'});
   void app.register(portfolioRoutes, { prefix: '/api' });
   void app.register(cashRoutes, { prefix: '/api' });
   void app.register(cashMutationRoutes, { prefix: '/api' });
