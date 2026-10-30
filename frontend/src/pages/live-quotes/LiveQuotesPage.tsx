@@ -4,10 +4,12 @@ import {CloseRounded,SearchRounded} from '@mui/icons-material';
 import {StockSearchFrame} from '../../components/common/StockSearchFrame';
 import {SegmentedTabs,ActionButton} from '../../components/common/Common';
 import {QuoteSelect} from './QuoteSelect';
+import {MarketSwitch} from './MarketSwitch';
+import {showSuccessToast} from '../../components/common/QueryErrorNotice';
 import {QuoteCard,statusText,quoteCardHeight} from './QuoteCard';
 import {useQuoteStream} from './useQuoteStream';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, InputBase, Typography } from '@mui/material';
+import { Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputBase, Typography } from '@mui/material';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
 import { HeaderAddButton } from '../../components/navigation/HeaderAddButton';
@@ -21,7 +23,6 @@ type List = {
     version: string;
     stocks: DisplayStock[];
 };
-const markets = { TOTAL: '통합', NXT: 'NXT', KRX: 'KRX' };
 const sorts:{value:QuoteSort;label:string}[]=[{value:'manual',label:'직접설정순'},{value:'name',label:'종목명순'},{value:'price',label:'주가금액순'},{value:'rate',label:'등락률순'},{value:'holding',label:'보유금액순'},{value:'profit',label:'보유손익순'}];
 const same=(a:string[],b:string[])=>a.length===b.length&&a.every((id,i)=>id===b[i]);
 type DragVisual={id:string;x:number;y:number;width:number;height:number;offsetX:number;offsetY:number;settling:boolean};
@@ -31,7 +32,7 @@ export function LiveQuotesPage() {
     const [draft, setDraft] = useState<string[] | null>(null), [base, setBase] = useState<{
         ids: string[];
         version: string;
-    } | null>(null), [saving, setSaving] = useState(false), [toast, setToast] = useState(''), [error, setError] = useState(''), [dragId, setDragId] = useState<string | null>(null);
+    } | null>(null), [saving, setSaving] = useState(false), [error, setError] = useState(''), [dragId, setDragId] = useState<string | null>(null);
     const [dragVisual,setDragVisual]=useState<DragVisual|null>(null),visualRef=useRef<DragVisual|null>(null),landingTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
     const localOrder = useRef<{
         accountId: string | undefined;
@@ -73,7 +74,7 @@ export function LiveQuotesPage() {
     visibleIds.current = rows.map(r => r.id);
     const orderRef = useRef(order);
     orderRef.current = order;
-    const discard = () => { clearTimeout(landingTimer.current);clearTimeout(releaseHold.current);visualRef.current=null;setDragVisual(null);setDragId(null);setPointerHold(false);frozen.current=null; setDraft(null); setBase(null); setToast('순서 변경을 취소했습니다.'); };
+    const discard = () => { clearTimeout(landingTimer.current);clearTimeout(releaseHold.current);visualRef.current=null;setDragVisual(null);setDragId(null);setPointerHold(false);frozen.current=null; setDraft(null); setBase(null); showSuccessToast('순서 변경을 취소했습니다.'); };
     const confirmDiscard = () => !dirty || window.confirm('저장하지 않은 순서가 있습니다. 변경을 취소할까요?');
     useEffect(() => { const handler = (event: BeforeUnloadEvent) => { if (dirtyRef.current) {
         event.preventDefault();
@@ -127,7 +128,7 @@ export function LiveQuotesPage() {
         setDraft(null);
         setBase(null);
         client.setQueryData(queryKey, (old: List | undefined) => old ? { ...old, ...saved, stocks: old.stocks.filter(s => saved.ids.includes(s.id)) } : old);
-        setToast('저장했습니다.');
+        showSuccessToast('저장했습니다.');
         await client.invalidateQueries({ queryKey: ['live-quote-list'] });
     }
     catch (e) {
@@ -173,8 +174,8 @@ export function LiveQuotesPage() {
     };
     const rowFor=(stock:DisplayStock)=>packet.quotes.find(r=>r.symbol===stock.symbol)??{symbol:stock.symbol,status:packet.connection,quote:null};
     return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title={<span style={{ fontSize: 16 }}>실시간 주가</span>} embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': {bgcolor: 'primary.dark'} }}><Box component="span" aria-hidden="true" sx={{width:16,height:16,bgcolor:'currentColor',mask:'url(/live-quotes/save.svg) center/contain no-repeat',WebkitMask:'url(/live-quotes/save.svg) center/contain no-repeat'}}/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
-  <Box sx={{display:'grid',gridTemplateColumns:'80px 76px minmax(0,140px)',justifyContent:'space-between',gap:'8px',position:'sticky',top:0,zIndex:2,bgcolor:colors.surface,height:40,px:'12px',alignItems:'center',borderBottom:`1px solid ${colors.border}`}}>
-    <QuoteSelect label="시세 시장" value={market} disabled={!!dragId} options={Object.entries(markets).map(([value,label])=>({value,label}))} onChange={v=>setMarket(v as QuoteMarket)}/>
+  <Box sx={{display:'grid',gridTemplateColumns:'minmax(114px,142px) 68px minmax(0,140px)',justifyContent:'space-between',gap:'8px',position:'sticky',top:0,zIndex:2,bgcolor:colors.surface,height:40,px:'12px',alignItems:'center',borderBottom:`1px solid ${colors.border}`}}>
+    <MarketSwitch value={market} disabled={!!dragId} onChange={setMarket}/>
     <QuoteSelect label="표시 종목 필터" value={filter} disabled={!!dragId} options={[{value:'all',label:'전체'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}]} onChange={setFilter}/>
     <QuoteSelect label="시세 정렬" value={sort} disabled={!!dragId} options={sorts} onChange={v=>{if(confirmDiscard()){setDraft(null);setBase(null);setSort(v as QuoteSort);}}}/>
   </Box>
@@ -183,7 +184,6 @@ export function LiveQuotesPage() {
   {dirty && base && list && base.version !== list.version && <Button onClick={() => { const current = new Set(list.ids), edited = draft!.filter(id => current.has(id)), known = new Set(edited); let i = 0; setDraft(list.ids.map(id => known.has(id) ? edited[i++]! : id)); setBase({ ids: list.ids, version: list.version }); setError('최신 추가·제거를 유지하며 편집 순서를 병합했습니다. 확인 후 저장해 주세요.'); }}>최신 목록과 병합</Button>}{error && <Box role="alert" sx={{ p: '12px', color: colors.warning, fontSize: 12 }}>{error}<Button onClick={() => void query.refetch()}>최신 목록 확인</Button></Box>}
   <Dialog open={blocker.state === 'blocked'}><DialogTitle>변경한 순서가 있습니다.</DialogTitle><DialogContent>저장하거나 취소한 뒤 이동해 주세요.</DialogContent><DialogActions><Button onClick={() => blocker.state === 'blocked' && blocker.reset()}>계속 편집</Button><Button onClick={() => { setDraft(null); setBase(null); if (blocker.state === 'blocked')
         blocker.proceed(); }}>변경 취소 후 이동</Button></DialogActions></Dialog>
-  <Snackbar open={!!toast} autoHideDuration={2500} onClose={() => setToast('')} message={toast}/>
  </Box>;
 }
 export function LiveQuoteAddPage() {
