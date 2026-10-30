@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@roxstock/shared/prisma';
 import { ApiError } from '@roxstock/shared/lib/api-error';
-import { quoteMarkets, type DisplayStock, type LiveQuote, type QuoteMarket } from '@roxstock/shared/domain/live-quotes';
+import { displayListWithinLimit, quoteMarkets, type DisplayStock, type LiveQuote, type QuoteMarket } from '@roxstock/shared/domain/live-quotes';
 import { prisma } from '../auth/scoped-db.js';
 import { loadPortfolio } from './portfolio.js';
 import { KisLiveService } from '../realtime/kis-live.js';
@@ -66,6 +66,7 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
         const list = readDisplayList(user.settings);
         if (list.version !== req.body.version)
             return reply.code(409).send({ error: { code: 'LIST_CONFLICT', message: '다른 화면에서 목록이 변경됐습니다. 편집을 유지한 채 최신 목록을 확인해 주세요.' } });
+        if(!displayListWithinLimit(ids,list.ids))throw new ApiError(400,'DISPLAY_LIMIT','표시 종목은 최대 50개까지 추가할 수 있습니다.');
         const next = { ids, version: randomUUID() }, settings = { ...(user.settings as Record<string, Prisma.InputJsonValue> ?? {}), liveQuotes: next };
         const result = await prisma.authUser.updateMany({ where: { id: req.auth!.userId, updatedAt: user.updatedAt, settings: { equals: user.settings ?? Prisma.DbNull } }, data: { settings } });
         if (!result.count)

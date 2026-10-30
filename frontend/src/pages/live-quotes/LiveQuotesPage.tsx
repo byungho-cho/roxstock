@@ -15,7 +15,7 @@ import { useActiveAccount } from '../../hooks/useActiveAccount';
 import { useAuth } from '../../auth/AuthGate';
 import { apiRequest } from '../../data/apiClient';
 import { colors } from '../../styles/tokens';
-import { orderStocks, reorderVisible, type DisplayStock, type QuoteMarket, type QuoteSort } from '../../../../shared/src/domain/live-quotes';
+import { maxDisplayStocks, displayListWithinLimit, orderStocks, reorderVisible, type DisplayStock, type QuoteMarket, type QuoteSort } from '../../../../shared/src/domain/live-quotes';
 type List = {
     ids: string[];
     version: string;
@@ -172,7 +172,7 @@ export function LiveQuotesPage() {
       updateTarget(e.clientX,e.clientY);
     };
     const rowFor=(stock:DisplayStock)=>packet.quotes.find(r=>r.symbol===stock.symbol)??{symbol:stock.symbol,status:packet.connection,quote:null};
-    return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title={<span style={{ fontSize: 16 }}>실시간 주가</span>} embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32 }}><img src="/live-quotes/save.svg" alt=""/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
+    return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title={<span style={{ fontSize: 16 }}>실시간 주가</span>} embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': {bgcolor: 'primary.dark'} }}><Box component="span" aria-hidden="true" sx={{width:16,height:16,bgcolor:'currentColor',mask:'url(/live-quotes/save.svg) center/contain no-repeat',WebkitMask:'url(/live-quotes/save.svg) center/contain no-repeat'}}/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
   <Box sx={{display:'grid',gridTemplateColumns:'80px 76px minmax(0,140px)',justifyContent:'space-between',gap:'8px',position:'sticky',top:0,zIndex:2,bgcolor:colors.surface,height:40,px:'12px',alignItems:'center',borderBottom:`1px solid ${colors.border}`}}>
     <QuoteSelect label="시세 시장" value={market} disabled={!!dragId} options={Object.entries(markets).map(([value,label])=>({value,label}))} onChange={v=>setMarket(v as QuoteMarket)}/>
     <QuoteSelect label="표시 종목 필터" value={filter} disabled={!!dragId} options={[{value:'all',label:'전체'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}]} onChange={setFilter}/>
@@ -193,13 +193,21 @@ export function LiveQuoteAddPage() {
     useEffect(() => { const timer = setTimeout(() => setTerm(search), 250); return () => clearTimeout(timer); }, [search]);
     const query = useQuery({ queryKey: ['live-quote-candidates', user?.id, accountId, tab, term], queryFn: ({ signal }) => apiRequest<List>(`/live-quotes/candidates?tab=${tab}&q=${encodeURIComponent(term)}${accountId ? '&accountId=' + accountId : ''}`, { signal }), staleTime: 30000, refetchOnWindowFocus: false, refetchOnReconnect:false });
     const data = query.data, registered = new Set(data?.ids ?? []), rows = data?.stocks ?? [], available = rows.filter(s => !registered.has(s.id));
-    const toggle = (id: string) => setSelected(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]);
+    const remaining=Math.max(0,maxDisplayStocks-registered.size);
+    const toggle=(id:string)=>setSelected(old=>old.includes(id)?old.filter(x=>x!==id):old.filter(x=>!registered.has(x)).length<remaining?[...old,id]:old);
+    const selectAll=(checked:boolean)=>{
+      const next=checked?[...new Set([...selected,...available.map(s=>s.id)])]:selected.filter(id=>!available.some(s=>s.id===id));
+      if(next.filter(id=>!registered.has(id)).length>remaining){setError('표시 종목은 최대 50개까지 추가할 수 있습니다. 남은 '+remaining+'개를 선택해 주세요.');return;}
+      setSelected(next);
+    };
     const add = async (ids = selected) => { if (busy.current || !data || !ids.length)
         return; busy.current = true; setSaving(true); setError(''); try {
         const fresh = await apiRequest<List>('/live-quotes/list');
         if (fresh.version !== data.version)
             throw Error('다른 화면에서 목록이 변경됐습니다. 최신 목록 확인 후 다시 추가해 주세요.');
-        await apiRequest('/live-quotes/list', { method: 'PUT', body: JSON.stringify({ version: data.version, ids: [...new Set([...data.ids, ...ids])] }) });
+        const next=[...new Set([...fresh.ids,...ids])];
+        if(!displayListWithinLimit(next,fresh.ids))throw Error('표시 종목은 최대 50개까지 추가할 수 있습니다.');
+        await apiRequest('/live-quotes/list', { method: 'PUT', body: JSON.stringify({ version: data.version, ids: next }) });
         await client.invalidateQueries({ queryKey: ['live-quote-list'] });
         await client.invalidateQueries({ queryKey: ['live-quote-candidates'] });
         navigate('/live-quotes');
@@ -219,18 +227,18 @@ export function LiveQuoteAddPage() {
         {!!search&&<IconButton aria-label="검색어 지우기" disabled={saving} onClick={()=>setSearch('')} sx={{width:24,height:28,p:0}}><CloseRounded sx={{fontSize:16}}/></IconButton>}
       </StockSearchFrame></Box>
       <SegmentedTabs value={tab} onChange={setTab} items={[{value:'search',label:'검색'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}].map(t=>({...t,disabled:saving}))}/>
-      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}><Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!available.length||saving||query.isFetching||search!==term} checked={!!available.length&&available.every(s=>selected.includes(s.id))} onChange={(_,checked)=>setSelected(old=>checked?[...new Set([...old,...available.map(s=>s.id)])]:old.filter(id=>!available.some(s=>s.id===id)))} sx={{p:'4px'}}/>전체 선택</Box>
-        <ActionButton size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.length} onClick={()=>void add(available.map(s=>s.id))}>미등록 전체 추가</ActionButton></Box>
+      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}><Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!available.length||saving||query.isFetching||search!==term} checked={!!available.length&&available.every(s=>selected.includes(s.id))} onChange={(_,checked)=>selectAll(checked)} sx={{p:'4px'}}/>전체 선택</Box>
+        <ActionButton size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.length||registered.size+available.length>maxDisplayStocks} onClick={()=>void add(available.map(s=>s.id))}>미등록 전체 추가</ActionButton></Box>
       {query.isPending?<Box sx={{textAlign:'center',py:3}}><CircularProgress size={24}/></Box>:query.isError?<Box role="alert">조회에 실패했습니다.<Button onClick={()=>void query.refetch()}>재시도</Button></Box>:<Box sx={{borderTop:`1px solid ${colors.border}`}}>{rows.map(s=><Box key={s.id} component="label" sx={{display:'flex',alignItems:'center',minHeight:52,gap:'8px',px:'4px',borderBottom:`1px solid ${colors.border}`}}>
-        <Checkbox size="small" checked={registered.has(s.id)||selected.includes(s.id)} disabled={registered.has(s.id)||saving} onChange={()=>toggle(s.id)} slotProps={{input:{'aria-label':`${s.name}(${s.symbol}) 선택`}}} sx={{p:'4px'}}/>
+        <Checkbox size="small" checked={registered.has(s.id)||selected.includes(s.id)} disabled={registered.has(s.id)||saving||(!selected.includes(s.id)&&selectionCount>=remaining)} onChange={()=>toggle(s.id)} slotProps={{input:{'aria-label':`${s.name}(${s.symbol}) 선택`}}} sx={{p:'4px'}}/>
         <Box sx={{flex:1,minWidth:0}}><Typography noWrap title={s.name} sx={{fontSize:12,fontWeight:600}}>{s.name}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>{s.symbol}</Typography></Box>
         <Typography sx={{fontSize:10,color:colors.textMuted,flexShrink:0}}>{registered.has(s.id)?'추가됨':[s.held?'보유':'',s.watched?'관심':'',s.traded?'거래':''].filter(Boolean).join(' · ')}</Typography>
       </Box>)}</Box>}
       {!query.isPending&&!query.isError&&!rows.length&&<Typography sx={{textAlign:'center',py:4,fontSize:12}}>검색 결과가 없습니다.</Typography>}
-      <Typography sx={{fontSize:10,color:colors.textMuted,mt:'16px'}}>시세 표시 목록에만 추가됩니다.</Typography>
+      <Typography sx={{fontSize:10,color:colors.textMuted,mt:'16px'}}>시세 표시 목록에만 추가됩니다. 최대 50개까지 등록할 수 있습니다.</Typography>
       {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void query.refetch()}>최신 목록 확인</Button></Box>}
       <Box data-testid="live-add-actions" sx={{position:'fixed',bottom:'calc(45px + env(safe-area-inset-bottom, 0px))',left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:816,zIndex:4,p:'12px 8px',bgcolor:colors.canvas,borderTop:`1px solid ${colors.border}`,display:'flex',alignItems:'center',gap:'8px'}}>
-        <Typography sx={{fontSize:11,flex:1}}>{selectionCount}개 선택</Typography><ActionButton size="small" tone="muted" disabled={saving} onClick={()=>navigate('/live-quotes')}>취소</ActionButton>
+        <Typography sx={{fontSize:11,flex:1}}>{selectionCount}개 선택 · {registered.size}/50개 등록</Typography><ActionButton size="small" tone="muted" disabled={saving} onClick={()=>navigate('/live-quotes')}>취소</ActionButton>
         <ActionButton size="small" disabled={saving||!selectionCount||query.isFetching||search!==term} onClick={()=>void add()}>{saving?'추가 중':`선택한 ${selectionCount}개 추가`}</ActionButton>
       </Box>
     </Box>;

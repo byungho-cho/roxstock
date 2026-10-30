@@ -32,11 +32,15 @@ test('API identity isolation and optimistic list writes preserve settings and re
             const r = await app.inject({ url: '/api/live-quotes/list', headers: { 'x-test-user': id } });
             assert.deepEqual(r.json().data.ids, [id]);
         }
+        const overflow=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'1'},payload:{ids:Array.from({length:51},(_,i)=>String(i+1)),version:'v1'}});
+        assert.equal(overflow.statusCode,400);assert.equal(overflow.json().code,'DISPLAY_LIMIT');assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['1']);
         const save = () => app.inject({ url: '/api/live-quotes/list', method: 'PUT', headers: { 'x-test-user': '1' }, payload: { ids: ['2', '1'], version: 'v1', userId: '2' } });
         const replies = await Promise.all([save(), save()]);
         assert.deepEqual(replies.map(r => r.statusCode).sort(), [200, 409]);
         assert.equal(users.get('1')!.settings.theme, 'dark');
         assert.deepEqual(users.get('2')!.settings.liveQuotes.ids, ['2']);
+        const boundary=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'2'},payload:{ids:Array.from({length:50},(_,i)=>String(i+1)),version:'v1'}});
+        assert.equal(boundary.statusCode,200);assert.equal(boundary.json().data.ids.length,50);assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['2','1']);
     }
     finally {
         await app.close();
