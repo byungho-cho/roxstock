@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - frontend/Dockerfile
+      - frontend/nginx.conf
       - frontend/src/**
       - shared/src/domain/**
       - .github/workflows/frontend-image-packaging.yml
@@ -25,6 +26,17 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: false
+          load: true
+          tags: roxstock-frontend-packaging:test
           build-args: VITE_DATA_SOURCE=api
           cache-from: type=gha,scope=frontend-packaging
           cache-to: type=gha,mode=max,scope=frontend-packaging
+      - name: Verify real HTTP SPA paths and static icons
+        run: |
+          docker run --detach --name frontend-packaging-smoke --publish 127.0.0.1:38080:80 roxstock-frontend-packaging:test
+          trap 'docker rm --force frontend-packaging-smoke >/dev/null' EXIT
+          curl --fail --retry 10 --retry-connrefused --retry-all-errors --retry-delay 1 http://127.0.0.1:38080/health
+          for route in / /assets /assets/ /live-quotes /live-quotes/ /live-quotes/add; do
+            curl --fail --silent --show-error "http://127.0.0.1:38080$route" | grep -q 'id="root"'
+          done
+          curl --fail --silent --show-error http://127.0.0.1:38080/live-quotes/menu.svg | grep -q '<svg'
