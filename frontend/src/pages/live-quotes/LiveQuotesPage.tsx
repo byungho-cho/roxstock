@@ -4,7 +4,7 @@ import {CloseRounded,SearchRounded} from '@mui/icons-material';
 import {StockSearchFrame} from '../../components/common/StockSearchFrame';
 import {SegmentedTabs,ActionButton} from '../../components/common/Common';
 import {QuoteSelect} from './QuoteSelect';
-import {QuoteCard,statusText} from './QuoteCard';
+import {QuoteCard,statusText,quoteCardHeight} from './QuoteCard';
 import {useQuoteStream} from './useQuoteStream';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, InputBase, Typography } from '@mui/material';
@@ -130,8 +130,11 @@ export function LiveQuotesPage() {
     };
     const updateTarget=(x:number,y:number)=>{
       const g=gesture.current;if(!g?.armed)return;
-      const target=document.elementFromPoint(x,y)?.closest('[data-quote-id]')?.getAttribute('data-quote-id');
-      if(!target||target===g.id||target===g.last)return;g.last=target;
+      // Hit-test logical grid cells, not neighbours currently moving under a FLIP transform.
+      const grid=document.querySelector('[data-testid=live-grid]')?.getBoundingClientRect();
+      if(!grid||x<grid.left||x>=grid.right||y<grid.top||y>=grid.bottom)return;
+      const target=visibleIds.current[Math.floor((y-grid.top)/quoteCardHeight)*2+Math.floor((x-grid.left)/(grid.width/2))];
+      if(!target||target===g.id)return;
       if(!base){setBase({ids:list!.ids,version:list!.version});localOrder.current={accountId,ids:list!.ids,version:list!.version};}
       const next=reorderVisible(orderRef.current,visibleIds.current,g.id,target);orderRef.current=next;setDraft(next);
     };
