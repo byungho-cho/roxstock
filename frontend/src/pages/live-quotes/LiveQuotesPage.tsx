@@ -226,8 +226,8 @@ export function LiveQuoteAddPage() {
         setSaving(false);
     } };
     const selectionCount=selected.filter(id=>!registered.has(id)).length;
-    return <Box sx={{bgcolor:colors.canvas,p:'0 8px 144px',minHeight:'100%'}}>
-      <PageHeader title="표시 종목 추가" embedded showAdd={false} showBack showBackTablet backPath="/live-quotes" action={<Button size="small" disabled={saving} onClick={()=>navigate('/live-quotes')} sx={{fontSize:12,color:colors.textPrimary,minWidth:40}}>취소</Button>}/>
+    return <Box sx={{bgcolor:colors.canvas,p:'0 8px 80px',minHeight:'100%'}}>
+      <PageHeader title="표시 종목 추가" embedded showAdd={false} showBack showBackTablet backPath="/live-quotes" action={<Box data-testid="live-add-header-actions" sx={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0}}><ActionButton size="small" tone="muted" disabled={saving} onClick={()=>navigate('/live-quotes')}>취소</ActionButton><ActionButton size="small" disabled={saving||!selectionCount||query.isFetching||search!==term} onClick={()=>void add()}>{saving?'추가 중':`선택한 ${selectionCount}개 추가`}</ActionButton></Box>}/>
       <Box sx={{pt:'8px'}}><SegmentedTabs value={tab} onChange={setTab} items={[{value:'search',label:'검색'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}].map(t=>({...t,disabled:saving}))}/></Box>
       <Box component="form" onSubmit={e=>{e.preventDefault();setTerm(search);}} sx={{pt:'8px',mb:'8px'}}><StockSearchFrame>
         <SearchRounded sx={{fontSize:18,color:colors.textMuted}}/><InputBase value={search} disabled={saving} onChange={e=>setSearch(e.target.value)} placeholder="종목명 또는 종목코드 검색" inputProps={{'aria-label':'표시 종목 검색',enterKeyHint:'search'}} sx={{flex:1,minWidth:0,fontSize:12}}/>
@@ -244,9 +244,7 @@ export function LiveQuoteAddPage() {
       {!query.isPending&&!query.isError&&!rows.length&&<Typography sx={{textAlign:'center',py:4,fontSize:12}}>검색 결과가 없습니다.</Typography>}
       <Typography sx={{fontSize:10,color:colors.textMuted,mt:'16px'}}>시세 표시 목록에만 추가됩니다. 최대 50개까지 등록할 수 있습니다.</Typography>
       {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void query.refetch()}>최신 목록 확인</Button></Box>}
-      <Box data-testid="live-add-actions" sx={{position:'fixed',bottom:'calc(45px + env(safe-area-inset-bottom, 0px))',left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:816,zIndex:4,p:'12px 8px',bgcolor:colors.canvas,borderTop:`1px solid ${colors.border}`,display:'flex',alignItems:'center',gap:'8px'}}>
-        <Typography sx={{fontSize:11,flex:1}}>{selectionCount}개 선택 · {registered.size}/50개 등록</Typography><ActionButton size="small" tone="muted" disabled={saving} onClick={()=>navigate('/live-quotes')}>취소</ActionButton>
-        <ActionButton size="small" disabled={saving||!selectionCount||query.isFetching||search!==term} onClick={()=>void add()}>{saving?'추가 중':`선택한 ${selectionCount}개 추가`}</ActionButton>
-      </Box>
+      <Box data-testid="live-add-selection-summary" role="status" aria-live="polite" sx={{position:'fixed',left:12,bottom:'calc(57px + env(safe-area-inset-bottom, 0px))',zIndex:4,p:'8px 12px',maxWidth:'calc(100vw - 24px)',borderRadius:'8px',bgcolor:'rgba(8,13,24,.78)',border:'1px solid rgba(148,163,184,.22)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',pointerEvents:'none'}}><Typography sx={{fontSize:11,color:colors.textPrimary,whiteSpace:'nowrap'}}>{selectionCount}개 선택 · {registered.size}/50개 등록</Typography></Box>
+
     </Box>;
 }
