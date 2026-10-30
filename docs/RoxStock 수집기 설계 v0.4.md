@@ -1,5 +1,7 @@
 # RoxStock 수집기 설계
 
+> **2026.10.30 현행 정본:** [기획·설계·개발 상태](current-state-20261030.md). 이 파일의 날짜별 버전·수치는 당시 기록이며, 충돌 시 현행 정본과 주제별 최신 근거를 우선합니다.
+
 ## 2026-10-16 현행 구현 안내
 
 현재 V1.0.41의 실행 구조는 [API·수집기 분리 운영](./collector-service-split.md)을 따릅니다. 아래 v0.4 본문은 보존된 설계 이력이며, 실행 경로는 `collector/`, 공통 코드는 `shared/`, DB 스키마 원본은 `database/prisma/`입니다. [수집기 README](../collector/README.md)의 명령을 사용합니다.
