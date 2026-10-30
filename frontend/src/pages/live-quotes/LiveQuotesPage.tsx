@@ -8,7 +8,7 @@ import {MarketSwitch} from './MarketSwitch';
 import {showSuccessToast} from '../../components/common/QueryErrorNotice';
 import {QuoteCard,quoteCardHeight} from './QuoteCard';
 import {useQuoteStream} from './useQuoteStream';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputBase, Typography } from '@mui/material';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/navigation/Navigation';
@@ -19,6 +19,8 @@ import { apiRequest } from '../../data/apiClient';
 import { colors } from '../../styles/tokens';
 import { maxDisplayStocks, displayListWithinLimit, orderStocks, reorderVisible, type DisplayStock, type QuoteMarket, type QuoteSort } from '../../../../shared/src/domain/live-quotes';
 type List = {
+    hasMore?:boolean;
+    nextCursor?:string|null;
     ids: string[];
     version: string;
     stocks: DisplayStock[];
@@ -193,8 +195,10 @@ export function LiveQuoteAddPage() {
     const [tab, setTab] = useState('search'), [search, setSearch] = useState(''), [term, setTerm] = useState(''), [selected, setSelected] = useState<string[]>([]), [saving, setSaving] = useState(false), [error, setError] = useState('');
     const busy = useRef(false);
     useEffect(() => { const timer = setTimeout(() => setTerm(search), 250); return () => clearTimeout(timer); }, [search]);
-    const query = useQuery({ queryKey: ['live-quote-candidates', user?.id, accountId, tab, term], queryFn: ({ signal }) => apiRequest<List>(`/live-quotes/candidates?tab=${tab}&q=${encodeURIComponent(term)}${accountId ? '&accountId=' + accountId : ''}`, { signal }), staleTime: 30000, refetchOnWindowFocus: false, refetchOnReconnect:false });
-    const data = query.data, registered = new Set(data?.ids ?? []), rows = data?.stocks ?? [], available = rows.filter(s => !registered.has(s.id));
+    const query = useInfiniteQuery({ initialPageParam:null as string|null, getNextPageParam:(page:List)=>page.hasMore&&page.nextCursor?page.nextCursor:undefined, queryKey: ['live-quote-candidates', 'paged', user?.id, accountId, tab, term], queryFn: ({ pageParam, signal }) => apiRequest<List>(`/live-quotes/candidates?tab=${tab}&q=${encodeURIComponent(term)}${accountId ? '&accountId=' + accountId : ''}${pageParam?'&cursor='+encodeURIComponent(pageParam):''}`, { signal }), staleTime: 30000, refetchOnWindowFocus: false, refetchOnReconnect:false });
+    const data=query.data?.pages[0],registered=new Set(data?.ids??[]),rows=[...new Map((query.data?.pages.flatMap(page=>page.stocks)??[]).map(stock=>[stock.id,stock])).values()],available=rows.filter(s=>!registered.has(s.id));
+    const moreBusy=useRef(false);
+    const more=async()=>{if(moreBusy.current||!query.hasNextPage)return;moreBusy.current=true;try{await query.fetchNextPage({cancelRefetch:false});}finally{moreBusy.current=false;}};
     const remaining=Math.max(0,maxDisplayStocks-registered.size);
     const toggle=(id:string)=>setSelected(old=>old.includes(id)?old.filter(x=>x!==id):old.filter(x=>!registered.has(x)).length<remaining?[...old,id]:old);
     const selectAll=(checked:boolean)=>{
@@ -224,18 +228,19 @@ export function LiveQuoteAddPage() {
     const selectionCount=selected.filter(id=>!registered.has(id)).length;
     return <Box sx={{bgcolor:colors.canvas,p:'0 8px 144px',minHeight:'100%'}}>
       <PageHeader title="표시 종목 추가" embedded showAdd={false} showBack showBackTablet backPath="/live-quotes" action={<Button size="small" disabled={saving} onClick={()=>navigate('/live-quotes')} sx={{fontSize:12,color:colors.textPrimary,minWidth:40}}>취소</Button>}/>
+      <Box sx={{pt:'8px'}}><SegmentedTabs value={tab} onChange={setTab} items={[{value:'search',label:'검색'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}].map(t=>({...t,disabled:saving}))}/></Box>
       <Box component="form" onSubmit={e=>{e.preventDefault();setTerm(search);}} sx={{pt:'8px',mb:'8px'}}><StockSearchFrame>
         <SearchRounded sx={{fontSize:18,color:colors.textMuted}}/><InputBase value={search} disabled={saving} onChange={e=>setSearch(e.target.value)} placeholder="종목명 또는 종목코드 검색" inputProps={{'aria-label':'표시 종목 검색',enterKeyHint:'search'}} sx={{flex:1,minWidth:0,fontSize:12}}/>
         {!!search&&<IconButton aria-label="검색어 지우기" disabled={saving} onClick={()=>setSearch('')} sx={{width:24,height:28,p:0}}><CloseRounded sx={{fontSize:16}}/></IconButton>}
       </StockSearchFrame></Box>
-      <SegmentedTabs value={tab} onChange={setTab} items={[{value:'search',label:'검색'},{value:'holding',label:'보유'},{value:'watch',label:'관심'},{value:'trade',label:'거래'}].map(t=>({...t,disabled:saving}))}/>
-      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}><Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!available.length||saving||query.isFetching||search!==term} checked={!!available.length&&available.every(s=>selected.includes(s.id))} onChange={(_,checked)=>selectAll(checked)} sx={{p:'4px'}}/>전체 선택</Box>
-        <ActionButton size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.length||registered.size+available.length>maxDisplayStocks} onClick={()=>void add(available.map(s=>s.id))}>미등록 전체 추가</ActionButton></Box>
-      {query.isPending?<Box sx={{textAlign:'center',py:3}}><CircularProgress size={24}/></Box>:query.isError?<Box role="alert">조회에 실패했습니다.<Button onClick={()=>void query.refetch()}>재시도</Button></Box>:<Box sx={{borderTop:`1px solid ${colors.border}`}}>{rows.map(s=><Box key={s.id} component="label" sx={{display:'flex',alignItems:'center',minHeight:52,gap:'8px',px:'4px',borderBottom:`1px solid ${colors.border}`}}>
+      <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:44,gap:'8px'}}>{tab!=='search'&&<Box component="label" sx={{fontSize:12,display:'flex',alignItems:'center',gap:'4px'}}><Checkbox size="small" disabled={!available.length||saving||query.isFetching||search!==term} checked={!!available.length&&available.every(s=>selected.includes(s.id))} onChange={(_,checked)=>selectAll(checked)} sx={{p:'4px'}}/>전체 선택</Box>}
+        <ActionButton sx={{ml:'auto'}} size="small" tone="muted" disabled={saving||query.isFetching||search!==term||!available.length||registered.size+available.length>maxDisplayStocks} onClick={()=>void add(available.map(s=>s.id))}>미등록 전체 추가</ActionButton></Box>
+      {query.isPending?<Box sx={{textAlign:'center',py:3}}><CircularProgress size={24}/></Box>:query.isError&&!data?<Box role="alert">조회에 실패했습니다.<Button onClick={()=>void query.refetch()}>재시도</Button></Box>:<Box sx={{borderTop:`1px solid ${colors.border}`}}>{rows.map(s=><Box key={s.id} component="label" sx={{display:'flex',alignItems:'center',minHeight:40,gap:'8px',px:'4px',borderBottom:`1px solid ${colors.border}`}}>
         <Checkbox size="small" checked={registered.has(s.id)||selected.includes(s.id)} disabled={registered.has(s.id)||saving||(!selected.includes(s.id)&&selectionCount>=remaining)} onChange={()=>toggle(s.id)} slotProps={{input:{'aria-label':`${s.name}(${s.symbol}) 선택`}}} sx={{p:'4px'}}/>
-        <Box sx={{flex:1,minWidth:0}}><Typography noWrap title={s.name} sx={{fontSize:12,fontWeight:600}}>{s.name}</Typography><Typography sx={{fontSize:10,color:colors.textMuted}}>{s.symbol}</Typography></Box>
-        <Typography sx={{fontSize:10,color:colors.textMuted,flexShrink:0}}>{registered.has(s.id)?'추가됨':[s.held?'보유':'',s.watched?'관심':'',s.traded?'거래':''].filter(Boolean).join(' · ')}</Typography>
+        <Box title={`${s.name}(${s.symbol})`} sx={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',whiteSpace:'nowrap'}}><Typography noWrap component="span" sx={{minWidth:0,fontSize:12,fontWeight:600}}>{s.name}</Typography><Typography component="span" sx={{flexShrink:0,fontSize:12,color:colors.textMuted}}>({s.symbol})</Typography></Box>
+        <Typography sx={{fontSize:10,color:colors.textMuted,flexShrink:0,whiteSpace:'nowrap'}}>{registered.has(s.id)?'추가됨':[s.held?'보유':'',s.watched?'관심':'',s.traded?'거래':''].filter(Boolean).join(' · ')}</Typography>
       </Box>)}</Box>}
+      {query.hasNextPage&&<Box sx={{display:'flex',justifyContent:'center',mt:'16px'}}><ActionButton aria-label={query.isFetchNextPageError?'검색 결과 더보기 다시 시도':'검색 결과 더보기'} size="small" tone="muted" disabled={query.isFetchingNextPage||query.isRefetching||saving} onClick={()=>void more()}>{query.isFetchingNextPage?'불러오는 중':query.isFetchNextPageError?'더보기 다시 시도':'더보기'}</ActionButton></Box>}
       {!query.isPending&&!query.isError&&!rows.length&&<Typography sx={{textAlign:'center',py:4,fontSize:12}}>검색 결과가 없습니다.</Typography>}
       <Typography sx={{fontSize:10,color:colors.textMuted,mt:'16px'}}>시세 표시 목록에만 추가됩니다. 최대 50개까지 등록할 수 있습니다.</Typography>
       {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void query.refetch()}>최신 목록 확인</Button></Box>}

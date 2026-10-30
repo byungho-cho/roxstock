@@ -21,6 +21,7 @@ type Query = {
     accountId?: string;
     q?: string;
     tab?: string;
+    cursor?: string;
 };
 export async function liveQuoteRoutes(app: FastifyInstance) {
     const live = new KisLiveService(), streams = new Set<() => void>();
@@ -40,8 +41,11 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
         const q = query.q?.trim() ?? '';
         if (q.length > 100)
             throw new ApiError(400, 'INVALID_SEARCH', '검색어를 확인해 주세요.');
+        if(query.cursor&&!/^\d{1,20}$/.test(query.cursor))throw new ApiError(400,'INVALID_CURSOR','검색 목록을 다시 조회해 주세요.');
+        if(query.tab&&!['search','holding','watch','trade'].includes(query.tab))throw new ApiError(400,'INVALID_TAB','검색 구분을 확인해 주세요.');
+        const paged=ids===null&&(!query.tab||query.tab==='search');
         const candidates = query.tab === 'holding' ? [...ctx.holdings.keys()] : query.tab === 'watch' ? [...ctx.watched] : query.tab === 'trade' ? [...ctx.traded] : null;
-        const securities = await prisma.security.findMany({ where: { isActive: true, ...(ids ? { id: { in: ids.map(BigInt) } } : candidates ? { id: { in: candidates.map(BigInt) } } : {}), ...(q ? { OR: [{ name: { contains: q } }, { symbol: { contains: q } }] } : {}) }, select: { id: true, name: true, symbol: true, marketPrice: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
+        const securities = await prisma.security.findMany({ where: { isActive: true, ...(ids ? { id: { in: ids.map(BigInt) } } : candidates ? { id: { in: candidates.map(BigInt) } } : {}), ...(q ? { OR: [{ name: { contains: q } }, { symbol: { contains: q } }] } : {}) }, select: { id: true, name: true, symbol: true, marketPrice: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }], ...(paged?{take:101,...(query.cursor?{cursor:{id:BigInt(query.cursor)},skip:1}:{})}:{}) });
         return securities.map(s => { const id = String(s.id), h = ctx.holdings.get(id), p = s.marketPrice, price = p ? Number(p.currentPrice) : null, previous = p?.previousClosePrice ? Number(p.previousClosePrice) : null; const initial: LiveQuote | null = price !== null && previous ? { symbol: s.symbol, market: 'KRX', price, change: price - previous, rate: (price - previous) / previous * 100, observedAt: p!.priceUpdatedAt.toISOString(), receivedAt: p!.priceUpdatedAt.getTime(), source: 'CACHE' } : null; return { id, symbol: s.symbol, name: s.name, held: !!h, watched: ctx.watched.has(id), traded: ctx.traded.has(id), quantity: h ? Number(h.quantity) : 0, purchaseAmount: h ? Number(h.purchaseAmount) : 0, marketValue: h?.marketValue ? Number(h.marketValue) : null, profit: h?.unrealizedProfitLoss ? Number(h.unrealizedProfitLoss) : null, initial } satisfies DisplayStock; });
     }
     app.get<{
@@ -49,7 +53,7 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
     }>('/live-quotes/list', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId); return { data: { ...ctx.list, stocks: await stocks(ctx.list.ids, ctx) } }; });
     app.get<{
         Querystring: Query;
-    }>('/live-quotes/candidates', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId); return { data: { ...ctx.list, stocks: await stocks(null, ctx, req.query) } }; });
+    }>('/live-quotes/candidates', async (req) => { const ctx = await context(req.auth!.userId, req.query.accountId), found=await stocks(null,ctx,req.query), paged=!req.query.tab||req.query.tab==='search', hasMore=paged&&found.length>100, items=paged?found.slice(0,100):found; return {data:{...ctx.list,stocks:items,hasMore,nextCursor:hasMore?items.at(-1)!.id:null}}; });
     app.put<{
         Body: {
             ids?: unknown;

@@ -17,7 +17,7 @@ test('API identity isolation and optimistic list writes preserve settings and re
     patch(raw.authUser, 'updateMany', async ({ where, data }: any) => { const row = users.get(String(where.id))!; if (JSON.stringify(row.settings) !== JSON.stringify(where.settings.equals))
         return { count: 0 }; row.settings = data.settings; return { count: 1 }; });
     patch(raw.accountWatchlistItem, 'findMany', async ({ where }: any) => { assert.ok(where.AND.some((w: any) => w.account?.userId)); return []; });
-    patch(raw.security, 'findMany', async ({ where }: any) => where.id.in.map((id: bigint) => ({ id, symbol: String(id).padStart(6, '0'), name: 'test', marketPrice: null })));
+    patch(raw.security,'findMany',async({where,cursor,take}:any)=>{const rows=where.id?.in?where.id.in.map((id:bigint)=>({id,symbol:String(id).padStart(6,'0'),name:'test',marketPrice:null})):Array.from({length:205},(_,i)=>({id:BigInt(i+1),symbol:String(i+1).padStart(6,'0'),name:'candidate'+String(i+1).padStart(3,'0'),marketPrice:null}));if(!where.id?.in)assert.equal(take,101);const offset=cursor?rows.findIndex((r:any)=>r.id===cursor.id)+1:0;return rows.slice(offset,take?offset+take:undefined);});
     patch(raw.security, 'count', async ({ where }: any) => where.id.in.length);
     const app = Fastify();
     app.decorateRequest('auth', null);
@@ -34,6 +34,7 @@ test('API identity isolation and optimistic list writes preserve settings and re
         }
         const overflow=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'1'},payload:{ids:Array.from({length:51},(_,i)=>String(i+1)),version:'v1'}});
         assert.equal(overflow.statusCode,400);assert.equal(overflow.json().code,'DISPLAY_LIMIT');assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['1']);
+        const found:string[]=[];let cursor:string|null=null;for(const length of [100,100,5]){const response:{statusCode:number;json():any}=await app.inject({url:'/api/live-quotes/candidates?tab=search'+(cursor?'&cursor='+cursor:''),headers:{'x-test-user':'1'}});assert.equal(response.statusCode,200);const data=response.json().data;assert.equal(data.stocks.length,length);assert.equal(data.hasMore,length===100);found.push(...data.stocks.map((r:any)=>r.id));cursor=data.nextCursor;}assert.equal(new Set(found).size,205);assert.equal(cursor,null);assert.equal((await app.inject({url:'/api/live-quotes/candidates?tab=search&cursor=invalid',headers:{'x-test-user':'1'}})).statusCode,400);
         const save = () => app.inject({ url: '/api/live-quotes/list', method: 'PUT', headers: { 'x-test-user': '1' }, payload: { ids: ['2', '1'], version: 'v1', userId: '2' } });
         const replies = await Promise.all([save(), save()]);
         assert.deepEqual(replies.map(r => r.statusCode).sort(), [200, 409]);
