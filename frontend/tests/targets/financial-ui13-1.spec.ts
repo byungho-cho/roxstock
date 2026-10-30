@@ -11,7 +11,7 @@ async function fixture(page:Page,listType="WATCHLIST"){
 }
 async function selectWatch(page:Page,id=1){
  if(page.viewportSize()!.width>=600)await page.getByRole('row',{name:`종목${id} 상세보기`,exact:true}).click();
- else await page.getByTestId('stock-card-'+id).getByRole('button',{name:`종목${id} 상세보기`,exact:true}).click();
+ else await page.getByTestId('stock-card-'+id).getByRole('button',{name:'W 0.8 가치분석 상세 보기',exact:true}).click();
  await expect(page.getByTestId('value-detail')).toBeVisible();await expect(page.locator('main').getByRole('button',{name:'종목 관리',exact:true})).toBeEnabled();
 }
 test('source list order, centered header and entry state survive detail/chart transitions',async({page},info)=>{
