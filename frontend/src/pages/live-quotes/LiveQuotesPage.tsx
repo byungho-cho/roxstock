@@ -242,7 +242,7 @@ export function LiveQuoteAddPage() {
       </Box>)}</Box>}
       {query.hasNextPage&&<Box sx={{display:'flex',justifyContent:'center',mt:'16px'}}><ActionButton aria-label={query.isFetchNextPageError?'검색 결과 더보기 다시 시도':'검색 결과 더보기'} size="small" tone="muted" disabled={query.isFetchingNextPage||query.isRefetching||saving} onClick={()=>void more()}>{query.isFetchingNextPage?'불러오는 중':query.isFetchNextPageError?'더보기 다시 시도':'더보기'}</ActionButton></Box>}
       {!query.isPending&&!query.isError&&!rows.length&&<Typography sx={{textAlign:'center',py:4,fontSize:12}}>검색 결과가 없습니다.</Typography>}
-      <Typography sx={{fontSize:10,color:colors.textMuted,mt:'16px'}}>시세 표시 목록에만 추가됩니다. 최대 50개까지 등록할 수 있습니다.</Typography>
+
       {error&&<Box role="alert" sx={{fontSize:12,color:colors.warning}}>{error}<Button onClick={()=>void query.refetch()}>최신 목록 확인</Button></Box>}
       <Box data-testid="live-add-selection-summary" role="status" aria-live="polite" sx={{position:'fixed',left:12,bottom:'calc(57px + env(safe-area-inset-bottom, 0px))',zIndex:4,p:'8px 12px',maxWidth:'calc(100vw - 24px)',borderRadius:'8px',bgcolor:'rgba(8,13,24,.78)',border:'1px solid rgba(148,163,184,.22)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',pointerEvents:'none'}}><Typography sx={{fontSize:11,color:colors.textPrimary,whiteSpace:'nowrap'}}>{selectionCount}개 선택 · {registered.size}/50개 등록</Typography></Box>
 
