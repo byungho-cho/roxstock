@@ -33,8 +33,10 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
             throw new ApiError(400, 'INVALID_ACCOUNT', '계좌를 확인해 주세요.');
         const user = await prisma.authUser.findUniqueOrThrow({ where: { id: userId }, select: { settings: true } }), list = readDisplayList(user.settings);
         const portfolio = accountId ? await loadPortfolio(BigInt(accountId)) : null;
-        const watch = await prisma.accountWatchlistItem.findMany({ where: accountId ? { accountId: BigInt(accountId) } : {}, select: { securityId: true } });
-        const watched = new Set(watch.map(w => String(w.securityId))), traded = new Set(portfolio?.account.buyTrades.map(t => String(t.securityId)) ?? []), holdings = new Map(portfolio?.holdings.map(h => [String(h.securityId), h]) ?? []);
+        const watch = accountId ? await prisma.accountWatchlistItem.findMany({ where: { accountId: BigInt(accountId), listType: {in:['WATCHLIST','RECOMMENDED']} }, select: { securityId: true } }) : [];
+        const traded = new Set(portfolio?.account.buyTrades.map(t => String(t.securityId)) ?? []), holdings = new Map(portfolio?.holdings.map(h => [String(h.securityId), h]) ?? []);
+        // Match the stock list: actual trade/holding records override manual classifications.
+        const watched = new Set(watch.map(w => String(w.securityId)).filter(id=>!traded.has(id)&&!holdings.has(id)));
         return { list, watched, traded, holdings };
     }
     async function stocks(ids: string[] | null, ctx: Awaited<ReturnType<typeof context>>, query: Query = {}) {

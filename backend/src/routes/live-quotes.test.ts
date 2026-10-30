@@ -60,3 +60,17 @@ test('a display-only stock can be looked up by exact security ID without classif
  const result=await loadSecurities({securityId:'4'});assert.equal(result.data.length,1);assert.equal(result.data[0]!.id,'4');assert.equal(result.data[0]!.listType,null);assert.equal(result.data[0]!.hasTradeHistory,false);assert.equal(result.data[0]!.watchlistItemId,null);
  await assert.rejects(()=>loadSecurities({securityId:'invalid'}));assert.equal(lookups,1);
 });
+
+test('watch candidates and registered watch flags follow account classifications with trades overriding manual watch entries',async(t)=>{
+ const {Prisma}=await import('@roxstock/shared/prisma');const patch=(object:any,name:string,fn:any)=>{const original=object[name];object[name]=fn;t.after(()=>{object[name]=original;});};
+ const saved={ids:['1','2','3','4','5'],version:'v1'};patch(raw.authUser,'findUniqueOrThrow',async()=>({settings:{liveQuotes:saved}}));
+ const manual=[{securityId:1n,listType:'WATCHLIST'},{securityId:2n,listType:'WATCHLIST'},{securityId:3n,listType:'HOLDING'},{securityId:4n,listType:'WATCHLIST'},{securityId:5n,listType:'RECOMMENDED'}];
+ patch(raw.accountWatchlistItem,'findMany',async({where}:any)=>{assert.equal(where.accountId,7n);assert.ok(where.AND.some((w:any)=>w.account?.userId));assert.deepEqual(where.listType.in,['WATCHLIST','RECOMMENDED']);return manual.filter(row=>where.listType.in.includes(row.listType));});
+ patch(raw.account,'findUnique',async({where}:any)=>{assert.equal(where.id,7n);assert.ok(where.AND.length);return {id:7n,isActive:true,cashTransactions:[],buyTrades:[2n,4n].map(securityId=>({id:securityId,securityId,boughtAt:new Date(),quantity:new Prisma.Decimal(10),unitPrice:new Prisma.Decimal(100),sellTrades:securityId===2n?[{quantity:new Prisma.Decimal(10),unitPrice:new Prisma.Decimal(110),soldAt:new Date()}]:[],security:{id:securityId,symbol:String(securityId).padStart(6,'0'),name:'fixture',marketType:'KOSPI',marketPrice:null}}))};});
+ patch(raw.security,'findMany',async({where}:any)=>where.id.in.map((id:bigint)=>({id,symbol:String(id).padStart(6,'0'),name:'fixture',marketPrice:null})));
+ const app=Fastify();app.decorateRequest('auth',null);app.addHook('onRequest',(req,_reply,done)=>{const identity={userId:1n,role:'USER' as const,sessionId:'fixture',mustChangePassword:false};req.auth=identity;authContext.run(identity,done);});await app.register(liveQuoteRoutes,{prefix:'/api'});try{
+ const candidates=await app.inject('/api/live-quotes/candidates?tab=watch&accountId=7');assert.equal(candidates.statusCode,200);assert.deepEqual(candidates.json().data.stocks.map((s:any)=>s.id),['1','5']);
+ const all=await app.inject('/api/live-quotes/list?accountId=7');assert.equal(all.statusCode,200);assert.deepEqual(all.json().data.stocks.filter((s:any)=>s.watched).map((s:any)=>s.id),['1','5']);assert.equal(all.json().data.stocks.find((s:any)=>s.id==='2').traded,true);assert.equal(all.json().data.stocks.find((s:any)=>s.id==='4').held,true);
+ const noAccount=await app.inject('/api/live-quotes/candidates?tab=watch');assert.equal(noAccount.statusCode,200);assert.deepEqual(noAccount.json().data.stocks,[]);
+ }finally{await app.close();}
+});
