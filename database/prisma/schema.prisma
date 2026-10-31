@@ -943,6 +943,7 @@ model CollectionBugScanState {
 
 // Shared public metadata. Account membership is checked at read time, never copied per account.
 model StockNewsItem {
+ reads StockNewsRead[]
  scraps StockNewsScrap[]
  notificationSecurityIds Json? @map("notification_security_ids")
  id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
@@ -1068,6 +1069,7 @@ model StockNewsCandidate {
 }
 
 model AuthUser {
+  newsReads StockNewsRead[]
   newsScraps StockNewsScrap[]
   id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
   email String @unique @db.VarChar(254)
@@ -1100,6 +1102,17 @@ model StockNewsScrap {
  @@id([userId,newsId])
  @@index([newsId])
  @@map("stock_news_scraps")
+}
+
+model StockNewsRead {
+ userId BigInt @map("user_id") @db.UnsignedBigInt
+ newsId BigInt @map("news_id") @db.UnsignedBigInt
+ readAt DateTime @default(now()) @map("read_at") @db.DateTime(3)
+ user AuthUser @relation(fields:[userId],references:[id],onDelete:Cascade)
+ news StockNewsItem @relation(fields:[newsId],references:[id],onDelete:Cascade)
+ @@id([userId,newsId])
+ @@index([newsId])
+ @@map("stock_news_reads")
 }
 
 // Seeded once by migration; original incidents and scan checkpoints stay intact.

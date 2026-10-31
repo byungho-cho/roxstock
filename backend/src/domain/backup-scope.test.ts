@@ -13,7 +13,7 @@ test('personal backup covers ownership chains and excludes public data, routines
  const url=new URL('mysql://backup:secret@127.0.0.1:3306/isolated_test');
  const args=backupDumpArguments(url,'USER');
  assert.equal(new Set(userBackupTables).size,userBackupTables.length);
- for(const table of ['auth_users','accounts','buy_trades','sell_trades','cash_transactions','dividends','daily_account_snapshots','compound_growth_goals','auth_retired_tokens','stock_news_scraps','app_push_deliveries'])assert.ok(args.includes(table));
+ for(const table of ['auth_users','accounts','buy_trades','sell_trades','cash_transactions','dividends','daily_account_snapshots','compound_growth_goals','auth_retired_tokens','stock_news_scraps','stock_news_reads','app_push_deliveries'])assert.ok(args.includes(table));
  for(const value of ['securities','market_prices','financial_statements','period_valuations','dart_financial_filings','stock_news_items','collector_runs','--databases','--routines','--events','--triggers'])assert.ok(!args.includes(value),value);
  assert.ok(args.includes('--single-transaction'));assert.ok(args.includes('--skip-triggers'));assert.ok(!args.some(a=>a.includes('secret')));
  const full=backupDumpArguments(url,'FULL');assert.deepEqual(full.slice(-2),['--databases','isolated_test']);assert.ok(full.includes('--events'));assert.ok(!full.includes('accounts'));

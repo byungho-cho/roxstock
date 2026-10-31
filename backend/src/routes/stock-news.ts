@@ -12,15 +12,15 @@ const userId=()=>{const value=authContext.getStore()?.userId;if(!value)throw new
 type Snapshot={v:1;account:string;type:string;ceiling:string;scope:string;at:number;held?:boolean;user?:string};
 type Query={type?:string;snapshot?:string;cursor?:string;held?:string};
 const include={securities:{include:{security:{select:{id:true,symbol:true,name:true}}}}} as const;
-type Row=Prisma.StockNewsItemGetPayload<{include:typeof include}>&{scraps?:{newsId:bigint}[]};
+type Row=Prisma.StockNewsItemGetPayload<{include:typeof include}>&{scraps?:{newsId:bigint}[];reads?:{newsId:bigint}[]};
 // Handler-only legacy tests have no identity. Never load anyone's scraps in that case.
 // Production's mandatory auth boundary supplies an identity on every request.
-const personalInclude=()=>{const uid=authContext.getStore()?.userId;return uid?{...include,scraps:{where:{userId:uid},select:{newsId:true}}}:include;};
+const personalInclude=()=>{const uid=authContext.getStore()?.userId;return uid?{...include,reads:{where:{userId:uid},select:{newsId:true}},scraps:{where:{userId:uid},select:{newsId:true}}}:include;};
 const order=[{collectedAt:'desc'},{priority:'desc'},{publishedAt:'desc'},{id:'desc'}] as const;
 const bad=()=>new ApiError(400,'NEWS_INVALID_PAGE','소식 조회 조건을 확인해 주세요.');
 function serialize(row:Row,allowed:bigint[],held:Set<string>){
  let originalUrl:string|null=null;try{originalUrl=canonicalUrl(row.originalUrl);}catch{/* Invalid stored links remain visible with an explicit unavailable state. */}
- return {isScrapped:!!row.scraps?.length,isHeld:row.securities.some(s=>allowed.includes(s.securityId)&&held.has(String(s.securityId))),id:String(row.id),title:row.title,originalUrl,originalAvailable:!!originalUrl,sourceName:row.sourceName,publishedAt:row.publishedAt.toISOString(),publishedPrecision:row.publishedPrecision,type:row.materialType,importance:row.priority===2?'IMPORTANT':'MAJOR',access:row.accessCondition,summary:row.summary,summaryMethod:row.summaryMethod,summaryStatus:row.summaryStatus,summaryCheckedAt:row.summaryCheckedAt?.toISOString()??null,collectedAt:row.collectedAt.toISOString(),securities:row.securities.filter(s=>allowed.includes(s.securityId)).map(s=>({id:String(s.security.id),symbol:s.security.symbol,name:s.security.name,isHeld:held.has(String(s.securityId))}))};
+ return {isRead:!!row.reads?.length,isScrapped:!!row.scraps?.length,isHeld:row.securities.some(s=>allowed.includes(s.securityId)&&held.has(String(s.securityId))),id:String(row.id),title:row.title,originalUrl,originalAvailable:!!originalUrl,sourceName:row.sourceName,publishedAt:row.publishedAt.toISOString(),publishedPrecision:row.publishedPrecision,type:row.materialType,importance:row.priority===2?'IMPORTANT':'MAJOR',access:row.accessCondition,summary:row.summary,summaryMethod:row.summaryMethod,summaryStatus:row.summaryStatus,summaryCheckedAt:row.summaryCheckedAt?.toISOString()??null,collectedAt:row.collectedAt.toISOString(),securities:row.securities.filter(s=>allowed.includes(s.securityId)).map(s=>({id:String(s.security.id),symbol:s.security.symbol,name:s.security.name,isHeld:held.has(String(s.securityId))}))};
 }
 /** Aggregate only the bounded page's related securities; never infer holdings from watchlists. */
 async function heldForRows(tx:Prisma.TransactionClient,accountId:bigint,rows:Row[]){
@@ -70,7 +70,34 @@ export async function loadStockNewsDetail(accountId:bigint,newsId:bigint,q:Query
   return {data:serialize(row,q.type==='SCRAP'?row.securities.map(s=>s.securityId):ctx.ids,await heldForRows(tx,accountId,[row])),meta:{accountId:String(accountId),snapshot:ctx.snapshot,type:q.type??'ALL',ordinal:Math.min(before+1,total),total,previousId:previous?String(previous.id):null,nextId:next?String(next.id):null}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
+export async function markStockNewsRead(accountId:bigint,newsId:bigint,q:Query={}){
+ const uid=userId();
+ // Verify account ownership/scope before writing personal state. GET remains read-only.
+ await loadStockNewsDetail(accountId,newsId,q);
+ await prisma.stockNewsRead.upsert({where:{userId_newsId:{userId:uid,newsId}},create:{userId:uid,newsId},update:{}});
+ return {data:{id:String(newsId),isRead:true}};
+}
+export async function markAllStockNewsRead(accountId:bigint,q:Query){
+ const uid=userId();
+ // Freeze the current list ceiling: newly collected news cannot be swept into this action.
+ if(!q.snapshot||q.cursor)throw bad();
+ return prisma.$transaction(async tx=>{
+  const ctx=await context(tx,accountId,q);let cursor=0n,count=0;
+  while(true){
+   const rows=await tx.stockNewsItem.findMany({where:{AND:[ctx.where,{id:{gt:cursor}},{reads:{none:{userId:uid}}}]},select:{id:true},orderBy:{id:'asc'},take:500});
+   if(!rows.length)break;
+   const saved=await tx.stockNewsRead.createMany({data:rows.map(r=>({userId:uid,newsId:r.id})),skipDuplicates:true});count+=saved.count;cursor=rows.at(-1)!.id;
+  }
+  return {data:{count}};
+ },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead,timeout:30000});
+}
 export async function stockNewsRoutes(app:FastifyInstance){
+ app.put<{Params:{accountId:string;newsId:string};Body:Query}>('/accounts/:accountId/stock-news/:newsId/read',async(req,reply)=>{
+  reply.header('Cache-Control','private, no-store');return markStockNewsRead(id(req.params.accountId,'accountId'),id(req.params.newsId,'newsId'),req.body??{});
+ });
+ app.put<{Params:{accountId:string};Body:Query}>('/accounts/:accountId/stock-news/read-all',async(req,reply)=>{
+  reply.header('Cache-Control','private, no-store');return markAllStockNewsRead(id(req.params.accountId,'accountId'),req.body??{});
+ });
  app.put<{Params:{accountId:string;newsId:string};Body:{saved?:boolean}}>('/accounts/:accountId/stock-news/:newsId/scrap',async(req,reply)=>{
   if(typeof req.body?.saved!=='boolean')throw bad();const accountId=id(req.params.accountId,'accountId'),newsId=id(req.params.newsId,'newsId'),uid=userId();
   await loadStockNewsDetail(accountId,newsId);

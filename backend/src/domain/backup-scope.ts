@@ -17,7 +17,7 @@ export const userBackupTables = [
  'accounts','watchlist_items','account_watchlist_items','trade_requests','buy_trades','sell_trades',
  'cash_transactions','dividends','daily_account_snapshots','daily_position_snapshots',
  'compound_growth_plans','compound_growth_goals','account_profit_revisions','investment_year_aggregates',
- 'stock_news_scraps','app_notification_preferences','account_notification_preferences','app_push_devices',
+ 'stock_news_scraps','stock_news_reads','app_notification_preferences','account_notification_preferences','app_push_devices',
  'app_target_notification_states','app_target_daily_maxima','app_notification_events','app_push_deliveries',
  'admin_user_read_audits',
 ] as const;
