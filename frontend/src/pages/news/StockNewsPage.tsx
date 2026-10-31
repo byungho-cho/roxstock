@@ -1,9 +1,12 @@
+import {useNewsRead,type ReadScope} from './useNewsRead';
 import {NewsScrapButton} from './NewsScrapButton';
 import {newsProviderNames,newsProviderReason} from './newsCollectionUi';
 import {Fragment,useEffect,useRef,useState} from 'react';
 import {useInfiniteQuery,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useLocation,useNavigate,useParams,useSearchParams} from 'react-router-dom';
-import {Box,Button,Typography} from '@mui/material';
+import {Badge,Box,Button,IconButton,Typography} from '@mui/material';
+import {NotificationsNoneRounded} from '@mui/icons-material';
+import {ConfirmDialog} from '../../components/common/Common';
 import {PageHeader} from '../../components/navigation/Navigation';
 import {QueryErrorNotice} from '../../components/common/QueryErrorNotice';
 import {ClickInfo} from '../../components/common/ClickInfo';
@@ -21,12 +24,12 @@ function useNewsList(accountId:string|undefined,type:NewsFilter,entry:string,ena
  useEffect(()=>{if(!initialSnapshot&&query.error instanceof ApiError&&['NEWS_SCOPE_CHANGED','NEWS_SNAPSHOT_EXPIRED'].includes(query.error.code))void client.resetQueries({queryKey:key,exact:true});},[query.error,client,accountId,type,entry,initialSnapshot,held]);
  return query;
 }
-function NewsCard({item,open}:{item:StockNews;open:()=>void}){
+function NewsCard({item,open,read}:{item:StockNews;open:()=>void;read:()=>void}){
  const navigate=useCardNavigation(open);
  return <Box component="article" role="link" tabIndex={0} aria-label={item.title} data-testid="stock-news-card" data-is-scrapped={!!item.isScrapped} {...navigate} sx={{border:item.isHeld?'1px solid #FBBF24':'1px solid #1E293B',borderRadius:'8px',bgcolor:'#111827',px:'8px',py:'6px',display:'flex',flexDirection:'column',gap:'2px',cursor:'pointer',minWidth:0,'&:focus-visible':{outline:'2px solid #60A5FA'}}}>
-  <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}><Box sx={{display:'flex',gap:'8px',alignItems:'center',minWidth:0}}><Typography noWrap sx={{fontSize:11,fontWeight:600,lineHeight:'17px',minWidth:0,color:item.isHeld?'#FBBF24':undefined}}>{item.securities.map(s=>s.name).join(' · ')}</Typography><ImportanceIcon value={item.importance}/></Box><TypeChip type={item.type}/></Box>
+  <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}><Box sx={{display:'flex',gap:'8px',alignItems:'center',minWidth:0}}><Typography noWrap sx={{fontSize:11,fontWeight:600,lineHeight:'17px',minWidth:0,color:item.isHeld?'#FBBF24':undefined}}>{item.securities.map(s=>s.name).join(' · ')}</Typography><ImportanceIcon value={item.importance}/>{!item.isRead&&<Typography component="span" data-testid="news-new" sx={{fontSize:10,fontWeight:700,color:"#FF5261",flexShrink:0}}>NEW</Typography>}</Box><TypeChip type={item.type}/></Box>
   <Typography component="div" data-testid="stock-news-title" sx={{fontSize:12,fontWeight:600,lineHeight:'18px',overflowWrap:'anywhere'}}>{item.title}{item.access==='PAID'&&<PaidIcon/>}</Typography>
-  <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',fontSize:10,lineHeight:'16px'}}><Typography noWrap sx={{fontSize:10,lineHeight:'16px',color:'#CBD5E1',minWidth:0}}>{item.sourceName} · {newsTime(item.publishedAt,item.publishedPrecision==='DATE')}</Typography><OriginalLink item={item}/></Box>
+  <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',fontSize:10,lineHeight:'16px'}}><Typography noWrap sx={{fontSize:10,lineHeight:'16px',color:'#CBD5E1',minWidth:0}}>{item.sourceName} · {newsTime(item.publishedAt,item.publishedPrecision==='DATE')}</Typography><OriginalLink item={item} onOpen={read}/></Box>
  </Box>;
 }
 export function StockNewsPage(){
@@ -34,16 +37,26 @@ export function StockNewsPage(){
  const {accountId,accounts}=useActiveAccount(),[params,setParams]=useSearchParams(),open=useListNavigation();
  const type=(filters.some(([v])=>v===params.get('type'))?params.get('type'):'ALL') as NewsFilter;
  const held=params.get("held")==="true";
+ const read=useNewsRead(accountId);
  const query=useNewsList(accountId,type,entry,true,undefined,held),pages=query.data?.pages,first=pages?.[0],rows=pages?.flatMap(p=>p.data)??[],collection=first?.meta.collection;
+ const unread=first?.meta.unreadCount;
+ const [confirmation,setConfirmation]=useState<{accountId:string;scope:ReadScope;count:number}|null>(null);
+ useEffect(()=>setConfirmation(null),[accountId,type,held]);
+ const confirmRead=()=>{
+  const target=confirmation;setConfirmation(null);
+  if(target&&target.accountId===accountId)void read.save(null,target.scope);
+ };
  return <Box data-testid="stock-news-list" sx={{pt:'8px',pb:'8px',display:'flex',flexDirection:'column',gap:'8px'}}>
-  <PageHeader embedded titleAriaLabel="종목소식" title={<Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:'4px',fontWeight:600,fontSize:20,lineHeight:'26px'}}>종목소식{['PARTIAL','FAILED'].includes(collection?.status??'')&&<ClickInfo label="소식 수집 상태" tone={collection?.status==='FAILED'?'danger':'warning'}>{collection?.status==='PARTIAL'?'일부 구간 확인 불가 · 확인된 소식과 기존 목록을 표시합니다.':'최근 확인 실패 · 신규 여부를 확인할 수 없습니다. 기존 목록을 표시합니다.'}{collection?.providers.filter(p=>['PARTIAL','FAILED'].includes(p.status)).map(p=><Box key={p.id}>{newsProviderNames[p.id]??p.id} · {newsProviderReason(p.error)}</Box>)}{collection?.providers.flatMap(p=>(p.gaps??[]).map((g,i)=><Box key={p.id+i}>{g.section??p.id} · {newsTime(g.from)} ~ {newsTime(g.to)} 미확인</Box>))}{collection?.nextAt&&<Box>다음 정규 실행 {newsTime(collection.nextAt)}</Box>}{collection?.nextRetryAt&&<Box>다음 재시도 {newsTime(collection.nextRetryAt)}</Box>}</ClickInfo>}</Box>} showAdd={false} showBack={false} action={<Typography data-testid="news-display-count" sx={{fontSize:11,lineHeight:'16px',color:'#CBD5E1'}}>{rows.length}/{first?.meta.total??'—'}</Typography>}/>
+  <PageHeader embedded variant="home" titleAriaLabel="종목소식" title={<Box component="span" sx={{display:'inline-flex',alignItems:'center',gap:'4px',fontWeight:400,fontSize:20,lineHeight:'inherit',height:30,verticalAlign:'top'}}>종목소식<IconButton aria-label={unread==null?'읽지 않은 소식 확인 중':`읽지 않은 소식 ${unread}건 모두 읽음 처리`} data-testid="news-unread-button" disabled={!first||!unread||read.busy} onClick={()=>{if(accountId&&first&&unread)setConfirmation({accountId,count:unread,scope:{type,snapshot:first.meta.snapshot,...(held?{held:'true'}:{})}});}} sx={{width:32,height:30,p:0,ml:'2px',mr:'6px',color:'#94A3B8',flexShrink:0}}><Badge badgeContent={unread??0} max={99999} sx={{'& .MuiBadge-badge':{bgcolor:'#FF5261',color:'#fff',fontSize:9,lineHeight:1,minWidth:15,height:15,px:'4px',top:5}}}><NotificationsNoneRounded sx={{fontSize:20}}/></Badge></IconButton>{['PARTIAL','FAILED'].includes(collection?.status??'')&&<ClickInfo label="소식 수집 상태" tone={collection?.status==='FAILED'?'danger':'warning'}>{collection?.status==='PARTIAL'?'일부 구간 확인 불가 · 확인된 소식과 기존 목록을 표시합니다.':'최근 확인 실패 · 신규 여부를 확인할 수 없습니다. 기존 목록을 표시합니다.'}{collection?.providers.filter(p=>['PARTIAL','FAILED'].includes(p.status)).map(p=><Box key={p.id}>{newsProviderNames[p.id]??p.id} · {newsProviderReason(p.error)}</Box>)}{collection?.providers.flatMap(p=>(p.gaps??[]).map((g,i)=><Box key={p.id+i}>{g.section??p.id} · {newsTime(g.from)} ~ {newsTime(g.to)} 미확인</Box>))}{collection?.nextAt&&<Box>다음 정규 실행 {newsTime(collection.nextAt)}</Box>}{collection?.nextRetryAt&&<Box>다음 재시도 {newsTime(collection.nextRetryAt)}</Box>}</ClickInfo>}</Box>} showAdd={false} showBack={false} action={<Box sx={{display:"flex",alignItems:"center",gap:"8px"}}><Typography data-testid="news-display-count" sx={{fontSize:11,lineHeight:'16px',color:'#CBD5E1'}}>{rows.length}/{first?.meta.total??'—'}</Typography></Box>}/>
+  <ConfirmDialog open={!!confirmation} title="새로운 소식 확인" description={`새로운 소식 ${confirmation?.count??0}건을 모두 읽음 처리하시겠습니까? 현재 필터의 소식 전체에 적용됩니다.`} confirmLabel="확인" onClose={()=>setConfirmation(null)} onConfirm={confirmRead}/>
   <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'6px'}}><Box role="tablist" aria-label="소식 유형" data-no-pull-refresh sx={{display:'flex',gap:'4px',minWidth:0}}>{filters.map(([value,label])=><Button key={value} role="tab" aria-selected={value===type} onClick={()=>setParams({...((value==='ALL')?{}:{type:value}),...(held&&value!=='SCRAP'?{held:'true'}:{})},{replace:true})} sx={{minWidth:0,px:'10px',py:'4px',height:25,minHeight:25,borderRadius:'6px',fontSize:11,lineHeight:'17px',whiteSpace:'nowrap',fontWeight:value===type?600:400,color:'#F8FAFC',bgcolor:value===type?'#60A5FA':'#111827'}}>{label}</Button>)}</Box><Box sx={{display:'flex',alignItems:'center',gap:'2px',flexShrink:0}}><Box role="group" aria-label="소식 대상">{[false,true].map(value=><Button key={String(value)} aria-pressed={held===value} onClick={()=>{const next=new URLSearchParams(params);next.delete("snapshot");if(value)next.set("held","true");else next.delete("held");setParams(next,{replace:true});}} sx={{minWidth:0,px:"8px",height:25,fontSize:11,color:held===value?"#60A5FA":"#94A3B8"}}>{value?"보유":"전체"}</Button>)}</Box></Box></Box>
+  {read.failed&&<QueryErrorNotice message="읽음 상태 저장에 실패했습니다. NEW 표시는 유지됩니다." onRetry={()=>void read.retry()}/>}
   {(query.isError||accounts.isError)&&<QueryErrorNotice message="종목소식 조회 실패 · 기존 목록 유지" onRetry={()=>{void query.refetch();void accounts.refetch();}}/>}
   {query.isPending&&<Typography role="status" sx={{fontSize:12,color:'#94A3B8'}}>저장된 소식을 조회하고 있습니다.</Typography>}
   {first&&rows.length===0&&<Typography role="status" sx={{fontSize:12,color:'#94A3B8',py:'16px',textAlign:'center'}}>{type==='SCRAP'?'스크랩한 소식이 없습니다.':!collection?.initialCompleted?collection?.status==='RUNNING'?'최초 소식 수집 중입니다.':'최초 수집 전입니다.':collection.status==='PARTIAL'?'확인된 소식이 없습니다.':'선별된 소식이 없습니다.'}</Typography>}
   <Box sx={{display:'flex',flexDirection:'column',gap:'6px'}}>{rows.map((item,index)=>{
    const day=collectionDay(item.collectedAt),showDay=index===0||collectionDay(rows[index-1]!.collectedAt)!==day;
-   return <Fragment key={item.id}>{!held&&type!=='SCRAP'&&showDay&&<Box data-testid="news-date-header" sx={{display:'flex',justifyContent:'space-between',alignItems:'center',px:'8px',py:'6px',mt:index?'8px':0,bgcolor:'#1E293B',borderRadius:'4px',fontSize:11,color:'#CBD5E1'}}><Box component="span">{day.replaceAll('-','. ')}{day===collectionDay(new Date().toISOString())?' · 오늘':''}</Box><Box component="span">수집 {first?.meta.dailyCounts?.[day]??rows.filter(r=>collectionDay(r.collectedAt)===day).length}건</Box></Box>}<NewsCard item={item} open={()=>open(`/detail/stock-news/${item.id}?${new URLSearchParams({type,snapshot:first!.meta.snapshot,...(held?{held:"true"}:{})})}`,{state:{newsListKey:entry,newsAccountId:accountId,listEntryKey:location.key}})}/></Fragment>;
+   return <Fragment key={item.id}>{!held&&type!=='SCRAP'&&showDay&&<Box data-testid="news-date-header" sx={{display:'flex',justifyContent:'space-between',alignItems:'center',px:'8px',py:'6px',mt:index?'8px':0,bgcolor:'#1E293B',borderRadius:'4px',fontSize:11,color:'#CBD5E1'}}><Box component="span">{day.replaceAll('-','. ')}{day===collectionDay(new Date().toISOString())?' · 오늘':''}</Box><Box component="span">수집 {first?.meta.dailyCounts?.[day]??rows.filter(r=>collectionDay(r.collectedAt)===day).length}건</Box></Box>}<NewsCard item={item} read={()=>{if(!item.isRead)void read.save(item.id,{type,snapshot:first!.meta.snapshot,...(held?{held:"true"}:{})});}} open={()=>open(`/detail/stock-news/${item.id}?${new URLSearchParams({type,snapshot:first!.meta.snapshot,...(held?{held:"true"}:{})})}`,{state:{newsListKey:entry,newsAccountId:accountId,listEntryKey:location.key}})}/></Fragment>;
   })}</Box>
   {query.hasNextPage&&<Button data-testid="news-more" fullWidth disabled={query.isFetchingNextPage} onClick={()=>void query.fetchNextPage()} sx={{minHeight:32,borderRadius:'6px',bgcolor:'#243045',color:'#F5F7FF',fontSize:11,fontWeight:600}}>더보기</Button>}
  </Box>;
@@ -55,6 +68,9 @@ export function StockNewsDetailPage(){
  const entry=String(location.state?.newsListKey??'direct'),sameAccount=!location.state?.newsAccountId||location.state.newsAccountId===accountId;
  const listing=useNewsList(accountId,type,entry,sameAccount,snapshot,held),query=useQuery({queryKey:['stockNewsDetail',accountId,newsId,type,snapshot,held],queryFn:({signal})=>getNewsDetail(accountId!,newsId!,type,snapshot,signal,held),enabled:!!accountId&&!!newsId&&sameAccount,staleTime:60_000,refetchOnWindowFocus:false});
  const report=query.data?.meta.accountId===accountId?query.data:undefined,item=report?.data,[busy,setBusy]=useState(false),lock=useRef(false),touch=useRef<{x:number;y:number;t:number}|null>(null);
+ const read=useNewsRead(accountId),readAttempt=useRef<string|undefined>(undefined);
+ const readScope={type,snapshot,...(held?{held:"true"}:{})};
+ useEffect(()=>{const key=accountId+":"+item?.id;if(item&&sameAccount&&!item.isRead&&readAttempt.current!==key){readAttempt.current=key;void read.save(item.id,{type,snapshot,...(held?{held:"true"}:{})});}},[accountId,item?.id,item?.isRead,sameAccount,type,snapshot,held,read.save]);
  const bodyRef=useRef<HTMLDivElement>(null);
  const lastSwipe=useRef(Number.NEGATIVE_INFINITY);
  const scope=useRef(accountId);scope.current=accountId;
@@ -75,6 +91,7 @@ export function StockNewsDetailPage(){
    <Box ref={bodyRef} data-no-pull-refresh data-testid="news-summary-body" sx={{flex:1,minHeight:0,overflowY:'auto',overscrollBehavior:'contain',scrollbarWidth:'thin',display:'flex',flexDirection:'column',gap:'8px'}}>
     {!sameAccount&&<Typography role="status" sx={{fontSize:12}}>계좌가 변경되었습니다. 현재 계좌 목록에서 다시 선택해 주세요.<Button onClick={()=>navigate('/detail/stock-news',{replace:true})}>목록으로</Button></Typography>}
     {(query.isError||accounts.isError)&&<QueryErrorNotice message="소식 요약 조회 실패" onRetry={()=>void query.refetch()}/>}
+    {read.failed&&<QueryErrorNotice message="읽음 상태 저장에 실패했습니다. 다시 확인해 주세요." onRetry={()=>{if(item)void read.save(item.id,readScope);}}/>}
     {navigationError&&<QueryErrorNotice message="다음 소식 조회 실패 · 현재 소식 유지" onRetry={()=>{setNavigationError(false);void move(1);}}/>}
     {query.isPending&&sameAccount&&<Typography role="status" sx={{fontSize:12,color:'#94A3B8'}}>저장된 요약을 조회하고 있습니다.</Typography>}
     {item&&sameAccount&&<>
