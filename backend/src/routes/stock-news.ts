@@ -55,12 +55,13 @@ export async function loadStockNews(accountId:bigint,q:Query={}){
  return prisma.$transaction(async tx=>{
   const ctx=await context(tx,accountId,q);let after:Prisma.StockNewsItemWhereInput={};
   if(q.cursor){if(!q.snapshot)throw bad();const cursorId=id(q.cursor,'cursor'),last=await tx.stockNewsItem.findFirst({where:{AND:[q.type==="SCRAP"?ctx.baseWhere:ctx.where,{id:cursorId}]},select:{id:true,collectedAt:true,priority:true,publishedAt:true}});if(!last)throw bad();after=boundary(last,'after');}
-  const [rows,total,collection]=await Promise.all([tx.stockNewsItem.findMany({where:{AND:[ctx.where,after]},orderBy:[...order],take:11,include:personalInclude()}),tx.stockNewsItem.count({where:ctx.where}),newsCollectionState(tx)]);
+  const uid=authContext.getStore()?.userId;
+  const [rows,total,collection,unreadCount]=await Promise.all([tx.stockNewsItem.findMany({where:{AND:[ctx.where,after]},orderBy:[...order],take:11,include:personalInclude()}),tx.stockNewsItem.count({where:ctx.where}),newsCollectionState(tx),uid?tx.stockNewsItem.count({where:{AND:[ctx.where,{reads:{none:{userId:uid}}}]}}):Promise.resolve(null)]);
   const page=rows.slice(0,10),held=await heldForRows(tx,accountId,page);
   // Account scope and snapshot ceiling match the list, including rows beyond the current page.
   const daily=await tx.stockNewsItem.groupBy({by:['collectedAt'],where:ctx.where,_count:{_all:true}});
   const dailyCounts:Record<string,number>={};for(const d of daily){const day=seoulDay(d.collectedAt);dailyCounts[day]=(dailyCounts[day]??0)+d._count._all;}
-  return {data:page.map(r=>serialize(r,q.type==='SCRAP'?r.securities.map(s=>s.securityId):ctx.ids,held)),meta:{accountId:String(accountId),type:q.type??'ALL',total,count:page.length,snapshot:ctx.snapshot,nextCursor:rows.length>10?String(page.at(-1)!.id):null,dailyCounts,collection}};
+  return {data:page.map(r=>serialize(r,q.type==='SCRAP'?r.securities.map(s=>s.securityId):ctx.ids,held)),meta:{accountId:String(accountId),type:q.type??'ALL',total,unreadCount,count:page.length,snapshot:ctx.snapshot,nextCursor:rows.length>10?String(page.at(-1)!.id):null,dailyCounts,collection}};
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
 }
 export async function loadStockNewsDetail(accountId:bigint,newsId:bigint,q:Query={}){
