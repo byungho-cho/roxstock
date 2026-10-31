@@ -8,7 +8,7 @@ for(const screen of ['value','financials'] as const){
   await page.goto(`/detail/${screen}?centerYear=2025`);
   const toast=page.locator('.MuiSnackbar-root [role="alert"]');
   await expect(toast).toBeVisible({timeout:20000});
-  expect(await toast.evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth&&b.top>=44;})).toBe(true);
+  expect(await toast.evaluate(el=>{const b=el.getBoundingClientRect(),nav=document.querySelector('[aria-label="하단 메뉴"]')?.getBoundingClientRect();return b.left>=16&&Math.abs(b.left-(innerWidth-b.right))<1&&b.top>=44&&b.bottom<=(nav?.top??innerHeight)-10;})).toBe(true);
   await toast.getByRole('button',{name:'오류 알림 닫기'}).click();await expect(toast).toHaveCount(0);
   await page.waitForTimeout(300);await expect(toast).toHaveCount(0);
   fail=false;const before=calls;await page.getByRole('button',{name:'다시 시도',exact:true}).first().click();

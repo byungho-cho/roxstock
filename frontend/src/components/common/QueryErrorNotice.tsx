@@ -1,6 +1,7 @@
 import {useEffect,useRef,useSyncExternalStore} from 'react';
 import {Alert,Button,Snackbar} from '@mui/material';
 import {useLocation} from 'react-router-dom';
+import {colors} from '../../styles/tokens';
 
 type Source={owner:symbol;retry?:()=>void};
 type Entry={id:number;scope:string;message:string;severity:'error'|'success';retry?:()=>void;sources:Source[]};
@@ -33,8 +34,8 @@ export function QueryErrorNotice({message,onRetry,active=true,inlineRetry=true,p
 export function ErrorToastHost(){
  const location=useLocation(),scope=location.pathname+location.search,queue=useSyncExternalStore(subscribe,()=>entries),current=queue.find(entry=>entry.scope===scope);
  useEffect(()=>{const filtered=entries.filter(entry=>entry.scope===scope);if(filtered.length!==entries.length){entries=filtered;notify();}},[scope]);
- return <Snackbar key={current?.id??'empty'} open={!!current} autoHideDuration={6000} anchorOrigin={{vertical:'top',horizontal:'center'}} onClose={(_event,reason)=>{if(current&&reason!=='clickaway')dismiss(current.id);}} sx={{zIndex:2000,top:'52px !important',width:'calc(100% - 32px)',maxWidth:600}}>
-  <Alert severity={current?.severity??'error'} variant="filled" onClose={()=>current&&dismiss(current.id)} action={current?.retry?<><Button color="inherit" size="small" onClick={()=>{const retry=current.retry;dismiss(current.id);retry?.();}}>재시도</Button><Button color="inherit" size="small" aria-label="오류 알림 닫기" onClick={()=>dismiss(current.id)}>닫기</Button></>:undefined} sx={{width:'100%',alignItems:'center',fontSize:12,overflowWrap:'anywhere'}}>{current?.message}</Alert>
+ return <Snackbar key={current?.id??'empty'} open={!!current} autoHideDuration={6000} anchorOrigin={{vertical:'bottom',horizontal:'center'}} onClose={(_event,reason)=>{if(current&&reason!=='clickaway')dismiss(current.id);}} sx={{zIndex:2000,top:'auto !important',bottom:'calc(56px + env(safe-area-inset-bottom, 0px)) !important',left:'50% !important',right:'auto !important',transform:'translateX(-50%)',m:0,width:'calc(100% - 32px)',maxWidth:600}}>
+  <Alert severity={current?.severity??'error'} variant="filled" onClose={()=>current&&dismiss(current.id)} action={current?.retry?<><Button color="inherit" size="small" onClick={()=>{const retry=current.retry;dismiss(current.id);retry?.();}}>재시도</Button><Button color="inherit" size="small" aria-label="오류 알림 닫기" onClick={()=>dismiss(current.id)}>닫기</Button></>:undefined} sx={{width:'100%',minWidth:0,boxSizing:'border-box',alignItems:'center',fontSize:12,overflowWrap:'anywhere',...(current?.severity==='success'?{bgcolor:colors.buttonPrimary,color:colors.textPrimary,'& .MuiAlert-icon':{color:'inherit'}}:{})}}>{current?.message}</Alert>
  </Snackbar>;
 }
 

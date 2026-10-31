@@ -37,7 +37,7 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dr
   return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}
     aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${reference}${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
     onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-    sx={{position:'relative',minWidth:0,height:quoteCardHeight,boxSizing:'border-box',px:'12px',py:'10px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
+    sx={{position:'relative',display:'flex',flexDirection:'column',minWidth:0,height:quoteCardHeight,boxSizing:'border-box',px:'12px',py:'10px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
     <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',height:20,gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px'}}><Typography component="button" type="button" tabIndex={ghost?-1:0} aria-label={`${stock.name} ${stock.held||stock.traded?'종목 요약':'가치분석 상세'} 보기`} onClick={onOpen} noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600,p:0,m:0,border:0,bgcolor:'transparent',color:'inherit',textAlign:'left',cursor:'pointer',lineHeight:'inherit','&:focus-visible':{outline:`2px solid ${colors.focus}`,outlineOffset:2}}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><img src="/live-quotes/bell.svg" alt="알림 기능 준비 중" width={16} height={16}/></Box>
     <Box sx={{display:'flex',alignItems:'center',gap:'4px',height:28,color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>
       <Box sx={{flex:'1 1 auto',minWidth:0}}><Box data-testid={ghost?undefined:'live-price-area'} data-flash={visibleFlash??''} sx={{display:'inline-flex',maxWidth:'100%',minWidth:0,position:'relative',borderRadius:'4px','&:after':{content:'""',pointerEvents:'none',position:'absolute',inset:'-1px',borderRadius:'4px',border:`1px solid ${color(q?.change??0)}`,opacity:visibleFlash?1:0,transition:visibleFlash||flashMarket.current!==market?'none':'opacity 220ms ease'}}}>
@@ -45,7 +45,9 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dr
       </Box></Box>
       <Box data-testid={ghost?undefined:'live-rate'} sx={{flex:'0 0 auto',fontSize:11,textAlign:'right',whiteSpace:'nowrap'}}>{q?`${q.change>0?'▲':q.change<0?'▼':'—'} ${Math.abs(q.rate).toFixed(2)}%`:'—'}</Box>
     </Box>
-    <Box sx={{height:18,fontSize:12,lineHeight:'18px',textAlign:'right',color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>{q?number(Math.abs(q.change)):'—'}</Box>
-    <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{fontSize:8,lineHeight:'10px',color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{asOf||'—'}</Box>
+    <Box sx={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'4px',flex:1,minHeight:18,fontVariantNumeric:'tabular-nums'}}>
+      <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{minWidth:0,fontSize:8,lineHeight:'10px',color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{asOf||'—'}</Box>
+      <Box sx={{flexShrink:0,fontSize:12,lineHeight:'18px',textAlign:'right',color:color(q?.change??0)}}>{q?number(Math.abs(q.change)):'—'}</Box>
+    </Box>
   </Box>;
 });
