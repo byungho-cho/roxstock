@@ -161,9 +161,11 @@ export function LiveQuotesPage() {
     const updateTarget=(x:number,y:number)=>{
       const g=gesture.current;if(!g?.armed)return;
       // Hit-test logical grid cells, not neighbours currently moving under a FLIP transform.
-      const grid=document.querySelector('[data-testid=live-grid]')?.getBoundingClientRect();
+      const gridElement=document.querySelector('[data-testid=live-grid]');
+      const grid=gridElement?.getBoundingClientRect();
+      const cardHeight=gridElement?.firstElementChild?.getBoundingClientRect().height??quoteCardHeight;
       if(!grid||x<grid.left||x>=grid.right||y<grid.top||y>=grid.bottom)return;
-      const index=Math.floor((y-grid.top)/quoteCardHeight)*2+Math.floor((x-grid.left)/(grid.width/2));
+      const index=Math.floor((y-grid.top)/cardHeight)*2+Math.floor((x-grid.left)/(grid.width/2));
       const target=visibleIds.current[Math.min(visibleIds.current.length-1,index)];
       if(!target||target===g.id)return;
       if(!base){setBase({ids:list!.ids,version:list!.version});localOrder.current={accountId,ids:list!.ids,version:list!.version};}
@@ -184,7 +186,7 @@ export function LiveQuotesPage() {
         return {...row,quote:saved,retained:true,referenceMarket:'KRX' as const};
       return row;
     };
-    return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title={<span style={{ fontSize: 16 }}>실시간 주가</span>} embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': {bgcolor: 'primary.dark'} }}><Box component="span" aria-hidden="true" sx={{width:16,height:16,bgcolor:'currentColor',mask:'url(/live-quotes/save.svg) center/contain no-repeat',WebkitMask:'url(/live-quotes/save.svg) center/contain no-repeat'}}/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
+    return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title="실시간 주가" variant="home" embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': {bgcolor: 'primary.dark'} }}><Box component="span" aria-hidden="true" sx={{width:16,height:16,bgcolor:'currentColor',mask:'url(/live-quotes/save.svg) center/contain no-repeat',WebkitMask:'url(/live-quotes/save.svg) center/contain no-repeat'}}/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
   <Box data-testid="live-toolbar" sx={{display:'flex',gap:'8px',position:'sticky',top:0,zIndex:2,bgcolor:colors.surface,height:40,px:'12px',alignItems:'center',borderBottom:`1px solid ${colors.border}`}}>
     <MarketSwitch value={market} disabled={!!dragId} onChange={setMarket}/>
     <Box aria-hidden="true" sx={{height:14,borderLeft:`1px solid ${colors.borderStrong}`}}/>
