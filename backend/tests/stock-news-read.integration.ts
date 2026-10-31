@@ -5,7 +5,9 @@ import {authContext} from '../src/auth/context.js';
 import {loadStockNews,loadStockNewsDetail,markStockNewsRead,markAllStockNewsRead} from '../src/routes/stock-news.js';
 
 test('personal news reads: durable, idempotent, account-safe, bounded bulk and unchanged source',async()=>{
- assert.equal(new URL(process.env.DATABASE_URL!).pathname,'/roxstock_news_read_test');
+ const target=new URL(process.env.DATABASE_URL!);
+ assert.ok(['127.0.0.1','localhost'].includes(target.hostname));
+ assert.ok(target.pathname==='/roxstock_news_read_test'||target.pathname==='/roxstock'&&process.env.NEWS_READ_INTEGRATION==='isolated');
  const stamp=new Date('2026-10-31T06:00:00Z'),suffix=Date.now().toString();
  const users=await Promise.all(['a','b'].map(s=>prisma.authUser.create({data:{email:`news-read-${suffix}-${s}@example.invalid`}})));
  const accounts=await Promise.all(users.map(u=>prisma.account.create({data:{userId:u.id,name:'NEWS READ TEST',brokerName:'CI',cashBalance:'0'}})));

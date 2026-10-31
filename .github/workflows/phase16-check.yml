@@ -48,9 +48,13 @@ jobs:
         working-directory: frontend
       - run: npx playwright test -c playwright.phase16.config.ts
         working-directory: frontend
+      - run: npx playwright test -c playwright.news-read.config.ts
+        working-directory: frontend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: phase16-screenshots
-          path: frontend/test-results/phase16/
+          path: |
+            frontend/test-results/phase16/
+            frontend/test-results/news-read/
           retention-days: 14

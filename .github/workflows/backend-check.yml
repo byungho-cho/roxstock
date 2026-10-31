@@ -105,6 +105,11 @@ jobs:
       - name: User scraps, profit details and reporting cutover (real MariaDB)
         run: node --import tsx --test backend/tests/news-profit-details.integration.ts
 
+      - name: Personal news reads and bounded bulk confirmation (real MariaDB)
+        env:
+          NEWS_READ_INTEGRATION: isolated
+        run: node --import tsx --test backend/tests/stock-news-read.integration.ts
+
       - name: Phase32 remaining recent buy Lots (real MariaDB API)
         run: node --import tsx --test backend/tests/home-phase32.integration.ts
 
