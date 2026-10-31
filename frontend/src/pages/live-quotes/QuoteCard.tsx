@@ -9,7 +9,7 @@ const color=(n:number)=>n>0?colors.marketRise:n<0?colors.marketFall:colors.marke
 export const quoteCardHeight=96;
 type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
 export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
-  const q=row.quote,previous=useRef<{market:string;price:number}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+  const q=row.quote,previous=useRef<{market:string;price:number;live:boolean}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const [flash,setFlash]=useState<'up'|'down'|'flat'|null>(null),flashMarket=useRef<QuoteMarket|null>(null);
   const marketClosed=closed||row.status==='MARKET_CLOSED';
   const dayDirection=(q?.change??0)>0?'up':(q?.change??0)<0?'down':'flat';
@@ -18,10 +18,10 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dr
   useEffect(()=>{
     if(!q)return;
     const old=previous.current;
-    if(!ghost&&row.status==='LIVE'&&!row.retained&&old&&old.market===q.market&&old.price!==q.price){
+    if(!ghost&&row.status==='LIVE'&&!row.retained&&old?.live&&old.market===q.market&&old.price!==q.price){
       flashMarket.current=market;setFlash(q.change>0?'up':q.change<0?'down':'flat');clearTimeout(timer.current);timer.current=setTimeout(()=>setFlash(null),1000);
     }
-    previous.current={market:q.market,price:q.price};
+    previous.current={market:q.market,price:q.price,live:row.status==='LIVE'&&!row.retained};
   },[q?.price,q?.market,row.status,row.retained,ghost]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   const stamp=q?(marketClosed?q.receivedAt:Date.parse(q.observedAt)):NaN;
@@ -32,9 +32,10 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dr
   const lag=q?Math.max(0,q.receivedAt-Date.parse(q.observedAt)):0;
   const delayed=lag>=3000||row.status==='QUOTE_DELAYED';
   const timeColor=!marketClosed&&!row.retained&&row.status==='LIVE'&&!delayed?colors.focus:colors.textMuted;
-  const caption=marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':'');
+  const reference=row.referenceMarket?`${row.referenceMarket} 저장 시세 · ${market==='TOTAL'?'통합 수신 전 참고':'마지막 시세'} · `:'';
+  const caption=reference+(marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':''));
   return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}
-    aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
+    aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${reference}${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
     onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
     sx={{position:'relative',minWidth:0,height:quoteCardHeight,boxSizing:'border-box',px:'12px',py:'10px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
     <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',height:20,gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px'}}><Typography component="button" type="button" tabIndex={ghost?-1:0} aria-label={`${stock.name} ${stock.held||stock.traded?'종목 요약':'가치분석 상세'} 보기`} onClick={onOpen} noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600,p:0,m:0,border:0,bgcolor:'transparent',color:'inherit',textAlign:'left',cursor:'pointer',lineHeight:'inherit','&:focus-visible':{outline:`2px solid ${colors.focus}`,outlineOffset:2}}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><img src="/live-quotes/bell.svg" alt="알림 기능 준비 중" width={16} height={16}/></Box>

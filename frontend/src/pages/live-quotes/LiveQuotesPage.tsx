@@ -176,7 +176,14 @@ export function LiveQuotesPage() {
       const v=visualRef.current;if(v){const next={...v,x:e.clientX-v.offsetX,y:e.clientY-v.offsetY};visualRef.current=next;setDragVisual(next);}
       updateTarget(e.clientX,e.clientY);
     };
-    const rowFor=(stock:DisplayStock)=>packet.quotes.find(r=>r.symbol===stock.symbol)??{symbol:stock.symbol,status:packet.connection,quote:null};
+    const rowFor=(stock:DisplayStock)=>{
+      const row=packet.quotes.find(r=>r.symbol===stock.symbol)??{symbol:stock.symbol,status:packet.connection,quote:null};
+      const saved=allRows.find(s=>s.id===stock.id)?.initial;
+      // A reference is display-only: never relabel/cache it as TOTAL or NXT, or hide stream errors.
+      if(!row.quote&&market!=='NXT'&&saved?.market==='KRX'&&saved.symbol===stock.symbol&&saved.source==='CACHE'&&Number.isFinite(saved.price)&&saved.price>0&&Number.isFinite(Date.parse(saved.observedAt)))
+        return {...row,quote:saved,retained:true,referenceMarket:'KRX' as const};
+      return row;
+    };
     return <Box data-live-root sx={{ pb: '80px', bgcolor: colors.surface, minHeight: '100%' }}><PageHeader title={<span style={{ fontSize: 16 }}>실시간 주가</span>} embedded showAdd={false} centerMobile center={dirty ? <Box sx={{ display: 'flex', gap: '8px' }}><IconButton disabled={saving} aria-label="순서 변경 취소" onClick={discard} sx={{ p: 0, width: 32, height: 32, bgcolor: colors.raised }}><img src="/live-quotes/cancel.svg" alt=""/></IconButton><IconButton disabled={saving} aria-label="순서 저장" onClick={() => void save()} sx={{ p: 0, width: 32, height: 32, bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': {bgcolor: 'primary.dark'} }}><Box component="span" aria-hidden="true" sx={{width:16,height:16,bgcolor:'currentColor',mask:'url(/live-quotes/save.svg) center/contain no-repeat',WebkitMask:'url(/live-quotes/save.svg) center/contain no-repeat'}}/></IconButton></Box> : undefined} action={<HeaderAddButton label="표시 종목 추가" onClick={() => navigate('/live-quotes/add', { state: { from: location.pathname } })} mobileVisible/>}/>
   <Box data-testid="live-toolbar" sx={{display:'flex',gap:'8px',position:'sticky',top:0,zIndex:2,bgcolor:colors.surface,height:40,px:'12px',alignItems:'center',borderBottom:`1px solid ${colors.border}`}}>
     <MarketSwitch value={market} disabled={!!dragId} onChange={setMarket}/>
