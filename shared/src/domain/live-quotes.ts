@@ -10,6 +10,7 @@ export type LiveQuote = {
     receivedAt: number;
     source: 'KIS' | 'CACHE';
     halted?: boolean;
+    sequence?: string;
 };
 export type DisplayStock = {
     id: string;
@@ -65,7 +66,7 @@ export function parseKisTrades(text: string): LiveQuote[] {
         const observedAt = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4)}+09:00`).toISOString();
         if (new Date(observedAt).getTime() > Date.now() + 60000)
             throw Error('FUTURE_TRADE');
-        return { symbol, market, price, change: Math.abs(change) * sign, rate: Math.abs(rate) * sign, observedAt, receivedAt: Date.now(), source: 'KIS' };
+        return { symbol, market, price, change: Math.abs(change) * sign, rate: Math.abs(rate) * sign, observedAt, receivedAt: Date.now(), source: 'KIS', ...(/^\d{1,32}$/.test(a[13]!)?{sequence:a[13]}:{}) };
     });
 }
 

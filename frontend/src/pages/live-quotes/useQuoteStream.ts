@@ -28,6 +28,7 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
       if(!alive||!navigator.onLine){offline();return;}
       if(stream)return;
       const current=new EventSource(`/api/live-quotes/stream?market=${market}`,{withCredentials:true});stream=current;
+      current.addEventListener('price-alerts',()=>{if(alive&&stream===current)window.dispatchEvent(new Event('rox-live-price-alerts'));});
       current.addEventListener('quotes',event=>{
         if(!alive||stream!==current||!navigator.onLine)return;
         try{

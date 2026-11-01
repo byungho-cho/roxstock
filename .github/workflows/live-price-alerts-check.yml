@@ -1,0 +1,53 @@
+name: Live price alerts check
+on:
+  pull_request:
+    paths:
+      - 'backend/src/realtime/**'
+      - 'backend/src/routes/live-price-alerts*'
+      - 'backend/src/routes/live-quotes*'
+      - 'backend/tests/live-price-alerts.integration.ts'
+      - 'shared/src/domain/live-price-alerts*'
+      - 'shared/src/domain/live-quotes*'
+      - 'database/prisma/**'
+      - 'frontend/src/pages/live-quotes/**'
+      - 'frontend/src/components/forms/Fields.tsx'
+      - 'frontend/src/pages/stocks/LiveStockDetailPage.tsx'
+      - 'frontend/tests/targets/live-price-alerts.spec.ts'
+      - 'frontend/playwright.price-alerts.config.ts'
+      - '.github/workflows/live-price-alerts-check.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: fixture
+          MARIADB_DATABASE: roxstock_live_alert_test
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: mysql://root:fixture@127.0.0.1:3306/roxstock_live_alert_test
+      KIS_LIVE_ENABLED: 'false'
+      KIS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run prisma:migrate:deploy
+      - run: node --import tsx --test shared/src/domain/live-price-alerts.test.ts backend/tests/live-price-alerts.integration.ts backend/src/domain/backup-scope.test.ts
+      - run: npx --workspace frontend playwright install --with-deps chromium
+      - run: npx --workspace frontend playwright test -c playwright.price-alerts.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-price-alerts-cover-tablet
+          path: frontend/test-results/price-alerts
+          retention-days: 7

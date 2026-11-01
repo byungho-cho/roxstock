@@ -1,5 +1,5 @@
 import {memo,useEffect,useRef,useState} from 'react';
-import {Box,Typography} from '@mui/material';
+import {Box,IconButton,Typography} from '@mui/material';
 import type {DisplayStock,QuoteMarket} from '../../../../shared/src/domain/live-quotes';
 import type {QuoteRow} from './useQuoteStream';
 import {colors} from '../../styles/tokens';
@@ -8,8 +8,8 @@ const number=(n:number|undefined)=>n===undefined?'—':n.toLocaleString('ko-KR')
 const color=(n:number)=>n>0?colors.marketRise:n<0?colors.marketFall:colors.marketFlat;
 export const quoteCardHeight=72;
 const tightText={lineHeight:1,textBoxTrim:'trim-both',textBoxEdge:'cap alphabetic'} as const;
-type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
-export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dragged=false,ghost=false,onOpen,onDown,onMove,onUp,onCancel}:Props){
+type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onAlert?:()=>void;onAcknowledge?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
+export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dragged=false,ghost=false,onOpen,onAlert,onAcknowledge,onDown,onMove,onUp,onCancel}:Props){
   const q=row.quote,previous=useRef<{market:string;price:number;live:boolean}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const [flash,setFlash]=useState<'up'|'down'|'flat'|null>(null),flashMarket=useRef<QuoteMarket|null>(null);
   const marketClosed=closed||row.status==='MARKET_CLOSED';
@@ -37,9 +37,9 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,dr
   const caption=reference+(marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':''));
   return <Box data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}
     aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${reference}${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
-    onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
+    onClick={ghost?undefined:onAcknowledge} onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
     sx={{position:'relative',display:'flex',flexDirection:'column',gap:'8px',minWidth:0,boxSizing:'border-box',px:'12px',py:'8px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
-    <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',position:'relative',gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px',pr:'20px'}}><Typography component="button" type="button" tabIndex={ghost?-1:0} aria-label={`${stock.name} ${stock.held||stock.traded?'종목 요약':'가치분석 상세'} 보기`} onClick={onOpen} noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600,p:0,m:0,border:0,bgcolor:'transparent',color:'inherit',textAlign:'left',cursor:'pointer',lineHeight:1,'&:focus-visible':{outline:`2px solid ${colors.focus}`,outlineOffset:2}}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><img src="/live-quotes/bell.svg" alt="알림 기능 준비 중" width={16} height={16} style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)"}}/></Box>
+    <Box sx={{display:'flex',alignItems:'center',justifyContent:'space-between',position:'relative',gap:'4px'}}><Box sx={{display:'flex',alignItems:'center',minWidth:0,gap:'5px',pr:'20px'}}><Typography component="button" type="button" tabIndex={ghost?-1:0} aria-label={`${stock.name} ${stock.held||stock.traded?'종목 요약':'가치분석 상세'} 보기`} onClick={e=>{e.stopPropagation();onOpen?.();}} noWrap title={`${stock.name}(${stock.symbol})`} sx={{fontSize:14,fontWeight:600,p:0,m:0,border:0,bgcolor:'transparent',color:'inherit',textAlign:'left',cursor:'pointer',lineHeight:1,'&:focus-visible':{outline:`2px solid ${colors.focus}`,outlineOffset:2}}}>{stock.name}</Typography>{stock.held&&<img src="/live-quotes/holding.svg" alt="보유" width={12} height={12}/>}</Box><IconButton data-price-alert-control aria-label={`${stock.name} 금액 알림 설정`} tabIndex={ghost?-1:0} onClick={e=>{e.stopPropagation();onAlert?.();}} sx={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",width:20,height:20,p:0}}><img src="/live-quotes/bell.svg" alt="" width={16} height={16}/></IconButton></Box>
     <Box sx={{display:'flex',alignItems:'center',gap:'4px',color:color(q?.change??0),fontVariantNumeric:'tabular-nums'}}>
       <Box sx={{flex:'1 1 auto',minWidth:0,display:'flex'}}><Box data-testid={ghost?undefined:'live-price-area'} data-flash={visibleFlash??''} sx={{display:'inline-flex',maxWidth:'100%',minWidth:0,position:'relative',borderRadius:'4px','&:after':{content:'""',pointerEvents:'none',position:'absolute',inset:'-1px',borderRadius:'4px',border:`1px solid ${color(q?.change??0)}`,opacity:visibleFlash?1:0,transition:visibleFlash||flashMarket.current!==market?'none':'opacity 220ms ease'}}}>
         <Typography data-testid={ghost?undefined:'live-price'} title={number(q?.price)} sx={{fontSize:17.6,fontWeight:500,...tightText,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',overflow:'clip',overflowClipMargin:'4px',textOverflow:'ellipsis'}}>{number(q?.price)}</Typography>

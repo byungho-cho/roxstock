@@ -1069,6 +1069,8 @@ model StockNewsCandidate {
 }
 
 model AuthUser {
+  livePriceAlerts LivePriceAlert[]
+  livePriceEvents LivePriceAlertEvent[]
   newsReads StockNewsRead[]
   newsScraps StockNewsScrap[]
   id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
@@ -1091,6 +1093,52 @@ model AuthUser {
   tokens AuthEmailToken[]
   @@index([createdAt, id])
   @@map("auth_users")
+}
+
+model LivePriceAlert {
+ identityKey String? @unique @map("identity_key") @db.VarChar(160)
+ id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+ userId BigInt @map("user_id") @db.UnsignedBigInt
+ securityId BigInt @map("security_id") @db.UnsignedBigInt
+ market String @db.VarChar(8)
+ direction String @db.VarChar(8)
+ amount Decimal @db.Decimal(20,0)
+ enabled Boolean @default(true)
+ pausedUntil DateTime? @map("paused_until") @db.DateTime(3)
+ eligibleAfter DateTime @map("eligible_after") @db.DateTime(3)
+ inside Boolean?
+ lastObservedAt DateTime? @map("last_observed_at") @db.DateTime(3)
+ lastSequence String? @map("last_sequence") @db.VarChar(32)
+ version Int @default(1)
+ deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+ updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+ user AuthUser @relation(fields:[userId],references:[id],onDelete:Cascade)
+ events LivePriceAlertEvent[]
+ @@index([userId,deletedAt,id])
+ @@index([enabled,deletedAt,market,securityId])
+ @@map("live_price_alerts")
+}
+
+model LivePriceAlertEvent {
+ id BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+ userId BigInt @map("user_id") @db.UnsignedBigInt
+ conditionId BigInt @map("condition_id") @db.UnsignedBigInt
+ openKey String? @unique @map("open_key") @db.VarChar(64)
+ securityId BigInt @map("security_id") @db.UnsignedBigInt
+ market String @db.VarChar(8)
+ direction String @db.VarChar(8)
+ amount Decimal @db.Decimal(20,0)
+ price Decimal @db.Decimal(20,0)
+ change Decimal @db.Decimal(20,0)
+ rate Decimal @db.Decimal(12,6)
+ observedAt DateTime @map("observed_at") @db.DateTime(3)
+ createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+ acknowledgedAt DateTime? @map("acknowledged_at") @db.DateTime(3)
+ user AuthUser @relation(fields:[userId],references:[id],onDelete:Cascade)
+ condition LivePriceAlert @relation(fields:[conditionId],references:[id],onDelete:Cascade)
+ @@index([userId,acknowledgedAt,id])
+ @@map("live_price_alert_events")
 }
 
 model StockNewsScrap {
