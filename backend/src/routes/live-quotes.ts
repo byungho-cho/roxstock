@@ -1,3 +1,6 @@
+import {prisma as globalDb} from '@roxstock/shared/lib/prisma';
+import {LivePriceAlerts} from '../realtime/live-price-alerts.js';
+import {installLivePriceAlertRoutes} from './live-price-alerts.js';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@roxstock/shared/prisma';
@@ -24,10 +27,12 @@ type Query = {
     cursor?: string;
 };
 export async function liveQuoteRoutes(app: FastifyInstance) {
-    const live = new KisLiveService(), streams = new Set<() => void>();
+    const live = new KisLiveService(), streams = new Set<() => void>(), alerts=new LivePriceAlerts(globalDb,live);
+    await installLivePriceAlertRoutes(app,live,alerts);
+    app.addHook('onListen',async()=>{try{await alerts.start();}catch{alerts.degraded=true;}});
     app.addHook('preClose', async () => { for (const end of streams)
         end(); });
-    app.addHook('onClose', () => live.close());
+    app.addHook('onClose',async()=>{await alerts.close();await live.close();});
     async function context(userId: bigint, accountId?: string) {
         if (accountId && !/^\d{1,20}$/.test(accountId))
             throw new ApiError(400, 'INVALID_ACCOUNT', '계좌를 확인해 주세요.');
@@ -101,14 +106,15 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
         reply.hijack();
         reply.raw.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'private, no-store, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' });
         reply.raw.write('retry: 3000\n\n');
-        let closed = false, last = '', checking = false;
+        let closed = false, last = '', checking = false, alertRevision=-1;
         const end = () => { if (closed)
             return; closed = true; streams.delete(end); clearInterval(ticker); clearInterval(auth); unwatch(); reply.raw.end(); };
         const send = () => { if (closed)
             return; if (reply.raw.writableLength > 256000) {
             end();
             return;
-        } const payload = JSON.stringify(live.snapshot(market, symbols)); if (payload !== last) {
+        } const revision=alerts.revision(req.auth!.userId);if(revision!==alertRevision){alertRevision=revision;reply.raw.write(`event: price-alerts\ndata: ${JSON.stringify({revision})}\n\n`);}
+        const payload = JSON.stringify(live.snapshot(market, symbols)); if (payload !== last) {
             last = payload;
             reply.raw.write(`event: quotes\ndata: ${payload}\n\n`);
         }

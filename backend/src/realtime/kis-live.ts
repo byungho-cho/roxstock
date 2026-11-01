@@ -20,6 +20,11 @@ export function marketOpen(market: QuoteMarket, now = new Date()) {
 /** One application-wide socket. Only display-list writes and a 20s ownership lease touch DB. */
 export class KisLiveService {
     private clients = new Map<string, Client>();
+    private monitors:string[]=[];
+    private listeners=new Set<(q:LiveQuote)=>void>();
+    onTrade(fn:(q:LiveQuote)=>void){this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};}
+    monitor(keys:string[]){this.monitors=keys;if(keys.length&&!this.timer){this.timer=setInterval(()=>void this.cycle(),1000);this.timer.unref();}void this.cycle();}
+    latest(market:QuoteMarket,symbol:string){return this.quotes.get(`${market}:${symbol}`); }
     private quotes = new Map<string, LiveQuote>();
     private subscribed = new Set<string>();
     private rejected = new Set<string>();
@@ -51,7 +56,7 @@ export class KisLiveService {
         this.timer = setInterval(() => void this.cycle(), 1000);
         this.timer.unref();
     } void this.cycle(); return () => { this.clients.delete(id); void this.cycle(); }; }
-    private desired() { return [...new Set([...this.clients.values()].flatMap(c => c.symbols.map(s => `${c.market}:${s}`)))]; }
+    private desired() { return [...new Set([...this.monitors.filter(key=>marketOpen(key.split(':')[0] as QuoteMarket)),...[...this.clients.values()].flatMap(c => c.symbols.map(s => `${c.market}:${s}`))])]; }
     snapshot(market: QuoteMarket, symbols: string[], now=new Date()) { const isOpen=marketOpen(market,now); const desired = this.desired(), allowed = new Set(desired.filter(key => /^\w+:\d{6}$/.test(key)).slice(0, quoteLimit)); return { connection: this.state, marketOpen:isOpen, limit: quoteLimit, active: this.subscribed.size, quotes: symbols.map(symbol => { const key = `${market}:${symbol}`, quote = this.quotes.get(key) ?? null; let status = !/^\d{6}$/.test(symbol) ? 'MARKET_UNSUPPORTED' : !allowed.has(key) ? 'LIMIT_EXCEEDED' : this.rejected.has(key) ? 'SUBSCRIPTION_REJECTED' : !isOpen ? 'MARKET_CLOSED' : quote?.halted ? 'TRADING_HALTED' : this.state !== 'CONNECTED' ? this.state : !this.subscribed.has(key) || quote?.source !== 'KIS' || quote.receivedAt < this.connectedAt ? 'WAITING_TRADE' : Date.now() - quote.receivedAt > 30000 ? 'NO_RECENT_TRADE' : Date.now() - Date.parse(quote.observedAt) > 30000 ? 'QUOTE_DELAYED' : 'LIVE'; return { symbol, status, quote }; }) }; }
     private async lease() {
         const now = new Date();
@@ -104,7 +109,7 @@ export class KisLiveService {
         if (typeof body.approval_key !== 'string')
             throw Error('KIS_AUTH');
         this.approval = body.approval_key;
-        if (this.stopped || !this.clients.size)
+        if (this.stopped || !this.desired().length)
             return false;
         const socket = new WebSocket('ws://ops.koreainvestment.com:21000');
         this.socket = socket;
@@ -142,7 +147,7 @@ export class KisLiveService {
             for (const quote of parseKisTrades(text)) {
                 const key = `${quote.market}:${quote.symbol}`, previous = this.quotes.get(key);
                 if (this.subscribed.has(key) && (!previous || quote.observedAt >= previous.observedAt))
-                    this.quotes.set(key, quote);
+                    {this.quotes.set(key, quote);for(const listener of this.listeners)listener(quote);}
             }
         }
         catch { /* Malformed/private frames never replace a valid quote. */ } });
