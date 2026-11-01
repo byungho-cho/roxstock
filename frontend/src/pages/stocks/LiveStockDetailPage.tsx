@@ -45,7 +45,7 @@ export function LiveStockDetailPage(){
  const {previous,next}=useStockNeighbors(stockId,stocks??[]);
  const move=(offset:number)=>{const target=offset<0?previous:next;if(target)navigate(`/stocks/${target.id}${location.search}`,{replace:true,state:location.state});};
  const swipe=useDetailSwipe(move,!!stock);
- if(tablet&&accountStock&&!['summary','holding'].includes(params.get('detailTab')??''))return <StockListPage initialSelectedId={stockId} initialTab={accountStock.listType}/>;
+ if(tablet&&accountStock&&params.has('detailTab')&&params.get('detailTab')!=='summary')return <StockListPage initialSelectedId={stockId} initialTab={accountStock.listType}/>;
  return <Stack spacing={1} {...swipe} data-detail-swipe sx={{touchAction:'pan-y',minHeight:`calc(100dvh - ${pageMetrics.headerHeight * 2}px)`}}><PageHeader embedded stockNavigation={stock&&(previous||next)?<StockNavigation symbol={stock.symbol} previousName={previous?.name} nextName={next?.name} onPrevious={()=>move(-1)} onNext={()=>move(1)} />:undefined}
  title={stock?.name??'종목 상세'} onBack={back} showAdd={false} action={stock&&<IconButton aria-label="즐겨찾기" onClick={()=>toggleFavorite(stock.id)} sx={{color:favoriteIds.has(stock.id)?colors.warning:colors.textMuted}}>{favoriteIds.has(stock.id)?<FavoriteRounded/>:<FavoriteBorderRounded/>}</IconButton>}/>
  {loading?<Box aria-busy="true" sx={{minHeight:64}}/>:(isError||catalog.isError)&&!stock?<QueryErrorNotice message="종목 조회 실패 · 다시 시도" onRetry={()=>{void refetch();void catalog.refetch();}}/>:stock?<StockDetailContent key={stock.id} stock={stock} initialTab={!accountStock?'summary':params.get('tab')==='trades'||stock.listType==='traded'?'trades':'holding'}/>:<Typography>내용이 없습니다.</Typography>}</Stack>;
