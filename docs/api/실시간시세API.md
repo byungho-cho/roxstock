@@ -1,12 +1,23 @@
-# RoxStock 실시간 시세 API v0.1
+# 실시간 시세 API · 현행 2026.11.01
 
-> **2026.10.30 현행 정본:** [기획·설계·개발 상태](../current-state-20261030.md). 이 파일의 날짜별 버전·수치는 당시 기록이며, 충돌 시 현행 정본과 주제별 최신 근거를 우선합니다.
+원본: `backend/src/routes/live-quotes.ts`, `backend/src/realtime/kis-live.ts`, `shared/src/domain/live-quotes.ts`. [현행 화면·저장 정책](../current-state-20261101.md).
 
-## 2026.10.30 전환 상태
+## 신규 실시간 화면 계약 · v1.2.54
 
-현재 worker는 네이버/Mock 주기 수집이며 아래 API/SSE는 기존 계약이다. 확정 목표는 한투 웹소켓 수신 + 화면 1초 반영, 통합 기본/NXT/KRX 선택이다. 한투 외부 수신과 화면 SSE는 구분한다. 60초 수집·최대 100종목·과거 세션 시간은 한투 신규 계약으로 확정한 값이 아니다. 구독 한도·최신 시장 시간·시장 식별 응답·DB 저장 주기는 구현 때 확인한다. 아직 신규 API 경로나 필드를 구현된 것처럼 추가하지 않는다.
+모든 경로는 로그인 사용자 범위다. 계좌를 지정할 때 소유권을 검증하며 쓰기는 기존 CSRF 정책을 따른다.
 
-[새 화면·전환 기획](../planning/realtime-quotes-and-tables-20261030.md).
+| 메서드·경로 | 입력·응답·동작 |
+|---|---|
+| GET `/api/live-quotes/list` | 선택 `accountId`. `data: {ids, version, stocks}`. 종목별 보유/관심/거래·평가 및 기존 KRX 초기값 포함 |
+| GET `/api/live-quotes/candidates` | `accountId`, `q`, `tab=search/holding/watch/trade`, `cursor`. 100개씩 후보와 `hasMore`, `nextCursor` 반환 |
+| PUT `/api/live-quotes/list` | `{ids: string[], version: string}`. 종목 ID 순서를 일괄 저장, 버전 불일치 409 `LIST_CONFLICT`. 사용자 설정의 다른 값 보존 |
+| GET `/api/live-quotes/stream` | `market`, `symbols`. 등록한 종목만 허용. SSE `quotes` 이벤트, 약 1000ms 반영, 변경 없으면 heartbeat, 재연결 안내 3000ms, 세션 재확인 15000ms |
+
+시장 TOTAL/NXT/KRX를 분리한다. 표시 최대 50과 KIS 공유 실제 구독 41을 구분한다. 별도 틱 테이블·주기 DB 쓰기는 없다. 서버 수신 공유와 브라우저 SSE를 구분하고 연결 종료 시 구독을 반환한다. 초기 KRX 저장값의 통합 참고 표시는 시장 출처·원래 시각을 유지하며 NXT에 대입하지 않는다.
+
+## 기존 평가·주기 수집 API 기록
+
+이하 `/api/prices` 및 내부 수집 계약은 기존 수집 경로다. 60초·100종목·세션 시간은 신규 `/live-quotes`의 구독 한도나 한투 최신 정책 설명이 아니다. 기존 세부 기록은 코드와 대조해 사용한다.
 
 ## 1. 공통 기준
 

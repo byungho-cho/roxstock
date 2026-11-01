@@ -1,6 +1,6 @@
-# 현행 구조·테이블 기준 · 2026.10.30
+# 현행 구조·테이블 기준 · 2026.11.01
 
-대조 main `daa6ac25`. 구조 원본은 코드이며 테이블 분리 신설계는 아직 미확정이다.
+대조 main `baa6046f`. 구조 원본은 코드이며 테이블 분리 신설계는 아직 미확정이다.
 
 | 디렉터리 | 책임 |
 |---|---|
@@ -14,7 +14,9 @@
 
 기존 MariaDB를 유지한다. 디렉터리·이미지 분리는 DB 물리 분리와 다르다. 스키마 변경 시 기존 데이터·수기·감사·오류 이력·사용자 소유권을 보호한다. 공용 데이터와 사용자 데이터를 구분하는 현재 백업 범위는 `backend/src/domain/backup-scope.ts`와 v1.2.46 보고서를 따른다. 사용자 백업은 별도 DB 분리 완료를 의미하지 않는다.
 
-현재 시세 worker는 `collector/src/realtime-worker.ts`에서 Naver/Mock 제공자를 사용한다. 한투 재무/과거 종가 제공자 존재가 한투 실시간 웹소켓 구현 완료를 의미하지 않는다. 외부 수집과 API→화면 SSE는 서로 다른 연결이다.
+실시간 화면은 `backend/src/realtime/kis-live.ts`의 공유 한투 웹소켓 수신과 `/api/live-quotes/stream` SSE를 사용한다. 기존 `collector/src/realtime-worker.ts` Naver/Mock 주기 수집은 평가·스냅샷용으로 유지한다. 화면 표시종목은 기존 사용자 settings.liveQuotes의 ID·순서·버전이며 새 실시간 테이블이나 틱 이력을 만들지 않는다. [현행 정본](current-state-20261101.md).
+
+v1.2.54의 소식 읽음은 `StockNewsRead` 신규 사용자 테이블이며 사용자 백업 범위에 포함한다. 마이그레이션 `20261031060000_stock_news_reads`, 사용자+소식 복합키로 중복 읽음을 방지한다. 실시간 테이블 고도화와 별개다.
 
 현재 추가 계약: `/api/accounts/:accountId/investment-profit/statistics`, `/entries`는 각각 종목 전체기간 통계·거래별 상세다. 개인 스크랩은 `/api/accounts/:accountId/stock-news/:newsId/scrap` PUT으로 저장한다. 구체 형식은 `backend/src/routes/investment-profit-details.ts`, `stock-news.ts`가 원본이다.
 
@@ -81,6 +83,7 @@
 | `StockNewsCandidate` | `stock_news_candidates` |
 | `AuthUser` | `auth_users` |
 | `StockNewsScrap` | `stock_news_scraps` |
+| `StockNewsRead` | `stock_news_reads` |
 | `CollectionBugReportingWindow` | `collection_bug_reporting_window` |
 | `AuthSession` | `auth_sessions` |
 | `AuthEmailToken` | `auth_email_tokens` |

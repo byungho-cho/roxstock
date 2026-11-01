@@ -1,6 +1,8 @@
+> 이전 목록입니다. [2026.11.01 전체 문서](document-catalog-20261101.md)를 사용하세요.
+
 # 전체 문서 목록 · 2026.10.30
 
-[현행 정본](current-state-20261030.md)을 먼저 읽습니다. 아래는 현행·과거 버전·QA·운영 보고서를 포함한 탐색 목록입니다. 문서 존재가 구현/운영 완료를 의미하지 않습니다. 이전 PDF는 해당 버전의 역사 배포본입니다.
+[현행 정본](current-state-20261101.md)을 먼저 읽습니다. 아래는 현행·과거 버전·QA·운영 보고서를 포함한 탐색 목록입니다. 문서 존재가 구현/운영 완료를 의미하지 않습니다. 이전 PDF는 해당 버전의 역사 배포본입니다.
 
 - [README.md](<README.md>)
 - [RoxStock UI·UX 디자인 가이드 v0.1.md](<RoxStock UI·UX 디자인 가이드 v0.1.md>)
@@ -22,7 +24,7 @@
 - [architecture-current-20261030.md](<architecture-current-20261030.md>)
 - [collection/krx-valuation.md](<collection/krx-valuation.md>)
 - [collector-service-split.md](<collector-service-split.md>)
-- [current-state-20261030.md](<current-state-20261030.md>)
+- [current-state-20261101.md](<current-state-20261101.md>)
 - [development/account-classification-functional-fix.md](<development/account-classification-functional-fix.md>)
 - [development/accounts-phase15.md](<development/accounts-phase15.md>)
 - [development/asset-analysis-v04.md](<development/asset-analysis-v04.md>)
