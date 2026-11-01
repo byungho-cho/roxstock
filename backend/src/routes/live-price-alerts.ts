@@ -76,10 +76,13 @@ export async function installLivePriceAlertRoutes(app:FastifyInstance,live:KisLi
   await db.$transaction(async tx=>{await own(tx,userId,conditionId,req.body?.version);await tx.livePriceAlert.update({where:{id:conditionId},data:{identityKey:null,enabled:false,deletedAt:now,version:{increment:1}}});await tx.livePriceAlertEvent.updateMany({where:{userId,conditionId,acknowledgedAt:null},data:{acknowledgedAt:now,openKey:null}});});
   await changed(userId);return {data:{id:String(conditionId)}};
  });
- app.post<{Body:{eventIds?:unknown}}>('/live-quotes/alerts/acknowledge',async(req)=>{
-  const userId=req.auth!.userId,ids=req.body?.eventIds;
-  if(!Array.isArray(ids)||ids.length>200||ids.some(v=>typeof v!=='string'||!/^\d{1,20}$/.test(v)))throw fail('확인할 알림을 확인해 주세요.');
-  const changed=await db.livePriceAlertEvent.updateMany({where:{userId,id:{in:ids.map(BigInt)},acknowledgedAt:null},data:{acknowledgedAt:new Date(),openKey:null}});
-  engine.changed(userId);return {data:{count:changed.count}};
+ app.post<{Body:{eventIds?:unknown;securityId?:unknown}}>('/live-quotes/alerts/acknowledge',async(req)=>{
+  const userId=req.auth!.userId,ids=req.body?.eventIds,stock=req.body?.securityId;
+  if((ids!==undefined)===(stock!==undefined))throw fail('확인할 알림을 확인해 주세요.');
+  let where:Prisma.LivePriceAlertEventWhereInput;
+  if(stock!==undefined)where={securityId:id(stock,'securityId')};
+  else {if(!Array.isArray(ids)||ids.length>200||ids.some(v=>typeof v!=='string'||!/^\d{1,20}$/.test(v)))throw fail('확인할 알림을 확인해 주세요.');where={id:{in:ids.map(BigInt)}};}
+  const changed=await db.livePriceAlertEvent.updateMany({where:{...where,userId,acknowledgedAt:null,openKey:{not:null}},data:{acknowledgedAt:new Date(),openKey:null}});
+  if(changed.count)engine.changed(userId);return {data:{count:changed.count}};
  });
 }

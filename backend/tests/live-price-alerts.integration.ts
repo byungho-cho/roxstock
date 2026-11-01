@@ -41,7 +41,7 @@ test('real DB/auth: private conditions, boundary ledger, restart, pause, concurr
   await send(19100);await send(19000);const first=(await events())[0]!;
   await send(18000);await send(19100);await send(19000);
   const pending=await request('GET');assert.equal(pending.unreadCount,1);assert.equal(pending.events[0].price,'19000');assert.equal(pending.events[0].observedAt,first.observedAt.toISOString());
-  await request('POST','/acknowledge',{eventIds:[String(first.id)]},1);assert.equal((await request('GET')).unreadCount,1);
+  await request('POST','/acknowledge',{eventIds:[String(first.id)]},1);await request('POST','/acknowledge',{securityId:sid},1);assert.equal((await request('GET')).unreadCount,1);
   await request('POST','/acknowledge',{eventIds:[String(first.id)]});await send(18000);assert.equal((await request('GET')).unreadCount,0);
   await engine.close();engine=new LivePriceAlerts(db,live);await engine.reload();
   await send(18000);assert.equal((await request('GET')).unreadCount,0,'restart must not reset the inside latch');
@@ -63,7 +63,7 @@ test('real DB/auth: private conditions, boundary ledger, restart, pause, concurr
   await request('PATCH','/'+conditionId,{version:condition.version,pause:'10m'},0,400);
   const variants=await Promise.all([request('POST','',{...body,amount:'18001'},0,201),request('POST','',{...body,amount:'18002'},0,201)]);assert.equal(variants.length,2);
   // Same security, different market: separate condition and frozen event provenance.
-  await request('POST','',{...body,market:'TOTAL'},0,201);await engine.reload();await send(18000,{market:'TOTAL'});data=await request('GET');assert.ok(data.events.some((e:any)=>e.market==='TOTAL'));
+  await request('POST','',{...body,market:'TOTAL'},0,201);await engine.reload();await send(18000,{market:'TOTAL'});data=await request('GET');assert.ok(data.events.some((e:any)=>e.market==='TOTAL'));await request('POST','/acknowledge',{securityId:sid});assert.equal((await request('GET')).unreadCount,0);
   condition=data.conditions.find((c:any)=>c.id===conditionId);await request('DELETE','/'+conditionId,{version:condition.version});assert.ok(!(await request('GET')).conditions.some((c:any)=>c.id===conditionId));assert.ok((await events()).some(e=>e.acknowledgedAt),'deletion retains reached history');
   await request('POST','',body,0,201);
   // Shared session budget is enforced, not the user display-list limit of 50.
