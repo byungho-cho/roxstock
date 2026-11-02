@@ -3,6 +3,7 @@ import { prisma } from '@roxstock/shared/lib/prisma';
 import { persistentKisToken } from '@roxstock/shared/lib/kis-token-cache';
 import { isMarketClosed } from '@roxstock/shared/domain/market-calendar';
 import { parseKisTrades, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
+import {physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
 const origin = 'https://openapi.koreainvestment.com:9443', jobName = 'kis-live-quotes';
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 type Client = {
@@ -56,8 +57,17 @@ export class KisLiveService {
         this.timer = setInterval(() => void this.cycle(), 1000);
         this.timer.unref();
     } void this.cycle(); return () => { this.clients.delete(id); void this.cycle(); }; }
-    private desired() { return [...new Set([...this.monitors.filter(key=>marketOpen(key.split(':')[0] as QuoteMarket)),...[...this.clients.values()].flatMap(c => c.symbols.map(s => `${c.market}:${s}`))])]; }
-    snapshot(market: QuoteMarket, symbols: string[], now=new Date()) { const isOpen=marketOpen(market,now); const desired = this.desired(), allowed = new Set(desired.filter(key => /^\w+:\d{6}$/.test(key)).slice(0, quoteLimit)); return { connection: this.state, marketOpen:isOpen, limit: quoteLimit, active: this.subscribed.size, quotes: symbols.map(symbol => { const key = `${market}:${symbol}`, quote = this.quotes.get(key) ?? null; let status = !/^\d{6}$/.test(symbol) ? 'MARKET_UNSUPPORTED' : !allowed.has(key) ? 'LIMIT_EXCEEDED' : this.rejected.has(key) ? 'SUBSCRIPTION_REJECTED' : !isOpen ? 'MARKET_CLOSED' : quote?.halted ? 'TRADING_HALTED' : this.state !== 'CONNECTED' ? this.state : !this.subscribed.has(key) || quote?.source !== 'KIS' || quote.receivedAt < this.connectedAt ? 'WAITING_TRADE' : Date.now() - quote.receivedAt > 30000 ? 'NO_RECENT_TRADE' : Date.now() - Date.parse(quote.observedAt) > 30000 ? 'QUOTE_DELAYED' : 'LIVE'; return { symbol, status, quote }; }) }; }
+    private logicalDesired(now=new Date()) { return [...new Set([...this.monitors.filter(key=>marketOpen(key.split(':')[0] as QuoteMarket,now)),...[...this.clients.values()].flatMap(c=>c.symbols.map(s=>c.market+':'+s))])].filter(key=>/^\w+:\d{6}$/.test(key)); }
+    private desired(now=new Date()) { return quoteSubscriptionPlan(this.logicalDesired(now),now).keys; }
+    snapshot(market:QuoteMarket,symbols:string[],now=new Date()) {
+        const isOpen=marketOpen(market,now),plan=quoteSubscriptionPlan(this.logicalDesired(now),now),allowed=new Set(plan.keys);
+        return {connection:this.state,marketOpen:isOpen,limit:quoteLimit,active:this.subscribed.size,policyVersion:liveQuotePolicyVersion,quotes:symbols.map(symbol=>{
+            const logical=market+':'+symbol,raw=market==='TOTAL'?selectTotalQuote(symbol,this.quotes,now,this.connectedAt):this.quotes.get(logical),physical=raw?raw.market+':'+symbol:logical;
+            const quote=raw&&market==='TOTAL'?logicalTotalQuote(raw):raw??null;
+            const status=!/^\d{6}$/.test(symbol)?'MARKET_UNSUPPORTED':plan.denied.has(logical)||!physicalQuoteKeys(logical,now).every(k=>allowed.has(k))?'LIMIT_EXCEEDED':physicalQuoteKeys(logical,now).every(k=>this.rejected.has(k))?'SUBSCRIPTION_REJECTED':!isOpen?'MARKET_CLOSED':raw?.halted?'TRADING_HALTED':this.state!=='CONNECTED'?this.state:!raw||raw.source!=='KIS'||!this.subscribed.has(physical)||!physicalQuoteKeys(logical,now).includes(physical)||raw.receivedAt<this.connectedAt?'WAITING_TRADE':+now-raw.receivedAt>30000?'NO_RECENT_TRADE':+now-Date.parse(raw.observedAt)>30000?'QUOTE_DELAYED':'LIVE';
+            return {symbol,status,quote};
+        })};
+    }
     private async lease() {
         const now = new Date();
         if (Date.now() - this.renewed < 20000 && this.leaseUntil > Date.now())
@@ -146,8 +156,12 @@ export class KisLiveService {
             }
             for (const quote of parseKisTrades(text)) {
                 const key = `${quote.market}:${quote.symbol}`, previous = this.quotes.get(key);
-                if (this.subscribed.has(key) && (!previous || quote.observedAt >= previous.observedAt))
-                    {this.quotes.set(key, quote);for(const listener of this.listeners)listener(quote);}
+                if (this.subscribed.has(key) && (!previous || quote.observedAt > previous.observedAt || quote.observedAt === previous.observedAt && (!quote.sequence || !previous.sequence || BigInt(quote.sequence) > BigInt(previous.sequence))))
+                    {this.quotes.set(key, quote);
+                        for(const listener of this.listeners)if(quote.market!=='TOTAL')listener(quote);
+                        if(physicalQuoteKeys('TOTAL:'+quote.symbol,new Date()).includes(key)&&this.logicalDesired().includes('TOTAL:'+quote.symbol)&&!quoteSubscriptionPlan(this.logicalDesired(),new Date()).denied.has('TOTAL:'+quote.symbol)&&selectTotalQuote(quote.symbol,this.quotes,new Date(),this.connectedAt)===quote)
+                            for(const listener of this.listeners)listener(logicalTotalQuote(quote));
+                    }
             }
         }
         catch { /* Malformed/private frames never replace a valid quote. */ } });
@@ -201,7 +215,7 @@ export class KisLiveService {
             return;
         this.running = true;
         try {
-            const desired = this.desired().filter(key => /^\w+:\d{6}$/.test(key)).slice(0, quoteLimit);
+            const desired = this.desired();
             if (!this.enabled) {
                 this.state = 'DISABLED';
                 return;
@@ -248,7 +262,7 @@ export class KisLiveService {
                     await wait(150);
                 }
             // Bounded memory: values for unobserved instruments are not a tick history.
-            const wanted = new Set(this.desired());
+            const wanted = new Set(this.logicalDesired().flatMap(key=>key.startsWith('TOTAL:')?['TOTAL:','KRX:','NXT:'].map(m=>m+key.split(':')[1]):[key]));
             for (const key of this.quotes.keys())
                 if (!wanted.has(key)) {
                     this.quotes.delete(key);

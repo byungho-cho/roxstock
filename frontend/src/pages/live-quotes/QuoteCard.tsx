@@ -11,8 +11,8 @@ const koreanDay=(time:number)=>{const date=new Date(time+9*3600000);return Numbe
 const tightText={lineHeight:1,textBoxTrim:'trim-both',textBoxEdge:'cap alphabetic'} as const;
 type Props={stock:DisplayStock;market:QuoteMarket;row:QuoteRow;closed?:boolean;alertCount?:number;dragged?:boolean;ghost?:boolean;onOpen?:()=>void;onAlert?:()=>void;onAcknowledge?:()=>void;onDown?:(e:React.PointerEvent)=>void;onMove?:(e:React.PointerEvent)=>void;onUp?:()=>void;onCancel?:()=>void};
 export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,alertCount=0,dragged=false,ghost=false,onOpen,onAlert,onAcknowledge,onDown,onMove,onUp,onCancel}:Props){
-  const q=row.quote,previous=useRef<{market:string;price:number;live:boolean}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
-  const [flash,setFlash]=useState<'up'|'down'|'flat'|null>(null),flashMarket=useRef<QuoteMarket|null>(null);
+  const q=row.quote,previous=useRef<{market:string;price:number;live:boolean;source?:QuoteMarket}|null>(null),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+  const [flash,setFlash]=useState<'up'|'down'|'flat'|null>(null),flashMarket=useRef<QuoteMarket|null>(null),flashSource=useRef<QuoteMarket|undefined>(undefined);
   const priceArea=useRef<HTMLDivElement>(null),rateArea=useRef<HTMLDivElement>(null);
   const [flashPadding,setFlashPadding]=useState({left:16,right:16});
   // Keep the 1px outer stroke at least 2px inside this card; text geometry stays fixed.
@@ -27,16 +27,16 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
   const received=!!q&&q.symbol===stock.symbol&&q.market===market&&q.source==='KIS'&&!row.referenceMarket&&q.receivedAt>0&&koreanDay(q.receivedAt)===today&&koreanDay(Date.parse(q.observedAt))===today;
   const valueColor=received?color(q?.change??0):colors.textMuted;
   const dayDirection=(q?.change??0)>0?'up':(q?.change??0)<0?'down':'flat';
-  const visibleFlash=!marketClosed&&received&&flashMarket.current===market&&flash?dayDirection:null;
+  const visibleFlash=!marketClosed&&received&&flashMarket.current===market&&flashSource.current===q?.sourceMarket&&flash?dayDirection:null;
   useEffect(()=>{previous.current=null;clearTimeout(timer.current);setFlash(null);},[market]);
   useEffect(()=>{
     if(!q)return;
     const old=previous.current;
-    if(!ghost&&received&&row.status==='LIVE'&&!row.retained&&old?.live&&old.market===q.market&&old.price!==q.price){
-      flashMarket.current=market;setFlash(q.change>0?'up':q.change<0?'down':'flat');clearTimeout(timer.current);timer.current=setTimeout(()=>setFlash(null),1000);
+    if(!ghost&&received&&row.status==='LIVE'&&!row.retained&&old?.live&&old.market===q.market&&old.source===q.sourceMarket&&old.price!==q.price){
+      flashMarket.current=market;flashSource.current=q.sourceMarket;setFlash(q.change>0?'up':q.change<0?'down':'flat');clearTimeout(timer.current);timer.current=setTimeout(()=>setFlash(null),1000);
     }
-    previous.current={market:q.market,price:q.price,live:received&&row.status==='LIVE'&&!row.retained};
-  },[q?.price,q?.market,row.status,row.retained,ghost,received]);
+    previous.current={market:q.market,price:q.price,live:received&&row.status==='LIVE'&&!row.retained,source:q.sourceMarket};
+  },[q?.price,q?.market,row.status,row.retained,ghost,received,q?.sourceMarket]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   // Cache receivedAt can be the HTTP fetch time; preserve its original quote timestamp instead.
   const stamp=q?(marketClosed&&q.source==='KIS'?q.receivedAt:Date.parse(q.observedAt)):NaN;
@@ -61,7 +61,7 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
       <Box ref={rateArea} data-testid={ghost?undefined:'live-rate'} sx={{flex:'0 0 auto',fontSize:11,...tightText,textAlign:'right',whiteSpace:'nowrap'}}>{q?`${q.change>0?'▲':q.change<0?'▼':'—'} ${Math.abs(q.rate).toFixed(2)}%`:'—'}</Box>
     </Box>
     <Box sx={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'4px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-      <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{minWidth:0,fontSize:8,...tightText,color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{asOf||'—'}</Box>
+      <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{minWidth:0,fontSize:8,...tightText,color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{market==='TOTAL'&&q?.sourceMarket&&q.sourceMarket!=='TOTAL'?q.sourceMarket+' ':''}{asOf||'—'}</Box>
       <Box data-testid={ghost?undefined:'live-change'} sx={{flexShrink:0,fontSize:12,...tightText,textAlign:'right',color:valueColor}}>{q?number(Math.abs(q.change)):'—'}</Box>
     </Box>
   </Box>;

@@ -4,7 +4,7 @@ import { checkedIds, readDisplayList } from './live-quotes.js';
 import { KisLiveService, marketOpen } from '../realtime/kis-live.js';
 test('display lists are opt-in and minimal; invalid/duplicate IDs cannot be written', () => { assert.deepEqual(readDisplayList(null), { ids: [], version: 'initial' }); assert.deepEqual(readDisplayList({ theme: 'light', liveQuotes: { ids: ['1', '2'], version: 'abc' } }), { ids: ['1', '2'], version: 'abc' }); for (const ids of [null, {}, ['1', '1'], ['1x'], [1], Array(5001).fill('1')])
     assert.throws(() => checkedIds(ids)); assert.deepEqual(checkedIds(['2', '1']), ['2', '1']); });
-test('shared subscription budget deduplicates identical market/symbol across clients', async () => { const service = new KisLiveService(false); const stop = service.watch('TOTAL', Array.from({ length: 42 }, (_, i) => String(i + 1).padStart(6, '0'))); const stop2 = service.watch('TOTAL', ['000001']); const snapshot = service.snapshot('TOTAL', ['000001', '000041', '000042']); assert.equal(snapshot.quotes[2]!.status, 'LIMIT_EXCEEDED'); assert.notEqual(snapshot.quotes[1]!.status, 'LIMIT_EXCEEDED'); assert.equal(snapshot.limit, 41); stop(); stop2(); await service.close(); });
+test('shared subscription budget deduplicates identical market/symbol across clients', async () => { const service = new KisLiveService(false); const stop = service.watch('TOTAL', Array.from({ length: 42 }, (_, i) => String(i + 1).padStart(6, '0'))); const stop2 = service.watch('TOTAL', ['000001']); const snapshot = service.snapshot('TOTAL', ['000001', '000020', '000021']); assert.equal(snapshot.quotes[2]!.status, 'LIMIT_EXCEEDED'); assert.notEqual(snapshot.quotes[1]!.status, 'LIMIT_EXCEEDED'); assert.equal(snapshot.limit, 41); stop(); stop2(); await service.close(); });
 test('weekends and market intermissions cannot be presented as live', () => { assert.equal(marketOpen('TOTAL', new Date('2026-10-31T03:00:00Z')), false); assert.equal(marketOpen('NXT', new Date('2026-10-30T00:00:00Z')), false); assert.equal(marketOpen('NXT', new Date('2026-10-30T00:00:31Z')), true); assert.equal(marketOpen('KRX', new Date('2026-10-30T03:00:00Z')), true); assert.equal(marketOpen('TOTAL', new Date('2026-10-30T12:00:00Z')), false); });
 import Fastify from 'fastify';
 import { prisma as raw } from '@roxstock/shared/lib/prisma';
@@ -32,7 +32,7 @@ test('API identity isolation and optimistic list writes preserve settings and re
             const r = await app.inject({ url: '/api/live-quotes/list', headers: { 'x-test-user': id } });
             assert.deepEqual(r.json().data.ids, [id]);
         }
-        const overflow=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'1'},payload:{ids:Array.from({length:51},(_,i)=>String(i+1)),version:'v1'}});
+        const overflow=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'1'},payload:{ids:Array.from({length:21},(_,i)=>String(i+1)),version:'v1'}});
         assert.equal(overflow.statusCode,400);assert.equal(overflow.json().code,'DISPLAY_LIMIT');assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['1']);
         const found:string[]=[];let cursor:string|null=null;for(const length of [100,100,5]){const response:{statusCode:number;json():any}=await app.inject({url:'/api/live-quotes/candidates?tab=search'+(cursor?'&cursor='+cursor:''),headers:{'x-test-user':'1'}});assert.equal(response.statusCode,200);const data=response.json().data;assert.equal(data.stocks.length,length);assert.equal(data.hasMore,length===100);found.push(...data.stocks.map((r:any)=>r.id));cursor=data.nextCursor;}assert.equal(new Set(found).size,205);assert.equal(cursor,null);assert.equal((await app.inject({url:'/api/live-quotes/candidates?tab=search&cursor=invalid',headers:{'x-test-user':'1'}})).statusCode,400);
         const save = () => app.inject({ url: '/api/live-quotes/list', method: 'PUT', headers: { 'x-test-user': '1' }, payload: { ids: ['2', '1'], version: 'v1', userId: '2' } });
@@ -40,8 +40,8 @@ test('API identity isolation and optimistic list writes preserve settings and re
         assert.deepEqual(replies.map(r => r.statusCode).sort(), [200, 409]);
         assert.equal(users.get('1')!.settings.theme, 'dark');
         assert.deepEqual(users.get('2')!.settings.liveQuotes.ids, ['2']);
-        const boundary=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'2'},payload:{ids:Array.from({length:50},(_,i)=>String(i+1)),version:'v1'}});
-        assert.equal(boundary.statusCode,200);assert.equal(boundary.json().data.ids.length,50);assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['2','1']);
+        const boundary=await app.inject({url:'/api/live-quotes/list',method:'PUT',headers:{'x-test-user':'2'},payload:{ids:Array.from({length:20},(_,i)=>String(i+1)),version:'v1'}});
+        assert.equal(boundary.statusCode,200);assert.equal(boundary.json().data.ids.length,20);assert.deepEqual(users.get('1')!.settings.liveQuotes.ids,['2','1']);
     }
     finally {
         await app.close();
@@ -49,7 +49,7 @@ test('API identity isolation and optimistic list writes preserve settings and re
     }
 });
 
-test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('TOTAL:005930',quote);const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,quote);assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});
+test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('TOTAL:005930',quote);const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,{...quote,sourceMarket:'TOTAL',sequence:undefined});assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});
 
 import {loadSecurities} from './securities.js';
 test('a display-only stock can be looked up by exact security ID without classifying or writing it',async(t)=>{
@@ -73,4 +73,18 @@ test('watch candidates and registered watch flags follow account classifications
  const all=await app.inject('/api/live-quotes/list?accountId=7');assert.equal(all.statusCode,200);assert.deepEqual(all.json().data.stocks.filter((s:any)=>s.watched).map((s:any)=>s.id),['1','5']);assert.equal(all.json().data.stocks.find((s:any)=>s.id==='2').traded,true);assert.equal(all.json().data.stocks.find((s:any)=>s.id==='4').held,true);
  const noAccount=await app.inject('/api/live-quotes/candidates?tab=watch');assert.equal(noAccount.statusCode,200);assert.deepEqual(noAccount.json().data.stocks,[]);
  }finally{await app.close();}
+});
+
+test('logical TOTAL snapshot exposes a genuine KRX fallback and keeps direct NXT separate',async()=>{
+ const service=new KisLiveService(false),stop=service.watch('TOTAL',['003490']);
+ try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z'),raw={symbol:'003490',market:'KRX',price:27500,change:950,rate:3.58,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'};
+ (service as any).quotes.set('KRX:003490',raw);(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;
+ assert.equal(row.status,'LIVE');assert.equal(row.quote?.sourceMarket,'KRX');assert.equal(row.quote?.market,'TOTAL');assert.equal(row.quote?.observedAt,raw.observedAt);assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]?.quote,null);
+ }finally{stop();await service.close();}
+});
+
+test('an explicit NXT client cannot turn a retained NXT quote into a regular-session TOTAL live source',async()=>{
+ const service=new KisLiveService(false),stop=service.watch('TOTAL',['003490']),direct=service.watch('NXT',['003490']);
+ try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z');(service as any).quotes.set('NXT:003490',{symbol:'003490',market:'NXT',price:27600,change:1050,rate:3.95,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'});(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490','NXT:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;assert.equal(row.status,'WAITING_TRADE');assert.equal(row.quote?.sourceMarket,'NXT');assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]!.status,'LIVE');
+ }finally{stop();direct();await service.close();}
 });
