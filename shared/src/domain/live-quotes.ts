@@ -11,6 +11,8 @@ export type LiveQuote = {
     source: 'KIS' | 'CACHE';
     halted?: boolean;
     sequence?: string;
+    /** Physical source of the logical TOTAL view. */
+    sourceMarket?: QuoteMarket;
 };
 export type DisplayStock = {
     id: string;
@@ -70,7 +72,7 @@ export function parseKisTrades(text: string): LiveQuote[] {
     });
 }
 
-export const maxDisplayStocks=50;
+export const maxDisplayStocks=20;
 // Preserve existing oversized lists for reorder/removal, without permitting any new member.
 export function displayListWithinLimit(ids:readonly string[],previous:readonly string[]=[]):boolean {
   if(ids.length<=maxDisplayStocks)return true;

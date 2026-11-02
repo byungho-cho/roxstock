@@ -24,4 +24,4 @@ test('real trade parsing keeps market separate, handles batched 47-field rows an
 } for (const frame of ['1|H0STCNT0|001|x', '0|PRIVATE|001|x', '0|H0STCNT0|001|x'])
     assert.throws(() => parseKisTrades(frame)); });
 
-test('display limit allows 50, blocks 51, and preserves legacy reorder/removal without adding members',()=>{const ids=Array.from({length:51},(_,i)=>String(i+1));assert.equal(displayListWithinLimit(ids.slice(0,50)),true);assert.equal(displayListWithinLimit(ids),false);assert.equal(displayListWithinLimit([...ids].reverse(),ids),true);assert.equal(displayListWithinLimit(ids.slice(1),ids),true);assert.equal(displayListWithinLimit([...ids.slice(1),'999'],ids),false);});
+test('display limit allows 20, blocks 21, and preserves legacy reorder/removal without adding members',()=>{const ids=Array.from({length:21},(_,i)=>String(i+1));assert.equal(displayListWithinLimit(ids.slice(0,20)),true);assert.equal(displayListWithinLimit(ids),false);assert.equal(displayListWithinLimit([...ids].reverse(),ids),true);assert.equal(displayListWithinLimit(ids.slice(1),ids),true);assert.equal(displayListWithinLimit([...ids.slice(1),'999'],ids),false);});
