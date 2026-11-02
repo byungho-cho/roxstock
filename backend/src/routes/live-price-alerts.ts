@@ -34,7 +34,7 @@ export async function installLivePriceAlertRoutes(app:FastifyInstance,live:KisLi
   const condition=(r:typeof conditions[number])=>{const s=names.get(String(r.securityId));const status=s?(['DISABLED','NOT_CONFIGURED','SESSION_IN_USE'].includes(live.state)?live.state:!marketOpen(r.market as QuoteMarket)?'MARKET_CLOSED':live.snapshot(r.market as QuoteMarket,[s.symbol]).quotes[0]?.status):'MARKET_UNSUPPORTED';return {id:String(r.id),securityId:String(r.securityId),name:s?.name??'종목 확인 필요',symbol:s?.symbol??'',market:r.market,direction:r.direction,amount:r.amount.toString(),enabled:r.enabled,pausedUntil:r.pausedUntil?.toISOString()??null,version:r.version,status};};
   reply.header('Cache-Control','private, no-store');return {data:{conditions:conditions.map(condition),events:events.map(e=>({...condition(e.condition),id:String(e.id),conditionId:String(e.conditionId),market:e.market,direction:e.direction,amount:e.amount.toString(),price:e.price.toString(),change:e.change.toString(),rate:e.rate.toString(),observedAt:e.observedAt.toISOString(),createdAt:e.createdAt.toISOString()})),unreadCount:events.length,monitor:engine.status(userId)}};
  });
- type Body={securityId?:string;market?:string;direction?:string;amount?:string;version?:number;enabled?:boolean;pause?:string};
+ type Body={securityId?:string;market?:string;direction?:string;amount?:string;version?:number;enabled?:boolean;pause?:string;acknowledgeEventId?:string};
  app.post<{Body:Body}>('/live-quotes/alerts',async(req,reply)=>{
   const body=req.body??{},userId=req.auth!.userId,securityId=id(body.securityId,'securityId'),market=body.market as QuoteMarket;
   if(!Object.hasOwn(quoteMarkets,market)||!['BELOW','ABOVE'].includes(body.direction??''))throw fail('시장과 알림 조건을 확인해 주세요.');
@@ -53,10 +53,13 @@ export async function installLivePriceAlertRoutes(app:FastifyInstance,live:KisLi
  app.patch<{Params:{id:string};Body:Body}>('/live-quotes/alerts/:id',async(req)=>{
   const userId=req.auth!.userId,conditionId=id(req.params.id,'conditionId'),body=req.body??{},now=new Date();
   if([body.amount!==undefined||body.direction!==undefined,body.enabled!==undefined,body.pause!==undefined].filter(Boolean).length!==1||body.market!==undefined||body.securityId!==undefined)throw fail('한 번에 하나의 설정만 변경할 수 있습니다. 기준 시장과 종목은 변경하지 않습니다.');
+  if(body.acknowledgeEventId!==undefined&&body.pause===undefined)throw fail('도달 알림 확인은 일시 중지와 함께 요청해 주세요.');
+  const eventId=body.acknowledgeEventId===undefined?undefined:id(body.acknowledgeEventId,'eventId');
   await db.$transaction(async tx=>{
    // The same quota lock order is used for both enabling and new registrations.
    if(body.enabled===true){const existing=await tx.livePriceAlert.findFirst({where:{id:conditionId,userId,deletedAt:null}});if(existing)await quota(tx,existing.securityId,existing.market);}
    const row=await own(tx,userId,conditionId,body.version),data:Prisma.LivePriceAlertUpdateInput={version:{increment:1}};
+   if(eventId!==undefined&&!await tx.livePriceAlertEvent.findFirst({where:{id:eventId,userId,conditionId},select:{id:true}}))throw fail('도달 알림을 찾을 수 없습니다.','NOT_FOUND',404);
    if(body.amount!==undefined||body.direction!==undefined){
     let amount:number;try{amount=priceAmount(body.amount);}catch(e){throw fail((e as Error).message);}
     if(!['BELOW','ABOVE'].includes(body.direction??''))throw fail('알림 조건을 확인해 주세요.');
@@ -69,6 +72,8 @@ export async function installLivePriceAlertRoutes(app:FastifyInstance,live:KisLi
     Object.assign(data,{pausedUntil:until,eligibleAfter:until});
    }else throw fail('변경할 설정을 확인해 주세요.');
    await tx.livePriceAlert.update({where:{id:conditionId},data});
+   // Pause and acknowledge this arrival together; an error must preserve both states.
+   if(eventId!==undefined)await tx.livePriceAlertEvent.updateMany({where:{id:eventId,userId,conditionId,acknowledgedAt:null},data:{acknowledgedAt:now,openKey:null}});
   });await changed(userId);return {data:{id:String(conditionId)}};
  });
  app.delete<{Params:{id:string};Body:Body}>('/live-quotes/alerts/:id',async(req)=>{

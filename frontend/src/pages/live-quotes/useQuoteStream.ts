@@ -5,6 +5,7 @@ import type {LiveQuote, QuoteMarket} from '../../../../shared/src/domain/live-qu
 export type QuoteRow = {symbol:string; status:string; quote:LiveQuote|null; retained?:boolean; referenceMarket?:QuoteMarket};
 type Packet = {marketOpen?:boolean;connection:string; active:number; limit:number; quotes:QuoteRow[]};
 type Cached = Record<string,LiveQuote>;
+const validQuote=(q:LiveQuote,symbol:string,market:QuoteMarket)=>q.symbol===symbol&&q.market===market&&Number.isFinite(q.price)&&q.price>0&&Number.isFinite(q.receivedAt)&&q.receivedAt>0&&Number.isFinite(Date.parse(q.observedAt));
 const prefix = ['live-last-quotes'];
 // The existing auth clear removes this user-scoped memory. No disk, DB or extra REST.
 export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:string) {
@@ -35,14 +36,15 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
           const next=JSON.parse((event as MessageEvent).data) as Packet;
           if(!Array.isArray(next.quotes)||next.quotes.some(r=>r.quote&&r.quote.market!==market))return;
           const cached={...(client.getQueryData<Cached>(cacheKey)??{})};
-          for(const r of next.quotes)if(r.quote&&Number.isFinite(r.quote.price)&&r.quote.price>0)cached[r.symbol]=r.quote;
+          for(const r of next.quotes)if(r.quote&&validQuote(r.quote,r.symbol,market))cached[r.symbol]=r.quote;
           // One latest entry per symbol, bounded even after many display-list changes.
           const bounded=Object.fromEntries(Object.entries(cached).sort((a,b)=>b[1].receivedAt-a[1].receivedAt).slice(0,500));
           client.setQueryData(cacheKey,bounded);
           setPacket(p=>({...next,scope,quotes:symbols.map(symbol=>{
             const row=next.quotes.find(r=>r.symbol===symbol),old=p.scope===scope?p.quotes.find(r=>r.symbol===symbol)?.quote:null;
-            const quote=row?.quote??old??bounded[symbol]??null;
-            return {symbol,quote,status:row?.status??next.connection,retained:!!quote&&row?.status!=='LIVE'};
+            const incoming=row?.quote&&validQuote(row.quote,symbol,market)?row.quote:null;
+            const quote=incoming??old??bounded[symbol]??null;
+            return {symbol,quote,status:row?.status??next.connection,retained:!!quote&&(!incoming||row?.status!=='LIVE')};
           })}));
         }catch{unavailable('DISCONNECTED');}
       });
