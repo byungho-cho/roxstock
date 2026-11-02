@@ -49,7 +49,7 @@ test('API identity isolation and optimistic list writes preserve settings and re
     }
 });
 
-test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('TOTAL:005930',quote);const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,{...quote,sourceMarket:'TOTAL',sequence:undefined});assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});
+test('closed market snapshot retains the last same-market price tuple and receipt time',async()=>{const service=new KisLiveService(false),stop=service.watch('TOTAL',['005930']);const quote={symbol:'005930',market:'TOTAL',price:39150,change:-850,rate:-2.125,observedAt:'2026-10-30T11:00:00.000Z',receivedAt:Date.parse('2026-10-30T11:00:03.000Z'),source:'KIS'};(service as any).quotes.set('KRX:005930',{...quote,market:'KRX'});const packet=service.snapshot('TOTAL',['005930'],new Date('2026-10-30T12:00:00Z'));assert.equal(packet.marketOpen,false);assert.equal(packet.quotes[0]!.status,'MARKET_CLOSED');assert.deepEqual(packet.quotes[0]!.quote,{...quote,sourceMarket:'KRX',sequence:undefined});assert.equal(service.snapshot('NXT',['005930'],new Date('2026-10-30T12:00:00Z')).quotes[0]!.quote,null);stop();await service.close();});
 
 import {loadSecurities} from './securities.js';
 test('a display-only stock can be looked up by exact security ID without classifying or writing it',async(t)=>{
@@ -78,13 +78,13 @@ test('watch candidates and registered watch flags follow account classifications
 test('logical TOTAL snapshot exposes a genuine KRX fallback and keeps direct NXT separate',async()=>{
  const service=new KisLiveService(false),stop=service.watch('TOTAL',['003490']);
  try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z'),raw={symbol:'003490',market:'KRX',price:27500,change:950,rate:3.58,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'};
- (service as any).quotes.set('KRX:003490',raw);(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;
+ (service as any).quotes.set('KRX:003490',raw);(service as any).subscribed=new Set(['NXT:003490','KRX:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;
  assert.equal(row.status,'LIVE');assert.equal(row.quote?.sourceMarket,'KRX');assert.equal(row.quote?.market,'TOTAL');assert.equal(row.quote?.observedAt,raw.observedAt);assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]?.quote,null);
  }finally{stop();await service.close();}
 });
 
-test('an explicit NXT client cannot turn a retained NXT quote into a regular-session TOTAL live source',async()=>{
+test('a direct NXT view shares its subscription with automatic selection without changing KRX-only output',async()=>{
  const service=new KisLiveService(false),stop=service.watch('TOTAL',['003490']),direct=service.watch('NXT',['003490']);
- try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z');(service as any).quotes.set('NXT:003490',{symbol:'003490',market:'NXT',price:27600,change:1050,rate:3.95,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'});(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490','NXT:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;assert.equal(row.status,'WAITING_TRADE');assert.equal(row.quote?.sourceMarket,'NXT');assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]!.status,'LIVE');
+ try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z');(service as any).quotes.set('NXT:003490',{symbol:'003490',market:'NXT',price:27600,change:1050,rate:3.95,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'});(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490','NXT:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;assert.equal(row.status,'LIVE');assert.equal(row.quote?.sourceMarket,'NXT');assert.equal(service.snapshot('KRX',['003490'],now).quotes[0]!.quote,null);assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]!.status,'LIVE');
  }finally{stop();direct();await service.close();}
 });

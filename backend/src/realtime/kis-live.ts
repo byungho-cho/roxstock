@@ -64,7 +64,7 @@ export class KisLiveService {
         return {connection:this.state,marketOpen:isOpen,limit:quoteLimit,active:this.subscribed.size,policyVersion:liveQuotePolicyVersion,quotes:symbols.map(symbol=>{
             const logical=market+':'+symbol,raw=market==='TOTAL'?selectTotalQuote(symbol,this.quotes,now,this.connectedAt):this.quotes.get(logical),physical=raw?raw.market+':'+symbol:logical;
             const quote=raw&&market==='TOTAL'?logicalTotalQuote(raw):raw??null;
-            const status=!/^\d{6}$/.test(symbol)?'MARKET_UNSUPPORTED':plan.denied.has(logical)||!physicalQuoteKeys(logical,now).every(k=>allowed.has(k))?'LIMIT_EXCEEDED':physicalQuoteKeys(logical,now).every(k=>this.rejected.has(k))?'SUBSCRIPTION_REJECTED':!isOpen?'MARKET_CLOSED':raw?.halted?'TRADING_HALTED':this.state!=='CONNECTED'?this.state:!raw||raw.source!=='KIS'||!this.subscribed.has(physical)||!physicalQuoteKeys(logical,now).includes(physical)||raw.receivedAt<this.connectedAt?'WAITING_TRADE':+now-raw.receivedAt>30000?'NO_RECENT_TRADE':+now-Date.parse(raw.observedAt)>30000?'QUOTE_DELAYED':'LIVE';
+            const status=!/^\d{6}$/.test(symbol)?'MARKET_UNSUPPORTED':plan.denied.has(logical)||!physicalQuoteKeys(logical,now).every(k=>allowed.has(k))?'LIMIT_EXCEEDED':(market==='TOTAL'?physicalQuoteKeys(logical,now).every(k=>this.rejected.has(k)):this.rejected.has(logical))?'SUBSCRIPTION_REJECTED':!isOpen?'MARKET_CLOSED':raw?.halted?'TRADING_HALTED':this.state!=='CONNECTED'?this.state:!raw||raw.source!=='KIS'||!this.subscribed.has(physical)||!physicalQuoteKeys(logical,now).includes(physical)||raw.receivedAt<this.connectedAt?'WAITING_TRADE':+now-raw.receivedAt>30000?'NO_RECENT_TRADE':+now-Date.parse(raw.observedAt)>30000?'QUOTE_DELAYED':'LIVE';
             return {symbol,status,quote};
         })};
     }
@@ -98,7 +98,7 @@ export class KisLiveService {
     private command(key: string, action: '1' | '2', approval?: string) { return new Promise<void>((resolve, reject) => { const [market, symbol] = key.split(':') as [
         QuoteMarket,
         string
-    ], socket = this.socket; if (!socket || socket.readyState !== 1) {
+    ], socket = this.socket; if (market === 'TOTAL') { reject(Error('LOGICAL_MARKET_ONLY')); return; } if (!socket || socket.readyState !== 1) {
         reject(Error('CLOSED'));
         return;
     } const timer = setTimeout(() => { this.pending = undefined; reject(Error('ACK_TIMEOUT')); }, 5000); this.pending = { key, action, resolve: () => { clearTimeout(timer); resolve(); }, reject: () => { clearTimeout(timer); reject(Error('SUBSCRIBE_FAILED')); } }; socket.send(JSON.stringify({ header: { approval_key: approval ?? this.approval, custtype: 'P', tr_type: action, 'content-type': 'utf-8' }, body: { input: { tr_id: quoteMarkets[market], tr_key: symbol } } })); }); }
@@ -262,7 +262,7 @@ export class KisLiveService {
                     await wait(150);
                 }
             // Bounded memory: values for unobserved instruments are not a tick history.
-            const wanted = new Set(this.logicalDesired().flatMap(key=>key.startsWith('TOTAL:')?['TOTAL:','KRX:','NXT:'].map(m=>m+key.split(':')[1]):[key]));
+            const wanted = new Set(this.logicalDesired().flatMap(key=>physicalQuoteKeys(key,new Date())));
             for (const key of this.quotes.keys())
                 if (!wanted.has(key)) {
                     this.quotes.delete(key);
