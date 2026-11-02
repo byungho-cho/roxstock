@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prisma } from '@roxstock/shared/lib/prisma';
-import {physicalQuoteKeys} from '@roxstock/shared/domain/live-quote-policy';
 import {quoteMarkets} from '@roxstock/shared/domain/live-quotes';
 import { KisLiveService } from '../realtime/kis-live.js';
 test('one socket shares duplicate clients, swaps market subscriptions, retains latest and reconnects safely', async (t) => {
@@ -44,10 +43,13 @@ test('one socket shares duplicate clients, swaps market subscriptions, retains l
         assert.equal(commands.filter(c => c.header.tr_type === '1').length, 2);
         const f = Array(47).fill('0');
         Object.assign(f, { 0: '005930', 1: '090100', 2: '100', 3: '2', 4: '1', 5: '1', 12: '1', 33: '20261030' });
-        sockets[0]!.dispatchEvent(new MessageEvent('message', { data: '0|H0UNCNT0|001|' + f.join('^') }));
+        await assert.rejects((service as any).command('TOTAL:005930','1'),/LOGICAL_MARKET_ONLY/);
+        sockets[0]!.dispatchEvent(new MessageEvent('message',{data:'0|H0UNCNT0|001|'+f.join('^')}));
+        assert.equal(service.snapshot('TOTAL',['005930']).quotes[0]!.quote,null,'legacy provider TOTAL frames are not consumed');
+        sockets[0]!.dispatchEvent(new MessageEvent('message', { data: '0|H0STCNT0|001|' + f.join('^') }));
         assert.equal(service.snapshot('TOTAL', ['005930']).quotes[0]!.quote?.price, 100);
         assert.equal(service.snapshot('NXT', ['005930']).quotes[0]!.quote, null);
-        const actual=physicalQuoteKeys('TOTAL:005930',new Date())[1]!.split(':')[0] as keyof typeof quoteMarkets;
+        const actual='KRX' as const;
         const ticks:any[]=[];const detach=service.onTrade(q=>ticks.push(q));
         const korean=new Date(Date.now()+9*3600000).toISOString(),fresh=[...f];fresh[1]=korean.slice(11,19).replaceAll(':','');fresh[33]=korean.slice(0,10).replaceAll('-','');fresh[2]='101';fresh[13]='100';
         sockets[0]!.dispatchEvent(new MessageEvent('message',{data:'0|'+quoteMarkets[actual]+'|001|'+fresh.join('^')}));
@@ -57,13 +59,14 @@ test('one socket shares duplicate clients, swaps market subscriptions, retains l
         assert.equal(service.snapshot('TOTAL', ['005930']).active, 2);
         const c = service.watch('KRX', ['005930']);
         b();
-        await settle(() => commands.some(m => m.body.input.tr_id === 'H0UNCNT0' && m.header.tr_type === '2'));
-        assert.ok(commands.some(m => m.body.input.tr_id === 'H0UNCNT0' && m.header.tr_type === '2'));
+        await new Promise(r=>setTimeout(r,300));
+        assert.equal(commands.filter(m=>m.header.tr_type==='1').length,2,'view changes reuse the pair');
+        assert.ok(commands.every(m=>m.body.input.tr_id!=='H0UNCNT0'),'no provider TOTAL command');
         assert.equal(sockets.length, 1);
         (service as any).quotes.set('KRX:005930', {symbol:'005930',market:'KRX',price:100,change:1,rate:1,observedAt:new Date().toISOString(),receivedAt:Date.now(),source:'KIS'});
         sockets[0]!.close();
         await settle(() => sockets.length === 2 && service.state === 'CONNECTED');
-        await settle(() => service.snapshot('KRX', ['005930']).active === 1);
+        await settle(() => service.snapshot('KRX', ['005930']).active === 2);
         assert.ok(commands.filter(m => m.body.input.tr_id === 'H0STCNT0' && m.header.tr_type === '1').length >= 2);
         assert.equal(service.snapshot('KRX', ['005930']).quotes[0]!.quote?.price, 100);
         assert.notEqual(service.snapshot('KRX', ['005930']).quotes[0]!.status, 'LIVE', 'reconnection ACK alone cannot make the previous session quote live');
