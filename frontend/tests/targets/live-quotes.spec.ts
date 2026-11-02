@@ -8,6 +8,31 @@ async function setup(page:any,count=4){const fixtureState=await fixture(page);co
  });return {fixture:fixtureState,writes:()=>writes,ids:()=>ids,fail:()=>{fail=true;},recover:()=>{fail=false;}};}
 async function chooseMarket(page:any,label:string){const target=({통합:'TOTAL',NXT:'NXT',KRX:'KRX'} as Record<string,string>)[label],button=page.getByRole('button',{name:/^시세 시장:/});for(let i=0;i<3;i++){const before=await button.getAttribute('data-market');if(before===target)return;await button.click();await expect(button).not.toHaveAttribute('data-market',before!);}throw Error('Market switch failed');}
 
+test('V3.8 missing current-day trades stay muted per symbol and selected market',async({page},info)=>{
+ await setup(page);await page.addInitScript(()=>(window as any).__manualQuotes=true);await page.goto('/live-quotes');await expect(page.locator('[data-quote-id]')).toHaveCount(4);
+ const first=page.locator('[data-quote-id="1"]'),second=page.locator('[data-quote-id="2"]'),empty=page.locator('[data-quote-id="3"]');
+ const send=async(market:string,live=false)=>page.evaluate(({market,live})=>{const now=Date.now(),yesterday=new Date(now-86400000+9*3600000).toISOString().slice(0,10)+'T15:30:00+09:00';for(const s of (window as any).__quoteStreams)if(!s.closed&&s.market===market)s.dispatchEvent(new MessageEvent('quotes',{data:JSON.stringify({connection:'CONNECTED',marketOpen:false,active:2,limit:41,quotes:[{symbol:'000001',status:live?'LIVE':'MARKET_CLOSED',quote:{symbol:'000001',market,price:live?7500:7490,change:40,rate:.54,source:live?'KIS':'CACHE',observedAt:live?new Date(now).toISOString():yesterday,receivedAt:now}},{symbol:'000002',status:'LIVE',quote:{symbol:'000002',market,price:289000,change:3500,rate:1.2,source:'KIS',observedAt:new Date(now).toISOString(),receivedAt:now}}]})}));},{market,live});
+ await send('TOTAL');await expect(first).toHaveAttribute('data-quote-received','false');await expect(second).toHaveAttribute('data-quote-received','true');
+ for(const id of ['live-price','live-rate','live-change','live-quote-time'])await expect(first.getByTestId(id)).toHaveCSS('color','rgb(148, 163, 184)');await expect(first.getByTestId('live-price')).toHaveText('7,490');await expect(first.getByTestId('live-quote-time')).toHaveText('15:30:00');await expect(first.getByTestId('live-price-area')).toHaveAttribute('data-flash','');await expect(second.getByTestId('live-price')).toHaveCSS('color','rgb(248, 113, 113)');
+ for(const id of ['live-price','live-rate','live-change','live-quote-time'])await expect(empty.getByTestId(id)).toHaveText('—');await page.screenshot({path:info.outputPath('preopen-muted.png')});
+ await send('TOTAL',true);await expect(first).toHaveAttribute('data-quote-received','true');await expect(first.getByTestId('live-price')).toHaveText('7,500');await expect(first.getByTestId('live-price')).toHaveCSS('color','rgb(248, 113, 113)');await expect(first.getByTestId('live-price-area')).toHaveAttribute('data-flash','');
+ await chooseMarket(page,'NXT');await expect(first.getByTestId('live-price')).toHaveText('—');await expect(first).toHaveAttribute('data-quote-received','false');await send('NXT');await expect(first.getByTestId('live-price')).toHaveCSS('color','rgb(148, 163, 184)');await send('NXT',true);await expect(first).toHaveAttribute('data-quote-received','true');
+});
+
+test('V3.8 flash preserves geometry, avoids rates and passes pointer events through',async({page},info)=>{
+ await setup(page);await page.goto('/live-quotes');const card=page.locator('[data-quote-id="2"]'),price=card.getByTestId('live-price'),area=card.getByTestId('live-price-area'),rate=card.getByTestId('live-rate');
+ await expect(price).toHaveText('1,001');await page.evaluate(()=>(window as any).__emitQuote('TOTAL',12345670,10));await expect(price).toHaveText('12,345,671');await page.waitForTimeout(1200);
+ const before=await card.boundingBox(),beforePrice=await price.boundingBox(),beforeRate=await rate.boundingBox();await page.evaluate(()=>(window as any).__emitQuote('TOTAL',12345671,10));await expect(area).toHaveAttribute('data-flash','up');
+ expect(await card.boundingBox()).toEqual(before);expect(await price.boundingBox()).toEqual(beforePrice);const afterRate=await rate.boundingBox();expect(afterRate).toEqual(beforeRate);
+ const bounds=await area.evaluate(e=>{const p=getComputedStyle(e,'::after'),r=e.getBoundingClientRect();return {left:r.left+parseFloat(p.left),right:r.right-parseFloat(p.right),top:p.top,bottom:p.bottom,pointer:p.pointerEvents};});expect(bounds.top).toBe('-2px');expect(bounds.bottom).toBe('-2px');expect(bounds.pointer).toBe('none');expect(bounds.left).toBeGreaterThanOrEqual(1);expect(bounds.right+1).toBeLessThanOrEqual(afterRate!.x);await page.screenshot({path:info.outputPath('flash-long-price.png')});
+ await area.click();await expect(page).toHaveURL(/\/live-quotes$/);await expect.poll(()=>area.evaluate(e=>getComputedStyle(e,'::after').opacity)).toBe('0');
+});
+
+test('V3.8 invalid or zero quotes never invent a price or receipt time',async({page})=>{
+ await setup(page);await page.addInitScript(()=>(window as any).__manualQuotes=true);await page.goto('/live-quotes');await expect(page.locator('[data-quote-id]')).toHaveCount(4);const card=page.locator('[data-quote-id="1"]');
+ for(const price of [0,-1,1234]){await page.evaluate(price=>{for(const s of (window as any).__quoteStreams)if(!s.closed)s.dispatchEvent(new MessageEvent('quotes',{data:JSON.stringify({connection:'CONNECTED',quotes:[{symbol:'000001',status:'LIVE',quote:{symbol:'000001',market:s.market,price,change:0,rate:0,source:'KIS',receivedAt:Date.now(),observedAt:price===1234?'invalid':new Date().toISOString()}}]})}));},price);await expect(card.getByTestId('live-price')).toHaveText('—');await expect(card.getByTestId('live-quote-time')).toHaveText('—');await expect(card).toHaveAttribute('data-quote-received','false');}
+});
+
 test('saved KRX reference fills first display without masking stream state or contaminating markets',async({page})=>{
  await setup(page);await page.addInitScript(()=>{(window as any).__manualQuotes=true;});
  const saved={symbol:'000001',market:'KRX',price:2500,change:-100,rate:-3.85,observedAt:'2026-10-30T06:30:00.000Z',receivedAt:Date.parse('2026-10-30T06:30:00.000Z'),source:'CACHE'};

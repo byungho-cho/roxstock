@@ -61,6 +61,18 @@ test('real DB/auth: private conditions, boundary ledger, restart, pause, concurr
   condition=(await request('GET')).conditions[0];
   for(const pause of ['30m','1h','2h','3h','day']){const start=Date.now();await request('PATCH','/'+conditionId,{version:condition.version,pause});condition=(await request('GET')).conditions[0];const end=Date.parse(condition.pausedUntil);if(pause==='day')assert.equal(new Date(end+9*3600000).toISOString().slice(11,19),'00:00:00');else assert.ok(end>start);}
   await request('PATCH','/'+conditionId,{version:condition.version,pause:'10m'},0,400);
+  const other=await request('POST','',{...body,amount:'18500'},0,201);await engine.reload();await send(19100);await send(18000);
+  data=await request('GET');const arrival=data.events.find((e:any)=>e.conditionId===conditionId);assert.ok(arrival);assert.equal(data.unreadCount,2);
+  condition=data.conditions.find((c:any)=>c.id===conditionId);const otherArrival=data.events.find((e:any)=>e.conditionId===other.id);
+  await request('PATCH','/'+conditionId,{version:condition.version,pause:'30m',acknowledgeEventId:arrival.id},1,404);
+  await request('PATCH','/'+conditionId,{version:condition.version,pause:'30m',acknowledgeEventId:otherArrival.id},0,404);
+  await request('PATCH','/'+conditionId,{version:condition.version,pause:'invalid',acknowledgeEventId:arrival.id},0,400);
+  await request('PATCH','/'+conditionId,{version:condition.version,enabled:false,acknowledgeEventId:arrival.id},0,400);
+  assert.deepEqual((await request('GET')).conditions,data.conditions,'failed pause/ack must not change a condition');assert.equal((await request('GET')).unreadCount,2);
+  await request('PATCH','/'+conditionId,{version:condition.version,pause:'30m',acknowledgeEventId:arrival.id});data=await request('GET');
+  assert.equal(data.unreadCount,1);assert.equal(data.events[0].id,otherArrival.id);condition=data.conditions.find((c:any)=>c.id===conditionId);assert.equal(condition.enabled,true);assert.ok(Date.parse(condition.pausedUntil)>Date.now());
+  const preserved=await db.livePriceAlertEvent.findUniqueOrThrow({where:{id:BigInt(arrival.id)}});assert.ok(preserved.acknowledgedAt);assert.equal(preserved.openKey,null);assert.equal(preserved.price.toString(),arrival.price);assert.equal(preserved.observedAt.toISOString(),arrival.observedAt);
+  await request('DELETE','/'+other.id,{version:1});
   const variants=await Promise.all([request('POST','',{...body,amount:'18001'},0,201),request('POST','',{...body,amount:'18002'},0,201)]);assert.equal(variants.length,2);
   // Same security, different market: separate condition and frozen event provenance.
   await request('POST','',{...body,market:'TOTAL'},0,201);await engine.reload();await send(18000,{market:'TOTAL'});data=await request('GET');assert.ok(data.events.some((e:any)=>e.market==='TOTAL'));await request('POST','/acknowledge',{securityId:sid});assert.equal((await request('GET')).unreadCount,0);
