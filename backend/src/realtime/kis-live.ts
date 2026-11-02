@@ -64,7 +64,7 @@ export class KisLiveService {
         return {connection:this.state,marketOpen:isOpen,limit:quoteLimit,active:this.subscribed.size,policyVersion:liveQuotePolicyVersion,quotes:symbols.map(symbol=>{
             const logical=market+':'+symbol,raw=market==='TOTAL'?selectTotalQuote(symbol,this.quotes,now,this.connectedAt):this.quotes.get(logical),physical=raw?raw.market+':'+symbol:logical;
             const quote=raw&&market==='TOTAL'?logicalTotalQuote(raw):raw??null;
-            const status=!/^\d{6}$/.test(symbol)?'MARKET_UNSUPPORTED':plan.denied.has(logical)||!physicalQuoteKeys(logical,now).every(k=>allowed.has(k))?'LIMIT_EXCEEDED':physicalQuoteKeys(logical,now).every(k=>this.rejected.has(k))?'SUBSCRIPTION_REJECTED':!isOpen?'MARKET_CLOSED':raw?.halted?'TRADING_HALTED':this.state!=='CONNECTED'?this.state:!raw||raw.source!=='KIS'||!this.subscribed.has(physical)||raw.receivedAt<this.connectedAt?'WAITING_TRADE':+now-raw.receivedAt>30000?'NO_RECENT_TRADE':+now-Date.parse(raw.observedAt)>30000?'QUOTE_DELAYED':'LIVE';
+            const status=!/^\d{6}$/.test(symbol)?'MARKET_UNSUPPORTED':plan.denied.has(logical)||!physicalQuoteKeys(logical,now).every(k=>allowed.has(k))?'LIMIT_EXCEEDED':physicalQuoteKeys(logical,now).every(k=>this.rejected.has(k))?'SUBSCRIPTION_REJECTED':!isOpen?'MARKET_CLOSED':raw?.halted?'TRADING_HALTED':this.state!=='CONNECTED'?this.state:!raw||raw.source!=='KIS'||!this.subscribed.has(physical)||!physicalQuoteKeys(logical,now).includes(physical)||raw.receivedAt<this.connectedAt?'WAITING_TRADE':+now-raw.receivedAt>30000?'NO_RECENT_TRADE':+now-Date.parse(raw.observedAt)>30000?'QUOTE_DELAYED':'LIVE';
             return {symbol,status,quote};
         })};
     }
@@ -159,7 +159,7 @@ export class KisLiveService {
                 if (this.subscribed.has(key) && (!previous || quote.observedAt > previous.observedAt || quote.observedAt === previous.observedAt && (!quote.sequence || !previous.sequence || BigInt(quote.sequence) > BigInt(previous.sequence))))
                     {this.quotes.set(key, quote);
                         for(const listener of this.listeners)if(quote.market!=='TOTAL')listener(quote);
-                        if(this.logicalDesired().includes('TOTAL:'+quote.symbol)&&!quoteSubscriptionPlan(this.logicalDesired(),new Date()).denied.has('TOTAL:'+quote.symbol)&&selectTotalQuote(quote.symbol,this.quotes,new Date(),this.connectedAt)===quote)
+                        if(physicalQuoteKeys('TOTAL:'+quote.symbol,new Date()).includes(key)&&this.logicalDesired().includes('TOTAL:'+quote.symbol)&&!quoteSubscriptionPlan(this.logicalDesired(),new Date()).denied.has('TOTAL:'+quote.symbol)&&selectTotalQuote(quote.symbol,this.quotes,new Date(),this.connectedAt)===quote)
                             for(const listener of this.listeners)listener(logicalTotalQuote(quote));
                     }
             }

@@ -82,3 +82,9 @@ test('logical TOTAL snapshot exposes a genuine KRX fallback and keeps direct NXT
  assert.equal(row.status,'LIVE');assert.equal(row.quote?.sourceMarket,'KRX');assert.equal(row.quote?.market,'TOTAL');assert.equal(row.quote?.observedAt,raw.observedAt);assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]?.quote,null);
  }finally{stop();await service.close();}
 });
+
+test('an explicit NXT client cannot turn a retained NXT quote into a regular-session TOTAL live source',async()=>{
+ const service=new KisLiveService(false),stop=service.watch('TOTAL',['003490']),direct=service.watch('NXT',['003490']);
+ try{service.state='CONNECTED';const now=new Date('2026-11-02T03:00:00Z');(service as any).quotes.set('NXT:003490',{symbol:'003490',market:'NXT',price:27600,change:1050,rate:3.95,observedAt:now.toISOString(),receivedAt:+now,source:'KIS'});(service as any).subscribed=new Set(['TOTAL:003490','KRX:003490','NXT:003490']);const row=service.snapshot('TOTAL',['003490'],now).quotes[0]!;assert.equal(row.status,'WAITING_TRADE');assert.equal(row.quote?.sourceMarket,'NXT');assert.equal(service.snapshot('NXT',['003490'],now).quotes[0]!.status,'LIVE');
+ }finally{stop();direct();await service.close();}
+});
