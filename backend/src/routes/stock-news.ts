@@ -51,6 +51,14 @@ async function context(tx:Prisma.TransactionClient,accountId:bigint,q:Query){
 function boundary(row:Pick<Row,'collectedAt'|'priority'|'publishedAt'|'id'>,direction:'before'|'after'):Prisma.StockNewsItemWhereInput{
  const op=direction==='before'?'gt':'lt';return {OR:[{collectedAt:{[op]:row.collectedAt}},{collectedAt:row.collectedAt,OR:[{priority:{[op]:row.priority}},{priority:row.priority,publishedAt:{[op]:row.publishedAt}},{priority:row.priority,publishedAt:row.publishedAt,id:{[op]:row.id}}]}]};
 }
+export async function unreadStockNews(accountId:bigint){
+ const uid=userId();
+ return prisma.$transaction(async tx=>{
+  const ctx=await context(tx,accountId,{});
+  const unread=await tx.stockNewsItem.findFirst({where:{AND:[ctx.where,{reads:{none:{userId:uid}}}]},select:{id:true}});
+  return {data:{accountId:String(accountId),hasUnread:!!unread}};
+ },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead});
+}
 export async function loadStockNews(accountId:bigint,q:Query={}){
  return prisma.$transaction(async tx=>{
   const ctx=await context(tx,accountId,q);let after:Prisma.StockNewsItemWhereInput={};
@@ -93,6 +101,9 @@ export async function markAllStockNewsRead(accountId:bigint,q:Query){
  },{isolationLevel:Prisma.TransactionIsolationLevel.RepeatableRead,timeout:30000});
 }
 export async function stockNewsRoutes(app:FastifyInstance){
+ app.get<{Params:{accountId:string}}>('/accounts/:accountId/stock-news/unread',async(req,reply)=>{
+  reply.header('Cache-Control','private, no-store');return unreadStockNews(id(req.params.accountId,'accountId'));
+ });
  app.put<{Params:{accountId:string;newsId:string};Body:Query}>('/accounts/:accountId/stock-news/:newsId/read',async(req,reply)=>{
   reply.header('Cache-Control','private, no-store');return markStockNewsRead(id(req.params.accountId,'accountId'),id(req.params.newsId,'newsId'),req.body??{});
  });

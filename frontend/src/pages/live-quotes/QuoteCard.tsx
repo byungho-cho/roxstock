@@ -25,7 +25,7 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
   const today=koreanDay(Date.now());
   // A connection or REST seed is not proof of receiving this symbol/market's KST-day trade.
   const received=!!q&&q.symbol===stock.symbol&&q.market===market&&q.source==='KIS'&&!row.referenceMarket&&q.receivedAt>0&&koreanDay(q.receivedAt)===today&&koreanDay(Date.parse(q.observedAt))===today;
-  const valueColor=received?color(q?.change??0):colors.textMuted;
+  const valueColor=q?color(q.change):colors.textMuted;
   const dayDirection=(q?.change??0)>0?'up':(q?.change??0)<0?'down':'flat';
   const visibleFlash=!marketClosed&&received&&flashMarket.current===market&&flashSource.current===q?.sourceMarket&&flash?dayDirection:null;
   useEffect(()=>{previous.current=null;clearTimeout(timer.current);setFlash(null);},[market]);
@@ -39,14 +39,14 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
   },[q?.price,q?.market,row.status,row.retained,ghost,received,q?.sourceMarket]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   // Cache receivedAt can be the HTTP fetch time; preserve its original quote timestamp instead.
-  const stamp=q?(marketClosed&&q.source==='KIS'?q.receivedAt:Date.parse(q.observedAt)):NaN;
+  const stamp=q&&q.observedAtKnown!==false?(marketClosed&&q.source==='KIS'?q.receivedAt:Date.parse(q.observedAt)):NaN;
   const parts=Number.isFinite(stamp)?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(stamp)):[];
   const part=(name:string)=>parts.find(p=>p.type===name)?.value??'';
   const asOf=parts.length?part('hour')+':'+part('minute')+':'+part('second'):'';
   const fullStamp=parts.length?part('month')+'.'+part('day')+' '+asOf:'';
   const lag=q?Math.max(0,q.receivedAt-Date.parse(q.observedAt)):0;
   const delayed=lag>=3000||row.status==='QUOTE_DELAYED';
-  const timeColor=received&&!marketClosed&&!row.retained&&row.status==='LIVE'&&!delayed?colors.focus:colors.textMuted;
+  const timeColor=received&&!marketClosed&&!row.retained&&row.status==='LIVE'&&!delayed?colors.positive:colors.textMuted;
   const reference=row.referenceMarket?`${row.referenceMarket} 저장 시세 · ${market==='TOTAL'?'통합 수신 전 참고':'마지막 시세'} · `:'';
   const caption=reference+(marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':''));
   return <Box data-quote-received={received?'true':'false'} data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}

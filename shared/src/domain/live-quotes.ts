@@ -7,6 +7,8 @@ export type LiveQuote = {
     change: number;
     rate: number;
     observedAt: string;
+    /** False for REST references that provide no actual quote timestamp. */
+    observedAtKnown?: boolean;
     receivedAt: number;
     source: 'KIS' | 'CACHE';
     halted?: boolean;

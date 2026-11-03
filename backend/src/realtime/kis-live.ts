@@ -199,8 +199,8 @@ export class KisLiveService {
                 const o = b.output, p = Number(o?.stck_prpr);
                 if (b.rt_cd === '0' && Number.isFinite(p) && p > 0 && Number.isFinite(Number(o.prdy_vrss)) && Number.isFinite(Number(o.prdy_ctrt))) {
                     const previous = this.quotes.get(key);
-                    if (!previous || previous.source === 'CACHE' || Date.now() - previous.receivedAt > 30000)
-                        this.quotes.set(key, { symbol, market, price: p, change: Number(o.prdy_vrss), rate: Number(o.prdy_ctrt), observedAt: new Date().toISOString(), receivedAt: Date.now(), source: 'CACHE', halted: o.temp_stop_yn === 'Y' });
+                    if (!previous || previous.source === 'CACHE')
+                        this.quotes.set(key, { symbol, market, price: p, change: Number(o.prdy_vrss), rate: Number(o.prdy_ctrt), observedAt: new Date().toISOString(), observedAtKnown: false, receivedAt: Date.now(), source: 'CACHE', halted: o.temp_stop_yn === 'Y' });
                 }
             }
             catch { /* Keep last good value; no raw provider bodies or credentials in logs. */ }

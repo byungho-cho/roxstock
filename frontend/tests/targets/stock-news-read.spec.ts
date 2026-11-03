@@ -24,7 +24,7 @@ async function confirmAll(page:Page){
 
 test('NEW is red, view marks one, return/reload preserves state, bulk includes unloaded pages',async({page},info)=>{
  const data=await setup(page);await page.goto('/detail/stock-news');
- await expect(page.getByTestId('news-new')).toHaveCount(10);
+ await expect(page.getByTestId('news-new')).toHaveCount(10);await expect(page.getByTestId('menu-new-news')).toHaveCount(1);
  await expect(page.getByTestId('news-unread-button')).toHaveAttribute('aria-label','읽지 않은 소식 26건 모두 읽음 처리');
  await page.getByTestId('news-unread-button').click();await expect(page.getByRole('dialog')).toContainText('26건을 모두 읽음 처리하시겠습니까?');
  await page.getByRole('dialog').getByRole('button',{name:'취소',exact:true}).click();expect(data.writes).toHaveLength(0);
@@ -32,7 +32,7 @@ test('NEW is red, view marks one, return/reload preserves state, bulk includes u
  await page.getByTestId('stock-news-title').first().click();await expect.poll(()=>data.writes.length).toBe(1);
  await page.getByRole('button',{name:'뒤로가기',exact:true}).click();await expect(page.getByTestId('news-new')).toHaveCount(9);
  await page.reload();await expect(page.getByTestId('news-new')).toHaveCount(9);
- await confirmAll(page);await expect(page.getByTestId('news-new')).toHaveCount(0);await expect(page.getByTestId('news-unread-button')).toBeDisabled();
+ await confirmAll(page);await expect(page.getByTestId('news-new')).toHaveCount(0);await expect(page.getByTestId('menu-new-news')).toHaveCount(0);await expect(page.getByTestId('news-unread-button')).toBeDisabled();
  await page.getByTestId('news-more').click();await expect(page.getByTestId('stock-news-card')).toHaveCount(20);await expect(page.getByTestId('news-new')).toHaveCount(0);
  await expect(page.getByTestId('news-display-count')).toHaveText('20/26');
  expect(data.writes.at(-1)?.body.snapshot).toBeTruthy();

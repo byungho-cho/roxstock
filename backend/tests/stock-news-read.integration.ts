@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prisma} from '@roxstock/shared/lib/prisma';
 import {authContext} from '../src/auth/context.js';
-import {loadStockNews,loadStockNewsDetail,markStockNewsRead,markAllStockNewsRead} from '../src/routes/stock-news.js';
+import {loadStockNews,loadStockNewsDetail,markStockNewsRead,markAllStockNewsRead,unreadStockNews} from '../src/routes/stock-news.js';
 
 test('personal news reads: durable, idempotent, account-safe, bounded bulk and unchanged source',async()=>{
  const target=new URL(process.env.DATABASE_URL!);
@@ -19,6 +19,8 @@ test('personal news reads: durable, idempotent, account-safe, bounded bulk and u
   await prisma.accountWatchlistItem.createMany({data:accounts.map(a=>({accountId:a.id,securityId:security.id}))});
   const source=await Promise.all(Array.from({length:15},(_,i)=>create(i)));
   const first=await as(0,()=>loadStockNews(accounts[0]!.id));assert.equal(first.meta.total,15);assert.equal(first.meta.unreadCount,15);assert.ok(first.data.every((r:any)=>!r.isRead));
+  assert.equal((await as(0,()=>unreadStockNews(accounts[0]!.id))).data.hasUnread,true);
+  await assert.rejects(as(0,()=>unreadStockNews(accounts[1]!.id)),(e:any)=>e.statusCode===404||e.status===404);
   const newsId=source[0]!.id;
   // Viewing the list or fetching the summary must never mutate read state.
   assert.equal((await as(0,()=>loadStockNewsDetail(accounts[0]!.id,newsId))).data.isRead,false);
@@ -43,6 +45,8 @@ test('personal news reads: durable, idempotent, account-safe, bounded bulk and u
   assert.equal((await as(0,()=>loadStockNews(accounts[0]!.id,{snapshot:first.meta.snapshot}))).meta.unreadCount,0);
   assert.equal((await as(0,()=>loadStockNews(accounts[0]!.id))).meta.unreadCount,1);
   assert.equal((await as(1,()=>loadStockNews(accounts[1]!.id))).meta.unreadCount,16);
+  const latest=await as(0,()=>loadStockNews(accounts[0]!.id));await as(0,()=>markAllStockNewsRead(accounts[0]!.id,{snapshot:latest.meta.snapshot}));
+  assert.equal((await as(0,()=>unreadStockNews(accounts[0]!.id))).data.hasUnread,false);assert.equal((await as(1,()=>unreadStockNews(accounts[1]!.id))).data.hasUnread,true);
   // New client/request reads persisted state, and collection/source records are unmodified.
   assert.ok((await as(0,()=>loadStockNews(accounts[0]!.id,{snapshot:first.meta.snapshot}))).data.every((r:any)=>r.isRead));
   assert.deepEqual(await prisma.stockNewsItem.findMany({where:{id:{in:source.map(r=>r.id)}},orderBy:{id:'asc'}}),[...source].sort((a,b)=>a.id<b.id?-1:1));
