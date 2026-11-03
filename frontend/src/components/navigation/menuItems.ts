@@ -17,6 +17,6 @@ export const appMenuItems=[
  {label:'모니터링',path:'/detail/collection-monitoring',icon:'monitoring'},
  {label:'설정',path:'/detail/settings',icon:'settings'},
 ];
-export const menuIconSource=(icon:string)=>icon==='live-quotes'?'/live-quotes/menu.svg':icon==='security-data'?'/security-data/sliders.svg':icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;
+export const menuIconSource=(icon:string)=>icon==='live-quotes'?'/live-quotes/menu.svg?v=2':icon==='security-data'?'/security-data/sliders.svg':icon==='stock-news'?'/stock-news/newspaper.svg':`/more-v03/${icon}.svg`;
 
 export const getAppMenuItems=(isAdmin:boolean)=>appMenuItems.filter(item=>isAdmin||!['monitoring','security-data'].includes(item.icon));

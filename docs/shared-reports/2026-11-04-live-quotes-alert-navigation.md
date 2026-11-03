@@ -7,6 +7,7 @@ Release 1.2.61. Implementation and local verification completed; production veri
 - Both bottom navigation and More use Home, Dashboard, Stocks, Live Quotes, Journal, Stock News, Cash, followed by the remaining existing entries. The static live-menu red dot is removed. Bottom Live Quotes and Stock News show a 7px red dot only for real unacknowledged arrivals/unread news.
 - Alert status shares the existing user-scoped query/cache. News status uses a private, account-scoped boolean endpoint that selects at most one unread ID, without loading article bodies or triggering collection. Confirmed read actions invalidate this status. No schema or tick-history storage change.
 - The temporary preview override and query-parameter handler were removed entirely. Old preview URLs cannot force indicators.
+- The public live-menu SVG URL has a new revision parameter, so clients with the previous seven-day immutable icon cache also receive the version without the fixed dot.
 
 ## Validation
 
@@ -16,6 +17,7 @@ Release 1.2.61. Implementation and local verification completed; production veri
 - Policy/socket/API/alert domain tests: 22 passed.
 - Shared, backend and collector TypeScript checks; frontend production build; diff checks passed.
 - Dedicated local news-read DB integration passed, including unread status, ownership isolation and persistence. Existing alert DB integration also passed during this change set.
+- Additional shared menu checks (10), production-build performance checks (34), cached-profit checks (2), four-size asset error/retry checks (4), and focused legacy home-loading checks (2) passed. Page-bootstrap request limits remain intact; menu status requests are explicitly bounded. The menu observes account metadata without issuing an extra page bootstrap, and the alert cache prevents duplicate reads on quick remounts.
 
 ## Deployment preparation
 
