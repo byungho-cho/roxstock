@@ -69,9 +69,9 @@ test('full and personal backup buttons send separate scopes and block overlappin
  await expect(page.getByTestId('backup-item')).toHaveCount(2);await expect(page.getByTestId('backup-item').filter({hasText:'수동 · 전체'})).toContainText('SQL');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath('backup-scopes.png')});
 });
 
-test('menu keeps settings and monitoring equal and places investor between cash and analysis',async({page})=>{
+test('menu preserves shared order, journal/news/cash adjacency and equal settings/monitoring items',async({page})=>{
  await fixture(page);await page.goto('/more');const menu=page.getByTestId('more-menu');await expect(menu.getByRole('button')).toHaveCount(17);
- const names=await menu.getByRole('button').allTextContents();expect(names.slice(0,3)).toEqual(['홈','실시간주가','대시보드']);expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(10);expect(names.indexOf('종목소식')).toBe(names.indexOf('가치분석')+1);
+ const names=await menu.getByRole('button').allTextContents();expect(names.slice(0,4)).toEqual(['홈','대시보드','종목목록','실시간주가']);expect(names.slice(-4)).toEqual(['투자동향','종목 관리','모니터링','설정']);expect(names.indexOf('투자동향')).toBe(names.indexOf('복리계획')+1);expect(names.indexOf('종목소식')).toBe(5);expect(names.indexOf('종목소식')).toBe(names.indexOf('매매일지')+1);expect(names.indexOf('예수금')).toBe(names.indexOf('종목소식')+1);
  const settings=await menu.getByRole('button',{name:'설정',exact:true}).boundingBox(),monitor=await menu.getByRole('button',{name:'모니터링',exact:true}).boundingBox();expect(settings!.width).toBeCloseTo(monitor!.width,1);expect(settings!.y).toBeGreaterThanOrEqual(monitor!.y);
 });
 
