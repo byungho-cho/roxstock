@@ -9,7 +9,7 @@ export function QuoteSelect({label,value,options,onChange,disabled=false,plain=f
   const [open,setOpen]=useState(false);
   const consume=usePopupHistory(open,()=>setOpen(false));
   const close=()=>{setOpen(false);void consume();};
-  return <Select size="small" open={open} onOpen={()=>setOpen(true)} onClose={close} value={value} disabled={disabled}
+  return <Select size="small" displayEmpty open={open} onOpen={()=>setOpen(true)} onClose={close} value={value} disabled={disabled}
     inputProps={{'aria-label':label}} IconComponent={KeyboardArrowDownRounded}
     onChange={e=>{close();onChange(e.target.value);}}
     sx={{height:28,minWidth:0,width:'100%',fontSize:12,bgcolor:plain?'transparent':colors.raised,borderRadius:'8px','& fieldset':plain?{border:0}:{},'& .MuiSelect-select':{py:0,pl:'8px',pr:'22px !important'},'& .MuiSelect-icon':{right:3,fontSize:16}}}

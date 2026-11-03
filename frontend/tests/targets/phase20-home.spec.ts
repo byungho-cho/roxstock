@@ -18,12 +18,12 @@ test('chart and targets paint before slow dashboard; recent remains a titled she
  await page.route('**/api/**',async r=>{
     // Legacy endpoint fixture: exercise rollback compatibility; tuning-01 covers the unified APIs.
     if(new URL(r.request().url()).pathname.startsWith('/api/pages/'))return r.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
-const p=new URL(r.request().url()).pathname;if(p!=='/api/version')reads.push(p);if(p.endsWith('/dashboard'))await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
+const p=new URL(r.request().url()).pathname;if(p!=='/api/version')reads.push(p);if(p==='/api/live-quotes/alerts')return r.fulfill({json:{data:{conditions:[],events:[],unreadCount:0,monitor:{healthy:true,capacity:41,monitoring:0,systemPush:false,background:'SERVER_INBOX'}}}});if(/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(p))return r.fulfill({json:{data:{accountId:p.split('/')[3],hasUnread:false}}});if(p.endsWith('/dashboard'))await new Promise<void>(resolve=>{release=resolve;});return r.fallback();});
  await page.goto('/');await titles(page);await expect(page.getByTestId('home-trend-card')).toHaveCount(0);await expect(page.getByTestId('target-arrival-card')).toContainText('0건');
  await expect(page.getByTestId('home-total-card')).toHaveAttribute('aria-busy','true');expect(reads.filter(p=>p.endsWith('/recent-buys'))).toHaveLength(0);
  const before=await geometry(page);await expect.poll(()=>!!release).toBe(true);release();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(await geometry(page)).toEqual(before);
- // StrictMode can cancel the initial request, but this change adds no new API endpoints.
- expect([...new Set(reads.filter(p=>p.startsWith('/api/accounts/')).map(p=>p.split('/').at(-1)))] .sort()).toEqual(['dashboard','recent-buys','target-arrivals']);
+ // Existing page endpoints stay bounded; the menu additionally reads the account unread flag.
+ expect([...new Set(reads.filter(p=>p.startsWith('/api/accounts/')).map(p=>p.split('/').at(-1)))] .sort()).toEqual(['dashboard','recent-buys','target-arrivals','unread']);
  const count=reads.length;await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'더보기',exact:true}).click();await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);expect(reads.length).toBe(count);await expect(page.locator('[data-loading-indicator]')).toHaveCount(0);
 });
 test('obsolete home chart requests are removed without affecting recent rows',async({page})=>{

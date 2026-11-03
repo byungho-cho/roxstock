@@ -26,7 +26,7 @@ export function useNewsRead(accountId:string|undefined){
      if(old?.pages)return {...old,pages:old.pages.map((p:any)=>({...p,data:p.data.map(row)}))};
      return old?.data?{...old,data:row(old.data)}:old;
     });
-    await client.invalidateQueries({predicate});
+    await Promise.all([client.invalidateQueries({predicate}),client.invalidateQueries({queryKey:['stockNewsUnread']})]);
    }
    return true;
   }catch{if(sameOwner()){last.current={accountId,newsId,scope};setFailed(true);}return false;}
