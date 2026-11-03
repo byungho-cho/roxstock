@@ -20,6 +20,8 @@ async function fixture(page:Page){
     if(new URL(route.request().url()).pathname.startsWith('/api/pages/'))return route.fulfill({status:404,json:{error:{message:'Legacy API fixture'}}});
 
   const url=new URL(route.request().url()),path=url.pathname;requests.push(url.pathname+url.search);
+  if(path==='/api/live-quotes/alerts')return route.fulfill({json:{data:{conditions:[],events:[],unreadCount:0,monitor:{healthy:true,capacity:41,monitoring:0,systemPush:false,background:'SERVER_INBOX'}}}});
+  if(/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(path))return route.fulfill({json:{data:{accountId:path.split('/')[3],hasUnread:false}}});
   if(path==='/api/accounts')return route.fulfill({json:{data:[{id:'1',isActive:true,isDefault:true,name:'기본'},{id:'2',isActive:true,name:'다른 계좌'}]}});
   if(path.endsWith('/dashboard'))return route.fulfill({json:{data:{account:{id:'1'},cashBalance:'1000',purchaseAmount:'2000',stockValue:'3000',totalAssetValue:'4000',holdings:[],pricingComplete:true,latestPriceUpdatedAt:'2026-10-07T03:00:00Z'}}});
   if(path.endsWith('/recent-buys'))return route.fulfill({json:{data:[],meta:{count:0,total:0,more:false}}});
@@ -81,7 +83,7 @@ test('profit capital, signed order toggle, neighbors and body swipe stop at ends
  expect(await monthly.filter({hasText:'매매'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(251, 113, 133)');
  expect(await monthly.filter({hasText:'배당'}).getByTestId('profit-percent').evaluate(n=>getComputedStyle(n).color)).toBe('rgb(250, 199, 31)');
  const previous=page.getByRole('button',{name:/이전 상세/});expect(await previous.evaluate(n=>getComputedStyle(n).whiteSpace)).toBe('nowrap');
- const businessRequests=()=>f.requests.filter(url=>!String(url).includes('/notifications/')).length;const before=businessRequests();await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(businessRequests()).toBe(before);
+ const businessRequests=()=>f.requests.filter(url=>!String(url).includes('/notifications/')&&url!=='/api/live-quotes/alerts'&&!/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(url)).length;const before=businessRequests();await page.clock.fastForward(600000);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));expect(businessRequests()).toBe(before);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:info.outputPath('profit.png')});
  await page.locator('.MuiBottomNavigation-root:visible').getByRole('button',{name:'홈',exact:true}).click();

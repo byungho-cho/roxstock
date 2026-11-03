@@ -14,10 +14,12 @@ const screens=[
   {url:'/detail/financials',path:'/financial-statements',text:'저장된 데이터가 없습니다.'},
 ];
 for(const screen of screens)test(`batched reads render ${screen.url}`,async({page},info)=>{
-  const batches:string[][]=[],direct:string[]=[],errors:string[]=[];
+  const batches:string[][]=[],direct:string[]=[],menuReads:string[]=[],errors:string[]=[];
   page.on('pageerror',error=>errors.push(error.message));
-  page.on('request',request=>{const path=new URL(request.url()).pathname;if(path.startsWith('/api/')&&!path.startsWith('/api/notifications/')&&path!=='/api/pages/read')direct.push(path);});
+  page.on('request',request=>{const path=new URL(request.url()).pathname;if(path==='/api/live-quotes/alerts'||/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(path))menuReads.push(path);else if(path.startsWith('/api/')&&!path.startsWith('/api/notifications/')&&path!=='/api/pages/read')direct.push(path);});
   await fixture(page,{batch:true,onBatch:paths=>batches.push(paths),read:url=>{
+    if(url.pathname==='/api/live-quotes/alerts')return {json:{data:{conditions:[],events:[],unreadCount:0,monitor:{healthy:true,capacity:41,monitoring:0,systemPush:false,background:'SERVER_INBOX'}}}};
+    if(/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(url.pathname))return {json:{data:{accountId:url.pathname.split('/')[3],hasUnread:false}}};
     if(url.pathname==='/api/notifications/settings')return {json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}};
     if(url.pathname==='/api/notifications/inbox')return {json:{data:{rows:[],total:0}}};
     if(['/api/value-analysis','/api/financial-statements'].includes(url.pathname))return {json:{data:{year:2026,market:'KOSPI',query:'',total:0,rows:[]}}};
@@ -33,7 +35,7 @@ for(const screen of screens)test(`batched reads render ${screen.url}`,async({pag
   if(screen.ready)await expect(page.getByTestId(screen.ready).first()).toBeVisible();
   else await expect(page.getByText(screen.text!,{exact:true})).toBeVisible();
   await expect(page.locator('[data-loading-indicator="visible"]')).toHaveCount(0);
-  expect(screen.path==='/trades'?direct.filter(path=>!path.endsWith('/trades')):direct).toEqual([]);expect(errors).toEqual([]);
+  expect(screen.path==='/trades'?direct.filter(path=>!path.endsWith('/trades')):direct).toEqual([]);expect(errors).toEqual([]);await expect.poll(()=>menuReads.slice().sort()).toEqual(['/api/accounts/1/stock-news/unread','/api/live-quotes/alerts']);
   if(screen.url==='/assets')expect(batches.some(paths=>paths.length>1)).toBe(true);
   await page.screenshot({path:info.outputPath('screen.png')});
 });

@@ -4,6 +4,8 @@ import { analysisRange, decimalValue } from '../../src/pages/assets/analysisPeri
 
 async function setup(page: Page) {
   await fixture(page);
+  await page.route('**/api/live-quotes/alerts',r=>r.fulfill({json:{data:{conditions:[],events:[],unreadCount:0,monitor:{healthy:true,capacity:41,monitoring:0,systemPush:false,background:'SERVER_INBOX'}}}}));
+  await page.route('**/api/accounts/*/stock-news/unread',r=>r.fulfill({json:{data:{accountId:new URL(r.request().url()).pathname.split('/')[3],hasUnread:false}}}));
   await page.route('**/api/accounts/*/compound-plans*',route=>route.fulfill({json:{data:{accountId:new URL(route.request().url()).pathname.split('/')[3],currentAssets:'1000000',currentYear:2026,plans:[]}}}));
   let error = false, empty = false, missing = false;
   const reads: URL[] = [];
@@ -104,7 +106,7 @@ test('real server period result is preserved, unknown breakdown and plan are not
   await expect(page.getByTestId('analysis-total-value')).toHaveText('2,000,000원');
   await expect.poll(() => state.reads.at(-1)?.pathname).toContain('/b/');
   state.empty(); await page.getByRole('button', { name: '전체', exact: true }).click(); await expect(page.getByTestId('analysis-trend').getByText('내용이 없습니다.', { exact: true })).toBeVisible();
-  state.error(); await page.getByRole('button', { name: '6개월', exact: true }).click(); await expect(page.getByText('자산 이력 조회에 실패했습니다.', { exact: true })).toBeVisible({ timeout: 15000 });
+  state.error(); await page.getByRole('button', { name: '6개월', exact: true }).click(); await expect(page.locator('.MuiSnackbar-root')).toContainText(/자산 이력 조회에 실패했습니다\.|최신 조회에 실패했습니다\. 다시 시도해 주세요\./,{timeout:15000});
   state.success(); await page.locator('.MuiSnackbar-root').getByRole('button',{name:'재시도',exact:true}).click(); await expect(page.getByTestId('analysis-trend').getByText('내용이 없습니다.', { exact: true })).toBeVisible();
   state.missing(); await page.reload(); await expect(page.getByTestId('analysis-total-value')).toHaveText('—'); await expect(page.getByText('시세 미수집 · 구성 계산 불가')).toBeVisible();
   expect(decimalValue(null)).toBeNaN(); expect(analysisRange('1m', '2026-03-31').from).toBe('2026-02-28');

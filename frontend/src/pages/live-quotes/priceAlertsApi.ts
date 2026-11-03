@@ -6,7 +6,7 @@ export type PriceCondition={id:string;securityId:string;name:string;symbol:strin
 export type PriceReach=PriceCondition&{conditionId:string;price:string;change:string;rate:string;observedAt:string;createdAt:string};
 export type AlertData={conditions:PriceCondition[];events:PriceReach[];unreadCount:number;monitor:{sourceConnection?:string;activeWindow?:boolean;healthy:boolean;capacity:number;monitoring:number;systemPush:boolean;background:string}};
 export function usePriceAlertData(userId:string|undefined){
- const key=['live-price-alerts',userId],query=useQuery({queryKey:key,enabled:!!userId,queryFn:async({signal})=>{const data=await apiRequest<AlertData>('/live-quotes/alerts',{signal});if(!Array.isArray(data.conditions)||!Array.isArray(data.events)||!Number.isSafeInteger(data.unreadCount))throw Error('알림 응답을 확인하지 못했습니다.');return data;},refetchInterval:15000,refetchOnWindowFocus:true});
+ const key=['live-price-alerts',userId],query=useQuery({queryKey:key,enabled:!!userId,queryFn:async({signal})=>{const data=await apiRequest<AlertData>('/live-quotes/alerts',{signal});if(!Array.isArray(data.conditions)||!Array.isArray(data.events)||!Number.isSafeInteger(data.unreadCount))throw Error('알림 응답을 확인하지 못했습니다.');return data;},staleTime:10000,refetchInterval:15000,refetchOnWindowFocus:true});
  return query;
 }
 export function usePriceAlerts(userId:string|undefined){

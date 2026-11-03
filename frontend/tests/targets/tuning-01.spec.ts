@@ -6,8 +6,8 @@ const recent=(count=5,months=0)=>({data:Array.from({length:count},(_,i)=>lot(Str
 const home=(id='1')=>({accounts:[account(id)],accountId:id,dashboard:{account:account(id),cashBalance:'1000',purchaseAmount:'200',stockValue:'300',totalAssetValue:'1300',unrealizedProfitLoss:'100',unrealizedReturnRate:'50',pricingComplete:true,holdings:[holding]},trend:{data:[{date:'2026-10-12',totalAssetValue:'1200'},{date:'2026-10-13',totalAssetValue:'1300'}]},targets:{data:[],meta:{accountId:id,enabled:true,total:0,unavailableCount:0,priceAsOf:null}},recent:{...recent(),meta:{...recent().meta,accountId:id}}});
 const stocks=()=>({accounts:[account()],accountId:'1',stocks:{catalog:[],holdings:[holding],trades:[]}});
 async function setup(page:Page){
- const calls:string[]=[];
- await page.route('**/api/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/notifications/settings')return route.fulfill({json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}});if(path==='/api/notifications/inbox')return route.fulfill({json:{data:{rows:[],total:0}}});calls.push(path);return route.fulfill({status:404,json:{error:{message:'Unexpected request'}}});});
+ const calls=Object.assign([] as string[],{menu:[] as string[]});
+ await page.route('**/api/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/live-quotes/alerts'){calls.menu.push(path);return route.fulfill({json:{data:{conditions:[],events:[],unreadCount:0,monitor:{healthy:true,capacity:41,monitoring:0,systemPush:false,background:'SERVER_INBOX'}}}});}if(/^\/api\/accounts\/\d+\/stock-news\/unread$/.test(path)){calls.menu.push(path);return route.fulfill({json:{data:{accountId:path.split('/')[3],hasUnread:false}}});}if(path==='/api/notifications/settings')return route.fulfill({json:{data:{tradeEnabled:false,targetEnabled:false,newsEnabled:false,pushConfigured:false}}});if(path==='/api/notifications/inbox')return route.fulfill({json:{data:{rows:[],total:0}}});calls.push(path);return route.fulfill({status:404,json:{error:{message:'Unexpected request'}}});});
  await page.route('**/api/pages/**',route=>{const url=new URL(route.request().url());if(url.pathname==='/api/pages/read')return route.fulfill({status:404,json:{error:{message:'Use legacy reads in tuning-01 fixture'}}});calls.push(url.pathname);return route.fulfill({json:{data:url.pathname.endsWith('/stocks')?stocks():home(url.searchParams.get('accountId')??'1')}});});
  return calls;
 }
@@ -15,11 +15,11 @@ test('home and stocks use one API each and preserve cache during tab switches',a
  const calls=await setup(page);await page.goto('/');
  await expect(page.getByTestId('home-total-card')).toContainText('1,300');
  await expect(page.getByTestId('recent-buy-lot')).toHaveCount(5);
- expect(calls).toEqual(['/api/pages/home']);
+ expect([...calls]).toEqual(['/api/pages/home']);await expect.poll(()=>calls.menu.slice().sort()).toEqual(['/api/accounts/1/stock-news/unread','/api/live-quotes/alerts']);
  await page.goto('/stocks');
  await expect(page.getByTestId('stock-list')).toContainText('현대자동차');
  await page.getByRole('tab',{name:'관심종목'}).click();
- expect(calls).toEqual(['/api/pages/home','/api/pages/stocks']);
+ expect([...calls]).toEqual(['/api/pages/home','/api/pages/stocks']);expect(calls.menu.filter(p=>p==='/api/live-quotes/alerts')).toHaveLength(2);expect(calls.menu.filter(p=>p==='/api/accounts/1/stock-news/unread')).toHaveLength(2);
 });
 test('more retains existing DOM and appends without skeleton, duplicates or a second click',async({page})=>{
  await setup(page);let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);let requests=0;

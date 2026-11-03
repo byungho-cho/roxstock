@@ -1,12 +1,18 @@
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useEffect} from 'react';
 import {apiRequest} from '../../data/apiClient';
-import {useActiveAccount} from '../../hooks/useActiveAccount';
+import {useSelectedAccountId} from '../../hooks/useActiveAccount';
+import {chooseAccount,listAccounts} from '../../data/roxstockApi';
+import {storedQueryOptions} from '../../data/storedQueryOptions';
+import {useLocation} from 'react-router-dom';
 import {liveApiEnabled} from '../../data/liveData';
 import {usePriceAlertData} from '../../pages/live-quotes/priceAlertsApi';
 
 export function useMenuNotifications(userId:string|undefined){
- const {accountId}=useActiveAccount(),client=useQueryClient();
+ const client=useQueryClient(),selected=useSelectedAccountId(),{pathname}=useLocation();
+ // Home/stocks bootstrap already supplies accounts: observe that cache without another page fetch.
+ const accounts=useQuery({...storedQueryOptions,queryKey:['accounts','api'],queryFn:({signal})=>listAccounts(signal),enabled:liveApiEnabled&&!!userId&&pathname!=='/'&&pathname!=='/stocks'});
+ const accountId=accounts.data?chooseAccount(accounts.data)?.id:selected??undefined;
  const alerts=usePriceAlertData(userId);
  const news=useQuery({queryKey:['stockNewsUnread',userId,accountId],enabled:liveApiEnabled&&!!userId&&!!accountId,
   queryFn:async({signal})=>{const data=await apiRequest<{accountId:string;hasUnread:boolean}>(`/accounts/${accountId}/stock-news/unread`,{signal});if(data.accountId!==accountId||typeof data.hasUnread!=='boolean')throw Error('소식 알림 상태를 확인하지 못했습니다.');return data;},

@@ -15,11 +15,12 @@ const subscribe = (notify: () => void) => {
   };
 };
 const selectedId = () => window.localStorage.getItem(selectedAccountStorageKey) ?? import.meta.env.VITE_API_ACCOUNT_ID ?? null;
+export const useSelectedAccountId=()=>useSyncExternalStore(subscribe,selectedId,()=>null);
 
 export function useActiveAccount() {
   // The selection event makes a switch visible before any new account request finishes.
   const client = useQueryClient();
-  const selected = useSyncExternalStore(subscribe, selectedId, () => null);
+  const selected = useSelectedAccountId();
   const { pathname } = useLocation();
   const screen = pathname === "/" ? "home" : pathname === "/stocks" ? "stocks" : undefined;
   const pageEnabled = liveApiEnabled && !!screen;
