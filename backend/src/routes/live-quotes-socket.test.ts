@@ -42,12 +42,14 @@ test('one socket shares duplicate clients, swaps market subscriptions, retains l
         assert.equal(sockets.length, 1);
         assert.equal(commands.filter(c => c.header.tr_type === '1').length, 2);
         const f = Array(47).fill('0');
-        Object.assign(f, { 0: '005930', 1: '090100', 2: '100', 3: '2', 4: '1', 5: '1', 12: '1', 33: '20261030' });
+        Object.assign(f, { 0: '005930', 1: '090100', 2: '100', 3: '2', 4: '1', 5: '1', 7:'99',8:'102',9:'98',12: '1', 33: '20261030',45:'100' });
         await assert.rejects((service as any).command('TOTAL:005930','1'),/LOGICAL_MARKET_ONLY/);
         sockets[0]!.dispatchEvent(new MessageEvent('message',{data:'0|H0UNCNT0|001|'+f.join('^')}));
         assert.equal(service.snapshot('TOTAL',['005930']).quotes[0]!.quote,null,'legacy provider TOTAL frames are not consumed');
         sockets[0]!.dispatchEvent(new MessageEvent('message', { data: '0|H0STCNT0|001|' + f.join('^') }));
         assert.equal(service.snapshot('TOTAL', ['005930']).quotes[0]!.quote?.price, 100);
+        const details=service.snapshot('TOTAL',['005930']).quotes[0]!.quote!;
+        assert.deepEqual([details.open,details.high,details.low,details.viReferencePrice],[99,102,98,100]);
         assert.equal(service.snapshot('NXT', ['005930']).quotes[0]!.quote, null);
         const actual='KRX' as const;
         const ticks:any[]=[];const detach=service.onTrade(q=>ticks.push(q));

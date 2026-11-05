@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { persistentKisToken } from '@roxstock/shared/lib/kis-token-cache';
 import { isMarketClosed } from '@roxstock/shared/domain/market-calendar';
-import { parseKisTrades, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
+import { parseKisTrades, quoteDayPrices, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
 import {physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
 const origin = 'https://openapi.koreainvestment.com:9443', jobName = 'kis-live-quotes';
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -200,7 +200,7 @@ export class KisLiveService {
                 if (b.rt_cd === '0' && Number.isFinite(p) && p > 0 && Number.isFinite(Number(o.prdy_vrss)) && Number.isFinite(Number(o.prdy_ctrt))) {
                     const previous = this.quotes.get(key);
                     if (!previous || previous.source === 'CACHE')
-                        this.quotes.set(key, { symbol, market, price: p, change: Number(o.prdy_vrss), rate: Number(o.prdy_ctrt), observedAt: new Date().toISOString(), observedAtKnown: false, receivedAt: Date.now(), source: 'CACHE', halted: o.temp_stop_yn === 'Y' });
+                        this.quotes.set(key, { symbol, market, price: p, change: Number(o.prdy_vrss), rate: Number(o.prdy_ctrt), ...quoteDayPrices(o.stck_oprc,o.stck_hgpr,o.stck_lwpr), observedAt: new Date().toISOString(), observedAtKnown: false, receivedAt: Date.now(), source: 'CACHE', halted: o.temp_stop_yn === 'Y' });
                 }
             }
             catch { /* Keep last good value; no raw provider bodies or credentials in logs. */ }

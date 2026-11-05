@@ -6,6 +6,11 @@ export type LiveQuote = {
     price: number;
     change: number;
     rate: number;
+    open?: number;
+    high?: number;
+    low?: number;
+    /** Provider's current static-VI reference, not an upper/lower trigger price. */
+    viReferencePrice?: number;
     observedAt: string;
     /** False for REST references that provide no actual quote timestamp. */
     observedAtKnown?: boolean;
@@ -28,6 +33,8 @@ export type DisplayStock = {
     marketValue: number | null;
     profit: number | null;
     initial: LiveQuote | null;
+    /** Ordinary KOSPI/KOSDAQ stock; other products have different tick/VI rules. */
+    viEligible?: boolean;
 };
 export const quoteLimit = 41;
 export type QuoteSort = 'manual' | 'name' | 'price' | 'rate' | 'holding' | 'profit';
@@ -70,8 +77,19 @@ export function parseKisTrades(text: string): LiveQuote[] {
         const observedAt = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4)}+09:00`).toISOString();
         if (new Date(observedAt).getTime() > Date.now() + 60000)
             throw Error('FUTURE_TRADE');
-        return { symbol, market, price, change: Math.abs(change) * sign, rate: Math.abs(rate) * sign, observedAt, receivedAt: Date.now(), source: 'KIS', ...(/^\d{1,32}$/.test(a[13]!)?{sequence:a[13]}:{}) };
+        return { symbol, market, price, change: Math.abs(change) * sign, rate: Math.abs(rate) * sign, observedAt, receivedAt: Date.now(), source: 'KIS', ...quoteDayPrices(a[7],a[8],a[9]), ...(positiveQuotePrice(a[45])?{viReferencePrice:positiveQuotePrice(a[45])}:{}), ...(/^\d{1,32}$/.test(a[13]!)?{sequence:a[13]}:{}) };
     });
+}
+
+export function positiveQuotePrice(value:unknown):number|undefined {
+    if(typeof value!=='string'&&typeof value!=='number')return undefined;
+    if(typeof value==='string'&&!/^\d+$/.test(value))return undefined;
+    const n=Number(value);return Number.isSafeInteger(n)&&n>0?n:undefined;
+}
+/** Optional provider fields must never invalidate an otherwise valid trade. */
+export function quoteDayPrices(open:unknown,high:unknown,low:unknown):Pick<LiveQuote,'open'|'high'|'low'> {
+    const o=positiveQuotePrice(open),h=positiveQuotePrice(high),l=positiveQuotePrice(low);
+    return {...(o?{open:o}:{}),...(h&&(!l||h>=l)?{high:h}:{}),...(l&&(!h||h>=l)?{low:l}:{})};
 }
 
 export const maxDisplayStocks=20;
