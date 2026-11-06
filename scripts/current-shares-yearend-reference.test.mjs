@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {Prisma} from '../shared/dist/generated/prisma/index.js';
+import {currentSharesYearendReference} from './current-shares-yearend-reference.mjs';
+const input=()=>({symbol:'000001',year:2025,Decimal:Prisma.Decimal,fields:['eps','bps','per','pbr'],existing:{},currentShares:{symbol:'000001',value:'100',observedDate:'2026-10-26',source:'KIS_API'},financial:{symbol:'000001',year:2025,profit:'2000',capital:'10000',currency:'KRW',periodEnd:'2025-12-31',source:'OPEN_DART',fsDivision:'OFS'},price:{symbol:'000001',value:'200',date:'2025-12-30',currency:'KRW',source:'KIS_KRX_UNADJUSTED_CLOSE'}});
+test('explicit current-share approximation and exact arithmetic',()=>{const r=currentSharesYearendReference(input());assert.deepEqual(r.patch,{eps:'20',bps:'100',per:'10',pbr:'2'});assert.equal(r.perMetric.bps.bpsReferenceOnly,true);assert.equal(r.perMetric.eps.approximation.historicalShareCountVerified,false);assert.match(r.reasons.per,/2025-12-30/);});
+test('never overwrites original EPS or BPS and records independent ratio denominator',()=>{const x=input();x.existing={eps:'15',bps:'90'};const r=currentSharesYearendReference(x);assert.deepEqual(r.patch,{per:'10',pbr:'2'});assert.equal(r.perMetric.per.approximation.profit,'2000');});
+test('loss and negative capital remain signed; ratios are not invented',()=>{const x=input();x.financial.profit='-2000';x.financial.capital='-10000';assert.deepEqual(currentSharesYearendReference(x).patch,{eps:'-20',bps:'-100'});});
+test('no current quote substituted for the year-end close; EPS/BPS independent',()=>{const x=input();x.price.date='2026-10-26';assert.deepEqual(currentSharesYearendReference(x).patch,{eps:'20',bps:'100'});});
+test('native currency per-share references allowed, cross-currency ratios blocked',()=>{const x=input();x.financial.currency='CNY';assert.deepEqual(currentSharesYearendReference(x).patch,{eps:'20',bps:'100'});});
+test('identity, count and missing amounts are guarded',()=>{let x=input();x.currentShares.symbol='000002';assert.deepEqual(currentSharesYearendReference(x).patch,{});x=input();x.currentShares.value='0';assert.deepEqual(currentSharesYearendReference(x).patch,{});x=input();x.financial.profit=null;assert.deepEqual(currentSharesYearendReference(x).patch,{bps:'100',pbr:'2'});});
