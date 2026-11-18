@@ -1,0 +1,5048 @@
+{
+  "atUtc": "2026-10-11T22:27:29.601Z",
+  "groupCounts": [
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2015,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2015,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2015,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2070"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1918"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1918"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1919"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1919"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1298"
+    },
+    {
+      "status": "PENDING",
+      "error_code": "PROCESS_RESTARTED",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "PENDING",
+      "error_code": "SCHEDULE_WINDOW_ENDED",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "523"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "529"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "518"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "512"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "525"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "533"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "527"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "516"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "529"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "538"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "530"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "530"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "535"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "541"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "534"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "532"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "540"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "539"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "536"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "534"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "540"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "538"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "539"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "538"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "544"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "543"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "539"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "537"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "543"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "713"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "677"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "675"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "720"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1336"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1325"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1319"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1335"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1314"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1333"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1326"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1341"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "15"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1325"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1326"
+    },
+    {
+      "status": "SUCCESS",
+      "error_code": null,
+      "fiscal_year": 2026,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "21"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2015,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "23"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2015,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "23"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2015,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "22"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "15"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "19"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "20"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "15"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "9"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "12"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "14"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "12"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "8"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "9"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "7"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "4"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "6"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "14"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "14"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "11"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "5"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "7"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "4"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1338"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "13"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "11"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "NO_PERIODIC_FILING",
+      "fiscal_year": 2026,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1340"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2015,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "559"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2015,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "560"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2015,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "561"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "43"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "34"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "40"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "34"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "34"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "33"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "29"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "30"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "31"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "37"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "38"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "15"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "7"
+    },
+    {
+      "status": "NO_FILING",
+      "error_code": "ROWS_NOT_PUBLISHED",
+      "fiscal_year": 2026,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "9"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "DART_CORP_CODE_NOT_MAPPED",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2015,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2015,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2015,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "error_code": "NOT_DART_LISTED_EQUITY",
+      "fiscal_year": 2026,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "NETWORK_ERROR",
+      "fiscal_year": 2015,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2015,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "8"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2016,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "8"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2016,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "14"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2016,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "8"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "6"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2017,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "12"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "10"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2017,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2018,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "10"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2018,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "13"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2018,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "11"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2019,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "13"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2019,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "10"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2020,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "13"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2020,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2021,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2021,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "10"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2021,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2022,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "8"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2022,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "10"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2022,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "4"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "6"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "9"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "6"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "2"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "RECEIPT_MISMATCH",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2016,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2017,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2017,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2018,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "3"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2019,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2019,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2020,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2020,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2021,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "6"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2022,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "2"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2023,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "11"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2023,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "9"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2023,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "9"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2023,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "5"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2024,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2024,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "11"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2024,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "15"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2024,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "6"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2025,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "29"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2025,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "11"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2025,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "15"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2025,
+      "report_code": "11014",
+      "period_type": "Q3",
+      "n": "7"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2026,
+      "report_code": "11011",
+      "period_type": "ANNUAL",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2026,
+      "report_code": "11012",
+      "period_type": "Q2",
+      "n": "1"
+    },
+    {
+      "status": "FAILED",
+      "error_code": "REVIEW_REQUIRED",
+      "fiscal_year": 2026,
+      "report_code": "11013",
+      "period_type": "Q1",
+      "n": "7"
+    }
+  ],
+  "companies": [
+    {
+      "symbol": "018500",
+      "name": "동원모빌리티",
+      "failed": 30,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 30
+      }
+    },
+    {
+      "symbol": "020180",
+      "name": "대신정보통신",
+      "failed": 30,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 30
+      }
+    },
+    {
+      "symbol": "002630",
+      "name": "오리엔트바이오",
+      "failed": 29,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 29
+      }
+    },
+    {
+      "symbol": "002380",
+      "name": "KCC",
+      "failed": 19,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 19
+      }
+    },
+    {
+      "symbol": "001080",
+      "name": "만호제강",
+      "failed": 18,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 18
+      }
+    },
+    {
+      "symbol": "021820",
+      "name": "세원정공",
+      "failed": 18,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 18
+      }
+    },
+    {
+      "symbol": "900290",
+      "name": "GRT",
+      "failed": 17,
+      "years": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 17
+      }
+    },
+    {
+      "symbol": "019570",
+      "name": "GMI벤처",
+      "failed": 15,
+      "years": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 15
+      }
+    },
+    {
+      "symbol": "000970",
+      "name": "한국주철관",
+      "failed": 13,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 13
+      }
+    },
+    {
+      "symbol": "018700",
+      "name": "졸스",
+      "failed": 13,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 13
+      }
+    },
+    {
+      "symbol": "003610",
+      "name": "방림",
+      "failed": 10,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 10
+      }
+    },
+    {
+      "symbol": "008870",
+      "name": "금비",
+      "failed": 10,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 10
+      }
+    },
+    {
+      "symbol": "017250",
+      "name": "인터엠",
+      "failed": 10,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 10
+      }
+    },
+    {
+      "symbol": "001720",
+      "name": "신영증권",
+      "failed": 9,
+      "years": [
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 9
+      }
+    },
+    {
+      "symbol": "021880",
+      "name": "메이슨캐피탈",
+      "failed": 9,
+      "years": [
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 9
+      }
+    },
+    {
+      "symbol": "033200",
+      "name": "모아텍",
+      "failed": 9,
+      "years": [
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 9
+      }
+    },
+    {
+      "symbol": "067010",
+      "name": "이씨에스",
+      "failed": 7,
+      "years": [
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 7
+      }
+    },
+    {
+      "symbol": "092440",
+      "name": "기신정기",
+      "failed": 7,
+      "years": [
+        2024,
+        2025,
+        2026
+      ],
+      "periods": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 7
+      }
+    },
+    {
+      "symbol": "030960",
+      "name": "양지사",
+      "failed": 6,
+      "years": [
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 6
+      }
+    },
+    {
+      "symbol": "032800",
+      "name": "판타지오",
+      "failed": 6,
+      "years": [
+        2023,
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 6
+      }
+    },
+    {
+      "symbol": "000220",
+      "name": "유유제약",
+      "failed": 5,
+      "years": [
+        2016,
+        2017
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 5
+      }
+    },
+    {
+      "symbol": "011930",
+      "name": "신성이엔지",
+      "failed": 5,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 5
+      }
+    },
+    {
+      "symbol": "006370",
+      "name": "대구백화점",
+      "failed": 4,
+      "years": [
+        2016,
+        2017
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q2",
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 4
+      }
+    },
+    {
+      "symbol": "050860",
+      "name": "아세아텍",
+      "failed": 4,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 4
+      }
+    },
+    {
+      "symbol": "093240",
+      "name": "형지엘리트",
+      "failed": 4,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 4
+      }
+    },
+    {
+      "symbol": "002680",
+      "name": "한탑",
+      "failed": 3,
+      "years": [
+        2017,
+        2018,
+        2019
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 3
+      }
+    },
+    {
+      "symbol": "005070",
+      "name": "코스모신소재",
+      "failed": 3,
+      "years": [
+        2015,
+        2016,
+        2017
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 3
+      }
+    },
+    {
+      "symbol": "005950",
+      "name": "이수화학",
+      "failed": 3,
+      "years": [
+        2021,
+        2022,
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 3
+      }
+    },
+    {
+      "symbol": "019660",
+      "name": "글로본",
+      "failed": 3,
+      "years": [
+        2016,
+        2022
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 3
+      }
+    },
+    {
+      "symbol": "024850",
+      "name": "HLB이노베이션",
+      "failed": 3,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 3
+      }
+    },
+    {
+      "symbol": "000240",
+      "name": "한국앤컴퍼니",
+      "failed": 2,
+      "years": [
+        2016,
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "000760",
+      "name": "이화산업",
+      "failed": 2,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "000880",
+      "name": "한화",
+      "failed": 2,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "002220",
+      "name": "한일철강",
+      "failed": 2,
+      "years": [
+        2022,
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "010060",
+      "name": "OCI홀딩스",
+      "failed": 2,
+      "years": [
+        2020,
+        2024
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "011370",
+      "name": "서한",
+      "failed": 2,
+      "years": [
+        2015,
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "012200",
+      "name": "계양전기",
+      "failed": 2,
+      "years": [
+        2023,
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "017480",
+      "name": "삼현철강",
+      "failed": 2,
+      "years": [
+        2020,
+        2022
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "033250",
+      "name": "체시스",
+      "failed": 2,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL",
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "042520",
+      "name": "한스바이오메드",
+      "failed": 2,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "084440",
+      "name": "유비온",
+      "failed": 2,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "088260",
+      "name": "이리츠코크렙",
+      "failed": 2,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "093380",
+      "name": "풍강",
+      "failed": 2,
+      "years": [
+        2024,
+        2025
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 2
+      }
+    },
+    {
+      "symbol": "000120",
+      "name": "CJ대한통운",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000150",
+      "name": "두산",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000440",
+      "name": "중앙에너비스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000590",
+      "name": "CS홀딩스",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000700",
+      "name": "유수홀딩스",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000810",
+      "name": "삼성화재",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "000950",
+      "name": "전방",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001070",
+      "name": "대한방직",
+      "failed": 1,
+      "years": [
+        2019
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001130",
+      "name": "대한제분",
+      "failed": 1,
+      "years": [
+        2018
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001210",
+      "name": "금호전기",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001230",
+      "name": "동국홀딩스",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001270",
+      "name": "부국증권",
+      "failed": 1,
+      "years": [
+        2026
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001340",
+      "name": "PKC",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001460",
+      "name": "BYC",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001530",
+      "name": "DI동일",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001680",
+      "name": "대상",
+      "failed": 1,
+      "years": [
+        2019
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "001740",
+      "name": "SK네트웍스",
+      "failed": 1,
+      "years": [
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002450",
+      "name": "삼익악기",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002460",
+      "name": "HS화성",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002620",
+      "name": "제일파마홀딩스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002720",
+      "name": "국제약품",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002900",
+      "name": "TYM",
+      "failed": 1,
+      "years": [
+        2018
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "002920",
+      "name": "유성기업",
+      "failed": 1,
+      "years": [
+        2022
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003060",
+      "name": "에이프로젠바이오로직스",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003070",
+      "name": "코오롱글로벌",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003120",
+      "name": "일성아이에스",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003160",
+      "name": "디아이",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003200",
+      "name": "일신방직",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "003920",
+      "name": "남양유업",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004020",
+      "name": "현대제철",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004540",
+      "name": "깨끗한나라",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004690",
+      "name": "삼천리",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004710",
+      "name": "한솔테크닉스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004840",
+      "name": "DRB동일",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "004920",
+      "name": "씨아이테크",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "005360",
+      "name": "모나미",
+      "failed": 1,
+      "years": [
+        2019
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "005750",
+      "name": "대림바스",
+      "failed": 1,
+      "years": [
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "005850",
+      "name": "에스엘",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "005990",
+      "name": "매일홀딩스",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "006110",
+      "name": "삼아알미늄",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "006400",
+      "name": "삼성SDI",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "006620",
+      "name": "동구바이오제약",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "006740",
+      "name": "블루산업개발",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "007070",
+      "name": "GS리테일",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "007120",
+      "name": "미래아이앤지",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "007390",
+      "name": "네이처셀",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "NETWORK_ERROR": 1
+      }
+    },
+    {
+      "symbol": "007570",
+      "name": "일양약품",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "007610",
+      "name": "선도전기",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "007820",
+      "name": "엠엑스로보틱스",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "008420",
+      "name": "문배철강",
+      "failed": 1,
+      "years": [
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009270",
+      "name": "신원",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009450",
+      "name": "경동나비엔",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009520",
+      "name": "포스코엠텍",
+      "failed": 1,
+      "years": [
+        2018
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009810",
+      "name": "MDS스피어",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009830",
+      "name": "한화솔루션",
+      "failed": 1,
+      "years": [
+        2022
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "009970",
+      "name": "영원무역홀딩스",
+      "failed": 1,
+      "years": [
+        2019
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "011070",
+      "name": "LG이노텍",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "011330",
+      "name": "유니켐",
+      "failed": 1,
+      "years": [
+        2015
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "011810",
+      "name": "STX",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "012450",
+      "name": "한화에어로스페이스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "012800",
+      "name": "대창",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "013030",
+      "name": "하이록코리아",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "013310",
+      "name": "아진산업",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "013520",
+      "name": "화승코퍼레이션",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "014100",
+      "name": "메디앙스",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "014190",
+      "name": "원익큐브",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "014680",
+      "name": "한솔케미칼",
+      "failed": 1,
+      "years": [
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "015260",
+      "name": "에이엔피",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "015360",
+      "name": "INVENI",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "016380",
+      "name": "KG스틸",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "016590",
+      "name": "신대양제지",
+      "failed": 1,
+      "years": [
+        2018
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "016710",
+      "name": "대성홀딩스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "018620",
+      "name": "우진비앤지",
+      "failed": 1,
+      "years": [
+        2019
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "018680",
+      "name": "서울제약",
+      "failed": 1,
+      "years": [
+        2016
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "019010",
+      "name": "베뉴지",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "019210",
+      "name": "와이지-원",
+      "failed": 1,
+      "years": [
+        2020
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "021040",
+      "name": "대호특수강",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "021080",
+      "name": "에이티넘인베스트",
+      "failed": 1,
+      "years": [
+        2021
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "023160",
+      "name": "태광",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "023760",
+      "name": "한국캐피탈",
+      "failed": 1,
+      "years": [
+        2026
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "023960",
+      "name": "에쓰씨엔지니어링",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "024720",
+      "name": "콜마홀딩스",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "025320",
+      "name": "시노펙스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "025540",
+      "name": "한국단자",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "025860",
+      "name": "남해화학",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "030610",
+      "name": "교보증권",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "033160",
+      "name": "엠케이전자",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "033290",
+      "name": "로젠",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "Q3"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "033500",
+      "name": "동성화인텍",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "033790",
+      "name": "피노",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "035000",
+      "name": "HS애드",
+      "failed": 1,
+      "years": [
+        2023
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "035420",
+      "name": "NAVER",
+      "failed": 1,
+      "years": [
+        2017
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "037270",
+      "name": "YG PLUS",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "039420",
+      "name": "케이엘넷",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "041460",
+      "name": "한국전자인증",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "043610",
+      "name": "KT지니뮤직",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "047920",
+      "name": "HLB제약",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "054950",
+      "name": "제이브이엠",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "066700",
+      "name": "테라젠이텍스",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "069540",
+      "name": "빛과전자",
+      "failed": 1,
+      "years": [
+        2026
+      ],
+      "periods": [
+        "Q1"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "071840",
+      "name": "롯데하이마트",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "072770",
+      "name": "멤레이비티",
+      "failed": 1,
+      "years": [
+        2026
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "079900",
+      "name": "전진건설로봇",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "082210",
+      "name": "옵트론텍",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "Q2"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "084110",
+      "name": "휴온스글로벌",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "084730",
+      "name": "팅크웨어",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "089470",
+      "name": "HDC현대EP",
+      "failed": 1,
+      "years": [
+        2024
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "089590",
+      "name": "제주항공",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "090360",
+      "name": "로보스타",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    },
+    {
+      "symbol": "092220",
+      "name": "KEC",
+      "failed": 1,
+      "years": [
+        2025
+      ],
+      "periods": [
+        "ANNUAL"
+      ],
+      "errors": {
+        "RECEIPT_MISMATCH": 1
+      }
+    }
+  ]
+}

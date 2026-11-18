@@ -1,0 +1,16 @@
+{
+  "atUtc": "2026-10-11T22:35:35.548700Z",
+  "deployment": "f16cd801236d5247358ee45c4bc7341de90dab1e",
+  "container": "roxstock-dart-collector",
+  "image": "newrox/roxstock-backend:sha-f16cd801236d5247358ee45c4bc7341de90dab1e",
+  "imageId": "sha256:61349eef3730d59dfd5d725119b684cea3b045f47ec045cc7aac26e749baf3f5",
+  "created": "2026-10-11T13:20:43.573388454Z",
+  "started": "2026-10-11T13:20:55.077057916Z",
+  "finished": "0001-01-01T00:00:00Z",
+  "status": "running",
+  "exitCode": 0,
+  "oomKilled": false,
+  "restartCount": 0,
+  "restartPolicy": "unless-stopped",
+  "health": "healthy"
+}

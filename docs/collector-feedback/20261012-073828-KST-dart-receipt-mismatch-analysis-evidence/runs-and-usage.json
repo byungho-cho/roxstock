@@ -1,0 +1,1586 @@
+{
+  "atUtc": "2026-10-11T22:27:29.601Z",
+  "runs": [
+    {
+      "id": "4780",
+      "jobType": "dart-financial-statements",
+      "status": "PARTIAL",
+      "startedAt": "2026-10-11T18:06:24.720Z",
+      "finishedAt": "2026-10-11T21:00:01.374Z",
+      "successCount": 3377,
+      "failureCount": 97,
+      "skippedCount": 1,
+      "reason": {
+        "originalCode": null,
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "4508",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-11T11:42:19.485Z",
+      "finishedAt": "2026-10-11T18:06:24.562Z",
+      "successCount": 0,
+      "failureCount": 0,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "PROCESS_RESTARTED",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": true,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "4506",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-11T11:26:16.240Z",
+      "finishedAt": "2026-10-11T11:42:19.428Z",
+      "successCount": 0,
+      "failureCount": 0,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "PROCESS_RESTARTED",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": true,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3827",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T22:22:10.380Z",
+      "finishedAt": "2026-10-10T22:22:11.232Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3792",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T21:48:12.291Z",
+      "finishedAt": "2026-10-10T21:48:13.139Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3789",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T21:46:12.168Z",
+      "finishedAt": "2026-10-10T21:46:12.959Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3763",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T21:21:09.703Z",
+      "finishedAt": "2026-10-10T21:21:12.287Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3743",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T21:01:09.256Z",
+      "finishedAt": "2026-10-10T21:01:10.381Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3738",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T20:56:06.345Z",
+      "finishedAt": "2026-10-10T20:56:07.031Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3723",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T20:42:10.520Z",
+      "finishedAt": "2026-10-10T20:42:11.324Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3719",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T20:39:05.442Z",
+      "finishedAt": "2026-10-10T20:39:06.022Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "INVALID_CORP_CODE_ARCHIVE",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "3271",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T13:12:56.234Z",
+      "finishedAt": "2026-10-10T13:43:41.465Z",
+      "successCount": 0,
+      "failureCount": 0,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": null,
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "MANUAL"
+    },
+    {
+      "id": "3267",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-10T13:09:48.773Z",
+      "finishedAt": "2026-10-10T13:40:43.446Z",
+      "successCount": 0,
+      "failureCount": 0,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": null,
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "MANUAL"
+    },
+    {
+      "id": "3088",
+      "jobType": "dart-financial-statements",
+      "status": "PARTIAL",
+      "startedAt": "2026-10-10T09:58:36.488Z",
+      "finishedAt": "2026-10-10T11:20:39.036Z",
+      "successCount": 3,
+      "failureCount": 9,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": null,
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "MANUAL"
+    },
+    {
+      "id": "1880",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:24:53.808Z",
+      "finishedAt": "2026-10-09T13:24:55.671Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1879",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:23:53.540Z",
+      "finishedAt": "2026-10-09T13:23:54.171Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1878",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:22:53.278Z",
+      "finishedAt": "2026-10-09T13:22:53.457Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1877",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:21:53.442Z",
+      "finishedAt": "2026-10-09T13:21:54.062Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1876",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:20:53.394Z",
+      "finishedAt": "2026-10-09T13:20:54.293Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1875",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:19:53.629Z",
+      "finishedAt": "2026-10-09T13:19:55.231Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1874",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:18:53.588Z",
+      "finishedAt": "2026-10-09T13:18:54.481Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1873",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:17:53.523Z",
+      "finishedAt": "2026-10-09T13:17:54.521Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1872",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:16:53.421Z",
+      "finishedAt": "2026-10-09T13:16:54.077Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1871",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:15:53.593Z",
+      "finishedAt": "2026-10-09T13:15:54.742Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1870",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:14:53.174Z",
+      "finishedAt": "2026-10-09T13:14:53.418Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1869",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:13:53.260Z",
+      "finishedAt": "2026-10-09T13:13:53.810Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1868",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:12:53.320Z",
+      "finishedAt": "2026-10-09T13:12:54.397Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1867",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:11:53.063Z",
+      "finishedAt": "2026-10-09T13:11:53.384Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1866",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:10:52.952Z",
+      "finishedAt": "2026-10-09T13:10:53.375Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    },
+    {
+      "id": "1865",
+      "jobType": "dart-financial-statements",
+      "status": "FAILED",
+      "startedAt": "2026-10-09T13:09:52.950Z",
+      "finishedAt": "2026-10-09T13:09:53.152Z",
+      "successCount": 0,
+      "failureCount": 1,
+      "skippedCount": 0,
+      "reason": {
+        "originalCode": "800",
+        "selectedReceipt": null,
+        "responseReceipt": null,
+        "hasProcessRestarted": false,
+        "hasRangeError": false,
+        "hasEmptyNormalize": false
+      },
+      "phase": "BACKFILL"
+    }
+  ],
+  "usage": [
+    {
+      "usageDate": "2026-10-12T00:00:00.000Z",
+      "apiCallCount": 5065,
+      "companyCheckCount": 868,
+      "noDataCount": 515,
+      "errorCount": 0,
+      "updatedAt": "2026-10-11T20:59:59.039Z"
+    },
+    {
+      "usageDate": "2026-10-11T00:00:00.000Z",
+      "apiCallCount": 2907,
+      "companyCheckCount": 619,
+      "noDataCount": 330,
+      "errorCount": 8,
+      "updatedAt": "2026-10-11T13:20:52.190Z"
+    },
+    {
+      "usageDate": "2026-10-09T00:00:00.000Z",
+      "apiCallCount": 922,
+      "companyCheckCount": 6,
+      "noDataCount": 0,
+      "errorCount": 826,
+      "updatedAt": "2026-10-09T13:24:55.544Z"
+    }
+  ],
+  "state": {
+    "phase": "BACKFILL",
+    "lastRunAt": "2026-10-11T21:00:01.385Z",
+    "updatedAt": "2026-10-11T21:00:01.386Z",
+    "lastError": {
+      "originalCode": "SCHEDULE_WINDOW_ENDED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    }
+  },
+  "latestFailedItems": [
+    {
+      "symbol": "033200:2026:11013",
+      "createdAt": "2026-10-11T18:07:10.738Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "069540:2026:11013",
+      "createdAt": "2026-10-11T18:10:52.714Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "072770:2026:11012",
+      "createdAt": "2026-10-11T18:13:21.915Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2026:11013",
+      "createdAt": "2026-10-11T18:32:15.934Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "023960:2025:11011",
+      "createdAt": "2026-10-11T18:35:20.568Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "025320:2025:11011",
+      "createdAt": "2026-10-11T18:35:24.700Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "025540:2025:11011",
+      "createdAt": "2026-10-11T18:35:28.831Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2025:11012",
+      "createdAt": "2026-10-11T18:35:34.912Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2025:11013",
+      "createdAt": "2026-10-11T18:35:41.011Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2025:11012",
+      "createdAt": "2026-10-11T18:35:45.199Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2025:11013",
+      "createdAt": "2026-10-11T18:35:49.284Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033160:2025:11011",
+      "createdAt": "2026-10-11T18:35:53.372Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2025:11012",
+      "createdAt": "2026-10-11T18:35:57.462Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2025:11013",
+      "createdAt": "2026-10-11T18:36:01.592Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2025:11014",
+      "createdAt": "2026-10-11T18:36:05.636Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033290:2025:11014",
+      "createdAt": "2026-10-11T18:36:09.841Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033500:2025:11011",
+      "createdAt": "2026-10-11T18:36:13.838Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033790:2025:11011",
+      "createdAt": "2026-10-11T18:36:20.036Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "037270:2025:11011",
+      "createdAt": "2026-10-11T18:36:24.149Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "039420:2025:11011",
+      "createdAt": "2026-10-11T18:36:28.211Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "041460:2025:11011",
+      "createdAt": "2026-10-11T18:36:32.294Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "042520:2025:11013",
+      "createdAt": "2026-10-11T18:36:36.374Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "043610:2025:11011",
+      "createdAt": "2026-10-11T18:36:40.459Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "079900:2025:11011",
+      "createdAt": "2026-10-11T18:55:38.128Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "082210:2025:11012",
+      "createdAt": "2026-10-11T18:59:16.183Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "084110:2025:11011",
+      "createdAt": "2026-10-11T19:02:50.172Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "084440:2025:11013",
+      "createdAt": "2026-10-11T19:03:26.782Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "084730:2025:11011",
+      "createdAt": "2026-10-11T19:04:26.961Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "088260:2025:11011",
+      "createdAt": "2026-10-11T19:09:30.451Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "089590:2025:11011",
+      "createdAt": "2026-10-11T19:12:32.002Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "090360:2025:11011",
+      "createdAt": "2026-10-11T19:14:30.087Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092220:2025:11011",
+      "createdAt": "2026-10-11T19:18:14.308Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2025:11012",
+      "createdAt": "2026-10-11T19:18:49.027Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2025:11013",
+      "createdAt": "2026-10-11T19:18:53.086Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2025:11014",
+      "createdAt": "2026-10-11T19:18:57.158Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093240:2025:11012",
+      "createdAt": "2026-10-11T19:20:25.575Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093240:2025:11013",
+      "createdAt": "2026-10-11T19:20:29.631Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093380:2025:11013",
+      "createdAt": "2026-10-11T19:21:02.420Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "025860:2024:11011",
+      "createdAt": "2026-10-11T19:23:41.383Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2024:11012",
+      "createdAt": "2026-10-11T19:23:47.473Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2024:11013",
+      "createdAt": "2026-10-11T19:23:53.566Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2024:11012",
+      "createdAt": "2026-10-11T19:23:57.636Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2024:11013",
+      "createdAt": "2026-10-11T19:24:01.767Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2024:11012",
+      "createdAt": "2026-10-11T19:24:05.768Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2024:11013",
+      "createdAt": "2026-10-11T19:24:09.824Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "033200:2024:11014",
+      "createdAt": "2026-10-11T19:24:13.893Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "042520:2024:11013",
+      "createdAt": "2026-10-11T19:24:18.081Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "047920:2024:11011",
+      "createdAt": "2026-10-11T19:29:29.715Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "050860:2024:11012",
+      "createdAt": "2026-10-11T19:35:12.024Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "050860:2024:11013",
+      "createdAt": "2026-10-11T19:35:18.056Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "067010:2024:11012",
+      "createdAt": "2026-10-11T20:09:39.077Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "067010:2024:11013",
+      "createdAt": "2026-10-11T20:09:45.148Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "067010:2024:11014",
+      "createdAt": "2026-10-11T20:09:51.246Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "071840:2024:11011",
+      "createdAt": "2026-10-11T20:19:15.958Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "084440:2024:11013",
+      "createdAt": "2026-10-11T20:37:16.878Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "088260:2024:11011",
+      "createdAt": "2026-10-11T20:43:21.480Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "089470:2024:11011",
+      "createdAt": "2026-10-11T20:46:10.146Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2024:11012",
+      "createdAt": "2026-10-11T20:52:28.674Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2024:11013",
+      "createdAt": "2026-10-11T20:52:32.713Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "092440:2024:11014",
+      "createdAt": "2026-10-11T20:52:36.775Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093240:2024:11012",
+      "createdAt": "2026-10-11T20:54:04.662Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093240:2024:11013",
+      "createdAt": "2026-10-11T20:54:08.766Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "093380:2024:11013",
+      "createdAt": "2026-10-11T20:54:41.464Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "900290:2023:11012",
+      "createdAt": "2026-10-11T20:57:18.327Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "900290:2023:11013",
+      "createdAt": "2026-10-11T20:57:22.338Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "001080:2023:11012",
+      "createdAt": "2026-10-11T20:57:28.399Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "001080:2023:11013",
+      "createdAt": "2026-10-11T20:57:34.612Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "001720:2023:11012",
+      "createdAt": "2026-10-11T20:57:38.768Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "001720:2023:11014",
+      "createdAt": "2026-10-11T20:57:42.931Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "002630:2023:11012",
+      "createdAt": "2026-10-11T20:57:49.026Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "002630:2023:11013",
+      "createdAt": "2026-10-11T20:57:55.113Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "002630:2023:11014",
+      "createdAt": "2026-10-11T20:58:01.175Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "003610:2023:11013",
+      "createdAt": "2026-10-11T20:58:05.248Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "005950:2023:11011",
+      "createdAt": "2026-10-11T20:58:09.335Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "008870:2023:11013",
+      "createdAt": "2026-10-11T20:58:13.401Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "012200:2023:11011",
+      "createdAt": "2026-10-11T20:58:17.515Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "017250:2023:11013",
+      "createdAt": "2026-10-11T20:58:21.540Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "018500:2023:11012",
+      "createdAt": "2026-10-11T20:58:25.598Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "018500:2023:11013",
+      "createdAt": "2026-10-11T20:58:29.681Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "018500:2023:11014",
+      "createdAt": "2026-10-11T20:58:33.747Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "019010:2023:11011",
+      "createdAt": "2026-10-11T20:58:37.807Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "020180:2023:11012",
+      "createdAt": "2026-10-11T20:58:43.888Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "020180:2023:11013",
+      "createdAt": "2026-10-11T20:58:49.953Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "020180:2023:11014",
+      "createdAt": "2026-10-11T20:58:56.031Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "021820:2023:11012",
+      "createdAt": "2026-10-11T20:59:00.097Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "021820:2023:11013",
+      "createdAt": "2026-10-11T20:59:04.168Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "021880:2023:11012",
+      "createdAt": "2026-10-11T20:59:08.224Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "021880:2023:11014",
+      "createdAt": "2026-10-11T20:59:12.277Z",
+      "originalCode": "REVIEW_REQUIRED",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "024720:2023:11011",
+      "createdAt": "2026-10-11T20:59:16.363Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "024850:2023:11011",
+      "createdAt": "2026-10-11T20:59:22.451Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "024850:2023:11012",
+      "createdAt": "2026-10-11T20:59:28.535Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "024850:2023:11013",
+      "createdAt": "2026-10-11T20:59:34.613Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030610:2023:11011",
+      "createdAt": "2026-10-11T20:59:38.770Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2023:11012",
+      "createdAt": "2026-10-11T20:59:44.835Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "030960:2023:11013",
+      "createdAt": "2026-10-11T20:59:50.923Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2023:11012",
+      "createdAt": "2026-10-11T20:59:55.009Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    },
+    {
+      "symbol": "032800:2023:11013",
+      "createdAt": "2026-10-11T20:59:59.086Z",
+      "originalCode": "RECEIPT_MISMATCH",
+      "selectedReceipt": null,
+      "responseReceipt": null,
+      "hasProcessRestarted": false,
+      "hasRangeError": false,
+      "hasEmptyNormalize": false
+    }
+  ]
+}
