@@ -38,18 +38,19 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
   },[q?.price,q?.market,row.status,row.retained,ghost,received,q?.sourceMarket]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   // Cache receivedAt can be the HTTP fetch time; preserve its original quote timestamp instead.
+  const isReferenceQuote=q?.source==='CACHE'&&q.observedAtKnown===false;
   const stamp=q&&q.observedAtKnown!==false?(marketClosed&&q.source==='KIS'?q.receivedAt:Date.parse(q.observedAt)):NaN;
   const parts=Number.isFinite(stamp)?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(stamp)):[];
   const part=(name:string)=>parts.find(p=>p.type===name)?.value??'';
   const asOf=parts.length?part('hour')+':'+part('minute')+':'+part('second'):'';
   const fullStamp=parts.length?part('month')+'.'+part('day')+' '+asOf:'';
-  const lag=q?Math.max(0,q.receivedAt-Date.parse(q.observedAt)):0;
+  const lag=q?.source==='KIS'?Math.max(0,q.receivedAt-Date.parse(q.observedAt)):0;
   const delayed=lag>=3000||row.status==='QUOTE_DELAYED';
   const timeColor=received&&!marketClosed&&!row.retained&&row.status==='LIVE'&&!delayed?colors.positive:colors.textMuted;
   const reference=row.referenceMarket?`${row.referenceMarket} 저장 시세 · ${market==='TOTAL'?'통합 수신 전 참고':'마지막 시세'} · `:'';
-  const caption=reference+(marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':''));
+  const caption=isReferenceQuote?'조회 시세 · 체결 시각 미제공':reference+(marketClosed?(q?'종가 · 최종 수신 '+fullStamp:'장 운영시간 외 · 종가 자료 없음'):(row.status==='LIVE'?'체결 ':statusText[row.status]??row.status)+(row.retained&&row.status!=='LAST_QUOTE'?' · 마지막 시세':'')+(fullStamp?' '+fullStamp:'')+(lag>=3000?' · '+Math.floor(lag/1000)+'초 수신 지연':''));
   return <Box data-quote-received={received?'true':'false'} data-quote-id={ghost?undefined:stock.id} data-no-pull-refresh role={ghost?undefined:'group'}
-    aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${reference}${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
+    aria-hidden={ghost||undefined} aria-label={`${stock.name} ${number(q?.price)} ${isReferenceQuote?'조회 시세 · 체결 시각 미제공 · ':reference}${statusText[row.status]??row.status}${row.retained?' 마지막 시세':''}`}
     tabIndex={ghost?undefined:0} onKeyDown={ghost?undefined:e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();onAcknowledge?.();onInspect?.(e.currentTarget);}}}
     onClick={ghost?undefined:e=>{onAcknowledge?.();onInspect?.(e.currentTarget);}} onContextMenu={e=>e.preventDefault()} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
     sx={{position:'relative',display:'flex',flexDirection:'column',gap:'8px',minWidth:0,boxSizing:'border-box',px:'12px',py:'8px',bgcolor:colors.surface,border:`0.5px ${dragged?'dashed':'solid'} ${dragged?colors.focus:colors.border}`,opacity:dragged ? .18 : 1,userSelect:'none',WebkitTouchCallout:'none'}}>
@@ -61,7 +62,7 @@ export const QuoteCard=memo(function QuoteCard({stock,market,row,closed=false,al
       <Box ref={rateArea} data-testid={ghost?undefined:'live-rate'} sx={{flex:'0 0 auto',fontSize:11,...tightText,textAlign:'right',whiteSpace:'nowrap'}}>{q?`${q.change>0?'▲':q.change<0?'▼':'—'} ${Math.abs(q.rate).toFixed(2)}%`:'—'}</Box>
     </Box>
     <Box sx={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'4px',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-      <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{minWidth:0,fontSize:8,...tightText,color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{market==='TOTAL'&&q?.sourceMarket&&q.sourceMarket!=='TOTAL'?q.sourceMarket+' ':''}{asOf||'—'}</Box>
+      <Box data-testid={ghost?undefined:'live-quote-time'} data-delayed={delayed?'true':'false'} title={`${caption} · ${statusText[row.status]??row.status}`} sx={{minWidth:0,fontSize:8,...tightText,color:timeColor,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{market==='TOTAL'&&q?.sourceMarket&&q.sourceMarket!=='TOTAL'?q.sourceMarket+' ':''}{isReferenceQuote?'조회 시세':asOf||'—'}</Box>
       <Box data-testid={ghost?undefined:'live-change'} sx={{flexShrink:0,fontSize:12,...tightText,textAlign:'right',color:valueColor}}>{q?number(Math.abs(q.change)):'—'}</Box>
     </Box>
   </Box>;

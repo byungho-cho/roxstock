@@ -39,7 +39,8 @@ test('REST references remain muted; unknown REST timestamps stay absent',async({
   for(const id of ['live-price','live-rate','live-change'])await expect(card.getByTestId(id)).toHaveCSS('color',expected);
   await expect(card.getByTestId('live-quote-time')).toHaveCSS('color','rgb(148, 163, 184)');await expect(card.getByTestId('live-price-area')).toHaveAttribute('data-flash','');
  }
- await send('MARKET_CLOSED',-10,false);await expect(card.getByTestId('live-price')).toHaveText('1,000');await expect(card.getByTestId('live-quote-time')).toHaveText('—');
+ await send('WAITING_TRADE',10,false);await expect(card.getByTestId('live-price')).toHaveText('1,000');await expect(card.getByTestId('live-quote-time')).toHaveText('조회 시세');await expect(card.getByTestId('live-quote-time')).toHaveAttribute('title',/체결 시각 미제공/);await expect(card).toHaveAttribute('data-quote-received','false');
+ await send('MARKET_CLOSED',-10,false);await expect(card.getByTestId('live-quote-time')).toHaveText('조회 시세');
  await send('LIVE',-10);await expect(card.getByTestId('live-quote-time')).toHaveCSS('color','rgb(52, 211, 153)');await expect(card.getByTestId('live-price')).toHaveCSS('color','rgb(96, 165, 250)');
 });
 
