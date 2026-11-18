@@ -3,7 +3,7 @@ import { prisma } from '@roxstock/shared/lib/prisma';
 import { persistentKisToken } from '@roxstock/shared/lib/kis-token-cache';
 import { isMarketClosed } from '@roxstock/shared/domain/market-calendar';
 import { parseKisTrades, quoteDayPrices, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
-import {physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
+import {freshQuote,physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
 const origin = 'https://openapi.koreainvestment.com:9443', jobName = 'kis-live-quotes';
 const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 type Client = {
@@ -156,7 +156,8 @@ export class KisLiveService {
             }
             for (const quote of parseKisTrades(text)) {
                 const key = `${quote.market}:${quote.symbol}`, previous = this.quotes.get(key);
-                if (this.subscribed.has(key) && (!previous || quote.observedAt > previous.observedAt || quote.observedAt === previous.observedAt && (!quote.sequence || !previous.sequence || BigInt(quote.sequence) > BigInt(previous.sequence))))
+                const replacesRestReference = previous?.observedAtKnown === false && freshQuote(quote, new Date(), this.connectedAt);
+                if (this.subscribed.has(key) && (!previous || replacesRestReference || quote.observedAt > previous.observedAt || quote.observedAt === previous.observedAt && (!quote.sequence || !previous.sequence || BigInt(quote.sequence) > BigInt(previous.sequence))))
                     {this.quotes.set(key, quote);
                         for(const listener of this.listeners)if(quote.market!=='TOTAL')listener(quote);
                         if(physicalQuoteKeys('TOTAL:'+quote.symbol,new Date()).includes(key)&&this.logicalDesired().includes('TOTAL:'+quote.symbol)&&!quoteSubscriptionPlan(this.logicalDesired(),new Date()).denied.has('TOTAL:'+quote.symbol)&&selectTotalQuote(quote.symbol,this.quotes,new Date(),this.connectedAt)===quote)

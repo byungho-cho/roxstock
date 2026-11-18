@@ -54,6 +54,11 @@ test('one socket shares duplicate clients, swaps market subscriptions, retains l
         const actual='KRX' as const;
         const ticks:any[]=[];const detach=service.onTrade(q=>ticks.push(q));
         const korean=new Date(Date.now()+9*3600000).toISOString(),fresh=[...f];fresh[1]=korean.slice(11,19).replaceAll(':','');fresh[33]=korean.slice(0,10).replaceAll('-','');fresh[2]='101';fresh[13]='100';
+        const restFetchedAt = Date.now() + 1000;
+        (service as any).quotes.set('KRX:005930', {
+            ...details, market: 'KRX', source: 'CACHE', observedAtKnown: false,
+            observedAt: new Date(restFetchedAt).toISOString(), receivedAt: restFetchedAt,
+        });
         sockets[0]!.dispatchEvent(new MessageEvent('message',{data:'0|'+quoteMarkets[actual]+'|001|'+fresh.join('^')}));
         const fallback=service.snapshot('TOTAL',['005930']).quotes[0]!.quote!;
         assert.equal(fallback.sourceMarket,actual);assert.equal(fallback.price,101);assert.equal(ticks.filter(q=>q.market==='TOTAL').length,1,'TOTAL alerts receive the selected fallback once');assert.equal(ticks.find(q=>q.market==='TOTAL')?.observedAt,fallback.observedAt);const duplicate=[...fresh];duplicate[13]='99';duplicate[2]='99';sockets[0]!.dispatchEvent(new MessageEvent('message',{data:'0|'+quoteMarkets[actual]+'|001|'+duplicate.join('^')}));assert.equal(ticks.length,2,'out-of-order physical sequence cannot replace latest or retrigger alerts');assert.equal(service.snapshot('TOTAL',['005930']).quotes[0]!.quote?.price,101);detach();
