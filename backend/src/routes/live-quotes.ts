@@ -9,6 +9,7 @@ import { displayListWithinLimit, quoteMarkets, type DisplayStock, type LiveQuote
 import { prisma } from '../auth/scoped-db.js';
 import { loadPortfolio } from './portfolio.js';
 import { KisLiveService } from '../realtime/kis-live.js';
+import {startExchangeScheduleCheck} from '../realtime/exchange-schedule-check.js';
 export function readDisplayList(settings: unknown): {
     ids: string[];
     version: string;
@@ -28,6 +29,9 @@ type Query = {
 };
 export async function liveQuoteRoutes(app: FastifyInstance) {
     const live = new KisLiveService(), streams = new Set<() => void>(), alerts=new LivePriceAlerts(globalDb,live);
+    let stopScheduleCheck:(()=>Promise<void>)|undefined;
+    app.addHook('onListen',async()=>{stopScheduleCheck=await startExchangeScheduleCheck(code=>app.log.warn({code},'거래시간 공지 확인 필요'));});
+    app.addHook('onClose',async()=>{await stopScheduleCheck?.();});
     await installLivePriceAlertRoutes(app,live,alerts);
     app.addHook('onListen',async()=>{try{await alerts.start();}catch{alerts.degraded=true;}});
     app.addHook('preClose', async () => { for (const end of streams)

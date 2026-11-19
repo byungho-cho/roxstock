@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { persistentKisToken } from '@roxstock/shared/lib/kis-token-cache';
 import { isMarketClosed, isDelayedOpeningDay } from '@roxstock/shared/domain/market-calendar';
+import {exchangeSchedule,withinTradingIntervals} from '@roxstock/shared/domain/exchange-schedule';
 import { parseKisTrades, quoteDayPrices, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
 import {freshQuote,physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
 const origin = 'https://openapi.koreainvestment.com:9443', jobName = 'kis-live-quotes';
@@ -14,6 +15,8 @@ export function marketOpen(market: QuoteMarket, now = new Date()) {
     const kst = new Date(now.getTime() + 9 * 3600000), date = kst.toISOString().slice(0, 10), seconds = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
     if (isMarketClosed(date))
         return false;
+    const exception=exchangeSchedule(date);
+    if(exception)return market==='NXT'?withinTradingIntervals(seconds,exception.nxt):market==='KRX'?withinTradingIntervals(seconds,exception.krx):withinTradingIntervals(seconds,[...exception.krx,...exception.nxt]);
     if(isDelayedOpeningDay(date)){
         const nxt=seconds>=36030&&seconds<58800||seconds>=60000&&seconds<72000;
         const krx=seconds>=36000&&seconds<59400||seconds>=61200&&seconds<72000;
@@ -45,6 +48,7 @@ export class KisLiveService {
     private attempts = 0;
     private lastMessage = 0;
     private connectedAt = 0;
+    private tradingOpen?:boolean;
     private timer?: ReturnType<typeof setInterval>;
     private pending?: {
         key: string;
@@ -247,7 +251,9 @@ export class KisLiveService {
             }
             // Renew a socket carried across trading days even when provider pings still arrive.
             const koreanDay=(timestamp:number)=>new Date(timestamp+9*3600000).toISOString().slice(0,10);
-            if(this.socket&&marketOpen('TOTAL')&&koreanDay(this.connectedAt)!==koreanDay(Date.now()))
+            const tradingOpen=marketOpen('TOTAL'),sessionStarted=tradingOpen&&this.tradingOpen===false;
+            this.tradingOpen=tradingOpen;
+            if(this.socket&&tradingOpen&&(sessionStarted||koreanDay(this.connectedAt)!==koreanDay(Date.now())))
                 this.disconnect();
             if (!this.socket) {
                 if (Date.now() < this.nextAttempt)

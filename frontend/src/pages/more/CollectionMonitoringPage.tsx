@@ -38,6 +38,7 @@ const statusStyle: Record<string, { label: string; background: string; foregroun
   SKIPPED: { label: '건너뜀', background: '#7A8CA8', foreground: '#050A12' },
 };
 const featureNames: Record<string, string> = {
+  'exchange-schedule': '거래시간 예외 확인',
   'realtime-prices': '실시간 주가',
   'account-snapshots': '일별 계좌 스냅샷',
   'market-prices': '전체 종목 주가',
