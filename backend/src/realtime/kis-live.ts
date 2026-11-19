@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import { persistentKisToken } from '@roxstock/shared/lib/kis-token-cache';
-import { isMarketClosed } from '@roxstock/shared/domain/market-calendar';
+import { isMarketClosed, isDelayedOpeningDay } from '@roxstock/shared/domain/market-calendar';
 import { parseKisTrades, quoteDayPrices, quoteMarkets, quoteLimit, type QuoteMarket, type LiveQuote } from '@roxstock/shared/domain/live-quotes';
 import {freshQuote,physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote,liveQuotePolicyVersion} from '@roxstock/shared/domain/live-quote-policy';
 const origin = 'https://openapi.koreainvestment.com:9443', jobName = 'kis-live-quotes';
@@ -14,6 +14,11 @@ export function marketOpen(market: QuoteMarket, now = new Date()) {
     const kst = new Date(now.getTime() + 9 * 3600000), date = kst.toISOString().slice(0, 10), seconds = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
     if (isMarketClosed(date))
         return false;
+    if(isDelayedOpeningDay(date)){
+        const nxt=seconds>=36030&&seconds<58800||seconds>=60000&&seconds<72000;
+        const krx=seconds>=36000&&seconds<59400||seconds>=61200&&seconds<72000;
+        return market==='NXT'?nxt:market==='KRX'?krx:nxt||krx;
+    }
     const nxt = seconds >= 28800 && seconds < 31800 || seconds >= 32430 && seconds < 55200 || seconds >= 56400 && seconds < 72000;
     const krx = seconds >= 32400 && seconds < 55800 || seconds >= 57600 && seconds < 72000;
     return market === 'NXT' ? nxt : market === 'KRX' ? krx : nxt || krx;

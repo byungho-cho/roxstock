@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {quoteSession,physicalQuoteKeys,quoteSubscriptionPlan,selectTotalQuote,logicalTotalQuote} from './live-quote-policy.js';
 import {type LiveQuote,type QuoteMarket} from './live-quotes.js';
 const noon=new Date('2026-11-02T03:00:00Z'),evening=new Date('2026-11-02T08:00:00Z');
+test('2026 CSAT total selection follows the delayed regular session',()=>{
+ assert.equal(quoteSession(new Date('2026-11-19T09:59:59+09:00')),'closed');
+ assert.equal(quoteSession(new Date('2026-11-19T10:00:00+09:00')),'regular');
+ assert.equal(quoteSession(new Date('2026-11-19T16:29:59+09:00')),'regular');
+ assert.equal(quoteSession(new Date('2026-11-19T16:30:00+09:00')),'closed');
+ assert.equal(quoteSession(new Date('2026-11-19T16:40:00+09:00')),'extended');
+ assert.equal(quoteSession(new Date('2026-11-20T09:00:00+09:00')),'regular');
+});
 const quote=(market:QuoteMarket,now=noon,age=0,source:'KIS'|'CACHE'='KIS'):LiveQuote=>({symbol:'003490',market,price:market==='KRX'?27500:27600,change:market==='KRX'?950:1050,rate:market==='KRX'?3.58:3.95,observedAt:new Date(+now-age).toISOString(),receivedAt:+now-age,source});
 test('20 symbols use 40 slots across all views and alerts, with no physical TOTAL subscription',()=>{const keys=Array.from({length:20},(_,i)=>'TOTAL:'+String(i).padStart(6,'0'));const p=quoteSubscriptionPlan([...keys,...keys,...keys.map(k=>k.replace('TOTAL','KRX')),...keys.map(k=>k.replace('TOTAL','NXT'))],noon);assert.equal(p.keys.length,40);assert.equal(p.denied.size,0);assert.ok(p.keys.every(k=>!k.startsWith('TOTAL:')));const over=quoteSubscriptionPlan([...keys,'KRX:999999'],noon);assert.equal(over.keys.length,40);assert.ok(over.denied.has('KRX:999999'));assert.ok(!over.keys.includes('KRX:999999'));});
 test('clock and direct-view switches reuse exactly the same two physical feeds',()=>{for(const now of [noon,evening,new Date('2026-11-01T03:00:00Z')])for(const market of ['TOTAL','KRX','NXT'])assert.deepEqual(physicalQuoteKeys(market+':003490',now),['KRX:003490','NXT:003490']);assert.equal(quoteSession(noon),'regular');assert.equal(quoteSession(evening),'extended');assert.equal(quoteSession(new Date('2026-11-01T03:00:00Z')),'closed');});

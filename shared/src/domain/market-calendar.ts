@@ -10,6 +10,8 @@ const specialClosures = new Set([
   '2025-01-27', '2025-06-03',
 ]);
 const cache = new Map<number, Set<string>>();
+// Confirmed one-day exchange schedule. Add future dates only after exchange notice.
+export function isDelayedOpeningDay(date:string) { return date==='2026-11-19'; }
 function closedDates(year: number) {
   if (cache.has(year)) return cache.get(year)!;
   const holidays = getKoreanHolidays(year);
