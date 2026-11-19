@@ -3,6 +3,18 @@ import test from 'node:test';
 import { RealtimePriceCache } from '../../backend/src/realtime/price-cache.js';
 import { collectRealtimeCycle, getRealtimeMarketSession, type RealtimeMarketSessions } from './realtime-price-collector.js';
 import type { PriceObservation, PriceProvider, RealtimePriceValue, SecurityTarget } from './types.js';
+import {installExchangeSchedules} from '@roxstock/shared/domain/exchange-schedule';
+
+test('collector uses the persisted exchange exception and respects public holidays',()=>{
+  installExchangeSchedules([{date:'2026-11-19',regular:[36000,59400],krx:[[36000,59400],[60000,72000]],nxt:[[36030,58800],[60000,72000]],sources:['https://nextrade.co.kr/menu/notice/view.do?scNttNo=46']}]);
+  try{
+    assert.equal(getRealtimeMarketSession(new Date('2026-11-19T08:30:00+09:00'),sessions),null);
+    assert.equal(getRealtimeMarketSession(new Date('2026-11-19T10:00:00+09:00'),sessions),'REGULAR');
+    assert.equal(getRealtimeMarketSession(new Date('2026-11-19T16:30:00+09:00'),sessions),null);
+    assert.equal(getRealtimeMarketSession(new Date('2026-11-19T16:40:00+09:00'),sessions),'AFTER_MARKET');
+    assert.equal(getRealtimeMarketSession(new Date('2026-12-25T10:00:00+09:00'),sessions),null);
+  }finally{installExchangeSchedules([]);}
+});
 
 const target = (id: bigint, symbol: string): SecurityTarget => ({ id, symbol, name: symbol });
 const price = (symbol: string, currentPrice: string, observedAt = '2026-09-28T01:00:00.000Z'): PriceObservation => ({

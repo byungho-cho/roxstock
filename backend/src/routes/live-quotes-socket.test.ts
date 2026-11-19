@@ -25,7 +25,7 @@ test('a prior-day socket is renewed during the next trading session despite prov
     state.socket={readyState:1,close(){closed=true;this.readyState=3;}};
     state.connect=async()=>{
         connections++;
-        state.socket={readyState:1};
+        state.socket={readyState:1,close(){this.readyState=3;}};
         state.connectedAt=state.lastMessage=Date.now();
         state.subscribed=new Set(['KRX:005930','NXT:005930']);
         return true;
@@ -35,6 +35,9 @@ test('a prior-day socket is renewed during the next trading session despite prov
     assert.equal(connections,1);
     await state.cycle();
     assert.equal(connections,1,'same-day connections are preserved');
+    state.tradingOpen=false;
+    await state.cycle();
+    assert.equal(connections,2,'opening a new session renews subscriptions on the same day');
 });
 test('one socket shares duplicate clients, swaps market subscriptions, retains latest and reconnects safely', async (t) => {
     const restore: Array<() => void> = [];

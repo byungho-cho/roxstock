@@ -2,6 +2,8 @@ import {CollectionExcluded,checkCollection} from '@roxstock/shared/collection/co
 import { RealtimeLockLostError, safeErrorCode } from './realtime-lifecycle.js';
 import { collectorLog as log } from '@roxstock/shared/collection/logger';
 import { getSeoulClock } from '@roxstock/shared/collection/time';
+import {isMarketClosed} from '@roxstock/shared/domain/market-calendar';
+import {exchangeSchedule,withinTradingIntervals} from '@roxstock/shared/domain/exchange-schedule';
 import type {
   CollectorRepository,
   PriceObservation,
@@ -67,8 +69,14 @@ export const getRealtimeMarketSession = (
   sessions: RealtimeMarketSessions,
 ): RealtimeMarketSession | null => {
   const clock = getSeoulClock(now);
-  const weekday = new Date(`${clock.dateKey}T00:00:00.000Z`).getUTCDay();
-  if (weekday === 0 || weekday === 6) return null;
+  if (isMarketClosed(clock.dateKey)) return null;
+  const exception=exchangeSchedule(clock.dateKey);
+  if(exception){
+    const seconds=clock.hour*3600+clock.minute*60;
+    if(withinTradingIntervals(seconds,[exception.regular]))return 'REGULAR';
+    if(!withinTradingIntervals(seconds,[...exception.krx,...exception.nxt]))return null;
+    return seconds<exception.regular[0]?'PRE_MARKET':'AFTER_MARKET';
+  }
   const current = clock.hour * 60 + clock.minute;
   if (current >= minuteOfDay(sessions.preMarketOpen) && current < minuteOfDay(sessions.preMarketClose)) return 'PRE_MARKET';
   if (current >= minuteOfDay(sessions.regularMarketOpen) && current <= minuteOfDay(sessions.regularMarketClose)) return 'REGULAR';

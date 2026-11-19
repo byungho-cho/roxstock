@@ -1,8 +1,21 @@
 import {isMarketClosed,isDelayedOpeningDay} from './market-calendar.js';
+import {exchangeSchedule,withinTradingIntervals} from './exchange-schedule.js';
 import {quoteLimit,type LiveQuote,type QuoteMarket} from './live-quotes.js';
 export const liveQuotePolicyVersion='krx-nxt-v2';
 const time=(now:Date)=>{const k=new Date(+now+9*3600000);return {day:k.toISOString().slice(0,10),seconds:k.getUTCHours()*3600+k.getUTCMinutes()*60+k.getUTCSeconds()};};
-export function quoteSession(now:Date){const {day,seconds}=time(now);if(isMarketClosed(day))return 'closed';if(isDelayedOpeningDay(day)){if(seconds>=36000&&seconds<59400)return 'regular';if(seconds>=60000&&seconds<72000)return 'extended';return 'closed';}if(seconds>=32400&&seconds<55800)return 'regular';if(seconds>=28800&&seconds<31800||seconds>=56400&&seconds<72000)return 'extended';return 'closed';}
+export function quoteSession(now:Date){
+ const {day,seconds}=time(now);
+ if(isMarketClosed(day))return 'closed';
+ const exception=exchangeSchedule(day);
+ if(exception){
+  if(withinTradingIntervals(seconds,[exception.regular]))return 'regular';
+  return withinTradingIntervals(seconds,[...exception.krx,...exception.nxt])?'extended':'closed';
+ }
+ if(isDelayedOpeningDay(day)){if(seconds>=36000&&seconds<59400)return 'regular';if(seconds>=60000&&seconds<72000)return 'extended';return 'closed';}
+ if(seconds>=32400&&seconds<55800)return 'regular';
+ if(seconds>=28800&&seconds<31800||seconds>=56400&&seconds<72000)return 'extended';
+ return 'closed';
+}
 /** Both physical venues are shared by every view and alert; TOTAL is never a provider subscription. */
 export function physicalQuoteKeys(key:string,_now:Date):string[]{const symbol=key.split(':')[1];return [`KRX:${symbol}`,`NXT:${symbol}`];}
 /** Allocate whole logical groups; never silently subscribe half of a fallback pair. */

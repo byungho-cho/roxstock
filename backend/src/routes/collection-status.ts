@@ -19,6 +19,7 @@ import { dartWindowOpen, dartPriorityWindowOpen, publicHolidayDates, holidayCale
 
 interface CollectionJob { id: string; name: string; jobType: string; schedule: string; hour?: number; }
 const jobs: CollectionJob[] = [
+  {id:'exchange-schedule',name:'거래시간 예외 확인',jobType:'exchange-schedule-check',schedule:'매일 06:00·18:00 · 실패 시 1시간 후 재확인',hour:6},
   { id: 'security-master', name: '종목 마스터', jobType: 'security-master', schedule: '매일 06:00', hour: 6 },
   { id: 'realtime-prices', name: '선택 종목 실시간 주가', jobType: 'realtime-selected-prices', schedule: '평일 장 구간, 60초 간격' },
   { id: 'market-prices', name: '전체 종목 주가', jobType: 'market-prices', schedule: '거래일 20:00 · 확인된 휴장일 생략', hour: 20 },
@@ -119,7 +120,7 @@ async function summary() {
       return {id:job.id,name:'종목 데이터 수집',schedule:'1시간 간격 · 신규·정정 공시 추적',status:a.state==='QUERY_FAILED'||a.state==='FAILED'?'FAILED':a.state==='QUERY_PARTIAL'||a.state==='PARTIAL'?'PARTIAL':a.state==='QUERYING'||a.state==='PROCESSING'?'RUNNING':a.state==='COMPLETE'?'OK':'WAITING',lastAttemptAt:run?.startedAt??null,lastSuccessAt:a.lastStoredAt,lastCollectedAt:a.runEndedAt,lastDataAt:a.lastStoredAt,statsGeneratedAt:now.toISOString(),nextAt:iso(data.cursor?.nextCheckAt),recent:{...recent,processed:c.success+c.partial+c.failed,target:c.target,success:c.success,failed:c.failed,skipped:c.excluded,excluded:c.excluded},partial:c.partial,resultScope:run?{runId:run.id,label:'이번 처리 결과',startedAt:run.startedAt}:resultScope,phase:'SECURITY_DATA',collectionState:'SECURITY_DATA',lastExecution:run?{id:run.id,status:run.status,startedAt:run.startedAt,finishedAt:run.finishedAt}:null,securityData:a};
     }
     const config = loadCollectorConfig();
-    const hours = job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];
+    const hours = job.id==='exchange-schedule'?[6,18]:job.id==='account-snapshots'?config.snapshotHours:job.id==='market-prices'?[config.priceCollectionHour]:job.id==='security-master'?[config.securityMasterHour]:[];
     const scheduleState=hours.length?dailyScheduleHealth(now,hours,run??null,10,job.id==='market-prices'?120:job.id==='security-master'?30:10):null;
     const state = await statusFor(job, run ? {...run,status:result as NonNullable<Run>['status']} : emptyRun(job.jobType, now), now, realtime);
     let nextAt: Date | null = job.hour === undefined ? null : localSchedule(job.hour, now);

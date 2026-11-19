@@ -45,6 +45,7 @@ const featureNames: Record<string, string> = {
   'dart-financial-statements': '종목 데이터 수집',
   'security-master': '종목 마스터',
   'stock-news': '종목소식',
+  'exchange-schedule': '거래시간 예외 확인',
 };
 const dateText = (value?: string | null) => value
   ? new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })

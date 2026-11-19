@@ -3,6 +3,7 @@ import { createRealtimeMonitor } from './realtime-monitor.js';
 import { safeErrorCode } from './realtime-lifecycle.js';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@roxstock/shared/lib/prisma';
+import {refreshExchangeScheduleCache} from '@roxstock/shared/lib/exchange-schedule-cache';
 import { loadCollectorConfig } from '@roxstock/shared/collection/config';
 import { collectorLog as log } from '@roxstock/shared/collection/logger';
 import { MockPriceProvider } from './providers/mock-price-provider.js';
@@ -57,7 +58,10 @@ const sessions = {
 };
 const heartbeat = () => {
   if (stopping) return;
-  heartbeatInFlight = monitor.heartbeat({ workerStatus: config.realtimeEnabled ? 'RUNNING' : 'DISABLED', marketSession: getRealtimeMarketSession(new Date(), sessions) ?? 'OUT_OF_SESSION', at: new Date() });
+  heartbeatInFlight = (async()=>{
+    try{await refreshExchangeScheduleCache();}catch{log('warn','거래시간 일정 재조회 실패 · 기존 일정 유지');}
+    await monitor.heartbeat({ workerStatus: config.realtimeEnabled ? 'RUNNING' : 'DISABLED', marketSession: getRealtimeMarketSession(new Date(), sessions) ?? 'OUT_OF_SESSION', at: new Date() });
+  })();
   void heartbeatInFlight.then(() => {
     if (!stopping) heartbeatTimer = setTimeout(heartbeat, 15_000);
   }, fail);
@@ -69,6 +73,7 @@ try {
     await new Promise<void>((resolve) => { wakeStandby = resolve; heartbeatTimer = setTimeout(() => { wakeStandby = undefined; resolve(); }, 5000 + Math.floor(Math.random() * 1000)); });
   }
   if (!stopping) {
+    try{await refreshExchangeScheduleCache();}catch{log('warn','거래시간 일정 조회 실패 · 기본 일정 사용');}
     await monitor.heartbeat({ workerStatus: 'RUNNING', marketSession: 'OUT_OF_SESSION', at: new Date() });
     if (stopping) throw new Error('STARTUP_STOPPED');
     stopCollector = await runRealtimeCollector(repository, provider, {
