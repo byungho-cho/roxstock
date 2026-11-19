@@ -2,7 +2,40 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prisma } from '@roxstock/shared/lib/prisma';
 import {quoteMarkets} from '@roxstock/shared/domain/live-quotes';
-import { KisLiveService } from '../realtime/kis-live.js';
+import { KisLiveService, marketOpen } from '../realtime/kis-live.js';
+test('2026 CSAT schedule delays opening and close and omits the NXT premarket',()=>{
+    const at=(time:string)=>new Date('2026-11-19T'+time+'+09:00');
+    assert.equal(marketOpen('TOTAL',at('09:59:59')),false);
+    assert.equal(marketOpen('KRX',at('10:00:00')),true);
+    assert.equal(marketOpen('NXT',at('10:00:29')),false);
+    assert.equal(marketOpen('NXT',at('10:00:30')),true);
+    assert.equal(marketOpen('KRX',at('16:29:59')),true);
+    assert.equal(marketOpen('KRX',at('16:30:00')),false);
+    assert.equal(marketOpen('NXT',at('16:40:00')),true);
+    assert.equal(marketOpen('KRX',at('17:00:00')),true);
+});
+test('a prior-day socket is renewed during the next trading session despite provider pings',async(t)=>{
+    t.mock.timers.enable({apis:['Date'],now:new Date('2026-11-19T03:00:00Z')});
+    const service=new KisLiveService(true),state=service as any;
+    let connections=0,closed=false;
+    state.logicalDesired=()=>['TOTAL:005930'];
+    state.lease=async()=>true;
+    state.connectedAt=Date.parse('2026-11-18T07:44:00Z');
+    state.lastMessage=Date.now();
+    state.socket={readyState:1,close(){closed=true;this.readyState=3;}};
+    state.connect=async()=>{
+        connections++;
+        state.socket={readyState:1};
+        state.connectedAt=state.lastMessage=Date.now();
+        state.subscribed=new Set(['KRX:005930','NXT:005930']);
+        return true;
+    };
+    await state.cycle();
+    assert.equal(closed,true);
+    assert.equal(connections,1);
+    await state.cycle();
+    assert.equal(connections,1,'same-day connections are preserved');
+});
 test('one socket shares duplicate clients, swaps market subscriptions, retains latest and reconnects safely', async (t) => {
     const restore: Array<() => void> = [];
     const patch = (o: any, k: string, v: any) => { const old = o[k]; o[k] = v; restore.push(() => { o[k] = old; }); };

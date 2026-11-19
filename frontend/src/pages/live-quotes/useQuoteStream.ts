@@ -20,7 +20,7 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
   const initial=():Packet=>({connection:key?'CONNECTING':'IDLE',active:0,limit:41,quotes:restored()});
   const [packet,setPacket]=useState<Packet&{scope:string}>(()=>({...initial(),scope}));
   useEffect(()=>{
-    let alive=true,stream:EventSource|null=null;
+    let alive=true,stream:EventSource|null=null,lastActivity=Date.now();
     setPacket({...initial(),scope});
     if(!key||!identity)return;
     const unavailable=(connection:string)=>setPacket(p=>({...p,connection,quotes:p.quotes.map(r=>({...r,status:connection,retained:!!r.quote}))}));
@@ -28,10 +28,13 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
     const connect=()=>{
       if(!alive||!navigator.onLine){offline();return;}
       if(stream)return;
+      lastActivity=Date.now();
       const current=new EventSource(`/api/live-quotes/stream?market=${market}`,{withCredentials:true});stream=current;
+      current.addEventListener('heartbeat',()=>{if(alive&&stream===current)lastActivity=Date.now();});
       current.addEventListener('price-alerts',()=>{if(alive&&stream===current)window.dispatchEvent(new Event('rox-live-price-alerts'));});
       current.addEventListener('quotes',event=>{
         if(!alive||stream!==current||!navigator.onLine)return;
+        lastActivity=Date.now();
         try{
           const next=JSON.parse((event as MessageEvent).data) as Packet;
           if(!Array.isArray(next.quotes)||next.quotes.some(r=>r.quote&&r.quote.market!==market))return;
@@ -50,8 +53,14 @@ export function useQuoteStream(market:QuoteMarket,symbols:string[],identity:stri
       });
       current.onerror=()=>{if(alive&&stream===current)unavailable('RECONNECTING');};
     };
-    window.addEventListener('offline',offline);window.addEventListener('online',connect);connect();
-    return()=>{alive=false;window.removeEventListener('offline',offline);window.removeEventListener('online',connect);stream?.close();stream=null;};
+    const reconnect=()=>{offline();connect();};
+    const resume=()=>{if(document.visibilityState==='visible')reconnect();};
+    const watchdog=window.setInterval(()=>{
+      if(document.visibilityState==='visible'&&navigator.onLine&&Date.now()-lastActivity>45000)reconnect();
+    },5000);
+    window.addEventListener('offline',offline);window.addEventListener('online',connect);
+    window.addEventListener('pageshow',resume);document.addEventListener('visibilitychange',resume);connect();
+    return()=>{alive=false;window.clearInterval(watchdog);window.removeEventListener('offline',offline);window.removeEventListener('online',connect);window.removeEventListener('pageshow',resume);document.removeEventListener('visibilitychange',resume);stream?.close();stream=null;};
   },[market,key,identity,client]);
   return packet.scope===scope?packet:initial();
 }

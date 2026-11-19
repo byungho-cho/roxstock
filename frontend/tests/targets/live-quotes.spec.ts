@@ -30,6 +30,23 @@ test('preopen prices and timestamps stay muted until this market receives a trad
  await chooseMarket(page,'NXT');await expect(first.getByTestId('live-price')).toHaveText('—');await expect(first).toHaveAttribute('data-quote-received','false');await send('NXT');await expect(first.getByTestId('live-price')).toHaveCSS('color','rgb(148, 163, 184)');await send('NXT',true);await expect(first).toHaveAttribute('data-quote-received','true');
 });
 
+test('silent streams reconnect and returning to the app renews the subscription',async({page})=>{
+ await setup(page);await page.clock.install();await page.goto('/live-quotes');
+ await expect(page.getByTestId('live-price').first()).toHaveText('1,000');
+ await page.evaluate(()=>(window as any).__manualQuotes=true);
+ const count=()=>page.evaluate(()=>(window as any).__quoteStreams.length);
+ const initial=await count();await page.clock.fastForward(50000);
+ await expect.poll(count).toBe(initial+1);
+ await page.evaluate(()=>{
+  for(const stream of (window as any).__quoteStreams)if(!stream.closed)stream.dispatchEvent(new MessageEvent('heartbeat',{data:'{}'}));
+ });
+ await page.clock.fastForward(30000);expect(await count()).toBe(initial+1);
+ await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
+ await expect.poll(count).toBe(initial+2);
+ await page.evaluate(()=>(window as any).__emitQuote('TOTAL',1250,10));
+ await expect(page.getByTestId('live-price').first()).toHaveText('1,250');
+});
+
 test('REST references remain muted; unknown REST timestamps stay absent',async({page})=>{
  await setup(page);await page.addInitScript(()=>(window as any).__manualQuotes=true);await page.goto('/live-quotes');await expect(page.locator('[data-quote-id]')).toHaveCount(4);
  const card=page.locator('[data-quote-id="1"]');
