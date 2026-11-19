@@ -240,6 +240,10 @@ export class KisLiveService {
                 this.state = 'SESSION_IN_USE';
                 return;
             }
+            // Renew a socket carried across trading days even when provider pings still arrive.
+            const koreanDay=(timestamp:number)=>new Date(timestamp+9*3600000).toISOString().slice(0,10);
+            if(this.socket&&marketOpen('TOTAL')&&koreanDay(this.connectedAt)!==koreanDay(Date.now()))
+                this.disconnect();
             if (!this.socket) {
                 if (Date.now() < this.nextAttempt)
                     return;

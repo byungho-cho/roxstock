@@ -119,7 +119,7 @@ export async function liveQuoteRoutes(app: FastifyInstance) {
             reply.raw.write(`event: quotes\ndata: ${payload}\n\n`);
         }
         else
-            reply.raw.write(': heartbeat\n\n'); };
+            reply.raw.write('event: heartbeat\ndata: {}\n\n'); };
         const ticker = setInterval(send, 1000);
         send();
         const auth = setInterval(() => { if (checking)
