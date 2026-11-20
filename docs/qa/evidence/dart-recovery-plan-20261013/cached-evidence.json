@@ -1,0 +1,4863 @@
+[
+  {
+    "taskId": "25576",
+    "corpCode": "00203290",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:52:56.470Z",
+    "report": {
+      "receiptNo": "20240326000907",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2022-12",
+          "2023-12",
+          "2024-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240326000907",
+            "receiptDate": "20240326",
+            "reportName": "[첨부정정]사업보고서 (2023.12)",
+            "corpCode": "00203290",
+            "reportPeriod": "2023-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240321001982",
+            "receiptDate": "20240321",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00203290",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "25793",
+    "corpCode": "00155586",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:00.313Z",
+    "report": {
+      "receiptNo": "20241114001641",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "CLOSING_MONTH_CHANGED",
+        "candidates": [
+          {
+            "receiptNo": "20241114001641",
+            "receiptDate": "20241114",
+            "reportName": "분기보고서 (2024.09)",
+            "corpCode": "00155586",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20240516001079",
+            "receiptDate": "20240516",
+            "reportName": "분기보고서 (2024.03)",
+            "corpCode": "00155586",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20231127000372",
+            "receiptDate": "20231127",
+            "reportName": "[기재정정]분기보고서 (2023.06)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-06",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20230811001895",
+            "receiptDate": "20230811",
+            "reportName": "분기보고서 (2023.06)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          },
+          {
+            "receiptNo": "20230214000957",
+            "receiptDate": "20230214",
+            "reportName": "분기보고서 (2022.12)",
+            "corpCode": "00155586",
+            "reportPeriod": "2022-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20220812000788",
+            "receiptDate": "20220812",
+            "reportName": "분기보고서 (2022.06)",
+            "corpCode": "00155586",
+            "reportPeriod": "2022-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "25794",
+    "corpCode": "00155586",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:00.313Z",
+    "report": {
+      "receiptNo": "20240814002716",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "CLOSING_MONTH_CHANGED",
+        "candidates": [
+          {
+            "receiptNo": "20240814002716",
+            "receiptDate": "20240814",
+            "reportName": "반기보고서 (2024.06)",
+            "corpCode": "00155586",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20231114002513",
+            "receiptDate": "20231114",
+            "reportName": "반기보고서 (2023.09)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20221114001233",
+            "receiptDate": "20221114",
+            "reportName": "반기보고서 (2022.09)",
+            "corpCode": "00155586",
+            "reportPeriod": "2022-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "25796",
+    "corpCode": "00155586",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:00.313Z",
+    "report": {
+      "receiptNo": "20250312001127",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "MULTIPLE_ANNUAL_PERIODS",
+        "candidates": [
+          {
+            "receiptNo": "20250312001127",
+            "receiptDate": "20250313",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00155586",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240320001706",
+            "receiptDate": "20240320",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20230622000158",
+            "receiptDate": "20230622",
+            "reportName": "[기재정정]사업보고서 (2023.03)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-03",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20230621000251",
+            "receiptDate": "20230621",
+            "reportName": "사업보고서 (2023.03)",
+            "corpCode": "00155586",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          },
+          {
+            "receiptNo": "20220629000521",
+            "receiptDate": "20220629",
+            "reportName": "[기재정정]사업보고서 (2022.03)",
+            "corpCode": "00155586",
+            "reportPeriod": "2022-03",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20220621000529",
+            "receiptDate": "20220622",
+            "reportName": "사업보고서 (2022.03)",
+            "corpCode": "00155586",
+            "reportPeriod": "2022-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "28304",
+    "corpCode": "00113359",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:02.563Z",
+    "report": {
+      "receiptNo": "20240314001518",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2022-12",
+          "2023-12",
+          "2024-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240314001518",
+            "receiptDate": "20240314",
+            "reportName": "[첨부정정]사업보고서 (2023.12)",
+            "corpCode": "00113359",
+            "reportPeriod": "2023-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240314001263",
+            "receiptDate": "20240314",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00113359",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "28389",
+    "corpCode": "00139685",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:06.383Z",
+    "report": {
+      "receiptNo": "20231114000146",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2023.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20231114000146",
+            "receiptDate": "20231114",
+            "reportName": "분기보고서 (2023.09)",
+            "corpCode": "00139685",
+            "reportPeriod": "2023-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "28390",
+    "corpCode": "00139685",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:06.383Z",
+    "report": {
+      "receiptNo": "20240208000561",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240208000561",
+            "receiptDate": "20240208",
+            "reportName": "반기보고서 (2023.12)",
+            "corpCode": "00139685",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "28391",
+    "corpCode": "00139685",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:06.383Z",
+    "report": {
+      "receiptNo": "20230515001917",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2023.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20230515001917",
+            "receiptDate": "20230515",
+            "reportName": "분기보고서 (2023.03)",
+            "corpCode": "00139685",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "28392",
+    "corpCode": "00139685",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:06.383Z",
+    "report": {
+      "receiptNo": "20231004000111",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2023.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20231004000111",
+            "receiptDate": "20231004",
+            "reportName": "사업보고서 (2023.06)",
+            "corpCode": "00139685",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29401",
+    "corpCode": "00231691",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:16.778Z",
+    "report": {
+      "receiptNo": "20231115000397",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "[기재정정]분기보고서 (2023.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20231115000397",
+            "receiptDate": "20231115",
+            "reportName": "[기재정정]분기보고서 (2023.09)",
+            "corpCode": "00231691",
+            "reportPeriod": "2023-09",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20231114001454",
+            "receiptDate": "20231114",
+            "reportName": "분기보고서 (2023.09)",
+            "corpCode": "00231691",
+            "reportPeriod": "2023-09",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29402",
+    "corpCode": "00231691",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:16.778Z",
+    "report": {
+      "receiptNo": "20240214002435",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240214002435",
+            "receiptDate": "20240214",
+            "reportName": "반기보고서 (2023.12)",
+            "corpCode": "00231691",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29403",
+    "corpCode": "00231691",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:16.778Z",
+    "report": {
+      "receiptNo": "20230512001428",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2023.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20230512001428",
+            "receiptDate": "20230512",
+            "reportName": "분기보고서 (2023.03)",
+            "corpCode": "00231691",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29404",
+    "corpCode": "00231691",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:16.778Z",
+    "report": {
+      "receiptNo": "20230915000455",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2023.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2024-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20230915000455",
+            "receiptDate": "20230915",
+            "reportName": "사업보고서 (2023.06)",
+            "corpCode": "00231691",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29929",
+    "corpCode": "00241209",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:22.740Z",
+    "report": {
+      "receiptNo": "20230811001764",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2023.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2024-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20230811001764",
+            "receiptDate": "20230811",
+            "reportName": "분기보고서 (2023.06)",
+            "corpCode": "00241209",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29931",
+    "corpCode": "00241209",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:22.740Z",
+    "report": {
+      "receiptNo": "20240214001932",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2024-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240214001932",
+            "receiptDate": "20240214",
+            "reportName": "분기보고서 (2023.12)",
+            "corpCode": "00241209",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "29932",
+    "corpCode": "00241209",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:22.740Z",
+    "report": {
+      "receiptNo": "20230620000378",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2023.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2022-03",
+          "2023-03",
+          "2024-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20230620000378",
+            "receiptDate": "20230620",
+            "reportName": "사업보고서 (2023.03)",
+            "corpCode": "00241209",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "30061",
+    "corpCode": "00125576",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:30.836Z",
+    "report": {
+      "receiptNo": "20241114001345",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "CLOSING_MONTH_CHANGED",
+        "candidates": [
+          {
+            "receiptNo": "20241114001345",
+            "receiptDate": "20241114",
+            "reportName": "분기보고서 (2024.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20240516001231",
+            "receiptDate": "20240516",
+            "reportName": "분기보고서 (2024.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20231114001716",
+            "receiptDate": "20231114",
+            "reportName": "분기보고서 (2023.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20230515001599",
+            "receiptDate": "20230515",
+            "reportName": "분기보고서 (2023.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20221114001730",
+            "receiptDate": "20221114",
+            "reportName": "분기보고서 (2022.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2022-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20220516001386",
+            "receiptDate": "20220516",
+            "reportName": "분기보고서 (2022.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2022-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "30063",
+    "corpCode": "00125576",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:30.836Z",
+    "report": {
+      "receiptNo": "20241114001345",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "CLOSING_MONTH_CHANGED",
+        "candidates": [
+          {
+            "receiptNo": "20241114001345",
+            "receiptDate": "20241114",
+            "reportName": "분기보고서 (2024.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20240516001231",
+            "receiptDate": "20240516",
+            "reportName": "분기보고서 (2024.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20231114001716",
+            "receiptDate": "20231114",
+            "reportName": "분기보고서 (2023.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20230515001599",
+            "receiptDate": "20230515",
+            "reportName": "분기보고서 (2023.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20221114001730",
+            "receiptDate": "20221114",
+            "reportName": "분기보고서 (2022.09)",
+            "corpCode": "00125576",
+            "reportPeriod": "2022-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20220516001386",
+            "receiptDate": "20220516",
+            "reportName": "분기보고서 (2022.03)",
+            "corpCode": "00125576",
+            "reportPeriod": "2022-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "30064",
+    "corpCode": "00125576",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:30.836Z",
+    "report": {
+      "receiptNo": "20250321001138",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2022-06",
+          "2023-06",
+          "2023-12",
+          "2024-12"
+        ],
+        "periodError": "MULTIPLE_ANNUAL_PERIODS",
+        "candidates": [
+          {
+            "receiptNo": "20250321001138",
+            "receiptDate": "20250321",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00125576",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240321001312",
+            "receiptDate": "20240321",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20230918000095",
+            "receiptDate": "20230918",
+            "reportName": "사업보고서 (2023.06)",
+            "corpCode": "00125576",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20220920000356",
+            "receiptDate": "20220920",
+            "reportName": "사업보고서 (2022.06)",
+            "corpCode": "00125576",
+            "reportPeriod": "2022-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "31208",
+    "corpCode": "00140168",
+    "fiscalYear": 2023,
+    "expiresAt": "2026-10-13T20:53:33.562Z",
+    "report": {
+      "receiptNo": "20240314001750",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2023.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2023,
+        "apiFiscalYear": 2023,
+        "periodEndDate": "2023-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2022-12",
+          "2023-12",
+          "2024-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240314001750",
+            "receiptDate": "20240314",
+            "reportName": "[첨부정정]사업보고서 (2023.12)",
+            "corpCode": "00140168",
+            "reportPeriod": "2023-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240314001521",
+            "receiptDate": "20240314",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00140168",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "38860",
+    "corpCode": "00336817",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:03:52.202Z",
+    "report": {
+      "receiptNo": "20250318001392",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2023-12",
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250318001392",
+            "receiptDate": "20250318",
+            "reportName": "[첨부정정]사업보고서 (2024.12)",
+            "corpCode": "00336817",
+            "reportPeriod": "2024-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20250318001140",
+            "receiptDate": "20250318",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00336817",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40129",
+    "corpCode": "00138747",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:33.682Z",
+    "report": {
+      "receiptNo": "20251114001700",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251114001700",
+            "receiptDate": "20251114",
+            "reportName": "분기보고서 (2025.09)",
+            "corpCode": "00138747",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40130",
+    "corpCode": "00138747",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:33.682Z",
+    "report": {
+      "receiptNo": "20260213002245",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260213002245",
+            "receiptDate": "20260213",
+            "reportName": "반기보고서 (2025.12)",
+            "corpCode": "00138747",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40131",
+    "corpCode": "00138747",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:33.682Z",
+    "report": {
+      "receiptNo": "20250515000597",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250515000597",
+            "receiptDate": "20250515",
+            "reportName": "분기보고서 (2025.03)",
+            "corpCode": "00138747",
+            "reportPeriod": "2025-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40132",
+    "corpCode": "00138747",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:33.682Z",
+    "report": {
+      "receiptNo": "20250912000376",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250912000376",
+            "receiptDate": "20250912",
+            "reportName": "사업보고서 (2025.06)",
+            "corpCode": "00138747",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40133",
+    "corpCode": "00138747",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:03:56.678Z",
+    "report": {
+      "receiptNo": "20241114001401",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241114001401",
+            "receiptDate": "20241114",
+            "reportName": "분기보고서 (2024.09)",
+            "corpCode": "00138747",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40134",
+    "corpCode": "00138747",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:03:56.678Z",
+    "report": {
+      "receiptNo": "20250214002365",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250214002365",
+            "receiptDate": "20250214",
+            "reportName": "반기보고서 (2024.12)",
+            "corpCode": "00138747",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40135",
+    "corpCode": "00138747",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:03:56.678Z",
+    "report": {
+      "receiptNo": "20240516000919",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240516000919",
+            "receiptDate": "20240516",
+            "reportName": "분기보고서 (2024.03)",
+            "corpCode": "00138747",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "40136",
+    "corpCode": "00138747",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:03:56.678Z",
+    "report": {
+      "receiptNo": "20240913000575",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240913000575",
+            "receiptDate": "20240913",
+            "reportName": "사업보고서 (2024.06)",
+            "corpCode": "00138747",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "43168",
+    "corpCode": "00361381",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:42.286Z",
+    "report": {
+      "receiptNo": "20260325000430",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260325000430",
+            "receiptDate": "20260325",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00361381",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260323001116",
+            "receiptDate": "20260323",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00361381",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47656",
+    "corpCode": "00249894",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:46.512Z",
+    "report": {
+      "receiptNo": "20260323000845",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260323000845",
+            "receiptDate": "20260323",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00249894",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260319001163",
+            "receiptDate": "20260319",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00249894",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47961",
+    "corpCode": "00400060",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:50.120Z",
+    "report": {
+      "receiptNo": "20250814000563",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250814000563",
+            "receiptDate": "20250814",
+            "reportName": "분기보고서 (2025.06)",
+            "corpCode": "00400060",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47962",
+    "corpCode": "00400060",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:50.120Z",
+    "report": {
+      "receiptNo": "20251114000637",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-09-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251114000637",
+            "receiptDate": "20251114",
+            "reportName": "반기보고서 (2025.09)",
+            "corpCode": "00400060",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47963",
+    "corpCode": "00400060",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:50.120Z",
+    "report": {
+      "receiptNo": "20260219000228",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260219000228",
+            "receiptDate": "20260219",
+            "reportName": "분기보고서 (2025.12)",
+            "corpCode": "00400060",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47964",
+    "corpCode": "00400060",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:13:50.120Z",
+    "report": {
+      "receiptNo": "20250612000209",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부추가]사업보고서 (2025.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250612000209",
+            "receiptDate": "20250612",
+            "reportName": "[첨부추가]사업보고서 (2025.03)",
+            "corpCode": "00400060",
+            "reportPeriod": "2025-03",
+            "correctionType": "ADDITION",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47965",
+    "corpCode": "00400060",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:08.643Z",
+    "report": {
+      "receiptNo": "20240814001580",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240814001580",
+            "receiptDate": "20240814",
+            "reportName": "분기보고서 (2024.06)",
+            "corpCode": "00400060",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47966",
+    "corpCode": "00400060",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:08.643Z",
+    "report": {
+      "receiptNo": "20241114000376",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241114000376",
+            "receiptDate": "20241114",
+            "reportName": "반기보고서 (2024.09)",
+            "corpCode": "00400060",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47967",
+    "corpCode": "00400060",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:08.643Z",
+    "report": {
+      "receiptNo": "20250214000425",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250214000425",
+            "receiptDate": "20250214",
+            "reportName": "분기보고서 (2024.12)",
+            "corpCode": "00400060",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "47968",
+    "corpCode": "00400060",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:08.643Z",
+    "report": {
+      "receiptNo": "20240613000361",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240613000361",
+            "receiptDate": "20240613",
+            "reportName": "사업보고서 (2024.03)",
+            "corpCode": "00400060",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "50124",
+    "corpCode": "00158307",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:21.467Z",
+    "report": {
+      "receiptNo": "20250312001152",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2023-12",
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250312001152",
+            "receiptDate": "20250312",
+            "reportName": "[첨부정정]사업보고서 (2024.12)",
+            "corpCode": "00158307",
+            "reportPeriod": "2024-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20250312001113",
+            "receiptDate": "20250312",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00158307",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "52628",
+    "corpCode": "00372129",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:05.320Z",
+    "report": {
+      "receiptNo": "20260605000456",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260605000456",
+            "receiptDate": "20260605",
+            "reportName": "[기재정정]사업보고서 (2025.12)",
+            "corpCode": "00372129",
+            "reportPeriod": "2025-12",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260318000902",
+            "receiptDate": "20260318",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00372129",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "53506",
+    "corpCode": "00327396",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:08.687Z",
+    "report": {
+      "receiptNo": "20250818000013",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "[첨부정정]반기보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250818000013",
+            "receiptDate": "20250818",
+            "reportName": "[첨부정정]반기보고서 (2025.06)",
+            "corpCode": "00327396",
+            "reportPeriod": "2025-06",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20250814002118",
+            "receiptDate": "20250814",
+            "reportName": "반기보고서 (2025.06)",
+            "corpCode": "00327396",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54300",
+    "corpCode": "00228059",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:12.630Z",
+    "report": {
+      "receiptNo": "20260324001000",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260324001000",
+            "receiptDate": "20260324",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00228059",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260323001670",
+            "receiptDate": "20260323",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00228059",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54429",
+    "corpCode": "00531078",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:16.594Z",
+    "report": {
+      "receiptNo": "20260219002376",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260219002376",
+            "receiptDate": "20260219",
+            "reportName": "분기보고서 (2025.12)",
+            "corpCode": "00531078",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54430",
+    "corpCode": "00531078",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:16.594Z",
+    "report": {
+      "receiptNo": "20250515001274",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-03-31",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250515001274",
+            "receiptDate": "20250515",
+            "reportName": "반기보고서 (2025.03)",
+            "corpCode": "00531078",
+            "reportPeriod": "2025-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54431",
+    "corpCode": "00531078",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:16.594Z",
+    "report": {
+      "receiptNo": "20250813001263",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250813001263",
+            "receiptDate": "20250813",
+            "reportName": "분기보고서 (2025.06)",
+            "corpCode": "00531078",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54432",
+    "corpCode": "00531078",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:16.594Z",
+    "report": {
+      "receiptNo": "20251229000628",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2025.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-09-30",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251229000628",
+            "receiptDate": "20251229",
+            "reportName": "[기재정정]사업보고서 (2025.09)",
+            "corpCode": "00531078",
+            "reportPeriod": "2025-09",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20251216000482",
+            "receiptDate": "20251216",
+            "reportName": "사업보고서 (2025.09)",
+            "corpCode": "00531078",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54433",
+    "corpCode": "00531078",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:28.110Z",
+    "report": {
+      "receiptNo": "20250214002134",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2023-09",
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250214002134",
+            "receiptDate": "20250214",
+            "reportName": "분기보고서 (2024.12)",
+            "corpCode": "00531078",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54434",
+    "corpCode": "00531078",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:28.110Z",
+    "report": {
+      "receiptNo": "20240529000121",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-03-31",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2023-09",
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240529000121",
+            "receiptDate": "20240529",
+            "reportName": "반기보고서 (2024.03)",
+            "corpCode": "00531078",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54435",
+    "corpCode": "00531078",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:28.110Z",
+    "report": {
+      "receiptNo": "20240829001478",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2023-09",
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240829001478",
+            "receiptDate": "20240829",
+            "reportName": "분기보고서 (2024.06)",
+            "corpCode": "00531078",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54436",
+    "corpCode": "00531078",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:28.110Z",
+    "report": {
+      "receiptNo": "20241230000628",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": 9,
+        "annualPeriods": [
+          "2023-09",
+          "2024-09",
+          "2025-09"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241230000628",
+            "receiptDate": "20241230",
+            "reportName": "[기재정정]사업보고서 (2024.09)",
+            "corpCode": "00531078",
+            "reportPeriod": "2024-09",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20241219000523",
+            "receiptDate": "20241219",
+            "reportName": "사업보고서 (2024.09)",
+            "corpCode": "00531078",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "54652",
+    "corpCode": "00438036",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:20.683Z",
+    "report": {
+      "receiptNo": "20260323001094",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260323001094",
+            "receiptDate": "20260323",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00438036",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260320001267",
+            "receiptDate": "20260320",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00438036",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "55884",
+    "corpCode": "00544452",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:25.012Z",
+    "report": {
+      "receiptNo": "20260908000319",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2024-06",
+          "2024-12",
+          "2025-06",
+          "2025-12",
+          "2026-06"
+        ],
+        "periodError": "MULTIPLE_ANNUAL_PERIODS",
+        "candidates": [
+          {
+            "receiptNo": "20260908000319",
+            "receiptDate": "20260908",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260608000343",
+            "receiptDate": "20260608",
+            "reportName": "[기재정정]사업보고서 (2025.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-12",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260311004577",
+            "receiptDate": "20260311",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20250910000587",
+            "receiptDate": "20250910",
+            "reportName": "사업보고서 (2025.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20250317000839",
+            "receiptDate": "20250317",
+            "reportName": "[기재정정]사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20250317000079",
+            "receiptDate": "20250317",
+            "reportName": "[기재정정]사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "CONTENT",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20250311000546",
+            "receiptDate": "20250311",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20240912000166",
+            "receiptDate": "20240912",
+            "reportName": "사업보고서 (2024.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "55888",
+    "corpCode": "00544452",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:31.470Z",
+    "report": {
+      "receiptNo": "20260608000343",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2023-06",
+          "2023-12",
+          "2024-06",
+          "2024-12",
+          "2025-06",
+          "2025-12"
+        ],
+        "periodError": "MULTIPLE_ANNUAL_PERIODS",
+        "candidates": [
+          {
+            "receiptNo": "20260608000343",
+            "receiptDate": "20260608",
+            "reportName": "[기재정정]사업보고서 (2025.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-12",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260311004577",
+            "receiptDate": "20260311",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20250910000587",
+            "receiptDate": "20250910",
+            "reportName": "사업보고서 (2025.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20250317000839",
+            "receiptDate": "20250317",
+            "reportName": "[기재정정]사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "CONTENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20250317000079",
+            "receiptDate": "20250317",
+            "reportName": "[기재정정]사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "CONTENT",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20250311000546",
+            "receiptDate": "20250311",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20240912000166",
+            "receiptDate": "20240912",
+            "reportName": "사업보고서 (2024.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20240314000743",
+            "receiptDate": "20240314",
+            "reportName": "사업보고서 (2023.12)",
+            "corpCode": "00544452",
+            "reportPeriod": "2023-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20230912000170",
+            "receiptDate": "20230912",
+            "reportName": "사업보고서 (2023.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2023-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "56548",
+    "corpCode": "00357935",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:33.310Z",
+    "report": {
+      "receiptNo": "20250812000172",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2023-12",
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250812000172",
+            "receiptDate": "20250812",
+            "reportName": "[첨부정정]사업보고서 (2024.12)",
+            "corpCode": "00357935",
+            "reportPeriod": "2024-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20250812000160",
+            "receiptDate": "20250812",
+            "reportName": "[기재정정]사업보고서 (2024.12)",
+            "corpCode": "00357935",
+            "reportPeriod": "2024-12",
+            "correctionType": "CONTENT",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20250318000816",
+            "receiptDate": "20250318",
+            "reportName": "사업보고서 (2024.12)",
+            "corpCode": "00357935",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "56588",
+    "corpCode": "00555874",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:26.935Z",
+    "report": {
+      "receiptNo": "20260515002339",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515002339",
+            "receiptDate": "20260515",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00555874",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260318001439",
+            "receiptDate": "20260318",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00555874",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "57072",
+    "corpCode": "00536523",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:30.990Z",
+    "report": {
+      "receiptNo": "20260424000350",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260424000350",
+            "receiptDate": "20260424",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00536523",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260331004501",
+            "receiptDate": "20260331",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00536523",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20260312000793",
+            "receiptDate": "20260312",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00536523",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "57996",
+    "corpCode": "00589127",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:35.132Z",
+    "report": {
+      "receiptNo": "20260319000653",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260319000653",
+            "receiptDate": "20260319",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00589127",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260319000580",
+            "receiptDate": "20260319",
+            "reportName": "사업보고서 (2025.12)",
+            "corpCode": "00589127",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58125",
+    "corpCode": "00106614",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:39.293Z",
+    "report": {
+      "receiptNo": "20250813001189",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250813001189",
+            "receiptDate": "20250813",
+            "reportName": "분기보고서 (2025.06)",
+            "corpCode": "00106614",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58126",
+    "corpCode": "00106614",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:39.293Z",
+    "report": {
+      "receiptNo": "20251113000800",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-09-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251113000800",
+            "receiptDate": "20251113",
+            "reportName": "반기보고서 (2025.09)",
+            "corpCode": "00106614",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58127",
+    "corpCode": "00106614",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:39.293Z",
+    "report": {
+      "receiptNo": "20260213002387",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260213002387",
+            "receiptDate": "20260213",
+            "reportName": "분기보고서 (2025.12)",
+            "corpCode": "00106614",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58128",
+    "corpCode": "00106614",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:39.293Z",
+    "report": {
+      "receiptNo": "20250612000335",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2025.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2024-03",
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250612000335",
+            "receiptDate": "20250612",
+            "reportName": "사업보고서 (2025.03)",
+            "corpCode": "00106614",
+            "reportPeriod": "2025-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58129",
+    "corpCode": "00106614",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:37.435Z",
+    "report": {
+      "receiptNo": "20240813001181",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240813001181",
+            "receiptDate": "20240813",
+            "reportName": "분기보고서 (2024.06)",
+            "corpCode": "00106614",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58130",
+    "corpCode": "00106614",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:37.435Z",
+    "report": {
+      "receiptNo": "20241114002028",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241114002028",
+            "receiptDate": "20241114",
+            "reportName": "반기보고서 (2024.09)",
+            "corpCode": "00106614",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58131",
+    "corpCode": "00106614",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:37.435Z",
+    "report": {
+      "receiptNo": "20250213001485",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250213001485",
+            "receiptDate": "20250213",
+            "reportName": "분기보고서 (2024.12)",
+            "corpCode": "00106614",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58132",
+    "corpCode": "00106614",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:37.435Z",
+    "report": {
+      "receiptNo": "20240613000239",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2023-03",
+          "2024-03",
+          "2025-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240613000239",
+            "receiptDate": "20240613",
+            "reportName": "사업보고서 (2024.03)",
+            "corpCode": "00106614",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58521",
+    "corpCode": "00441243",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:47.257Z",
+    "report": {
+      "receiptNo": "20251114000172",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251114000172",
+            "receiptDate": "20251114",
+            "reportName": "분기보고서 (2025.09)",
+            "corpCode": "00441243",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58522",
+    "corpCode": "00441243",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:47.257Z",
+    "report": {
+      "receiptNo": "20260213001289",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260213001289",
+            "receiptDate": "20260213",
+            "reportName": "반기보고서 (2025.12)",
+            "corpCode": "00441243",
+            "reportPeriod": "2025-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58523",
+    "corpCode": "00441243",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:47.257Z",
+    "report": {
+      "receiptNo": "20250515001612",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250515001612",
+            "receiptDate": "20250515",
+            "reportName": "분기보고서 (2025.03)",
+            "corpCode": "00441243",
+            "reportPeriod": "2025-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58524",
+    "corpCode": "00441243",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:47.257Z",
+    "report": {
+      "receiptNo": "20250919000232",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2025.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2024-06",
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250919000232",
+            "receiptDate": "20250919",
+            "reportName": "사업보고서 (2025.06)",
+            "corpCode": "00441243",
+            "reportPeriod": "2025-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58525",
+    "corpCode": "00441243",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:45.405Z",
+    "report": {
+      "receiptNo": "20241114001591",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.09)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-09-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241114001591",
+            "receiptDate": "20241114",
+            "reportName": "분기보고서 (2024.09)",
+            "corpCode": "00441243",
+            "reportPeriod": "2024-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58526",
+    "corpCode": "00441243",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:45.405Z",
+    "report": {
+      "receiptNo": "20250214001313",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-12-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250214001313",
+            "receiptDate": "20250214",
+            "reportName": "반기보고서 (2024.12)",
+            "corpCode": "00441243",
+            "reportPeriod": "2024-12",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58527",
+    "corpCode": "00441243",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:45.405Z",
+    "report": {
+      "receiptNo": "20240516000941",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240516000941",
+            "receiptDate": "20240516",
+            "reportName": "분기보고서 (2024.03)",
+            "corpCode": "00441243",
+            "reportPeriod": "2024-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58528",
+    "corpCode": "00441243",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:45.405Z",
+    "report": {
+      "receiptNo": "20240920000129",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2023-06",
+          "2024-06",
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240920000129",
+            "receiptDate": "20240920",
+            "reportName": "사업보고서 (2024.06)",
+            "corpCode": "00441243",
+            "reportPeriod": "2024-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58653",
+    "corpCode": "00155373",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:53.427Z",
+    "report": {
+      "receiptNo": "20260114000285",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2025.11)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-11-30",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260114000285",
+            "receiptDate": "20260114",
+            "reportName": "분기보고서 (2025.11)",
+            "corpCode": "00155373",
+            "reportPeriod": "2025-11",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58654",
+    "corpCode": "00155373",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:53.427Z",
+    "report": {
+      "receiptNo": "20250414002336",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2025.02)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-02-28",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250414002336",
+            "receiptDate": "20250414",
+            "reportName": "반기보고서 (2025.02)",
+            "corpCode": "00155373",
+            "reportPeriod": "2025-02",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58655",
+    "corpCode": "00155373",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:53.427Z",
+    "report": {
+      "receiptNo": "20250715000239",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2025.05)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-05-31",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250715000239",
+            "receiptDate": "20250715",
+            "reportName": "분기보고서 (2025.05)",
+            "corpCode": "00155373",
+            "reportPeriod": "2025-05",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58656",
+    "corpCode": "00155373",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:14:53.427Z",
+    "report": {
+      "receiptNo": "20251117000158",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2025.08)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-08-31",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20251117000158",
+            "receiptDate": "20251117",
+            "reportName": "사업보고서 (2025.08)",
+            "corpCode": "00155373",
+            "reportPeriod": "2025-08",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58657",
+    "corpCode": "00155373",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:51.555Z",
+    "report": {
+      "receiptNo": "20250114000366",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2024.11)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-11-30",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2023-08",
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20250114000366",
+            "receiptDate": "20250114",
+            "reportName": "분기보고서 (2024.11)",
+            "corpCode": "00155373",
+            "reportPeriod": "2024-11",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58658",
+    "corpCode": "00155373",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:51.555Z",
+    "report": {
+      "receiptNo": "20240415000881",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2024.02)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-02-29",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2023-08",
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240415000881",
+            "receiptDate": "20240415",
+            "reportName": "반기보고서 (2024.02)",
+            "corpCode": "00155373",
+            "reportPeriod": "2024-02",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58659",
+    "corpCode": "00155373",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:51.555Z",
+    "report": {
+      "receiptNo": "20240712000443",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2024.05)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-05-31",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2023-08",
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20240712000443",
+            "receiptDate": "20240712",
+            "reportName": "분기보고서 (2024.05)",
+            "corpCode": "00155373",
+            "reportPeriod": "2024-05",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "58660",
+    "corpCode": "00155373",
+    "fiscalYear": 2024,
+    "expiresAt": "2026-10-13T20:04:51.555Z",
+    "report": {
+      "receiptNo": "20241111000376",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2024.08)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2024,
+        "apiFiscalYear": 2024,
+        "periodEndDate": "2024-08-31",
+        "fiscalYearEndMonth": 8,
+        "annualPeriods": [
+          "2023-08",
+          "2024-08",
+          "2025-08"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20241111000376",
+            "receiptDate": "20241111",
+            "reportName": "사업보고서 (2024.08)",
+            "corpCode": "00155373",
+            "reportPeriod": "2024-08",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "69216",
+    "corpCode": "00664853",
+    "fiscalYear": 2025,
+    "expiresAt": "2026-10-13T19:58:58.482Z",
+    "report": {
+      "receiptNo": "20260318001500",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2025.12)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2025,
+        "apiFiscalYear": 2025,
+        "periodEndDate": "2025-12-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2024-12",
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260318001500",
+            "receiptDate": "20260318",
+            "reportName": "[첨부정정]사업보고서 (2025.12)",
+            "corpCode": "00664853",
+            "reportPeriod": "2025-12",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260318001183",
+            "receiptDate": "20260318",
+            "reportName": "[첨부추가]사업보고서 (2025.12)",
+            "corpCode": "00664853",
+            "reportPeriod": "2025-12",
+            "correctionType": "ADDITION",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "113975",
+    "corpCode": "01170962",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:15:48.308Z",
+    "report": {
+      "receiptNo": "20260601000609",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260601000609",
+            "receiptDate": "20260601",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "01170962",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "114195",
+    "corpCode": "00120872",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:16:07.167Z",
+    "report": {
+      "receiptNo": "20260514000007",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260514000007",
+            "receiptDate": "20260514",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00120872",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "114196",
+    "corpCode": "00120872",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:16:07.167Z",
+    "report": {
+      "receiptNo": "20260910000496",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260910000496",
+            "receiptDate": "20260910",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00120872",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "114461",
+    "corpCode": "00141626",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:16:19.760Z",
+    "report": {
+      "receiptNo": "20260814002966",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260814002966",
+            "receiptDate": "20260814",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00141626",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "114464",
+    "corpCode": "00141626",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:16:19.760Z",
+    "report": {
+      "receiptNo": "20260619000626",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260619000626",
+            "receiptDate": "20260619",
+            "reportName": "[기재정정]사업보고서 (2026.03)",
+            "corpCode": "00141626",
+            "reportPeriod": "2026-03",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260619000593",
+            "receiptDate": "20260619",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00141626",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116049",
+    "corpCode": "00118008",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:34.530Z",
+    "report": {
+      "receiptNo": "20260814002059",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260814002059",
+            "receiptDate": "20260814",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00118008",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116052",
+    "corpCode": "00118008",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:34.530Z",
+    "report": {
+      "receiptNo": "20260624000498",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[첨부정정]사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260624000498",
+            "receiptDate": "20260624",
+            "reportName": "[첨부정정]사업보고서 (2026.03)",
+            "corpCode": "00118008",
+            "reportPeriod": "2026-03",
+            "correctionType": "ATTACHMENT",
+            "remarks": "연"
+          },
+          {
+            "receiptNo": "20260622000166",
+            "receiptDate": "20260622",
+            "reportName": "[기재정정]사업보고서 (2026.03)",
+            "corpCode": "00118008",
+            "reportPeriod": "2026-03",
+            "correctionType": "CONTENT",
+            "remarks": "정연"
+          },
+          {
+            "receiptNo": "20260619000676",
+            "receiptDate": "20260619",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00118008",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116133",
+    "corpCode": "00110875",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:48.884Z",
+    "report": {
+      "receiptNo": "20260814000310",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260814000310",
+            "receiptDate": "20260814",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00110875",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116136",
+    "corpCode": "00110875",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:48.884Z",
+    "report": {
+      "receiptNo": "20260814000272",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "[기재정정]사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260814000272",
+            "receiptDate": "20260814",
+            "reportName": "[기재정정]사업보고서 (2026.03)",
+            "corpCode": "00110875",
+            "reportPeriod": "2026-03",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260618000361",
+            "receiptDate": "20260618",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00110875",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116179",
+    "corpCode": "00134316",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:55.048Z",
+    "report": {
+      "receiptNo": "20260515001647",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515001647",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00134316",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116180",
+    "corpCode": "00134316",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:17:55.048Z",
+    "report": {
+      "receiptNo": "20260922000499",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260922000499",
+            "receiptDate": "20260922",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00134316",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116233",
+    "corpCode": "00149594",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:18:11.712Z",
+    "report": {
+      "receiptNo": "20260519000148",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "[첨부정정]분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260519000148",
+            "receiptDate": "20260519",
+            "reportName": "[첨부정정]분기보고서 (2026.03)",
+            "corpCode": "00149594",
+            "reportPeriod": "2026-03",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260514000652",
+            "receiptDate": "20260514",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00149594",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116543",
+    "corpCode": "00139685",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:20:43.868Z",
+    "report": {
+      "receiptNo": "20260515000650",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515000650",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00139685",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116544",
+    "corpCode": "00139685",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:20:43.868Z",
+    "report": {
+      "receiptNo": "20260910000305",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260910000305",
+            "receiptDate": "20260910",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00139685",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116635",
+    "corpCode": "00231691",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:21:27.377Z",
+    "report": {
+      "receiptNo": "20260515002640",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515002640",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00231691",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116636",
+    "corpCode": "00231691",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:21:27.377Z",
+    "report": {
+      "receiptNo": "20260921000275",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260921000275",
+            "receiptDate": "20260921",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00231691",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116681",
+    "corpCode": "00241209",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:21:52.773Z",
+    "report": {
+      "receiptNo": "20260813000800",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260813000800",
+            "receiptDate": "20260813",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00241209",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "116684",
+    "corpCode": "00241209",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:21:52.773Z",
+    "report": {
+      "receiptNo": "20260616000373",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260616000373",
+            "receiptDate": "20260616",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00241209",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "117611",
+    "corpCode": "00138747",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:29:45.537Z",
+    "report": {
+      "receiptNo": "20260515002028",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515002028",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00138747",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "117612",
+    "corpCode": "00138747",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:29:45.537Z",
+    "report": {
+      "receiptNo": "20260911000401",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260911000401",
+            "receiptDate": "20260911",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00138747",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "118028",
+    "corpCode": "00378363",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:15:13.497Z",
+    "report": {
+      "receiptNo": "20260617000470",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260617000470",
+            "receiptDate": "20260617",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00378363",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "118321",
+    "corpCode": "00400060",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:35:49.417Z",
+    "report": {
+      "receiptNo": "20260811000105",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260811000105",
+            "receiptDate": "20260811",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00400060",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "118324",
+    "corpCode": "00400060",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:35:49.417Z",
+    "report": {
+      "receiptNo": "20260611000424",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260611000424",
+            "receiptDate": "20260611",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00400060",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "118457",
+    "corpCode": "00367482",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:37:04.126Z",
+    "report": {
+      "receiptNo": "20260605000645",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "[기재정정]분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260605000645",
+            "receiptDate": "20260605",
+            "reportName": "[기재정정]분기보고서 (2026.03)",
+            "corpCode": "00367482",
+            "reportPeriod": "2026-03",
+            "correctionType": "CONTENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260515001754",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00367482",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "118550",
+    "corpCode": "00583026",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:37:51.397Z",
+    "report": {
+      "receiptNo": "20260814004068",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "[첨부정정]반기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260814004068",
+            "receiptDate": "20260814",
+            "reportName": "[첨부정정]반기보고서 (2026.06)",
+            "corpCode": "00583026",
+            "reportPeriod": "2026-06",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260814002334",
+            "receiptDate": "20260814",
+            "reportName": "[첨부추가]반기보고서 (2026.06)",
+            "corpCode": "00583026",
+            "reportPeriod": "2026-06",
+            "correctionType": "ADDITION",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119042",
+    "corpCode": "00544452",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:42:08.461Z",
+    "report": {
+      "receiptNo": "20260515001091",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "반기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2025-06",
+          "2025-12",
+          "2026-06"
+        ],
+        "periodError": "CLOSING_MONTH_CHANGED",
+        "candidates": [
+          {
+            "receiptNo": "20260515001091",
+            "receiptDate": "20260515",
+            "reportName": "반기보고서 (2026.03)",
+            "corpCode": "00544452",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20251114001803",
+            "receiptDate": "20251114",
+            "reportName": "반기보고서 (2025.09)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-09",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20250515000324",
+            "receiptDate": "20250515",
+            "reportName": "반기보고서 (2025.03)",
+            "corpCode": "00544452",
+            "reportPeriod": "2025-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119044",
+    "corpCode": "00544452",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:42:08.461Z",
+    "report": {
+      "receiptNo": "20260908000319",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": null,
+        "annualPeriods": [
+          "2025-06",
+          "2025-12",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260908000319",
+            "receiptDate": "20260908",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00544452",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119245",
+    "corpCode": "00106614",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:43:53.098Z",
+    "report": {
+      "receiptNo": "20260813001407",
+      "reportCode": "11013",
+      "periodType": "Q1",
+      "reportName": "분기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260813001407",
+            "receiptDate": "20260813",
+            "reportName": "분기보고서 (2026.06)",
+            "corpCode": "00106614",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119248",
+    "corpCode": "00106614",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:43:53.098Z",
+    "report": {
+      "receiptNo": "20260611000504",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 3,
+        "annualPeriods": [
+          "2025-03",
+          "2026-03"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260611000504",
+            "receiptDate": "20260611",
+            "reportName": "사업보고서 (2026.03)",
+            "corpCode": "00106614",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119283",
+    "corpCode": "00441243",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:44:13.985Z",
+    "report": {
+      "receiptNo": "20260515002424",
+      "reportCode": "11014",
+      "periodType": "Q3",
+      "reportName": "분기보고서 (2026.03)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-03-31",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260515002424",
+            "receiptDate": "20260515",
+            "reportName": "분기보고서 (2026.03)",
+            "corpCode": "00441243",
+            "reportPeriod": "2026-03",
+            "correctionType": "ORIGINAL",
+            "remarks": ""
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "119284",
+    "corpCode": "00441243",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T18:44:13.985Z",
+    "report": {
+      "receiptNo": "20260921000083",
+      "reportCode": "11011",
+      "periodType": "ANNUAL",
+      "reportName": "사업보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 6,
+        "annualPeriods": [
+          "2025-06",
+          "2026-06"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260921000083",
+            "receiptDate": "20260921",
+            "reportName": "사업보고서 (2026.06)",
+            "corpCode": "00441243",
+            "reportPeriod": "2026-06",
+            "correctionType": "ORIGINAL",
+            "remarks": "연"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "taskId": "120314",
+    "corpCode": "00858124",
+    "fiscalYear": 2026,
+    "expiresAt": "2026-10-13T19:12:24.269Z",
+    "report": {
+      "receiptNo": "20260929000169",
+      "reportCode": "11012",
+      "periodType": "Q2",
+      "reportName": "[첨부정정]반기보고서 (2026.06)",
+      "withdrawn": false,
+      "selection": {
+        "version": 2,
+        "yearMapping": "CALENDAR_REPORT_YEAR",
+        "taskFiscalYear": 2026,
+        "apiFiscalYear": 2026,
+        "periodEndDate": "2026-06-30",
+        "fiscalYearEndMonth": 12,
+        "annualPeriods": [
+          "2025-12"
+        ],
+        "candidates": [
+          {
+            "receiptNo": "20260929000169",
+            "receiptDate": "20260929",
+            "reportName": "[첨부정정]반기보고서 (2026.06)",
+            "corpCode": "00858124",
+            "reportPeriod": "2026-06",
+            "correctionType": "ATTACHMENT",
+            "remarks": ""
+          },
+          {
+            "receiptNo": "20260814002367",
+            "receiptDate": "20260814",
+            "reportName": "[첨부추가]반기보고서 (2026.06)",
+            "corpCode": "00858124",
+            "reportPeriod": "2026-06",
+            "correctionType": "ADDITION",
+            "remarks": "정"
+          }
+        ]
+      }
+    }
+  }
+]
